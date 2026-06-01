@@ -5,18 +5,41 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
-class CinematicBuilderWorkspace extends StatelessWidget {
+class CinematicBuilderWorkspace extends StatefulWidget {
   const CinematicBuilderWorkspace({
     super.key,
     required this.entry,
+    required this.asset,
     required this.onBackToLibrary,
   });
 
   final CinematicsLibraryEntry entry;
+  final CinematicAsset asset;
   final VoidCallback onBackToLibrary;
 
   @override
+  State<CinematicBuilderWorkspace> createState() =>
+      _CinematicBuilderWorkspaceState();
+}
+
+class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
+  String? _selectedStepId;
+
+  @override
+  void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final sameCinematic = oldWidget.asset.id == widget.asset.id;
+    if (!sameCinematic || !_hasStep(widget.asset, _selectedStepId)) {
+      _selectedStepId = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final selectedStep = _selectedStep(widget.asset, _selectedStepId);
+    final selectedStepIndex = selectedStep == null
+        ? null
+        : widget.asset.timeline.steps.indexOf(selectedStep);
     return Material(
       type: MaterialType.transparency,
       child: PokeMapPageSurface(
@@ -24,7 +47,10 @@ class CinematicBuilderWorkspace extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _BuilderHeader(entry: entry, onBackToLibrary: onBackToLibrary),
+            _BuilderHeader(
+              entry: widget.entry,
+              onBackToLibrary: widget.onBackToLibrary,
+            ),
             const SizedBox(height: 12),
             Expanded(
               child: Row(
@@ -32,18 +58,31 @@ class CinematicBuilderWorkspace extends StatelessWidget {
                 children: [
                   SizedBox(
                     width: 250,
-                    child: _BlockPalette(entry: entry),
+                    child: _BlockPalette(entry: widget.entry),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: _PreviewSandbox(entry: entry)),
+                        Expanded(
+                          child: _PreviewSandbox(
+                            entry: widget.entry,
+                            selectedStep: selectedStep,
+                            selectedStepIndex: selectedStepIndex,
+                          ),
+                        ),
                         const SizedBox(height: 12),
                         SizedBox(
                           height: 220,
-                          child: _TimelinePlaceholder(entry: entry),
+                          child: _TimelinePlaceholder(
+                            entry: widget.entry,
+                            asset: widget.asset,
+                            selectedStepId: _selectedStepId,
+                            onStepSelected: (step) {
+                              setState(() => _selectedStepId = step.id);
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -51,7 +90,12 @@ class CinematicBuilderWorkspace extends StatelessWidget {
                   const SizedBox(width: 12),
                   SizedBox(
                     width: 300,
-                    child: _InspectorPlaceholder(entry: entry),
+                    child: _InspectorPlaceholder(
+                      entry: widget.entry,
+                      asset: widget.asset,
+                      selectedStep: selectedStep,
+                      selectedStepIndex: selectedStepIndex,
+                    ),
                   ),
                 ],
               ),
@@ -311,9 +355,15 @@ class _PaletteBlockTile extends StatelessWidget {
 }
 
 class _PreviewSandbox extends StatelessWidget {
-  const _PreviewSandbox({required this.entry});
+  const _PreviewSandbox({
+    required this.entry,
+    required this.selectedStep,
+    required this.selectedStepIndex,
+  });
 
   final CinematicsLibraryEntry entry;
+  final CinematicTimelineStep? selectedStep;
+  final int? selectedStepIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -370,6 +420,17 @@ class _PreviewSandbox extends StatelessWidget {
                   ),
                 ],
               ),
+              if (selectedStep != null && selectedStepIndex != null) ...[
+                const SizedBox(height: 12),
+                const _MutedText('Preview réelle à venir. Bloc sélectionné :'),
+                const SizedBox(height: 6),
+                PokeMapBadge(
+                  label: '${selectedStepIndex! + 1}. '
+                      '${_stepTitle(selectedStep!, selectedStepIndex!)} • '
+                      '${selectedStep!.kind.name}',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
             ],
           ),
         ),
@@ -379,18 +440,27 @@ class _PreviewSandbox extends StatelessWidget {
 }
 
 class _TimelinePlaceholder extends StatelessWidget {
-  const _TimelinePlaceholder({required this.entry});
+  const _TimelinePlaceholder({
+    required this.entry,
+    required this.asset,
+    required this.selectedStepId,
+    required this.onStepSelected,
+  });
 
   final CinematicsLibraryEntry entry;
+  final CinematicAsset asset;
+  final String? selectedStepId;
+  final ValueChanged<CinematicTimelineStep> onStepSelected;
 
   @override
   Widget build(BuildContext context) {
     final timeline = entry.timeline;
+    final steps = asset.timeline.steps;
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-timeline-placeholder'),
       expandChild: true,
       padding: const EdgeInsets.all(12),
-      child: timeline.isEmpty
+      child: steps.isEmpty
           ? const _EmptyTimelineState()
           : SingleChildScrollView(
               child: Column(
@@ -398,7 +468,7 @@ class _TimelinePlaceholder extends StatelessWidget {
                 children: [
                   const _SectionTitle(
                     title: 'Déroulé read-only',
-                    subtitle: 'Résumé issu du CinematicAsset',
+                    subtitle: 'Steps existants dans l’ordre',
                   ),
                   const SizedBox(height: 8),
                   Wrap(
@@ -427,30 +497,106 @@ class _TimelinePlaceholder extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  if (timeline.stepKindLabels.isNotEmpty)
-                    _KeyValue(
-                      label: 'Types',
-                      value: timeline.stepKindLabels.join(', '),
+                  for (final indexedStep in steps.asMap().entries) ...[
+                    _TimelineStepCard(
+                      asset: asset,
+                      step: indexedStep.value,
+                      index: indexedStep.key,
+                      selected: selectedStepId == indexedStep.value.id,
+                      onTap: () => onStepSelected(indexedStep.value),
                     ),
-                  if (timeline.previewLabels.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    const _MutedText('Aperçu textuel des blocs'),
-                    const SizedBox(height: 6),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final label in timeline.previewLabels)
-                          PokeMapBadge(
-                            label: label,
-                            variant: PokeMapBadgeVariant.info,
-                          ),
-                      ],
-                    ),
+                    const SizedBox(height: 8),
                   ],
                 ],
               ),
             ),
+    );
+  }
+}
+
+class _TimelineStepCard extends StatelessWidget {
+  const _TimelineStepCard({
+    required this.asset,
+    required this.step,
+    required this.index,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final int index;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final diagnostics = _stepDiagnostics(asset, step);
+    return PokeMapCard(
+      key: ValueKey('cinematic-builder-step-card-${step.id}'),
+      selected: selected,
+      onTap: onTap,
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              PokeMapBadge(
+                label: '${index + 1}',
+                variant: selected
+                    ? PokeMapBadgeVariant.info
+                    : PokeMapBadgeVariant.neutral,
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: _StrongText(_stepTitle(step, index))),
+              const SizedBox(width: 8),
+              PokeMapBadge(
+                label: step.kind.name,
+                variant: PokeMapBadgeVariant.narrative,
+              ),
+              if (selected) ...[
+                const SizedBox(width: 6),
+                const PokeMapBadge(
+                  label: 'Sélectionné',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              PokeMapBadge(
+                label: _stepDurationLabel(step),
+                variant: PokeMapBadgeVariant.neutral,
+              ),
+              if (step.actorId != null)
+                PokeMapBadge(
+                  label: step.actorId!,
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+              if (step.targetId != null)
+                PokeMapBadge(
+                  label: step.targetId!,
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              if (step.assetRef != null)
+                PokeMapBadge(
+                  label: step.assetRef!,
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              if (diagnostics.isNotEmpty)
+                PokeMapBadge(
+                  label: '${diagnostics.length} diagnostic(s)',
+                  variant: _diagnosticVariant(diagnostics.first.severity),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -478,12 +624,22 @@ class _EmptyTimelineState extends StatelessWidget {
 }
 
 class _InspectorPlaceholder extends StatelessWidget {
-  const _InspectorPlaceholder({required this.entry});
+  const _InspectorPlaceholder({
+    required this.entry,
+    required this.asset,
+    required this.selectedStep,
+    required this.selectedStepIndex,
+  });
 
   final CinematicsLibraryEntry entry;
+  final CinematicAsset asset;
+  final CinematicTimelineStep? selectedStep;
+  final int? selectedStepIndex;
 
   @override
   Widget build(BuildContext context) {
+    final selected = selectedStep;
+    final selectedIndex = selectedStepIndex;
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-inspector-placeholder'),
       expandChild: true,
@@ -497,7 +653,14 @@ class _InspectorPlaceholder extends StatelessWidget {
               subtitle: 'Bloc sélectionné',
             ),
             const SizedBox(height: 10),
-            const _EmptySelectionCard(),
+            if (selected == null || selectedIndex == null)
+              const _EmptySelectionCard()
+            else
+              _SelectedStepInspector(
+                asset: asset,
+                step: selected,
+                index: selectedIndex,
+              ),
             const SizedBox(height: 12),
             const _SectionTitle(
               title: 'Métadonnées',
@@ -533,10 +696,101 @@ class _InspectorPlaceholder extends StatelessWidget {
                   : entry.usages.map((usage) => usage.sceneTitle).join(', '),
             ),
             const SizedBox(height: 8),
-            _DiagnosticsSummary(entry: entry),
+            _DiagnosticsSummary(
+              entry: entry,
+              selectedStepId: selected?.id,
+            ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SelectedStepInspector extends StatelessWidget {
+  const _SelectedStepInspector({
+    required this.asset,
+    required this.step,
+    required this.index,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final diagnostics = _stepDiagnostics(asset, step);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SectionTitle(
+          title: 'Bloc sélectionné',
+          subtitle: step.id,
+        ),
+        const SizedBox(height: 8),
+        _KeyValue(label: 'Titre', value: _stepTitle(step, index)),
+        _KeyValue(label: 'Id', value: step.id),
+        _KeyValue(label: 'Index', value: '${index + 1}'),
+        _KeyValue(label: 'Kind', value: step.kind.name),
+        _KeyValue(label: 'Durée', value: _stepDurationLabel(step)),
+        _KeyValue(label: 'Actor', value: step.actorId ?? 'Aucun acteur'),
+        _KeyValue(label: 'Cible', value: step.targetId ?? 'Aucune cible'),
+        _KeyValue(
+          label: 'Dialogue',
+          value: step.dialogueText ?? 'Aucun texte cinematic',
+        ),
+        _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
+        _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+        const _KeyValue(
+          label: 'Preview',
+          value: 'Preview réelle à venir.',
+        ),
+        const _KeyValue(
+          label: 'Statut runtime',
+          value: 'Lecture read-only dans ce lot.',
+        ),
+        const SizedBox(height: 8),
+        _StepDiagnosticsSummary(diagnostics: diagnostics),
+      ],
+    );
+  }
+}
+
+class _StepDiagnosticsSummary extends StatelessWidget {
+  const _StepDiagnosticsSummary({required this.diagnostics});
+
+  final List<CinematicDiagnostic> diagnostics;
+
+  @override
+  Widget build(BuildContext context) {
+    if (diagnostics.isEmpty) {
+      return const PokeMapBadge(
+        label: 'Bloc OK',
+        variant: PokeMapBadgeVariant.success,
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _SectionTitle(
+          title: 'Diagnostics',
+          subtitle: 'Contexte du bloc',
+        ),
+        const SizedBox(height: 8),
+        for (final diagnostic in diagnostics) ...[
+          PokeMapBadge(
+            label: _diagnosticSeverityLabel(diagnostic.severity),
+            variant: _diagnosticVariant(diagnostic.severity),
+          ),
+          const SizedBox(height: 6),
+          _KeyValue(label: 'Code', value: diagnostic.code.name),
+          _MutedText(diagnostic.message),
+          const SizedBox(height: 4),
+          const _MutedText('Aucune action de correction dans ce lot.'),
+          const SizedBox(height: 8),
+        ],
+      ],
     );
   }
 }
@@ -553,6 +807,8 @@ class _EmptySelectionCard extends StatelessWidget {
           _StrongText('Aucun bloc sélectionné'),
           SizedBox(height: 4),
           _MutedText('Sélection de bloc à venir'),
+          SizedBox(height: 4),
+          _MutedText('Sélectionnez un bloc existant dans le déroulé.'),
         ],
       ),
     );
@@ -560,13 +816,20 @@ class _EmptySelectionCard extends StatelessWidget {
 }
 
 class _DiagnosticsSummary extends StatelessWidget {
-  const _DiagnosticsSummary({required this.entry});
+  const _DiagnosticsSummary({
+    required this.entry,
+    required this.selectedStepId,
+  });
 
   final CinematicsLibraryEntry entry;
+  final String? selectedStepId;
 
   @override
   Widget build(BuildContext context) {
-    if (entry.diagnostics.isEmpty) {
+    final diagnostics = entry.diagnostics
+        .where((diagnostic) => diagnostic.sourceId != selectedStepId)
+        .toList(growable: false);
+    if (diagnostics.isEmpty) {
       return const PokeMapBadge(
         label: 'Aucun diagnostic',
         variant: PokeMapBadgeVariant.success,
@@ -575,9 +838,9 @@ class _DiagnosticsSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final diagnostic in entry.diagnostics) ...[
+        for (final diagnostic in diagnostics) ...[
           PokeMapBadge(
-            label: diagnostic.code,
+            label: _libraryDiagnosticSeverityLabel(diagnostic.severity),
             variant: switch (diagnostic.severity) {
               CinematicsLibraryDiagnosticSeverity.error =>
                 PokeMapBadgeVariant.error,
@@ -588,6 +851,7 @@ class _DiagnosticsSummary extends StatelessWidget {
             },
           ),
           const SizedBox(height: 6),
+          _KeyValue(label: 'Code', value: diagnostic.code),
           _MutedText(diagnostic.message),
           const SizedBox(height: 8),
         ],
@@ -766,4 +1030,81 @@ const _paletteBlocks = [
 String _durationLabel(CinematicTimelineSummary timeline) {
   final duration = timeline.estimatedDurationMs;
   return duration == null ? 'Durée non calculable' : '$duration ms estimé(s)';
+}
+
+bool _hasStep(CinematicAsset asset, String? stepId) {
+  if (stepId == null) {
+    return true;
+  }
+  return asset.timeline.steps.any((step) => step.id == stepId);
+}
+
+CinematicTimelineStep? _selectedStep(CinematicAsset asset, String? stepId) {
+  if (stepId == null) {
+    return null;
+  }
+  for (final step in asset.timeline.steps) {
+    if (step.id == stepId) {
+      return step;
+    }
+  }
+  return null;
+}
+
+String _stepTitle(CinematicTimelineStep step, int index) {
+  final label = step.label;
+  if (label != null && label.trim().isNotEmpty) {
+    return label;
+  }
+  return 'Step ${index + 1}';
+}
+
+String _stepDurationLabel(CinematicTimelineStep step) {
+  final duration = step.durationMs;
+  return duration == null ? 'Durée non renseignée' : '$duration ms';
+}
+
+String _metadataLabel(Map<String, String> metadata) {
+  if (metadata.isEmpty) {
+    return 'Aucune metadata';
+  }
+  final entries = metadata.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return entries.map((entry) => '${entry.key} = ${entry.value}').join(', ');
+}
+
+List<CinematicDiagnostic> _stepDiagnostics(
+  CinematicAsset asset,
+  CinematicTimelineStep step,
+) {
+  return diagnoseCinematicAsset(asset)
+      .diagnostics
+      .where((diagnostic) => diagnostic.stepId == step.id)
+      .toList(growable: false);
+}
+
+PokeMapBadgeVariant _diagnosticVariant(CinematicDiagnosticSeverity severity) {
+  return switch (severity) {
+    CinematicDiagnosticSeverity.error => PokeMapBadgeVariant.error,
+    CinematicDiagnosticSeverity.warning => PokeMapBadgeVariant.warning,
+    CinematicDiagnosticSeverity.info => PokeMapBadgeVariant.info,
+  };
+}
+
+String _diagnosticSeverityLabel(CinematicDiagnosticSeverity severity) {
+  return switch (severity) {
+    CinematicDiagnosticSeverity.error => 'Erreur',
+    CinematicDiagnosticSeverity.warning => 'Attention',
+    CinematicDiagnosticSeverity.info => 'Info',
+  };
+}
+
+String _libraryDiagnosticSeverityLabel(
+  CinematicsLibraryDiagnosticSeverity severity,
+) {
+  return switch (severity) {
+    CinematicsLibraryDiagnosticSeverity.error => 'Erreur',
+    CinematicsLibraryDiagnosticSeverity.warning => 'Attention',
+    CinematicsLibraryDiagnosticSeverity.info => 'Info',
+  };
 }

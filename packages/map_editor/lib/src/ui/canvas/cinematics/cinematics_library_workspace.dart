@@ -81,10 +81,15 @@ class _CinematicsLibraryWorkspaceState
     _syncMetadataEditor(selectedEntry);
     final builderEntry =
         _builderEntryId == null ? null : readModel.entryById(_builderEntryId!);
+    final builderAsset = _builderEntryId == null
+        ? null
+        : findCinematicById(widget.project, _builderEntryId!);
     if (builderEntry != null &&
-        builderEntry.kind == CinematicsLibraryEntryKind.canonical) {
+        builderEntry.kind == CinematicsLibraryEntryKind.canonical &&
+        builderAsset != null) {
       return CinematicBuilderWorkspace(
         entry: builderEntry,
+        asset: builderAsset,
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
         },

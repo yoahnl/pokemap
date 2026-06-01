@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +15,11 @@ void main() {
     _setLargeSurface(tester);
     final project = _project();
     final before = project.toJson();
-    await _pumpBuilder(tester, _entry(project, 'cinematic_intro'));
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_intro'),
+      asset: _asset(project, 'cinematic_intro'),
+    );
 
     expect(
       find.byKey(const ValueKey('cinematic-builder-workspace')),
@@ -62,6 +67,121 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets('lists timeline steps in order with read-only details',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_richCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_rich'),
+      asset: _asset(project, 'cinematic_rich'),
+    );
+
+    expect(find.text('Déroulé read-only'), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Camera to door'), findsWidgets);
+    expect(find.text('camera'), findsWidgets);
+    expect(find.text('400 ms'), findsWidgets);
+    expect(find.text('target_camera_focus'), findsWidgets);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('Professor line'), findsWidgets);
+    expect(find.text('dialogueLine'), findsWidgets);
+    expect(find.text('actor_professor'), findsWidgets);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('Door chime'), findsWidgets);
+    expect(find.text('sound'), findsWidgets);
+    expect(find.text('door_chime'), findsWidgets);
+
+    expect(find.text('Ajouter un bloc'), findsNothing);
+    expect(find.text('Supprimer le bloc'), findsNothing);
+    expect(find.byType(CupertinoTextField), findsNothing);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('selects a step locally and updates read-only inspector',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_richCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_rich'),
+      asset: _asset(project, 'cinematic_rich'),
+    );
+
+    expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.pumpAndSettle();
+
+    final selectedDialogueCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    expect(selectedDialogueCard.selected, isTrue);
+    expect(find.text('Bloc sélectionné'), findsWidgets);
+    expect(find.text('step_dialogue'), findsWidgets);
+    expect(find.text('Index'), findsWidgets);
+    expect(find.text('2'), findsWidgets);
+    expect(find.text('Kind'), findsWidgets);
+    expect(find.text('dialogueLine'), findsWidgets);
+    expect(find.text('Dialogue'), findsWidgets);
+    expect(find.text('Labo sécurisé.'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_sound')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_sound')),
+    );
+    await tester.pumpAndSettle();
+
+    final selectedSoundCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_sound')),
+    );
+    expect(selectedSoundCard.selected, isTrue);
+    expect(find.text('step_sound'), findsWidgets);
+    expect(find.text('Asset'), findsWidgets);
+    expect(find.text('door_chime'), findsWidgets);
+    expect(find.text('volume = 0.8'), findsOneWidget);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('shows step diagnostics without enabling timeline changes',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_diagnosticCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_diagnostic'),
+      asset: _asset(project, 'cinematic_diagnostic'),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_bad')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_bad')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Step 1'), findsWidgets);
+    expect(find.text('cinematicInvalidStepDuration'), findsWidgets);
+    expect(
+      find.text('Une durée de step cinematic ne peut pas être négative.'),
+      findsOneWidget,
+    );
+    expect(find.text('Aucune action de correction dans ce lot.'), findsWidgets);
+    expect(find.text('Ajouter un bloc'), findsNothing);
+    expect(find.text('Sauvegarder'), findsWidgets);
+    expect(project.toJson(), before);
+  });
+
   testWidgets('shows empty timeline state without authoring controls',
       (tester) async {
     _setLargeSurface(tester);
@@ -75,7 +195,11 @@ void main() {
       ],
       includeBridge: false,
     );
-    await _pumpBuilder(tester, _entry(project, 'cinematic_empty'));
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_empty'),
+      asset: _asset(project, 'cinematic_empty'),
+    );
 
     expect(find.text('Empty cinematic'), findsWidgets);
     expect(find.text('Timeline vide'), findsWidgets);
@@ -94,6 +218,7 @@ void main() {
     await _pumpBuilder(
       tester,
       _entry(_project(), 'cinematic_intro'),
+      asset: _asset(_project(), 'cinematic_intro'),
       onBackToLibrary: () => returned = true,
     );
 
@@ -105,21 +230,33 @@ void main() {
     expect(returned, isTrue);
   });
 
-  testWidgets('captures V1-42 builder shell screenshot when requested',
+  testWidgets('captures V1-43 builder timeline screenshot when requested',
       (tester) async {
     if (!const bool.fromEnvironment(
-      'NS_SCENES_V1_42_CAPTURE_CINEMATIC_BUILDER',
+      'NS_SCENES_V1_43_CAPTURE_CINEMATIC_BUILDER_TIMELINE',
     )) {
       return;
     }
 
     _setLargeSurface(tester);
     await _loadScreenshotFonts();
-    await _pumpBuilder(tester, _entry(_project(), 'cinematic_intro'));
+    final project = _project(cinematics: [_richCinematic()]);
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_rich'),
+      asset: _asset(project, 'cinematic_rich'),
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
+    );
+    await tester.pumpAndSettle();
 
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
-      'ns_scenes_v1_42_cinematic_builder_v0_shell.png',
+      'ns_scenes_v1_43_cinematic_timeline_read_only_step_inspector_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -134,6 +271,7 @@ void main() {
 Future<void> _pumpBuilder(
   WidgetTester tester,
   CinematicsLibraryEntry entry, {
+  required CinematicAsset asset,
   VoidCallback? onBackToLibrary,
 }) async {
   await tester.pumpWidget(
@@ -146,6 +284,7 @@ Future<void> _pumpBuilder(
             height: 860,
             child: CinematicBuilderWorkspace(
               entry: entry,
+              asset: asset,
               onBackToLibrary: onBackToLibrary ?? () {},
             ),
           ),
@@ -154,6 +293,72 @@ Future<void> _pumpBuilder(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+CinematicAsset _asset(ProjectManifest project, String id) {
+  final asset = findCinematicById(project, id);
+  if (asset == null) {
+    throw StateError('Missing cinematic asset $id');
+  }
+  return asset;
+}
+
+CinematicAsset _richCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_rich',
+    title: 'Rich cinematic',
+    description: 'Readable step details.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera to door',
+          durationMs: 400,
+          targetId: 'target_camera_focus',
+        ),
+        CinematicTimelineStep(
+          id: 'step_dialogue',
+          kind: CinematicTimelineStepKind.dialogueLine,
+          label: 'Professor line',
+          durationMs: 1200,
+          actorId: 'actor_professor',
+          dialogueText: 'Labo sécurisé.',
+        ),
+        CinematicTimelineStep(
+          id: 'step_sound',
+          kind: CinematicTimelineStepKind.sound,
+          label: 'Door chime',
+          durationMs: 300,
+          assetRef: 'door_chime',
+          metadata: const {'volume': '0.8'},
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _diagnosticCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_diagnostic',
+    title: 'Diagnostic cinematic',
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_bad',
+          kind: CinematicTimelineStepKind.wait,
+          durationMs: -5,
+        ),
+      ],
+    ),
+  );
 }
 
 CinematicsLibraryEntry _entry(ProjectManifest project, String id) {
