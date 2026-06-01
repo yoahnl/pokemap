@@ -49,6 +49,7 @@ import '../../application/runtime_psdk_battle_setup_mapper.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_adapter.dart';
 import '../../application/scene_runtime/scene_battle_runtime_outcome_result.dart';
+import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
@@ -5272,14 +5273,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         });
       },
       playCinematic: (intent) {
-        final cinematicId = intent.cinematicId?.trim();
-        if (cinematicId == null || cinematicId.isEmpty) {
-          throw StateError('Scene cinematic intent is missing cinematicId.');
-        }
-        debugPrint(
-          '[scene_runtime] cinematic bridge acknowledged id=$cinematicId',
+        final adapter = SceneCinematicRuntimeAwaitableAdapter(
+          runtimeSourceId: runtimeSourceId,
+          project: _bundle.manifest,
+          player: const SceneCinematicRuntimeNoVisualPlayer(),
         );
-        return 'completed';
+        return adapter.playCinematic(intent).then((result) {
+          final scenePortId = result.scenePortId;
+          if (!result.success || scenePortId == null) {
+            throw StateError(
+              result.message ??
+                  'Scene V1 cinematic handoff failed '
+                      '(cinematicId=${intent.cinematicId}).',
+            );
+          }
+          return scenePortId;
+        });
       },
     );
   }

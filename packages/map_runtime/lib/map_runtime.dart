@@ -82,6 +82,17 @@ export 'src/application/scene_runtime/scene_dialogue_runtime_awaitable_result.da
         SceneDialogueRuntimeAwaitableErrorCode,
         SceneDialogueRuntimeAwaitableResult,
         SceneDialogueRuntimeAwaitableStatus;
+export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.dart'
+    show
+        SceneCinematicRuntimeAwaitableAdapter,
+        SceneCinematicRuntimePlayer,
+        SceneCinematicRuntimeRequest,
+        SceneCinematicRuntimeNoVisualPlayer;
+export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart'
+    show
+        SceneCinematicRuntimeAwaitableErrorCode,
+        SceneCinematicRuntimeAwaitableResult,
+        SceneCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'

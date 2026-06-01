@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-40 — Cinematic Runtime Adapter V0
+NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract
 ```
 
 ## Principes
@@ -73,6 +73,7 @@ NS-SCENES-V1-40 — Cinematic Runtime Adapter V0
 | NS-SCENES-V1-37 | CinematicAsset Core Model V0 | core / contract | Ajouter le modele core/storage/read contract minimal de Cinematic V1 lineaire et diagnostiquable. | Pas de Cinematic Builder V2, pas de runtime cinematic avance, pas de migration Cutscene/Scenario automatique, pas de SceneGraph bis. | `CinematicAsset`, `ProjectManifest.cinematics`, public contract, diagnostics/tests core. | DONE : JSON/manifest/read model/diagnostics/scene plan + analyze core. | Sur-modeliser la timeline ; convertir le legacy trop tot ; laisser des actions qui ecrivent le monde. | DONE : modele dedie stable, bridge legacy conserve, Scene peut viser canonical ou bridge explicite. | V1-36. |
 | NS-SCENES-V1-38 | Cinematics Library V0 | editor / read-model | Rendre les CinematicAsset visibles, navigables et diagnostiques dans Narrative Studio. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy. | workspace/library Cinematics, liste, selection, metadata authoring, diagnostics/usages, overview/sidebar. | DONE : read model pur, Library editor, bridges legacy explicites, tests widget/read model, analyze editor/core cible, visual gate. | Confondre library avec Builder ; reactiver Cutscene Studio comme canonique. | DONE : cinematic assets visibles avant authoring avance, sans runtime ni migration. | V1-37. |
 | NS-SCENES-V1-39 | Cinematic Scene Builder Picker V0 | core / editor | Ajouter/editer un `CinematicNode` depuis un picker `CinematicAsset` canonique et rendre `cinematic.completed` authorable. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy, pas de bridge selectionnable en workflow normal. | operations Scene cinematic, picker/inspector Scene Builder, diagnostics, tests core/editor, visual gate. | DONE : canonical-only, bridge legacy warning, completed port, tests/analyze, screenshot. | Promouvoir les bridges Scenario comme choix normal ; laisser entrer des cinematicId libres. | DONE : CinematicNode honnete, editable et connectable sans fake ref. | V1-38. |
+| NS-SCENES-V1-40 | Cinematic Runtime Adapter V0 | runtime / integration | Remplacer l'ack cinematic bridge par un adapter awaitable qui resout un `CinematicAsset` canonique, attend une completion reelle et retourne `completed`. | Pas de Builder V2, pas de timeline editor UI, pas de migration ScenarioAsset, pas de playback visuel complet, pas d'effets gameplay depuis cinematic. | adapter cinematic runtime, result/request/player V0, wiring PlayableMapGame, tests hook no partial writes, rapport. | DONE : canonical awaitable, bridge legacy explicite, unknown failed, consequences post-cinematic commit apres completion, tests/analyze. | Continuer a ack immediatement ; traiter scenarioBridge comme canonical ; laisser une cinematic ecrire le monde. | DONE : pont runtime propre Scene -> CinematicAsset -> completed. | V1-39. |
 
 ## Options comparees
 
@@ -642,6 +643,18 @@ Scope realise : operations pures cinematic, picker canonical-only, inspector cin
 Limites : pas de Builder V2, pas de runtime cinematic, pas de timeline editor, pas de migration legacy, pas de donnee Selbrume.
 
 Prochain lot exact : `NS-SCENES-V1-40 — Cinematic Runtime Adapter V0`.
+
+## Mise a jour V1-40
+
+Statut : `NS-SCENES-V1-40 — Cinematic Runtime Adapter V0` est DONE.
+
+Decision : le Scene runtime passe par un adapter awaitable pour les `CinematicAsset` canoniques. Les bridges `ScenarioAsset` restent legacy explicites et les refs unknown echouent proprement.
+
+Scope realise : `SceneCinematicRuntimeAwaitableAdapter`, `SceneCinematicRuntimeAwaitableResult`, request/player V0, player no-visual borne, callback `PlayableMapGame.playCinematic`, tests de temporalite et no partial writes.
+
+Limites : pas de Builder V2, pas de timeline editor UI, pas de playback visuel complet, pas de migration legacy, pas de gameplay depuis Cinematic.
+
+Prochain lot exact : `NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract`.
 
 ## Selbrume golden slice
 

@@ -290,6 +290,192 @@ void main() {
       expect(gameState.consumedEventIds, isEmpty);
     });
 
+    test('waits for canonical cinematic before committing following setFact',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithCinematicThenSetFactConsequence(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+        cinematics: [_cinematic()],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+      final cinematicCompleter =
+          Completer<SceneCinematicRuntimeAwaitableResult>();
+      var hookCompleted = false;
+
+      final future = SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          playCinematic: _cinematicAdapterCallback(
+            fixture.project,
+            cinematicCompleter.future,
+          ),
+        ),
+      )
+          .runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      )
+          .then((result) {
+        hookCompleted = true;
+        return result;
+      });
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(hookCompleted, isFalse);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+
+      cinematicCompleter.complete(
+        const SceneCinematicRuntimeAwaitableResult.completed(),
+      );
+
+      final result = await future;
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.storyFlags.activeFlags,
+        contains('fact_test_scene_done'),
+      );
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test(
+        'waits for canonical cinematic before committing following '
+        'markEventConsumed', () async {
+      final fixture = _fixture(
+        scene: _sceneWithCinematicThenMarkEventConsumedConsequence(),
+        cinematics: [_cinematic()],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+      final cinematicCompleter =
+          Completer<SceneCinematicRuntimeAwaitableResult>();
+      var hookCompleted = false;
+
+      final future = SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          playCinematic: _cinematicAdapterCallback(
+            fixture.project,
+            cinematicCompleter.future,
+          ),
+        ),
+      )
+          .runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      )
+          .then((result) {
+        hookCompleted = true;
+        return result;
+      });
+
+      await Future<void>.delayed(Duration.zero);
+
+      expect(hookCompleted, isFalse);
+      expect(gameState.consumedEventIds, isEmpty);
+
+      cinematicCompleter.complete(
+        const SceneCinematicRuntimeAwaitableResult.completed(),
+      );
+
+      final result = await future;
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(
+        result.updatedGameState?.consumedEventIds,
+        contains('event_test_scene'),
+      );
+      expect(gameState.consumedEventIds, isEmpty);
+    });
+
+    test('cinematic failure discards staged consequence', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenCinematic(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+        cinematics: [_cinematic()],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(
+          calls: <String>[],
+          playCinematic: _cinematicAdapterCallback(
+            fixture.project,
+            Future.value(
+              const SceneCinematicRuntimeAwaitableResult.failed(
+                errorCode: SceneCinematicRuntimeAwaitableErrorCode.playerFailed,
+                message: 'Cinematic player failed.',
+              ),
+            ),
+          ),
+        ),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneExecutionFailed,
+      );
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('unknown cinematic blocks without partial writes', () async {
+      final fixture = _fixture(
+        scene: _sceneWithSetFactConsequenceThenUnknownCinematic(),
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_test_scene_done',
+            label: 'Scene done',
+          ),
+        ],
+      );
+      const gameState = GameState(saveId: 'save_test_runtime');
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneTargetDiagnosticsFailed,
+      );
+      expect(result.executionResult, isNull);
+      expect(result.updatedGameState, isNull);
+      expect(result.consequenceWriteResult, isNull);
+      expect(gameState.storyFlags.activeFlags, isEmpty);
+    });
+
     test('battle victory follows victory branch and commits consequence',
         () async {
       final fixture = _fixture(
@@ -667,6 +853,26 @@ SceneRuntimeIntentCallback _dialogueAdapterCallback(
   };
 }
 
+SceneRuntimeIntentCallback _cinematicAdapterCallback(
+  ProjectManifest project,
+  Future<SceneCinematicRuntimeAwaitableResult> result,
+) {
+  return (intent) async {
+    final adapter = SceneCinematicRuntimeAwaitableAdapter(
+      runtimeSourceId: 'scene:test:hook',
+      project: project,
+      createdAtEpochMs: () => 1234,
+      player: _SceneTestCinematicPlayer((request) => result),
+    );
+    final cinematicResult = await adapter.playCinematic(intent);
+    final scenePortId = cinematicResult.scenePortId;
+    if (!cinematicResult.success || scenePortId == null) {
+      throw StateError(cinematicResult.message ?? 'Scene cinematic failed.');
+    }
+    return scenePortId;
+  };
+}
+
 String _portId(SceneBattleRuntimeOutcomePort port) {
   return switch (port) {
     SceneBattleRuntimeOutcomePort.victory => 'victory',
@@ -678,6 +884,7 @@ _RuntimeSceneFixture _fixture({
   bool withSceneTarget = true,
   SceneAsset? scene,
   List<NarrativeFactDefinition> facts = const [],
+  List<CinematicAsset> cinematics = const [],
 }) {
   final resolvedScene = scene ?? _scene();
   final project = ProjectManifest(
@@ -708,6 +915,7 @@ _RuntimeSceneFixture _fixture({
       ),
     ],
     facts: facts,
+    cinematics: cinematics,
     scenes: [resolvedScene],
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
@@ -879,6 +1087,132 @@ SceneAsset _sceneWithMarkEventConsumedConsequence() {
   );
 }
 
+SceneAsset _sceneWithCinematicThenSetFactConsequence() {
+  return _cinematicThenActionScene(
+    payload: SceneActionPayload.consequence(
+      SceneConsequence.setFact(
+        factId: 'fact_test_scene_done',
+        value: true,
+      ),
+    ),
+  );
+}
+
+SceneAsset _sceneWithCinematicThenMarkEventConsumedConsequence() {
+  return _cinematicThenActionScene(
+    payload: SceneActionPayload.consequence(
+      SceneConsequence.markEventConsumed(
+        mapId: 'map_test_runtime',
+        eventId: 'event_test_scene',
+      ),
+    ),
+  );
+}
+
+SceneAsset _sceneWithSetFactConsequenceThenCinematic() {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Consequence Then Cinematic Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_scene_done',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'node_cinematic',
+          kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'cinematic_intro'),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_cinematic',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_cinematic',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_cinematic_end',
+          fromNodeId: 'node_cinematic',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.cinematicCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _sceneWithSetFactConsequenceThenUnknownCinematic() {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Consequence Then Unknown Cinematic Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_scene_done',
+              value: true,
+            ),
+          ),
+        ),
+        SceneNode(
+          id: 'node_cinematic',
+          kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'cinematic_unknown'),
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_action_cinematic',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_cinematic',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_cinematic_end',
+          fromNodeId: 'node_cinematic',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.cinematicCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
 SceneAsset _sceneWithSetFactConsequenceThenDialogue() {
   return SceneAsset(
     id: 'scene_test_runtime',
@@ -925,6 +1259,71 @@ SceneAsset _sceneWithSetFactConsequenceThenDialogue() {
           fromPortId: 'completed',
           toNodeId: 'node_end',
           kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+  );
+}
+
+SceneAsset _cinematicThenActionScene({
+  required SceneActionPayload payload,
+}) {
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Cinematic Then Consequence Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'node_cinematic',
+          kind: SceneNodeKind.cinematic,
+          payload: SceneCinematicPayload(cinematicId: 'cinematic_intro'),
+        ),
+        SceneNode(
+          id: 'node_action',
+          kind: SceneNodeKind.action,
+          payload: payload,
+        ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_cinematic',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_cinematic',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        SceneEdge(
+          id: 'edge_cinematic_action',
+          fromNodeId: 'node_cinematic',
+          fromPortId: 'completed',
+          toNodeId: 'node_action',
+          kind: SceneEdgeKind.cinematicCompleted,
+        ),
+        SceneEdge(
+          id: 'edge_action_end',
+          fromNodeId: 'node_action',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _cinematic() {
+  return CinematicAsset(
+    id: 'cinematic_intro',
+    title: 'Intro cinematic',
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          durationMs: 100,
         ),
       ],
     ),
@@ -1142,6 +1541,21 @@ final class _SceneTestDialogueLauncher implements SceneDialogueRuntimeLauncher {
   @override
   Future<SceneDialogueRuntimeAwaitableResult> showDialogue(
     SceneDialogueRuntimeDialogueRequest request,
+  ) async {
+    return _handler(request);
+  }
+}
+
+final class _SceneTestCinematicPlayer implements SceneCinematicRuntimePlayer {
+  const _SceneTestCinematicPlayer(this._handler);
+
+  final FutureOr<SceneCinematicRuntimeAwaitableResult> Function(
+    SceneCinematicRuntimeRequest request,
+  ) _handler;
+
+  @override
+  Future<SceneCinematicRuntimeAwaitableResult> playCinematic(
+    SceneCinematicRuntimeRequest request,
   ) async {
     return _handler(request);
   }
