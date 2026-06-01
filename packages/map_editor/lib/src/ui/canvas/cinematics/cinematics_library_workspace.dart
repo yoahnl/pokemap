@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
+import 'cinematic_builder_workspace.dart';
 
 typedef CreateCinematicShellCallback = Future<String?> Function({
   required String title,
@@ -56,6 +57,7 @@ class _CinematicsLibraryWorkspaceState
 
   _CinematicsLibraryFilter _filter = _CinematicsLibraryFilter.all;
   String? _selectedEntryId;
+  String? _builderEntryId;
   String? _loadedEditorId;
   String? _pendingDeleteId;
   String? _feedback;
@@ -77,6 +79,20 @@ class _CinematicsLibraryWorkspaceState
         ? null
         : readModel.entryById(_selectedEntryId!);
     _syncMetadataEditor(selectedEntry);
+    final builderEntry =
+        _builderEntryId == null ? null : readModel.entryById(_builderEntryId!);
+    if (builderEntry != null &&
+        builderEntry.kind == CinematicsLibraryEntryKind.canonical) {
+      return CinematicBuilderWorkspace(
+        entry: builderEntry,
+        onBackToLibrary: () {
+          setState(() => _builderEntryId = null);
+        },
+      );
+    }
+    if (_builderEntryId != null) {
+      _builderEntryId = null;
+    }
 
     return Material(
       type: MaterialType.transparency,
@@ -335,6 +351,22 @@ class _CinematicsLibraryWorkspaceState
               spacing: 8,
               runSpacing: 8,
               children: [
+                PokeMapButton(
+                  key: const ValueKey(
+                    'cinematics-library-open-builder-button',
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _builderEntryId = entry.id;
+                      _pendingDeleteId = null;
+                      _feedback = null;
+                    });
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.slider_horizontal_3),
+                  child: const Text('Ouvrir le Builder'),
+                ),
                 PokeMapButton(
                   key: const ValueKey('cinematics-library-save-button'),
                   onPressed: () => _saveMetadata(entry),
@@ -739,6 +771,16 @@ class _BridgeDetailsPanel extends StatelessWidget {
             const PokeMapBadge(
               label: 'Migration future',
               variant: PokeMapBadgeVariant.neutral,
+            ),
+            const SizedBox(height: 10),
+            const PokeMapButton(
+              key:
+                  ValueKey('cinematics-library-legacy-builder-disabled-button'),
+              onPressed: null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: Icon(CupertinoIcons.lock_fill),
+              child: Text('Builder canonique indisponible'),
             ),
           ],
         ),

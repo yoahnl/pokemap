@@ -96,12 +96,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0 | DONE | Scene Builder peut ajouter/editer un `CinematicNode` via picker `CinematicAsset` canonique, exposer/connecter `cinematic.completed`, afficher details/diagnostics et signaler les bridges legacy sans les promouvoir. |
 | NS-SCENES-V1-40 — Cinematic Runtime Adapter V0 | DONE | Runtime Scene V1 : `playCinematic(cinematicId)` resout un `CinematicAsset` canonique, passe par un adapter awaitable/player V0, attend la completion reelle, retourne `completed`, preserve les bridges legacy explicites et bloque les refs inconnues sans commit partiel. |
 | NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract | DONE | Lot documentaire : contrat strict du futur Builder V0 comme assembleur no-code de sequences moteur simples, lineaires et sandboxees, plus contrat Runtime Playback V0/V1 borne, sans Builder code, sans timeline editor, sans playback visuel et sans effet gameplay depuis Cinematic. |
+| NS-SCENES-V1-42 — Cinematic Builder V0 Shell | DONE | Shell editor read-only ouvert depuis la Cinematics Library pour les `CinematicAsset` canoniques : header, palette verrouillee, apercu sandbox, deroule et inspecteur placeholders, bridges legacy exclus du Builder canonique, visual gate et tests widget. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-42 — Cinematic Builder V0 Shell`
+`NS-SCENES-V1-43 — Cinematic Timeline Read-only / Step Inspector V0`
 
-Raison : V1-41 a borne le Builder et le playback avant code. Le prochain verrou est de creer seulement le shell du Builder depuis la Library, avec navigation, structure d'ecran et etats vides/diagnostics, sans edition de steps, sans timeline authoring et sans playback visuel.
+Raison : V1-42 a pose la coque navigable du Builder sans mutation. Le prochain verrou est de rendre le deroule plus utile en lecture seule : selection locale de bloc, inspecteur detaille du step existant, diagnostics contextualises et aucune operation de creation/suppression/reordonnancement.
+
+Ordre apres V1-42 : `NS-SCENES-V1-43 — Cinematic Timeline Read-only / Step Inspector V0`.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell.
 
@@ -252,6 +255,18 @@ Scope realise : rapport contractuel V1-41, audit des lots V1-36 a V1-40, taxonom
 Limites : aucun code produit, aucun modele Dart, aucun widget Flutter, aucun Builder UI, aucun timeline editor, aucun playback visuel, aucune migration legacy, aucune donnee produit et aucun package modifie. V1-41 n'a pas code le Builder.
 
 Prochain lot exact : `NS-SCENES-V1-42 — Cinematic Builder V0 Shell`.
+
+## Mise a jour V1-42
+
+Statut : `NS-SCENES-V1-42 — Cinematic Builder V0 Shell` est DONE.
+
+Decision : le Cinematic Builder V0 existe comme shell editor local de la Cinematics Library, uniquement pour les `CinematicAsset` canoniques. Il expose une structure claire et read-only : header avec retour Library, palette de blocs verrouillee, apercu sandbox, deroule simplifie et inspecteur placeholder. Les bridges legacy restent visibles dans la Library, mais n'ouvrent pas le Builder canonique.
+
+Scope realise : widget `CinematicBuilderWorkspace`, navigation Library -> Builder -> Library, action Builder sur entree canonique, action indisponible pour bridge legacy, etats timeline vide/existante en lecture seule, boutons Valider/Apercu/Sauvegarder inactifs, screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_42_cinematic_builder_v0_shell.png`, tests widget cibles.
+
+Limites : aucune edition de timeline, aucune creation/suppression/reorganisation de step, aucun player visuel, aucune mutation de `ProjectManifest`, aucun modele core, aucun package runtime/gameplay/battle/examples modifie et aucune migration legacy.
+
+Prochain lot exact : `NS-SCENES-V1-43 — Cinematic Timeline Read-only / Step Inspector V0`.
 
 ## Mise a jour V1-30-bis
 

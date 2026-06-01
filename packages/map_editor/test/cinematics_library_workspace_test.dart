@@ -95,6 +95,72 @@ void main() {
     );
   });
 
+  testWidgets('opens builder shell for canonical cinematic and returns',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      findsOneWidget,
+    );
+    expect(find.text('Cinematic Builder V0'), findsOneWidget);
+    expect(find.text('Intro cinematic'), findsWidgets);
+    expect(find.text('cinematic_intro'), findsWidgets);
+    expect(find.text('Aperçu sandbox'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-back-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematics-library-workspace')),
+      findsOneWidget,
+    );
+    expect(find.text('Bibliothèque'), findsWidgets);
+  });
+
+  testWidgets('keeps legacy bridge out of canonical builder shell',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+      findsNothing,
+    );
+    expect(
+      find.text('Bridge legacy — pas un CinematicAsset canonique'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      findsNothing,
+    );
+  });
+
   testWidgets('edits metadata and deletes only unused canonicals',
       (tester) async {
     _setLargeSurface(tester);
