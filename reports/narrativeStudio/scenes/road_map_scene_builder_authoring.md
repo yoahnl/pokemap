@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract
+NS-SCENES-V1-42 — Cinematic Builder V0 Shell
 ```
 
 ## Principes
@@ -74,6 +74,7 @@ NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract
 | NS-SCENES-V1-38 | Cinematics Library V0 | editor / read-model | Rendre les CinematicAsset visibles, navigables et diagnostiques dans Narrative Studio. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy. | workspace/library Cinematics, liste, selection, metadata authoring, diagnostics/usages, overview/sidebar. | DONE : read model pur, Library editor, bridges legacy explicites, tests widget/read model, analyze editor/core cible, visual gate. | Confondre library avec Builder ; reactiver Cutscene Studio comme canonique. | DONE : cinematic assets visibles avant authoring avance, sans runtime ni migration. | V1-37. |
 | NS-SCENES-V1-39 | Cinematic Scene Builder Picker V0 | core / editor | Ajouter/editer un `CinematicNode` depuis un picker `CinematicAsset` canonique et rendre `cinematic.completed` authorable. | Pas de Builder V2, pas de timeline editor, pas de runtime cinematic, pas de migration legacy, pas de bridge selectionnable en workflow normal. | operations Scene cinematic, picker/inspector Scene Builder, diagnostics, tests core/editor, visual gate. | DONE : canonical-only, bridge legacy warning, completed port, tests/analyze, screenshot. | Promouvoir les bridges Scenario comme choix normal ; laisser entrer des cinematicId libres. | DONE : CinematicNode honnete, editable et connectable sans fake ref. | V1-38. |
 | NS-SCENES-V1-40 | Cinematic Runtime Adapter V0 | runtime / integration | Remplacer l'ack cinematic bridge par un adapter awaitable qui resout un `CinematicAsset` canonique, attend une completion reelle et retourne `completed`. | Pas de Builder V2, pas de timeline editor UI, pas de migration ScenarioAsset, pas de playback visuel complet, pas d'effets gameplay depuis cinematic. | adapter cinematic runtime, result/request/player V0, wiring PlayableMapGame, tests hook no partial writes, rapport. | DONE : canonical awaitable, bridge legacy explicite, unknown failed, consequences post-cinematic commit apres completion, tests/analyze. | Continuer a ack immediatement ; traiter scenarioBridge comme canonical ; laisser une cinematic ecrire le monde. | DONE : pont runtime propre Scene -> CinematicAsset -> completed. | V1-39. |
+| NS-SCENES-V1-41 | Cinematic Builder V0 Scope / Runtime Playback Contract | doc / architecture-review | Cadrer le futur Builder V0 et le futur contrat Runtime Playback avant de coder l'UI, la timeline, les blocs authorables ou le player visuel. | Pas de code Dart, pas de widget, pas de timeline editor, pas de playback visuel, pas de migration ScenarioAsset, pas d'effet gameplay cinematic. | rapport V1-41, roadmaps. | DONE : rapport contractuel, capability matrix, taxonomie blocs, frontieres anti-scope, `git diff --check`. | Coder le Builder trop tot ; refaire ScenarioAsset ; ouvrir branches/failures authorables ; laisser Cinematic ecrire le monde. | DONE : Builder V0 = assembleur lineaire sandboxe ; Runtime Playback V0/V1 = lecture bornee sans gameplay effect ; prochain lot shell seulement. | V1-40. |
 
 ## Options comparees
 
@@ -655,6 +656,18 @@ Scope realise : `SceneCinematicRuntimeAwaitableAdapter`, `SceneCinematicRuntimeA
 Limites : pas de Builder V2, pas de timeline editor UI, pas de playback visuel complet, pas de migration legacy, pas de gameplay depuis Cinematic.
 
 Prochain lot exact : `NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract`.
+
+## Mise a jour V1-41
+
+Statut : `NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract` est DONE.
+
+Decision : le futur Cinematic Builder V0 reste un assembleur de blocs cinematic simples, ordonnes et no-code, ouvert depuis la Cinematics Library. Il n'est ni Scene Builder, ni Dialogue Studio, ni Cutscene Studio legacy, ni timeline frame-perfect. Le futur Runtime Playback reste un host borne qui lit la sequence, resolve acteurs/camera/dialogue/audio/FX selon capacites, retourne `completed` et ne produit aucun effet gameplay.
+
+Scope realise : rapport documentaire V1-41, specification Builder V0, specification Runtime Playback V0/V1, taxonomie des blocs, capability matrix, diagnostics futurs, frontieres Scene/Dialogue/Battle/Facts/World Rules/ScenarioAsset et roadmap stricte V1-42 a V1-48.
+
+Limites : aucun Builder code, aucune timeline editor, aucun widget, aucun modele, aucun runtime visuel et aucun package modifie. V1-41 n'a pas demarre V1-42.
+
+Prochain lot exact : `NS-SCENES-V1-42 — Cinematic Builder V0 Shell`.
 
 ## Selbrume golden slice
 

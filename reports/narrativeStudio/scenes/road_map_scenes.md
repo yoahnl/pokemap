@@ -95,14 +95,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-38 — Cinematics Library V0 | DONE | Library Narrative Studio pour `CinematicAsset` canoniques : read model pur, liste/selection, metadata authoring, diagnostics/usages, bridge legacy explicite et overview aligne, sans Builder V2 ni runtime cinematic. |
 | NS-SCENES-V1-39 — Cinematic Scene Builder Picker V0 | DONE | Scene Builder peut ajouter/editer un `CinematicNode` via picker `CinematicAsset` canonique, exposer/connecter `cinematic.completed`, afficher details/diagnostics et signaler les bridges legacy sans les promouvoir. |
 | NS-SCENES-V1-40 — Cinematic Runtime Adapter V0 | DONE | Runtime Scene V1 : `playCinematic(cinematicId)` resout un `CinematicAsset` canonique, passe par un adapter awaitable/player V0, attend la completion reelle, retourne `completed`, preserve les bridges legacy explicites et bloque les refs inconnues sans commit partiel. |
+| NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract | DONE | Lot documentaire : contrat strict du futur Builder V0 comme assembleur no-code de sequences moteur simples, lineaires et sandboxees, plus contrat Runtime Playback V0/V1 borne, sans Builder code, sans timeline editor, sans playback visuel et sans effet gameplay depuis Cinematic. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract`
+`NS-SCENES-V1-42 — Cinematic Builder V0 Shell`
 
-Raison : V1-40 ferme le trou runtime awaitable. Le prochain verrou est de cadrer le vrai playback/builder cinematic sans transformer `CinematicAsset` en `ScenarioAsset`, sans timeline editor trop large et sans effets gameplay dans la cinematic.
+Raison : V1-41 a borne le Builder et le playback avant code. Le prochain verrou est de creer seulement le shell du Builder depuis la Library, avec navigation, structure d'ecran et etats vides/diagnostics, sans edition de steps, sans timeline authoring et sans playback visuel.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Selbrume Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -239,6 +240,18 @@ Scope realise : adapter awaitable `SceneCinematicRuntimeAwaitableAdapter`, resul
 Limites : pas de Builder V2, pas de timeline editor, pas de playback visuel complet, pas de migration Scenario/Cutscene, pas de branches skipped/failed authorables, pas de donnee Selbrume.
 
 Prochain lot exact : `NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract`.
+
+## Mise a jour V1-41
+
+Statut : `NS-SCENES-V1-41 — Cinematic Builder V0 Scope / Runtime Playback Contract` est DONE.
+
+Decision : le futur Cinematic Builder V0 est borne comme assembleur no-code de sequences moteur simples, lineaires, ordonnees et sandboxees. Le futur Runtime Playback V0/V1 lit ces sequences via un host borne, retourne seulement `completed` a la Scene, signale les failures internes sans port authorable et ne peut pas ecrire de Fact, lancer de Battle, appliquer de World Rule, teleporter ou completer une StorylineStep.
+
+Scope realise : rapport contractuel V1-41, audit des lots V1-36 a V1-40, taxonomie des blocs camera/deplacement acteur/dialogue/FX/son/fondu/attente, capability matrix Builder/Runtime/Preview/Validation, frontieres Scene/Cinematic/Dialogue/Battle/Facts/World Rules/ScenarioAsset et roadmap post V1-41.
+
+Limites : aucun code produit, aucun modele Dart, aucun widget Flutter, aucun Builder UI, aucun timeline editor, aucun playback visuel, aucune migration legacy, aucune donnee produit et aucun package modifie. V1-41 n'a pas code le Builder.
+
+Prochain lot exact : `NS-SCENES-V1-42 — Cinematic Builder V0 Shell`.
 
 ## Mise a jour V1-30-bis
 
