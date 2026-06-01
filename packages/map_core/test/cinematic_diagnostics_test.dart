@@ -97,6 +97,42 @@ void main() {
       expect(report.hasErrors, isFalse);
     });
 
+    test('accepts authoring basic blocks without gameplay diagnostics', () {
+      var project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+      for (final blockKind in CinematicTimelineBasicBlockKind.values) {
+        final result = addCinematicTimelineBasicBlockStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          blockKind: blockKind,
+        );
+        project = result.updatedProject;
+        expect(isCinematicTimelineBasicBlockStep(result.step), isTrue);
+      }
+
+      final report = diagnoseCinematicAsset(project.cinematics.single);
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnsupportedGameplayStep),
+        isEmpty,
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration),
+        isEmpty,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
     test('reports duplicate cinematic ids in a collection', () {
       final report = diagnoseCinematics([
         _cinematic(id: 'cinematic_intro'),

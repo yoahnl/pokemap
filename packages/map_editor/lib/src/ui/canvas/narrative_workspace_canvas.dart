@@ -1103,6 +1103,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onRemoveCinematic: _removeCinematic,
       onAddTimelineDraft: _addCinematicTimelineDraft,
       onRemoveTimelineDraft: _removeCinematicTimelineDraft,
+      onAddTimelineBasicBlock: _addCinematicTimelineBasicBlock,
+      onUpdateTimelineBasicBlock: _updateCinematicTimelineBasicBlock,
+      onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
       },
@@ -1240,6 +1243,86 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         statusMessage: 'Cinematic timeline draft removed',
       );
       return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<String?> _addCinematicTimelineBasicBlock({
+    required String cinematicId,
+    required CinematicTimelineBasicBlockKind blockKind,
+    String? afterStepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: cinematicId,
+        blockKind: blockKind,
+        afterStepId: afterStepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic timeline basic block created',
+      );
+      return result.step.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _updateCinematicTimelineBasicBlock({
+    required String cinematicId,
+    required String stepId,
+    int? durationMs,
+    CinematicTimelineFadeMode? fadeMode,
+    CinematicTimelineCameraMode? cameraMode,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+        durationMs: durationMs,
+        fadeMode: fadeMode,
+        cameraMode: cameraMode,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic timeline basic block updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _removeCinematicTimelineAuthoringStep({
+    required String cinematicId,
+    required String stepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicTimelineAuthoringStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic timeline authoring step removed',
+      );
+      return result.removedStep.id == stepId;
     } on ArgumentError {
       return false;
     }

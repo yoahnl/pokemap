@@ -168,6 +168,39 @@ void main() {
     expect(find.text('3 step(s)'), findsWidgets);
   });
 
+  testWidgets('adds a basic block from builder and refreshes library summary',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-wait-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Attente'), findsWidgets);
+    expect(find.text('Bloc authoring V0'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-back-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cinematics-library-workspace')),
+        findsOneWidget);
+    expect(find.text('3 step(s)'), findsWidgets);
+    expect(find.text('1750 ms estimé(s)'), findsWidgets);
+  });
+
   testWidgets('keeps legacy bridge out of canonical builder shell',
       (tester) async {
     _setLargeSurface(tester);
@@ -374,6 +407,50 @@ class _HarnessState extends State<_Harness> {
                 required String stepId,
               }) async {
                 final result = removeCinematicTimelineDraftStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  stepId: stepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.removedStep.id == stepId;
+              },
+              onAddTimelineBasicBlock: ({
+                required String cinematicId,
+                required CinematicTimelineBasicBlockKind blockKind,
+                String? afterStepId,
+              }) async {
+                final result = addCinematicTimelineBasicBlockStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  blockKind: blockKind,
+                  afterStepId: afterStepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id;
+              },
+              onUpdateTimelineBasicBlock: ({
+                required String cinematicId,
+                required String stepId,
+                int? durationMs,
+                CinematicTimelineFadeMode? fadeMode,
+                CinematicTimelineCameraMode? cameraMode,
+              }) async {
+                final result = updateCinematicTimelineBasicBlockStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  stepId: stepId,
+                  durationMs: durationMs,
+                  fadeMode: fadeMode,
+                  cameraMode: cameraMode,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id == stepId;
+              },
+              onRemoveTimelineAuthoringStep: ({
+                required String cinematicId,
+                required String stepId,
+              }) async {
+                final result = removeCinematicTimelineAuthoringStep(
                   _project,
                   cinematicId: cinematicId,
                   stepId: stepId,

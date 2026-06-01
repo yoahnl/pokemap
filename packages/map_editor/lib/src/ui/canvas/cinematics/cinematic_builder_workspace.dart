@@ -15,6 +15,40 @@ typedef RemoveCinematicDraftStepCallback = Future<bool> Function({
   required String stepId,
 });
 
+typedef AddCinematicBasicBlockStepCallback = Future<String?> Function({
+  required String cinematicId,
+  required CinematicTimelineBasicBlockKind blockKind,
+  String? afterStepId,
+});
+
+typedef UpdateCinematicBasicBlockStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  int? durationMs,
+  CinematicTimelineFadeMode? fadeMode,
+  CinematicTimelineCameraMode? cameraMode,
+});
+
+typedef RemoveCinematicAuthoringStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+});
+
+typedef _UpdateBasicBlockCallback = Future<void> Function(
+  CinematicTimelineStep step, {
+  int? durationMs,
+  CinematicTimelineFadeMode? fadeMode,
+  CinematicTimelineCameraMode? cameraMode,
+});
+
+typedef _AddBasicBlockCallback = Future<void> Function(
+  CinematicTimelineBasicBlockKind blockKind,
+);
+
+typedef _RemoveAuthoringStepCallback = Future<void> Function(
+  CinematicTimelineStep step,
+);
+
 class CinematicBuilderWorkspace extends StatefulWidget {
   const CinematicBuilderWorkspace({
     super.key,
@@ -23,6 +57,9 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onBackToLibrary,
     required this.onAddDraftStep,
     required this.onRemoveDraftStep,
+    required this.onAddBasicBlockStep,
+    required this.onUpdateBasicBlockStep,
+    required this.onRemoveAuthoringStep,
   });
 
   final CinematicsLibraryEntry entry;
@@ -30,6 +67,9 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
   final RemoveCinematicDraftStepCallback onRemoveDraftStep;
+  final AddCinematicBasicBlockStepCallback onAddBasicBlockStep;
+  final UpdateCinematicBasicBlockStepCallback onUpdateBasicBlockStep;
+  final RemoveCinematicAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
   State<CinematicBuilderWorkspace> createState() =>
@@ -72,7 +112,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                 children: [
                   SizedBox(
                     width: 250,
-                    child: _BlockPalette(entry: widget.entry),
+                    child: _BlockPalette(
+                      entry: widget.entry,
+                      onAddBasicBlock: _addBasicBlock,
+                    ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -111,6 +154,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       selectedStep: selectedStep,
                       selectedStepIndex: selectedStepIndex,
                       onRemoveDraftStep: _removeDraftStep,
+                      onUpdateBasicBlock: _updateBasicBlock,
+                      onRemoveAuthoringStep: _removeAuthoringStep,
                     ),
                   ),
                 ],
@@ -138,6 +183,52 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       return;
     }
     final removed = await widget.onRemoveDraftStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+    );
+    if (!mounted || !removed) {
+      return;
+    }
+    setState(() => _selectedStepId = null);
+  }
+
+  Future<void> _addBasicBlock(
+    CinematicTimelineBasicBlockKind blockKind,
+  ) async {
+    final createdStepId = await widget.onAddBasicBlockStep(
+      cinematicId: widget.asset.id,
+      blockKind: blockKind,
+      afterStepId: _selectedStepId,
+    );
+    if (!mounted || createdStepId == null) {
+      return;
+    }
+    setState(() => _selectedStepId = createdStepId);
+  }
+
+  Future<void> _updateBasicBlock(
+    CinematicTimelineStep step, {
+    int? durationMs,
+    CinematicTimelineFadeMode? fadeMode,
+    CinematicTimelineCameraMode? cameraMode,
+  }) async {
+    if (!isCinematicTimelineBasicBlockStep(step)) {
+      return;
+    }
+    await widget.onUpdateBasicBlockStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+      durationMs: durationMs,
+      fadeMode: fadeMode,
+      cameraMode: cameraMode,
+    );
+  }
+
+  Future<void> _removeAuthoringStep(CinematicTimelineStep step) async {
+    if (!isCinematicTimelineAuthoringStep(step)) {
+      return;
+    }
+    final removed = await widget.onRemoveAuthoringStep(
       cinematicId: widget.asset.id,
       stepId: step.id,
     );
@@ -211,7 +302,7 @@ class _BuilderHeader extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   const PokeMapBadge(
-                    label: 'Shell read-only',
+                    label: 'Authoring V0 borné',
                     variant: PokeMapBadgeVariant.info,
                   ),
                   PokeMapBadge(
@@ -310,9 +401,13 @@ class _HeaderAction extends StatelessWidget {
 }
 
 class _BlockPalette extends StatelessWidget {
-  const _BlockPalette({required this.entry});
+  const _BlockPalette({
+    required this.entry,
+    required this.onAddBasicBlock,
+  });
 
   final CinematicsLibraryEntry entry;
+  final _AddBasicBlockCallback onAddBasicBlock;
 
   @override
   Widget build(BuildContext context) {
@@ -324,12 +419,12 @@ class _BlockPalette extends StatelessWidget {
         children: [
           const _SectionTitle(
             title: 'Palette de blocs',
-            subtitle: 'Visible seulement',
+            subtitle: 'Blocs V0 bornés',
           ),
           const SizedBox(height: 10),
           const PokeMapBadge(
-            label: 'Authoring à venir',
-            variant: PokeMapBadgeVariant.neutral,
+            label: 'Authoring V0',
+            variant: PokeMapBadgeVariant.info,
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -338,7 +433,10 @@ class _BlockPalette extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (final block in _paletteBlocks) ...[
-                    _PaletteBlockTile(block: block),
+                    _PaletteBlockTile(
+                      block: block,
+                      onAddBasicBlock: onAddBasicBlock,
+                    ),
                     const SizedBox(height: 8),
                   ],
                 ],
@@ -356,13 +454,18 @@ class _BlockPalette extends StatelessWidget {
 }
 
 class _PaletteBlockTile extends StatelessWidget {
-  const _PaletteBlockTile({required this.block});
+  const _PaletteBlockTile({
+    required this.block,
+    required this.onAddBasicBlock,
+  });
 
   final _PaletteBlock block;
+  final _AddBasicBlockCallback onAddBasicBlock;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final blockKind = block.blockKind;
     return PokeMapCard(
       child: Row(
         children: [
@@ -379,16 +482,29 @@ class _PaletteBlockTile extends StatelessWidget {
               children: [
                 _StrongText(block.label),
                 const SizedBox(height: 2),
-                const _MutedText('Non authorable dans ce lot.'),
+                _MutedText(block.description),
               ],
             ),
           ),
           const SizedBox(width: 6),
-          Icon(
-            CupertinoIcons.lock_fill,
-            color: colors.textMuted,
-            size: 13,
-          ),
+          if (blockKind == null)
+            Icon(
+              CupertinoIcons.lock_fill,
+              color: colors.textMuted,
+              size: 13,
+            )
+          else
+            PokeMapButton(
+              key: ValueKey(
+                  'cinematic-builder-palette-${blockKind.name}-button'),
+              onPressed: () {
+                onAddBasicBlock(blockKind);
+              },
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.plus),
+              child: const SizedBox.shrink(),
+            ),
         ],
       ),
     );
@@ -596,6 +712,7 @@ class _TimelineStepCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final diagnostics = _stepDiagnostics(asset, step);
     final isDraft = isCinematicTimelineDraftStep(step);
+    final basicBlockKind = cinematicTimelineBasicBlockKindOf(step);
     return PokeMapCard(
       key: ValueKey('cinematic-builder-step-card-${step.id}'),
       selected: selected,
@@ -619,6 +736,13 @@ class _TimelineStepCard extends StatelessWidget {
                 const PokeMapBadge(
                   label: 'Brouillon',
                   variant: PokeMapBadgeVariant.warning,
+                ),
+                const SizedBox(width: 6),
+              ],
+              if (basicBlockKind != null) ...[
+                const PokeMapBadge(
+                  label: 'Builder V0',
+                  variant: PokeMapBadgeVariant.success,
                 ),
                 const SizedBox(width: 6),
               ],
@@ -701,6 +825,8 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.onRemoveDraftStep,
+    required this.onUpdateBasicBlock,
+    required this.onRemoveAuthoringStep,
   });
 
   final CinematicsLibraryEntry entry;
@@ -708,6 +834,8 @@ class _InspectorPlaceholder extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+  final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
   Widget build(BuildContext context) {
@@ -734,6 +862,8 @@ class _InspectorPlaceholder extends StatelessWidget {
                 step: selected,
                 index: selectedIndex,
                 onRemoveDraftStep: onRemoveDraftStep,
+                onUpdateBasicBlock: onUpdateBasicBlock,
+                onRemoveAuthoringStep: onRemoveAuthoringStep,
               ),
             const SizedBox(height: 12),
             const _SectionTitle(
@@ -787,17 +917,23 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.step,
     required this.index,
     required this.onRemoveDraftStep,
+    required this.onUpdateBasicBlock,
+    required this.onRemoveAuthoringStep,
   });
 
   final CinematicAsset asset;
   final CinematicTimelineStep step;
   final int index;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+  final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
   Widget build(BuildContext context) {
     final diagnostics = _stepDiagnostics(asset, step);
     final isDraft = isCinematicTimelineDraftStep(step);
+    final basicBlockKind = cinematicTimelineBasicBlockKindOf(step);
+    final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -819,6 +955,18 @@ class _SelectedStepInspector extends StatelessWidget {
         ),
         _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
         _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+        if (basicBlockKind != null) ...[
+          const _KeyValue(
+            label: 'Statut',
+            value: 'Bloc authoring V0',
+          ),
+          _BasicBlockControls(
+            step: step,
+            blockKind: basicBlockKind,
+            onUpdateBasicBlock: onUpdateBasicBlock,
+          ),
+          const SizedBox(height: 8),
+        ],
         if (isDraft) ...[
           const _KeyValue(
             label: 'Statut',
@@ -829,16 +977,28 @@ class _SelectedStepInspector extends StatelessWidget {
             'Les vrais blocs arrivent dans un lot futur.',
           ),
           const SizedBox(height: 8),
+        ],
+        if (isAuthoringOwned) ...[
           PokeMapButton(
-            key: const ValueKey('cinematic-builder-remove-draft-button'),
-            onPressed: () => onRemoveDraftStep(step),
+            key: const ValueKey(
+              'cinematic-builder-remove-authoring-step-button',
+            ),
+            onPressed: () {
+              if (isDraft) {
+                onRemoveDraftStep(step);
+              } else {
+                onRemoveAuthoringStep(step);
+              }
+            },
             variant: PokeMapButtonVariant.danger,
             size: PokeMapButtonSize.small,
             leading: const Icon(CupertinoIcons.trash),
             child: const SizedBox.shrink(),
           ),
           const SizedBox(height: 4),
-          const _MutedText('Supprimer ce brouillon'),
+          _MutedText(
+            isDraft ? 'Supprimer ce brouillon' : 'Supprimer ce bloc',
+          ),
           const SizedBox(height: 8),
         ],
         const _KeyValue(
@@ -889,6 +1049,209 @@ class _StepDiagnosticsSummary extends StatelessWidget {
           const _MutedText('Aucune action de correction dans ce lot.'),
           const SizedBox(height: 8),
         ],
+      ],
+    );
+  }
+}
+
+class _BasicBlockControls extends StatelessWidget {
+  const _BasicBlockControls({
+    required this.step,
+    required this.blockKind,
+    required this.onUpdateBasicBlock,
+  });
+
+  final CinematicTimelineStep step;
+  final CinematicTimelineBasicBlockKind blockKind;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const _SectionTitle(
+          title: 'Paramètres V0',
+          subtitle: 'Contrôles bornés',
+        ),
+        const SizedBox(height: 8),
+        _KeyValue(label: 'Bloc', value: _basicBlockLabel(blockKind)),
+        _DurationPresetControls(
+          step: step,
+          onUpdateBasicBlock: onUpdateBasicBlock,
+        ),
+        if (blockKind == CinematicTimelineBasicBlockKind.fade) ...[
+          const SizedBox(height: 8),
+          _FadeModeControls(
+            step: step,
+            onUpdateBasicBlock: onUpdateBasicBlock,
+          ),
+        ],
+        if (blockKind == CinematicTimelineBasicBlockKind.camera) ...[
+          const SizedBox(height: 8),
+          _CameraModeControls(
+            step: step,
+            onUpdateBasicBlock: onUpdateBasicBlock,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _DurationPresetControls extends StatelessWidget {
+  const _DurationPresetControls({
+    required this.step,
+    required this.onUpdateBasicBlock,
+  });
+
+  final CinematicTimelineStep step;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _KeyValue(label: 'Durée', value: 'Presets no-code'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final preset in _durationPresetsMs)
+              _InlineControlAction(
+                label: '$preset ms',
+                button: PokeMapButton(
+                  key: ValueKey('cinematic-builder-duration-preset-$preset'),
+                  onPressed: () {
+                    onUpdateBasicBlock(step, durationMs: preset);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: step.durationMs == preset,
+                  leading: const Icon(CupertinoIcons.clock),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _FadeModeControls extends StatelessWidget {
+  const _FadeModeControls({
+    required this.step,
+    required this.onUpdateBasicBlock,
+  });
+
+  final CinematicTimelineStep step;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMode = step.metadata[cinematicTimelineFadeModeMetadataKey];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _KeyValue(label: 'Mode fondu', value: 'Entrant ou sortant'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final mode in CinematicTimelineFadeMode.values)
+              _InlineControlAction(
+                label: _fadeModeLabel(mode),
+                button: PokeMapButton(
+                  key: ValueKey('cinematic-builder-fade-mode-${mode.name}'),
+                  onPressed: () {
+                    onUpdateBasicBlock(step, fadeMode: mode);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: currentMode == mode.name,
+                  leading: const Icon(CupertinoIcons.layers_alt),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _CameraModeControls extends StatelessWidget {
+  const _CameraModeControls({
+    required this.step,
+    required this.onUpdateBasicBlock,
+  });
+
+  final CinematicTimelineStep step;
+  final _UpdateBasicBlockCallback onUpdateBasicBlock;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentMode = step.metadata[cinematicTimelineCameraModeMetadataKey];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _KeyValue(label: 'Mode caméra', value: 'Basique uniquement'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final mode in CinematicTimelineCameraMode.values)
+              _InlineControlAction(
+                label: _cameraModeLabel(mode),
+                button: PokeMapButton(
+                  key: ValueKey('cinematic-builder-camera-mode-${mode.name}'),
+                  onPressed: () {
+                    onUpdateBasicBlock(step, cameraMode: mode);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: currentMode == mode.name,
+                  leading: const Icon(CupertinoIcons.video_camera),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineControlAction extends StatelessWidget {
+  const _InlineControlAction({
+    required this.label,
+    required this.button,
+  });
+
+  final String label;
+  final Widget button;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button,
+        const SizedBox(width: 5),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: colors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
       ],
     );
   }
@@ -1109,22 +1472,58 @@ class _PaletteBlock {
   const _PaletteBlock({
     required this.label,
     required this.icon,
+    required this.description,
+    this.blockKind,
   });
 
   final String label;
   final IconData icon;
+  final String description;
+  final CinematicTimelineBasicBlockKind? blockKind;
 }
 
 const _paletteBlocks = [
-  _PaletteBlock(label: 'Caméra', icon: CupertinoIcons.video_camera),
   _PaletteBlock(
-      label: 'Déplacement acteur', icon: CupertinoIcons.person_crop_square),
-  _PaletteBlock(label: 'Dialogue', icon: CupertinoIcons.text_bubble),
-  _PaletteBlock(label: 'FX', icon: CupertinoIcons.sparkles),
-  _PaletteBlock(label: 'Son', icon: CupertinoIcons.speaker_2),
-  _PaletteBlock(label: 'Fondu', icon: CupertinoIcons.layers_alt),
-  _PaletteBlock(label: 'Attente', icon: CupertinoIcons.timer),
+    label: 'Attente',
+    icon: CupertinoIcons.timer,
+    description: 'Durée par preset.',
+    blockKind: CinematicTimelineBasicBlockKind.wait,
+  ),
+  _PaletteBlock(
+    label: 'Fondu',
+    icon: CupertinoIcons.layers_alt,
+    description: 'Entrant/sortant V0.',
+    blockKind: CinematicTimelineBasicBlockKind.fade,
+  ),
+  _PaletteBlock(
+    label: 'Caméra',
+    icon: CupertinoIcons.video_camera,
+    description: 'Reset/hold basique.',
+    blockKind: CinematicTimelineBasicBlockKind.camera,
+  ),
+  _PaletteBlock(
+    label: 'Déplacement acteur',
+    icon: CupertinoIcons.person_crop_square,
+    description: 'Non authorable dans ce lot.',
+  ),
+  _PaletteBlock(
+    label: 'Dialogue',
+    icon: CupertinoIcons.text_bubble,
+    description: 'Non authorable dans ce lot.',
+  ),
+  _PaletteBlock(
+    label: 'FX',
+    icon: CupertinoIcons.sparkles,
+    description: 'Non authorable dans ce lot.',
+  ),
+  _PaletteBlock(
+    label: 'Son',
+    icon: CupertinoIcons.speaker_2,
+    description: 'Non authorable dans ce lot.',
+  ),
 ];
+
+const _durationPresetsMs = [500, 1000, 1500, 2000, 3000];
 
 String _durationLabel(CinematicTimelineSummary timeline) {
   final duration = timeline.estimatedDurationMs;
@@ -1170,6 +1569,28 @@ String _metadataLabel(Map<String, String> metadata) {
   final entries = metadata.entries.toList()
     ..sort((a, b) => a.key.compareTo(b.key));
   return entries.map((entry) => '${entry.key} = ${entry.value}').join(', ');
+}
+
+String _basicBlockLabel(CinematicTimelineBasicBlockKind blockKind) {
+  return switch (blockKind) {
+    CinematicTimelineBasicBlockKind.wait => 'Attente',
+    CinematicTimelineBasicBlockKind.fade => 'Fondu',
+    CinematicTimelineBasicBlockKind.camera => 'Caméra basique',
+  };
+}
+
+String _fadeModeLabel(CinematicTimelineFadeMode mode) {
+  return switch (mode) {
+    CinematicTimelineFadeMode.fadeIn => 'Entrant',
+    CinematicTimelineFadeMode.fadeOut => 'Sortant',
+  };
+}
+
+String _cameraModeLabel(CinematicTimelineCameraMode mode) {
+  return switch (mode) {
+    CinematicTimelineCameraMode.reset => 'Reset',
+    CinematicTimelineCameraMode.hold => 'Hold',
+  };
 }
 
 List<CinematicDiagnostic> _stepDiagnostics(

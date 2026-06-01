@@ -222,6 +222,248 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    test('addCinematicTimelineBasicBlockStep adds wait to an empty timeline',
+        () {
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      final result = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.wait,
+      );
+
+      expect(project.cinematics.single.timeline.steps, isEmpty);
+      expect(result.step.id, 'step_wait');
+      expect(result.step.kind, CinematicTimelineStepKind.wait);
+      expect(result.step.label, 'Attente');
+      expect(result.step.durationMs, 1000);
+      expect(result.step.actorId, isNull);
+      expect(result.step.targetId, isNull);
+      expect(result.step.dialogueText, isNull);
+      expect(result.step.assetRef, isNull);
+      expect(isCinematicTimelineAuthoringStep(result.step), isTrue);
+      expect(isCinematicTimelineBasicBlockStep(result.step), isTrue);
+      expect(
+        cinematicTimelineBasicBlockKindOf(result.step),
+        CinematicTimelineBasicBlockKind.wait,
+      );
+      expect(
+        result.step.metadata,
+        containsPair('authoring.block', 'wait'),
+      );
+      expect(result.cinematic.timeline.steps, [result.step]);
+    });
+
+    test('addCinematicTimelineBasicBlockStep inserts after selection', () {
+      final cinematic = _cinematicWithSteps(
+        id: 'cinematic_intro',
+        stepIds: ['step_camera', 'step_dialogue'],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.fade,
+        afterStepId: 'step_camera',
+        fadeMode: CinematicTimelineFadeMode.fadeOut,
+        durationMs: 1500,
+      );
+
+      expect(result.step.id, 'step_fade');
+      expect(result.step.kind, CinematicTimelineStepKind.fade);
+      expect(result.step.label, 'Fondu sortant');
+      expect(result.step.durationMs, 1500);
+      expect(result.step.metadata, containsPair('authoring.block', 'fade'));
+      expect(result.step.metadata, containsPair('fade.mode', 'fadeOut'));
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_camera', 'step_fade', 'step_dialogue'],
+      );
+      expect(project.cinematics.single.timeline.steps, hasLength(2));
+    });
+
+    test('addCinematicTimelineBasicBlockStep adds camera with stable suffixes',
+        () {
+      final cinematic = _cinematicWithSteps(
+        id: 'cinematic_intro',
+        stepIds: ['step_camera', 'step_camera_2'],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.camera,
+        cameraMode: CinematicTimelineCameraMode.hold,
+      );
+
+      expect(result.step.id, 'step_camera_3');
+      expect(result.step.kind, CinematicTimelineStepKind.camera);
+      expect(result.step.label, 'Caméra');
+      expect(result.step.durationMs, 500);
+      expect(result.step.targetId, isNull);
+      expect(result.step.actorId, isNull);
+      expect(result.step.metadata, containsPair('authoring.block', 'camera'));
+      expect(result.step.metadata, containsPair('camera.mode', 'hold'));
+    });
+
+    test('updateCinematicTimelineBasicBlockStep changes only allowed params',
+        () {
+      var project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            timeline: CinematicTimeline(),
+          ),
+        ],
+        scenarios: [
+          const ScenarioAsset(
+            id: 'scenario_legacy',
+            name: 'Legacy',
+            entryNodeId: 'start',
+          ),
+        ],
+        scenes: [_sceneReferencingCinematic('cinematic_intro')],
+      );
+      final fade = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.fade,
+      );
+      project = fade.updatedProject;
+
+      final result = updateCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        stepId: fade.step.id,
+        durationMs: 2000,
+        fadeMode: CinematicTimelineFadeMode.fadeOut,
+      );
+
+      expect(result.step.id, fade.step.id);
+      expect(result.step.kind, CinematicTimelineStepKind.fade);
+      expect(result.step.label, 'Fondu sortant');
+      expect(result.step.durationMs, 2000);
+      expect(result.step.metadata, containsPair('fade.mode', 'fadeOut'));
+      expect(result.updatedProject.scenes, project.scenes);
+      expect(result.updatedProject.scenarios, project.scenarios);
+    });
+
+    test('updateCinematicTimelineBasicBlockStep updates camera mode', () {
+      final project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+      final added = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.camera,
+      );
+
+      final result = updateCinematicTimelineBasicBlockStep(
+        added.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        durationMs: 1500,
+        cameraMode: CinematicTimelineCameraMode.hold,
+      );
+
+      expect(result.step.metadata, containsPair('camera.mode', 'hold'));
+      expect(result.step.durationMs, 1500);
+    });
+
+    test('updateCinematicTimelineBasicBlockStep refuses invalid updates', () {
+      final project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+      final added = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.wait,
+      );
+
+      expect(
+        () => updateCinematicTimelineBasicBlockStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          durationMs: 0,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineBasicBlockStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_wait',
+          durationMs: 1000,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineBasicBlockStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_missing',
+          durationMs: 1000,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('removeCinematicTimelineAuthoringStep removes drafts and basic blocks',
+        () {
+      var project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+      final draft = addCinematicTimelineDraftStep(
+        project,
+        cinematicId: 'cinematic_intro',
+      );
+      project = draft.updatedProject;
+      final wait = addCinematicTimelineBasicBlockStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        blockKind: CinematicTimelineBasicBlockKind.wait,
+      );
+      project = wait.updatedProject;
+
+      final removedWait = removeCinematicTimelineAuthoringStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        stepId: wait.step.id,
+      );
+      final removedDraft = removeCinematicTimelineAuthoringStep(
+        removedWait.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: draft.step.id,
+      );
+
+      expect(removedWait.removedStep.id, wait.step.id);
+      expect(removedDraft.removedStep.id, draft.step.id);
+      expect(
+        removedDraft.cinematic.timeline.steps.map((step) => step.id),
+        ['step_wait'],
+      );
+      expect(project.cinematics.single.timeline.steps, hasLength(3));
+    });
+
+    test('removeCinematicTimelineAuthoringStep refuses non-owned steps', () {
+      final project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+
+      expect(
+        () => removeCinematicTimelineAuthoringStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_wait',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 }
 

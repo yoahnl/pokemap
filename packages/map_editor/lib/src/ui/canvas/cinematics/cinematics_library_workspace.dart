@@ -31,6 +31,25 @@ typedef RemoveTimelineDraftCallback = Future<bool> Function({
   required String stepId,
 });
 
+typedef AddTimelineBasicBlockCallback = Future<String?> Function({
+  required String cinematicId,
+  required CinematicTimelineBasicBlockKind blockKind,
+  String? afterStepId,
+});
+
+typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  int? durationMs,
+  CinematicTimelineFadeMode? fadeMode,
+  CinematicTimelineCameraMode? cameraMode,
+});
+
+typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+});
+
 enum _CinematicsLibraryFilter {
   all,
   canonical,
@@ -46,6 +65,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onRemoveCinematic,
     required this.onAddTimelineDraft,
     required this.onRemoveTimelineDraft,
+    required this.onAddTimelineBasicBlock,
+    required this.onUpdateTimelineBasicBlock,
+    required this.onRemoveTimelineAuthoringStep,
     this.onOpenLegacyCutsceneStudio,
   });
 
@@ -55,6 +77,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final RemoveCinematicCallback onRemoveCinematic;
   final AddTimelineDraftCallback onAddTimelineDraft;
   final RemoveTimelineDraftCallback onRemoveTimelineDraft;
+  final AddTimelineBasicBlockCallback onAddTimelineBasicBlock;
+  final UpdateTimelineBasicBlockCallback onUpdateTimelineBasicBlock;
+  final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -109,6 +134,9 @@ class _CinematicsLibraryWorkspaceState
         },
         onAddDraftStep: widget.onAddTimelineDraft,
         onRemoveDraftStep: widget.onRemoveTimelineDraft,
+        onAddBasicBlockStep: widget.onAddTimelineBasicBlock,
+        onUpdateBasicBlockStep: widget.onUpdateTimelineBasicBlock,
+        onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
       );
     }
     if (_builderEntryId != null) {

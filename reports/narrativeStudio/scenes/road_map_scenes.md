@@ -99,16 +99,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-42 — Cinematic Builder V0 Shell | DONE | Shell editor read-only ouvert depuis la Cinematics Library pour les `CinematicAsset` canoniques : header, palette verrouillee, apercu sandbox, deroule et inspecteur placeholders, bridges legacy exclus du Builder canonique, visual gate et tests widget. |
 | NS-SCENES-V1-43 — Cinematic Timeline Read-only / Step Inspector V0 | DONE | Le Builder liste les steps existants dans l'ordre, permet une selection locale non persistante et affiche un inspecteur detaille lecture seule avec diagnostics contextualises, sans mutation de timeline ni changement core/runtime. |
 | NS-SCENES-V1-44 — Cinematic Timeline Authoring Drafts V0 | DONE | Le Builder peut ajouter un bloc brouillon marker borne, l'inspecter en lecture seule et supprimer uniquement ce brouillon via operations pures `ProjectManifest.cinematics`, sans effet runtime ni vrai bloc metier. |
+| NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0 | DONE | Premiers vrais blocs Cinematic Builder V0 : Attente, Fondu et Camera basique authoring-owned, edition par presets/modes bornes, suppression protegee, sans runtime ni editeur de montage complet. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0`
+`NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0`
 
-Raison : V1-44 a prouve la mutation bornee du deroule avec un bloc brouillon neutre. Le prochain verrou est d'introduire les premiers vrais blocs cinematic simples, toujours authorables et diagnostiques sans ecrire de gameplay.
+Raison : V1-45 a prouve les premiers blocs simples sans cible complexe. Le prochain verrou logique est de cadrer des references acteur et une orientation acteur minimale, avant tout deplacement, dialogue cinematic, FX, son ou preview runtime.
 
-Ordre apres V1-44 : `NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0`.
+Ordre apres V1-45 : `NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -297,6 +298,20 @@ Limites : aucun vrai bloc Camera/Fondu/Attente/Dialogue/FX/Son/Acteur, aucune ed
 Preuve : tests core authoring et diagnostics verts, tests widget Builder et Library verts, analyse `map_core` et analyse editor ciblee sans issue, visual gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_44_cinematic_timeline_authoring_drafts_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0`.
+
+## Mise a jour V1-45
+
+Statut : `NS-SCENES-V1-45 — Cinematic Wait/Fade/Camera Basic Blocks V0` est DONE.
+
+Decision : `wait`, `fade` et `camera` existaient deja dans `CinematicTimelineStepKind`; V1-45 n'a donc pas change le schema JSON. Les blocs V0 crees par le Builder portent `authoring.source=cinematic-builder-v0`, `authoring.kind=basicBlock` et `authoring.block=wait|fade|camera`.
+
+Scope realise : operations pures d'ajout/update/suppression authoring-owned, edition par presets de duree et modes controles `fadeIn/fadeOut` et `reset/hold`, palette Attente/Fondu/Camera active, suppression des drafts et basic blocks owned, steps non-owned proteges, mutation memoire de `ProjectManifest.cinematics`, Library rafraichie.
+
+Limites : pas de deplacement acteur, pas de dialogue cinematic, pas de FX/Son, pas de cible map complexe, pas de preview runtime, pas de drag/drop, pas de reordonnancement et aucun package runtime/gameplay/battle/examples modifie.
+
+Preuve : tests core authoring et diagnostics, tests widget Builder et Library, analyse core/editor, visual gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_45_cinematic_wait_fade_camera_basic_blocks_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0`.
 
 ## Mise a jour V1-30-bis
 

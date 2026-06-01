@@ -254,7 +254,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.byKey(const ValueKey('cinematic-builder-remove-draft-button')),
+      find.byKey(
+        const ValueKey('cinematic-builder-remove-authoring-step-button'),
+      ),
       findsNothing,
     );
 
@@ -264,7 +266,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Bloc brouillon'), findsWidgets);
     await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-remove-draft-button')),
+      find.byKey(
+        const ValueKey('cinematic-builder-remove-authoring-step-button'),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -274,6 +278,111 @@ void main() {
     expect(
       latestProject.cinematics.single.timeline.steps.map((step) => step.id),
       ['step_camera', 'step_dialogue', 'step_sound'],
+    );
+  });
+
+  testWidgets('adds and edits wait fade and camera basic blocks',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_richCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_rich',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    expect(find.byKey(const ValueKey('cinematic-builder-palette-wait-button')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('cinematic-builder-palette-fade-button')),
+        findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('cinematic-builder-palette-camera-button')),
+        findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-wait-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Attente'), findsWidgets);
+    expect(find.text('Bloc authoring V0'), findsOneWidget);
+    expect(find.text('wait'), findsWidgets);
+    expect(find.text('1000 ms'), findsWidgets);
+    expect(
+      latestProject.cinematics.single.timeline.steps.last.kind,
+      CinematicTimelineStepKind.wait,
+    );
+    expect(
+      latestProject.cinematics.single.timeline.steps.last.metadata,
+      containsPair('authoring.block', 'wait'),
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-duration-preset-2000')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-duration-preset-2000')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        latestProject.cinematics.single.timeline.steps.last.durationMs, 2000);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-fade-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-fade-mode-fadeOut')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-fade-mode-fadeOut')),
+    );
+    await tester.pumpAndSettle();
+
+    final fadeStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(fadeStep.kind, CinematicTimelineStepKind.fade);
+    expect(fadeStep.metadata, containsPair('fade.mode', 'fadeOut'));
+    expect(find.text('Fondu sortant'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-camera-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
+    );
+    await tester.pumpAndSettle();
+
+    final cameraStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(cameraStep.kind, CinematicTimelineStepKind.camera);
+    expect(cameraStep.actorId, isNull);
+    expect(cameraStep.targetId, isNull);
+    expect(cameraStep.metadata, containsPair('camera.mode', 'hold'));
+    expect(find.text('Caméra'), findsWidgets);
+    expect(find.text('Hold'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-remove-authoring-step-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      latestProject.cinematics.single.timeline.steps.map((step) => step.kind),
+      [
+        CinematicTimelineStepKind.camera,
+        CinematicTimelineStepKind.dialogueLine,
+        CinematicTimelineStepKind.sound,
+        CinematicTimelineStepKind.wait,
+        CinematicTimelineStepKind.fade,
+      ],
     );
   });
 
@@ -304,7 +413,8 @@ void main() {
     );
     expect(find.text('Aperçu sandbox'), findsOneWidget);
     expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
-    expect(find.text('Ajouter un bloc'), findsNothing);
+    expect(find.byKey(const ValueKey('cinematic-builder-palette-wait-button')),
+        findsOneWidget);
   });
 
   testWidgets('calls back to library from builder header', (tester) async {
@@ -394,6 +504,39 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-45 builder basic blocks screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_45_CAPTURE_CINEMATIC_BUILDER_BASIC_BLOCKS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_richCinematic()]),
+      'cinematic_rich',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-wait-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_45_cinematic_wait_fade_camera_basic_blocks_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -420,6 +563,25 @@ Future<void> _pumpBuilder(
               }) async =>
                   null,
               onRemoveDraftStep: ({
+                required String cinematicId,
+                required String stepId,
+              }) async =>
+                  false,
+              onAddBasicBlockStep: ({
+                required String cinematicId,
+                required CinematicTimelineBasicBlockKind blockKind,
+                String? afterStepId,
+              }) async =>
+                  null,
+              onUpdateBasicBlockStep: ({
+                required String cinematicId,
+                required String stepId,
+                int? durationMs,
+                CinematicTimelineFadeMode? fadeMode,
+                CinematicTimelineCameraMode? cameraMode,
+              }) async =>
+                  false,
+              onRemoveAuthoringStep: ({
                 required String cinematicId,
                 required String stepId,
               }) async =>
@@ -484,6 +646,9 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onBackToLibrary: () {},
               onAddDraftStep: _addDraftStep,
               onRemoveDraftStep: _removeDraftStep,
+              onAddBasicBlockStep: _addBasicBlockStep,
+              onUpdateBasicBlockStep: _updateBasicBlockStep,
+              onRemoveAuthoringStep: _removeAuthoringStep,
             ),
           ),
         ),
@@ -517,6 +682,56 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return true;
+  }
+
+  Future<String?> _addBasicBlockStep({
+    required String cinematicId,
+    required CinematicTimelineBasicBlockKind blockKind,
+    String? afterStepId,
+  }) async {
+    final result = addCinematicTimelineBasicBlockStep(
+      _project,
+      cinematicId: cinematicId,
+      blockKind: blockKind,
+      afterStepId: afterStepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id;
+  }
+
+  Future<bool> _updateBasicBlockStep({
+    required String cinematicId,
+    required String stepId,
+    int? durationMs,
+    CinematicTimelineFadeMode? fadeMode,
+    CinematicTimelineCameraMode? cameraMode,
+  }) async {
+    final result = updateCinematicTimelineBasicBlockStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+      durationMs: durationMs,
+      fadeMode: fadeMode,
+      cameraMode: cameraMode,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _removeAuthoringStep({
+    required String cinematicId,
+    required String stepId,
+  }) async {
+    final result = removeCinematicTimelineAuthoringStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.removedStep.id == stepId;
   }
 }
 
