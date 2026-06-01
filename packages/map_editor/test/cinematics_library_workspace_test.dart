@@ -201,6 +201,40 @@ void main() {
     expect(find.text('1750 ms estimé(s)'), findsWidgets);
   });
 
+  testWidgets('adds an actor facing block from builder and refreshes summary',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-actorFace-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Orientation Professor'), findsWidgets);
+    expect(find.text('Acteur: Professor'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-back-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cinematics-library-workspace')),
+        findsOneWidget);
+    expect(find.text('3 step(s)'), findsWidgets);
+    expect(find.textContaining('actorFace'), findsWidgets);
+    expect(find.textContaining('actor_professor'), findsWidgets);
+  });
+
   testWidgets('keeps legacy bridge out of canonical builder shell',
       (tester) async {
     _setLargeSurface(tester);
@@ -442,6 +476,47 @@ class _HarnessState extends State<_Harness> {
                   durationMs: durationMs,
                   fadeMode: fadeMode,
                   cameraMode: cameraMode,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id == stepId;
+              },
+              onAddRequiredActor: ({required String cinematicId}) async {
+                final result = addCinematicRequiredActor(
+                  _project,
+                  cinematicId: cinematicId,
+                  label: 'Acteur',
+                );
+                setState(() => _project = result.updatedProject);
+                return result.actor.actorId;
+              },
+              onAddTimelineActorFacing: ({
+                required String cinematicId,
+                required String actorId,
+                required CinematicTimelineActorFacingDirection direction,
+                String? afterStepId,
+              }) async {
+                final result = addCinematicTimelineActorFacingStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  actorId: actorId,
+                  direction: direction,
+                  afterStepId: afterStepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id;
+              },
+              onUpdateTimelineActorFacing: ({
+                required String cinematicId,
+                required String stepId,
+                String? actorId,
+                CinematicTimelineActorFacingDirection? direction,
+              }) async {
+                final result = updateCinematicTimelineActorFacingStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  stepId: stepId,
+                  actorId: actorId,
+                  direction: direction,
                 );
                 setState(() => _project = result.updatedProject);
                 return result.step.id == stepId;

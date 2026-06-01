@@ -19,6 +19,7 @@ enum CinematicDiagnosticCode {
   cinematicUnknownStorylineRef,
   cinematicUnknownChapterRef,
   cinematicUnknownMapRef,
+  cinematicUnknownActorRef,
   cinematicLegacyBridge,
   cinematicScenarioBridgeNotCanonical,
 }
@@ -284,6 +285,8 @@ void _diagnoseTimeline(
   }
 
   final stepIds = <String>{};
+  final requiredActorIds =
+      cinematic.requiredActors.map((actor) => actor.actorId).toSet();
   for (final step in cinematic.timeline.steps) {
     if (!stepIds.add(step.id)) {
       diagnostics.add(
@@ -328,6 +331,22 @@ void _diagnoseTimeline(
           target: CinematicDiagnosticTarget.step,
           suggestedFixLabel:
               'Déplacer cette conséquence dans une Scene ou une Action.',
+        ),
+      );
+    }
+    final actorId = step.actorId;
+    if (actorId != null && !requiredActorIds.contains(actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.cinematicUnknownActorRef,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'Une étape cinematic référence un acteur inconnu.',
+          cinematicId: cinematic.id,
+          stepId: step.id,
+          referenceId: actorId,
+          target: CinematicDiagnosticTarget.reference,
+          suggestedFixLabel:
+              'Choisir un acteur requis existant dans la cinématique.',
         ),
       );
     }

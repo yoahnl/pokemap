@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0
+NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract
 ```
 
 ## Principes
@@ -79,6 +79,7 @@ NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0
 | NS-SCENES-V1-43 | Cinematic Timeline Read-only / Step Inspector V0 | editor / ui-readonly | Rendre le deroule du Builder inspectable : steps reels ordonnes, selection locale, inspecteur detaille lecture seule et diagnostics contextualises. | Pas de mutation de timeline, pas de modele core, pas de preview runtime, pas de migration bridge. | `cinematic_builder_workspace.dart`, `cinematics_library_workspace.dart`, tests widget, rapport, screenshot. | DONE : liste steps, selection locale, inspecteur step, diagnostics, non-mutation, visual gate, analyze cible. | Confondre inspection et authoring ; dupliquer le read model core ; creer une selection persistante inutile. | DONE : Builder inspectable sans changer `ProjectManifest`, core ou runtime. | V1-42. |
 | NS-SCENES-V1-44 | Cinematic Timeline Authoring Drafts V0 | core / editor | Ajouter un brouillon neutre dans le deroule Cinematic, l'inspecter et le retirer de facon bornee via operations pures. | Pas de vrais blocs metier, pas d'edition de champs, pas de player visuel, pas de runtime, pas de changement schema. | `cinematic_authoring_operations.dart`, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : add/remove draft purs, insertion apres selection ou fin, suppression refusee hors brouillon, mutation memoire, visual gate, analyses. | Laisser un brouillon produire un effet ; supprimer un vrai step ; confondre marker neutre et bloc moteur. | DONE : marker draft identifie par metadata, UI no-code bornee, non-regression core/editor prouvee. | V1-43. |
 | NS-SCENES-V1-45 | Cinematic Wait/Fade/Camera Basic Blocks V0 | core / editor | Activer les premiers blocs metier simples du Cinematic Builder : Attente, Fondu et Camera basique. | Pas de deplacement acteur, pas de dialogue, pas de FX/Son, pas de preview runtime, pas de reordonnancement, pas de changement schema. | operations cinematic authoring, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : add/update/remove authoring-owned, presets duree, modes fade/camera, protections non-owned, visual gate, analyses. | Transformer les metadata authoring en API runtime ; ouvrir trop tot des cibles acteur/map. | DONE : blocs V0 bornes, canonical-only preserve, aucun runtime modifie. | V1-44. |
+| NS-SCENES-V1-46 | Cinematic Actor References / Actor Facing V0 | core / editor | Ajouter les references acteur requises et un bloc Orientation acteur V0 dans le Cinematic Builder. | Pas de deplacement acteur, pas de chemin/pathfinding, pas de timeline multi-track, pas de drag/drop, pas de preview runtime, pas de dialogue/FX/Son. | operations cinematic authoring, diagnostics cinematic, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : acteurs requis, bloc `actorFace`, picker acteur, direction up/down/left/right, diagnostics acteur inconnu, visual gate, analyses. | Confondre orientation et mouvement ; exposer des ids acteur comme workflow principal ; ouvrir trop tot runtime/player. | DONE : actor refs et facing bornes, canonical-only preserve, aucun runtime modifie. | V1-45. |
 
 ## Options comparees
 
@@ -724,6 +725,20 @@ Limites : pas d'acteur, pas de dialogue cinematic, pas de FX, pas de son, pas de
 Preuve : tests core authoring/diagnostics, tests widget Builder/Library, analyse ciblee et capture V1-45.
 
 Prochain lot exact : `NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0`.
+
+## Mise a jour V1-46
+
+Statut : `NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0` est DONE.
+
+Decision : le modele Cinematic possedait deja les briques necessaires (`requiredActors`, `actorId`, `actorFace`). Le lot a donc ajoute l'authoring et les validations autour de ces refs, sans migration ni runtime. La direction V0 est un enum borne `up`, `down`, `left`, `right`, stocke dans `actor.direction`.
+
+Scope realise : ajout d'acteur requis depuis la palette, bloc Orientation acteur active seulement si au moins un acteur existe, creation du step `actorFace` apres la selection courante, edition inspecteur par picker acteur et boutons direction, badges acteur/direction dans le deroule, Library rafraichie, diagnostic d'acteur inconnu.
+
+Limites : pas de mouvement, pas de pathfinding, pas de drag/drop, pas de timeline multi-track, pas de preview jouable, pas de dialogue/FX/Son, pas de runtime.
+
+Preuve : tests core authoring/diagnostics, tests widget Builder/Library, analyse `map_core`, analyse editor ciblee et capture V1-46.
+
+Prochain lot exact : `NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract`.
 
 ## Selbrume golden slice
 

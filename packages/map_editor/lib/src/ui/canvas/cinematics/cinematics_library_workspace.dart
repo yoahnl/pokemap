@@ -45,6 +45,24 @@ typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
   CinematicTimelineCameraMode? cameraMode,
 });
 
+typedef AddRequiredActorCallback = Future<String?> Function({
+  required String cinematicId,
+});
+
+typedef AddTimelineActorFacingCallback = Future<String?> Function({
+  required String cinematicId,
+  required String actorId,
+  required CinematicTimelineActorFacingDirection direction,
+  String? afterStepId,
+});
+
+typedef UpdateTimelineActorFacingCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  CinematicTimelineActorFacingDirection? direction,
+});
+
 typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
@@ -67,6 +85,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onRemoveTimelineDraft,
     required this.onAddTimelineBasicBlock,
     required this.onUpdateTimelineBasicBlock,
+    required this.onAddRequiredActor,
+    required this.onAddTimelineActorFacing,
+    required this.onUpdateTimelineActorFacing,
     required this.onRemoveTimelineAuthoringStep,
     this.onOpenLegacyCutsceneStudio,
   });
@@ -79,6 +100,9 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final RemoveTimelineDraftCallback onRemoveTimelineDraft;
   final AddTimelineBasicBlockCallback onAddTimelineBasicBlock;
   final UpdateTimelineBasicBlockCallback onUpdateTimelineBasicBlock;
+  final AddRequiredActorCallback onAddRequiredActor;
+  final AddTimelineActorFacingCallback onAddTimelineActorFacing;
+  final UpdateTimelineActorFacingCallback onUpdateTimelineActorFacing;
   final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
@@ -136,6 +160,9 @@ class _CinematicsLibraryWorkspaceState
         onRemoveDraftStep: widget.onRemoveTimelineDraft,
         onAddBasicBlockStep: widget.onAddTimelineBasicBlock,
         onUpdateBasicBlockStep: widget.onUpdateTimelineBasicBlock,
+        onAddRequiredActor: widget.onAddRequiredActor,
+        onAddActorFacingStep: widget.onAddTimelineActorFacing,
+        onUpdateActorFacingStep: widget.onUpdateTimelineActorFacing,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
       );
     }

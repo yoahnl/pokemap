@@ -133,6 +133,74 @@ void main() {
       expect(report.hasErrors, isFalse);
     });
 
+    test('accepts valid actorFace authoring block', () {
+      var project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+      final result = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        direction: CinematicTimelineActorFacingDirection.down,
+      );
+      project = result.updatedProject;
+
+      final report = diagnoseCinematicAsset(project.cinematics.single);
+
+      expect(isCinematicTimelineActorFacingStep(result.step), isTrue);
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnknownActorRef),
+        isEmpty,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
+    test('reports actorFace with unknown actorId', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_actor_face',
+                kind: CinematicTimelineStepKind.actorFace,
+                actorId: 'actor_missing',
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorFace',
+                  'actor.direction': 'left',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicUnknownActorRef)
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.stepId, 'step_actor_face');
+      expect(diagnostic.referenceId, 'actor_missing');
+    });
+
     test('reports duplicate cinematic ids in a collection', () {
       final report = diagnoseCinematics([
         _cinematic(id: 'cinematic_intro'),

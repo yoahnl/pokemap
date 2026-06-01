@@ -386,6 +386,117 @@ void main() {
     );
   });
 
+  testWidgets('adds a required actor before enabling actor facing',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_no_actor',
+          title: 'No actor cinematic',
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_no_actor',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final actorFaceButton = find.byKey(
+      const ValueKey('cinematic-builder-palette-actorFace-button'),
+    );
+    expect(actorFaceButton, findsOneWidget);
+    expect(tester.widget<PokeMapButton>(actorFaceButton).onPressed, isNull);
+    expect(find.text('Ajoutez d’abord un acteur requis'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-add-required-actor-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        latestProject.cinematics.single.requiredActors.single.actorId, 'actor');
+    expect(
+        latestProject.cinematics.single.requiredActors.single.label, 'Acteur');
+    expect(find.text('Acteur'), findsWidgets);
+    expect(tester.widget<PokeMapButton>(actorFaceButton).onPressed, isNotNull);
+  });
+
+  testWidgets('adds and edits actor facing with actor picker and direction',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_actorFacingCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_actor_face',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-palette-actorFace-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Professor'), findsWidgets);
+    expect(find.text('Rival'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-actorFace-button')),
+    );
+    await tester.pumpAndSettle();
+
+    var actorFaceStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(actorFaceStep.kind, CinematicTimelineStepKind.actorFace);
+    expect(actorFaceStep.label, 'Orientation Professor');
+    expect(actorFaceStep.actorId, 'actor_professor');
+    expect(
+        actorFaceStep.metadata, containsPair('authoring.block', 'actorFace'));
+    expect(actorFaceStep.metadata, containsPair('actor.direction', 'down'));
+    expect(find.text('Orientation Professor'), findsWidgets);
+    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Direction'), findsWidgets);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-actor-direction-left')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-actor-direction-left')),
+    );
+    await tester.pumpAndSettle();
+
+    actorFaceStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(actorFaceStep.actorId, 'actor_rival');
+    expect(actorFaceStep.label, 'Orientation Rival');
+    expect(actorFaceStep.metadata, containsPair('actor.direction', 'left'));
+    expect(find.text('Acteur: Rival'), findsWidgets);
+    expect(find.text('Gauche'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-remove-authoring-step-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      latestProject.cinematics.single.timeline.steps.map((step) => step.kind),
+      [CinematicTimelineStepKind.wait],
+    );
+  });
+
   testWidgets('shows empty timeline state without authoring controls',
       (tester) async {
     _setLargeSurface(tester);
@@ -537,6 +648,39 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-46 builder actor facing screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_46_CAPTURE_CINEMATIC_BUILDER_ACTOR_FACING',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_actorFacingCinematic()]),
+      'cinematic_actor_face',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-palette-actorFace-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_46_cinematic_actor_references_actor_facing_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -579,6 +723,21 @@ Future<void> _pumpBuilder(
                 int? durationMs,
                 CinematicTimelineFadeMode? fadeMode,
                 CinematicTimelineCameraMode? cameraMode,
+              }) async =>
+                  false,
+              onAddRequiredActor: ({required String cinematicId}) async => null,
+              onAddActorFacingStep: ({
+                required String cinematicId,
+                required String actorId,
+                required CinematicTimelineActorFacingDirection direction,
+                String? afterStepId,
+              }) async =>
+                  null,
+              onUpdateActorFacingStep: ({
+                required String cinematicId,
+                required String stepId,
+                String? actorId,
+                CinematicTimelineActorFacingDirection? direction,
               }) async =>
                   false,
               onRemoveAuthoringStep: ({
@@ -648,6 +807,9 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onRemoveDraftStep: _removeDraftStep,
               onAddBasicBlockStep: _addBasicBlockStep,
               onUpdateBasicBlockStep: _updateBasicBlockStep,
+              onAddRequiredActor: _addRequiredActor,
+              onAddActorFacingStep: _addActorFacingStep,
+              onUpdateActorFacingStep: _updateActorFacingStep,
               onRemoveAuthoringStep: _removeAuthoringStep,
             ),
           ),
@@ -720,6 +882,53 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     return true;
   }
 
+  Future<String?> _addRequiredActor({required String cinematicId}) async {
+    final result = addCinematicRequiredActor(
+      _project,
+      cinematicId: cinematicId,
+      label: 'Acteur',
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.actor.actorId;
+  }
+
+  Future<String?> _addActorFacingStep({
+    required String cinematicId,
+    required String actorId,
+    required CinematicTimelineActorFacingDirection direction,
+    String? afterStepId,
+  }) async {
+    final result = addCinematicTimelineActorFacingStep(
+      _project,
+      cinematicId: cinematicId,
+      actorId: actorId,
+      direction: direction,
+      afterStepId: afterStepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id;
+  }
+
+  Future<bool> _updateActorFacingStep({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    CinematicTimelineActorFacingDirection? direction,
+  }) async {
+    final result = updateCinematicTimelineActorFacingStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+      actorId: actorId,
+      direction: direction,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id == stepId;
+  }
+
   Future<bool> _removeAuthoringStep({
     required String cinematicId,
     required String stepId,
@@ -741,6 +950,29 @@ CinematicAsset _asset(ProjectManifest project, String id) {
     throw StateError('Missing cinematic asset $id');
   }
   return asset;
+}
+
+CinematicAsset _actorFacingCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_actor_face',
+    title: 'Actor facing cinematic',
+    description: 'Actor picker and facing direction.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Opening wait',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
 }
 
 CinematicAsset _richCinematic() {

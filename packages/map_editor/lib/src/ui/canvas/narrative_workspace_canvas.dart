@@ -1105,6 +1105,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onRemoveTimelineDraft: _removeCinematicTimelineDraft,
       onAddTimelineBasicBlock: _addCinematicTimelineBasicBlock,
       onUpdateTimelineBasicBlock: _updateCinematicTimelineBasicBlock,
+      onAddRequiredActor: _addCinematicRequiredActor,
+      onAddTimelineActorFacing: _addCinematicTimelineActorFacing,
+      onUpdateTimelineActorFacing: _updateCinematicTimelineActorFacing,
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
@@ -1299,6 +1302,85 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         statusMessage: 'Cinematic timeline basic block updated',
       );
       return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<String?> _addCinematicRequiredActor({
+    required String cinematicId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicRequiredActor(
+        project,
+        cinematicId: cinematicId,
+        label: 'Acteur',
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic required actor created',
+      );
+      return result.actor.actorId;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<String?> _addCinematicTimelineActorFacing({
+    required String cinematicId,
+    required String actorId,
+    required CinematicTimelineActorFacingDirection direction,
+    String? afterStepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+        direction: direction,
+        afterStepId: afterStepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor facing block created',
+      );
+      return result.step.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _updateCinematicTimelineActorFacing({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    CinematicTimelineActorFacingDirection? direction,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+        actorId: actorId,
+        direction: direction,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor facing block updated',
+      );
+      return result.step.id == stepId;
     } on ArgumentError {
       return false;
     }

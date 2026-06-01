@@ -25,6 +25,44 @@ void main() {
       );
     });
 
+    test('addCinematicRequiredActor creates a minimal required actor', () {
+      final project = _project(cinematics: [
+        _cinematic(id: 'cinematic_intro', requiredActors: [
+          CinematicActorRef(actorId: 'actor', label: 'Acteur'),
+        ]),
+      ]);
+
+      final result = addCinematicRequiredActor(
+        project,
+        cinematicId: 'cinematic_intro',
+        label: 'Assistant',
+      );
+
+      expect(project.cinematics.single.requiredActors, hasLength(1));
+      expect(result.actor.actorId, 'actor_2');
+      expect(result.actor.label, 'Assistant');
+      expect(result.cinematic.requiredActors.map((actor) => actor.actorId), [
+        'actor',
+        'actor_2',
+      ]);
+      expect(result.cinematic.timeline, project.cinematics.single.timeline);
+      expect(result.updatedProject.scenes, project.scenes);
+      expect(result.updatedProject.scenarios, project.scenarios);
+    });
+
+    test('addCinematicRequiredActor refuses empty labels', () {
+      final project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+
+      expect(
+        () => addCinematicRequiredActor(
+          project,
+          cinematicId: 'cinematic_intro',
+          label: '   ',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('updateCinematicAsset replaces an existing asset only', () {
       final existing = _cinematic(id: 'cinematic_intro');
       final other = _cinematic(id: 'cinematic_other', title: 'Other');
@@ -417,6 +455,189 @@ void main() {
       );
     });
 
+    test('addCinematicTimelineActorFacingStep creates an actorFace block', () {
+      final cinematic = _cinematic(
+        id: 'cinematic_intro',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+      );
+      final project = _project(
+        cinematics: [cinematic],
+        scenarios: [
+          const ScenarioAsset(
+            id: 'scenario_legacy',
+            name: 'Legacy',
+            entryNodeId: 'start',
+          ),
+        ],
+        scenes: [_sceneReferencingCinematic('cinematic_intro')],
+      );
+
+      final result = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        direction: CinematicTimelineActorFacingDirection.left,
+        afterStepId: 'step_wait',
+      );
+
+      expect(project.cinematics.single.timeline.steps, hasLength(1));
+      expect(result.step.id, 'step_actor_face');
+      expect(result.step.kind, CinematicTimelineStepKind.actorFace);
+      expect(result.step.label, 'Orientation Professor');
+      expect(result.step.actorId, 'actor_professor');
+      expect(result.step.durationMs, isNull);
+      expect(result.step.targetId, isNull);
+      expect(result.step.dialogueText, isNull);
+      expect(result.step.assetRef, isNull);
+      expect(
+          result.step.metadata, containsPair('authoring.block', 'actorFace'));
+      expect(result.step.metadata, containsPair('actor.direction', 'left'));
+      expect(isCinematicTimelineActorFacingStep(result.step), isTrue);
+      expect(isCinematicTimelineAuthoringStep(result.step), isTrue);
+      expect(
+        cinematicTimelineActorFacingDirectionOf(result.step),
+        CinematicTimelineActorFacingDirection.left,
+      );
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_wait', 'step_actor_face'],
+      );
+      expect(result.updatedProject.scenes, project.scenes);
+      expect(result.updatedProject.scenarios, project.scenarios);
+    });
+
+    test('addCinematicTimelineActorFacingStep validates actor ids and suffixes',
+        () {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_intro',
+        title: 'Intro cinematic',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_face',
+              kind: CinematicTimelineStepKind.actorFace,
+              actorId: 'actor_professor',
+              metadata: const {
+                'authoring.source': 'cinematic-builder-v0',
+                'authoring.kind': 'basicBlock',
+                'authoring.block': 'actorFace',
+                'actor.direction': 'down',
+              },
+            ),
+          ],
+        ),
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        direction: CinematicTimelineActorFacingDirection.up,
+      );
+
+      expect(result.step.id, 'step_actor_face_2');
+      expect(
+        () => addCinematicTimelineActorFacingStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorId: 'actor_missing',
+          direction: CinematicTimelineActorFacingDirection.up,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('updateCinematicTimelineActorFacingStep changes actor and direction',
+        () {
+      var project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+          ),
+        ],
+      );
+      final added = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        direction: CinematicTimelineActorFacingDirection.down,
+      );
+      project = added.updatedProject;
+
+      final result = updateCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        actorId: 'actor_rival',
+        direction: CinematicTimelineActorFacingDirection.right,
+      );
+
+      expect(result.step.id, added.step.id);
+      expect(result.step.kind, CinematicTimelineStepKind.actorFace);
+      expect(result.step.label, 'Orientation Rival');
+      expect(result.step.actorId, 'actor_rival');
+      expect(result.step.metadata, containsPair('actor.direction', 'right'));
+      expect(project.cinematics.single.timeline.steps.last.actorId,
+          'actor_professor');
+    });
+
+    test('updateCinematicTimelineActorFacingStep refuses invalid updates', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+          ),
+        ],
+      );
+      final added = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        direction: CinematicTimelineActorFacingDirection.down,
+      );
+
+      expect(
+        () => updateCinematicTimelineActorFacingStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          actorId: 'actor_missing',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineActorFacingStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_wait',
+          direction: CinematicTimelineActorFacingDirection.left,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineActorFacingStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_missing',
+          direction: CinematicTimelineActorFacingDirection.left,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('removeCinematicTimelineAuthoringStep removes drafts and basic blocks',
         () {
       var project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
@@ -431,25 +652,44 @@ void main() {
         blockKind: CinematicTimelineBasicBlockKind.wait,
       );
       project = wait.updatedProject;
+      final actor = addCinematicRequiredActor(
+        project,
+        cinematicId: 'cinematic_intro',
+        label: 'Actor',
+      );
+      project = actor.updatedProject;
+      final actorFace = addCinematicTimelineActorFacingStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: actor.actor.actorId,
+        direction: CinematicTimelineActorFacingDirection.down,
+      );
+      project = actorFace.updatedProject;
 
       final removedWait = removeCinematicTimelineAuthoringStep(
         project,
         cinematicId: 'cinematic_intro',
         stepId: wait.step.id,
       );
-      final removedDraft = removeCinematicTimelineAuthoringStep(
+      final removedActorFace = removeCinematicTimelineAuthoringStep(
         removedWait.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: actorFace.step.id,
+      );
+      final removedDraft = removeCinematicTimelineAuthoringStep(
+        removedActorFace.updatedProject,
         cinematicId: 'cinematic_intro',
         stepId: draft.step.id,
       );
 
       expect(removedWait.removedStep.id, wait.step.id);
+      expect(removedActorFace.removedStep.id, actorFace.step.id);
       expect(removedDraft.removedStep.id, draft.step.id);
       expect(
         removedDraft.cinematic.timeline.steps.map((step) => step.id),
         ['step_wait'],
       );
-      expect(project.cinematics.single.timeline.steps, hasLength(3));
+      expect(project.cinematics.single.timeline.steps, hasLength(4));
     });
 
     test('removeCinematicTimelineAuthoringStep refuses non-owned steps', () {
@@ -486,11 +726,13 @@ CinematicAsset _cinematic({
   required String id,
   String title = 'Intro cinematic',
   String? description,
+  List<CinematicActorRef> requiredActors = const [],
 }) {
   return CinematicAsset(
     id: id,
     title: title,
     description: description,
+    requiredActors: requiredActors,
     timeline: CinematicTimeline(
       steps: [
         CinematicTimelineStep(

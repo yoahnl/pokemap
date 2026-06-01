@@ -22,6 +22,18 @@ final class CinematicAssetRemovalResult {
   final CinematicAsset removedCinematic;
 }
 
+final class CinematicRequiredActorResult {
+  const CinematicRequiredActorResult({
+    required this.updatedProject,
+    required this.cinematic,
+    required this.actor,
+  });
+
+  final ProjectManifest updatedProject;
+  final CinematicAsset cinematic;
+  final CinematicActorRef actor;
+}
+
 final class CinematicTimelineDraftStepResult {
   const CinematicTimelineDraftStepResult({
     required this.updatedProject,
@@ -98,6 +110,13 @@ enum CinematicTimelineCameraMode {
   hold,
 }
 
+enum CinematicTimelineActorFacingDirection {
+  up,
+  down,
+  left,
+  right,
+}
+
 const cinematicTimelineDraftMetadataKindKey = 'authoring.kind';
 const cinematicTimelineDraftMetadataKindValue = 'draft';
 const cinematicTimelineBasicBlockMetadataKindValue = 'basicBlock';
@@ -106,6 +125,8 @@ const cinematicTimelineDraftMetadataSourceValue = 'cinematic-builder-v0';
 const cinematicTimelineAuthoringBlockMetadataKey = 'authoring.block';
 const cinematicTimelineFadeModeMetadataKey = 'fade.mode';
 const cinematicTimelineCameraModeMetadataKey = 'camera.mode';
+const cinematicTimelineActorDirectionMetadataKey = 'actor.direction';
+const cinematicTimelineActorFaceBlockMetadataValue = 'actorFace';
 
 const cinematicTimelineDefaultWaitDurationMs = 1000;
 const cinematicTimelineDefaultFadeDurationMs = 1000;
@@ -220,6 +241,35 @@ CinematicAsset? findCinematicById(
     }
   }
   return null;
+}
+
+CinematicRequiredActorResult addCinematicRequiredActor(
+  ProjectManifest project, {
+  required String cinematicId,
+  String label = 'Acteur',
+  String? role,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final actorLabel = _trimRequired(
+    label,
+    'label',
+    'Required actor authoring requires a readable label.',
+  );
+  final actor = CinematicActorRef(
+    actorId: _nextRequiredActorId(cinematic),
+    label: actorLabel,
+    role: role,
+  );
+  final updatedCinematic = _copyCinematicWithActors(
+    cinematic,
+    [...cinematic.requiredActors, actor],
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicRequiredActorResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    actor: actor,
+  );
 }
 
 CinematicTimelineDraftStepResult addCinematicTimelineDraftStep(
@@ -394,6 +444,114 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineBasicBlockStep(
   );
 }
 
+CinematicTimelineBasicBlockStepResult addCinematicTimelineActorFacingStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+  required CinematicTimelineActorFacingDirection direction,
+  String? afterStepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final actor = _requireActor(cinematic, actorId);
+  final steps = cinematic.timeline.steps.toList();
+  final insertIndex = _timelineInsertIndex(
+    steps,
+    afterStepId,
+    argumentName: 'afterStepId',
+    message: 'Actor facing insertion references an unknown timeline step.',
+  );
+  final step = _buildActorFacingStep(
+    cinematic,
+    actor: actor,
+    direction: direction,
+  );
+  steps.insert(insertIndex, step);
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineBasicBlockStepResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: step,
+  );
+}
+
+CinematicTimelineStepUpdateResult updateCinematicTimelineActorFacingStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  CinematicTimelineActorFacingDirection? direction,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    stepId,
+    'stepId',
+    'Actor facing update requires a timeline step id.',
+  );
+  final steps = cinematic.timeline.steps.toList();
+  final index = steps.indexWhere((step) => step.id == id);
+  if (index == -1) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Actor facing update references an unknown timeline step.',
+    );
+  }
+  final step = steps[index];
+  if (!isCinematicTimelineActorFacingStep(step)) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Only Cinematic Builder V0 actor facing blocks can be updated here.',
+    );
+  }
+
+  final actor = actorId == null
+      ? _requireActor(cinematic, step.actorId ?? '')
+      : _requireActor(cinematic, actorId);
+  final updatedDirection = direction ??
+      cinematicTimelineActorFacingDirectionOf(
+        step,
+      );
+  if (updatedDirection == null) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Actor facing update requires a valid current direction.',
+    );
+  }
+
+  final metadata = Map<String, String>.of(step.metadata)
+    ..[cinematicTimelineActorDirectionMetadataKey] = updatedDirection.name;
+  final updatedStep = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: _actorFacingLabel(actor),
+    durationMs: step.durationMs,
+    actorId: actor.actorId,
+    targetId: step.targetId,
+    dialogueText: step.dialogueText,
+    assetRef: step.assetRef,
+    metadata: metadata,
+  );
+  steps[index] = updatedStep;
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineStepUpdateResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: updatedStep,
+  );
+}
+
 CinematicTimelineAuthoringStepRemovalResult
     removeCinematicTimelineAuthoringStep(
   ProjectManifest project, {
@@ -447,7 +605,8 @@ bool isCinematicTimelineDraftStep(CinematicTimelineStep step) {
 
 bool isCinematicTimelineAuthoringStep(CinematicTimelineStep step) {
   return isCinematicTimelineDraftStep(step) ||
-      isCinematicTimelineBasicBlockStep(step);
+      isCinematicTimelineBasicBlockStep(step) ||
+      isCinematicTimelineActorFacingStep(step);
 }
 
 bool isCinematicTimelineBasicBlockStep(CinematicTimelineStep step) {
@@ -471,6 +630,30 @@ CinematicTimelineBasicBlockKind? cinematicTimelineBasicBlockKindOf(
       CinematicTimelineBasicBlockKind.fade,
     'camera' when step.kind == CinematicTimelineStepKind.camera =>
       CinematicTimelineBasicBlockKind.camera,
+    _ => null,
+  };
+}
+
+bool isCinematicTimelineActorFacingStep(CinematicTimelineStep step) {
+  return step.kind == CinematicTimelineStepKind.actorFace &&
+      step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
+          cinematicTimelineDraftMetadataSourceValue &&
+      step.metadata[cinematicTimelineDraftMetadataKindKey] ==
+          cinematicTimelineBasicBlockMetadataKindValue &&
+      step.metadata[cinematicTimelineAuthoringBlockMetadataKey] ==
+          cinematicTimelineActorFaceBlockMetadataValue &&
+      cinematicTimelineActorFacingDirectionOf(step) != null;
+}
+
+CinematicTimelineActorFacingDirection? cinematicTimelineActorFacingDirectionOf(
+  CinematicTimelineStep step,
+) {
+  final direction = step.metadata[cinematicTimelineActorDirectionMetadataKey];
+  return switch (direction) {
+    'up' => CinematicTimelineActorFacingDirection.up,
+    'down' => CinematicTimelineActorFacingDirection.down,
+    'left' => CinematicTimelineActorFacingDirection.left,
+    'right' => CinematicTimelineActorFacingDirection.right,
     _ => null,
   };
 }
@@ -552,6 +735,26 @@ CinematicAsset _copyCinematicWithTimeline(
   );
 }
 
+CinematicAsset _copyCinematicWithActors(
+  CinematicAsset cinematic,
+  List<CinematicActorRef> requiredActors,
+) {
+  return CinematicAsset(
+    id: cinematic.id,
+    title: cinematic.title,
+    description: cinematic.description,
+    storylineId: cinematic.storylineId,
+    chapterId: cinematic.chapterId,
+    mapId: cinematic.mapId,
+    tags: cinematic.tags,
+    requiredActors: requiredActors,
+    timeline: cinematic.timeline,
+    notes: cinematic.notes,
+    metadata: cinematic.metadata,
+    legacyBridge: cinematic.legacyBridge,
+  );
+}
+
 int _timelineInsertIndex(
   List<CinematicTimelineStep> steps,
   String? afterStepId, {
@@ -615,6 +818,28 @@ CinematicTimelineStep _buildBasicBlockStep(
         },
       ),
   };
+}
+
+CinematicTimelineStep _buildActorFacingStep(
+  CinematicAsset cinematic, {
+  required CinematicActorRef actor,
+  required CinematicTimelineActorFacingDirection direction,
+}) {
+  return CinematicTimelineStep(
+    id: _nextTimelineStepId(cinematic, 'step_actor_face'),
+    kind: CinematicTimelineStepKind.actorFace,
+    label: _actorFacingLabel(actor),
+    actorId: actor.actorId,
+    metadata: {
+      cinematicTimelineDraftMetadataKindKey:
+          cinematicTimelineBasicBlockMetadataKindValue,
+      cinematicTimelineDraftMetadataSourceKey:
+          cinematicTimelineDraftMetadataSourceValue,
+      cinematicTimelineAuthoringBlockMetadataKey:
+          cinematicTimelineActorFaceBlockMetadataValue,
+      cinematicTimelineActorDirectionMetadataKey: direction.name,
+    },
+  );
 }
 
 CinematicTimelineStep _copyBasicBlockStepWithParams(
@@ -693,6 +918,11 @@ String _fadeLabel(CinematicTimelineFadeMode mode) {
   };
 }
 
+String _actorFacingLabel(CinematicActorRef actor) {
+  final label = actor.label ?? actor.actorId;
+  return 'Orientation $label';
+}
+
 int _validateDuration(int durationMs, {required String argumentName}) {
   if (durationMs <= 0) {
     throw ArgumentError.value(
@@ -714,6 +944,38 @@ String _nextTimelineStepId(CinematicAsset cinematic, String base) {
     index++;
   }
   return '${base}_$index';
+}
+
+String _nextRequiredActorId(CinematicAsset cinematic) {
+  final existingIds =
+      cinematic.requiredActors.map((actor) => actor.actorId).toSet();
+  const base = 'actor';
+  if (!existingIds.contains(base)) {
+    return base;
+  }
+  var index = 2;
+  while (existingIds.contains('${base}_$index')) {
+    index++;
+  }
+  return '${base}_$index';
+}
+
+CinematicActorRef _requireActor(CinematicAsset cinematic, String actorId) {
+  final id = _trimRequired(
+    actorId,
+    'actorId',
+    'Actor facing authoring requires a CinematicActorRef actorId.',
+  );
+  for (final actor in cinematic.requiredActors) {
+    if (actor.actorId == id) {
+      return actor;
+    }
+  }
+  throw ArgumentError.value(
+    actorId,
+    'actorId',
+    'Actor facing authoring references an unknown required actor.',
+  );
 }
 
 List<String> _sceneIdsReferencingCinematic(

@@ -29,6 +29,24 @@ typedef UpdateCinematicBasicBlockStepCallback = Future<bool> Function({
   CinematicTimelineCameraMode? cameraMode,
 });
 
+typedef AddCinematicRequiredActorCallback = Future<String?> Function({
+  required String cinematicId,
+});
+
+typedef AddCinematicActorFacingStepCallback = Future<String?> Function({
+  required String cinematicId,
+  required String actorId,
+  required CinematicTimelineActorFacingDirection direction,
+  String? afterStepId,
+});
+
+typedef UpdateCinematicActorFacingStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  CinematicTimelineActorFacingDirection? direction,
+});
+
 typedef RemoveCinematicAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
@@ -41,9 +59,19 @@ typedef _UpdateBasicBlockCallback = Future<void> Function(
   CinematicTimelineCameraMode? cameraMode,
 });
 
+typedef _UpdateActorFacingCallback = Future<void> Function(
+  CinematicTimelineStep step, {
+  String? actorId,
+  CinematicTimelineActorFacingDirection? direction,
+});
+
 typedef _AddBasicBlockCallback = Future<void> Function(
   CinematicTimelineBasicBlockKind blockKind,
 );
+
+typedef _AddRequiredActorCallback = Future<void> Function();
+
+typedef _AddActorFacingCallback = Future<void> Function();
 
 typedef _RemoveAuthoringStepCallback = Future<void> Function(
   CinematicTimelineStep step,
@@ -59,6 +87,9 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onRemoveDraftStep,
     required this.onAddBasicBlockStep,
     required this.onUpdateBasicBlockStep,
+    required this.onAddRequiredActor,
+    required this.onAddActorFacingStep,
+    required this.onUpdateActorFacingStep,
     required this.onRemoveAuthoringStep,
   });
 
@@ -69,6 +100,9 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final RemoveCinematicDraftStepCallback onRemoveDraftStep;
   final AddCinematicBasicBlockStepCallback onAddBasicBlockStep;
   final UpdateCinematicBasicBlockStepCallback onUpdateBasicBlockStep;
+  final AddCinematicRequiredActorCallback onAddRequiredActor;
+  final AddCinematicActorFacingStepCallback onAddActorFacingStep;
+  final UpdateCinematicActorFacingStepCallback onUpdateActorFacingStep;
   final RemoveCinematicAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
@@ -114,7 +148,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                     width: 250,
                     child: _BlockPalette(
                       entry: widget.entry,
+                      asset: widget.asset,
                       onAddBasicBlock: _addBasicBlock,
+                      onAddRequiredActor: _addRequiredActor,
+                      onAddActorFacing: _addActorFacing,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -155,6 +192,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       selectedStepIndex: selectedStepIndex,
                       onRemoveDraftStep: _removeDraftStep,
                       onUpdateBasicBlock: _updateBasicBlock,
+                      onUpdateActorFacing: _updateActorFacing,
                       onRemoveAuthoringStep: _removeAuthoringStep,
                     ),
                   ),
@@ -221,6 +259,45 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       durationMs: durationMs,
       fadeMode: fadeMode,
       cameraMode: cameraMode,
+    );
+  }
+
+  Future<void> _addRequiredActor() async {
+    await widget.onAddRequiredActor(cinematicId: widget.asset.id);
+  }
+
+  Future<void> _addActorFacing() async {
+    final actor = widget.asset.requiredActors.isEmpty
+        ? null
+        : widget.asset.requiredActors.first;
+    if (actor == null) {
+      return;
+    }
+    final createdStepId = await widget.onAddActorFacingStep(
+      cinematicId: widget.asset.id,
+      actorId: actor.actorId,
+      direction: CinematicTimelineActorFacingDirection.down,
+      afterStepId: _selectedStepId,
+    );
+    if (!mounted || createdStepId == null) {
+      return;
+    }
+    setState(() => _selectedStepId = createdStepId);
+  }
+
+  Future<void> _updateActorFacing(
+    CinematicTimelineStep step, {
+    String? actorId,
+    CinematicTimelineActorFacingDirection? direction,
+  }) async {
+    if (!isCinematicTimelineActorFacingStep(step)) {
+      return;
+    }
+    await widget.onUpdateActorFacingStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+      actorId: actorId,
+      direction: direction,
     );
   }
 
@@ -403,11 +480,17 @@ class _HeaderAction extends StatelessWidget {
 class _BlockPalette extends StatelessWidget {
   const _BlockPalette({
     required this.entry,
+    required this.asset,
     required this.onAddBasicBlock,
+    required this.onAddRequiredActor,
+    required this.onAddActorFacing,
   });
 
   final CinematicsLibraryEntry entry;
+  final CinematicAsset asset;
   final _AddBasicBlockCallback onAddBasicBlock;
+  final _AddRequiredActorCallback onAddRequiredActor;
+  final _AddActorFacingCallback onAddActorFacing;
 
   @override
   Widget build(BuildContext context) {
@@ -427,12 +510,29 @@ class _BlockPalette extends StatelessWidget {
             variant: PokeMapBadgeVariant.info,
           ),
           const SizedBox(height: 12),
+          _RequiredActorsCard(
+            asset: asset,
+            onAddRequiredActor: onAddRequiredActor,
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (final block in _paletteBlocks) ...[
+                    _PaletteBlockTile(
+                      block: block,
+                      onAddBasicBlock: onAddBasicBlock,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  _ActorFacingPaletteTile(
+                    asset: asset,
+                    onAddActorFacing: onAddActorFacing,
+                  ),
+                  const SizedBox(height: 8),
+                  for (final block in _lockedPaletteBlocks) ...[
                     _PaletteBlockTile(
                       block: block,
                       onAddBasicBlock: onAddBasicBlock,
@@ -446,6 +546,107 @@ class _BlockPalette extends StatelessWidget {
           const SizedBox(height: 8),
           _MutedText(
             '${entry.timeline.stepCount} bloc(s) lu(s) depuis la timeline.',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RequiredActorsCard extends StatelessWidget {
+  const _RequiredActorsCard({
+    required this.asset,
+    required this.onAddRequiredActor,
+  });
+
+  final CinematicAsset asset;
+  final _AddRequiredActorCallback onAddRequiredActor;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _StrongText('Acteurs requis'),
+          const SizedBox(height: 4),
+          if (asset.requiredActors.isEmpty)
+            const _MutedText('Aucun acteur requis')
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final actor in asset.requiredActors)
+                  PokeMapBadge(
+                    label: _actorDisplayLabel(actor),
+                    variant: PokeMapBadgeVariant.narrative,
+                  ),
+              ],
+            ),
+          const SizedBox(height: 8),
+          _InlineControlAction(
+            label: 'Acteur',
+            button: PokeMapButton(
+              key: const ValueKey(
+                'cinematic-builder-add-required-actor-button',
+              ),
+              onPressed: onAddRequiredActor,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.person_add),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActorFacingPaletteTile extends StatelessWidget {
+  const _ActorFacingPaletteTile({
+    required this.asset,
+    required this.onAddActorFacing,
+  });
+
+  final CinematicAsset asset;
+  final _AddActorFacingCallback onAddActorFacing;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasActors = asset.requiredActors.isNotEmpty;
+    final description = hasActors
+        ? 'Acteur requis + direction.'
+        : 'Ajoutez d’abord un acteur requis';
+    return PokeMapCard(
+      child: Row(
+        children: [
+          const PokeMapIconTile(
+            icon: CupertinoIcons.arrow_turn_up_right,
+            tone: PokeMapTone.neutral,
+            size: 30,
+            iconSize: 14,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _StrongText('Orientation acteur'),
+                const SizedBox(height: 2),
+                _MutedText(description),
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          PokeMapButton(
+            key: const ValueKey('cinematic-builder-palette-actorFace-button'),
+            onPressed: hasActors ? onAddActorFacing : null,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.plus),
+            child: const SizedBox.shrink(),
           ),
         ],
       ),
@@ -770,8 +971,18 @@ class _TimelineStepCard extends StatelessWidget {
               ),
               if (step.actorId != null)
                 PokeMapBadge(
-                  label: step.actorId!,
+                  label: 'Acteur: ${_actorDisplayLabelForId(
+                    asset,
+                    step.actorId!,
+                  )}',
                   variant: PokeMapBadgeVariant.narrative,
+                ),
+              if (isCinematicTimelineActorFacingStep(step))
+                PokeMapBadge(
+                  label: _actorDirectionLabel(
+                    cinematicTimelineActorFacingDirectionOf(step),
+                  ),
+                  variant: PokeMapBadgeVariant.info,
                 ),
               if (step.targetId != null)
                 PokeMapBadge(
@@ -826,6 +1037,7 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.selectedStepIndex,
     required this.onRemoveDraftStep,
     required this.onUpdateBasicBlock,
+    required this.onUpdateActorFacing,
     required this.onRemoveAuthoringStep,
   });
 
@@ -835,6 +1047,7 @@ class _InspectorPlaceholder extends StatelessWidget {
   final int? selectedStepIndex;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
+  final _UpdateActorFacingCallback onUpdateActorFacing;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
@@ -863,6 +1076,7 @@ class _InspectorPlaceholder extends StatelessWidget {
                 index: selectedIndex,
                 onRemoveDraftStep: onRemoveDraftStep,
                 onUpdateBasicBlock: onUpdateBasicBlock,
+                onUpdateActorFacing: onUpdateActorFacing,
                 onRemoveAuthoringStep: onRemoveAuthoringStep,
               ),
             const SizedBox(height: 12),
@@ -918,6 +1132,7 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.index,
     required this.onRemoveDraftStep,
     required this.onUpdateBasicBlock,
+    required this.onUpdateActorFacing,
     required this.onRemoveAuthoringStep,
   });
 
@@ -926,6 +1141,7 @@ class _SelectedStepInspector extends StatelessWidget {
   final int index;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
+  final _UpdateActorFacingCallback onUpdateActorFacing;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
 
   @override
@@ -933,6 +1149,7 @@ class _SelectedStepInspector extends StatelessWidget {
     final diagnostics = _stepDiagnostics(asset, step);
     final isDraft = isCinematicTimelineDraftStep(step);
     final basicBlockKind = cinematicTimelineBasicBlockKindOf(step);
+    final isActorFacing = isCinematicTimelineActorFacingStep(step);
     final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -947,7 +1164,12 @@ class _SelectedStepInspector extends StatelessWidget {
         _KeyValue(label: 'Index', value: '${index + 1}'),
         _KeyValue(label: 'Kind', value: step.kind.name),
         _KeyValue(label: 'Durée', value: _stepDurationLabel(step)),
-        _KeyValue(label: 'Actor', value: step.actorId ?? 'Aucun acteur'),
+        _KeyValue(
+          label: 'Acteur',
+          value: step.actorId == null
+              ? 'Aucun acteur'
+              : _actorDisplayLabelForId(asset, step.actorId!),
+        ),
         _KeyValue(label: 'Cible', value: step.targetId ?? 'Aucune cible'),
         _KeyValue(
           label: 'Dialogue',
@@ -964,6 +1186,18 @@ class _SelectedStepInspector extends StatelessWidget {
             step: step,
             blockKind: basicBlockKind,
             onUpdateBasicBlock: onUpdateBasicBlock,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorFacing) ...[
+          const _KeyValue(
+            label: 'Statut',
+            value: 'Bloc authoring V0',
+          ),
+          _ActorFacingControls(
+            asset: asset,
+            step: step,
+            onUpdateActorFacing: onUpdateActorFacing,
           ),
           const SizedBox(height: 8),
         ],
@@ -1215,6 +1449,83 @@ class _CameraModeControls extends StatelessWidget {
                   size: PokeMapButtonSize.small,
                   isSelected: currentMode == mode.name,
                   leading: const Icon(CupertinoIcons.video_camera),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _ActorFacingControls extends StatelessWidget {
+  const _ActorFacingControls({
+    required this.asset,
+    required this.step,
+    required this.onUpdateActorFacing,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final _UpdateActorFacingCallback onUpdateActorFacing;
+
+  @override
+  Widget build(BuildContext context) {
+    final currentDirection = cinematicTimelineActorFacingDirectionOf(step);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const _SectionTitle(
+          title: 'Acteur',
+          subtitle: 'Picker requis',
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final actor in asset.requiredActors)
+              _InlineControlAction(
+                label: _actorDisplayLabel(actor),
+                button: PokeMapButton(
+                  key: ValueKey(
+                    'cinematic-builder-actor-picker-${actor.actorId}',
+                  ),
+                  onPressed: () {
+                    onUpdateActorFacing(step, actorId: actor.actorId);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: step.actorId == actor.actorId,
+                  leading: const Icon(CupertinoIcons.person_crop_circle),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const _KeyValue(label: 'Direction', value: 'Haut, bas, gauche, droite'),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final direction
+                in CinematicTimelineActorFacingDirection.values)
+              _InlineControlAction(
+                label: _actorDirectionLabel(direction),
+                button: PokeMapButton(
+                  key: ValueKey(
+                    'cinematic-builder-actor-direction-${direction.name}',
+                  ),
+                  onPressed: () {
+                    onUpdateActorFacing(step, direction: direction);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: currentDirection == direction,
+                  leading: Icon(_actorDirectionIcon(direction)),
                   child: const SizedBox.shrink(),
                 ),
               ),
@@ -1501,6 +1812,9 @@ const _paletteBlocks = [
     description: 'Reset/hold basique.',
     blockKind: CinematicTimelineBasicBlockKind.camera,
   ),
+];
+
+const _lockedPaletteBlocks = [
   _PaletteBlock(
     label: 'Déplacement acteur',
     icon: CupertinoIcons.person_crop_square,
@@ -1590,6 +1904,38 @@ String _cameraModeLabel(CinematicTimelineCameraMode mode) {
   return switch (mode) {
     CinematicTimelineCameraMode.reset => 'Reset',
     CinematicTimelineCameraMode.hold => 'Hold',
+  };
+}
+
+String _actorDisplayLabel(CinematicActorRef actor) {
+  return actor.label ?? actor.actorId;
+}
+
+String _actorDisplayLabelForId(CinematicAsset asset, String actorId) {
+  for (final actor in asset.requiredActors) {
+    if (actor.actorId == actorId) {
+      return _actorDisplayLabel(actor);
+    }
+  }
+  return actorId;
+}
+
+String _actorDirectionLabel(CinematicTimelineActorFacingDirection? direction) {
+  return switch (direction) {
+    CinematicTimelineActorFacingDirection.up => 'Haut',
+    CinematicTimelineActorFacingDirection.down => 'Bas',
+    CinematicTimelineActorFacingDirection.left => 'Gauche',
+    CinematicTimelineActorFacingDirection.right => 'Droite',
+    null => 'Direction inconnue',
+  };
+}
+
+IconData _actorDirectionIcon(CinematicTimelineActorFacingDirection direction) {
+  return switch (direction) {
+    CinematicTimelineActorFacingDirection.up => CupertinoIcons.arrow_up,
+    CinematicTimelineActorFacingDirection.down => CupertinoIcons.arrow_down,
+    CinematicTimelineActorFacingDirection.left => CupertinoIcons.arrow_left,
+    CinematicTimelineActorFacingDirection.right => CupertinoIcons.arrow_right,
   };
 }
 
