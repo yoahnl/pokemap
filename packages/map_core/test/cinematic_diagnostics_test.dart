@@ -201,6 +201,194 @@ void main() {
       expect(diagnostic.referenceId, 'actor_missing');
     });
 
+    test('accepts valid actorMove authoring block without gameplay leakage',
+        () {
+      var project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            movementTargets: [
+              CinematicMovementTargetRef(
+                targetId: 'target_center',
+                label: 'Centre scène',
+              ),
+            ],
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+      final result = addCinematicTimelineActorMoveStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        targetId: 'target_center',
+        movementMode: CinematicTimelineActorMovementMode.walk,
+      );
+      project = result.updatedProject;
+
+      final report = diagnoseCinematicAsset(project.cinematics.single);
+
+      expect(isCinematicTimelineActorMoveStep(result.step), isTrue);
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnknownActorRef),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicUnknownMovementTargetRef),
+        isEmpty,
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnsupportedGameplayStep),
+        isEmpty,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
+    test('reports actorMove missing or unknown actor and target refs', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scène',
+            ),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_missing_refs',
+                kind: CinematicTimelineStepKind.actorMove,
+                durationMs: 1000,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorMove',
+                  'actor.movementMode': 'walk',
+                  'actor.pathMode': 'direct',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'step_unknown_refs',
+                kind: CinematicTimelineStepKind.actorMove,
+                actorId: 'actor_missing',
+                targetId: 'target_missing',
+                durationMs: 1000,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorMove',
+                  'actor.movementMode': 'walk',
+                  'actor.pathMode': 'direct',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveMissingActorRef)
+            .single
+            .stepId,
+        'step_missing_refs',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveMissingTargetRef)
+            .single
+            .stepId,
+        'step_missing_refs',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicUnknownActorRef)
+            .single
+            .referenceId,
+        'actor_missing',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicUnknownMovementTargetRef)
+            .single
+            .referenceId,
+        'target_missing',
+      );
+    });
+
+    test('reports actorMove invalid duration and movement metadata', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scène',
+            ),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_bad_move',
+                kind: CinematicTimelineStepKind.actorMove,
+                actorId: 'actor_professor',
+                targetId: 'target_center',
+                durationMs: 0,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorMove',
+                  'actor.movementMode': 'dash',
+                  'actor.pathMode': 'curve',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveInvalidDuration)
+            .single
+            .stepId,
+        'step_bad_move',
+      );
+      expect(
+        report
+            .byCode(
+                CinematicDiagnosticCode.cinematicActorMoveInvalidMovementMode)
+            .single
+            .referenceId,
+        'dash',
+      );
+      expect(
+        report
+            .byCode(
+                CinematicDiagnosticCode.cinematicActorMoveUnsupportedPathMode)
+            .single
+            .referenceId,
+        'curve',
+      );
+    });
+
     test('reports duplicate cinematic ids in a collection', () {
       final report = diagnoseCinematics([
         _cinematic(id: 'cinematic_intro'),

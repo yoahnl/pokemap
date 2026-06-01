@@ -200,9 +200,20 @@ void main() {
     expect(find.text('Timeline par pistes'), findsOneWidget);
     expect(find.text('9 piste(s)'), findsOneWidget);
     expect(find.text('Déplacement acteur'), findsOneWidget);
+    expect(find.text('Ajoutez d’abord une cible'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-palette-actorMove-button')),
-      findsNothing,
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey('cinematic-builder-palette-actorMove-button'),
+            ),
+          )
+          .onPressed,
+      isNull,
     );
 
     await tester.ensureVisible(
@@ -526,9 +537,10 @@ void main() {
     expect(find.text('Professor'), findsWidgets);
     expect(find.text('Rival'), findsWidgets);
 
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-palette-actorFace-button')),
-    );
+    final actorFaceButton = find
+        .byKey(const ValueKey('cinematic-builder-palette-actorFace-button'));
+    await tester.ensureVisible(actorFaceButton);
+    await tester.tap(actorFaceButton);
     await tester.pumpAndSettle();
 
     var actorFaceStep = latestProject.cinematics.single.timeline.steps.last;
@@ -563,6 +575,174 @@ void main() {
     expect(actorFaceStep.metadata, containsPair('actor.direction', 'left'));
     expect(find.text('Acteur: Rival'), findsWidgets);
     expect(find.text('Gauche'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-remove-authoring-step-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      latestProject.cinematics.single.timeline.steps.map((step) => step.kind),
+      [CinematicTimelineStepKind.wait],
+    );
+  });
+
+  testWidgets('enables actor movement only after actor and target exist',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_no_target',
+          title: 'No target cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_no_target',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final actorMoveButton = find.byKey(
+      const ValueKey('cinematic-builder-palette-actorMove-button'),
+    );
+    expect(actorMoveButton, findsOneWidget);
+    expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNull);
+    expect(find.text('Ajoutez d’abord une cible'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-add-movement-target-button'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(latestProject.cinematics.single.movementTargets.single.targetId,
+        'target');
+    expect(
+        latestProject.cinematics.single.movementTargets.single.label, 'Cible');
+    expect(find.text('Cibles de déplacement'), findsOneWidget);
+    expect(find.text('Cible'), findsWidgets);
+    expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNotNull);
+  });
+
+  testWidgets('keeps actor movement disabled without required actor',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_no_actor_move',
+          title: 'No actor move cinematic',
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'target', label: 'Cible'),
+          ],
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    await _pumpBuilderHarness(tester, project, 'cinematic_no_actor_move');
+
+    final actorMoveButton = find.byKey(
+      const ValueKey('cinematic-builder-palette-actorMove-button'),
+    );
+    expect(actorMoveButton, findsOneWidget);
+    expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNull);
+    expect(find.text('Ajoutez d’abord un acteur'), findsOneWidget);
+  });
+
+  testWidgets('adds edits and removes actor movement authoring block',
+      (tester) async {
+    _setLargeSurface(tester);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_actorMovementCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_actor_move',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final actorMoveButton = find
+        .byKey(const ValueKey('cinematic-builder-palette-actorMove-button'));
+    await tester.ensureVisible(actorMoveButton);
+    await tester.tap(actorMoveButton);
+    await tester.pumpAndSettle();
+
+    var actorMoveStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(actorMoveStep.kind, CinematicTimelineStepKind.actorMove);
+    expect(actorMoveStep.label, 'Déplacement Professor');
+    expect(actorMoveStep.actorId, 'actor_professor');
+    expect(actorMoveStep.targetId, 'target_center');
+    expect(actorMoveStep.durationMs, 1000);
+    expect(
+        actorMoveStep.metadata, containsPair('authoring.block', 'actorMove'));
+    expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'walk'));
+    expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
+    expect(find.text('Déplacement Professor'), findsWidgets);
+    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Cible: Centre scène'), findsWidgets);
+    expect(find.text('Mode mouvement'), findsOneWidget);
+    expect(find.text('PathMode'), findsOneWidget);
+    expect(find.text('direct verrouillé'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('cinematic-builder-target-picker-target_exit')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-target-picker-target_exit')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-move-duration-preset-2000'),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-move-duration-preset-2000'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-move-mode-run'),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-move-mode-run'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    actorMoveStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(actorMoveStep.actorId, 'actor_rival');
+    expect(actorMoveStep.targetId, 'target_exit');
+    expect(actorMoveStep.durationMs, 2000);
+    expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'run'));
+    expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
+    expect(find.text('Déplacement Rival'), findsWidgets);
+    expect(find.text('Cible: Sortie'), findsWidgets);
+    expect(find.text('Course'), findsWidgets);
 
     await tester.tap(
       find.byKey(
@@ -802,6 +982,40 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-49 actor movement block screenshot when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_49_CAPTURE_CINEMATIC_ACTOR_MOVEMENT',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_actorMovementCinematic()]),
+      'cinematic_actor_move',
+    );
+    final actorMoveButton = find
+        .byKey(const ValueKey('cinematic-builder-palette-actorMove-button'));
+    await tester.ensureVisible(actorMoveButton);
+    await tester.tap(actorMoveButton);
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_49_cinematic_actor_movement_block_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -847,6 +1061,8 @@ Future<void> _pumpBuilder(
               }) async =>
                   false,
               onAddRequiredActor: ({required String cinematicId}) async => null,
+              onAddMovementTarget: ({required String cinematicId}) async =>
+                  null,
               onAddActorFacingStep: ({
                 required String cinematicId,
                 required String actorId,
@@ -859,6 +1075,24 @@ Future<void> _pumpBuilder(
                 required String stepId,
                 String? actorId,
                 CinematicTimelineActorFacingDirection? direction,
+              }) async =>
+                  false,
+              onAddActorMoveStep: ({
+                required String cinematicId,
+                required String actorId,
+                required String targetId,
+                required int durationMs,
+                required CinematicTimelineActorMovementMode movementMode,
+                String? afterStepId,
+              }) async =>
+                  null,
+              onUpdateActorMoveStep: ({
+                required String cinematicId,
+                required String stepId,
+                String? actorId,
+                String? targetId,
+                int? durationMs,
+                CinematicTimelineActorMovementMode? movementMode,
               }) async =>
                   false,
               onRemoveAuthoringStep: ({
@@ -929,8 +1163,11 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onAddBasicBlockStep: _addBasicBlockStep,
               onUpdateBasicBlockStep: _updateBasicBlockStep,
               onAddRequiredActor: _addRequiredActor,
+              onAddMovementTarget: _addMovementTarget,
               onAddActorFacingStep: _addActorFacingStep,
               onUpdateActorFacingStep: _updateActorFacingStep,
+              onAddActorMoveStep: _addActorMoveStep,
+              onUpdateActorMoveStep: _updateActorMoveStep,
               onRemoveAuthoringStep: _removeAuthoringStep,
             ),
           ),
@@ -1014,6 +1251,17 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     return result.actor.actorId;
   }
 
+  Future<String?> _addMovementTarget({required String cinematicId}) async {
+    final result = addCinematicMovementTarget(
+      _project,
+      cinematicId: cinematicId,
+      label: 'Cible',
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.target.targetId;
+  }
+
   Future<String?> _addActorFacingStep({
     required String cinematicId,
     required String actorId,
@@ -1030,6 +1278,50 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return result.step.id;
+  }
+
+  Future<String?> _addActorMoveStep({
+    required String cinematicId,
+    required String actorId,
+    required String targetId,
+    required int durationMs,
+    required CinematicTimelineActorMovementMode movementMode,
+    String? afterStepId,
+  }) async {
+    final result = addCinematicTimelineActorMoveStep(
+      _project,
+      cinematicId: cinematicId,
+      actorId: actorId,
+      targetId: targetId,
+      durationMs: durationMs,
+      movementMode: movementMode,
+      afterStepId: afterStepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id;
+  }
+
+  Future<bool> _updateActorMoveStep({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    String? targetId,
+    int? durationMs,
+    CinematicTimelineActorMovementMode? movementMode,
+  }) async {
+    final result = updateCinematicTimelineActorMoveStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+      actorId: actorId,
+      targetId: targetId,
+      durationMs: durationMs,
+      movementMode: movementMode,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id == stepId;
   }
 
   Future<bool> _updateActorFacingStep({
@@ -1082,6 +1374,39 @@ CinematicAsset _actorFacingCinematic() {
     requiredActors: [
       CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
       CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Opening wait',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _actorMovementCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_actor_move',
+    title: 'Actor movement cinematic',
+    description: 'Actor movement V0 fixture.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+      CinematicMovementTargetRef(
+        targetId: 'target_exit',
+        label: 'Sortie',
+      ),
     ],
     timeline: CinematicTimeline(
       steps: [

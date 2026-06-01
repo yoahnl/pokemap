@@ -72,6 +72,8 @@ final class CinematicTimelineLaneStep {
     this.durationMs,
     this.actorId,
     this.actorLabel,
+    this.targetId,
+    this.targetLabel,
     required this.isAuthoringOwned,
     required List<String> badges,
   }) : badges = List<String>.unmodifiable(badges);
@@ -83,6 +85,8 @@ final class CinematicTimelineLaneStep {
   final int? durationMs;
   final String? actorId;
   final String? actorLabel;
+  final String? targetId;
+  final String? targetLabel;
   final bool isAuthoringOwned;
   final List<String> badges;
 }
@@ -93,6 +97,10 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
   final actorLabels = <String, String>{
     for (final actor in cinematic.requiredActors)
       actor.actorId: actor.label ?? actor.actorId,
+  };
+  final targetLabels = <String, String>{
+    for (final target in cinematic.movementTargets)
+      target.targetId: target.label,
   };
   final lanes = <String, _LaneDraft>{};
 
@@ -184,6 +192,7 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
         step,
         stepIndex: entry.key,
         actorLabel: step.actorId == null ? null : actorLabels[step.actorId],
+        targetLabel: step.targetId == null ? null : targetLabels[step.targetId],
       ),
     );
   }
@@ -264,6 +273,7 @@ CinematicTimelineLaneStep _laneStepFor(
   CinematicTimelineStep step, {
   required int stepIndex,
   required String? actorLabel,
+  required String? targetLabel,
 }) {
   final badges = <String>[step.kind.name];
   if (isCinematicTimelineAuthoringStep(step)) {
@@ -271,6 +281,20 @@ CinematicTimelineLaneStep _laneStepFor(
   }
   if (isCinematicTimelineDraftStep(step)) {
     badges.add('Brouillon');
+  }
+  if (step.kind == CinematicTimelineStepKind.actorMove) {
+    final target = targetLabel ?? step.targetId;
+    if (target != null) {
+      badges.add('Cible: $target');
+    }
+    final movementMode = cinematicTimelineActorMovementModeOf(step);
+    if (movementMode != null) {
+      badges.add(_movementModeLabel(movementMode));
+    }
+    final pathMode = cinematicTimelineActorPathModeOf(step);
+    if (pathMode != null) {
+      badges.add(_pathModeLabel(pathMode));
+    }
   }
   return CinematicTimelineLaneStep(
     stepId: step.id,
@@ -280,9 +304,24 @@ CinematicTimelineLaneStep _laneStepFor(
     durationMs: step.durationMs,
     actorId: step.actorId,
     actorLabel: actorLabel,
+    targetId: step.targetId,
+    targetLabel: targetLabel,
     isAuthoringOwned: isCinematicTimelineAuthoringStep(step),
     badges: badges,
   );
+}
+
+String _movementModeLabel(CinematicTimelineActorMovementMode mode) {
+  return switch (mode) {
+    CinematicTimelineActorMovementMode.walk => 'Marche',
+    CinematicTimelineActorMovementMode.run => 'Course',
+  };
+}
+
+String _pathModeLabel(CinematicTimelineActorPathMode mode) {
+  return switch (mode) {
+    CinematicTimelineActorPathMode.direct => 'Direct',
+  };
 }
 
 bool _isActorLaneStep(CinematicTimelineStepKind kind) {

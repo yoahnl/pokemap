@@ -1106,8 +1106,11 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onAddTimelineBasicBlock: _addCinematicTimelineBasicBlock,
       onUpdateTimelineBasicBlock: _updateCinematicTimelineBasicBlock,
       onAddRequiredActor: _addCinematicRequiredActor,
+      onAddMovementTarget: _addCinematicMovementTarget,
       onAddTimelineActorFacing: _addCinematicTimelineActorFacing,
       onUpdateTimelineActorFacing: _updateCinematicTimelineActorFacing,
+      onAddTimelineActorMove: _addCinematicTimelineActorMove,
+      onUpdateTimelineActorMove: _updateCinematicTimelineActorMove,
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
@@ -1170,6 +1173,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           mapId: existing.mapId,
           tags: existing.tags,
           requiredActors: existing.requiredActors,
+          movementTargets: existing.movementTargets,
           timeline: existing.timeline,
           notes: notes.trim(),
           metadata: existing.metadata,
@@ -1330,6 +1334,29 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
   }
 
+  Future<String?> _addCinematicMovementTarget({
+    required String cinematicId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicMovementTarget(
+        project,
+        cinematicId: cinematicId,
+        label: 'Cible',
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic movement target created',
+      );
+      return result.target.targetId;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
   Future<String?> _addCinematicTimelineActorFacing({
     required String cinematicId,
     required String actorId,
@@ -1379,6 +1406,70 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,
         statusMessage: 'Cinematic actor facing block updated',
+      );
+      return result.step.id == stepId;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<String?> _addCinematicTimelineActorMove({
+    required String cinematicId,
+    required String actorId,
+    required String targetId,
+    required int durationMs,
+    required CinematicTimelineActorMovementMode movementMode,
+    String? afterStepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicTimelineActorMoveStep(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+        targetId: targetId,
+        durationMs: durationMs,
+        movementMode: movementMode,
+        afterStepId: afterStepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor movement block created',
+      );
+      return result.step.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _updateCinematicTimelineActorMove({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    String? targetId,
+    int? durationMs,
+    CinematicTimelineActorMovementMode? movementMode,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicTimelineActorMoveStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+        actorId: actorId,
+        targetId: targetId,
+        durationMs: durationMs,
+        movementMode: movementMode,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor movement block updated',
       );
       return result.step.id == stepId;
     } on ArgumentError {

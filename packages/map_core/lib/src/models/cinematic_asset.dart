@@ -32,6 +32,8 @@ final class CinematicAsset {
     String? mapId,
     List<String> tags = const <String>[],
     List<CinematicActorRef> requiredActors = const <CinematicActorRef>[],
+    List<CinematicMovementTargetRef> movementTargets =
+        const <CinematicMovementTargetRef>[],
     required this.timeline,
     String? notes,
     Map<String, String> metadata = const <String, String>{},
@@ -44,6 +46,8 @@ final class CinematicAsset {
         mapId = _trimOptional(mapId),
         tags = _stableStringList(tags),
         requiredActors = List<CinematicActorRef>.unmodifiable(requiredActors),
+        movementTargets =
+            List<CinematicMovementTargetRef>.unmodifiable(movementTargets),
         notes = _trimOptional(notes),
         metadata = Map<String, String>.unmodifiable(metadata);
 
@@ -60,6 +64,11 @@ final class CinematicAsset {
         json,
         'requiredActors',
         CinematicActorRef.fromJson,
+      ),
+      movementTargets: _readObjectList(
+        json,
+        'movementTargets',
+        CinematicMovementTargetRef.fromJson,
       ),
       timeline: _readOptionalObject(
             json,
@@ -85,6 +94,7 @@ final class CinematicAsset {
   final String? mapId;
   final List<String> tags;
   final List<CinematicActorRef> requiredActors;
+  final List<CinematicMovementTargetRef> movementTargets;
   final CinematicTimeline timeline;
   final String? notes;
   final Map<String, String> metadata;
@@ -103,6 +113,8 @@ final class CinematicAsset {
         'tags': tags,
         'requiredActors':
             requiredActors.map((actor) => actor.toJson()).toList(),
+        'movementTargets':
+            movementTargets.map((target) => target.toJson()).toList(),
         'timeline': timeline.toJson(),
         'notes': notes,
         'metadata': metadata,
@@ -121,6 +133,7 @@ final class CinematicAsset {
           other.mapId == mapId &&
           _listEquals(other.tags, tags) &&
           _listEquals(other.requiredActors, requiredActors) &&
+          _listEquals(other.movementTargets, movementTargets) &&
           other.timeline == timeline &&
           other.notes == notes &&
           _mapEquals(other.metadata, metadata) &&
@@ -136,6 +149,7 @@ final class CinematicAsset {
         mapId,
         Object.hashAll(tags),
         Object.hashAll(requiredActors),
+        Object.hashAll(movementTargets),
         timeline,
         notes,
         _mapHash(metadata),
@@ -306,6 +320,52 @@ final class CinematicActorRef {
 
   @override
   int get hashCode => Object.hash(actorId, label, entityId, role);
+}
+
+@immutable
+final class CinematicMovementTargetRef {
+  CinematicMovementTargetRef({
+    required String targetId,
+    required String label,
+    String? description,
+  })  : targetId = _requireTrimmed(
+          targetId,
+          'CinematicMovementTargetRef.targetId',
+        ),
+        label = _requireTrimmed(
+          label,
+          'CinematicMovementTargetRef.label',
+        ),
+        description = _trimOptional(description);
+
+  factory CinematicMovementTargetRef.fromJson(Map<String, dynamic> json) {
+    return CinematicMovementTargetRef(
+      targetId: _readRequiredString(json, 'targetId'),
+      label: _readRequiredString(json, 'label'),
+      description: _readOptionalString(json, 'description'),
+    );
+  }
+
+  final String targetId;
+  final String label;
+  final String? description;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'targetId': targetId,
+        'label': label,
+        'description': description,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicMovementTargetRef &&
+          other.targetId == targetId &&
+          other.label == label &&
+          other.description == description;
+
+  @override
+  int get hashCode => Object.hash(targetId, label, description);
 }
 
 @immutable

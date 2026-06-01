@@ -78,6 +78,58 @@ void main() {
       );
       expect(readModel.laneById('other')!.steps.single.stepId, 'step_orphan');
     });
+
+    test('exposes actorMove target and movement badges on actor lane', () {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_actor_move',
+        title: 'Actor move lane test',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_center',
+            label: 'Centre scène',
+          ),
+        ],
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_move',
+              kind: CinematicTimelineStepKind.actorMove,
+              label: 'Déplacement Professor',
+              actorId: 'actor_professor',
+              targetId: 'target_center',
+              durationMs: 1500,
+              metadata: const {
+                cinematicTimelineDraftMetadataKindKey:
+                    cinematicTimelineBasicBlockMetadataKindValue,
+                cinematicTimelineDraftMetadataSourceKey:
+                    cinematicTimelineDraftMetadataSourceValue,
+                cinematicTimelineAuthoringBlockMetadataKey:
+                    cinematicTimelineActorMoveBlockMetadataValue,
+                cinematicTimelineActorMovementModeMetadataKey: 'run',
+                cinematicTimelineActorPathModeMetadataKey: 'direct',
+              },
+            ),
+          ],
+        ),
+      );
+
+      final readModel = buildCinematicTimelineLaneReadModel(cinematic);
+      final actorLane = readModel.laneById('actor:actor_professor')!;
+      final laneStep = actorLane.steps.single;
+
+      expect(laneStep.stepId, 'step_actor_move');
+      expect(laneStep.stepIndex, 0);
+      expect(laneStep.kind, CinematicTimelineStepKind.actorMove);
+      expect(laneStep.targetId, 'target_center');
+      expect(laneStep.targetLabel, 'Centre scène');
+      expect(laneStep.badges, contains('Builder V0'));
+      expect(laneStep.badges, contains('Cible: Centre scène'));
+      expect(laneStep.badges, contains('Course'));
+      expect(laneStep.badges, contains('Direct'));
+    });
   });
 }
 

@@ -1,3 +1,4 @@
+import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/project_manifest.dart';
 
@@ -20,6 +21,12 @@ enum CinematicDiagnosticCode {
   cinematicUnknownChapterRef,
   cinematicUnknownMapRef,
   cinematicUnknownActorRef,
+  cinematicActorMoveMissingActorRef,
+  cinematicActorMoveMissingTargetRef,
+  cinematicUnknownMovementTargetRef,
+  cinematicActorMoveInvalidDuration,
+  cinematicActorMoveInvalidMovementMode,
+  cinematicActorMoveUnsupportedPathMode,
   cinematicLegacyBridge,
   cinematicScenarioBridgeNotCanonical,
 }
@@ -287,6 +294,8 @@ void _diagnoseTimeline(
   final stepIds = <String>{};
   final requiredActorIds =
       cinematic.requiredActors.map((actor) => actor.actorId).toSet();
+  final movementTargetIds =
+      cinematic.movementTargets.map((target) => target.targetId).toSet();
   for (final step in cinematic.timeline.steps) {
     if (!stepIds.add(step.id)) {
       diagnostics.add(
@@ -350,6 +359,116 @@ void _diagnoseTimeline(
         ),
       );
     }
+    if (step.kind == CinematicTimelineStepKind.actorMove) {
+      _diagnoseActorMoveStep(
+        cinematic,
+        step,
+        movementTargetIds: movementTargetIds,
+        diagnostics: diagnostics,
+      );
+    }
+  }
+}
+
+void _diagnoseActorMoveStep(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step, {
+  required Set<String> movementTargetIds,
+  required List<CinematicDiagnostic> diagnostics,
+}) {
+  final actorId = step.actorId;
+  if (actorId == null || actorId.trim().isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveMissingActorRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un déplacement acteur doit référencer un acteur requis.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un acteur requis existant.',
+      ),
+    );
+  }
+
+  final targetId = step.targetId;
+  if (targetId == null || targetId.trim().isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveMissingTargetRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message:
+            'Un déplacement acteur doit référencer une cible authoring stable.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir une cible de déplacement existante.',
+      ),
+    );
+  } else if (!movementTargetIds.contains(targetId)) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicUnknownMovementTargetRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un déplacement acteur référence une cible inconnue.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: targetId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir une cible de déplacement existante.',
+      ),
+    );
+  }
+
+  final durationMs = step.durationMs;
+  if (durationMs == null || durationMs <= 0) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveInvalidDuration,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un déplacement acteur doit avoir une durée positive.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir une durée via les presets.',
+      ),
+    );
+  }
+
+  if (cinematicTimelineActorMovementModeOf(step) == null) {
+    final mode =
+        step.metadata[cinematicTimelineActorMovementModeMetadataKey]?.trim();
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveInvalidMovementMode,
+        severity: CinematicDiagnosticSeverity.error,
+        message:
+            'Un déplacement acteur doit utiliser un mode marche ou course.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: mode,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir marche ou course.',
+      ),
+    );
+  }
+
+  if (cinematicTimelineActorPathModeOf(step) !=
+      CinematicTimelineActorPathMode.direct) {
+    final pathMode =
+        step.metadata[cinematicTimelineActorPathModeMetadataKey]?.trim();
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorMoveUnsupportedPathMode,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Le seul chemin supporté en V0 est direct.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: pathMode,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Revenir au pathMode direct.',
+      ),
+    );
   }
 }
 

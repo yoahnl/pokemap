@@ -103,14 +103,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-46 — Cinematic Actor References / Actor Facing V0 | DONE | References acteur requises et bloc Orientation acteur V0 : ajout d'acteurs requis, bloc `actorFace` authoring-owned, picker acteur/direction, diagnostics acteur inconnu, sans mouvement ni runtime. |
 | NS-SCENES-V1-47 — Cinematic Actor Movement Block V0 Prep / Contract | DONE | Lot documentaire : contrat spatial/temporel/timeline du futur `actorMove` V0, options de cible comparees, diagnostics cadres, sans code produit ni package modifie. |
 | NS-SCENES-V1-48 — Cinematic Timeline Lane Grouping V0 | DONE | Timeline par pistes derivees : read model pur `CinematicTimelineLaneReadModel`, lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection locale depuis lanes, Visual Gate, sans persistance de lane ni runtime. |
+| NS-SCENES-V1-49 — Cinematic Actor Movement Block V0 | DONE | Bloc `actorMove` authorable V0 : cibles authoring stables, picker acteur/cible, presets duree, marche/course, pathMode direct verrouille, lane acteur derivee, diagnostics, Visual Gate, sans pathfinding ni runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`
+`NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`
 
-Raison : V1-48 a pose la projection par lanes sans drag/drop ni layout persistant. Le prochain verrou logique peut donc rendre `actorMove` authorable de facon bornee, sur lane acteur derivee, en respectant le contrat spatial/temporel decide en V1-47.
+Raison : V1-49 rend `actorMove` authorable, mais garde volontairement l'edition de label des cibles hors UI. Le prochain verrou utile est un polish cible des labels/pickers/inspector avant d'ouvrir un bloc metier plus large comme Dialogue.
 
-Ordre apres V1-48 : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
+Ordre apres V1-49 : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0.
 
@@ -357,6 +358,20 @@ Limites : pas de lane persistante, pas de drag/drop, pas de reordonnancement, pa
 Preuve : tests core `cinematic_timeline_lane_read_model_test.dart` et `cinematics_library_read_model_test.dart`, `dart analyze` map_core, tests widget Builder/Library, analyze editor cible, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_48_cinematic_timeline_lane_grouping_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
+
+## Mise a jour V1-49
+
+Statut : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0` est DONE.
+
+Decision : le deplacement acteur V0 devient authorable uniquement via un acteur requis et une cible authoring stable stockee dans `CinematicAsset.movementTargets`. Le step utilise `actorMove`, `actorId`, `targetId`, une duree positive, `actor.movementMode=walk|run` et `actor.pathMode=direct`. Le path mode reste verrouille en direct pour eviter d'ouvrir trop tot pathfinding, courbes ou coordonnees libres.
+
+Scope realise : modele `CinematicMovementTargetRef`, operations pures add/update/remove cible, operations add/update `actorMove`, protection de suppression d'une cible utilisee, diagnostics acteur/cible/duree/modes, read model lane enrichi avec cible/mode, palette Builder active seulement avec acteur et cible, inspecteur acteur/cible/duree/marche-course/pathMode direct, mutation memoire via Library et Visual Gate.
+
+Limites : pas de pathfinding, pas de position `x/y`, pas de cible map/entity runtime, pas de drag/drop, pas de reordonnancement, pas de preview jouable, pas d'edition avancee de label cible dans l'inspecteur, pas de migration legacy, pas de modification runtime/gameplay/battle/examples, pas de donnees Selbrume.
+
+Preuve : tests core `cinematic_asset_test.dart`, `cinematic_authoring_operations_test.dart`, `cinematic_diagnostics_test.dart`, `cinematic_timeline_lane_read_model_test.dart`, tests widget Builder/Library, analyses ciblees et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_49_cinematic_actor_movement_block_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
 
 ## Mise a jour V1-30-bis
 

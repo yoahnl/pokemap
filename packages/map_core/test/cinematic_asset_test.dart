@@ -23,6 +23,13 @@ void main() {
             role: 'speaker',
           ),
         ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_center',
+            label: 'Centre de scène',
+            description: 'Point authoring stable.',
+          ),
+        ],
         timeline: CinematicTimeline(
           steps: [
             CinematicTimelineStep(
@@ -65,7 +72,20 @@ void main() {
         CinematicTimelineStepKind.sound,
       ]);
       expect(decoded.requiredActors.single.actorId, 'actor_professor');
+      expect(decoded.movementTargets.single.targetId, 'target_center');
+      expect(decoded.movementTargets.single.label, 'Centre de scène');
       expect(decoded.legacyBridge?.scenarioId, 'scenario_legacy_intro');
+    });
+
+    test('defaults missing movement targets to an empty list', () {
+      final decoded = CinematicAsset.fromJson({
+        'id': 'cinematic_intro',
+        'title': 'Intro cinematic',
+        'timeline': {'steps': <Object>[]},
+      });
+
+      expect(decoded.movementTargets, isEmpty);
+      expect(decoded.toJson(), containsPair('movementTargets', <Object>[]));
     });
 
     test('keeps timeline steps linear and rejects branch/gameplay step kinds',

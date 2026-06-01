@@ -49,6 +49,10 @@ typedef AddRequiredActorCallback = Future<String?> Function({
   required String cinematicId,
 });
 
+typedef AddMovementTargetCallback = Future<String?> Function({
+  required String cinematicId,
+});
+
 typedef AddTimelineActorFacingCallback = Future<String?> Function({
   required String cinematicId,
   required String actorId,
@@ -61,6 +65,24 @@ typedef UpdateTimelineActorFacingCallback = Future<bool> Function({
   required String stepId,
   String? actorId,
   CinematicTimelineActorFacingDirection? direction,
+});
+
+typedef AddTimelineActorMoveCallback = Future<String?> Function({
+  required String cinematicId,
+  required String actorId,
+  required String targetId,
+  required int durationMs,
+  required CinematicTimelineActorMovementMode movementMode,
+  String? afterStepId,
+});
+
+typedef UpdateTimelineActorMoveCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  String? targetId,
+  int? durationMs,
+  CinematicTimelineActorMovementMode? movementMode,
 });
 
 typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
@@ -86,8 +108,11 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onAddTimelineBasicBlock,
     required this.onUpdateTimelineBasicBlock,
     required this.onAddRequiredActor,
+    required this.onAddMovementTarget,
     required this.onAddTimelineActorFacing,
     required this.onUpdateTimelineActorFacing,
+    required this.onAddTimelineActorMove,
+    required this.onUpdateTimelineActorMove,
     required this.onRemoveTimelineAuthoringStep,
     this.onOpenLegacyCutsceneStudio,
   });
@@ -101,8 +126,11 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final AddTimelineBasicBlockCallback onAddTimelineBasicBlock;
   final UpdateTimelineBasicBlockCallback onUpdateTimelineBasicBlock;
   final AddRequiredActorCallback onAddRequiredActor;
+  final AddMovementTargetCallback onAddMovementTarget;
   final AddTimelineActorFacingCallback onAddTimelineActorFacing;
   final UpdateTimelineActorFacingCallback onUpdateTimelineActorFacing;
+  final AddTimelineActorMoveCallback onAddTimelineActorMove;
+  final UpdateTimelineActorMoveCallback onUpdateTimelineActorMove;
   final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
@@ -161,8 +189,11 @@ class _CinematicsLibraryWorkspaceState
         onAddBasicBlockStep: widget.onAddTimelineBasicBlock,
         onUpdateBasicBlockStep: widget.onUpdateTimelineBasicBlock,
         onAddRequiredActor: widget.onAddRequiredActor,
+        onAddMovementTarget: widget.onAddMovementTarget,
         onAddActorFacingStep: widget.onAddTimelineActorFacing,
         onUpdateActorFacingStep: widget.onUpdateTimelineActorFacing,
+        onAddActorMoveStep: widget.onAddTimelineActorMove,
+        onUpdateActorMoveStep: widget.onUpdateTimelineActorMove,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
       );
     }

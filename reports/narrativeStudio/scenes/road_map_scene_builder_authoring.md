@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-49 — Cinematic Actor Movement Block V0
+NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0
 ```
 
 ## Principes
@@ -82,6 +82,7 @@ NS-SCENES-V1-49 — Cinematic Actor Movement Block V0
 | NS-SCENES-V1-46 | Cinematic Actor References / Actor Facing V0 | core / editor | Ajouter les references acteur requises et un bloc Orientation acteur V0 dans le Cinematic Builder. | Pas de deplacement acteur, pas de chemin/pathfinding, pas de timeline multi-track, pas de drag/drop, pas de preview runtime, pas de dialogue/FX/Son. | operations cinematic authoring, diagnostics cinematic, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : acteurs requis, bloc `actorFace`, picker acteur, direction up/down/left/right, diagnostics acteur inconnu, visual gate, analyses. | Confondre orientation et mouvement ; exposer des ids acteur comme workflow principal ; ouvrir trop tot runtime/player. | DONE : actor refs et facing bornes, canonical-only preserve, aucun runtime modifie. | V1-45. |
 | NS-SCENES-V1-47 | Cinematic Actor Movement Block V0 Prep / Contract | doc-only / architecture-review | Definir le contrat du futur bloc `actorMove` avant authoring : acteur, cible, duree, movementMode, pathMode, lane, diagnostics et frontieres runtime. | Pas de code Dart, pas de widget, pas de package modifie, pas de schema JSON, pas de actorMove authorable, pas de preview runtime. | rapport V1-47, roadmaps. | DONE : contrat V0, options target comparees, diagnostics cadres, roadmap post V1-47, checks anti-scope. | Coder actorMove trop tot ; creer une position libre non diagnostiquable ; lier le mouvement a un runtime implicite. | DONE : actorMove cadre sans implementation, prochain verrou lane grouping retenu. | V1-46. |
 | NS-SCENES-V1-48 | Cinematic Timeline Lane Grouping V0 | core / editor | Transformer le deroule du Cinematic Builder en timeline par pistes derivees et testees. | Pas de lane persistante, pas de drag/drop, pas de reordonnancement, pas de `actorMove` authorable, pas de preview runtime. | `cinematic_timeline_lane_read_model.dart`, Builder cinematics, tests core/widget, rapport, screenshot. | DONE : lanes Camera/Acteurs/Dialogue/FX/Audio/Transitions/Temps/Autres, selection depuis lane, actions existantes preservees, Visual Gate, analyses. | Faire croire a un vrai multi-track parallele ; stocker un layout de lanes ; ouvrir actorMove trop tot. | DONE : timeline lisible comme pistes sans augmenter la puissance runtime/editor. | V1-47. |
+| NS-SCENES-V1-49 | Cinematic Actor Movement Block V0 | core / editor | Rendre `actorMove` authorable via acteur requis, cible authoring stable, duree, marche/course et pathMode direct verrouille. | Pas de pathfinding, pas de coordonnees `x/y`, pas de cible runtime map/entity, pas de drag/drop, pas de reorder, pas de preview runtime. | `cinematic_asset.dart`, `cinematic_authoring_operations.dart`, `cinematic_diagnostics.dart`, `cinematic_timeline_lane_read_model.dart`, Builder/Library cinematics, tests core/widget, rapport, screenshot. | DONE : target refs JSON, operations cible, add/update actorMove, diagnostics refs/modes/duree, UI palette/inspector, Visual Gate, analyses. | Creer une fausse navigation runtime ; exposer des IDs techniques ou positions libres ; casser les lanes V1-48. | DONE : bloc deplacement acteur V0 authorable, validable et borne, sans runtime ni pathfinding. | V1-48. |
 
 ## Options comparees
 
@@ -769,6 +770,20 @@ Limites : lanes derivees et non persistees, pas de multi-track reel, pas de drag
 Preuve : test core lane read model, non-regression Library read model, tests widget Builder/Library, analyse `map_core`, analyse editor ciblee et Visual Gate `ns_scenes_v1_48_cinematic_timeline_lane_grouping_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0`.
+
+## Mise a jour V1-49
+
+Statut : `NS-SCENES-V1-49 — Cinematic Actor Movement Block V0` est DONE.
+
+Decision : `actorMove` est authoring-owned et reste volontairement V0. Il reference un acteur requis et une cible authoring stable, pas une position libre ou une entite runtime. `pathMode` est stocke en metadata et verrouille a `direct`; seul `movementMode` permet de choisir l'intention visuelle `walk` ou `run`.
+
+Scope realise : `CinematicAsset.movementTargets`, modele `CinematicMovementTargetRef`, operations add/update/remove cible, operations add/update bloc `actorMove`, diagnostics missing/unknown actor/target, duree invalide, movementMode/pathMode invalides, read model lane avec cible/mode, palette `Cibles de déplacement`, bouton `Déplacement acteur` active seulement avec acteur+cible, inspecteur acteur/cible/duree/marche-course/direct et Visual Gate.
+
+Limites : pas de pathfinding, pas de courbe, pas de coordonnees `x/y`, pas de picker map/entity runtime, pas de preview jouable, pas de drag/drop, pas de reordonnancement, pas de multi-track persistant, pas de donnees Selbrume.
+
+Preuve : tests core model/operations/diagnostics/lane, tests widget Builder/Library, analyses ciblees et screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_49_cinematic_actor_movement_block_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0`.
 
 ## Selbrume golden slice
 
