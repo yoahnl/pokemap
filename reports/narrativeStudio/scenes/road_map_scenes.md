@@ -107,19 +107,20 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0 | DONE | Polish UX actorMove V0 : labels/description de cibles editables, suppression cible inutilisee, protection cible utilisee, titres actorMove derives, inspecteur/pickers/timeline plus lisibles, Visual Gate, sans time axis, bar layout, pathfinding ni runtime. |
 | NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0 | DONE | Timeline lue comme projection temporelle derivee : durees visuelles explicites/fallback, ticks, pistes, barres proportionnelles, capture 1663x926 alignee sur la reference, sans drag/drop, playhead, runtime ni persistance start/end. |
 | NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0 | DONE | Aiguille de selection derivee du bloc selectionne : curseur vertical aligne sur `startMs`, badge `Selection`, capture 1663x926, sans seek, scrubber, drag/drop, transport fonctionnel, runtime ni persistance cursor/playhead. |
-| NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0 | DONE | Boutons Reset / Play / Stop placeholders disabled sous la timeline, labels visibles, message `Controles de lecture a venir`, capture 1663x926, sans playback, timer, seek, scrubber, preview runtime ni mutation projet. |
+| NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0 | DONE | Boutons Reset / Play / Stop placeholders disabled sous la timeline, capture 1663x926, sans playback, timer, seek, scrubber, preview runtime ni mutation projet. V1-56 les rend icon-only pour respecter les proportions finales. |
 | NS-SCENES-V1-54 — Cinematic Timeline Visual Polish / Density Pass V0 | DONE | Timeline densifiee et plus lisible : lanes 28px, axe compact, barres 22px, empty states courts, controles transport medium, metadata strip allegee, capture 1663x926, sans nouveau pouvoir runtime/editor. |
 | NS-SCENES-V1-55 — Cinematic Timeline Interaction Polish / Hover Details V0 | DONE | Details inline au survol des barres : label no-code, type, piste, debut, duree et infos metier utiles, highlight doux, semantics, capture 1663x926, sans selection auto, seek, playback, drag/drop, resize, reorder, runtime ni mutation. |
+| NS-SCENES-V1-56 — Cinematic Timeline Bar Geometry / Duration Scale Correction V0 | DONE | Correctif demande par Karim : barres temporelles basees sur `startMs`/`visualDurationMs`, origine X commune ticks/barres/curseur, colonne pistes lisible a 128 px, labels complets sans meta parasite, rangées 48 px, barres 36 px, chrome timeline compacte et ratio preview/timeline corrige, capture 1663x926, sans seek, playback, drag/drop, resize, reorder, runtime ni mutation. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`
+`NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`
 
-Raison : V1-55 ajoute l'inspection au survol sans donner de controle temporel. Le prochain verrou utile est la navigation clavier/focus entre les barres, toujours sans playback, seek, drag/drop, resize, reorder, mutation ni runtime.
+Raison : V1-56 corrige la geometrie visuelle des barres avant d'ajouter un controle clavier. Le prochain verrou utile redevient la navigation clavier/focus entre les barres, toujours sans playback, seek, drag/drop, resize, reorder, mutation ni runtime.
 
-Ordre apres V1-55 : `NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
+Ordre apres V1-56 : `NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0, puis Cinematic Actor Movement Inspector Polish / Target Labels V0, puis Cinematic Timeline Time Axis / Bar Layout V0, puis Cinematic Timeline Selection Cursor / Playhead Placeholder V0, puis Cinematic Timeline Transport Controls Placeholder V0, puis Cinematic Timeline Visual Polish / Density Pass V0, puis Cinematic Timeline Interaction Polish / Hover Details V0, puis Cinematic Timeline Keyboard Navigation / Selection Polish V0.
+Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0, puis Cinematic Actor Movement Inspector Polish / Target Labels V0, puis Cinematic Timeline Time Axis / Bar Layout V0, puis Cinematic Timeline Selection Cursor / Playhead Placeholder V0, puis Cinematic Timeline Transport Controls Placeholder V0, puis Cinematic Timeline Visual Polish / Density Pass V0, puis Cinematic Timeline Interaction Polish / Hover Details V0, puis Cinematic Timeline Bar Geometry / Duration Scale Correction V0, puis Cinematic Timeline Keyboard Navigation / Selection Polish V0.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -153,9 +154,9 @@ Prochain lot exact : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls 
 
 Statut : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0` est DONE.
 
-Decision : les controles de transport restent strictement editor-only et non fonctionnels. Le Builder affiche une section sous les lanes avec un badge `Controles de lecture a venir`, puis trois boutons disabled icon-only + labels `Reset`, `Play`, `Stop`. Chaque `PokeMapButton` a `onPressed = null`.
+Decision : les controles de transport restent strictement editor-only et non fonctionnels. Le Builder affiche trois boutons disabled icon-only Reset / Play / Stop avec tooltips. Chaque `PokeMapButton` a `onPressed = null`.
 
-Scope realise : placement sous la timeline V1-51/V1-52, boutons Reset / Play / Stop visibles, labels externes lisibles, tooltips informatifs, preservation de la selection et du curseur V1-52 apres taps, aucune mutation `ProjectManifest`, capture Visual Gate V1-53.
+Scope realise : placement sous la timeline V1-51/V1-52, boutons Reset / Play / Stop visibles en icon-only, tooltips informatifs, preservation de la selection et du curseur V1-52 apres taps, aucune mutation `ProjectManifest`, capture Visual Gate V1-53.
 
 Limites : pas de playback, timer, seek, scrubber, preview runtime, transport fonctionnel, drag/drop, resize, reorder, persistance temporelle, changement JSON ou modification runtime/gameplay/battle/examples.
 
@@ -181,7 +182,7 @@ Prochain lot exact : `NS-SCENES-V1-55 — Cinematic Timeline Interaction Polish 
 
 Statut : `NS-SCENES-V1-55 — Cinematic Timeline Interaction Polish / Hover Details V0` est DONE.
 
-Decision : V1-55 retient l'option inline compacte, placee au-dessus des lanes, plutot qu'un overlay/tooltip. Le hover reste un etat local editor-only derive de la barre survolee ; `selectedStepId` continue de piloter la selection, l'inspecteur et le curseur.
+Decision : V1-55 retient l'option inline compacte, placee au-dessus des lanes, plutot qu'un tooltip fragile. Le hover reste un etat local editor-only derive de la barre survolee ; `selectedStepId` continue de piloter la selection, l'inspecteur et le curseur. V1-56 rend ce detail en overlay non interactif pour ne plus deplacer la grille.
 
 Scope realise : detail `Survol : ...` avec type, piste, debut, duree et infos utiles par bloc, labels humains actorMove/actorFace, highlight doux de la barre survolee quand elle n'est pas selectionnee, label semantic compact, nettoyage du hover a la sortie, test de non-selection/non-mutation et Visual Gate V1-55 en 1663x926.
 
@@ -189,7 +190,21 @@ Limites : pas de focus clavier avance, playback, timer, seek, scrubber, drag/dro
 
 Preuve : test widget `shows hover details without selecting or moving cursor`, suite Builder `+34`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, checks anti-scope et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_55_cinematic_timeline_interaction_polish_hover_details_v0.png`.
 
-Prochain lot exact : `NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
+Prochain lot exact corrige par demande Karim : `NS-SCENES-V1-56 — Cinematic Timeline Bar Geometry / Duration Scale Correction V0`.
+
+## Mise a jour V1-56
+
+Statut : `NS-SCENES-V1-56 — Cinematic Timeline Bar Geometry / Duration Scale Correction V0` est DONE.
+
+Decision : V1-56 remplace exceptionnellement le lot clavier initialement recommande, a la demande de Karim, pour corriger d'abord la geometrie visuelle de la timeline. Les ticks, les barres et le curseur partagent maintenant la meme origine X ; chaque barre est positionnee par `startMs` et dimensionnee par `visualDurationMs`, avec seulement une largeur minimale compacte pour conserver la lisibilite.
+
+Scope realise : keys de mesure ticks/barres/contenu, largeur de barre factorisee, minimum visuel 72 px, variante `borderRadius` du `PokeMapCard`, barres plus rectangulaires, split preview/timeline responsive, preview sandbox compacte, colonne pistes 128 px, labels de pistes complets, acteurs en label court, axe 34 px, rangées 48 px, barres 36 px, badges en ligne compacte, hover details en overlay stable, controles transport icon-only, grille utile testee, capture Visual Gate V1-56 en 1663x926 et evidence pack dedie.
+
+Limites : pas de navigation clavier/focus avance, playback, timer, seek, scrubber, transport fonctionnel, drag/drop, resize, reorder, zoom temporel, preview runtime, mutation JSON, persistance temporelle ou changement core/runtime.
+
+Preuve : tests RED puis GREEN `renders timeline bars with corrected duration geometry` et `balances sandbox preview and useful timeline grid proportions`, suite Builder `+36`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, checks anti-scope et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_56_cinematic_timeline_bar_geometry_duration_scale_correction_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
 
 ## Mise a jour V1-31
 

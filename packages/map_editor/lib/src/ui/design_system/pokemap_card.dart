@@ -11,6 +11,7 @@ class PokeMapCard extends StatefulWidget {
     super.key,
     required this.child,
     this.padding,
+    this.borderRadius = 12,
     this.selected = false,
     this.onTap,
   });
@@ -20,6 +21,8 @@ class PokeMapCard extends StatefulWidget {
 
   /// Custom padding inside the card. Defaults to 12.
   final EdgeInsetsGeometry? padding;
+
+  final double borderRadius;
 
   /// If true, applies high-contrast primary selection borders.
   final bool selected;
@@ -73,7 +76,7 @@ class _PokeMapCardState extends State<PokeMapCard> {
       duration: const Duration(milliseconds: 120),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(12), // Standard card radius: 12
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         border: border,
       ),
       child: content,

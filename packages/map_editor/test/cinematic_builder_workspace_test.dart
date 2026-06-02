@@ -148,6 +148,71 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets('renders timeline bars with corrected duration geometry',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.tapAt(faceCardRect.center);
+    await tester.pumpAndSettle();
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final cameraBarRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_camera'),
+      ),
+    );
+    final faceBarRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_face'),
+      ),
+    );
+    final moveBarRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_move'),
+      ),
+    );
+    final cursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+
+    final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    expect(pxPer500Ms, greaterThan(0));
+    expect(cameraBarRect.left, closeTo(tick0Rect.left, 2));
+    expect(cameraBarRect.width, closeTo(pxPer500Ms, 2));
+    expect(faceBarRect.left, closeTo(tick500Rect.left, 2));
+    expect(moveBarRect.left, closeTo(tick0Rect.left + pxPer500Ms * 2.2, 2));
+    expect(moveBarRect.width, closeTo(pxPer500Ms * 2, 2));
+    expect(moveBarRect.width, greaterThanOrEqualTo(cameraBarRect.width * 1.9));
+    expect(cursorRect.center.dx, closeTo(tick500Rect.left, 2));
+
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Marche'), findsWidgets);
+    expect(find.text('Direct'), findsWidgets);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
   testWidgets(
       'shows a non-interactive selection cursor on selected block start',
       (tester) async {
@@ -245,10 +310,10 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-transport-controls')),
       findsOneWidget,
     );
-    expect(find.text('Contrôles de lecture à venir'), findsOneWidget);
-    expect(find.text('Reset'), findsOneWidget);
-    expect(find.text('Play'), findsOneWidget);
-    expect(find.text('Stop'), findsOneWidget);
+    expect(find.text('Contrôles de lecture à venir'), findsNothing);
+    expect(find.text('Reset'), findsNothing);
+    expect(find.text('Play'), findsNothing);
+    expect(find.text('Stop'), findsNothing);
 
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
@@ -331,7 +396,9 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-lane-camera')),
     );
     final faceBarRect = tester.getRect(
-      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_face'),
+      ),
     );
     final resetButtonRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
@@ -346,8 +413,8 @@ void main() {
     expect(previewRect.height, lessThanOrEqualTo(450));
     expect(timelineRect.height, greaterThanOrEqualTo(390));
     expect(timelineRect.top, greaterThan(previewRect.bottom));
-    expect(cameraLaneRect.height, lessThanOrEqualTo(28));
-    expect(faceBarRect.height, lessThanOrEqualTo(22));
+    expect(cameraLaneRect.height, greaterThanOrEqualTo(36));
+    expect(faceBarRect.height, greaterThanOrEqualTo(30));
     expect(resetButtonRect.height, lessThanOrEqualTo(40));
     expect(cursorRect.center.dx, closeTo(faceCardRect.left, 1));
 
@@ -363,9 +430,16 @@ void main() {
     expect(find.text('Professor → Centre scène'), findsWidgets);
     expect(find.text('Marche'), findsWidgets);
     expect(find.text('Direct'), findsWidgets);
-    expect(find.text('Reset'), findsOneWidget);
-    expect(find.text('Play'), findsOneWidget);
-    expect(find.text('Stop'), findsOneWidget);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
+    expect(find.text('Reset'), findsNothing);
+    expect(find.text('Play'), findsNothing);
+    expect(find.text('Stop'), findsNothing);
 
     final selectedFaceBar = tester.widget<PokeMapCard>(
       find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
@@ -497,7 +571,7 @@ void main() {
     expect(project.toJson(), before);
   });
 
-  testWidgets('balances sandbox preview and timeline proportions on reference',
+  testWidgets('balances sandbox preview and useful timeline grid proportions',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final project = _project(cinematics: [_timeLayoutCinematic()]);
@@ -514,8 +588,70 @@ void main() {
     final timelineRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
     );
+    final timelineGridRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    final timeContentRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-content')),
+    );
+    final cameraLaneRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-lane-camera')),
+    );
+    final professorLaneFinder = find.byKey(
+      const ValueKey('cinematic-builder-lane-actor:actor_professor'),
+    );
+    final dialogueLaneFinder = find.byKey(
+      const ValueKey('cinematic-builder-lane-dialogue'),
+    );
+    final cameraLaneLabelFinder = find.descendant(
+      of: find.byKey(const ValueKey('cinematic-builder-lane-camera')),
+      matching: find.text('Caméra'),
+    );
+    final professorLaneLabelFinder = find.descendant(
+      of: professorLaneFinder,
+      matching: find.text('Professor'),
+    );
+    final dialogueLaneLabelFinder = find.descendant(
+      of: dialogueLaneFinder,
+      matching: find.text('Dialogue'),
+    );
+    final cameraBarRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_camera'),
+      ),
+    );
+    final audioLaneRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-lane-audio')),
+    );
 
-    expect(timelineRect.height, greaterThanOrEqualTo(360));
+    expect(timelineRect.height, greaterThanOrEqualTo(420));
+    expect(timelineGridRect.top - timelineRect.top, lessThanOrEqualTo(90));
+    expect(timelineGridRect.height, greaterThanOrEqualTo(335));
+    expect(timelineGridRect.height,
+        greaterThanOrEqualTo(previewRect.height * 0.78));
+    expect(cameraLaneRect.width, greaterThanOrEqualTo(124));
+    expect(cameraLaneRect.width, lessThanOrEqualTo(136));
+    expect(timeContentRect.width,
+        greaterThanOrEqualTo(timelineGridRect.width * 0.83));
+    expect(cameraLaneLabelFinder, findsOneWidget);
+    expect(professorLaneLabelFinder, findsOneWidget);
+    expect(
+      find.descendant(
+        of: professorLaneFinder,
+        matching: find.textContaining('Acteur:'),
+      ),
+      findsNothing,
+    );
+    expect(dialogueLaneLabelFinder, findsOneWidget);
+    expect(
+        tester.getRect(cameraLaneLabelFinder).width, greaterThanOrEqualTo(48));
+    expect(tester.getRect(professorLaneLabelFinder).width,
+        greaterThanOrEqualTo(68));
+    expect(tester.getRect(dialogueLaneLabelFinder).width,
+        greaterThanOrEqualTo(68));
+    expect(cameraLaneRect.height, greaterThanOrEqualTo(46));
+    expect(cameraBarRect.height, greaterThanOrEqualTo(34));
+    expect(audioLaneRect.bottom, lessThanOrEqualTo(timelineGridRect.bottom));
     expect(previewRect.height, lessThanOrEqualTo(450));
     expect(timelineRect.top, greaterThan(previewRect.bottom));
   });
@@ -544,7 +680,7 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const ValueKey('cinematic-builder-lane-audio')),
         findsOneWidget);
-    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
     expect(find.text('Aucun step'), findsWidgets);
     expect(find.text('1'), findsWidgets);
     expect(find.text('Camera to door'), findsWidgets);
@@ -642,8 +778,8 @@ void main() {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
 
-    expect(find.text('Acteur: Professor'), findsWidgets);
-    expect(find.text('Acteur: Rival'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
+    expect(find.text('Rival'), findsWidgets);
     expect(find.text('Aucun step'), findsWidgets);
     expect(find.text('Timeline par pistes'), findsOneWidget);
     expect(find.text('9 piste(s)'), findsOneWidget);
@@ -999,7 +1135,7 @@ void main() {
         actorFaceStep.metadata, containsPair('authoring.block', 'actorFace'));
     expect(actorFaceStep.metadata, containsPair('actor.direction', 'down'));
     expect(find.text('Orientation Professor'), findsWidgets);
-    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
     expect(find.text('Direction'), findsWidgets);
 
     await tester.ensureVisible(
@@ -1021,7 +1157,7 @@ void main() {
     expect(actorFaceStep.actorId, 'actor_rival');
     expect(actorFaceStep.label, 'Orientation Rival');
     expect(actorFaceStep.metadata, containsPair('actor.direction', 'left'));
-    expect(find.text('Acteur: Rival'), findsWidgets);
+    expect(find.text('Rival'), findsWidgets);
     expect(find.text('Gauche'), findsWidgets);
 
     await tester.tap(
@@ -1139,7 +1275,7 @@ void main() {
     expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'walk'));
     expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
     expect(find.text('Professor → Centre scène'), findsWidgets);
-    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
     expect(find.text('Centre scène'), findsWidgets);
     expect(find.text('Mode mouvement'), findsOneWidget);
     expect(find.text('Chemin direct verrouillé'), findsOneWidget);
@@ -1818,6 +1954,57 @@ void main() {
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_55_cinematic_timeline_interaction_polish_'
       'hover_details_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures V1-56 timeline bar geometry correction when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_56_CAPTURE_CINEMATIC_TIMELINE_BAR_GEOMETRY',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+
+    final moveRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-time-visual-bar-step_move'),
+      ),
+    );
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(moveRect.center);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-hover-details')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_56_cinematic_timeline_bar_geometry_'
+      'duration_scale_correction_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

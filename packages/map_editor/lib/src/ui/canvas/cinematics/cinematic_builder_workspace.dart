@@ -228,31 +228,44 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: _PreviewSandbox(
-                            entry: widget.entry,
-                            asset: widget.asset,
-                            selectedStep: selectedStep,
-                            selectedStepIndex: selectedStepIndex,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 390,
-                          child: _TimelinePlaceholder(
-                            entry: widget.entry,
-                            asset: widget.asset,
-                            selectedStepId: _selectedStepId,
-                            onStepSelected: (step) {
-                              setState(() => _selectedStepId = step.id);
-                            },
-                            onAddDraftStep: _addDraftStep,
-                          ),
-                        ),
-                      ],
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final timelineHeight =
+                            _builderTimelineHeight(constraints.maxHeight);
+                        final previewHeight = math.max(
+                          0.0,
+                          constraints.maxHeight -
+                              _builderTimelineGap -
+                              timelineHeight,
+                        );
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SizedBox(
+                              height: previewHeight,
+                              child: _PreviewSandbox(
+                                entry: widget.entry,
+                                asset: widget.asset,
+                                selectedStep: selectedStep,
+                                selectedStepIndex: selectedStepIndex,
+                              ),
+                            ),
+                            const SizedBox(height: _builderTimelineGap),
+                            SizedBox(
+                              height: timelineHeight,
+                              child: _TimelinePlaceholder(
+                                entry: widget.entry,
+                                asset: widget.asset,
+                                selectedStepId: _selectedStepId,
+                                onStepSelected: (step) {
+                                  setState(() => _selectedStepId = step.id);
+                                },
+                                onAddDraftStep: _addDraftStep,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1286,84 +1299,121 @@ class _PreviewSandbox extends StatelessWidget {
       key: const ValueKey('cinematic-builder-preview-placeholder'),
       expandChild: true,
       padding: const EdgeInsets.all(16),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                CupertinoIcons.rectangle_on_rectangle,
-                color: colors.textMuted,
-                size: 34,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Aperçu sandbox',
-                textAlign: TextAlign.center,
-                style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'La preview in-engine n’est pas disponible dans ce lot. '
-                'Cette zone reste une sandbox visuelle sans runtime.',
-                textAlign: TextAlign.center,
-                style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 6,
-                runSpacing: 6,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxHeight < 260;
+          final ultraCompact = constraints.maxHeight < 205;
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 520),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  PokeMapBadge(
-                    label: '${entry.timeline.stepCount} step(s)',
-                    variant: PokeMapBadgeVariant.neutral,
+                  Icon(
+                    CupertinoIcons.rectangle_on_rectangle,
+                    color: colors.textMuted,
+                    size: compact ? 24 : 34,
                   ),
-                  PokeMapBadge(
-                    label: _durationLabel(entry.timeline),
-                    variant: PokeMapBadgeVariant.info,
+                  SizedBox(height: compact ? 6 : 10),
+                  Text(
+                    'Aperçu sandbox',
+                    textAlign: TextAlign.center,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: colors.textPrimary,
+                          fontSize: compact ? 15 : 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
+                  if (!ultraCompact) ...[
+                    SizedBox(height: compact ? 4 : 6),
+                    Text(
+                      'La preview in-engine n’est pas disponible dans ce lot. '
+                      'Cette zone reste une sandbox visuelle sans runtime.',
+                      textAlign: TextAlign.center,
+                      maxLines: compact ? 2 : null,
+                      overflow: compact ? TextOverflow.ellipsis : null,
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                            color: colors.textMuted,
+                            fontSize: compact ? 10 : 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                  SizedBox(height: compact ? 8 : 12),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      PokeMapBadge(
+                        label: '${entry.timeline.stepCount} step(s)',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      PokeMapBadge(
+                        label: _durationLabel(entry.timeline),
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                    ],
+                  ),
+                  if (!compact &&
+                      selectedStep != null &&
+                      selectedStepIndex != null) ...[
+                    const SizedBox(height: 12),
+                    const _MutedText(
+                      'Preview réelle à venir. Bloc sélectionné :',
+                    ),
+                    const SizedBox(height: 6),
+                    PokeMapBadge(
+                      label: '${selectedStepIndex! + 1}. '
+                          '${_stepDisplayTitle(
+                        asset,
+                        selectedStep!,
+                        selectedStepIndex!,
+                      )} • '
+                          '${selectedStep!.kind.name}',
+                      variant: PokeMapBadgeVariant.info,
+                    ),
+                  ],
                 ],
               ),
-              if (selectedStep != null && selectedStepIndex != null) ...[
-                const SizedBox(height: 12),
-                const _MutedText('Preview réelle à venir. Bloc sélectionné :'),
-                const SizedBox(height: 6),
-                PokeMapBadge(
-                  label: '${selectedStepIndex! + 1}. '
-                      '${_stepDisplayTitle(
-                    asset,
-                    selectedStep!,
-                    selectedStepIndex!,
-                  )} • '
-                      '${selectedStep!.kind.name}',
-                  variant: PokeMapBadgeVariant.info,
-                ),
-              ],
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-const _timelineLaneHeaderWidth = 146.0;
-const _timelineAxisHeight = 24.0;
-const _timelineLaneRowHeight = 28.0;
-const _timelineBarHeight = 22.0;
-const _timelineBarMinWidth = 96.0;
-const _timelineFallbackPixelsPerMs =
-    _timelineBarMinWidth / cinematicTimelineFallbackVisualDurationMs;
+const _builderTimelineGap = 12.0;
+const _builderPreviewMinHeight = 220.0;
+const _builderPreviewMaxHeight = 420.0;
+const _builderTimelineMinHeight = 500.0;
+const _builderTimelineMaxHeight = 680.0;
+const _builderTimelinePreferredShare = 0.62;
+
+double _builderTimelineHeight(double availableHeight) {
+  if (availableHeight <= 0) {
+    return 0;
+  }
+  final maxTimeline = math.min(
+    _builderTimelineMaxHeight,
+    math.max(
+        0.0, availableHeight - _builderTimelineGap - _builderPreviewMinHeight),
+  );
+  final minTimeline = math.min(_builderTimelineMinHeight, maxTimeline);
+  final preferredHeight = math.max(
+    availableHeight * _builderTimelinePreferredShare,
+    availableHeight - _builderTimelineGap - _builderPreviewMaxHeight,
+  );
+  return preferredHeight.clamp(minTimeline, maxTimeline).toDouble();
+}
+
+const _timelineLaneHeaderWidth = 128.0;
+const _timelineAxisHeight = 34.0;
+const _timelineLaneRowHeight = 48.0;
+const _timelineBarHeight = 36.0;
+const _timelineBarMinWidth = 72.0;
+const _timelinePixelsPerMsFloor = 0.32;
 
 class _TimelinePlaceholder extends StatefulWidget {
   const _TimelinePlaceholder({
@@ -1411,7 +1461,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-timeline-placeholder'),
       expandChild: true,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1438,77 +1488,101 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 5,
-            runSpacing: 4,
-            children: [
-              PokeMapBadge(
-                label: '${timeline.stepCount} step(s)',
-                variant: PokeMapBadgeVariant.info,
-              ),
-              PokeMapBadge(
-                label: _durationLabel(timeline),
-                variant: PokeMapBadgeVariant.neutral,
-              ),
-              PokeMapBadge(
-                label: _timelineTotalLabel(timeLayout.totalDurationMs),
-                variant: PokeMapBadgeVariant.info,
-              ),
-              PokeMapBadge(
-                label: '${timeLayout.laneCount} piste(s)',
-                variant: PokeMapBadgeVariant.narrative,
-              ),
-              const PokeMapBadge(
-                label: 'Ordre linéaire conservé',
-                variant: PokeMapBadgeVariant.neutral,
-              ),
-              const PokeMapBadge(
-                label: 'Layout temporel dérivé',
-                variant: PokeMapBadgeVariant.success,
-              ),
-              if (timeLayout.blocks.any(
-                (block) =>
-                    block.durationSource ==
-                    CinematicTimelineVisualDurationSource.fallback,
-              ))
-                const PokeMapBadge(
-                  label: 'Fallback visuel',
-                  variant: PokeMapBadgeVariant.warning,
-                ),
-              if (selectedBlock != null)
+          const SizedBox(height: 6),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
                 PokeMapBadge(
-                  key: const ValueKey('cinematic-builder-selected-time-badge'),
-                  label:
-                      'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
+                  label: '${timeline.stepCount} step(s)',
                   variant: PokeMapBadgeVariant.info,
                 ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 22,
-            child: _TimelineHoverDetails(
-              asset: widget.asset,
-              block: hoveredBlock,
-              step: hoveredStep,
-              lane: hoveredLane,
+                const SizedBox(width: 5),
+                PokeMapBadge(
+                  label: _durationLabel(timeline),
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+                const SizedBox(width: 5),
+                PokeMapBadge(
+                  label: _timelineTotalLabel(timeLayout.totalDurationMs),
+                  variant: PokeMapBadgeVariant.info,
+                ),
+                const SizedBox(width: 5),
+                PokeMapBadge(
+                  label: '${timeLayout.laneCount} piste(s)',
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+                const SizedBox(width: 5),
+                const PokeMapBadge(
+                  label: 'Ordre linéaire conservé',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+                const SizedBox(width: 5),
+                const PokeMapBadge(
+                  label: 'Layout temporel dérivé',
+                  variant: PokeMapBadgeVariant.success,
+                ),
+                if (timeLayout.blocks.any(
+                  (block) =>
+                      block.durationSource ==
+                      CinematicTimelineVisualDurationSource.fallback,
+                )) ...[
+                  const SizedBox(width: 5),
+                  const PokeMapBadge(
+                    label: 'Fallback visuel',
+                    variant: PokeMapBadgeVariant.warning,
+                  ),
+                ],
+                if (selectedBlock != null) ...[
+                  const SizedBox(width: 5),
+                  PokeMapBadge(
+                    key:
+                        const ValueKey('cinematic-builder-selected-time-badge'),
+                    label:
+                        'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
+                    variant: PokeMapBadgeVariant.info,
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 8),
           Expanded(
-            child: steps.isEmpty
-                ? const _EmptyTimelineState()
-                : _TimelineTimeGrid(
-                    asset: widget.asset,
-                    timeLayout: timeLayout,
-                    stepsById: stepsById,
-                    selectedStepId: widget.selectedStepId,
-                    selectedBlock: selectedBlock,
-                    hoveredStepId: _hoveredStepId,
-                    onStepHovered: _setHoveredStepId,
-                    onStepSelected: widget.onStepSelected,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: steps.isEmpty
+                      ? const _EmptyTimelineState()
+                      : _TimelineTimeGrid(
+                          asset: widget.asset,
+                          timeLayout: timeLayout,
+                          stepsById: stepsById,
+                          selectedStepId: widget.selectedStepId,
+                          selectedBlock: selectedBlock,
+                          hoveredStepId: _hoveredStepId,
+                          onStepHovered: _setHoveredStepId,
+                          onStepSelected: widget.onStepSelected,
+                        ),
+                ),
+                if (hoveredBlock != null && hoveredStep != null)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: SizedBox(
+                        height: 22,
+                        child: _TimelineHoverDetails(
+                          asset: widget.asset,
+                          block: hoveredBlock,
+                          step: hoveredStep,
+                          lane: hoveredLane,
+                        ),
+                      ),
+                    ),
                   ),
+              ],
+            ),
           ),
           const SizedBox(height: 8),
           const _TimelineTransportControlsPlaceholder(),
@@ -1638,6 +1712,7 @@ class _TimelineTimeGrid extends StatelessWidget {
         return MouseRegion(
           onExit: (_) => onStepHovered(null),
           child: SingleChildScrollView(
+            key: const ValueKey('cinematic-builder-time-grid-viewport'),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1657,6 +1732,7 @@ class _TimelineTimeGrid extends StatelessWidget {
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: SizedBox(
+                      key: const ValueKey('cinematic-builder-time-content'),
                       width: contentWidth,
                       child: Stack(
                         clipBehavior: Clip.hardEdge,
@@ -1748,11 +1824,11 @@ class _TimelineLaneLabelCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final tone = _laneTone(lane.laneKind).resolve(context);
-    final laneMeta = lane.actorId == null ? '${lane.blocks.length}' : 'Acteur';
+    final label = _timelineLaneLabel(lane);
     return Container(
       key: ValueKey('cinematic-builder-lane-${lane.laneId}'),
       height: _timelineLaneRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
         border: Border(
@@ -1763,32 +1839,19 @@ class _TimelineLaneLabelCell extends StatelessWidget {
         children: [
           Icon(
             _laneIcon(lane.laneKind),
-            size: 14,
+            size: 16,
             color: tone.icon,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
-              lane.label,
+              label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: DefaultTextStyle.of(context).style.copyWith(
                     color: colors.textPrimary,
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
-                  ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              laneMeta,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: DefaultTextStyle.of(context).style.copyWith(
-                    color: colors.textMuted,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
                   ),
             ),
           ),
@@ -1796,6 +1859,13 @@ class _TimelineLaneLabelCell extends StatelessWidget {
       ),
     );
   }
+}
+
+String _timelineLaneLabel(CinematicTimelineTimeLane lane) {
+  if (lane.laneKind == CinematicTimelineLaneKind.actor) {
+    return lane.actorLabel ?? lane.label.replaceFirst('Acteur: ', '');
+  }
+  return lane.label;
 }
 
 class _TimelineAxis extends StatelessWidget {
@@ -1826,6 +1896,7 @@ class _TimelineAxis extends StatelessWidget {
         children: [
           for (final tick in ticks)
             Positioned(
+              key: ValueKey('cinematic-builder-time-tick-${tick.timeMs}'),
               left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
               top: 0,
               bottom: 0,
@@ -1923,44 +1994,36 @@ class _TimelineTransportControlsPlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Contrôles de lecture à venir',
-      child: const Column(
-        key: ValueKey('cinematic-builder-transport-controls'),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PokeMapBadge(
-            label: 'Contrôles de lecture à venir',
-            variant: PokeMapBadgeVariant.neutral,
-          ),
-          SizedBox(height: 6),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 14,
-            runSpacing: 6,
-            children: [
-              _TimelineTransportAction(
-                buttonKey: ValueKey(
-                  'cinematic-builder-transport-reset-button',
-                ),
-                icon: CupertinoIcons.arrow_counterclockwise,
-                label: 'Reset',
+      child: const Center(
+        child: Row(
+          key: ValueKey('cinematic-builder-transport-controls'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _TimelineTransportAction(
+              buttonKey: ValueKey(
+                'cinematic-builder-transport-reset-button',
               ),
-              _TimelineTransportAction(
-                buttonKey: ValueKey(
-                  'cinematic-builder-transport-play-button',
-                ),
-                icon: CupertinoIcons.play_fill,
-                label: 'Play',
+              icon: CupertinoIcons.arrow_counterclockwise,
+              label: 'Reset',
+            ),
+            SizedBox(width: 14),
+            _TimelineTransportAction(
+              buttonKey: ValueKey(
+                'cinematic-builder-transport-play-button',
               ),
-              _TimelineTransportAction(
-                buttonKey: ValueKey(
-                  'cinematic-builder-transport-stop-button',
-                ),
-                icon: CupertinoIcons.stop_fill,
-                label: 'Stop',
+              icon: CupertinoIcons.play_fill,
+              label: 'Play',
+            ),
+            SizedBox(width: 14),
+            _TimelineTransportAction(
+              buttonKey: ValueKey(
+                'cinematic-builder-transport-stop-button',
               ),
-            ],
-          ),
-        ],
+              icon: CupertinoIcons.stop_fill,
+              label: 'Stop',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1979,35 +2042,18 @@ class _TimelineTransportAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     return Tooltip(
       message: '$label indisponible dans ce lot',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 76,
-            child: PokeMapButton(
-              key: buttonKey,
-              onPressed: null,
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.medium,
-              leading: Icon(icon),
-              child: const SizedBox.shrink(),
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
+      child: SizedBox(
+        width: 76,
+        child: PokeMapButton(
+          key: buttonKey,
+          onPressed: null,
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.medium,
+          leading: Icon(icon),
+          child: const SizedBox.shrink(),
+        ),
       ),
     );
   }
@@ -2073,11 +2119,8 @@ class _TimelineTrackRow extends StatelessWidget {
                 if (stepsById[block.stepId] case final step?)
                   Positioned(
                     left: block.startMs * pixelsPerMs,
-                    top: 3,
-                    width: math.max(
-                      _timelineBarMinWidth,
-                      block.visualDurationMs * pixelsPerMs,
-                    ),
+                    top: (_timelineLaneRowHeight - _timelineBarHeight) / 2,
+                    width: _timelineBarWidth(block, pixelsPerMs),
                     height: _timelineBarHeight,
                     child: _TimelineStepCard(
                       asset: asset,
@@ -2127,56 +2170,66 @@ class _TimelineStepCard extends StatelessWidget {
     final pathMode = cinematicTimelineActorPathModeOf(step);
     final colors = context.pokeMapColors;
     final tone = _blockTone(block.kind).resolve(context);
-    Widget card = PokeMapCard(
-      key: ValueKey('cinematic-builder-step-card-${block.stepId}'),
-      selected: selected,
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: SizedBox(
-        key: ValueKey('cinematic-builder-time-block-${block.stepId}'),
-        child: ClipRect(
-          child: Row(
-            children: [
-              PokeMapBadge(
-                label: '${block.stepIndex + 1}',
-                variant: selected
-                    ? PokeMapBadgeVariant.info
-                    : PokeMapBadgeVariant.neutral,
-              ),
-              const SizedBox(width: 5),
-              Icon(
-                _stepIcon(block.kind),
-                color: tone.icon,
-                size: 12,
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  block.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                        color: colors.textPrimary,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Flexible(
-                child: SizedBox(
-                  height: 11,
-                  child: _TimelineBarMetaStrip(
-                    block: block,
-                    step: step,
-                    selected: selected,
-                    diagnostics: diagnostics,
-                    movementMode: movementMode,
-                    pathMode: pathMode,
+    Widget card = KeyedSubtree(
+      key: ValueKey('cinematic-builder-time-visual-bar-${block.stepId}'),
+      child: PokeMapCard(
+        key: ValueKey('cinematic-builder-step-card-${block.stepId}'),
+        selected: selected,
+        onTap: onTap,
+        borderRadius: 6,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: SizedBox(
+          key: ValueKey('cinematic-builder-time-block-${block.stepId}'),
+          child: ClipRect(
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 13,
+                  child: Text(
+                    '${block.stepIndex + 1}',
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: colors.textMuted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
                   ),
                 ),
-              ),
-            ],
+                Icon(
+                  _stepIcon(block.kind),
+                  color: tone.icon,
+                  size: 12,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    block.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: colors.textPrimary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: SizedBox(
+                    height: 11,
+                    child: _TimelineBarMetaStrip(
+                      block: block,
+                      step: step,
+                      selected: selected,
+                      diagnostics: diagnostics,
+                      movementMode: movementMode,
+                      pathMode: pathMode,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -3294,12 +3347,22 @@ double _timelineContentWidth(int totalDurationMs, double viewportWidth) {
   }
   return math.max(
     viewportWidth,
-    totalDurationMs * _timelineFallbackPixelsPerMs,
+    totalDurationMs * _timelinePixelsPerMsFloor,
   );
 }
 
 double _tickLeft(int timeMs, double pixelsPerMs, double contentWidth) {
   return math.max(0, math.min(timeMs * pixelsPerMs, contentWidth - 1));
+}
+
+double _timelineBarWidth(
+  CinematicTimelineTimeBlock block,
+  double pixelsPerMs,
+) {
+  return math.max(
+    _timelineBarMinWidth,
+    block.visualDurationMs * pixelsPerMs,
+  );
 }
 
 CinematicTimelineTimeBlock? _selectedTimeBlock(

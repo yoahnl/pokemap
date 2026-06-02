@@ -13041,6 +13041,19 @@
       }
     }
   ],
+  "cinematics": [
+    {
+      "id": "cinematic_uwu",
+      "title": "UwU",
+      "tags": [],
+      "requiredActors": [],
+      "movementTargets": [],
+      "timeline": {
+        "steps": []
+      },
+      "metadata": {}
+    }
+  ],
   "facts": [],
   "worldRules": [],
   "scenes": [

@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0
+NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0
 ```
 
 ## Principes
@@ -86,9 +86,10 @@ NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0
 | NS-SCENES-V1-50 | Cinematic Actor Movement Inspector Polish / Target Labels V0 | core / editor | Polir `actorMove` sans l'elargir : labels/description de cibles editables, pickers plus lisibles, resume humain, timeline actorMove derivee. | Pas de time axis, pas de bar layout, pas de playhead, pas de drag/drop, pas de pathfinding, pas de runtime, pas de preview jouable. | `cinematic_timeline_lane_read_model.dart`, Builder/Library cinematics, `narrative_workspace_canvas.dart`, tests core/widget, rapport, screenshot. | DONE : target labels/description editables, suppression cible libre, cible utilisee protegee, actorMove labels derives, Visual Gate, analyses. | Transformer le polish en time axis ; muter `step.label` comme source runtime ; exposer `targetId` en UX principale. | DONE : actorMove plus lisible, stable par IDs, sans nouveau pouvoir moteur. | V1-49. |
 | NS-SCENES-V1-51 | Cinematic Timeline Time Axis / Bar Layout V0 | core / editor | Transformer les lanes cinematic en projection temporelle lisible : axe, ticks, barres proportionnelles, durees explicites/fallback. | Pas de drag/drop, resize, reorder, playhead fonctionnel, scrubber, transport playback, runtime, pathfinding, coordonnees libres, persistance `startMs/endMs`. | `cinematic_timeline_time_layout_read_model.dart`, Builder cinematics, tests core/widget, rapport, screenshot 1663x926. | DONE : read model pur derive, ticks par duree totale, UI `Timeline par pistes`, barres proportionnelles, selection preservee, Visual Gate, analyses. | Faire croire a une timeline editable ou frame-perfect ; stocker du timing derive ; ouvrir le playback trop tot. | DONE : projection temporelle honnete, proportionnelle et non editable, sans nouveau pouvoir runtime. | V1-50. |
 | NS-SCENES-V1-52 | Cinematic Timeline Selection Cursor / Playhead Placeholder V0 | editor / ui-readonly | Ajouter une aiguille de selection derivee du bloc selectionne dans la timeline temporelle. | Pas de playback, timer, seek, scrubber, transport fonctionnel, drag/drop, resize, reorder, preview runtime, persistance cursor/playhead/start/end. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : badge `Selection`, curseur vertical + handle non interactifs, alignement sur `startMs`, tap axe sans seek, Visual Gate et analyses. | Faire croire a une lecture runtime ; transformer le repere en playhead de playback ; stocker une position temporelle. | DONE : aiguille de selection claire, non interactive et purement derivee. | V1-51. |
-| NS-SCENES-V1-53 | Cinematic Timeline Transport Controls Placeholder V0 | editor / ui-readonly | Ajouter Reset / Play / Stop sous la timeline comme controles visuels placeholders. | Pas de playback, timer, seek, scrubber, transport fonctionnel, preview runtime, drag/drop, resize, reorder, mutation JSON, modification runtime. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : boutons disabled, message `Controles de lecture a venir`, selection/curseur preserves, aucune mutation ProjectManifest, Visual Gate et analyses. | Faire croire a un lecteur cinematic ; ajouter un etat de lecture ; deplacer le curseur depuis les boutons. | DONE : controles visibles, honnetes, non fonctionnels et bornes au Builder. | V1-52. |
+| NS-SCENES-V1-53 | Cinematic Timeline Transport Controls Placeholder V0 | editor / ui-readonly | Ajouter Reset / Play / Stop sous la timeline comme controles visuels placeholders. | Pas de playback, timer, seek, scrubber, transport fonctionnel, preview runtime, drag/drop, resize, reorder, mutation JSON, modification runtime. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : boutons disabled, selection/curseur preserves, aucune mutation ProjectManifest, Visual Gate et analyses. V1-56 les rend icon-only pour respecter les proportions finales. | Faire croire a un lecteur cinematic ; ajouter un etat de lecture ; deplacer le curseur depuis les boutons. | DONE : controles visibles, honnetes, non fonctionnels et bornes au Builder. | V1-52. |
 | NS-SCENES-V1-54 | Cinematic Timeline Visual Polish / Density Pass V0 | editor / ui-polish | Polir la densite visuelle de la timeline : lanes, barres, labels, badges, spacing, controles transport et proportions preview/timeline. | Pas de playback, timer, seek, scrubber, hover details, drag/drop, resize, reorder, changement JSON, runtime ou model core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : lanes 28px, axe 24px, barres 22px, empty states courts, transport medium, metadata strip allegee, Visual Gate et analyses ciblees. | Confondre polish et edition temporelle ; reintroduire IDs bruts comme UX principale ; casser le ratio demande par Karim. | DONE : timeline plus dense et lisible sans nouveau pouvoir. | V1-53. |
 | NS-SCENES-V1-55 | Cinematic Timeline Interaction Polish / Hover Details V0 | editor / ui-readonly | Ajouter une inspection legere au survol des barres de timeline. | Pas de playback, seek, scrubber, selection auto, drag/drop, resize, reorder, mutation JSON, runtime ou focus clavier avance. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : detail inline no-code, highlight hover, semantics, hover exit, selection/curseur/inspecteur preserves, ProjectManifest non mute, Visual Gate et analyses ciblees. | Confondre hover et selection ; creer un tooltip fragile ou un controle temporel implicite ; afficher des IDs techniques. | DONE : hover lisible et temporaire sans nouveau pouvoir. | V1-54. |
+| NS-SCENES-V1-56 | Cinematic Timeline Bar Geometry / Duration Scale Correction V0 | editor / ui-readonly | Corriger la geometrie visuelle des barres et le ratio utile preview/timeline. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle ou focus clavier avance. | Builder cinematics, design system card, tests widget, rapport, screenshot 1663x926. | DONE : origine X commune ticks/barres/curseur, largeur par `visualDurationMs`, colonne pistes 128 px, labels complets sans meta parasite, rangées 48 px, barres 36 px, chrome compacte, hover overlay stable, transport icon-only, Visual Gate et analyses ciblees. | Confondre correction visuelle et edition temporelle ; deplacer le curseur ; stocker du layout derive ; laisser le sandbox ou les pistes ecraser la timeline. | DONE : barres temporelles rectangulaires, proportionnelles et non editables, avec timeline lisible, sans nouveau pouvoir. | V1-55. |
 
 ## Options comparees
 
@@ -837,9 +838,9 @@ Prochain lot exact : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls 
 
 Statut : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0` est DONE.
 
-Decision : V1-53 ajoute uniquement une affordance visuelle de transport sous la timeline. Les boutons Reset, Play et Stop sont des `PokeMapButton` disabled (`onPressed = null`) avec labels externes et tooltips ; le badge `Controles de lecture a venir` rend le placeholder explicite sans promettre de preview runtime.
+Decision : V1-53 ajoute uniquement une affordance visuelle de transport sous la timeline. Les boutons Reset, Play et Stop sont des `PokeMapButton` disabled (`onPressed = null`) avec tooltips ; V1-56 les rend icon-only afin de respecter les proportions finales de la timeline sans promettre de preview runtime.
 
-Scope realise : placement sous les lanes temporelles, boutons icon-only disabled, labels Reset/Play/Stop, test non-mutation et selection/curseur preserves, capture Visual Gate au ratio 1663x926.
+Scope realise : placement sous les lanes temporelles, boutons icon-only disabled, tooltips Reset/Play/Stop, test non-mutation et selection/curseur preserves, capture Visual Gate au ratio 1663x926.
 
 Limites : pas de playback, timer, seek, scrubber, transport fonctionnel, preview runtime, drag/drop, resize, reorder, persistance temporelle, JSON, build_runner ou modification runtime/gameplay/battle/examples.
 
@@ -865,7 +866,7 @@ Prochain lot exact : `NS-SCENES-V1-55 — Cinematic Timeline Interaction Polish 
 
 Statut : `NS-SCENES-V1-55 — Cinematic Timeline Interaction Polish / Hover Details V0` est DONE.
 
-Decision : V1-55 ajoute une inspection locale au survol, en detail inline stable au-dessus des lanes. L'option overlay/tooltip est rejetee pour eviter timing, fragilite golden et impression de mecanique plus avancee. Le hover n'est pas une selection et ne pilote ni l'inspecteur ni le curseur.
+Decision : V1-55 ajoute une inspection locale au survol, en detail inline stable au-dessus des lanes. Le tooltip est rejete pour eviter timing, fragilite golden et impression de mecanique plus avancee. Le hover n'est pas une selection et ne pilote ni l'inspecteur ni le curseur. V1-56 rend ce detail en overlay non interactif pour ne plus deplacer la grille.
 
 Scope realise : `hoveredStepId` local dans le widget, detail no-code du bloc survole, highlight doux non prioritaire sur selected, nettoyage a la sortie de timeline, label semantic compact, test de hover actorFace/actorMove sans mutation, capture Visual Gate V1-55.
 
@@ -873,7 +874,21 @@ Limites : pas de navigation clavier/focus avance dans V1-55, pas de playback, ti
 
 Preuve : suite Builder `+34`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_55_cinematic_timeline_interaction_polish_hover_details_v0.png` et checks anti-scope.
 
-Prochain lot exact : `NS-SCENES-V1-56 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
+Prochain lot exact corrige par demande Karim : `NS-SCENES-V1-56 — Cinematic Timeline Bar Geometry / Duration Scale Correction V0`.
+
+## Mise a jour V1-56
+
+Statut : `NS-SCENES-V1-56 — Cinematic Timeline Bar Geometry / Duration Scale Correction V0` est DONE.
+
+Decision : V1-56 corrige la geometrie visuelle de la timeline avant le polish clavier. Ce changement est une demande de Karim, puis une reprise explicitement redemandee par Karim : les barres de timeline devaient respecter les proportions de l'image cible et ne plus ressembler a des badges de largeur quasi fixe ou a des rangées trop fines.
+
+Scope realise : origine X commune entre ticks, barres et curseur ; largeur de barre derivee de `visualDurationMs`; `startMs` conserve comme source de placement horizontal ; minimum compact 72 px ; barres plus rectangulaires via `PokeMapCard.borderRadius`; split preview/timeline responsive ; preview sandbox compacte ; colonne pistes 128 px ; labels de pistes complets ; acteurs en label court ; axe 34 px ; rangées 48 px ; barres 36 px ; badges en ligne compacte ; hover details en overlay stable ; transport icon-only ; test widget de geometrie et de grille utile ; capture Visual Gate V1-56.
+
+Limites : pas de navigation clavier/focus avance, playback, timer, seek, scrubber, transport fonctionnel, drag/drop, resize, reorder, zoom temporel, preview runtime, persistance temporelle, JSON ou build_runner.
+
+Preuve : suite Builder `+36`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, test de proportion utile post-retour Karim, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_56_cinematic_timeline_bar_geometry_duration_scale_correction_v0.png` et checks anti-scope.
+
+Prochain lot exact : `NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
 
 ## Selbrume golden slice
 
