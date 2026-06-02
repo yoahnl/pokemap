@@ -217,6 +217,88 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets(
+      'shows disabled transport placeholders without changing selection',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+    expect(find.text('Contrôles de lecture à venir'), findsOneWidget);
+    expect(find.text('Reset'), findsOneWidget);
+    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Stop'), findsOneWidget);
+
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+
+    final cursorBefore = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    final resetRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-reset-button'),
+      ),
+    );
+    final playRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-play-button'),
+      ),
+    );
+    final stopRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-stop-button'),
+      ),
+    );
+    for (final rect in [resetRect, playRect, stopRect]) {
+      await tester.tapAt(rect.center);
+      await tester.pumpAndSettle();
+    }
+
+    final selectedFaceCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    final cursorAfter = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(selectedFaceCard.selected, isTrue);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(cursorAfter.left, closeTo(cursorBefore.left, 1));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
   testWidgets('balances sandbox preview and timeline proportions on reference',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -1416,6 +1498,43 @@ void main() {
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_52_cinematic_timeline_selection_cursor_'
       'playhead_placeholder_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-53 timeline transport controls placeholder when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_53_CAPTURE_CINEMATIC_TIMELINE_TRANSPORT_CONTROLS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_53_cinematic_timeline_transport_controls_'
+      'placeholder_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

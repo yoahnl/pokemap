@@ -107,14 +107,15 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-50 — Cinematic Actor Movement Inspector Polish / Target Labels V0 | DONE | Polish UX actorMove V0 : labels/description de cibles editables, suppression cible inutilisee, protection cible utilisee, titres actorMove derives, inspecteur/pickers/timeline plus lisibles, Visual Gate, sans time axis, bar layout, pathfinding ni runtime. |
 | NS-SCENES-V1-51 — Cinematic Timeline Time Axis / Bar Layout V0 | DONE | Timeline lue comme projection temporelle derivee : durees visuelles explicites/fallback, ticks, pistes, barres proportionnelles, capture 1663x926 alignee sur la reference, sans drag/drop, playhead, runtime ni persistance start/end. |
 | NS-SCENES-V1-52 — Cinematic Timeline Selection Cursor / Playhead Placeholder V0 | DONE | Aiguille de selection derivee du bloc selectionne : curseur vertical aligne sur `startMs`, badge `Selection`, capture 1663x926, sans seek, scrubber, drag/drop, transport fonctionnel, runtime ni persistance cursor/playhead. |
+| NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0 | DONE | Boutons Reset / Play / Stop placeholders disabled sous la timeline, labels visibles, message `Controles de lecture a venir`, capture 1663x926, sans playback, timer, seek, scrubber, preview runtime ni mutation projet. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0`
+`NS-SCENES-V1-54 — Cinematic Timeline Visual Polish / Density Pass V0`
 
-Raison : V1-52 ajoute seulement un repere visuel de selection. Le prochain verrou utile est d'afficher des controles transport placeholder reset/play/stop non fonctionnels runtime, toujours sans timer, seek, scrubber, playback ni preview reelle.
+Raison : V1-53 pose les controles transport comme placeholders honnetes. Le prochain verrou utile est de polir la densite visuelle de la timeline : hauteur des lanes, taille des barres, labels, badges, spacing et lisibilite, sans ajouter de pouvoir runtime ni d'edition temporelle.
 
-Ordre apres V1-52 : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0`.
+Ordre apres V1-53 : `NS-SCENES-V1-54 — Cinematic Timeline Visual Polish / Density Pass V0`.
 
 Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0, puis Cinematic Actor Movement Inspector Polish / Target Labels V0, puis Cinematic Timeline Time Axis / Bar Layout V0.
 
@@ -145,6 +146,20 @@ Limites : pas de playback, timer, transport fonctionnel, scrubber, seek, drag/dr
 Preuve : test widget curseur/non-seek, suite Builder, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_52_cinematic_timeline_selection_cursor_playhead_placeholder_v0.png`, analyses et checks anti-scope.
 
 Prochain lot exact : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0`.
+
+## Mise a jour V1-53
+
+Statut : `NS-SCENES-V1-53 — Cinematic Timeline Transport Controls Placeholder V0` est DONE.
+
+Decision : les controles de transport restent strictement editor-only et non fonctionnels. Le Builder affiche une section sous les lanes avec un badge `Controles de lecture a venir`, puis trois boutons disabled icon-only + labels `Reset`, `Play`, `Stop`. Chaque `PokeMapButton` a `onPressed = null`.
+
+Scope realise : placement sous la timeline V1-51/V1-52, boutons Reset / Play / Stop visibles, labels externes lisibles, tooltips informatifs, preservation de la selection et du curseur V1-52 apres taps, aucune mutation `ProjectManifest`, capture Visual Gate V1-53.
+
+Limites : pas de playback, timer, seek, scrubber, preview runtime, transport fonctionnel, drag/drop, resize, reorder, persistance temporelle, changement JSON ou modification runtime/gameplay/battle/examples.
+
+Preuve : test widget transport disabled/non-mutation, suite Builder `+30`, suite Library `+10`, tests core time layout/lane relances, analyses ciblees, checks anti-scope et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_53_cinematic_timeline_transport_controls_placeholder_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-54 — Cinematic Timeline Visual Polish / Density Pass V0`.
 
 ## Mise a jour V1-31
 

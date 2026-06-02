@@ -1478,6 +1478,8 @@ class _TimelinePlaceholder extends StatelessWidget {
                     onStepSelected: onStepSelected,
                   ),
           ),
+          const SizedBox(height: 10),
+          const _TimelineTransportControlsPlaceholder(),
         ],
       ),
     );
@@ -1788,6 +1790,103 @@ class _TimelineSelectionCursor extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TimelineTransportControlsPlaceholder extends StatelessWidget {
+  const _TimelineTransportControlsPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Contrôles de lecture à venir',
+      child: const Column(
+        key: ValueKey('cinematic-builder-transport-controls'),
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PokeMapBadge(
+            label: 'Contrôles de lecture à venir',
+            variant: PokeMapBadgeVariant.neutral,
+          ),
+          SizedBox(height: 8),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 18,
+            runSpacing: 8,
+            children: [
+              _TimelineTransportAction(
+                buttonKey: ValueKey(
+                  'cinematic-builder-transport-reset-button',
+                ),
+                icon: CupertinoIcons.arrow_counterclockwise,
+                label: 'Reset',
+              ),
+              _TimelineTransportAction(
+                buttonKey: ValueKey(
+                  'cinematic-builder-transport-play-button',
+                ),
+                icon: CupertinoIcons.play_fill,
+                label: 'Play',
+              ),
+              _TimelineTransportAction(
+                buttonKey: ValueKey(
+                  'cinematic-builder-transport-stop-button',
+                ),
+                icon: CupertinoIcons.stop_fill,
+                label: 'Stop',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TimelineTransportAction extends StatelessWidget {
+  const _TimelineTransportAction({
+    required this.buttonKey,
+    required this.icon,
+    required this.label,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Tooltip(
+      message: '$label indisponible dans ce lot',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 92,
+            child: PokeMapButton(
+              key: buttonKey,
+              onPressed: null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.large,
+              leading: Icon(icon),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
       ),
     );
   }
