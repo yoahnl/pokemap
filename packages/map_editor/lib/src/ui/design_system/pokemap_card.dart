@@ -12,6 +12,7 @@ class PokeMapCard extends StatefulWidget {
     required this.child,
     this.padding,
     this.borderRadius = 12,
+    this.focused = false,
     this.selected = false,
     this.onTap,
   });
@@ -23,6 +24,8 @@ class PokeMapCard extends StatefulWidget {
   final EdgeInsetsGeometry? padding;
 
   final double borderRadius;
+
+  final bool focused;
 
   /// If true, applies high-contrast primary selection borders.
   final bool selected;
@@ -48,10 +51,12 @@ class _PokeMapCardState extends State<PokeMapCard> {
     final border = Border.all(
       color: widget.selected
           ? colors.brandPrimaryBorder
-          : (_isHovered && widget.onTap != null
-              ? colors.controlBorder
-              : colors.borderSubtle),
-      width: 1.2,
+          : (widget.focused
+              ? colors.brandPrimaryBorder
+              : (_isHovered && widget.onTap != null
+                  ? colors.controlBorder
+                  : colors.borderSubtle)),
+      width: widget.focused ? 1.8 : 1.2,
     );
 
     Widget content = Padding(

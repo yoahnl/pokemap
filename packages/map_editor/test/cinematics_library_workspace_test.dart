@@ -222,7 +222,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Orientation Professor'), findsWidgets);
-    expect(find.text('Acteur: Professor'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
 
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-back-button')),

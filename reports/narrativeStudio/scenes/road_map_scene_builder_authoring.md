@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0
+NS-SCENES-V1-58 — Cinematic Timeline Lane Vertical Navigation Prep / Contract
 ```
 
 ## Principes
@@ -90,6 +90,7 @@ NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0
 | NS-SCENES-V1-54 | Cinematic Timeline Visual Polish / Density Pass V0 | editor / ui-polish | Polir la densite visuelle de la timeline : lanes, barres, labels, badges, spacing, controles transport et proportions preview/timeline. | Pas de playback, timer, seek, scrubber, hover details, drag/drop, resize, reorder, changement JSON, runtime ou model core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : lanes 28px, axe 24px, barres 22px, empty states courts, transport medium, metadata strip allegee, Visual Gate et analyses ciblees. | Confondre polish et edition temporelle ; reintroduire IDs bruts comme UX principale ; casser le ratio demande par Karim. | DONE : timeline plus dense et lisible sans nouveau pouvoir. | V1-53. |
 | NS-SCENES-V1-55 | Cinematic Timeline Interaction Polish / Hover Details V0 | editor / ui-readonly | Ajouter une inspection legere au survol des barres de timeline. | Pas de playback, seek, scrubber, selection auto, drag/drop, resize, reorder, mutation JSON, runtime ou focus clavier avance. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : detail inline no-code, highlight hover, semantics, hover exit, selection/curseur/inspecteur preserves, ProjectManifest non mute, Visual Gate et analyses ciblees. | Confondre hover et selection ; creer un tooltip fragile ou un controle temporel implicite ; afficher des IDs techniques. | DONE : hover lisible et temporaire sans nouveau pouvoir. | V1-54. |
 | NS-SCENES-V1-56 | Cinematic Timeline Bar Geometry / Duration Scale Correction V0 | editor / ui-readonly | Corriger la geometrie visuelle des barres et le ratio utile preview/timeline. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle ou focus clavier avance. | Builder cinematics, design system card, tests widget, rapport, screenshot 1663x926. | DONE : origine X commune ticks/barres/curseur, largeur par `visualDurationMs`, colonne pistes 128 px, labels complets sans meta parasite, rangées 48 px, barres 36 px, chrome compacte, hover overlay stable, transport icon-only, Visual Gate et analyses ciblees. | Confondre correction visuelle et edition temporelle ; deplacer le curseur ; stocker du layout derive ; laisser le sandbox ou les pistes ecraser la timeline. | DONE : barres temporelles rectangulaires, proportionnelles et non editables, avec timeline lisible, sans nouveau pouvoir. | V1-55. |
+| NS-SCENES-V1-57 | Cinematic Timeline Keyboard Navigation / Selection Polish V0 | editor / ui-readonly | Ajouter une navigation clavier locale entre blocs de timeline par ordre lineaire. | Pas de navigation verticale par piste, pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle ou modele core. | Builder cinematics, design system card focus, tests widget, rapport, screenshot 1663x926. | DONE : ArrowRight/ArrowLeft/Home/End, demarrage premier/dernier sans selection, focus local timeline, TextField proteges, curseur/preview/inspecteur synchronises, Visual Gate et analyses ciblees. | Capturer les fleches globalement ; confondre selection avec seek/playhead ; casser les proportions V1-56. | DONE : selection clavier locale et non destructive, sans nouveau pouvoir runtime/editor. | V1-56. |
 
 ## Options comparees
 
@@ -889,6 +890,20 @@ Limites : pas de navigation clavier/focus avance, playback, timer, seek, scrubbe
 Preuve : suite Builder `+36`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, test de proportion utile post-retour Karim, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_56_cinematic_timeline_bar_geometry_duration_scale_correction_v0.png` et checks anti-scope.
 
 Prochain lot exact : `NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0`.
+
+## Mise a jour V1-57
+
+Statut : `NS-SCENES-V1-57 — Cinematic Timeline Keyboard Navigation / Selection Polish V0` est DONE.
+
+Decision : le lot a ete fourni par Karim et reste volontairement borne : la timeline gagne une navigation clavier horizontale locale, pas un mode playback ni un editeur de montage. ArrowRight/ArrowLeft/Home/End selectionnent les blocs par ordre `stepIndex` et initialisent la selection quand elle est vide.
+
+Scope realise : helpers de navigation clavier, `FocusNode` dedie a la timeline, badge `Navigation clavier`, selection locale via `selectedStepId`, bordure de focus sur la barre selectionnee, synchronisation existante curseur/preview/inspecteur, protection des champs texte hors timeline, Visual Gate V1-57.
+
+Limites : pas de navigation verticale par piste, playback, timer, seek, scrubber, transport fonctionnel, drag/drop, resize, reorder, zoom temporel, preview runtime, persistance temporelle, JSON ou build_runner.
+
+Preuve : tests clavier locaux, suite Builder `+39`, suite Library `+10`, tests core time layout/lane, analyses ciblees, capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_57_cinematic_timeline_keyboard_navigation_selection_polish_v0.png`, evidence pack V1-57.
+
+Prochain lot exact : `NS-SCENES-V1-58 — Cinematic Timeline Lane Vertical Navigation Prep / Contract`.
 
 ## Selbrume golden slice
 
