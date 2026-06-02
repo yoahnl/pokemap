@@ -590,7 +590,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Navigation clavier : ← → Home End'), findsOneWidget);
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
@@ -711,6 +711,214 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets(
+      'navigates selected timeline blocks vertically with local keyboard focus',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_camera');
+    expect(find.text('Sélection : 0 ms'), findsOneWidget);
+    expect(find.text('Camera reveal'), findsWidgets);
+    expect(find.text('step_camera'), findsWidgets);
+    expect(find.textContaining('1. Camera reveal'), findsOneWidget);
+
+    final moveCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_move')),
+    );
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(moveCardRect.center);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-hover-details')),
+      findsOneWidget,
+    );
+    expect(find.text('Survol : Professor → Centre scène'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('step_face'), findsWidgets);
+    expect(find.textContaining('2. Professor turns'), findsOneWidget);
+
+    final faceCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    final faceCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    expect(faceCursorRect.center.dx, closeTo(faceCardRect.left, 1));
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_camera');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_sound');
+    expect(find.text('Sélection : 2.7 s'), findsOneWidget);
+    expect(find.text('Cue bell'), findsWidgets);
+    expect(find.text('step_sound'), findsWidgets);
+    expect(find.textContaining('6. Cue bell'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_move');
+    expect(find.text('Sélection : 1.1 s'), findsOneWidget);
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('step_move'), findsWidgets);
+    expect(find.textContaining('4. Professor → Centre scène'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_camera');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_camera');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_fade');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_wait');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_wait');
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_move');
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_wait');
+    await tester.sendKeyEvent(LogicalKeyboardKey.end);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_sound');
+
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('uses step index as vertical navigation tie break',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_verticalTieBreakCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_vertical_tie_break',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_camera_a');
+    expect(find.text('Camera left'), findsWidgets);
+    expect(find.text('step_camera_a'), findsWidgets);
+  });
+
+  testWidgets(
+      'handles vertical navigation without selection and empty timelines',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_wait');
+    expect(find.text('Sélection : 800 ms'), findsOneWidget);
+    expect(find.text('Beat'), findsWidgets);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+
+    final emptyProject = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_empty',
+          title: 'Empty cinematic',
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    final emptyBefore = emptyProject.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(emptyProject, 'cinematic_empty'),
+      asset: _asset(emptyProject, 'cinematic_empty'),
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Timeline vide'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsNothing,
+    );
+    expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
+    expect(emptyProject.toJson(), emptyBefore);
+  });
+
   testWidgets('keeps keyboard shortcuts local and protects text fields',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -767,6 +975,60 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
     );
     expect(selectedFaceBar.selected, isTrue);
+    expect(faceCursorAfter.left, closeTo(faceCursorBefore.left, 1));
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets(
+      'keeps vertical keyboard shortcuts local and protects text fields',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+    final faceCursorBefore = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+
+    final labelField = find.byKey(
+      const ValueKey('cinematic-builder-movement-target-label-target_center'),
+    );
+    await tester.ensureVisible(labelField);
+    await tester.tap(labelField);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    final faceCursorAfter = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
     expect(faceCursorAfter.left, closeTo(faceCursorBefore.left, 1));
     expect(find.text('Professor turns'), findsWidgets);
     expect(find.text('Professor → Centre scène'), findsWidgets);
@@ -2249,7 +2511,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    expect(find.text('Navigation clavier : ← → Home End'), findsOneWidget);
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
     expect(
       tester
           .widget<PokeMapCard>(
@@ -2267,6 +2529,53 @@ void main() {
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_57_cinematic_timeline_keyboard_navigation_'
       'selection_polish_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-59 cinematic timeline lane vertical navigation when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_59_CAPTURE_CINEMATIC_TIMELINE_VERTICAL_NAVIGATION',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_59_cinematic_timeline_lane_vertical_navigation_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -2821,6 +3130,50 @@ CinematicAsset _timeLayoutCinematic() {
   );
 }
 
+CinematicAsset _verticalTieBreakCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_vertical_tie_break',
+    title: 'Vertical tie break cinematic',
+    description: 'Neutral fixture for vertical keyboard tie breaks.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_guide', label: 'Guide'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera_a',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera left',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_actor',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Guide turns',
+          durationMs: 300,
+          actorId: 'actor_guide',
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'right',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_camera_b',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera right',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicAsset _laneShowcaseCinematic() {
   return CinematicAsset(
     id: 'cinematic_lane_showcase',
@@ -3144,6 +3497,13 @@ SceneAsset _sceneReferencing({
       ],
     ),
   );
+}
+
+void _expectTimelineStepSelected(WidgetTester tester, String stepId) {
+  final card = tester.widget<PokeMapCard>(
+    find.byKey(ValueKey('cinematic-builder-step-card-$stepId')),
+  );
+  expect(card.selected, isTrue);
 }
 
 void _setLargeSurface(

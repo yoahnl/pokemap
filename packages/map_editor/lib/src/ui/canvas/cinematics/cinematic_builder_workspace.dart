@@ -1419,6 +1419,8 @@ const _timelinePixelsPerMsFloor = 0.32;
 enum _TimelineKeyboardNavigation {
   previous,
   next,
+  up,
+  down,
   first,
   last,
 }
@@ -1431,6 +1433,12 @@ _TimelineKeyboardNavigation? _timelineKeyboardNavigationForKey(
   }
   if (key == LogicalKeyboardKey.arrowRight) {
     return _TimelineKeyboardNavigation.next;
+  }
+  if (key == LogicalKeyboardKey.arrowUp) {
+    return _TimelineKeyboardNavigation.up;
+  }
+  if (key == LogicalKeyboardKey.arrowDown) {
+    return _TimelineKeyboardNavigation.down;
   }
   if (key == LogicalKeyboardKey.home) {
     return _TimelineKeyboardNavigation.first;
@@ -1462,7 +1470,84 @@ CinematicTimelineTimeBlock? _timelineKeyboardTargetBlock(
         : blocks[math.min(selectedIndex + 1, blocks.length - 1)],
     _TimelineKeyboardNavigation.previous =>
       selectedIndex < 0 ? blocks.last : blocks[math.max(selectedIndex - 1, 0)],
+    _TimelineKeyboardNavigation.up => _timelineVerticalKeyboardTargetBlock(
+        timeLayout,
+        selectedStepId,
+        up: true,
+      ),
+    _TimelineKeyboardNavigation.down => _timelineVerticalKeyboardTargetBlock(
+        timeLayout,
+        selectedStepId,
+        up: false,
+      ),
   };
+}
+
+CinematicTimelineTimeBlock? _timelineVerticalKeyboardTargetBlock(
+  CinematicTimelineTimeLayoutReadModel timeLayout,
+  String? selectedStepId, {
+  required bool up,
+}) {
+  final selectedBlock = _selectedTimeBlock(timeLayout, selectedStepId);
+  if (selectedBlock == null) {
+    return _timelineVerticalFallbackTargetBlock(timeLayout, up: up);
+  }
+  final currentLaneIndex = timeLayout.lanes.indexWhere(
+    (lane) => lane.laneId == selectedBlock.laneId,
+  );
+  if (currentLaneIndex < 0) {
+    return _timelineVerticalFallbackTargetBlock(timeLayout, up: up);
+  }
+  final currentCenterMs = _timelineBlockCenterMs(selectedBlock);
+  final direction = up ? -1 : 1;
+  for (var laneIndex = currentLaneIndex + direction;
+      laneIndex >= 0 && laneIndex < timeLayout.lanes.length;
+      laneIndex += direction) {
+    final lane = timeLayout.lanes[laneIndex];
+    if (lane.blocks.isEmpty) {
+      continue;
+    }
+    return _timelineClosestBlockInLane(lane, currentCenterMs);
+  }
+  return selectedBlock;
+}
+
+CinematicTimelineTimeBlock? _timelineVerticalFallbackTargetBlock(
+  CinematicTimelineTimeLayoutReadModel timeLayout, {
+  required bool up,
+}) {
+  final lanes = up ? timeLayout.lanes.reversed : timeLayout.lanes;
+  for (final lane in lanes) {
+    if (lane.blocks.isEmpty) {
+      continue;
+    }
+    return up ? lane.blocks.last : lane.blocks.first;
+  }
+  return null;
+}
+
+CinematicTimelineTimeBlock _timelineClosestBlockInLane(
+  CinematicTimelineTimeLane lane,
+  double currentCenterMs,
+) {
+  var bestBlock = lane.blocks.first;
+  var bestDistance =
+      (_timelineBlockCenterMs(bestBlock) - currentCenterMs).abs();
+  for (final candidate in lane.blocks.skip(1)) {
+    final candidateDistance =
+        (_timelineBlockCenterMs(candidate) - currentCenterMs).abs();
+    final distanceOrder = candidateDistance.compareTo(bestDistance);
+    if (distanceOrder < 0 ||
+        (distanceOrder == 0 && candidate.stepIndex < bestBlock.stepIndex)) {
+      bestBlock = candidate;
+      bestDistance = candidateDistance;
+    }
+  }
+  return bestBlock;
+}
+
+double _timelineBlockCenterMs(CinematicTimelineTimeBlock block) {
+  return block.startMs + block.visualDurationMs / 2;
 }
 
 class _TimelinePlaceholder extends StatefulWidget {
@@ -1661,7 +1746,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         key: ValueKey(
                           'cinematic-builder-keyboard-navigation-badge',
                         ),
-                        label: 'Navigation clavier : ← → Home End',
+                        label: 'Navigation clavier : ← → ↑ ↓ Home End',
                         variant: PokeMapBadgeVariant.info,
                       ),
                     ],
@@ -2380,7 +2465,7 @@ class _TimelineStepCard extends StatelessWidget {
     }
     return Semantics(
       label: _timelineHoverSemanticsLabel(asset, block, step, lane),
-      hint: 'Utilisez les flèches gauche et droite pour changer de bloc.',
+      hint: 'Utilisez les flèches pour changer de bloc.',
       selected: selected,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
