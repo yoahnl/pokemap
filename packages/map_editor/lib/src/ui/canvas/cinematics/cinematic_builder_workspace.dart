@@ -1384,6 +1384,7 @@ class _TimelinePlaceholder extends StatelessWidget {
     final timeline = entry.timeline;
     final steps = asset.timeline.steps;
     final timeLayout = buildCinematicTimelineTimeLayoutReadModel(asset);
+    final selectedBlock = _selectedTimeBlock(timeLayout, selectedStepId);
     final stepsById = {
       for (final step in steps) step.id: step,
     };
@@ -1455,6 +1456,13 @@ class _TimelinePlaceholder extends StatelessWidget {
                   label: 'Fallback visuel',
                   variant: PokeMapBadgeVariant.warning,
                 ),
+              if (selectedBlock != null)
+                PokeMapBadge(
+                  key: const ValueKey('cinematic-builder-selected-time-badge'),
+                  label:
+                      'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
+                  variant: PokeMapBadgeVariant.info,
+                ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1466,6 +1474,7 @@ class _TimelinePlaceholder extends StatelessWidget {
                     timeLayout: timeLayout,
                     stepsById: stepsById,
                     selectedStepId: selectedStepId,
+                    selectedBlock: selectedBlock,
                     onStepSelected: onStepSelected,
                   ),
           ),
@@ -1481,6 +1490,7 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.timeLayout,
     required this.stepsById,
     required this.selectedStepId,
+    required this.selectedBlock,
     required this.onStepSelected,
   });
 
@@ -1488,6 +1498,7 @@ class _TimelineTimeGrid extends StatelessWidget {
   final CinematicTimelineTimeLayoutReadModel timeLayout;
   final Map<String, CinematicTimelineStep> stepsById;
   final String? selectedStepId;
+  final CinematicTimelineTimeBlock? selectedBlock;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
 
   @override
@@ -1526,23 +1537,40 @@ class _TimelineTimeGrid extends StatelessWidget {
                   scrollDirection: Axis.horizontal,
                   child: SizedBox(
                     width: contentWidth,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    child: Stack(
+                      clipBehavior: Clip.hardEdge,
                       children: [
-                        _TimelineAxis(
-                          ticks: timeLayout.ticks,
-                          pixelsPerMs: pixelsPerMs,
-                          contentWidth: contentWidth,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _TimelineAxis(
+                              ticks: timeLayout.ticks,
+                              pixelsPerMs: pixelsPerMs,
+                              contentWidth: contentWidth,
+                            ),
+                            for (final lane in timeLayout.lanes)
+                              _TimelineTrackRow(
+                                asset: asset,
+                                lane: lane,
+                                ticks: timeLayout.ticks,
+                                stepsById: stepsById,
+                                selectedStepId: selectedStepId,
+                                pixelsPerMs: pixelsPerMs,
+                                onStepSelected: onStepSelected,
+                              ),
+                          ],
                         ),
-                        for (final lane in timeLayout.lanes)
-                          _TimelineTrackRow(
-                            asset: asset,
-                            lane: lane,
-                            ticks: timeLayout.ticks,
-                            stepsById: stepsById,
-                            selectedStepId: selectedStepId,
-                            pixelsPerMs: pixelsPerMs,
-                            onStepSelected: onStepSelected,
+                        if (selectedBlock != null)
+                          Positioned(
+                            left: _tickLeft(
+                                  selectedBlock!.startMs,
+                                  pixelsPerMs,
+                                  contentWidth,
+                                ) -
+                                6,
+                            top: 0,
+                            bottom: 0,
+                            child: const _TimelineSelectionCursor(),
                           ),
                       ],
                     ),
@@ -1662,6 +1690,7 @@ class _TimelineAxis extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Container(
+      key: const ValueKey('cinematic-builder-time-axis'),
       height: _timelineAxisHeight,
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
@@ -1706,6 +1735,59 @@ class _TimelineAxis extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _TimelineSelectionCursor extends StatelessWidget {
+  const _TimelineSelectionCursor();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return IgnorePointer(
+      child: SizedBox(
+        width: 12,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 5,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                key: const ValueKey('cinematic-builder-selection-cursor'),
+                width: 2,
+                decoration: BoxDecoration(
+                  color: colors.info.withValues(alpha: 0.88),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.info.withValues(alpha: 0.28),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 2,
+              left: 0,
+              child: DecoratedBox(
+                key: const ValueKey(
+                  'cinematic-builder-selection-cursor-handle',
+                ),
+                decoration: BoxDecoration(
+                  color: colors.infoSoft,
+                  border: Border.all(color: colors.info),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: const SizedBox(width: 12, height: 10),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2985,6 +3067,21 @@ double _timelineContentWidth(int totalDurationMs, double viewportWidth) {
 
 double _tickLeft(int timeMs, double pixelsPerMs, double contentWidth) {
   return math.max(0, math.min(timeMs * pixelsPerMs, contentWidth - 1));
+}
+
+CinematicTimelineTimeBlock? _selectedTimeBlock(
+  CinematicTimelineTimeLayoutReadModel timeLayout,
+  String? selectedStepId,
+) {
+  if (selectedStepId == null) {
+    return null;
+  }
+  for (final block in timeLayout.blocks) {
+    if (block.stepId == selectedStepId) {
+      return block;
+    }
+  }
+  return null;
 }
 
 String _blockDurationBadgeLabel(CinematicTimelineTimeBlock block) {

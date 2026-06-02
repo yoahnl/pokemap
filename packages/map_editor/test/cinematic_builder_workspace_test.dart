@@ -146,6 +146,77 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets(
+      'shows a non-interactive selection cursor on selected block start',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_time_layout'),
+      asset: _asset(project, 'cinematic_time_layout'),
+    );
+
+    expect(find.textContaining('Sélection :'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsNothing,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor-handle')),
+      findsOneWidget,
+    );
+    final faceCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    final faceCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(faceCursorRect.center.dx, closeTo(faceCardRect.left, 1));
+
+    final moveTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await tester.tapAt(Offset(moveTapRect.left + 16, moveTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sélection : 1.1 s'), findsOneWidget);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    final moveCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_move')),
+    );
+    final moveCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(moveCursorRect.center.dx, closeTo(moveCardRect.left, 1));
+    expect(moveCursorRect.left, greaterThan(faceCursorRect.left));
+
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(axisRect.left + 24, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    final selectedMoveCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_move')),
+    );
+    expect(selectedMoveCard.selected, isTrue);
+    expect(find.text('Sélection : 1.1 s'), findsOneWidget);
+    expect(find.text('Playback'), findsNothing);
+    expect(find.text('Lecture'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(project.toJson(), before);
+  });
+
   testWidgets('balances sandbox preview and timeline proportions on reference',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -1309,6 +1380,42 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_51_cinematic_timeline_time_axis_bar_layout_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures V1-52 timeline selection cursor when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_52_CAPTURE_CINEMATIC_TIMELINE_SELECTION_CURSOR',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_52_cinematic_timeline_selection_cursor_'
+      'playhead_placeholder_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
