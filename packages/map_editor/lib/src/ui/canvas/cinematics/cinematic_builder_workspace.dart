@@ -1357,14 +1357,15 @@ class _PreviewSandbox extends StatelessWidget {
   }
 }
 
-const _timelineLaneHeaderWidth = 154.0;
-const _timelineAxisHeight = 28.0;
-const _timelineLaneRowHeight = 30.0;
+const _timelineLaneHeaderWidth = 146.0;
+const _timelineAxisHeight = 24.0;
+const _timelineLaneRowHeight = 28.0;
+const _timelineBarHeight = 22.0;
 const _timelineBarMinWidth = 96.0;
 const _timelineFallbackPixelsPerMs =
     _timelineBarMinWidth / cinematicTimelineFallbackVisualDurationMs;
 
-class _TimelinePlaceholder extends StatelessWidget {
+class _TimelinePlaceholder extends StatefulWidget {
   const _TimelinePlaceholder({
     required this.entry,
     required this.asset,
@@ -1380,18 +1381,37 @@ class _TimelinePlaceholder extends StatelessWidget {
   final VoidCallback onAddDraftStep;
 
   @override
+  State<_TimelinePlaceholder> createState() => _TimelinePlaceholderState();
+}
+
+class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
+  String? _hoveredStepId;
+
+  void _setHoveredStepId(String? stepId) {
+    if (_hoveredStepId == stepId) {
+      return;
+    }
+    setState(() => _hoveredStepId = stepId);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final timeline = entry.timeline;
-    final steps = asset.timeline.steps;
-    final timeLayout = buildCinematicTimelineTimeLayoutReadModel(asset);
-    final selectedBlock = _selectedTimeBlock(timeLayout, selectedStepId);
+    final timeline = widget.entry.timeline;
+    final steps = widget.asset.timeline.steps;
+    final timeLayout = buildCinematicTimelineTimeLayoutReadModel(widget.asset);
+    final selectedBlock = _selectedTimeBlock(timeLayout, widget.selectedStepId);
+    final hoveredBlock = _selectedTimeBlock(timeLayout, _hoveredStepId);
     final stepsById = {
       for (final step in steps) step.id: step,
     };
+    final hoveredStep =
+        hoveredBlock == null ? null : stepsById[hoveredBlock.stepId];
+    final hoveredLane =
+        hoveredBlock == null ? null : timeLayout.laneById(hoveredBlock.laneId);
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-timeline-placeholder'),
       expandChild: true,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1409,7 +1429,7 @@ class _TimelinePlaceholder extends StatelessWidget {
                 label: 'Ajouter un brouillon',
                 button: PokeMapButton(
                   key: const ValueKey('cinematic-builder-add-draft-button'),
-                  onPressed: onAddDraftStep,
+                  onPressed: widget.onAddDraftStep,
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(CupertinoIcons.plus),
@@ -1420,8 +1440,8 @@ class _TimelinePlaceholder extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Wrap(
-            spacing: 6,
-            runSpacing: 6,
+            spacing: 5,
+            runSpacing: 4,
             children: [
               PokeMapBadge(
                 label: '${timeline.stepCount} step(s)',
@@ -1465,23 +1485,116 @@ class _TimelinePlaceholder extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 22,
+            child: _TimelineHoverDetails(
+              asset: widget.asset,
+              block: hoveredBlock,
+              step: hoveredStep,
+              lane: hoveredLane,
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: steps.isEmpty
                 ? const _EmptyTimelineState()
                 : _TimelineTimeGrid(
-                    asset: asset,
+                    asset: widget.asset,
                     timeLayout: timeLayout,
                     stepsById: stepsById,
-                    selectedStepId: selectedStepId,
+                    selectedStepId: widget.selectedStepId,
                     selectedBlock: selectedBlock,
-                    onStepSelected: onStepSelected,
+                    hoveredStepId: _hoveredStepId,
+                    onStepHovered: _setHoveredStepId,
+                    onStepSelected: widget.onStepSelected,
                   ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const _TimelineTransportControlsPlaceholder(),
         ],
       ),
+    );
+  }
+}
+
+class _TimelineHoverDetails extends StatelessWidget {
+  const _TimelineHoverDetails({
+    required this.asset,
+    required this.block,
+    required this.step,
+    required this.lane,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineTimeBlock? block;
+  final CinematicTimelineStep? step;
+  final CinematicTimelineTimeLane? lane;
+
+  @override
+  Widget build(BuildContext context) {
+    final block = this.block;
+    final step = this.step;
+    if (block == null || step == null) {
+      return const SizedBox.shrink();
+    }
+
+    final colors = context.pokeMapColors;
+    final details = _timelineHoverDetailLabels(asset, block, step, lane);
+    return Container(
+      key: const ValueKey('cinematic-builder-hover-details'),
+      height: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: colors.surfaceSubtle,
+        border: Border.all(color: colors.borderSubtle),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ClipRect(
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              Text(
+                'Survol : ${block.label}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.textPrimary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              for (final detail in details) ...[
+                _TimelineHoverDetailText(detail),
+                const SizedBox(width: 8),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineHoverDetailText extends StatelessWidget {
+  const _TimelineHoverDetailText(this.value);
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: DefaultTextStyle.of(context).style.copyWith(
+            color: colors.textSecondary,
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+          ),
     );
   }
 }
@@ -1493,6 +1606,8 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.stepsById,
     required this.selectedStepId,
     required this.selectedBlock,
+    required this.hoveredStepId,
+    required this.onStepHovered,
     required this.onStepSelected,
   });
 
@@ -1501,6 +1616,8 @@ class _TimelineTimeGrid extends StatelessWidget {
   final Map<String, CinematicTimelineStep> stepsById;
   final String? selectedStepId;
   final CinematicTimelineTimeBlock? selectedBlock;
+  final String? hoveredStepId;
+  final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
 
   @override
@@ -1518,68 +1635,73 @@ class _TimelineTimeGrid extends StatelessWidget {
         final pixelsPerMs = timeLayout.totalDurationMs <= 0
             ? 1.0
             : contentWidth / timeLayout.totalDurationMs;
-        return SingleChildScrollView(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SizedBox(
-                width: _timelineLaneHeaderWidth,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const _TimelineLaneHeaderCell(),
-                    for (final lane in timeLayout.lanes)
-                      _TimelineLaneLabelCell(lane: lane),
-                  ],
+        return MouseRegion(
+          onExit: (_) => onStepHovered(null),
+          child: SingleChildScrollView(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: _timelineLaneHeaderWidth,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const _TimelineLaneHeaderCell(),
+                      for (final lane in timeLayout.lanes)
+                        _TimelineLaneLabelCell(lane: lane),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: contentWidth,
-                    child: Stack(
-                      clipBehavior: Clip.hardEdge,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _TimelineAxis(
-                              ticks: timeLayout.ticks,
-                              pixelsPerMs: pixelsPerMs,
-                              contentWidth: contentWidth,
-                            ),
-                            for (final lane in timeLayout.lanes)
-                              _TimelineTrackRow(
-                                asset: asset,
-                                lane: lane,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: contentWidth,
+                      child: Stack(
+                        clipBehavior: Clip.hardEdge,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _TimelineAxis(
                                 ticks: timeLayout.ticks,
-                                stepsById: stepsById,
-                                selectedStepId: selectedStepId,
                                 pixelsPerMs: pixelsPerMs,
-                                onStepSelected: onStepSelected,
+                                contentWidth: contentWidth,
                               ),
-                          ],
-                        ),
-                        if (selectedBlock != null)
-                          Positioned(
-                            left: _tickLeft(
-                                  selectedBlock!.startMs,
-                                  pixelsPerMs,
-                                  contentWidth,
-                                ) -
-                                6,
-                            top: 0,
-                            bottom: 0,
-                            child: const _TimelineSelectionCursor(),
+                              for (final lane in timeLayout.lanes)
+                                _TimelineTrackRow(
+                                  asset: asset,
+                                  lane: lane,
+                                  ticks: timeLayout.ticks,
+                                  stepsById: stepsById,
+                                  selectedStepId: selectedStepId,
+                                  hoveredStepId: hoveredStepId,
+                                  pixelsPerMs: pixelsPerMs,
+                                  onStepHovered: onStepHovered,
+                                  onStepSelected: onStepSelected,
+                                ),
+                            ],
                           ),
-                      ],
+                          if (selectedBlock != null)
+                            Positioned(
+                              left: _tickLeft(
+                                    selectedBlock!.startMs,
+                                    pixelsPerMs,
+                                    contentWidth,
+                                  ) -
+                                  6,
+                              top: 0,
+                              bottom: 0,
+                              child: const _TimelineSelectionCursor(),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },
@@ -1596,7 +1718,7 @@ class _TimelineLaneHeaderCell extends StatelessWidget {
     return Container(
       height: _timelineAxisHeight,
       alignment: Alignment.centerLeft,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
         border: Border(
@@ -1609,7 +1731,7 @@ class _TimelineLaneHeaderCell extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: DefaultTextStyle.of(context).style.copyWith(
               color: colors.textMuted,
-              fontSize: 10,
+              fontSize: 9,
               fontWeight: FontWeight.w900,
             ),
       ),
@@ -1626,12 +1748,11 @@ class _TimelineLaneLabelCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final tone = _laneTone(lane.laneKind).resolve(context);
-    final laneMeta =
-        lane.actorId == null ? '${lane.blocks.length} bloc(s)' : 'Acteur';
+    final laneMeta = lane.actorId == null ? '${lane.blocks.length}' : 'Acteur';
     return Container(
       key: ValueKey('cinematic-builder-lane-${lane.laneId}'),
       height: _timelineLaneRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
         border: Border(
@@ -1642,10 +1763,10 @@ class _TimelineLaneLabelCell extends StatelessWidget {
         children: [
           Icon(
             _laneIcon(lane.laneKind),
-            size: 15,
+            size: 14,
             color: tone.icon,
           ),
-          const SizedBox(width: 7),
+          const SizedBox(width: 6),
           Expanded(
             child: Text(
               lane.label,
@@ -1653,7 +1774,7 @@ class _TimelineLaneLabelCell extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: DefaultTextStyle.of(context).style.copyWith(
                     color: colors.textPrimary,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                   ),
             ),
@@ -1666,7 +1787,7 @@ class _TimelineLaneLabelCell extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: DefaultTextStyle.of(context).style.copyWith(
                     color: colors.textMuted,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: FontWeight.w800,
                   ),
             ),
@@ -1719,7 +1840,7 @@ class _TimelineAxis extends StatelessWidget {
                 _tickLeft(tick.timeMs, pixelsPerMs, contentWidth) + 5,
                 math.max(0, contentWidth - 58),
               ),
-              top: 8,
+              top: 6,
               child: SizedBox(
                 width: 56,
                 child: Text(
@@ -1730,7 +1851,7 @@ class _TimelineAxis extends StatelessWidget {
                         color: tick.isMajor
                             ? colors.textSecondary
                             : colors.textMuted,
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: FontWeight.w800,
                       ),
                 ),
@@ -1810,11 +1931,11 @@ class _TimelineTransportControlsPlaceholder extends StatelessWidget {
             label: 'Contrôles de lecture à venir',
             variant: PokeMapBadgeVariant.neutral,
           ),
-          SizedBox(height: 8),
+          SizedBox(height: 6),
           Wrap(
             alignment: WrapAlignment.center,
-            spacing: 18,
-            runSpacing: 8,
+            spacing: 14,
+            runSpacing: 6,
             children: [
               _TimelineTransportAction(
                 buttonKey: ValueKey(
@@ -1865,24 +1986,24 @@ class _TimelineTransportAction extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 92,
+            width: 76,
             child: PokeMapButton(
               key: buttonKey,
               onPressed: null,
               variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.large,
+              size: PokeMapButtonSize.medium,
               leading: Icon(icon),
               child: const SizedBox.shrink(),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: DefaultTextStyle.of(context).style.copyWith(
                   color: colors.textSecondary,
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w800,
                 ),
           ),
@@ -1899,7 +2020,9 @@ class _TimelineTrackRow extends StatelessWidget {
     required this.ticks,
     required this.stepsById,
     required this.selectedStepId,
+    required this.hoveredStepId,
     required this.pixelsPerMs,
+    required this.onStepHovered,
     required this.onStepSelected,
   });
 
@@ -1908,7 +2031,9 @@ class _TimelineTrackRow extends StatelessWidget {
   final List<CinematicTimelineTimeTick> ticks;
   final Map<String, CinematicTimelineStep> stepsById;
   final String? selectedStepId;
+  final String? hoveredStepId;
   final double pixelsPerMs;
+  final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
 
   @override
@@ -1940,7 +2065,7 @@ class _TimelineTrackRow extends StatelessWidget {
                 left: 8,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _MutedText('Aucun step dans cette piste.'),
+                  child: _MutedText('Aucun step'),
                 ),
               )
             else
@@ -1953,12 +2078,17 @@ class _TimelineTrackRow extends StatelessWidget {
                       _timelineBarMinWidth,
                       block.visualDurationMs * pixelsPerMs,
                     ),
-                    height: 24,
+                    height: _timelineBarHeight,
                     child: _TimelineStepCard(
                       asset: asset,
+                      lane: lane,
                       block: block,
                       step: step,
                       selected: selectedStepId == block.stepId,
+                      hovered: hoveredStepId == block.stepId,
+                      onHoverChanged: (isHovered) => onStepHovered(
+                        isHovered ? block.stepId : null,
+                      ),
                       onTap: () => onStepSelected(step),
                     ),
                   ),
@@ -1972,16 +2102,22 @@ class _TimelineTrackRow extends StatelessWidget {
 class _TimelineStepCard extends StatelessWidget {
   const _TimelineStepCard({
     required this.asset,
+    required this.lane,
     required this.block,
     required this.step,
     required this.selected,
+    required this.hovered,
+    required this.onHoverChanged,
     required this.onTap,
   });
 
   final CinematicAsset asset;
+  final CinematicTimelineTimeLane lane;
   final CinematicTimelineTimeBlock block;
   final CinematicTimelineStep step;
   final bool selected;
+  final bool hovered;
+  final ValueChanged<bool> onHoverChanged;
   final VoidCallback onTap;
 
   @override
@@ -1991,11 +2127,11 @@ class _TimelineStepCard extends StatelessWidget {
     final pathMode = cinematicTimelineActorPathModeOf(step);
     final colors = context.pokeMapColors;
     final tone = _blockTone(block.kind).resolve(context);
-    return PokeMapCard(
+    Widget card = PokeMapCard(
       key: ValueKey('cinematic-builder-step-card-${block.stepId}'),
       selected: selected,
       onTap: onTap,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 6),
       child: SizedBox(
         key: ValueKey('cinematic-builder-time-block-${block.stepId}'),
         child: ClipRect(
@@ -2011,9 +2147,9 @@ class _TimelineStepCard extends StatelessWidget {
               Icon(
                 _stepIcon(block.kind),
                 color: tone.icon,
-                size: 13,
+                size: 12,
               ),
-              const SizedBox(width: 5),
+              const SizedBox(width: 4),
               Expanded(
                 child: Text(
                   block.label,
@@ -2021,19 +2157,18 @@ class _TimelineStepCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: DefaultTextStyle.of(context).style.copyWith(
                         color: colors.textPrimary,
-                        fontSize: 11,
+                        fontSize: 10,
                         fontWeight: FontWeight.w900,
                       ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 6),
               Flexible(
                 child: SizedBox(
-                  height: 12,
+                  height: 11,
                   child: _TimelineBarMetaStrip(
                     block: block,
                     step: step,
-                    asset: asset,
                     selected: selected,
                     diagnostics: diagnostics,
                     movementMode: movementMode,
@@ -2046,6 +2181,21 @@ class _TimelineStepCard extends StatelessWidget {
         ),
       ),
     );
+    if (hovered && !selected) {
+      card = KeyedSubtree(
+        key: ValueKey('cinematic-builder-hover-highlight-${block.stepId}'),
+        child: card,
+      );
+    }
+    return Semantics(
+      label: _timelineHoverSemanticsLabel(asset, block, step, lane),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => onHoverChanged(true),
+        onExit: (_) => onHoverChanged(false),
+        child: card,
+      ),
+    );
   }
 }
 
@@ -2053,7 +2203,6 @@ class _TimelineBarMetaStrip extends StatelessWidget {
   const _TimelineBarMetaStrip({
     required this.block,
     required this.step,
-    required this.asset,
     required this.selected,
     required this.diagnostics,
     required this.movementMode,
@@ -2062,7 +2211,6 @@ class _TimelineBarMetaStrip extends StatelessWidget {
 
   final CinematicTimelineTimeBlock block;
   final CinematicTimelineStep step;
-  final CinematicAsset asset;
   final bool selected;
   final List<CinematicDiagnostic> diagnostics;
   final CinematicTimelineActorMovementMode? movementMode;
@@ -2078,30 +2226,16 @@ class _TimelineBarMetaStrip extends StatelessWidget {
           _TimelineBarMetaText(_blockDurationBadgeLabel(block)),
           if (isCinematicTimelineDraftStep(step))
             const _TimelineBarMetaText('Brouillon'),
-          if (block.isAuthoringOwned && !isCinematicTimelineDraftStep(step))
-            const _TimelineBarMetaText('Builder V0'),
-          if (block.actorId != null) _TimelineBarMetaText(block.actorId!),
-          if (block.actorId != null)
-            _TimelineBarMetaText(
-              'Acteur: ${_actorDisplayLabelForId(asset, block.actorId!)}',
-            ),
           if (isCinematicTimelineActorFacingStep(step))
             _TimelineBarMetaText(
               _actorDirectionLabel(
                 cinematicTimelineActorFacingDirectionOf(step),
               ),
             ),
-          if (block.targetId != null)
-            _TimelineBarMetaText(
-              block.kind == CinematicTimelineStepKind.actorMove
-                  ? _movementTargetBadgeLabel(asset, block.targetId!)
-                  : block.targetId!,
-            ),
           if (movementMode != null)
             _TimelineBarMetaText(_actorMovementModeLabel(movementMode!)),
           if (pathMode != null)
             _TimelineBarMetaText(_actorPathModeLabel(pathMode!)),
-          if (step.assetRef != null) _TimelineBarMetaText(step.assetRef!),
           if (diagnostics.isNotEmpty)
             _TimelineBarMetaText('${diagnostics.length} diagnostic(s)'),
           if (selected) const _TimelineBarMetaText('Sélectionné'),
@@ -2120,15 +2254,15 @@ class _TimelineBarMetaText extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: 6),
       child: Text(
         value,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: DefaultTextStyle.of(context).style.copyWith(
               color: colors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
             ),
       ),
     );
@@ -3183,6 +3317,113 @@ CinematicTimelineTimeBlock? _selectedTimeBlock(
   return null;
 }
 
+List<String> _timelineHoverDetailLabels(
+  CinematicAsset asset,
+  CinematicTimelineTimeBlock block,
+  CinematicTimelineStep step,
+  CinematicTimelineTimeLane? lane,
+) {
+  final details = <String>[
+    'Type : ${_timelineStepKindLabel(block.kind)}',
+    'Piste : ${lane?.label ?? block.laneId}',
+    'Début : ${_shortTimeLabel(block.startMs)}',
+    'Durée : ${_blockDurationBadgeLabel(block)}',
+  ];
+
+  if (isCinematicTimelineActorFacingStep(step)) {
+    details.add(
+      'Direction : ${_actorDirectionLabel(
+        cinematicTimelineActorFacingDirectionOf(step),
+      )}',
+    );
+  }
+
+  if (isCinematicTimelineActorMoveStep(step)) {
+    final movementMode = cinematicTimelineActorMovementModeOf(step);
+    final pathMode = cinematicTimelineActorPathModeOf(step);
+    if (movementMode != null) {
+      details.add('Mode : ${_actorMovementModeLabel(movementMode)}');
+    }
+    if (pathMode != null) {
+      details.add('Chemin : ${_actorPathModeLabel(pathMode)}');
+    }
+  }
+
+  final fadeMode = _cinematicTimelineFadeModeOf(step);
+  if (fadeMode != null) {
+    details.add('Mode : ${_fadeModeLabel(fadeMode)}');
+  }
+
+  final cameraMode = _cinematicTimelineCameraModeOf(step);
+  if (cameraMode != null) {
+    details.add('Mode : ${_cameraModeLabel(cameraMode)}');
+  }
+
+  if (block.actorId != null && !isCinematicTimelineActorMoveStep(step)) {
+    details.add(
+      'Acteur : ${_actorDisplayLabelForId(asset, block.actorId!)}',
+    );
+  }
+  if (block.targetId != null && !isCinematicTimelineActorMoveStep(step)) {
+    details.add(
+      'Cible : ${_movementTargetLabelForId(asset, block.targetId!)}',
+    );
+  }
+
+  return details;
+}
+
+String _timelineHoverSemanticsLabel(
+  CinematicAsset asset,
+  CinematicTimelineTimeBlock block,
+  CinematicTimelineStep step,
+  CinematicTimelineTimeLane lane,
+) {
+  final details = _timelineHoverDetailLabels(asset, block, step, lane);
+  return '${block.label}, ${details.join(', ')}';
+}
+
+String _timelineStepKindLabel(CinematicTimelineStepKind kind) {
+  return switch (kind) {
+    CinematicTimelineStepKind.camera => 'Caméra',
+    CinematicTimelineStepKind.actorMove => 'Déplacement acteur',
+    CinematicTimelineStepKind.actorFace => 'Orientation acteur',
+    CinematicTimelineStepKind.actorEmote => 'Émotion acteur',
+    CinematicTimelineStepKind.dialogueLine => 'Dialogue',
+    CinematicTimelineStepKind.sound => 'Son',
+    CinematicTimelineStepKind.music => 'Musique',
+    CinematicTimelineStepKind.fade => 'Fondu',
+    CinematicTimelineStepKind.shake => 'Tremblement',
+    CinematicTimelineStepKind.fx => 'FX',
+    CinematicTimelineStepKind.wait => 'Attente',
+    CinematicTimelineStepKind.marker => 'Marqueur',
+  };
+}
+
+CinematicTimelineFadeMode? _cinematicTimelineFadeModeOf(
+  CinematicTimelineStep step,
+) {
+  final value = step.metadata[cinematicTimelineFadeModeMetadataKey];
+  for (final mode in CinematicTimelineFadeMode.values) {
+    if (mode.name == value) {
+      return mode;
+    }
+  }
+  return null;
+}
+
+CinematicTimelineCameraMode? _cinematicTimelineCameraModeOf(
+  CinematicTimelineStep step,
+) {
+  final value = step.metadata[cinematicTimelineCameraModeMetadataKey];
+  for (final mode in CinematicTimelineCameraMode.values) {
+    if (mode.name == value) {
+      return mode;
+    }
+  }
+  return null;
+}
+
 String _blockDurationBadgeLabel(CinematicTimelineTimeBlock block) {
   if (block.durationSource == CinematicTimelineVisualDurationSource.fallback) {
     return '${block.visualDurationMs} ms visuel';
@@ -3310,14 +3551,6 @@ String _movementTargetLabelForId(CinematicAsset asset, String targetId) {
     }
   }
   return targetId;
-}
-
-String _movementTargetBadgeLabel(CinematicAsset asset, String targetId) {
-  final label = _movementTargetLabelForId(asset, targetId);
-  if (label.length <= 12) {
-    return 'Cible: $label';
-  }
-  return 'Cible: ${label.substring(0, 10)}...';
 }
 
 int _movementTargetUsageCount(CinematicAsset asset, String targetId) {

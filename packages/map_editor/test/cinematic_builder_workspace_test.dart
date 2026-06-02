@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -56,7 +57,7 @@ void main() {
     expect(find.text('Professor reacts'), findsWidgets);
     expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
     expect(find.text('Sélection de bloc à venir'), findsOneWidget);
-    expect(find.text('actor_professor'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
     expect(find.text('Canonical scene'), findsWidgets);
 
     for (final key in <String>[
@@ -128,7 +129,8 @@ void main() {
     expect(cameraRect.width, greaterThan(faceRect.width));
 
     expect(find.text('Professor → Centre scène'), findsWidgets);
-    expect(find.text('Cible: Centre scène'), findsWidgets);
+    expect(find.text('Marche'), findsWidgets);
+    expect(find.text('Direct'), findsWidgets);
 
     await tester.tapAt(Offset(cameraRect.left + 16, cameraRect.top + 16));
     await tester.pumpAndSettle();
@@ -299,6 +301,202 @@ void main() {
     expect(find.text('Seek'), findsNothing);
   });
 
+  testWidgets('renders polished dense timeline on reference surface',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    final previewRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-preview-placeholder')),
+    );
+    final timelineRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+    );
+    final cameraLaneRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-lane-camera')),
+    );
+    final faceBarRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    final resetButtonRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
+    );
+    final cursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    final faceCardRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+
+    expect(previewRect.height, lessThanOrEqualTo(450));
+    expect(timelineRect.height, greaterThanOrEqualTo(390));
+    expect(timelineRect.top, greaterThan(previewRect.bottom));
+    expect(cameraLaneRect.height, lessThanOrEqualTo(28));
+    expect(faceBarRect.height, lessThanOrEqualTo(22));
+    expect(resetButtonRect.height, lessThanOrEqualTo(40));
+    expect(cursorRect.center.dx, closeTo(faceCardRect.left, 1));
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      findsOneWidget,
+    );
+    expect(find.text('0 ms'), findsOneWidget);
+    expect(find.text('500 ms'), findsWidgets);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('Aucun step'), findsWidgets);
+    expect(find.text('Aucun step dans cette piste.'), findsNothing);
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Marche'), findsWidgets);
+    expect(find.text('Direct'), findsWidgets);
+    expect(find.text('Reset'), findsOneWidget);
+    expect(find.text('Play'), findsOneWidget);
+    expect(find.text('Stop'), findsOneWidget);
+
+    final selectedFaceBar = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    expect(selectedFaceBar.selected, isTrue);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('shows hover details without selecting or moving cursor',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-hover-details')),
+      findsNothing,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    final faceCursorBefore = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(find.text('Bloc sélectionné'), findsWidgets);
+    expect(find.text('step_face'), findsWidgets);
+    expect(find.text('Professor turns'), findsWidgets);
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(faceTapRect.center);
+    await tester.pumpAndSettle();
+
+    final hoverDetails =
+        find.byKey(const ValueKey('cinematic-builder-hover-details'));
+    expect(hoverDetails, findsOneWidget);
+    expect(find.text('Survol : Professor turns'), findsOneWidget);
+    expect(find.text('Type : Orientation acteur'), findsOneWidget);
+    expect(find.text('Piste : Acteur: Professor'), findsOneWidget);
+    expect(find.text('Début : 500 ms'), findsOneWidget);
+    expect(find.text('Durée : 300 ms visuel'), findsOneWidget);
+    expect(find.text('Direction : Droite'), findsOneWidget);
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await gesture.moveTo(moveRect.center);
+    await tester.pumpAndSettle();
+
+    expect(hoverDetails, findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-hover-highlight-step_move'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Survol : Professor → Centre scène'), findsOneWidget);
+    expect(find.text('Type : Déplacement acteur'), findsOneWidget);
+    expect(find.text('Piste : Acteur: Professor'), findsOneWidget);
+    expect(find.text('Début : 1.1 s'), findsOneWidget);
+    expect(find.text('Durée : 1000 ms'), findsOneWidget);
+    expect(find.text('Mode : Marche'), findsOneWidget);
+    expect(find.text('Chemin : Direct'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: hoverDetails,
+        matching: find.text('actor_professor'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: hoverDetails,
+        matching: find.text('target_center'),
+      ),
+      findsNothing,
+    );
+
+    final selectedFaceCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    final hoveredMoveCard = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_move')),
+    );
+    final cursorAfterMoveHover = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(selectedFaceCard.selected, isTrue);
+    expect(hoveredMoveCard.selected, isFalse);
+    expect(cursorAfterMoveHover.left, closeTo(faceCursorBefore.left, 1));
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('step_move'), findsNothing);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+
+    final timelineRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+    );
+    await gesture.moveTo(timelineRect.topLeft - const Offset(16, 16));
+    await tester.pumpAndSettle();
+
+    expect(hoverDetails, findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-hover-highlight-step_move'),
+      ),
+      findsNothing,
+    );
+    final selectedFaceAfterExit = tester.widget<PokeMapCard>(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+    );
+    expect(selectedFaceAfterExit.selected, isTrue);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
   testWidgets('balances sandbox preview and timeline proportions on reference',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -347,20 +545,19 @@ void main() {
     expect(find.byKey(const ValueKey('cinematic-builder-lane-audio')),
         findsOneWidget);
     expect(find.text('Acteur: Professor'), findsWidgets);
-    expect(find.text('Aucun step dans cette piste.'), findsWidgets);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Aucun step'), findsWidgets);
+    expect(find.text('1'), findsWidgets);
     expect(find.text('Camera to door'), findsWidgets);
     expect(find.text('camera'), findsWidgets);
     expect(find.text('400 ms'), findsWidgets);
-    expect(find.text('target_camera_focus'), findsWidgets);
-    expect(find.text('2'), findsOneWidget);
+    expect(find.text('2'), findsWidgets);
     expect(find.text('Professor line'), findsWidgets);
     expect(find.text('dialogueLine'), findsWidgets);
-    expect(find.text('actor_professor'), findsWidgets);
-    expect(find.text('3'), findsOneWidget);
+    expect(find.text('1200 ms'), findsWidgets);
+    expect(find.text('3'), findsWidgets);
     expect(find.text('Door chime'), findsWidgets);
     expect(find.text('sound'), findsWidgets);
-    expect(find.text('door_chime'), findsWidgets);
+    expect(find.text('300 ms'), findsWidgets);
 
     expect(find.text('Ajouter un bloc'), findsNothing);
     expect(find.text('Supprimer le bloc'), findsNothing);
@@ -447,7 +644,7 @@ void main() {
 
     expect(find.text('Acteur: Professor'), findsWidgets);
     expect(find.text('Acteur: Rival'), findsWidgets);
-    expect(find.text('Aucun step dans cette piste.'), findsWidgets);
+    expect(find.text('Aucun step'), findsWidgets);
     expect(find.text('Timeline par pistes'), findsOneWidget);
     expect(find.text('9 piste(s)'), findsOneWidget);
     expect(find.text('Déplacement acteur'), findsOneWidget);
@@ -943,7 +1140,7 @@ void main() {
     expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
     expect(find.text('Professor → Centre scène'), findsWidgets);
     expect(find.text('Acteur: Professor'), findsWidgets);
-    expect(find.text('Cible: Centre scène'), findsWidgets);
+    expect(find.text('Centre scène'), findsWidgets);
     expect(find.text('Mode mouvement'), findsOneWidget);
     expect(find.text('Chemin direct verrouillé'), findsOneWidget);
     expect(
@@ -995,7 +1192,7 @@ void main() {
     expect(actorMoveStep.metadata, containsPair('actor.movementMode', 'run'));
     expect(actorMoveStep.metadata, containsPair('actor.pathMode', 'direct'));
     expect(find.text('Rival → Sortie'), findsWidgets);
-    expect(find.text('Cible: Sortie'), findsWidgets);
+    expect(find.text('Sortie'), findsWidgets);
     expect(find.text('Course'), findsWidgets);
 
     await tester.tap(
@@ -1535,6 +1732,92 @@ void main() {
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_53_cinematic_timeline_transport_controls_'
       'placeholder_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-54 timeline visual polish density pass when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_54_CAPTURE_CINEMATIC_TIMELINE_VISUAL_POLISH',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_54_cinematic_timeline_visual_polish_'
+      'density_pass_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures V1-55 timeline hover details polish when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_55_CAPTURE_CINEMATIC_TIMELINE_HOVER_DETAILS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(moveRect.center);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-hover-details')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_55_cinematic_timeline_interaction_polish_'
+      'hover_details_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
