@@ -121,16 +121,21 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-64 — Cinematic Timeline Mouse Probe Boundary Snap V0 | DONE | Snap local du repere souris implemente : cibles `0 ms`, `totalDurationMs`, `block.startMs`, `block.endMs`, seuil `8 px`, badge `Repere : <temps> · <hint>`, click/drag/release, scroll horizontal, non-mutation, Visual Gate 1663x926, sans playback, seek runtime, scrubber runtime, drag de blocs, runtime ni mutation. |
 | NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0 | DONE | Controle explicite `Effacer le repère` visible seulement quand un probe local existe, micro-explication `Repère local : inspection uniquement.`, clear de `timelineProbeTimeMs`/`timelineProbeSnapHint`, retour au curseur `Selection` ou etat vide, Escape local timeline, TextFields proteges, transports disabled preserves, Visual Gate, sans playback, seek runtime, scrubber runtime, drag de blocs, runtime ni mutation. |
 | NS-SCENES-V1-66 — Cinematic Timeline Mouse Probe Help / Selection Explanation V0 | DONE | Aide locale `Aide repère` visible seulement avec un repere actif, panneau court expliquant Selection/Repere/Alignement/Preview, coexistence aide clavier, clear/Escape preserves, Visual Gate, sans playback, seek runtime, scrubber runtime, drag de blocs, runtime ni mutation. |
+| NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract | DONE | Lot documentaire demande par Karim : contrat d'edition de `durationMs`, blocs authoring-owned editables, min/max, relation avec `startMs/endMs` derives, clear du probe apres modification, et trajectoire inspecteur V1-68 puis resize droit V1-69, sans code produit ni package modifie. |
+| NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0 | TODO | Ajouter l'edition no-code de duree depuis l'inspecteur pour les blocs authoring-owned supportes, avec presets courts, saisie numerique bornee, validation inline, recalcul layout derive et clear du probe, sans playback ni timeline libre. |
+| NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0 | TODO | Ajouter un handle de resize uniquement sur le bord droit des barres editables, quantifie au pas 100 ms et borne min/max, sans drag du bloc entier, bord gauche, changement de lane, reorder, `startMs/endMs` persistants ni playback. |
+| NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | TODO | Consolider messages d'erreur, bornes et feedback no-code apres les premieres editions de duree, sans elargir le modele temporel. |
+| NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres les lots de duree, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0`
+`NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`
 
-Raison : V1-66 ferme l'explication locale du repere souris. Le prochain verrou naturel est de polir la visibilite/scroll des elements de timeline quand la navigation locale ou les interactions souris placent la selection hors de la vue utile.
+Raison : V1-67 corrige la trajectoire a la demande de Karim. Avant le scroll/visibility polish, le verrou produit prioritaire est de rendre la duree des blocs editables de facon bornee et no-code depuis l'inspecteur.
 
-Ordre apres V1-66 : `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0`.
+Ordre apres V1-67 : `NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`, puis `NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0`.
 
-Ordre corrige : Payload Pickers V0, puis Event -> Scene Trigger Prep, puis Event -> Scene Link V0, puis Scene Runtime Plan V0, puis Diagnostics / Validator Expansion, puis Dialogue/Battle Ports Authoring V0, puis Runtime Executor MVP, puis Evidence & Review Hardening, puis World Rules Map Editor Integration V0, puis Golden Slice Scene/Event Prep, puis Event to Scene Runtime Hook V0, puis Scene Consequence Contract Prep, puis Scene Consequence Model V0, puis Scene Consequence Runtime Write V0, puis Battle Runtime Outcome Adapter V0, puis Dialogue Runtime Awaitable Adapter V0, puis Golden Slice Runtime Smoke V0, puis StorylineStep to Scene Link, puis Scene Node Payload Editing V0, puis Scene Node Deletion UX V0, puis Scene Consequence Authoring UI V0, puis Scene V1 Beta Readiness Checkpoint, puis Runtime State Persistence Gate V0, puis World Rules Runtime Projection Hook V0, puis Facts & World Rules Manager UI V0, puis Cinematic V1 Contract / Bridge Decision, puis CinematicAsset Core Model V0, puis Cinematics Library V0, puis Cinematic Scene Builder Picker V0, puis Cinematic Runtime Adapter V0, puis Cinematic Builder V0 Scope / Runtime Playback Contract, puis Cinematic Builder V0 Shell, puis Cinematic Timeline Read-only / Step Inspector V0, puis Cinematic Timeline Authoring Drafts V0, puis Cinematic Wait/Fade/Camera Basic Blocks V0, puis Cinematic Actor References / Actor Facing V0, puis Cinematic Actor Movement Block V0 Prep / Contract, puis Cinematic Timeline Lane Grouping V0, puis Cinematic Actor Movement Block V0, puis Cinematic Actor Movement Inspector Polish / Target Labels V0, puis Cinematic Timeline Time Axis / Bar Layout V0, puis Cinematic Timeline Selection Cursor / Playhead Placeholder V0, puis Cinematic Timeline Transport Controls Placeholder V0, puis Cinematic Timeline Visual Polish / Density Pass V0, puis Cinematic Timeline Interaction Polish / Hover Details V0, puis Cinematic Timeline Bar Geometry / Duration Scale Correction V0, puis Cinematic Timeline Keyboard Navigation / Selection Polish V0, puis Cinematic Timeline Lane Vertical Navigation Prep / Contract, puis Cinematic Timeline Lane Vertical Navigation V0, puis Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0, puis Cinematic Timeline Mouse Playhead / Scrub Prep Contract, puis Cinematic Timeline Mouse Time Probe / Playhead Drag V0, puis Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0, puis Cinematic Timeline Mouse Probe Boundary Snap V0, puis Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0, puis Cinematic Timeline Mouse Probe Help / Selection Explanation V0, puis Cinematic Timeline Scroll / Visibility Polish V0.
+Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract` et deplace en backlog futur comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
 
@@ -356,7 +361,19 @@ Limites : pas de playback, seek runtime, scrubber runtime, transport fonctionnel
 
 Preuve : test RED puis GREEN `shows local time probe help explaining selection and probe`, test `clears local time probe with Escape after probe help is open`, suite Builder, suite Library, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_66_cinematic_timeline_mouse_probe_help_selection_explanation_v0.png`, tests core time layout/lane, `dart analyze` core, analyse cible editor et checks anti-scope. L'analyse globale `map_editor` reste rouge par dette preexistante hors lot.
 
-Prochain lot exact : `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0`.
+Trajectoire corrigee par demande Karim : le lot suivant devient `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, et le scroll/visibility polish est repousse en backlog futur.
+
+## Mise a jour V1-67
+
+Statut : `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract` est DONE.
+
+Decision : V1-67 remplace le scroll/visibility polish immediat par un contrat documentaire de rythme cinematic. Le contrat retient l'Option C : edition de `durationMs` depuis l'inspecteur en V1-68, puis resize souris par bord droit en V1-69.
+
+Scope realise : audit du modele `CinematicTimelineStep.durationMs`, des blocs authoring-owned, du time layout derive `startMs/endMs`, du probe souris V1-62/V1-64/V1-65/V1-66, definition des blocs editables/non editables, bornes min/max, presets, relation avec le probe et tests futurs.
+
+Limites : pas de code produit, pas de package modifie, pas de test, pas de screenshot, pas de resize actif, pas de playback, pas de timeline libre, pas de `startMs/endMs` persistants.
+
+Prochain lot exact : `NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`.
 
 ## Mise a jour V1-31
 
