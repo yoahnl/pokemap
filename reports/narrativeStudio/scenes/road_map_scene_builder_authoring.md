@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0
+NS-SCENES-V1-64 — Cinematic Timeline Mouse Probe Boundary Snap V0
 ```
 
 ## Principes
@@ -96,7 +96,8 @@ NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V
 | NS-SCENES-V1-60 | Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0 | editor / ui-polish | Remplacer le long badge clavier par une aide compacte locale qui explique les fleches, Home et End. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mouse playhead, mutation JSON, runtime, nouvelle capability temporelle ou modele core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : badge/bouton compact `Aide clavier`, panneau local toggle click, contenu horizontal/vertical/Home/End, mention selection-only, selection/curseur/inspecteur preserves, Visual Gate et analyses ciblees. | Faire croire a un scrubber ou playhead souris ; casser les proportions V1-56 ; melanger aide et statut. | DONE : aide clavier lisible et non intrusive, sans nouveau pouvoir timeline. | V1-59. |
 | NS-SCENES-V1-61 | Cinematic Timeline Mouse Playhead / Scrub Prep Contract | doc-only / interaction-contract | Cadrer le futur playhead souris type Final Cut avant toute implementation. | Pas de code produit, pas de seek actif, pas de drag, pas de playback, pas de scrubber, pas de mutation JSON, pas de runtime. | Rapport V1-61, roadmaps. | DONE : Option B retenue, `Mouse Time Probe` local separe de `selectedStepId`, zones axe/fond, click/drag/release/cancel, conversion souris -> temps, scroll/clamp/snap, tests futurs, checks anti-scope. | Coder le playhead trop tot ; transformer le curseur V1-52 en scrubber sans contrat ; promettre un playback non implemente. | DONE : contrat futur clair, aucune capability ajoutee. | V1-60. |
 | NS-SCENES-V1-62 | Cinematic Timeline Mouse Time Probe / Playhead Drag V0 | editor / ui-readonly | Implementer le repere temporel souris local selon le contrat V1-61. | Pas de playback, seek runtime, scrubber runtime, drag de blocs, resize, reorder, mutation JSON, runtime, persistence temporelle ou model core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : click/drag axe/fond, clamp 0..totalDurationMs, scroll horizontal, selection/inspecteur preserves, probe clear sur selection bloc/clavier, hover/aide/clavier/transports preserves, non-mutation. | Confondre probe local et playback playhead ; deplacer les blocs ; casser V1-56/V1-57/V1-59/V1-60. | DONE : probe souris lisible et local, sans nouveau pouvoir runtime/editor temporel. | V1-61. |
-| NS-SCENES-V1-63 | Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0 | doc / ui-polish-prep | Cadrer le polish futur du probe souris : lisibilite, bords, snap optionnel aux bornes, edge cases de scroll et libelles. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, implementation snap si le contrat reste ambigu. | Rapport V1-63, roadmaps, eventuels tests futurs. | TODO : options snap/no snap comparees, seuils et edge cases documentes, contraintes V1-62 preservees. | Rendre le probe trop proche d'un playhead runtime ; introduire un snap saccade sans contrat. | TODO : contrat polish/snap clair avant implementation. | V1-62. |
+| NS-SCENES-V1-63 | Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0 | doc / ui-polish-prep | Cadrer le polish futur du probe souris : lisibilite, bords, snap optionnel aux bornes, edge cases de scroll et libelles. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, implementation snap si le contrat reste ambigu. | Rapport V1-63, roadmaps. | DONE : Option E retenue, snap futur aux bords et starts/ends de blocs, seuil `8 px`, click/drag/release cadres, bords/scroll/fallback/tie-breaks/vocabulaire/tests futurs documentes. | Rendre le probe trop proche d'un playhead runtime ; introduire un snap saccade sans contrat. | DONE : contrat polish/snap clair avant implementation, sans code produit ni package modifie. | V1-62. |
+| NS-SCENES-V1-64 | Cinematic Timeline Mouse Probe Boundary Snap V0 | editor / ui-readonly | Implementer le snap leger du repere souris selon le contrat V1-63. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, snap ticks, edition temporelle ou transport fonctionnel. | Builder cinematics, tests widget. | TODO : snap 0/fin/starts/ends par seuil 8 px, badge alignement, scroll respecte, selection/inspecteur/projet preserves. | Confondre snap d'inspection et edition temporelle ; rendre le drag saccade ; casser V1-62. | TODO : snap local et reversible, sans nouveau pouvoir runtime/editor temporel. | V1-63. |
 
 ## Options comparees
 
@@ -982,6 +983,20 @@ Limites : pas de playback, timer, seek runtime, scrubber runtime, preview runtim
 Preuve : test RED puis GREEN cible, suite Builder `+52`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, checks anti-scope, `git diff --check` et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_62_cinematic_timeline_mouse_time_probe_playhead_drag_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0`.
+
+## Mise a jour V1-63
+
+Statut : `NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0` est DONE.
+
+Decision : V1-63 reste documentaire. L'option V0 retenue pour le futur est l'Option E : snap leger aux bords `0 ms` / `totalDurationMs` et aux `block.startMs` / `block.endMs`, jamais aux ticks arbitraires. Le seuil recommande est `8 px`, converti en temps via `pixelsPerMs`, pour conserver une sensation stable a l'ecran.
+
+Contrat futur V1-64 : click snap immediat si proche d'une cible ; drag snap pendant le drag si proche, avec indication subtile ; release conserve la derniere position libre ou alignee. Le snap ne modifie jamais `selectedStepId`, l'inspecteur, les barres, `visualDurationMs`, `CinematicTimeline.steps` ou `ProjectManifest`.
+
+Limites : aucun code produit, aucun package, aucun test, aucun screenshot, aucun snap actif, aucun playback, seek runtime, scrubber runtime, drag de blocs, resize, reorder, runtime, mutation JSON, build_runner, image IA ou donnees Selbrume.
+
+Preuve : rapport V1-63 avec passes A-I, Design Gate 31 points, options A-E comparees, edge cases bords/scroll/fallback/blocs proches, tests futurs V1-64 et checks anti-scope documentaires.
+
+Prochain lot exact : `NS-SCENES-V1-64 — Cinematic Timeline Mouse Probe Boundary Snap V0`.
 
 ## Selbrume golden slice
 
