@@ -113,6 +113,11 @@ typedef _UpdateActorMoveCallback = Future<void> Function(
   CinematicTimelineActorMovementMode? movementMode,
 });
 
+typedef _ResizeStepDurationCallback = Future<bool> Function(
+  CinematicTimelineStep step, {
+  required int durationMs,
+});
+
 typedef _AddBasicBlockCallback = Future<void> Function(
   CinematicTimelineBasicBlockKind blockKind,
 );
@@ -289,6 +294,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     _timelineProbeSnapHint = null;
                                   });
                                 },
+                                onStepDurationResized:
+                                    _resizeTimelineStepDuration,
                                 onAddDraftStep: _addDraftStep,
                               ),
                             ),
@@ -506,6 +513,40 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       _timelineProbeTimeMs = null;
       _timelineProbeSnapHint = null;
     });
+  }
+
+  Future<bool> _resizeTimelineStepDuration(
+    CinematicTimelineStep step, {
+    required int durationMs,
+  }) async {
+    var updated = false;
+    if (isCinematicTimelineBasicBlockStep(step)) {
+      updated = await widget.onUpdateBasicBlockStep(
+        cinematicId: widget.asset.id,
+        stepId: step.id,
+        durationMs: durationMs,
+      );
+    } else if (isCinematicTimelineActorFacingStep(step)) {
+      updated = await widget.onUpdateActorFacingStep(
+        cinematicId: widget.asset.id,
+        stepId: step.id,
+        durationMs: durationMs,
+      );
+    } else if (isCinematicTimelineActorMoveStep(step)) {
+      updated = await widget.onUpdateActorMoveStep(
+        cinematicId: widget.asset.id,
+        stepId: step.id,
+        durationMs: durationMs,
+      );
+    }
+    if (!mounted || !updated) {
+      return false;
+    }
+    setState(() {
+      _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
+    });
+    return true;
   }
 
   Future<void> _removeAuthoringStep(CinematicTimelineStep step) async {
@@ -1654,6 +1695,7 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
     required this.onTimelineProbeCleared,
+    required this.onStepDurationResized,
     required this.onAddDraftStep,
   });
 
@@ -1665,6 +1707,7 @@ class _TimelinePlaceholder extends StatefulWidget {
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
   final VoidCallback onTimelineProbeCleared;
+  final _ResizeStepDurationCallback onStepDurationResized;
   final VoidCallback onAddDraftStep;
 
   @override
@@ -2106,6 +2149,8 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                                 _requestTimelineKeyboardFocus();
                                 widget.onTimelineProbeChanged(timeMs);
                               },
+                              onStepDurationResized:
+                                  widget.onStepDurationResized,
                             ),
                     ),
                     if (hoveredBlock != null && hoveredStep != null)
@@ -2429,6 +2474,7 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.onStepHovered,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
+    required this.onStepDurationResized,
   });
 
   final CinematicAsset asset;
@@ -2444,6 +2490,7 @@ class _TimelineTimeGrid extends StatelessWidget {
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
+  final _ResizeStepDurationCallback onStepDurationResized;
 
   @override
   Widget build(BuildContext context) {
@@ -2521,6 +2568,7 @@ class _TimelineTimeGrid extends StatelessWidget {
                                   onStepSelected: onStepSelected,
                                   onTimelineProbeChanged:
                                       onTimelineProbeChanged,
+                                  onStepDurationResized: onStepDurationResized,
                                 ),
                             ],
                           ),
@@ -2941,6 +2989,7 @@ class _TimelineTrackRow extends StatelessWidget {
     required this.onStepHovered,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
+    required this.onStepDurationResized,
   });
 
   final CinematicAsset asset;
@@ -2957,6 +3006,7 @@ class _TimelineTrackRow extends StatelessWidget {
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
+  final _ResizeStepDurationCallback onStepDurationResized;
 
   @override
   Widget build(BuildContext context) {
@@ -3040,10 +3090,12 @@ class _TimelineTrackRow extends StatelessWidget {
                       keyboardFocused:
                           timelineFocused && selectedStepId == block.stepId,
                       hovered: hoveredStepId == block.stepId,
+                      pixelsPerMs: pixelsPerMs,
                       onHoverChanged: (isHovered) => onStepHovered(
                         isHovered ? block.stepId : null,
                       ),
                       onTap: () => onStepSelected(step),
+                      onDurationResize: onStepDurationResized,
                     ),
                   ),
           ],
@@ -3053,7 +3105,7 @@ class _TimelineTrackRow extends StatelessWidget {
   }
 }
 
-class _TimelineStepCard extends StatelessWidget {
+class _TimelineStepCard extends StatefulWidget {
   const _TimelineStepCard({
     required this.asset,
     required this.lane,
@@ -3062,8 +3114,10 @@ class _TimelineStepCard extends StatelessWidget {
     required this.selected,
     required this.keyboardFocused,
     required this.hovered,
+    required this.pixelsPerMs,
     required this.onHoverChanged,
     required this.onTap,
+    required this.onDurationResize,
   });
 
   final CinematicAsset asset;
@@ -3073,34 +3127,93 @@ class _TimelineStepCard extends StatelessWidget {
   final bool selected;
   final bool keyboardFocused;
   final bool hovered;
+  final double pixelsPerMs;
   final ValueChanged<bool> onHoverChanged;
   final VoidCallback onTap;
+  final _ResizeStepDurationCallback onDurationResize;
+
+  @override
+  State<_TimelineStepCard> createState() => _TimelineStepCardState();
+}
+
+class _TimelineStepCardState extends State<_TimelineStepCard> {
+  _TimelineDurationResizeDrag? _resizeDrag;
+
+  void _startDurationResize(DragStartDetails details) {
+    _resizeDrag = _TimelineDurationResizeDrag(
+      stepId: widget.step.id,
+      startGlobalX: details.globalPosition.dx,
+      initialDurationMs: _editableDurationMs(widget.step),
+      lastAppliedDurationMs: _editableDurationMs(widget.step),
+    );
+  }
+
+  void _updateDurationResize(DragUpdateDetails details) {
+    final resizeDrag = _resizeDrag;
+    if (resizeDrag == null || resizeDrag.stepId != widget.step.id) {
+      return;
+    }
+    final durationMs = _durationResizeCandidateMs(
+      initialDurationMs: resizeDrag.initialDurationMs,
+      deltaX: details.globalPosition.dx - resizeDrag.startGlobalX,
+      pixelsPerMs: widget.pixelsPerMs,
+      minDurationMs: _editableDurationMinimumMs(widget.step),
+    );
+    if (durationMs == resizeDrag.lastAppliedDurationMs) {
+      return;
+    }
+    _resizeDrag = resizeDrag.copyWith(lastAppliedDurationMs: durationMs);
+    unawaited(
+      widget.onDurationResize(widget.step, durationMs: durationMs),
+    );
+  }
+
+  void _endDurationResize(DragEndDetails details) {
+    _resizeDrag = null;
+  }
+
+  void _cancelDurationResize() {
+    final resizeDrag = _resizeDrag;
+    _resizeDrag = null;
+    if (resizeDrag == null ||
+        resizeDrag.lastAppliedDurationMs == resizeDrag.initialDurationMs) {
+      return;
+    }
+    unawaited(
+      widget.onDurationResize(
+        widget.step,
+        durationMs: resizeDrag.initialDurationMs,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final diagnostics = _stepDiagnostics(asset, step);
-    final movementMode = cinematicTimelineActorMovementModeOf(step);
-    final pathMode = cinematicTimelineActorPathModeOf(step);
+    final diagnostics = _stepDiagnostics(widget.asset, widget.step);
+    final movementMode = cinematicTimelineActorMovementModeOf(widget.step);
+    final pathMode = cinematicTimelineActorPathModeOf(widget.step);
     final colors = context.pokeMapColors;
-    final tone = _blockTone(block.kind).resolve(context);
+    final tone = _blockTone(widget.block.kind).resolve(context);
     Widget card = KeyedSubtree(
-      key: ValueKey('cinematic-builder-time-visual-bar-${block.stepId}'),
+      key: ValueKey(
+        'cinematic-builder-time-visual-bar-${widget.block.stepId}',
+      ),
       child: PokeMapCard(
-        key: ValueKey('cinematic-builder-step-card-${block.stepId}'),
-        selected: selected,
-        focused: keyboardFocused,
-        onTap: onTap,
+        key: ValueKey('cinematic-builder-step-card-${widget.block.stepId}'),
+        selected: widget.selected,
+        focused: widget.keyboardFocused,
+        onTap: widget.onTap,
         borderRadius: 6,
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: SizedBox(
-          key: ValueKey('cinematic-builder-time-block-${block.stepId}'),
+          key: ValueKey('cinematic-builder-time-block-${widget.block.stepId}'),
           child: ClipRect(
             child: Row(
               children: [
                 SizedBox(
                   width: 13,
                   child: Text(
-                    '${block.stepIndex + 1}',
+                    '${widget.block.stepIndex + 1}',
                     maxLines: 1,
                     overflow: TextOverflow.clip,
                     style: DefaultTextStyle.of(context).style.copyWith(
@@ -3111,14 +3224,14 @@ class _TimelineStepCard extends StatelessWidget {
                   ),
                 ),
                 Icon(
-                  _stepIcon(block.kind),
+                  _stepIcon(widget.block.kind),
                   color: tone.icon,
                   size: 12,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
-                    block.label,
+                    widget.block.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: DefaultTextStyle.of(context).style.copyWith(
@@ -3133,9 +3246,9 @@ class _TimelineStepCard extends StatelessWidget {
                   child: SizedBox(
                     height: 11,
                     child: _TimelineBarMetaStrip(
-                      block: block,
-                      step: step,
-                      selected: selected,
+                      block: widget.block,
+                      step: widget.step,
+                      selected: widget.selected,
                       diagnostics: diagnostics,
                       movementMode: movementMode,
                       pathMode: pathMode,
@@ -3148,21 +3261,122 @@ class _TimelineStepCard extends StatelessWidget {
         ),
       ),
     );
-    if (hovered && !selected) {
+    if (widget.selected && _canResizeTimelineStepDuration(widget.step)) {
+      card = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned.fill(child: card),
+          Positioned(
+            top: 0,
+            right: 0,
+            bottom: 0,
+            child: _TimelineDurationResizeHandle(
+              stepId: widget.step.id,
+              onHorizontalDragStart: _startDurationResize,
+              onHorizontalDragUpdate: _updateDurationResize,
+              onHorizontalDragEnd: _endDurationResize,
+              onHorizontalDragCancel: _cancelDurationResize,
+            ),
+          ),
+        ],
+      );
+    }
+    if (widget.hovered && !widget.selected) {
       card = KeyedSubtree(
-        key: ValueKey('cinematic-builder-hover-highlight-${block.stepId}'),
+        key: ValueKey(
+          'cinematic-builder-hover-highlight-${widget.block.stepId}',
+        ),
         child: card,
       );
     }
     return Semantics(
-      label: _timelineHoverSemanticsLabel(asset, block, step, lane),
+      label: _timelineHoverSemanticsLabel(
+        widget.asset,
+        widget.block,
+        widget.step,
+        widget.lane,
+      ),
       hint: 'Utilisez les flèches pour changer de bloc.',
-      selected: selected,
+      selected: widget.selected,
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        onEnter: (_) => onHoverChanged(true),
-        onExit: (_) => onHoverChanged(false),
+        onEnter: (_) => widget.onHoverChanged(true),
+        onExit: (_) => widget.onHoverChanged(false),
         child: card,
+      ),
+    );
+  }
+}
+
+class _TimelineDurationResizeDrag {
+  const _TimelineDurationResizeDrag({
+    required this.stepId,
+    required this.startGlobalX,
+    required this.initialDurationMs,
+    required this.lastAppliedDurationMs,
+  });
+
+  final String stepId;
+  final double startGlobalX;
+  final int initialDurationMs;
+  final int lastAppliedDurationMs;
+
+  _TimelineDurationResizeDrag copyWith({
+    int? lastAppliedDurationMs,
+  }) {
+    return _TimelineDurationResizeDrag(
+      stepId: stepId,
+      startGlobalX: startGlobalX,
+      initialDurationMs: initialDurationMs,
+      lastAppliedDurationMs:
+          lastAppliedDurationMs ?? this.lastAppliedDurationMs,
+    );
+  }
+}
+
+class _TimelineDurationResizeHandle extends StatelessWidget {
+  const _TimelineDurationResizeHandle({
+    required this.stepId,
+    required this.onHorizontalDragStart,
+    required this.onHorizontalDragUpdate,
+    required this.onHorizontalDragEnd,
+    required this.onHorizontalDragCancel,
+  });
+
+  final String stepId;
+  final GestureDragStartCallback onHorizontalDragStart;
+  final GestureDragUpdateCallback onHorizontalDragUpdate;
+  final GestureDragEndCallback onHorizontalDragEnd;
+  final GestureDragCancelCallback onHorizontalDragCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Tooltip(
+      message: 'Ajuster la durée',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.resizeLeftRight,
+        child: GestureDetector(
+          key: ValueKey('cinematic-builder-duration-resize-handle-$stepId'),
+          behavior: HitTestBehavior.opaque,
+          onHorizontalDragStart: onHorizontalDragStart,
+          onHorizontalDragUpdate: onHorizontalDragUpdate,
+          onHorizontalDragEnd: onHorizontalDragEnd,
+          onHorizontalDragCancel: onHorizontalDragCancel,
+          child: SizedBox(
+            width: 16,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.infoSoft,
+                  border: Border.all(color: colors.info),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const SizedBox(width: 4, height: 24),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -4408,6 +4622,33 @@ int _editableDurationMinimumMs(CinematicTimelineStep step) {
     return cinematicTimelineActorMoveMinimumDurationMs;
   }
   return cinematicTimelineMinimumDurationMs;
+}
+
+bool _canResizeTimelineStepDuration(CinematicTimelineStep step) {
+  return isCinematicTimelineBasicBlockStep(step) ||
+      isCinematicTimelineActorFacingStep(step) ||
+      isCinematicTimelineActorMoveStep(step);
+}
+
+int _durationResizeCandidateMs({
+  required int initialDurationMs,
+  required double deltaX,
+  required double pixelsPerMs,
+  required int minDurationMs,
+}) {
+  if (pixelsPerMs <= 0 || pixelsPerMs.isNaN || pixelsPerMs.isInfinite) {
+    return initialDurationMs;
+  }
+  final rawDurationMs = initialDurationMs + deltaX / pixelsPerMs;
+  final quantizedDurationMs = _quantizeDurationMs(rawDurationMs);
+  return quantizedDurationMs.clamp(
+    minDurationMs,
+    cinematicTimelineMaximumDurationMs,
+  );
+}
+
+int _quantizeDurationMs(double durationMs) {
+  return (durationMs / 100).round() * 100;
 }
 
 String? _durationValidationMessage(

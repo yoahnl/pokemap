@@ -675,6 +675,456 @@ void main() {
     );
   });
 
+  testWidgets('resizes selected cinematic block duration from right handle',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    final beforeProject = latestProject;
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face'));
+    final moveFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_move'));
+    final faceRectBefore = tester.getRect(faceFinder);
+    final moveRectBefore = tester.getRect(moveFinder);
+    await tester.tapAt(faceRectBefore.center);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    final tick1000Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick1000Rect.left + 4, axisRect.center.dy));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Repère :'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+
+    final handle = find.byKey(
+      const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+    );
+    expect(handle, findsOneWidget);
+    await tester.drag(handle, const Offset(140, 0));
+    await tester.pumpAndSettle();
+
+    final beforeFace = beforeProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_face');
+    final afterFace = latestProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_face');
+    expect(afterFace.durationMs, greaterThan(beforeFace.durationMs!));
+    expect(afterFace.durationMs! % 100, 0);
+    expect(afterFace.toJson().containsKey('startMs'), isFalse);
+    expect(afterFace.toJson().containsKey('endMs'), isFalse);
+    for (final beforeStep
+        in beforeProject.cinematics.single.timeline.steps.where(
+      (step) => step.id != 'step_face',
+    )) {
+      final afterStep = latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == beforeStep.id);
+      expect(afterStep.toJson(), beforeStep.toJson());
+    }
+
+    final faceRectAfter = tester.getRect(faceFinder);
+    final moveRectAfter = tester.getRect(moveFinder);
+    expect(faceRectAfter.width, greaterThan(faceRectBefore.width));
+    expect(moveRectAfter.left, greaterThan(moveRectBefore.left));
+    final beforeLayout = buildCinematicTimelineTimeLayoutReadModel(
+        beforeProject.cinematics.single);
+    final afterLayout = buildCinematicTimelineTimeLayoutReadModel(
+        latestProject.cinematics.single);
+    final beforeFaceBlock =
+        beforeLayout.blocks.singleWhere((block) => block.stepId == 'step_face');
+    final afterFaceBlock =
+        afterLayout.blocks.singleWhere((block) => block.stepId == 'step_face');
+    final beforeMoveBlock =
+        beforeLayout.blocks.singleWhere((block) => block.stepId == 'step_move');
+    final afterMoveBlock =
+        afterLayout.blocks.singleWhere((block) => block.stepId == 'step_move');
+    expect(afterFaceBlock.laneId, beforeFaceBlock.laneId);
+    expect(afterMoveBlock.startMs, greaterThan(beforeMoveBlock.startMs));
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.textContaining('Repère :'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    final textField = tester.widget<CupertinoTextField>(durationField);
+    expect(textField.controller?.text, afterFace.durationMs.toString());
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets(
+      'shows right resize handle for selected editable authoring-owned block',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      findsNothing,
+    );
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-duration-resize-left-handle-step_face',
+        ),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('hides resize handle for non-owned block', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final soundFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_sound'));
+    await tester.ensureVisible(soundFinder);
+    final soundRect = tester.getRect(soundFinder);
+    await tester.tapAt(soundRect.center);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_sound'),
+      ),
+      findsNothing,
+    );
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('hides resize handle for marker draft', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    final before = project.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final markerFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_marker'));
+    await tester.ensureVisible(markerFinder);
+    final markerRect = tester.getRect(markerFinder);
+    await tester.tapAt(markerRect.center);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_marker'),
+      ),
+      findsNothing,
+    );
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('dragging right handle decreases duration', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face'));
+    final faceRectBefore = tester.getRect(faceFinder);
+    await tester.tapAt(faceRectBefore.center);
+    await tester.pumpAndSettle();
+
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(-160, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final afterFace = latestProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_face');
+    final faceRectAfter = tester.getRect(faceFinder);
+    expect(afterFace.durationMs, lessThan(500));
+    expect(afterFace.durationMs! % 100, 0);
+    expect(faceRectAfter.width, lessThan(faceRectBefore.width));
+    _expectTimelineStepSelected(tester, 'step_face');
+  });
+
+  testWidgets('duration clamps to minimum', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await tester.tapAt(moveRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_move'),
+      ),
+      const Offset(-2000, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final afterMove = latestProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_move');
+    expect(afterMove.durationMs, cinematicTimelineActorMoveMinimumDurationMs);
+    _expectTimelineStepSelected(tester, 'step_move');
+  });
+
+  testWidgets('duration clamps to maximum', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(40000, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final afterFace = latestProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_face');
+    expect(afterFace.durationMs, cinematicTimelineMaximumDurationMs);
+    _expectTimelineStepSelected(tester, 'step_face');
+  });
+
+  testWidgets('duration snaps to 100 ms increments', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(27, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final afterFace = latestProject.cinematics.single.timeline.steps
+        .singleWhere((step) => step.id == 'step_face');
+    expect(afterFace.durationMs! % 100, 0);
+    expect(afterFace.durationMs, isNot(527));
+  });
+
+  testWidgets('left edge is not draggable', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face'));
+    final faceRectBefore = tester.getRect(faceFinder);
+    await tester.tapAt(faceRectBefore.center);
+    await tester.pumpAndSettle();
+    final gesture = await tester.startGesture(
+      Offset(faceRectBefore.left + 2, faceRectBefore.center.dy),
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(const Offset(-180, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final faceRectAfter = tester.getRect(faceFinder);
+    expect(faceRectAfter.left, closeTo(faceRectBefore.left, 2));
+    expect(faceRectAfter.width, closeTo(faceRectBefore.width, 2));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('hover details remain functional after resize', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face'));
+    final faceRect = tester.getRect(faceFinder);
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(moveRect.center);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('cinematic-builder-hover-details')),
+        findsOneWidget);
+    expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      greaterThan(500),
+    );
+  });
+
+  testWidgets('keyboard navigation remains functional after resize',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_move');
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      greaterThan(500),
+    );
+  });
+
   testWidgets('shows local time probe help explaining selection and probe',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -4375,6 +4825,82 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-69 duration resize handles when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_69_CAPTURE_CINEMATIC_TIMELINE_DURATION_RESIZE',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    late ProjectManifest latestProject;
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_durationResizeCinematic()]),
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      greaterThan(500),
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+      ),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_69_cinematic_timeline_duration_resize_'
+      'handles_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -4916,6 +5442,121 @@ CinematicAsset _timeLayoutCinematic() {
           kind: CinematicTimelineStepKind.sound,
           label: 'Cue bell',
           durationMs: 300,
+          assetRef: 'cue_bell',
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _durationResizeCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_duration_resize',
+    title: 'Duration resize cinematic',
+    description: 'Neutral fixture for duration resize handles.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Professor turns',
+          actorId: 'actor_professor',
+          durationMs: 500,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'right',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_move',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Move Professor',
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'wait',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_fade',
+          kind: CinematicTimelineStepKind.fade,
+          label: 'Fade out',
+          durationMs: 600,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'fade',
+            cinematicTimelineFadeModeMetadataKey: 'fadeOut',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera hold',
+          durationMs: 500,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+            cinematicTimelineCameraModeMetadataKey: 'hold',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_marker',
+          kind: CinematicTimelineStepKind.marker,
+          label: 'Draft marker',
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineDraftMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'step_sound',
+          kind: CinematicTimelineStepKind.sound,
+          label: 'Cue bell',
+          durationMs: 400,
           assetRef: 'cue_bell',
         ),
       ],
