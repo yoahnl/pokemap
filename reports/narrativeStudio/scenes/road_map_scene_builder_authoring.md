@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0
+NS-SCENES-V1-66 — Cinematic Timeline Mouse Probe Help / Selection Explanation V0
 ```
 
 ## Principes
@@ -98,7 +98,8 @@ NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0
 | NS-SCENES-V1-62 | Cinematic Timeline Mouse Time Probe / Playhead Drag V0 | editor / ui-readonly | Implementer le repere temporel souris local selon le contrat V1-61. | Pas de playback, seek runtime, scrubber runtime, drag de blocs, resize, reorder, mutation JSON, runtime, persistence temporelle ou model core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : click/drag axe/fond, clamp 0..totalDurationMs, scroll horizontal, selection/inspecteur preserves, probe clear sur selection bloc/clavier, hover/aide/clavier/transports preserves, non-mutation. | Confondre probe local et playback playhead ; deplacer les blocs ; casser V1-56/V1-57/V1-59/V1-60. | DONE : probe souris lisible et local, sans nouveau pouvoir runtime/editor temporel. | V1-61. |
 | NS-SCENES-V1-63 | Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0 | doc / ui-polish-prep | Cadrer le polish futur du probe souris : lisibilite, bords, snap optionnel aux bornes, edge cases de scroll et libelles. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, implementation snap si le contrat reste ambigu. | Rapport V1-63, roadmaps. | DONE : Option E retenue, snap futur aux bords et starts/ends de blocs, seuil `8 px`, click/drag/release cadres, bords/scroll/fallback/tie-breaks/vocabulaire/tests futurs documentes. | Rendre le probe trop proche d'un playhead runtime ; introduire un snap saccade sans contrat. | DONE : contrat polish/snap clair avant implementation, sans code produit ni package modifie. | V1-62. |
 | NS-SCENES-V1-64 | Cinematic Timeline Mouse Probe Boundary Snap V0 | editor / ui-readonly | Implementer le snap leger du repere souris selon le contrat V1-63. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, snap ticks, edition temporelle ou transport fonctionnel. | Builder cinematics, tests widget, rapport, screenshot. | DONE : snap 0/fin/starts/ends par seuil 8 px, badge aligne, scroll respecte, selection/inspecteur/projet preserves. | Confondre snap d'inspection et edition temporelle ; rendre le drag saccade ; casser V1-62. | DONE : snap local et reversible, sans nouveau pouvoir runtime/editor temporel. | V1-63. |
-| NS-SCENES-V1-65 | Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0 | editor / ui-polish | Polir l'experience du repere souris snappe : controles d'effacement/retour au repere lisibles, libelles courts et etats vides. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, snap ticks, edition temporelle ou transport fonctionnel. | Builder cinematics, tests widget, rapport, screenshot. | TODO : clear local explicite, labels non ambigus, selection/inspecteur/projet preserves, transports disabled preserves. | Confondre clear du probe avec reset playback ; ajouter un controle de lecture ; casser les proportions timeline. | TODO : polish local et reversible du probe, sans nouveau pouvoir runtime/editor temporel. | V1-64. |
+| NS-SCENES-V1-65 | Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0 | editor / ui-polish | Polir l'experience du repere souris snappe : controles d'effacement/retour au repere lisibles, libelles courts et etats vides. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, snap ticks, edition temporelle ou transport fonctionnel. | Builder cinematics, tests widget, rapport, screenshot. | DONE : clear local explicite `Effacer le repère`, micro-explication `Repère local : inspection uniquement.`, Escape local timeline, TextFields proteges, selection/inspecteur/projet preserves, transports disabled preserves. | Confondre clear du probe avec reset playback ; ajouter un controle de lecture ; casser les proportions timeline. | DONE : polish local et reversible du probe, sans nouveau pouvoir runtime/editor temporel. | V1-64. |
+| NS-SCENES-V1-66 | Cinematic Timeline Mouse Probe Help / Selection Explanation V0 | editor / ui-polish | Expliquer clairement dans l'aide locale la difference entre `Selection` et `Repere`, et rappeler que le probe est une inspection non mutante. | Pas de playback, seek runtime, scrubber runtime, transport fonctionnel, drag/resize/reorder, mutation JSON, runtime ou changement de modele. | Builder cinematics, tests widget, rapport, screenshot. | TODO : aide locale lisible, labels courts, selection/probe non ambigus, controles existants preserves. | Transformer l'aide en tutoriel verbeux ; faire croire a un playhead runtime ; encombrer la timeline. | TODO : explication concise et no-code, sans nouveau pouvoir temporel. | V1-65. |
 
 ## Options comparees
 
@@ -1012,6 +1013,20 @@ Limites : pas de playback, timer, seek runtime, scrubber runtime, preview runtim
 Preuve : test RED puis GREEN cible, suite Builder `+58`, Visual Gate `+59`, suite Library `+10`, tests core time layout/lane, analyse core, analyse cible editor, checks anti-scope, `git diff --check` et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_64_cinematic_timeline_mouse_probe_boundary_snap_v0.png`.
 
 Prochain lot exact : `NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0`.
+
+## Mise a jour V1-65
+
+Statut : `NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0` est DONE.
+
+Decision : le repere souris dispose maintenant d'un clear local explicite `Effacer le repère`, affiche seulement quand `timelineProbeTimeMs` est actif. Le controle reste dans l'en-tete de timeline pour etre visible et separe des placeholders Reset/Play/Stop.
+
+Scope realise : clear de `timelineProbeTimeMs` et `timelineProbeSnapHint`, micro-explication compacte `Repère local : inspection uniquement.`, preservation de `selectedStepId`, retour au curseur/badge `Selection` si un bloc est selectionne, aucun marqueur si aucune selection n'existe, Escape borne au focus timeline, TextFields proteges, snap/drag/hover/aide/transports preserves.
+
+Limites : pas de playback, timer, seek runtime, scrubber runtime, preview runtime, transport fonctionnel, drag de blocs, resize, reorder, persistance temporelle, changement core/model JSON, build_runner, runtime/gameplay/battle/examples, image IA ou donnees Selbrume.
+
+Preuve : test RED puis GREEN cible, suite Builder/Visual Gate `+65`, suite Library `+10`, tests core time layout/lane `+6`, analyse core, analyse cible editor, checks anti-scope, `git diff --check` et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_65_cinematic_timeline_mouse_probe_ux_polish_clear_controls_v0.png`. `flutter analyze` global `map_editor` reste rouge sur des erreurs preexistantes hors lot dans les services Pokemon SDK.
+
+Prochain lot exact : `NS-SCENES-V1-66 — Cinematic Timeline Mouse Probe Help / Selection Explanation V0`.
 
 ## Selbrume golden slice
 

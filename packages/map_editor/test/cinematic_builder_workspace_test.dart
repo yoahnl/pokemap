@@ -337,7 +337,10 @@ void main() {
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Repère : 750 ms'), findsOneWidget);
     expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
-    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(
+      find.text('Repère local : inspection uniquement.'),
+      findsOneWidget,
+    );
     expect(find.text('Sélection : 500 ms'), findsNothing);
     expect(find.text('Professor turns'), findsWidgets);
     expect(find.text('step_face'), findsWidgets);
@@ -396,6 +399,10 @@ void main() {
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Repère temporel : 500 ms'), findsOneWidget);
+    expect(
+      find.text('Repère local : inspection uniquement.'),
+      findsOneWidget,
+    );
     expect(find.text('Sélection : 500 ms'), findsNothing);
     expect(find.text('Professor turns'), findsWidgets);
     expect(find.text('step_face'), findsWidgets);
@@ -407,6 +414,259 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
     expect(probeCursorRect.center.dx, closeTo(tick500Rect.left, 2));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets(
+      'clears local timeline time probe without changing selected block',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+    );
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.textContaining('2. Professor turns'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsOneWidget,
+    );
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets('clears local time probe with Escape while timeline has focus',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsOneWidget,
+    );
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets('keeps local time probe when Escape targets a text field',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    final labelField = find.byKey(
+      const ValueKey('cinematic-builder-movement-target-label-target_center'),
+    );
+    await tester.ensureVisible(labelField);
+    await tester.tap(labelField);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsOneWidget,
+    );
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets('clears local time probe without selection and can snap again',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
+    expect(find.textContaining('Sélection :'), findsNothing);
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Repère :'), findsNothing);
+    expect(find.textContaining('Sélection :'), findsNothing);
+    expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsNothing,
+    );
+
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
     expect(projectChangeCount, 0);
     expect(project.toJson(), before);
     expect(find.text('Lecture en cours'), findsNothing);
@@ -507,6 +767,10 @@ void main() {
 
     expect(find.text('Repère : 800 ms · début bloc'), findsOneWidget);
     expect(find.text('Repère temporel : 800 ms'), findsOneWidget);
+    expect(
+      find.text('Repère local : inspection uniquement.'),
+      findsOneWidget,
+    );
     final probeCursorRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
@@ -955,6 +1219,35 @@ void main() {
       findsOneWidget,
     );
 
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Repère :'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsOneWidget,
+    );
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
       'cinematic-builder-transport-play-button',
@@ -3441,6 +3734,10 @@ void main() {
     expect(find.text('Repère : 750 ms'), findsOneWidget);
     expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
     expect(
+      find.text('Repère local : inspection uniquement.'),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsOneWidget,
     );
@@ -3514,6 +3811,80 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_64_cinematic_timeline_mouse_probe_boundary_snap_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-65 cinematic timeline mouse probe clear controls when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_65_CAPTURE_CINEMATIC_TIMELINE_MOUSE_PROBE_CLEAR_CONTROLS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(
+      find.text('Repère local : inspection uniquement.'),
+      findsOneWidget,
+    );
+    expect(find.text('Effacer le repère'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_65_cinematic_timeline_mouse_probe_ux_polish_'
+      'clear_controls_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

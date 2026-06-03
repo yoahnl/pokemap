@@ -281,6 +281,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     _timelineProbeSnapHint = probe.snapHint;
                                   });
                                 },
+                                onTimelineProbeCleared: () {
+                                  setState(() {
+                                    _timelineProbeTimeMs = null;
+                                    _timelineProbeSnapHint = null;
+                                  });
+                                },
                                 onAddDraftStep: _addDraftStep,
                               ),
                             ),
@@ -1385,7 +1391,7 @@ class _PreviewSandbox extends StatelessWidget {
                       '${_shortTimeLabel(timelineProbeTimeMs!)}',
                     ),
                     const SizedBox(height: 5),
-                    const _MutedText('Preview réelle à venir.'),
+                    const _MutedText('Repère local : inspection uniquement.'),
                   ],
                   if (!compact &&
                       selectedStep != null &&
@@ -1622,6 +1628,7 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.timelineProbeSnapHint,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
+    required this.onTimelineProbeCleared,
     required this.onAddDraftStep,
   });
 
@@ -1632,6 +1639,7 @@ class _TimelinePlaceholder extends StatefulWidget {
   final _TimelineProbeSnapHint? timelineProbeSnapHint;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
+  final VoidCallback onTimelineProbeCleared;
   final VoidCallback onAddDraftStep;
 
   @override
@@ -1675,6 +1683,11 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
   ) {
     if (event is! KeyDownEvent) {
       return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape &&
+        widget.timelineProbeTimeMs != null) {
+      widget.onTimelineProbeCleared();
+      return KeyEventResult.handled;
     }
     final navigation = _timelineKeyboardNavigationForKey(event.logicalKey);
     if (navigation == null) {
@@ -1872,6 +1885,22 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                           'Projection temporelle dérivée du déroulé linéaire',
                     ),
                   ),
+                  if (timelineProbeTimeMs != null) ...[
+                    const SizedBox(width: 8),
+                    _HeaderAction(
+                      label: 'Effacer le repère',
+                      button: PokeMapButton(
+                        key: const ValueKey(
+                          'cinematic-builder-clear-time-probe-button',
+                        ),
+                        onPressed: widget.onTimelineProbeCleared,
+                        variant: PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.small,
+                        leading: const Icon(CupertinoIcons.xmark_circle),
+                        child: const SizedBox.shrink(),
+                      ),
+                    ),
+                  ],
                   const SizedBox(width: 8),
                   _HeaderAction(
                     label: 'Ajouter un brouillon',
