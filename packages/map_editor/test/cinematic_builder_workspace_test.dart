@@ -606,6 +606,75 @@ void main() {
     expect(find.text('Seek'), findsNothing);
   });
 
+  testWidgets('clears local time probe after accepted duration edit',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    late ProjectManifest latestProject;
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '700');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      700,
+    );
+    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+  });
+
   testWidgets('shows local time probe help explaining selection and probe',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -2728,6 +2797,27 @@ void main() {
     expect(
         latestProject.cinematics.single.timeline.steps.last.durationMs, 2000);
 
+    final durationField =
+        find.byKey(const ValueKey('cinematic-builder-duration-ms-field'));
+    await tester.ensureVisible(durationField);
+    expect(durationField, findsOneWidget);
+    await tester.enterText(durationField, '250');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(latestProject.cinematics.single.timeline.steps.last.durationMs, 250);
+    expect(find.text('250 ms'), findsWidgets);
+
+    await tester.enterText(durationField, '');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(latestProject.cinematics.single.timeline.steps.last.durationMs, 250);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-duration-validation')),
+      findsOneWidget,
+    );
+
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-palette-fade-button')),
     );
@@ -2857,9 +2947,23 @@ void main() {
     expect(
         actorFaceStep.metadata, containsPair('authoring.block', 'actorFace'));
     expect(actorFaceStep.metadata, containsPair('actor.direction', 'down'));
+    expect(actorFaceStep.durationMs, isNull);
     expect(find.text('Orientation Professor'), findsWidgets);
     expect(find.text('Professor'), findsWidgets);
     expect(find.text('Direction'), findsWidgets);
+
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    expect(durationField, findsOneWidget);
+    await tester.enterText(durationField, '1500');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    actorFaceStep = latestProject.cinematics.single.timeline.steps.last;
+    expect(actorFaceStep.durationMs, 1500);
+    expect(find.text('1500 ms'), findsWidgets);
 
     await tester.ensureVisible(
       find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
@@ -3029,6 +3133,29 @@ void main() {
     await tester.tap(
       find.byKey(
         const ValueKey('cinematic-builder-actor-move-duration-preset-2000'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-move-duration-decrement-100',
+        ),
+      ),
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-move-duration-decrement-100',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-move-duration-increment-100',
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -4189,6 +4316,65 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('captures V1-68 duration inspector editing when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_68_CAPTURE_CINEMATIC_TIMELINE_DURATION_INSPECTOR',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    late ProjectManifest latestProject;
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '700');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      700,
+    );
+    expect(durationField, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_68_cinematic_timeline_duration_inspector_'
+      'editing_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -4261,6 +4447,7 @@ Future<void> _pumpBuilder(
                 required String stepId,
                 String? actorId,
                 CinematicTimelineActorFacingDirection? direction,
+                int? durationMs,
               }) async =>
                   false,
               onAddActorMoveStep: ({
@@ -4553,6 +4740,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     required String stepId,
     String? actorId,
     CinematicTimelineActorFacingDirection? direction,
+    int? durationMs,
   }) async {
     final result = updateCinematicTimelineActorFacingStep(
       _project,
@@ -4560,6 +4748,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       stepId: stepId,
       actorId: actorId,
       direction: direction,
+      durationMs: durationMs,
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);

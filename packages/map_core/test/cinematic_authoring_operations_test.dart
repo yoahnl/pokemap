@@ -583,6 +583,24 @@ void main() {
           added.updatedProject,
           cinematicId: 'cinematic_intro',
           stepId: added.step.id,
+          durationMs: 99,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineBasicBlockStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          durationMs: 30001,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineBasicBlockStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
           durationMs: 0,
         ),
         throwsA(isA<ArgumentError>()),
@@ -602,6 +620,34 @@ void main() {
           cinematicId: 'cinematic_intro',
           stepId: 'step_missing',
           durationMs: 1000,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('validateCinematicTimelineDurationMs rejects non integer durations',
+        () {
+      expect(
+        () => validateCinematicTimelineDurationMs(
+          double.nan,
+          argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => validateCinematicTimelineDurationMs(
+          double.infinity,
+          argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => validateCinematicTimelineDurationMs(
+          250.5,
+          argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
         ),
         throwsA(isA<ArgumentError>()),
       );
@@ -953,6 +999,24 @@ void main() {
           added.updatedProject,
           cinematicId: 'cinematic_intro',
           stepId: added.step.id,
+          durationMs: 199,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineActorMoveStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          durationMs: 30001,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineActorMoveStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
           durationMs: -1,
         ),
         throwsA(isA<ArgumentError>()),
@@ -995,12 +1059,14 @@ void main() {
         stepId: added.step.id,
         actorId: 'actor_rival',
         direction: CinematicTimelineActorFacingDirection.right,
+        durationMs: 750,
       );
 
       expect(result.step.id, added.step.id);
       expect(result.step.kind, CinematicTimelineStepKind.actorFace);
       expect(result.step.label, 'Orientation Rival');
       expect(result.step.actorId, 'actor_rival');
+      expect(result.step.durationMs, 750);
       expect(result.step.metadata, containsPair('actor.direction', 'right'));
       expect(project.cinematics.single.timeline.steps.last.actorId,
           'actor_professor');
@@ -1024,6 +1090,24 @@ void main() {
         direction: CinematicTimelineActorFacingDirection.down,
       );
 
+      expect(
+        () => updateCinematicTimelineActorFacingStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          durationMs: 99,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => updateCinematicTimelineActorFacingStep(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          durationMs: 30001,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
       expect(
         () => updateCinematicTimelineActorFacingStep(
           added.updatedProject,

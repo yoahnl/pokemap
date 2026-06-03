@@ -122,18 +122,18 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-65 — Cinematic Timeline Mouse Probe UX Polish / Clear Controls V0 | DONE | Controle explicite `Effacer le repère` visible seulement quand un probe local existe, micro-explication `Repère local : inspection uniquement.`, clear de `timelineProbeTimeMs`/`timelineProbeSnapHint`, retour au curseur `Selection` ou etat vide, Escape local timeline, TextFields proteges, transports disabled preserves, Visual Gate, sans playback, seek runtime, scrubber runtime, drag de blocs, runtime ni mutation. |
 | NS-SCENES-V1-66 — Cinematic Timeline Mouse Probe Help / Selection Explanation V0 | DONE | Aide locale `Aide repère` visible seulement avec un repere actif, panneau court expliquant Selection/Repere/Alignement/Preview, coexistence aide clavier, clear/Escape preserves, Visual Gate, sans playback, seek runtime, scrubber runtime, drag de blocs, runtime ni mutation. |
 | NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract | DONE | Lot documentaire demande par Karim : contrat d'edition de `durationMs`, blocs authoring-owned editables, min/max, relation avec `startMs/endMs` derives, clear du probe apres modification, et trajectoire inspecteur V1-68 puis resize droit V1-69, sans code produit ni package modifie. |
-| NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0 | TODO | Ajouter l'edition no-code de duree depuis l'inspecteur pour les blocs authoring-owned supportes, avec presets courts, saisie numerique bornee, validation inline, recalcul layout derive et clear du probe, sans playback ni timeline libre. |
+| NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0 | DONE | Edition no-code de `durationMs` depuis l'inspecteur pour `wait`, `fade`, `camera`, `actorFace` et `actorMove`, avec validation core min/max, champ numerique, presets courts, +/-100 ms, recalcul layout derive, clear du probe apres acceptation, Visual Gate, sans resize, playback ni timeline libre. |
 | NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0 | TODO | Ajouter un handle de resize uniquement sur le bord droit des barres editables, quantifie au pas 100 ms et borne min/max, sans drag du bloc entier, bord gauche, changement de lane, reorder, `startMs/endMs` persistants ni playback. |
 | NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | TODO | Consolider messages d'erreur, bornes et feedback no-code apres les premieres editions de duree, sans elargir le modele temporel. |
 | NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres les lots de duree, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`
+`NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0`
 
-Raison : V1-67 corrige la trajectoire a la demande de Karim. Avant le scroll/visibility polish, le verrou produit prioritaire est de rendre la duree des blocs editables de facon bornee et no-code depuis l'inspecteur.
+Raison : V1-68 rend la duree editable depuis l'inspecteur avec validation core. Le prochain verrou produit est d'ajouter un resize souris borne uniquement par le bord droit, en reutilisant les memes bornes et sans transformer la timeline en timeline libre.
 
-Ordre apres V1-67 : `NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`, puis `NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0`.
+Ordre apres V1-68 : `NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0`, puis `NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0`.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract` et deplace en backlog futur comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
@@ -374,6 +374,18 @@ Scope realise : audit du modele `CinematicTimelineStep.durationMs`, des blocs au
 Limites : pas de code produit, pas de package modifie, pas de test, pas de screenshot, pas de resize actif, pas de playback, pas de timeline libre, pas de `startMs/endMs` persistants.
 
 Prochain lot exact : `NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0`.
+
+## Mise a jour V1-68
+
+Statut : `NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0` est DONE.
+
+Decision : l'edition inspecteur est livree pour les blocs authoring-owned supportes. `actorFace` accepte maintenant une duree explicite via operation authoring core, et `actorMove` garde son minimum specifique de 200 ms.
+
+Scope realise : validation core `100/200..30000`, champ numerique ms, presets `100/250/500/1000/1500/2000/3000`, increment/decrement 100 ms, validation inline sans mutation invalide, clear du probe local apres mutation acceptee, selection preservee, Visual Gate V1-68.
+
+Preuve : rapport V1-68, tests core authoring `+34`, suite Builder+Library `+80`, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_68_cinematic_timeline_duration_inspector_editing_v0.png`, analyse cible editor verte et `map_core` analyze vert.
+
+Prochain lot exact : `NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0`.
 
 ## Mise a jour V1-31
 

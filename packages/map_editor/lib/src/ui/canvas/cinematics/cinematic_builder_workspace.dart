@@ -65,6 +65,7 @@ typedef UpdateCinematicActorFacingStepCallback = Future<bool> Function({
   required String stepId,
   String? actorId,
   CinematicTimelineActorFacingDirection? direction,
+  int? durationMs,
 });
 
 typedef AddCinematicActorMoveStepCallback = Future<String?> Function({
@@ -101,6 +102,7 @@ typedef _UpdateActorFacingCallback = Future<void> Function(
   CinematicTimelineStep step, {
   String? actorId,
   CinematicTimelineActorFacingDirection? direction,
+  int? durationMs,
 });
 
 typedef _UpdateActorMoveCallback = Future<void> Function(
@@ -367,13 +369,20 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     if (!isCinematicTimelineBasicBlockStep(step)) {
       return;
     }
-    await widget.onUpdateBasicBlockStep(
+    final updated = await widget.onUpdateBasicBlockStep(
       cinematicId: widget.asset.id,
       stepId: step.id,
       durationMs: durationMs,
       fadeMode: fadeMode,
       cameraMode: cameraMode,
     );
+    if (!mounted || !updated || durationMs == null) {
+      return;
+    }
+    setState(() {
+      _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
+    });
   }
 
   Future<void> _addRequiredActor() async {
@@ -451,16 +460,25 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     CinematicTimelineStep step, {
     String? actorId,
     CinematicTimelineActorFacingDirection? direction,
+    int? durationMs,
   }) async {
     if (!isCinematicTimelineActorFacingStep(step)) {
       return;
     }
-    await widget.onUpdateActorFacingStep(
+    final updated = await widget.onUpdateActorFacingStep(
       cinematicId: widget.asset.id,
       stepId: step.id,
       actorId: actorId,
       direction: direction,
+      durationMs: durationMs,
     );
+    if (!mounted || !updated || durationMs == null) {
+      return;
+    }
+    setState(() {
+      _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
+    });
   }
 
   Future<void> _updateActorMove(
@@ -473,7 +491,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     if (!isCinematicTimelineActorMoveStep(step)) {
       return;
     }
-    await widget.onUpdateActorMoveStep(
+    final updated = await widget.onUpdateActorMoveStep(
       cinematicId: widget.asset.id,
       stepId: step.id,
       actorId: actorId,
@@ -481,6 +499,13 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       durationMs: durationMs,
       movementMode: movementMode,
     );
+    if (!mounted || !updated || durationMs == null) {
+      return;
+    }
+    setState(() {
+      _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
+    });
   }
 
   Future<void> _removeAuthoringStep(CinematicTimelineStep step) async {
@@ -3575,10 +3600,171 @@ class _DurationPresetControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _DurationEditorControls(
+      currentDurationMs: _editableDurationMs(step),
+      explicitDurationMs: step.durationMs,
+      minDurationMs: _editableDurationMinimumMs(step),
+      keyPrefix: 'cinematic-builder-duration',
+      onDurationChanged: (durationMs) {
+        return onUpdateBasicBlock(step, durationMs: durationMs);
+      },
+    );
+  }
+}
+
+class _DurationEditorControls extends StatefulWidget {
+  const _DurationEditorControls({
+    required this.currentDurationMs,
+    required this.explicitDurationMs,
+    required this.minDurationMs,
+    required this.keyPrefix,
+    required this.onDurationChanged,
+  });
+
+  final int currentDurationMs;
+  final int? explicitDurationMs;
+  final int minDurationMs;
+  final String keyPrefix;
+  final Future<void> Function(int durationMs) onDurationChanged;
+
+  @override
+  State<_DurationEditorControls> createState() =>
+      _DurationEditorControlsState();
+}
+
+class _DurationEditorControlsState extends State<_DurationEditorControls> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.currentDurationMs.toString(),
+  );
+  String? _errorText;
+
+  @override
+  void didUpdateWidget(covariant _DurationEditorControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentDurationMs != widget.currentDurationMs ||
+        oldWidget.keyPrefix != widget.keyPrefix) {
+      _controller.text = widget.currentDurationMs.toString();
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+      _errorText = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitText() async {
+    final parsed = int.tryParse(_controller.text.trim());
+    final error = _durationValidationMessage(
+      parsed,
+      rawValue: _controller.text,
+      minDurationMs: widget.minDurationMs,
+    );
+    if (error != null) {
+      setState(() => _errorText = error);
+      return;
+    }
+    await _submitDuration(parsed!);
+  }
+
+  Future<void> _submitDuration(int durationMs) async {
+    final error = _durationValidationMessage(
+      durationMs,
+      rawValue: durationMs.toString(),
+      minDurationMs: widget.minDurationMs,
+    );
+    if (error != null) {
+      setState(() => _errorText = error);
+      return;
+    }
+    setState(() {
+      _errorText = null;
+      _controller.text = durationMs.toString();
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+    });
+    await widget.onDurationChanged(durationMs);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final decrementValue = widget.currentDurationMs - 100;
+    final incrementValue = widget.currentDurationMs + 100;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _KeyValue(label: 'Durée', value: 'Presets no-code'),
+        const _KeyValue(label: 'Durée', value: 'Edition en millisecondes'),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: CupertinoTextField(
+                key: ValueKey('${widget.keyPrefix}-ms-field'),
+                controller: _controller,
+                keyboardType: TextInputType.number,
+                textInputAction: TextInputAction.done,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
+                placeholder: '${widget.minDurationMs} ms min.',
+                onChanged: (_) {
+                  if (_errorText != null) {
+                    setState(() => _errorText = null);
+                  }
+                },
+                onSubmitted: (_) {
+                  unawaited(_submitText());
+                },
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                placeholderStyle: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.textMuted,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                decoration: BoxDecoration(
+                  color: colors.controlSurface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: colors.borderSubtle),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            PokeMapButton(
+              key: ValueKey('${widget.keyPrefix}-decrement-100'),
+              onPressed: decrementValue < widget.minDurationMs
+                  ? null
+                  : () => unawaited(_submitDuration(decrementValue)),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.minus),
+              child: const SizedBox.shrink(),
+            ),
+            const SizedBox(width: 6),
+            PokeMapButton(
+              key: ValueKey('${widget.keyPrefix}-increment-100'),
+              onPressed: incrementValue > cinematicTimelineMaximumDurationMs
+                  ? null
+                  : () => unawaited(_submitDuration(incrementValue)),
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.plus),
+              child: const SizedBox.shrink(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -3587,19 +3773,31 @@ class _DurationPresetControls extends StatelessWidget {
               _InlineControlAction(
                 label: '$preset ms',
                 button: PokeMapButton(
-                  key: ValueKey('cinematic-builder-duration-preset-$preset'),
-                  onPressed: () {
-                    onUpdateBasicBlock(step, durationMs: preset);
-                  },
+                  key: ValueKey('${widget.keyPrefix}-preset-$preset'),
+                  onPressed: preset < widget.minDurationMs
+                      ? null
+                      : () => unawaited(_submitDuration(preset)),
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
-                  isSelected: step.durationMs == preset,
+                  isSelected: widget.explicitDurationMs == preset,
                   leading: const Icon(CupertinoIcons.clock),
                   child: const SizedBox.shrink(),
                 ),
               ),
           ],
         ),
+        if (_errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _errorText!,
+            key: ValueKey('${widget.keyPrefix}-validation'),
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.error,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
       ],
     );
   }
@@ -3761,6 +3959,16 @@ class _ActorFacingControls extends StatelessWidget {
               ),
           ],
         ),
+        const SizedBox(height: 8),
+        _DurationEditorControls(
+          currentDurationMs: _editableDurationMs(step),
+          explicitDurationMs: step.durationMs,
+          minDurationMs: _editableDurationMinimumMs(step),
+          keyPrefix: 'cinematic-builder-actor-facing-duration',
+          onDurationChanged: (durationMs) {
+            return onUpdateActorFacing(step, durationMs: durationMs);
+          },
+        ),
       ],
     );
   }
@@ -3875,29 +4083,14 @@ class _ActorMoveControls extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        const _KeyValue(label: 'Durée', value: 'Presets no-code'),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final preset in _durationPresetsMs)
-              _InlineControlAction(
-                label: '$preset ms',
-                button: PokeMapButton(
-                  key: ValueKey(
-                    'cinematic-builder-actor-move-duration-preset-$preset',
-                  ),
-                  onPressed: () {
-                    onUpdateActorMove(step, durationMs: preset);
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: step.durationMs == preset,
-                  leading: const Icon(CupertinoIcons.clock),
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-          ],
+        _DurationEditorControls(
+          currentDurationMs: _editableDurationMs(step),
+          explicitDurationMs: step.durationMs,
+          minDurationMs: _editableDurationMinimumMs(step),
+          keyPrefix: 'cinematic-builder-actor-move-duration',
+          onDurationChanged: (durationMs) {
+            return onUpdateActorMove(step, durationMs: durationMs);
+          },
         ),
       ],
     );
@@ -4200,7 +4393,51 @@ const _lockedPaletteBlocks = [
   ),
 ];
 
-const _durationPresetsMs = [500, 1000, 1500, 2000, 3000];
+const _durationPresetsMs = [100, 250, 500, 1000, 1500, 2000, 3000];
+
+int _editableDurationMs(CinematicTimelineStep step) {
+  final durationMs = step.durationMs;
+  if (durationMs != null && durationMs > 0) {
+    return durationMs;
+  }
+  return cinematicTimelineFallbackVisualDurationMs;
+}
+
+int _editableDurationMinimumMs(CinematicTimelineStep step) {
+  if (isCinematicTimelineActorMoveStep(step)) {
+    return cinematicTimelineActorMoveMinimumDurationMs;
+  }
+  return cinematicTimelineMinimumDurationMs;
+}
+
+String? _durationValidationMessage(
+  int? durationMs, {
+  required String rawValue,
+  required int minDurationMs,
+}) {
+  if (rawValue.trim().isEmpty) {
+    return 'Saisissez une durée en ms.';
+  }
+  if (durationMs == null) {
+    return 'Durée numérique requise.';
+  }
+  try {
+    validateCinematicTimelineDurationMs(
+      durationMs,
+      argumentName: 'durationMs',
+      minMs: minDurationMs,
+    );
+  } on ArgumentError {
+    if (durationMs < minDurationMs) {
+      return 'Minimum : $minDurationMs ms.';
+    }
+    if (durationMs > cinematicTimelineMaximumDurationMs) {
+      return 'Maximum : $cinematicTimelineMaximumDurationMs ms.';
+    }
+    return 'Durée invalide.';
+  }
+  return null;
+}
 
 String _durationLabel(CinematicTimelineSummary timeline) {
   final duration = timeline.estimatedDurationMs;

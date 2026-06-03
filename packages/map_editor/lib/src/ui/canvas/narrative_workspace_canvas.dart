@@ -1444,6 +1444,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     required String stepId,
     String? actorId,
     CinematicTimelineActorFacingDirection? direction,
+    int? durationMs,
   }) async {
     final project = widget.project;
     if (project == null) {
@@ -1456,6 +1457,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         stepId: stepId,
         actorId: actorId,
         direction: direction,
+        durationMs: durationMs,
       );
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,

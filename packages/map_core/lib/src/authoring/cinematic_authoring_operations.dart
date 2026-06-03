@@ -180,6 +180,9 @@ const cinematicTimelineDefaultWaitDurationMs = 1000;
 const cinematicTimelineDefaultFadeDurationMs = 1000;
 const cinematicTimelineDefaultCameraDurationMs = 500;
 const cinematicTimelineDefaultActorMoveDurationMs = 1000;
+const cinematicTimelineMinimumDurationMs = 100;
+const cinematicTimelineActorMoveMinimumDurationMs = 200;
+const cinematicTimelineMaximumDurationMs = 30000;
 
 CinematicAssetAuthoringResult addCinematicAsset(
   ProjectManifest project,
@@ -682,6 +685,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorFacingStep(
   required String stepId,
   String? actorId,
   CinematicTimelineActorFacingDirection? direction,
+  int? durationMs,
 }) {
   final cinematic = _requireCinematic(project, cinematicId);
   final id = _trimRequired(
@@ -728,7 +732,13 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorFacingStep(
     id: step.id,
     kind: step.kind,
     label: _actorFacingLabel(actor),
-    durationMs: step.durationMs,
+    durationMs: durationMs == null
+        ? step.durationMs
+        : _validateDuration(
+            durationMs,
+            argumentName: 'durationMs',
+            minMs: cinematicTimelineMinimumDurationMs,
+          ),
     actorId: actor.actorId,
     targetId: step.targetId,
     dialogueText: step.dialogueText,
@@ -849,7 +859,11 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
     label: _actorMoveLabel(actor),
     durationMs: durationMs == null
         ? step.durationMs
-        : _validateDuration(durationMs, argumentName: 'durationMs'),
+        : _validateDuration(
+            durationMs,
+            argumentName: 'durationMs',
+            minMs: cinematicTimelineActorMoveMinimumDurationMs,
+          ),
     actorId: actor.actorId,
     targetId: target.targetId,
     dialogueText: step.dialogueText,
@@ -1164,6 +1178,7 @@ CinematicTimelineStep _buildBasicBlockStep(
         durationMs: _validateDuration(
           durationMs ?? cinematicTimelineDefaultWaitDurationMs,
           argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
         ),
         metadata: _basicBlockMetadata(CinematicTimelineBasicBlockKind.wait),
       ),
@@ -1174,6 +1189,7 @@ CinematicTimelineStep _buildBasicBlockStep(
         durationMs: _validateDuration(
           durationMs ?? cinematicTimelineDefaultFadeDurationMs,
           argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
         ),
         metadata: {
           ..._basicBlockMetadata(CinematicTimelineBasicBlockKind.fade),
@@ -1187,6 +1203,7 @@ CinematicTimelineStep _buildBasicBlockStep(
         durationMs: _validateDuration(
           durationMs ?? cinematicTimelineDefaultCameraDurationMs,
           argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
         ),
         metadata: {
           ..._basicBlockMetadata(CinematicTimelineBasicBlockKind.camera),
@@ -1232,6 +1249,7 @@ CinematicTimelineStep _buildActorMoveStep(
     durationMs: _validateDuration(
       durationMs,
       argumentName: 'durationMs',
+      minMs: cinematicTimelineActorMoveMinimumDurationMs,
     ),
     actorId: actor.actorId,
     targetId: target.targetId,
@@ -1297,7 +1315,11 @@ CinematicTimelineStep _copyBasicBlockStepWithParams(
     label: label,
     durationMs: durationMs == null
         ? step.durationMs
-        : _validateDuration(durationMs, argumentName: 'durationMs'),
+        : _validateDuration(
+            durationMs,
+            argumentName: 'durationMs',
+            minMs: cinematicTimelineMinimumDurationMs,
+          ),
     actorId: step.actorId,
     targetId: step.targetId,
     dialogueText: step.dialogueText,
@@ -1335,14 +1357,39 @@ String _actorMoveLabel(CinematicActorRef actor) {
   return 'Déplacement $label';
 }
 
-int _validateDuration(int durationMs, {required String argumentName}) {
-  if (durationMs <= 0) {
+int validateCinematicTimelineDurationMs(
+  num durationMs, {
+  required String argumentName,
+  required int minMs,
+}) {
+  if (durationMs.isNaN || durationMs.isInfinite || durationMs is! int) {
     throw ArgumentError.value(
       durationMs,
       argumentName,
-      'Cinematic Builder V0 basic block durations must be positive.',
+      'Cinematic Builder V0 durations must be whole milliseconds.',
     );
   }
+  if (durationMs < minMs || durationMs > cinematicTimelineMaximumDurationMs) {
+    throw ArgumentError.value(
+      durationMs,
+      argumentName,
+      'Cinematic Builder V0 durations must be between '
+      '$minMs and $cinematicTimelineMaximumDurationMs ms.',
+    );
+  }
+  return durationMs;
+}
+
+int _validateDuration(
+  int durationMs, {
+  required String argumentName,
+  required int minMs,
+}) {
+  validateCinematicTimelineDurationMs(
+    durationMs,
+    argumentName: argumentName,
+    minMs: minMs,
+  );
   return durationMs;
 }
 

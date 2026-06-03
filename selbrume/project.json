@@ -13046,10 +13046,74 @@
       "id": "cinematic_uwu",
       "title": "UwU",
       "tags": [],
-      "requiredActors": [],
-      "movementTargets": [],
+      "requiredActors": [
+        {
+          "actorId": "actor",
+          "label": "Acteur"
+        }
+      ],
+      "movementTargets": [
+        {
+          "targetId": "target",
+          "label": "Cible"
+        }
+      ],
       "timeline": {
-        "steps": []
+        "steps": [
+          {
+            "id": "step_wait",
+            "kind": "wait",
+            "label": "Attente",
+            "durationMs": 1000,
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "wait"
+            }
+          },
+          {
+            "id": "step_actor_move",
+            "kind": "actorMove",
+            "label": "Déplacement Acteur",
+            "durationMs": 1000,
+            "actorId": "actor",
+            "targetId": "target",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorMove",
+              "actor.movementMode": "walk",
+              "actor.pathMode": "direct"
+            }
+          },
+          {
+            "id": "step_actor_move_2",
+            "kind": "actorMove",
+            "label": "Déplacement Acteur",
+            "durationMs": 1000,
+            "actorId": "actor",
+            "targetId": "target",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorMove",
+              "actor.movementMode": "walk",
+              "actor.pathMode": "direct"
+            }
+          },
+          {
+            "id": "step_fade",
+            "kind": "fade",
+            "label": "Fondu entrant",
+            "durationMs": 1000,
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "fade",
+              "fade.mode": "fadeIn"
+            }
+          }
+        ]
       },
       "metadata": {}
     }

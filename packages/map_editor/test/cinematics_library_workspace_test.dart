@@ -549,6 +549,7 @@ class _HarnessState extends State<_Harness> {
                 required String stepId,
                 String? actorId,
                 CinematicTimelineActorFacingDirection? direction,
+                int? durationMs,
               }) async {
                 final result = updateCinematicTimelineActorFacingStep(
                   _project,
@@ -556,6 +557,7 @@ class _HarnessState extends State<_Harness> {
                   stepId: stepId,
                   actorId: actorId,
                   direction: direction,
+                  durationMs: durationMs,
                 );
                 setState(() => _project = result.updatedProject);
                 return result.step.id == stepId;

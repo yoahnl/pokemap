@@ -77,6 +77,7 @@ typedef UpdateTimelineActorFacingCallback = Future<bool> Function({
   required String stepId,
   String? actorId,
   CinematicTimelineActorFacingDirection? direction,
+  int? durationMs,
 });
 
 typedef AddTimelineActorMoveCallback = Future<String?> Function({
