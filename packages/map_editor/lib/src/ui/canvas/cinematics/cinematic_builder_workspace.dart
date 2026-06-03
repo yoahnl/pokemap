@@ -181,6 +181,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
 
 class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
   String? _selectedStepId;
+  int? _timelineProbeTimeMs;
 
   @override
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
@@ -188,6 +189,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     final sameCinematic = oldWidget.asset.id == widget.asset.id;
     if (!sameCinematic || !_hasStep(widget.asset, _selectedStepId)) {
       _selectedStepId = null;
+    }
+    if (!sameCinematic) {
+      _timelineProbeTimeMs = null;
     }
   }
 
@@ -249,6 +253,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                 asset: widget.asset,
                                 selectedStep: selectedStep,
                                 selectedStepIndex: selectedStepIndex,
+                                timelineProbeTimeMs: _timelineProbeTimeMs,
                               ),
                             ),
                             const SizedBox(height: _builderTimelineGap),
@@ -258,8 +263,17 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                 entry: widget.entry,
                                 asset: widget.asset,
                                 selectedStepId: _selectedStepId,
+                                timelineProbeTimeMs: _timelineProbeTimeMs,
                                 onStepSelected: (step) {
-                                  setState(() => _selectedStepId = step.id);
+                                  setState(() {
+                                    _selectedStepId = step.id;
+                                    _timelineProbeTimeMs = null;
+                                  });
+                                },
+                                onTimelineProbeChanged: (timeMs) {
+                                  setState(() {
+                                    _timelineProbeTimeMs = timeMs;
+                                  });
                                 },
                                 onAddDraftStep: _addDraftStep,
                               ),
@@ -1286,12 +1300,14 @@ class _PreviewSandbox extends StatelessWidget {
     required this.asset,
     required this.selectedStep,
     required this.selectedStepIndex,
+    required this.timelineProbeTimeMs,
   });
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
+  final int? timelineProbeTimeMs;
 
   @override
   Widget build(BuildContext context) {
@@ -1356,6 +1372,15 @@ class _PreviewSandbox extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (!compact && timelineProbeTimeMs != null) ...[
+                    const SizedBox(height: 10),
+                    _MutedText(
+                      'Repère temporel : '
+                      '${_shortTimeLabel(timelineProbeTimeMs!)}',
+                    ),
+                    const SizedBox(height: 5),
+                    const _MutedText('Preview réelle à venir.'),
+                  ],
                   if (!compact &&
                       selectedStep != null &&
                       selectedStepIndex != null) ...[
@@ -1555,14 +1580,18 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.entry,
     required this.asset,
     required this.selectedStepId,
+    required this.timelineProbeTimeMs,
     required this.onStepSelected,
+    required this.onTimelineProbeChanged,
     required this.onAddDraftStep,
   });
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final String? selectedStepId;
+  final int? timelineProbeTimeMs;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
+  final ValueChanged<int> onTimelineProbeChanged;
   final VoidCallback onAddDraftStep;
 
   @override
@@ -1635,6 +1664,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     final steps = widget.asset.timeline.steps;
     final timeLayout = buildCinematicTimelineTimeLayoutReadModel(widget.asset);
     final selectedBlock = _selectedTimeBlock(timeLayout, widget.selectedStepId);
+    final timelineProbeTimeMs = widget.timelineProbeTimeMs;
     final hoveredBlock = _selectedTimeBlock(timeLayout, _hoveredStepId);
     final stepsById = {
       for (final step in steps) step.id: step,
@@ -1744,7 +1774,16 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         variant: PokeMapBadgeVariant.warning,
                       ),
                     ],
-                    if (selectedBlock != null) ...[
+                    if (timelineProbeTimeMs != null) ...[
+                      const SizedBox(width: 5),
+                      PokeMapBadge(
+                        key: const ValueKey(
+                            'cinematic-builder-time-probe-badge'),
+                        label:
+                            'Repère : ${_shortTimeLabel(timelineProbeTimeMs)}',
+                        variant: PokeMapBadgeVariant.narrative,
+                      ),
+                    ] else if (selectedBlock != null) ...[
                       const SizedBox(width: 5),
                       PokeMapBadge(
                         key: const ValueKey(
@@ -1770,12 +1809,17 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                               stepsById: stepsById,
                               selectedStepId: widget.selectedStepId,
                               selectedBlock: selectedBlock,
+                              timelineProbeTimeMs: timelineProbeTimeMs,
                               hoveredStepId: _hoveredStepId,
                               timelineFocused: _timelineHasKeyboardFocus,
                               onStepHovered: _setHoveredStepId,
                               onStepSelected: (step) {
                                 _requestTimelineKeyboardFocus();
                                 widget.onStepSelected(step);
+                              },
+                              onTimelineProbeChanged: (timeMs) {
+                                _requestTimelineKeyboardFocus();
+                                widget.onTimelineProbeChanged(timeMs);
                               },
                             ),
                     ),
@@ -2031,10 +2075,12 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.stepsById,
     required this.selectedStepId,
     required this.selectedBlock,
+    required this.timelineProbeTimeMs,
     required this.hoveredStepId,
     required this.timelineFocused,
     required this.onStepHovered,
     required this.onStepSelected,
+    required this.onTimelineProbeChanged,
   });
 
   final CinematicAsset asset;
@@ -2042,10 +2088,12 @@ class _TimelineTimeGrid extends StatelessWidget {
   final Map<String, CinematicTimelineStep> stepsById;
   final String? selectedStepId;
   final CinematicTimelineTimeBlock? selectedBlock;
+  final int? timelineProbeTimeMs;
   final String? hoveredStepId;
   final bool timelineFocused;
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
+  final ValueChanged<int> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2083,6 +2131,9 @@ class _TimelineTimeGrid extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: SingleChildScrollView(
+                    key: const ValueKey(
+                      'cinematic-builder-time-horizontal-scroll',
+                    ),
                     scrollDirection: Axis.horizontal,
                     child: SizedBox(
                       key: const ValueKey('cinematic-builder-time-content'),
@@ -2097,6 +2148,8 @@ class _TimelineTimeGrid extends StatelessWidget {
                                 ticks: timeLayout.ticks,
                                 pixelsPerMs: pixelsPerMs,
                                 contentWidth: contentWidth,
+                                totalDurationMs: timeLayout.totalDurationMs,
+                                onTimelineProbeChanged: onTimelineProbeChanged,
                               ),
                               for (final lane in timeLayout.lanes)
                                 _TimelineTrackRow(
@@ -2108,12 +2161,28 @@ class _TimelineTimeGrid extends StatelessWidget {
                                   hoveredStepId: hoveredStepId,
                                   timelineFocused: timelineFocused,
                                   pixelsPerMs: pixelsPerMs,
+                                  contentWidth: contentWidth,
+                                  totalDurationMs: timeLayout.totalDurationMs,
                                   onStepHovered: onStepHovered,
                                   onStepSelected: onStepSelected,
+                                  onTimelineProbeChanged:
+                                      onTimelineProbeChanged,
                                 ),
                             ],
                           ),
-                          if (selectedBlock != null)
+                          if (timelineProbeTimeMs != null)
+                            Positioned(
+                              left: _tickLeft(
+                                    timelineProbeTimeMs!,
+                                    pixelsPerMs,
+                                    contentWidth,
+                                  ) -
+                                  6,
+                              top: 0,
+                              bottom: 0,
+                              child: const _TimelineTimeProbeCursor(),
+                            )
+                          else if (selectedBlock != null)
                             Positioned(
                               left: _tickLeft(
                                     selectedBlock!.startMs,
@@ -2227,62 +2296,146 @@ class _TimelineAxis extends StatelessWidget {
     required this.ticks,
     required this.pixelsPerMs,
     required this.contentWidth,
+    required this.totalDurationMs,
+    required this.onTimelineProbeChanged,
   });
 
   final List<CinematicTimelineTimeTick> ticks;
   final double pixelsPerMs;
   final double contentWidth;
+  final int totalDurationMs;
+  final ValueChanged<int> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return Container(
-      key: const ValueKey('cinematic-builder-time-axis'),
-      height: _timelineAxisHeight,
-      decoration: BoxDecoration(
-        color: colors.surfaceSubtle,
-        border: Border(
-          bottom: BorderSide(color: colors.borderSubtle),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (details) => onTimelineProbeChanged(
+        _timelineProbeTimeMsFromLocalX(
+          details.localPosition.dx,
+          pixelsPerMs: pixelsPerMs,
+          contentWidth: contentWidth,
+          totalDurationMs: totalDurationMs,
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          for (final tick in ticks)
+      onPanStart: (details) => onTimelineProbeChanged(
+        _timelineProbeTimeMsFromLocalX(
+          details.localPosition.dx,
+          pixelsPerMs: pixelsPerMs,
+          contentWidth: contentWidth,
+          totalDurationMs: totalDurationMs,
+        ),
+      ),
+      onPanUpdate: (details) => onTimelineProbeChanged(
+        _timelineProbeTimeMsFromLocalX(
+          details.localPosition.dx,
+          pixelsPerMs: pixelsPerMs,
+          contentWidth: contentWidth,
+          totalDurationMs: totalDurationMs,
+        ),
+      ),
+      child: Container(
+        key: const ValueKey('cinematic-builder-time-axis'),
+        height: _timelineAxisHeight,
+        decoration: BoxDecoration(
+          color: colors.surfaceSubtle,
+          border: Border(
+            bottom: BorderSide(color: colors.borderSubtle),
+          ),
+        ),
+        child: Stack(
+          clipBehavior: Clip.hardEdge,
+          children: [
+            for (final tick in ticks)
+              Positioned(
+                key: ValueKey('cinematic-builder-time-tick-${tick.timeMs}'),
+                left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 1,
+                  color: colors.borderSubtle.withValues(alpha: 0.72),
+                ),
+              ),
+            for (final tick in ticks)
+              Positioned(
+                left: math.min(
+                  _tickLeft(tick.timeMs, pixelsPerMs, contentWidth) + 5,
+                  math.max(0, contentWidth - 58),
+                ),
+                top: 6,
+                child: SizedBox(
+                  width: 56,
+                  child: Text(
+                    tick.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: tick.isMajor
+                              ? colors.textSecondary
+                              : colors.textMuted,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineTimeProbeCursor extends StatelessWidget {
+  const _TimelineTimeProbeCursor();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return IgnorePointer(
+      child: SizedBox(
+        width: 12,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
             Positioned(
-              key: ValueKey('cinematic-builder-time-tick-${tick.timeMs}'),
-              left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
+              left: 5,
               top: 0,
               bottom: 0,
               child: Container(
-                width: 1,
-                color: colors.borderSubtle.withValues(alpha: 0.72),
-              ),
-            ),
-          for (final tick in ticks)
-            Positioned(
-              left: math.min(
-                _tickLeft(tick.timeMs, pixelsPerMs, contentWidth) + 5,
-                math.max(0, contentWidth - 58),
-              ),
-              top: 6,
-              child: SizedBox(
-                width: 56,
-                child: Text(
-                  tick.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                        color: tick.isMajor
-                            ? colors.textSecondary
-                            : colors.textMuted,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w800,
-                      ),
+                key: const ValueKey('cinematic-builder-time-probe-cursor'),
+                width: 2,
+                decoration: BoxDecoration(
+                  color: colors.narrative.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.narrative.withValues(alpha: 0.28),
+                      blurRadius: 8,
+                    ),
+                  ],
                 ),
               ),
             ),
-        ],
+            Positioned(
+              top: 2,
+              left: 0,
+              child: DecoratedBox(
+                key: const ValueKey(
+                  'cinematic-builder-time-probe-cursor-handle',
+                ),
+                decoration: BoxDecoration(
+                  color: colors.narrativeSoft,
+                  border: Border.all(color: colors.narrative),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: const SizedBox(width: 12, height: 10),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2423,8 +2576,11 @@ class _TimelineTrackRow extends StatelessWidget {
     required this.hoveredStepId,
     required this.timelineFocused,
     required this.pixelsPerMs,
+    required this.contentWidth,
+    required this.totalDurationMs,
     required this.onStepHovered,
     required this.onStepSelected,
+    required this.onTimelineProbeChanged,
   });
 
   final CinematicAsset asset;
@@ -2435,8 +2591,11 @@ class _TimelineTrackRow extends StatelessWidget {
   final String? hoveredStepId;
   final bool timelineFocused;
   final double pixelsPerMs;
+  final double contentWidth;
+  final int totalDurationMs;
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
+  final ValueChanged<int> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2452,6 +2611,36 @@ class _TimelineTrackRow extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.hardEdge,
           children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) => onTimelineProbeChanged(
+                  _timelineProbeTimeMsFromLocalX(
+                    details.localPosition.dx,
+                    pixelsPerMs: pixelsPerMs,
+                    contentWidth: contentWidth,
+                    totalDurationMs: totalDurationMs,
+                  ),
+                ),
+                onPanStart: (details) => onTimelineProbeChanged(
+                  _timelineProbeTimeMsFromLocalX(
+                    details.localPosition.dx,
+                    pixelsPerMs: pixelsPerMs,
+                    contentWidth: contentWidth,
+                    totalDurationMs: totalDurationMs,
+                  ),
+                ),
+                onPanUpdate: (details) => onTimelineProbeChanged(
+                  _timelineProbeTimeMsFromLocalX(
+                    details.localPosition.dx,
+                    pixelsPerMs: pixelsPerMs,
+                    contentWidth: contentWidth,
+                    totalDurationMs: totalDurationMs,
+                  ),
+                ),
+                child: const SizedBox.expand(),
+              ),
+            ),
             for (final tick in ticks)
               Positioned(
                 left: tick.timeMs * pixelsPerMs,
@@ -3716,6 +3905,20 @@ double _timelineContentWidth(int totalDurationMs, double viewportWidth) {
 
 double _tickLeft(int timeMs, double pixelsPerMs, double contentWidth) {
   return math.max(0, math.min(timeMs * pixelsPerMs, contentWidth - 1));
+}
+
+int _timelineProbeTimeMsFromLocalX(
+  double localX, {
+  required double pixelsPerMs,
+  required double contentWidth,
+  required int totalDurationMs,
+}) {
+  if (totalDurationMs <= 0 || pixelsPerMs <= 0) {
+    return 0;
+  }
+  final boundedX = localX.clamp(0.0, contentWidth);
+  final timeMs = boundedX / pixelsPerMs;
+  return timeMs.clamp(0.0, totalDurationMs.toDouble()).round();
 }
 
 double _timelineBarWidth(

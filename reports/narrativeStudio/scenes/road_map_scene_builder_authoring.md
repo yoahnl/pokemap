@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-62 — Cinematic Timeline Mouse Time Probe / Playhead Drag V0
+NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0
 ```
 
 ## Principes
@@ -95,7 +95,8 @@ NS-SCENES-V1-62 — Cinematic Timeline Mouse Time Probe / Playhead Drag V0
 | NS-SCENES-V1-59 | Cinematic Timeline Lane Vertical Navigation V0 | editor / ui-readonly | Implementer ArrowUp/ArrowDown selon le contrat Option B V1-58 : prochaine lane non vide, bloc cible par `centerMs` le plus proche. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle, nouvelle capability authoring ou modele core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : ArrowUp/ArrowDown locaux, lanes vides ignorees, bords stables, sans selection, timeline vide, tie-break distance/`stepIndex`, TextFields proteges, curseur/preview/inspecteur synchronises, Visual Gate et analyses ciblees. | Capturer les fleches globalement ; utiliser hover/pixels comme source ; confondre navigation verticale avec seek temporel ; casser V1-56/V1-57. | DONE : navigation verticale locale et non destructive, sans nouveau pouvoir runtime/editor temporel. | V1-58. |
 | NS-SCENES-V1-60 | Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0 | editor / ui-polish | Remplacer le long badge clavier par une aide compacte locale qui explique les fleches, Home et End. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mouse playhead, mutation JSON, runtime, nouvelle capability temporelle ou modele core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : badge/bouton compact `Aide clavier`, panneau local toggle click, contenu horizontal/vertical/Home/End, mention selection-only, selection/curseur/inspecteur preserves, Visual Gate et analyses ciblees. | Faire croire a un scrubber ou playhead souris ; casser les proportions V1-56 ; melanger aide et statut. | DONE : aide clavier lisible et non intrusive, sans nouveau pouvoir timeline. | V1-59. |
 | NS-SCENES-V1-61 | Cinematic Timeline Mouse Playhead / Scrub Prep Contract | doc-only / interaction-contract | Cadrer le futur playhead souris type Final Cut avant toute implementation. | Pas de code produit, pas de seek actif, pas de drag, pas de playback, pas de scrubber, pas de mutation JSON, pas de runtime. | Rapport V1-61, roadmaps. | DONE : Option B retenue, `Mouse Time Probe` local separe de `selectedStepId`, zones axe/fond, click/drag/release/cancel, conversion souris -> temps, scroll/clamp/snap, tests futurs, checks anti-scope. | Coder le playhead trop tot ; transformer le curseur V1-52 en scrubber sans contrat ; promettre un playback non implemente. | DONE : contrat futur clair, aucune capability ajoutee. | V1-60. |
-| NS-SCENES-V1-62 | Cinematic Timeline Mouse Time Probe / Playhead Drag V0 | editor / ui-readonly | Implementer le repere temporel souris local selon le contrat V1-61. | Pas de playback, seek runtime, scrubber runtime, drag de blocs, resize, reorder, mutation JSON, runtime, persistence temporelle ou model core. | Builder cinematics, tests widget. | TODO : click/drag axe/fond, clamp 0..totalDurationMs, scroll horizontal, selection/inspecteur preserves, hover/aide/clavier/transports preserves, non-mutation. | Confondre probe local et playback playhead ; deplacer les blocs ; casser V1-56/V1-57/V1-59/V1-60. | TODO : probe souris lisible et local, sans nouveau pouvoir runtime/editor temporel. | V1-61. |
+| NS-SCENES-V1-62 | Cinematic Timeline Mouse Time Probe / Playhead Drag V0 | editor / ui-readonly | Implementer le repere temporel souris local selon le contrat V1-61. | Pas de playback, seek runtime, scrubber runtime, drag de blocs, resize, reorder, mutation JSON, runtime, persistence temporelle ou model core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : click/drag axe/fond, clamp 0..totalDurationMs, scroll horizontal, selection/inspecteur preserves, probe clear sur selection bloc/clavier, hover/aide/clavier/transports preserves, non-mutation. | Confondre probe local et playback playhead ; deplacer les blocs ; casser V1-56/V1-57/V1-59/V1-60. | DONE : probe souris lisible et local, sans nouveau pouvoir runtime/editor temporel. | V1-61. |
+| NS-SCENES-V1-63 | Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0 | doc / ui-polish-prep | Cadrer le polish futur du probe souris : lisibilite, bords, snap optionnel aux bornes, edge cases de scroll et libelles. | Pas de playback, seek runtime, scrubber runtime, drag/resize/reorder de blocs, mutation JSON, runtime, implementation snap si le contrat reste ambigu. | Rapport V1-63, roadmaps, eventuels tests futurs. | TODO : options snap/no snap comparees, seuils et edge cases documentes, contraintes V1-62 preservees. | Rendre le probe trop proche d'un playhead runtime ; introduire un snap saccade sans contrat. | TODO : contrat polish/snap clair avant implementation. | V1-62. |
 
 ## Options comparees
 
@@ -967,6 +968,20 @@ Limites : doc-only, aucun code produit, aucun package, aucun test, aucun screens
 Preuve : rapport V1-61 avec passes A-I, Design Gate 28 points, options comparees, tests futurs et checks anti-scope. `git diff --check` propre et `git diff --name-only -- packages` vide.
 
 Prochain lot exact : `NS-SCENES-V1-62 — Cinematic Timeline Mouse Time Probe / Playhead Drag V0`.
+
+## Mise a jour V1-62
+
+Statut : `NS-SCENES-V1-62 — Cinematic Timeline Mouse Time Probe / Playhead Drag V0` est DONE.
+
+Decision : V1-62 implemente le contrat V1-61 sous forme d'un `timelineProbeTimeMs` local au Cinematic Builder. Le probe peut etre place par clic ou drag sur l'axe/fond temporel, utilise la meme origine X que les ticks, barres et curseur V1-56, prend en compte le scroll horizontal et clamp le temps entre `0` et `totalDurationMs`.
+
+Scope realise : badge `Repere : <temps>`, ligne verticale unique du probe quand il existe, fallback vers `Selection : <temps>` quand le probe est absent, preview sandbox informative `Repere temporel : <temps>`, clear du probe sur clic de barre et navigation clavier, tests de non-mutation `ProjectManifest`, clamp, scroll horizontal, non-drag de bloc et Visual Gate V1-62.
+
+Limites : pas de playback, timer, seek runtime, scrubber runtime, preview runtime, transport fonctionnel, drag de blocs, resize, reorder, persistence temporelle, changement core/model JSON, build_runner, runtime/gameplay/battle/examples, image IA ou donnees Selbrume.
+
+Preuve : test RED puis GREEN cible, suite Builder `+52`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, checks anti-scope, `git diff --check` et capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_62_cinematic_timeline_mouse_time_probe_playhead_drag_v0.png`.
+
+Prochain lot exact : `NS-SCENES-V1-63 — Cinematic Timeline Mouse Probe Polish / Boundary Snap Prep V0`.
 
 ## Selbrume golden slice
 

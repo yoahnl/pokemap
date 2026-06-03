@@ -277,11 +277,304 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-step_move')),
     );
     expect(selectedMoveCard.selected, isTrue);
-    expect(find.text('Sélection : 1.1 s'), findsOneWidget);
+    expect(find.text('Sélection : 1.1 s'), findsNothing);
+    expect(find.textContaining('Repère :'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
     expect(find.text('Playback'), findsNothing);
     expect(find.text('Lecture'), findsNothing);
     expect(find.text('Scrubber'), findsNothing);
     expect(project.toJson(), before);
+  });
+
+  testWidgets(
+      'sets a local timeline time probe from mouse interaction without changing selection',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('step_face'), findsWidgets);
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    final probeX = tick0Rect.left + pxPer500Ms * 1.5;
+
+    await tester.tapAt(Offset(probeX, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
+    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('step_face'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsNothing,
+    );
+    final probeCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+    );
+    expect(probeCursorRect.center.dx, closeTo(probeX, 2));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets('drags local timeline time probe and clamps to boundaries',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    final gesture = await tester.startGesture(
+      Offset(tick0Rect.left + pxPer500Ms, axisRect.center.dy),
+      kind: PointerDeviceKind.mouse,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms'), findsOneWidget);
+
+    await gesture.moveTo(Offset(axisRect.right + 240, axisRect.center.dy));
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 3 s'), findsOneWidget);
+
+    await gesture.moveTo(Offset(tick0Rect.left - 240, axisRect.center.dy));
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 0 ms'), findsOneWidget);
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final probeCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+    );
+    expect(probeCursorRect.center.dx, closeTo(tick0Rect.left, 2));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+  });
+
+  testWidgets('clears local time probe when selecting blocks or using keyboard',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    final probePoint = Offset(
+      tick0Rect.left + pxPer500Ms * 1.5,
+      axisRect.center.dy,
+    );
+    await tester.tapAt(probePoint);
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 750 ms'), findsOneWidget);
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await tester.tapAt(moveRect.center);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_move');
+    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Sélection : 1.1 s'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      findsOneWidget,
+    );
+
+    await tester.tapAt(probePoint);
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_fade');
+    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Sélection : 2.1 s'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.home);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_camera');
+    await tester.tapAt(probePoint);
+    await tester.pumpAndSettle();
+    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('time probe accounts for horizontal scroll offset',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_longTimelineCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_long_probe',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    await tester.drag(
+      find.byKey(const ValueKey('cinematic-builder-time-horizontal-scroll')),
+      const Offset(-700, 0),
+    );
+    await tester.pumpAndSettle();
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick1000Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final pxPer1000Ms = tick1000Rect.left - tick0Rect.left;
+    final probeX = tick0Rect.left + pxPer1000Ms * 2.5;
+
+    await tester.tapAt(Offset(probeX, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 2.5 s'), findsOneWidget);
+    final probeCursorRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+    );
+    expect(probeCursorRect.center.dx, closeTo(probeX, 2));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('dragging a timeline block does not move or resize it',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final moveFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_move'));
+    final moveRectBefore = tester.getRect(moveFinder);
+    final gesture = await tester.startGesture(
+      moveRectBefore.center,
+      kind: PointerDeviceKind.mouse,
+    );
+    await gesture.moveBy(const Offset(220, 0));
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    final moveRectAfter = tester.getRect(moveFinder);
+    expect(moveRectAfter.left, closeTo(moveRectBefore.left, 1));
+    expect(moveRectAfter.width, closeTo(moveRectBefore.width, 1));
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+    expect(find.text('resize'), findsNothing);
+    expect(find.text('reorder'), findsNothing);
   });
 
   testWidgets(
@@ -2744,6 +3037,74 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-62 cinematic timeline mouse time probe when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_62_CAPTURE_CINEMATIC_TIMELINE_MOUSE_TIME_PROBE',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    await tester.tapAt(
+      Offset(tick0Rect.left + pxPer500Ms * 1.5, axisRect.center.dy),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_62_cinematic_timeline_mouse_time_probe_'
+      'playhead_drag_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -3328,6 +3689,26 @@ CinematicAsset _verticalTieBreakCinematic() {
           label: 'Camera right',
           durationMs: 500,
         ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _longTimelineCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_long_probe',
+    title: 'Long probe cinematic',
+    description: 'Neutral fixture for horizontal probe scroll.',
+    mapId: 'map_lab',
+    timeline: CinematicTimeline(
+      steps: [
+        for (var index = 0; index < 10; index += 1)
+          CinematicTimelineStep(
+            id: 'step_wait_$index',
+            kind: CinematicTimelineStepKind.wait,
+            label: 'Wait ${index + 1}',
+            durationMs: 1000,
+          ),
       ],
     ),
   );
