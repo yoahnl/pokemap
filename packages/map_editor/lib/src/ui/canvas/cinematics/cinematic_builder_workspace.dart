@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
@@ -182,6 +183,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
 class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
   String? _selectedStepId;
   int? _timelineProbeTimeMs;
+  _TimelineProbeSnapHint? _timelineProbeSnapHint;
 
   @override
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
@@ -192,6 +194,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     }
     if (!sameCinematic) {
       _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
     }
   }
 
@@ -264,15 +267,18 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                 asset: widget.asset,
                                 selectedStepId: _selectedStepId,
                                 timelineProbeTimeMs: _timelineProbeTimeMs,
+                                timelineProbeSnapHint: _timelineProbeSnapHint,
                                 onStepSelected: (step) {
                                   setState(() {
                                     _selectedStepId = step.id;
                                     _timelineProbeTimeMs = null;
+                                    _timelineProbeSnapHint = null;
                                   });
                                 },
-                                onTimelineProbeChanged: (timeMs) {
+                                onTimelineProbeChanged: (probe) {
                                   setState(() {
-                                    _timelineProbeTimeMs = timeMs;
+                                    _timelineProbeTimeMs = probe.timeMs;
+                                    _timelineProbeSnapHint = probe.snapHint;
                                   });
                                 },
                                 onAddDraftStep: _addDraftStep,
@@ -1440,6 +1446,38 @@ const _timelineLaneRowHeight = 48.0;
 const _timelineBarHeight = 36.0;
 const _timelineBarMinWidth = 72.0;
 const _timelinePixelsPerMsFloor = 0.32;
+const _timelineProbeSnapThresholdPx = 8.0;
+
+enum _TimelineProbeSnapHint {
+  timelineStart,
+  timelineEnd,
+  blockStart,
+  blockEnd,
+}
+
+class _TimelineProbeSnapResult {
+  const _TimelineProbeSnapResult({
+    required this.timeMs,
+    this.snapHint,
+  });
+
+  final int timeMs;
+  final _TimelineProbeSnapHint? snapHint;
+}
+
+class _TimelineProbeSnapTarget {
+  const _TimelineProbeSnapTarget({
+    required this.timeMs,
+    required this.snapHint,
+    required this.stepIndex,
+    required this.stableOrder,
+  });
+
+  final int timeMs;
+  final _TimelineProbeSnapHint snapHint;
+  final int stepIndex;
+  final int stableOrder;
+}
 
 enum _TimelineKeyboardNavigation {
   previous,
@@ -1581,6 +1619,7 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.asset,
     required this.selectedStepId,
     required this.timelineProbeTimeMs,
+    required this.timelineProbeSnapHint,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
     required this.onAddDraftStep,
@@ -1590,8 +1629,9 @@ class _TimelinePlaceholder extends StatefulWidget {
   final CinematicAsset asset;
   final String? selectedStepId;
   final int? timelineProbeTimeMs;
+  final _TimelineProbeSnapHint? timelineProbeSnapHint;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
-  final ValueChanged<int> onTimelineProbeChanged;
+  final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
   final VoidCallback onAddDraftStep;
 
   @override
@@ -1603,6 +1643,10 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
   late final FocusNode _timelineFocusNode = FocusNode(
     debugLabel: 'Cinematic timeline keyboard navigation',
   );
+  late final ScrollController _timelineVerticalScrollController =
+      ScrollController();
+  late final ScrollController _timelineHorizontalScrollController =
+      ScrollController();
   bool _timelineHasKeyboardFocus = false;
   bool _timelineKeyboardHelpOpen = false;
 
@@ -1649,12 +1693,133 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
       return KeyEventResult.handled;
     }
     widget.onStepSelected(targetStep);
+    _scrollTimelineBlockIntoView(timeLayout, targetBlock);
     return KeyEventResult.handled;
+  }
+
+  void _scrollTimelineBlockIntoView(
+    CinematicTimelineTimeLayoutReadModel timeLayout,
+    CinematicTimelineTimeBlock block,
+  ) {
+    _scrollTimelineBlockHorizontallyIntoView(timeLayout, block);
+    _scrollTimelineBlockVerticallyIntoView(timeLayout, block);
+  }
+
+  void _scrollTimelineBlockHorizontallyIntoView(
+    CinematicTimelineTimeLayoutReadModel timeLayout,
+    CinematicTimelineTimeBlock block,
+  ) {
+    if (!_timelineHorizontalScrollController.hasClients ||
+        timeLayout.totalDurationMs <= 0) {
+      return;
+    }
+    final position = _timelineHorizontalScrollController.position;
+    final viewportWidth = position.viewportDimension;
+    if (viewportWidth <= 0) {
+      return;
+    }
+    final contentWidth = viewportWidth + position.maxScrollExtent;
+    if (contentWidth <= 0) {
+      return;
+    }
+    final pixelsPerMs = contentWidth / timeLayout.totalDurationMs;
+    final blockLeft = block.startMs * pixelsPerMs;
+    final blockRight = blockLeft + _timelineBarWidth(block, pixelsPerMs);
+    final targetOffset = _scrollOffsetToRevealRange(
+      currentOffset: position.pixels,
+      minOffset: position.minScrollExtent,
+      maxOffset: position.maxScrollExtent,
+      viewportExtent: viewportWidth,
+      rangeStart: blockLeft,
+      rangeEnd: blockRight,
+    );
+    if (targetOffset != null) {
+      _animateTimelineScroll(_timelineHorizontalScrollController, targetOffset);
+    }
+  }
+
+  void _scrollTimelineBlockVerticallyIntoView(
+    CinematicTimelineTimeLayoutReadModel timeLayout,
+    CinematicTimelineTimeBlock block,
+  ) {
+    if (!_timelineVerticalScrollController.hasClients) {
+      return;
+    }
+    final laneIndex = timeLayout.lanes.indexWhere(
+      (lane) => lane.laneId == block.laneId,
+    );
+    if (laneIndex < 0) {
+      return;
+    }
+    final position = _timelineVerticalScrollController.position;
+    final viewportHeight = position.viewportDimension;
+    if (viewportHeight <= 0) {
+      return;
+    }
+    final rowTop = _timelineAxisHeight + laneIndex * _timelineLaneRowHeight;
+    final rowBottom = rowTop + _timelineLaneRowHeight;
+    final targetOffset = _scrollOffsetToRevealRange(
+      currentOffset: position.pixels,
+      minOffset: position.minScrollExtent,
+      maxOffset: position.maxScrollExtent,
+      viewportExtent: viewportHeight,
+      rangeStart: rowTop,
+      rangeEnd: rowBottom,
+    );
+    if (targetOffset != null) {
+      _animateTimelineScroll(_timelineVerticalScrollController, targetOffset);
+    }
+  }
+
+  double? _scrollOffsetToRevealRange({
+    required double currentOffset,
+    required double minOffset,
+    required double maxOffset,
+    required double viewportExtent,
+    required double rangeStart,
+    required double rangeEnd,
+  }) {
+    const padding = 16.0;
+    final visibleStart = currentOffset + padding;
+    final visibleEnd = currentOffset + viewportExtent - padding;
+    if (rangeStart < visibleStart) {
+      return math.max(minOffset, rangeStart - padding);
+    }
+    if (rangeEnd > visibleEnd) {
+      return math.min(maxOffset, rangeEnd - viewportExtent + padding);
+    }
+    return null;
+  }
+
+  void _animateTimelineScroll(
+    ScrollController controller,
+    double targetOffset,
+  ) {
+    if (!controller.hasClients) {
+      return;
+    }
+    final position = controller.position;
+    final clampedOffset = targetOffset.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if ((clampedOffset - position.pixels).abs() < 0.5) {
+      return;
+    }
+    unawaited(
+      controller.animateTo(
+        clampedOffset,
+        duration: const Duration(milliseconds: 160),
+        curve: Curves.easeOutCubic,
+      ),
+    );
   }
 
   @override
   void dispose() {
     _timelineFocusNode.dispose();
+    _timelineVerticalScrollController.dispose();
+    _timelineHorizontalScrollController.dispose();
     super.dispose();
   }
 
@@ -1779,8 +1944,10 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                       PokeMapBadge(
                         key: const ValueKey(
                             'cinematic-builder-time-probe-badge'),
-                        label:
-                            'Repère : ${_shortTimeLabel(timelineProbeTimeMs)}',
+                        label: _timelineProbeBadgeLabel(
+                          timelineProbeTimeMs,
+                          widget.timelineProbeSnapHint,
+                        ),
                         variant: PokeMapBadgeVariant.narrative,
                       ),
                     ] else if (selectedBlock != null) ...[
@@ -1807,6 +1974,10 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                               asset: widget.asset,
                               timeLayout: timeLayout,
                               stepsById: stepsById,
+                              verticalScrollController:
+                                  _timelineVerticalScrollController,
+                              horizontalScrollController:
+                                  _timelineHorizontalScrollController,
                               selectedStepId: widget.selectedStepId,
                               selectedBlock: selectedBlock,
                               timelineProbeTimeMs: timelineProbeTimeMs,
@@ -2073,6 +2244,8 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.asset,
     required this.timeLayout,
     required this.stepsById,
+    required this.verticalScrollController,
+    required this.horizontalScrollController,
     required this.selectedStepId,
     required this.selectedBlock,
     required this.timelineProbeTimeMs,
@@ -2086,6 +2259,8 @@ class _TimelineTimeGrid extends StatelessWidget {
   final CinematicAsset asset;
   final CinematicTimelineTimeLayoutReadModel timeLayout;
   final Map<String, CinematicTimelineStep> stepsById;
+  final ScrollController verticalScrollController;
+  final ScrollController horizontalScrollController;
   final String? selectedStepId;
   final CinematicTimelineTimeBlock? selectedBlock;
   final int? timelineProbeTimeMs;
@@ -2093,7 +2268,7 @@ class _TimelineTimeGrid extends StatelessWidget {
   final bool timelineFocused;
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
-  final ValueChanged<int> onTimelineProbeChanged;
+  final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2114,6 +2289,7 @@ class _TimelineTimeGrid extends StatelessWidget {
           onExit: (_) => onStepHovered(null),
           child: SingleChildScrollView(
             key: const ValueKey('cinematic-builder-time-grid-viewport'),
+            controller: verticalScrollController,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -2134,6 +2310,7 @@ class _TimelineTimeGrid extends StatelessWidget {
                     key: const ValueKey(
                       'cinematic-builder-time-horizontal-scroll',
                     ),
+                    controller: horizontalScrollController,
                     scrollDirection: Axis.horizontal,
                     child: SizedBox(
                       key: const ValueKey('cinematic-builder-time-content'),
@@ -2146,6 +2323,7 @@ class _TimelineTimeGrid extends StatelessWidget {
                             children: [
                               _TimelineAxis(
                                 ticks: timeLayout.ticks,
+                                timeLayout: timeLayout,
                                 pixelsPerMs: pixelsPerMs,
                                 contentWidth: contentWidth,
                                 totalDurationMs: timeLayout.totalDurationMs,
@@ -2154,6 +2332,7 @@ class _TimelineTimeGrid extends StatelessWidget {
                               for (final lane in timeLayout.lanes)
                                 _TimelineTrackRow(
                                   asset: asset,
+                                  timeLayout: timeLayout,
                                   lane: lane,
                                   ticks: timeLayout.ticks,
                                   stepsById: stepsById,
@@ -2294,6 +2473,7 @@ String _timelineLaneLabel(CinematicTimelineTimeLane lane) {
 class _TimelineAxis extends StatelessWidget {
   const _TimelineAxis({
     required this.ticks,
+    required this.timeLayout,
     required this.pixelsPerMs,
     required this.contentWidth,
     required this.totalDurationMs,
@@ -2301,10 +2481,11 @@ class _TimelineAxis extends StatelessWidget {
   });
 
   final List<CinematicTimelineTimeTick> ticks;
+  final CinematicTimelineTimeLayoutReadModel timeLayout;
   final double pixelsPerMs;
   final double contentWidth;
   final int totalDurationMs;
-  final ValueChanged<int> onTimelineProbeChanged;
+  final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2312,24 +2493,27 @@ class _TimelineAxis extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => onTimelineProbeChanged(
-        _timelineProbeTimeMsFromLocalX(
+        _resolveTimelineProbeSnap(
           details.localPosition.dx,
+          timeLayout: timeLayout,
           pixelsPerMs: pixelsPerMs,
           contentWidth: contentWidth,
           totalDurationMs: totalDurationMs,
         ),
       ),
       onPanStart: (details) => onTimelineProbeChanged(
-        _timelineProbeTimeMsFromLocalX(
+        _resolveTimelineProbeSnap(
           details.localPosition.dx,
+          timeLayout: timeLayout,
           pixelsPerMs: pixelsPerMs,
           contentWidth: contentWidth,
           totalDurationMs: totalDurationMs,
         ),
       ),
       onPanUpdate: (details) => onTimelineProbeChanged(
-        _timelineProbeTimeMsFromLocalX(
+        _resolveTimelineProbeSnap(
           details.localPosition.dx,
+          timeLayout: timeLayout,
           pixelsPerMs: pixelsPerMs,
           contentWidth: contentWidth,
           totalDurationMs: totalDurationMs,
@@ -2569,6 +2753,7 @@ class _TimelineTransportAction extends StatelessWidget {
 class _TimelineTrackRow extends StatelessWidget {
   const _TimelineTrackRow({
     required this.asset,
+    required this.timeLayout,
     required this.lane,
     required this.ticks,
     required this.stepsById,
@@ -2584,6 +2769,7 @@ class _TimelineTrackRow extends StatelessWidget {
   });
 
   final CinematicAsset asset;
+  final CinematicTimelineTimeLayoutReadModel timeLayout;
   final CinematicTimelineTimeLane lane;
   final List<CinematicTimelineTimeTick> ticks;
   final Map<String, CinematicTimelineStep> stepsById;
@@ -2595,7 +2781,7 @@ class _TimelineTrackRow extends StatelessWidget {
   final int totalDurationMs;
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
-  final ValueChanged<int> onTimelineProbeChanged;
+  final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2615,24 +2801,27 @@ class _TimelineTrackRow extends StatelessWidget {
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (details) => onTimelineProbeChanged(
-                  _timelineProbeTimeMsFromLocalX(
+                  _resolveTimelineProbeSnap(
                     details.localPosition.dx,
+                    timeLayout: timeLayout,
                     pixelsPerMs: pixelsPerMs,
                     contentWidth: contentWidth,
                     totalDurationMs: totalDurationMs,
                   ),
                 ),
                 onPanStart: (details) => onTimelineProbeChanged(
-                  _timelineProbeTimeMsFromLocalX(
+                  _resolveTimelineProbeSnap(
                     details.localPosition.dx,
+                    timeLayout: timeLayout,
                     pixelsPerMs: pixelsPerMs,
                     contentWidth: contentWidth,
                     totalDurationMs: totalDurationMs,
                   ),
                 ),
                 onPanUpdate: (details) => onTimelineProbeChanged(
-                  _timelineProbeTimeMsFromLocalX(
+                  _resolveTimelineProbeSnap(
                     details.localPosition.dx,
+                    timeLayout: timeLayout,
                     pixelsPerMs: pixelsPerMs,
                     contentWidth: contentWidth,
                     totalDurationMs: totalDurationMs,
@@ -3919,6 +4108,169 @@ int _timelineProbeTimeMsFromLocalX(
   final boundedX = localX.clamp(0.0, contentWidth);
   final timeMs = boundedX / pixelsPerMs;
   return timeMs.clamp(0.0, totalDurationMs.toDouble()).round();
+}
+
+_TimelineProbeSnapResult _resolveTimelineProbeSnap(
+  double localX, {
+  required CinematicTimelineTimeLayoutReadModel timeLayout,
+  required double pixelsPerMs,
+  required double contentWidth,
+  required int totalDurationMs,
+}) {
+  final freeTimeMs = _timelineProbeTimeMsFromLocalX(
+    localX,
+    pixelsPerMs: pixelsPerMs,
+    contentWidth: contentWidth,
+    totalDurationMs: totalDurationMs,
+  );
+  if (totalDurationMs <= 0 || pixelsPerMs <= 0) {
+    return _TimelineProbeSnapResult(timeMs: freeTimeMs);
+  }
+
+  final freeX = _tickLeft(freeTimeMs, pixelsPerMs, contentWidth);
+  _TimelineProbeSnapTarget? nearestTarget;
+  double? nearestDistancePx;
+  for (final target in _timelineProbeSnapTargets(timeLayout)) {
+    final targetX = _tickLeft(target.timeMs, pixelsPerMs, contentWidth);
+    final distancePx = (targetX - freeX).abs();
+    if (nearestTarget == null ||
+        nearestDistancePx == null ||
+        _compareTimelineProbeSnapTarget(
+              target,
+              distancePx,
+              nearestTarget,
+              nearestDistancePx,
+            ) <
+            0) {
+      nearestTarget = target;
+      nearestDistancePx = distancePx;
+    }
+  }
+
+  if (nearestTarget != null &&
+      nearestDistancePx != null &&
+      nearestDistancePx <= _timelineProbeSnapThresholdPx) {
+    return _TimelineProbeSnapResult(
+      timeMs: nearestTarget.timeMs,
+      snapHint: nearestTarget.snapHint,
+    );
+  }
+
+  return _TimelineProbeSnapResult(timeMs: freeTimeMs);
+}
+
+List<_TimelineProbeSnapTarget> _timelineProbeSnapTargets(
+  CinematicTimelineTimeLayoutReadModel timeLayout,
+) {
+  if (timeLayout.totalDurationMs <= 0) {
+    return const [];
+  }
+  final targets = <_TimelineProbeSnapTarget>[];
+  var stableOrder = 0;
+  targets.add(
+    _TimelineProbeSnapTarget(
+      timeMs: 0,
+      snapHint: _TimelineProbeSnapHint.timelineStart,
+      stepIndex: -1,
+      stableOrder: stableOrder++,
+    ),
+  );
+  targets.add(
+    _TimelineProbeSnapTarget(
+      timeMs: timeLayout.totalDurationMs,
+      snapHint: _TimelineProbeSnapHint.timelineEnd,
+      stepIndex: -1,
+      stableOrder: stableOrder++,
+    ),
+  );
+  for (final block in timeLayout.blocks) {
+    targets.add(
+      _TimelineProbeSnapTarget(
+        timeMs: block.startMs,
+        snapHint: _TimelineProbeSnapHint.blockStart,
+        stepIndex: block.stepIndex,
+        stableOrder: stableOrder++,
+      ),
+    );
+    targets.add(
+      _TimelineProbeSnapTarget(
+        timeMs: block.endMs,
+        snapHint: _TimelineProbeSnapHint.blockEnd,
+        stepIndex: block.stepIndex,
+        stableOrder: stableOrder++,
+      ),
+    );
+  }
+
+  final dedupedByTime = <int, _TimelineProbeSnapTarget>{};
+  for (final target in targets) {
+    final current = dedupedByTime[target.timeMs];
+    if (current == null ||
+        _compareTimelineProbeSnapTargetIdentity(target, current) < 0) {
+      dedupedByTime[target.timeMs] = target;
+    }
+  }
+  return dedupedByTime.values.toList()
+    ..sort((a, b) => a.stableOrder.compareTo(b.stableOrder));
+}
+
+int _compareTimelineProbeSnapTarget(
+  _TimelineProbeSnapTarget a,
+  double aDistancePx,
+  _TimelineProbeSnapTarget b,
+  double bDistancePx,
+) {
+  final distanceOrder = aDistancePx.compareTo(bDistancePx);
+  if (distanceOrder != 0) {
+    return distanceOrder;
+  }
+  return _compareTimelineProbeSnapTargetIdentity(a, b);
+}
+
+int _compareTimelineProbeSnapTargetIdentity(
+  _TimelineProbeSnapTarget a,
+  _TimelineProbeSnapTarget b,
+) {
+  final hintOrder = _timelineProbeSnapHintPriority(a.snapHint).compareTo(
+    _timelineProbeSnapHintPriority(b.snapHint),
+  );
+  if (hintOrder != 0) {
+    return hintOrder;
+  }
+  final stepOrder = a.stepIndex.compareTo(b.stepIndex);
+  if (stepOrder != 0) {
+    return stepOrder;
+  }
+  return a.stableOrder.compareTo(b.stableOrder);
+}
+
+int _timelineProbeSnapHintPriority(_TimelineProbeSnapHint hint) {
+  return switch (hint) {
+    _TimelineProbeSnapHint.timelineStart => 0,
+    _TimelineProbeSnapHint.blockStart => 1,
+    _TimelineProbeSnapHint.timelineEnd => 2,
+    _TimelineProbeSnapHint.blockEnd => 3,
+  };
+}
+
+String _timelineProbeBadgeLabel(
+  int timeMs,
+  _TimelineProbeSnapHint? snapHint,
+) {
+  final baseLabel = 'Repère : ${_shortTimeLabel(timeMs)}';
+  if (snapHint == null) {
+    return baseLabel;
+  }
+  return '$baseLabel · ${_timelineProbeSnapHintLabel(snapHint)}';
+}
+
+String _timelineProbeSnapHintLabel(_TimelineProbeSnapHint hint) {
+  return switch (hint) {
+    _TimelineProbeSnapHint.timelineStart => 'début timeline',
+    _TimelineProbeSnapHint.timelineEnd => 'fin timeline',
+    _TimelineProbeSnapHint.blockStart => 'début bloc',
+    _TimelineProbeSnapHint.blockEnd => 'fin bloc',
+  };
 }
 
 double _timelineBarWidth(
