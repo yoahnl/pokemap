@@ -606,6 +606,219 @@ void main() {
     expect(find.text('Seek'), findsNothing);
   });
 
+  testWidgets('shows local time probe help explaining selection and probe',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Repère local : inspection uniquement.'), findsOneWidget);
+    expect(find.text('Effacer le repère'), findsOneWidget);
+    expect(find.text('Aide repère'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+    final probeCursorBefore = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('Sélection : bloc inspecté.'), findsOneWidget);
+    expect(find.text('Repère : position temporelle locale.'), findsOneWidget);
+    expect(
+      find.text('Alignement : repère calé sur une borne utile.'),
+      findsOneWidget,
+    );
+    expect(find.text('Preview : lecture réelle à venir.'), findsOneWidget);
+    expect(find.text('playback'), findsNothing);
+    expect(find.text('seek'), findsNothing);
+    expect(find.text('scrub'), findsNothing);
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('Bloc précédent / suivant'), findsOneWidget);
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsOneWidget,
+    );
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+    final probeCursorAfter = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+    );
+    expect(probeCursorAfter.left, closeTo(probeCursorBefore.left, 1));
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aide repère'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets('clears local time probe with Escape after probe help is open',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    final faceTapRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Aide repère'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsNothing,
+    );
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
   testWidgets('clears local time probe without selection and can snap again',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -3885,6 +4098,88 @@ void main() {
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_65_cinematic_timeline_mouse_probe_ux_polish_'
       'clear_controls_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-66 cinematic timeline mouse probe help when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_66_CAPTURE_CINEMATIC_TIMELINE_MOUSE_PROBE_HELP',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(Offset(faceRect.left + 16, faceRect.top + 16));
+    await tester.pumpAndSettle();
+
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Aide repère'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('Sélection : bloc inspecté.'), findsOneWidget);
+    expect(find.text('Repère : position temporelle locale.'), findsOneWidget);
+    expect(
+      find.text('Alignement : repère calé sur une borne utile.'),
+      findsOneWidget,
+    );
+    expect(find.text('Preview : lecture réelle à venir.'), findsOneWidget);
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.text('Sélection : 500 ms'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+      findsOneWidget,
+    );
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_66_cinematic_timeline_mouse_probe_help_'
+      'selection_explanation_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

@@ -1657,6 +1657,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
       ScrollController();
   bool _timelineHasKeyboardFocus = false;
   bool _timelineKeyboardHelpOpen = false;
+  bool _timelineProbeHelpOpen = false;
 
   void _setHoveredStepId(String? stepId) {
     if (_hoveredStepId == stepId) {
@@ -1674,6 +1675,20 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
   void _toggleTimelineKeyboardHelp() {
     _requestTimelineKeyboardFocus();
     setState(() => _timelineKeyboardHelpOpen = !_timelineKeyboardHelpOpen);
+  }
+
+  void _toggleTimelineProbeHelp() {
+    _requestTimelineKeyboardFocus();
+    setState(() => _timelineProbeHelpOpen = !_timelineProbeHelpOpen);
+  }
+
+  @override
+  void didUpdateWidget(covariant _TimelinePlaceholder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.timelineProbeTimeMs != null &&
+        widget.timelineProbeTimeMs == null) {
+      _timelineProbeHelpOpen = false;
+    }
   }
 
   KeyEventResult _handleTimelineKeyEvent(
@@ -1885,34 +1900,77 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                           'Projection temporelle dérivée du déroulé linéaire',
                     ),
                   ),
-                  if (timelineProbeTimeMs != null) ...[
-                    const SizedBox(width: 8),
+                  const SizedBox(width: 8),
+                  if (timelineProbeTimeMs == null)
                     _HeaderAction(
-                      label: 'Effacer le repère',
+                      label: 'Ajouter un brouillon',
                       button: PokeMapButton(
                         key: const ValueKey(
-                          'cinematic-builder-clear-time-probe-button',
+                          'cinematic-builder-add-draft-button',
                         ),
-                        onPressed: widget.onTimelineProbeCleared,
+                        onPressed: widget.onAddDraftStep,
                         variant: PokeMapButtonVariant.secondary,
                         size: PokeMapButtonSize.small,
-                        leading: const Icon(CupertinoIcons.xmark_circle),
+                        leading: const Icon(CupertinoIcons.plus),
                         child: const SizedBox.shrink(),
                       ),
+                    )
+                  else
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.topRight,
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          alignment: WrapAlignment.end,
+                          children: [
+                            _HeaderAction(
+                              label: 'Effacer le repère',
+                              button: PokeMapButton(
+                                key: const ValueKey(
+                                  'cinematic-builder-clear-time-probe-button',
+                                ),
+                                onPressed: widget.onTimelineProbeCleared,
+                                variant: PokeMapButtonVariant.secondary,
+                                size: PokeMapButtonSize.small,
+                                leading: const Icon(
+                                  CupertinoIcons.xmark_circle,
+                                ),
+                                child: const SizedBox.shrink(),
+                              ),
+                            ),
+                            _HeaderAction(
+                              label: 'Aide repère',
+                              button: PokeMapButton(
+                                key: const ValueKey(
+                                  'cinematic-builder-probe-help-button',
+                                ),
+                                onPressed: _toggleTimelineProbeHelp,
+                                variant: PokeMapButtonVariant.secondary,
+                                size: PokeMapButtonSize.small,
+                                leading: const Icon(
+                                  CupertinoIcons.question_circle,
+                                ),
+                                child: const SizedBox.shrink(),
+                              ),
+                            ),
+                            _HeaderAction(
+                              label: 'Ajouter un brouillon',
+                              button: PokeMapButton(
+                                key: const ValueKey(
+                                  'cinematic-builder-add-draft-button',
+                                ),
+                                onPressed: widget.onAddDraftStep,
+                                variant: PokeMapButtonVariant.secondary,
+                                size: PokeMapButtonSize.small,
+                                leading: const Icon(CupertinoIcons.plus),
+                                child: const SizedBox.shrink(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
-                  const SizedBox(width: 8),
-                  _HeaderAction(
-                    label: 'Ajouter un brouillon',
-                    button: PokeMapButton(
-                      key: const ValueKey('cinematic-builder-add-draft-button'),
-                      onPressed: widget.onAddDraftStep,
-                      variant: PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.small,
-                      leading: const Icon(CupertinoIcons.plus),
-                      child: const SizedBox.shrink(),
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 6),
@@ -1947,6 +2005,18 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                       isOpen: _timelineKeyboardHelpOpen,
                       onPressed: _toggleTimelineKeyboardHelp,
                     ),
+                    if (timelineProbeTimeMs != null) ...[
+                      const SizedBox(width: 5),
+                      PokeMapBadge(
+                        key: const ValueKey(
+                            'cinematic-builder-time-probe-badge'),
+                        label: _timelineProbeBadgeLabel(
+                          timelineProbeTimeMs,
+                          widget.timelineProbeSnapHint,
+                        ),
+                        variant: PokeMapBadgeVariant.narrative,
+                      ),
+                    ],
                     const SizedBox(width: 5),
                     const PokeMapBadge(
                       label: 'Ordre linéaire conservé',
@@ -1968,18 +2038,8 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         variant: PokeMapBadgeVariant.warning,
                       ),
                     ],
-                    if (timelineProbeTimeMs != null) ...[
-                      const SizedBox(width: 5),
-                      PokeMapBadge(
-                        key: const ValueKey(
-                            'cinematic-builder-time-probe-badge'),
-                        label: _timelineProbeBadgeLabel(
-                          timelineProbeTimeMs,
-                          widget.timelineProbeSnapHint,
-                        ),
-                        variant: PokeMapBadgeVariant.narrative,
-                      ),
-                    ] else if (selectedBlock != null) ...[
+                    if (timelineProbeTimeMs == null &&
+                        selectedBlock != null) ...[
                       const SizedBox(width: 5),
                       PokeMapBadge(
                         key: const ValueKey(
@@ -2041,10 +2101,19 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         ),
                       ),
                     if (_timelineKeyboardHelpOpen)
+                      Positioned(
+                        top: 28,
+                        right: _timelineProbeHelpOpen &&
+                                timelineProbeTimeMs != null
+                            ? 334
+                            : 8,
+                        child: const _TimelineKeyboardHelpPanel(),
+                      ),
+                    if (_timelineProbeHelpOpen && timelineProbeTimeMs != null)
                       const Positioned(
                         top: 28,
                         right: 8,
-                        child: _TimelineKeyboardHelpPanel(),
+                        child: _TimelineProbeHelpPanel(),
                       ),
                   ],
                 ),
@@ -2139,6 +2208,58 @@ class _TimelineKeyboardHelpPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _TimelineProbeHelpPanel extends StatelessWidget {
+  const _TimelineProbeHelpPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return const PokeMapCard(
+      key: ValueKey('cinematic-builder-probe-help-panel'),
+      focused: true,
+      borderRadius: 6,
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: SizedBox(
+        width: 302,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _TimelineProbeHelpLine('Sélection : bloc inspecté.'),
+            SizedBox(height: 5),
+            _TimelineProbeHelpLine('Repère : position temporelle locale.'),
+            SizedBox(height: 5),
+            _TimelineProbeHelpLine(
+              'Alignement : repère calé sur une borne utile.',
+            ),
+            SizedBox(height: 5),
+            _TimelineProbeHelpLine('Preview : lecture réelle à venir.'),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineProbeHelpLine extends StatelessWidget {
+  const _TimelineProbeHelpLine(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: DefaultTextStyle.of(context).style.copyWith(
+            color: colors.textPrimary,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
     );
   }
 }
