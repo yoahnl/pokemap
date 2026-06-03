@@ -590,7 +590,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Aide clavier'), findsOneWidget);
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsNothing);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
@@ -707,6 +712,95 @@ void main() {
     expect(find.text('Playing'), findsNothing);
     expect(find.text('Scrubber'), findsNothing);
     expect(find.text('Seek'), findsNothing);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets(
+      'shows compact keyboard navigation help without changing timeline selection',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    _expectTimelineStepSelected(tester, 'step_face');
+
+    final helpButton =
+        find.byKey(const ValueKey('cinematic-builder-keyboard-help-button'));
+    final cursorBefore = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+
+    expect(helpButton, findsOneWidget);
+    expect(find.text('Aide clavier'), findsOneWidget);
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsNothing,
+    );
+
+    await tester.tap(helpButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('← / →'), findsOneWidget);
+    expect(find.text('Bloc précédent / suivant'), findsOneWidget);
+    expect(find.text('↑ / ↓'), findsOneWidget);
+    expect(find.text('Piste précédente / suivante'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('Premier bloc'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Dernier bloc'), findsOneWidget);
+    expect(
+      find.text(
+          'Sélection uniquement — pas de lecture ni déplacement temporel.'),
+      findsOneWidget,
+    );
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(find.text('Sélection : 500 ms'), findsOneWidget);
+    expect(find.text('Professor turns'), findsWidgets);
+    expect(find.textContaining('2. Professor turns'), findsOneWidget);
+    final cursorAfterOpen = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(cursorAfterOpen.left, closeTo(cursorBefore.left, 1));
+
+    await tester.tap(helpButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsNothing,
+    );
+    _expectTimelineStepSelected(tester, 'step_face');
+    final cursorAfterClose = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+    );
+    expect(cursorAfterClose.left, closeTo(cursorBefore.left, 1));
     expect(projectChangeCount, 0);
     expect(project.toJson(), before);
   });
@@ -2511,7 +2605,11 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
-    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsNothing);
     expect(
       tester
           .widget<PokeMapCard>(
@@ -2566,7 +2664,11 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
 
-    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsNothing);
     _expectTimelineStepSelected(tester, 'step_face');
     expect(
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
@@ -2576,6 +2678,63 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_59_cinematic_timeline_lane_vertical_navigation_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-60 cinematic timeline keyboard navigation help when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_60_CAPTURE_CINEMATIC_TIMELINE_KEYBOARD_HELP',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    await _pumpBuilderHarness(
+      tester,
+      _project(cinematics: [_timeLayoutCinematic()]),
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-grid-viewport')),
+    );
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
+    );
+    await tester.pumpAndSettle();
+
+    _expectTimelineStepSelected(tester, 'step_face');
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-keyboard-help-panel')),
+      findsOneWidget,
+    );
+    expect(find.text('← / →'), findsOneWidget);
+    expect(find.text('↑ / ↓'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
+    expect(find.text('End'), findsOneWidget);
+    expect(find.text('Navigation clavier : ← → ↑ ↓ Home End'), findsNothing);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_60_cinematic_timeline_keyboard_navigation_'
+      'polish_help_overlay_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

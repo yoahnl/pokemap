@@ -1575,6 +1575,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     debugLabel: 'Cinematic timeline keyboard navigation',
   );
   bool _timelineHasKeyboardFocus = false;
+  bool _timelineKeyboardHelpOpen = false;
 
   void _setHoveredStepId(String? stepId) {
     if (_hoveredStepId == stepId) {
@@ -1587,6 +1588,11 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     if (!_timelineFocusNode.hasFocus) {
       _timelineFocusNode.requestFocus();
     }
+  }
+
+  void _toggleTimelineKeyboardHelp() {
+    _requestTimelineKeyboardFocus();
+    setState(() => _timelineKeyboardHelpOpen = !_timelineKeyboardHelpOpen);
   }
 
   KeyEventResult _handleTimelineKeyEvent(
@@ -1710,6 +1716,14 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                       variant: PokeMapBadgeVariant.narrative,
                     ),
                     const SizedBox(width: 5),
+                    _TimelineKeyboardHelpBadge(
+                      key: const ValueKey(
+                        'cinematic-builder-keyboard-help-button',
+                      ),
+                      isOpen: _timelineKeyboardHelpOpen,
+                      onPressed: _toggleTimelineKeyboardHelp,
+                    ),
+                    const SizedBox(width: 5),
                     const PokeMapBadge(
                       label: 'Ordre linéaire conservé',
                       variant: PokeMapBadgeVariant.neutral,
@@ -1737,16 +1751,6 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                             'cinematic-builder-selected-time-badge'),
                         label:
                             'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
-                        variant: PokeMapBadgeVariant.info,
-                      ),
-                    ],
-                    if (_timelineHasKeyboardFocus) ...[
-                      const SizedBox(width: 5),
-                      const PokeMapBadge(
-                        key: ValueKey(
-                          'cinematic-builder-keyboard-navigation-badge',
-                        ),
-                        label: 'Navigation clavier : ← → ↑ ↓ Home End',
                         variant: PokeMapBadgeVariant.info,
                       ),
                     ],
@@ -1792,6 +1796,12 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                           ),
                         ),
                       ),
+                    if (_timelineKeyboardHelpOpen)
+                      const Positioned(
+                        top: 28,
+                        right: 8,
+                        child: _TimelineKeyboardHelpPanel(),
+                      ),
                   ],
                 ),
               ),
@@ -1801,6 +1811,134 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _TimelineKeyboardHelpBadge extends StatelessWidget {
+  const _TimelineKeyboardHelpBadge({
+    super.key,
+    required this.isOpen,
+    required this.onPressed,
+  });
+
+  final bool isOpen;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPressed,
+          child: PokeMapBadge(
+            label: 'Aide clavier',
+            variant:
+                isOpen ? PokeMapBadgeVariant.info : PokeMapBadgeVariant.neutral,
+            icon: const Icon(CupertinoIcons.question_circle),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineKeyboardHelpPanel extends StatelessWidget {
+  const _TimelineKeyboardHelpPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('cinematic-builder-keyboard-help-panel'),
+      focused: true,
+      borderRadius: 6,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: SizedBox(
+        width: 292,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _TimelineKeyboardHelpRow(
+              shortcut: '← / →',
+              description: 'Bloc précédent / suivant',
+            ),
+            const SizedBox(height: 5),
+            const _TimelineKeyboardHelpRow(
+              shortcut: '↑ / ↓',
+              description: 'Piste précédente / suivante',
+            ),
+            const SizedBox(height: 5),
+            const _TimelineKeyboardHelpRow(
+              shortcut: 'Home',
+              description: 'Premier bloc',
+            ),
+            const SizedBox(height: 5),
+            const _TimelineKeyboardHelpRow(
+              shortcut: 'End',
+              description: 'Dernier bloc',
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'Sélection uniquement — pas de lecture ni déplacement temporel.',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: DefaultTextStyle.of(context).style.copyWith(
+                    color: colors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TimelineKeyboardHelpRow extends StatelessWidget {
+  const _TimelineKeyboardHelpRow({
+    required this.shortcut,
+    required this.description,
+  });
+
+  final String shortcut;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      children: [
+        SizedBox(
+          width: 56,
+          child: Text(
+            shortcut,
+            maxLines: 1,
+            overflow: TextOverflow.clip,
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.brandPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            description,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

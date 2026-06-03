@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-60 — Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0
+NS-SCENES-V1-61 — Cinematic Timeline Mouse Playhead / Scrub Prep Contract
 ```
 
 ## Principes
@@ -93,6 +93,8 @@ NS-SCENES-V1-60 — Cinematic Timeline Keyboard Navigation Polish / Help Overlay
 | NS-SCENES-V1-57 | Cinematic Timeline Keyboard Navigation / Selection Polish V0 | editor / ui-readonly | Ajouter une navigation clavier locale entre blocs de timeline par ordre lineaire. | Pas de navigation verticale par piste, pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle ou modele core. | Builder cinematics, design system card focus, tests widget, rapport, screenshot 1663x926. | DONE : ArrowRight/ArrowLeft/Home/End, demarrage premier/dernier sans selection, focus local timeline, TextField proteges, curseur/preview/inspecteur synchronises, Visual Gate et analyses ciblees. | Capturer les fleches globalement ; confondre selection avec seek/playhead ; casser les proportions V1-56. | DONE : selection clavier locale et non destructive, sans nouveau pouvoir runtime/editor. | V1-56. |
 | NS-SCENES-V1-58 | Cinematic Timeline Lane Vertical Navigation Prep / Contract | doc-only / interaction-contract | Definir le contrat futur ArrowUp/ArrowDown avant implementation. | Pas de code produit, pas de package, pas de test, pas de screenshot, pas de raccourci actif, pas de runtime, pas de playback, seek, scrubber, drag/drop, resize, reorder ou mutation JSON. | Rapport V1-58, roadmaps. | DONE : options A/B/C/D comparees, Option B retenue, `centerMs`, lanes vides, bords, sans selection, tie-breaks et tests futurs documentes, checks anti-scope. | Coder la navigation verticale trop tot ; creer un seek spatial ambigu ; casser la navigation horizontale V1-57 ou les proportions V1-56. | DONE : contrat clair pour V1-59, sans nouvelle capability. | V1-57. |
 | NS-SCENES-V1-59 | Cinematic Timeline Lane Vertical Navigation V0 | editor / ui-readonly | Implementer ArrowUp/ArrowDown selon le contrat Option B V1-58 : prochaine lane non vide, bloc cible par `centerMs` le plus proche. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mutation JSON, runtime, persistence temporelle, nouvelle capability authoring ou modele core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : ArrowUp/ArrowDown locaux, lanes vides ignorees, bords stables, sans selection, timeline vide, tie-break distance/`stepIndex`, TextFields proteges, curseur/preview/inspecteur synchronises, Visual Gate et analyses ciblees. | Capturer les fleches globalement ; utiliser hover/pixels comme source ; confondre navigation verticale avec seek temporel ; casser V1-56/V1-57. | DONE : navigation verticale locale et non destructive, sans nouveau pouvoir runtime/editor temporel. | V1-58. |
+| NS-SCENES-V1-60 | Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0 | editor / ui-polish | Remplacer le long badge clavier par une aide compacte locale qui explique les fleches, Home et End. | Pas de playback, seek, scrubber, drag/drop, resize, reorder, mouse playhead, mutation JSON, runtime, nouvelle capability temporelle ou modele core. | Builder cinematics, tests widget, rapport, screenshot 1663x926. | DONE : badge/bouton compact `Aide clavier`, panneau local toggle click, contenu horizontal/vertical/Home/End, mention selection-only, selection/curseur/inspecteur preserves, Visual Gate et analyses ciblees. | Faire croire a un scrubber ou playhead souris ; casser les proportions V1-56 ; melanger aide et statut. | DONE : aide clavier lisible et non intrusive, sans nouveau pouvoir timeline. | V1-59. |
+| NS-SCENES-V1-61 | Cinematic Timeline Mouse Playhead / Scrub Prep Contract | doc-only / interaction-contract | Cadrer le futur playhead souris type Final Cut avant toute implementation. | Pas de code produit, pas de seek actif, pas de drag, pas de playback, pas de scrubber, pas de mutation JSON, pas de runtime. | Rapport V1-61, roadmaps. | TODO : definir contrat UX, donnees derivees, risques, anti-scope, tests futurs et separation selection/playback. | Coder le playhead trop tot ; transformer le curseur V1-52 en scrubber sans contrat ; promettre un playback non implemente. | TODO : contrat futur clair, aucune capability ajoutee. | V1-60. |
 
 ## Options comparees
 
@@ -936,6 +938,20 @@ Limites : pas de playback, timer, seek, scrubber, transport fonctionnel, drag/dr
 Preuve : suite Builder `+44`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_59_cinematic_timeline_lane_vertical_navigation_v0.png`, rapport et Evidence Pack V1-59.
 
 Prochain lot exact : `NS-SCENES-V1-60 — Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0`.
+
+## Mise a jour V1-60
+
+Statut : `NS-SCENES-V1-60 — Cinematic Timeline Keyboard Navigation Polish / Help Overlay V0` est DONE.
+
+Decision : V1-60 remplace le badge long `Navigation clavier : ← → ↑ ↓ Home End` par le controle compact `Aide clavier`. Le clic ouvre/ferme un panneau local a la timeline qui explique `← / →`, `↑ / ↓`, `Home` et `End`, avec la mention explicite `Sélection uniquement — pas de lecture ni déplacement temporel.`
+
+Scope realise : etat local `_timelineKeyboardHelpOpen`, badge compact interactif design-system, panneau overlay non intrusif, tests de non-mutation `ProjectManifest`, selection/curseur/inspecteur preserves, navigation V1-57/V1-59 preservee, TextFields proteges, transport controls toujours disabled et capture Visual Gate V1-60.
+
+Limites : pas de playback, timer, seek, scrubber, mouse playhead, drag/drop, resize, reorder, zoom temporel, preview runtime, persistence temporelle, JSON, build_runner, runtime/gameplay/battle/examples ou mutation `ProjectManifest`.
+
+Preuve : RED cible du help clavier, suite Builder `+46`, suite Library `+10`, tests core time layout/lane, `dart analyze` core, analyze cible editor, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_60_cinematic_timeline_keyboard_navigation_polish_help_overlay_v0.png`, rapport et Evidence Pack V1-60.
+
+Prochain lot exact : `NS-SCENES-V1-61 — Cinematic Timeline Mouse Playhead / Scrub Prep Contract`.
 
 ## Selbrume golden slice
 
