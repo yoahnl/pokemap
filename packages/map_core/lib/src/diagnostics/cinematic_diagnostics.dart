@@ -27,6 +27,20 @@ enum CinematicDiagnosticCode {
   cinematicActorMoveInvalidDuration,
   cinematicActorMoveInvalidMovementMode,
   cinematicActorMoveUnsupportedPathMode,
+  stageMapUnknown,
+  stageBackdropRequiresMap,
+  actorBindingUnknownActor,
+  actorBindingMissing,
+  actorBindingDuplicatePlayer,
+  actorBindingRequiresStageMap,
+  actorBindingMapEntityMissingSource,
+  actorInitialPlacementUnknownActor,
+  actorInitialPlacementMissing,
+  actorInitialPlacementTargetUnknown,
+  actorInitialPlacementRequiresBinding,
+  movementTargetBindingUnknownTarget,
+  movementTargetBindingRequiresStageMap,
+  movementTargetBindingMissingSource,
   cinematicLegacyBridge,
   cinematicScenarioBridgeNotCanonical,
 }
@@ -36,6 +50,7 @@ enum CinematicDiagnosticTarget {
   timeline,
   step,
   reference,
+  stageContext,
   legacyBridge,
 }
 
@@ -126,6 +141,7 @@ final class CinematicDiagnosticsReport {
 CinematicDiagnosticsReport diagnoseCinematicAsset(CinematicAsset cinematic) {
   final diagnostics = <CinematicDiagnostic>[];
   _diagnoseCinematicShape(cinematic, diagnostics);
+  _diagnoseStageContext(cinematic, diagnostics);
   _diagnoseTimeline(cinematic, diagnostics);
   _diagnoseLegacyBridge(cinematic, diagnostics);
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
@@ -216,6 +232,17 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
     if (mapId != null && mapIds.isNotEmpty && !mapIds.contains(mapId)) {
       diagnostics.add(
         CinematicDiagnostic(
+          code: CinematicDiagnosticCode.stageMapUnknown,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'La cinématique utilise une map stage inconnue.',
+          cinematicId: cinematic.id,
+          referenceId: mapId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir une map existante pour le stage.',
+        ),
+      );
+      diagnostics.add(
+        CinematicDiagnostic(
           code: CinematicDiagnosticCode.cinematicUnknownMapRef,
           severity: CinematicDiagnosticSeverity.warning,
           message: 'La cinématique référence une map inconnue.',
@@ -271,6 +298,242 @@ void _diagnoseCinematicShape(
       ),
     );
   }
+}
+
+void _diagnoseStageContext(
+  CinematicAsset cinematic,
+  List<CinematicDiagnostic> diagnostics,
+) {
+  final stageContext = cinematic.stageContext;
+  if (stageContext == null) {
+    return;
+  }
+  final requiredActorIds =
+      cinematic.requiredActors.map((actor) => actor.actorId).toSet();
+  final movementTargetIds =
+      cinematic.movementTargets.map((target) => target.targetId).toSet();
+
+  if (stageContext.backdropMode == CinematicStageBackdropMode.projectMap &&
+      cinematic.mapId == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.stageBackdropRequiresMap,
+        severity: CinematicDiagnosticSeverity.warning,
+        message: 'Le décor projectMap nécessite une map stage pour la preview.',
+        cinematicId: cinematic.id,
+        target: CinematicDiagnosticTarget.stageContext,
+        suggestedFixLabel: 'Choisir une map ou repasser le décor sur none.',
+      ),
+    );
+  }
+
+  final bindingActorIds = <String>{};
+  var playerBindingCount = 0;
+  final mapEntityBoundActorIds = <String>{};
+  for (final binding in stageContext.actorBindings) {
+    bindingActorIds.add(binding.actorId);
+    if (!requiredActorIds.contains(binding.actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorBindingUnknownActor,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'Un binding stage référence un acteur cinematic inconnu.',
+          cinematicId: cinematic.id,
+          referenceId: binding.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir un acteur requis existant.',
+        ),
+      );
+    }
+    if (binding.kind == CinematicActorBindingKind.player) {
+      playerBindingCount++;
+      if (playerBindingCount > 1) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.actorBindingDuplicatePlayer,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'Une cinématique V0 ne peut binder qu’un seul acteur au joueur.',
+            cinematicId: cinematic.id,
+            referenceId: binding.actorId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Garder un seul binding joueur.',
+          ),
+        );
+      }
+    }
+    if (binding.kind == CinematicActorBindingKind.mapEntity) {
+      mapEntityBoundActorIds.add(binding.actorId);
+      if (cinematic.mapId == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.actorBindingRequiresStageMap,
+            severity: CinematicDiagnosticSeverity.warning,
+            message:
+                'Un binding vers une entité de map nécessite une map stage.',
+            cinematicId: cinematic.id,
+            referenceId: binding.actorId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Choisir une map stage ou changer le binding.',
+          ),
+        );
+      }
+      if (binding.mapEntityId == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.actorBindingMapEntityMissingSource,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Un binding mapEntity doit référencer une entité de map.',
+            cinematicId: cinematic.id,
+            referenceId: binding.actorId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Choisir une entité de map.',
+          ),
+        );
+      }
+    }
+  }
+
+  for (final actorId in requiredActorIds) {
+    if (!bindingActorIds.contains(actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorBindingMissing,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Un acteur requis n’a pas encore de binding stage pour la preview.',
+          cinematicId: cinematic.id,
+          referenceId: actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Binder l’acteur ou le laisser en brouillon.',
+        ),
+      );
+    }
+  }
+
+  final placementActorIds = <String>{};
+  for (final placement in stageContext.initialPlacements) {
+    placementActorIds.add(placement.actorId);
+    if (!requiredActorIds.contains(placement.actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorInitialPlacementUnknownActor,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Un placement initial référence un acteur cinematic inconnu.',
+          cinematicId: cinematic.id,
+          referenceId: placement.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir un acteur requis existant.',
+        ),
+      );
+    }
+    if (placement.kind ==
+            CinematicActorInitialPlacementKind.fromMovementTarget &&
+        (placement.targetId == null ||
+            !movementTargetIds.contains(placement.targetId))) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorInitialPlacementTargetUnknown,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Un placement initial référence une cible de mouvement inconnue.',
+          cinematicId: cinematic.id,
+          referenceId: placement.targetId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir une cible cinematic existante.',
+        ),
+      );
+    }
+    if (placement.kind == CinematicActorInitialPlacementKind.fromMapEntity &&
+        !mapEntityBoundActorIds.contains(placement.actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorInitialPlacementRequiresBinding,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Un placement fromMapEntity nécessite un binding acteur mapEntity.',
+          cinematicId: cinematic.id,
+          referenceId: placement.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Binder cet acteur à une entité de map.',
+        ),
+      );
+    }
+  }
+
+  for (final actorId in requiredActorIds) {
+    if (!placementActorIds.contains(actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorInitialPlacementMissing,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Un acteur requis n’a pas encore de position initiale preview.',
+          cinematicId: cinematic.id,
+          referenceId: actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Définir une position initiale ou rester en draft.',
+        ),
+      );
+    }
+  }
+
+  for (final binding in stageContext.movementTargetBindings) {
+    if (!movementTargetIds.contains(binding.targetId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.movementTargetBindingUnknownTarget,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Un binding de cible map-aware référence une cible inconnue.',
+          cinematicId: cinematic.id,
+          referenceId: binding.targetId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir une cible de mouvement existante.',
+        ),
+      );
+    }
+    if (_movementTargetBindingRequiresStageMap(binding) &&
+        cinematic.mapId == null) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.movementTargetBindingRequiresStageMap,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Un binding de cible vers mapEntity/mapEvent nécessite une map stage.',
+          cinematicId: cinematic.id,
+          referenceId: binding.targetId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Choisir une map stage ou garder une cible abstraite.',
+        ),
+      );
+    }
+    if (_movementTargetBindingRequiresStageMap(binding) &&
+        binding.sourceId == null) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.movementTargetBindingMissingSource,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Un binding de cible map-aware doit référencer une source map.',
+          cinematicId: cinematic.id,
+          referenceId: binding.targetId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir une entité ou un event de map.',
+        ),
+      );
+    }
+  }
+}
+
+bool _movementTargetBindingRequiresStageMap(
+  CinematicMovementTargetBinding binding,
+) {
+  return binding.kind == CinematicMovementTargetBindingKind.mapEntity ||
+      binding.kind == CinematicMovementTargetBindingKind.mapEvent;
 }
 
 void _diagnoseTimeline(

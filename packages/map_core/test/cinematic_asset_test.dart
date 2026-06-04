@@ -77,6 +77,77 @@ void main() {
       expect(decoded.legacyBridge?.scenarioId, 'scenario_legacy_intro');
     });
 
+    test('serializes cinematic stage context without duplicating map id', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_stage_intro',
+        title: 'Stage intro',
+        mapId: 'map_lab',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_center',
+            label: 'Centre scene',
+          ),
+        ],
+        stageContext: CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap,
+          actorBindings: [
+            CinematicActorBinding(
+              actorId: 'actor_player',
+              kind: CinematicActorBindingKind.player,
+            ),
+            CinematicActorBinding(
+              actorId: 'actor_professor',
+              kind: CinematicActorBindingKind.mapEntity,
+              mapEntityId: 'entity_professor',
+            ),
+          ],
+          initialPlacements: [
+            CinematicActorInitialPlacement(
+              actorId: 'actor_professor',
+              kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+              targetId: 'target_center',
+            ),
+          ],
+          movementTargetBindings: [
+            CinematicMovementTargetBinding(
+              targetId: 'target_center',
+              kind: CinematicMovementTargetBindingKind.mapEntity,
+              sourceId: 'entity_stage_center',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_move',
+              kind: CinematicTimelineStepKind.actorMove,
+              actorId: 'actor_professor',
+              targetId: 'target_center',
+              durationMs: 1000,
+            ),
+          ],
+        ),
+      );
+
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final stageJson = json['stageContext'] as Map<String, dynamic>;
+      final encoded = jsonEncode(json);
+      final decoded = CinematicAsset.fromJson(json);
+
+      expect(json['mapId'], 'map_lab');
+      expect(stageJson, isNot(contains('mapId')));
+      expect(RegExp('"mapId"').allMatches(encoded), hasLength(1));
+      expect(decoded, asset);
+      expect(decoded.timeline.steps, asset.timeline.steps);
+      expect(encoded, isNot(contains('startMs')));
+      expect(encoded, isNot(contains('endMs')));
+    });
+
     test('defaults missing movement targets to an empty list', () {
       final decoded = CinematicAsset.fromJson({
         'id': 'cinematic_intro',
@@ -86,6 +157,94 @@ void main() {
 
       expect(decoded.movementTargets, isEmpty);
       expect(decoded.toJson(), containsPair('movementTargets', <Object>[]));
+    });
+
+    test('deserializes cinematic asset without stage context', () {
+      final decoded = CinematicAsset.fromJson({
+        'id': 'cinematic_intro',
+        'title': 'Intro cinematic',
+        'timeline': {'steps': <Object>[]},
+      });
+
+      expect(decoded.stageContext, isNull);
+      expect(decoded.toJson(), isNot(contains('stageContext')));
+    });
+
+    test('serializes all V0 stage context enum variants', () {
+      final context = CinematicStageContext(
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_player',
+            kind: CinematicActorBindingKind.player,
+          ),
+          CinematicActorBinding(
+            actorId: 'actor_map',
+            kind: CinematicActorBindingKind.mapEntity,
+            mapEntityId: 'entity_map',
+          ),
+          CinematicActorBinding(
+            actorId: 'actor_cinematic',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+          CinematicActorBinding(
+            actorId: 'actor_unbound',
+            kind: CinematicActorBindingKind.unbound,
+          ),
+        ],
+        initialPlacements: [
+          CinematicActorInitialPlacement(
+            actorId: 'actor_player',
+            kind: CinematicActorInitialPlacementKind.unset,
+          ),
+          CinematicActorInitialPlacement(
+            actorId: 'actor_map',
+            kind: CinematicActorInitialPlacementKind.fromMapEntity,
+          ),
+          CinematicActorInitialPlacement(
+            actorId: 'actor_cinematic',
+            kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+            targetId: 'target_center',
+          ),
+        ],
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_abstract',
+            kind: CinematicMovementTargetBindingKind.abstractPoint,
+          ),
+          CinematicMovementTargetBinding(
+            targetId: 'target_entity',
+            kind: CinematicMovementTargetBindingKind.mapEntity,
+            sourceId: 'entity_target',
+          ),
+          CinematicMovementTargetBinding(
+            targetId: 'target_event',
+            kind: CinematicMovementTargetBindingKind.mapEvent,
+            sourceId: 'event_target',
+          ),
+        ],
+      );
+
+      final decoded = CinematicStageContext.fromJson(
+        jsonDecode(jsonEncode(context.toJson())) as Map<String, dynamic>,
+      );
+
+      expect(decoded, context);
+      expect(decoded.actorBindings.map((binding) => binding.kind), [
+        CinematicActorBindingKind.player,
+        CinematicActorBindingKind.mapEntity,
+        CinematicActorBindingKind.cinematicOnly,
+        CinematicActorBindingKind.unbound,
+      ]);
+      expect(decoded.initialPlacements.map((placement) => placement.kind), [
+        CinematicActorInitialPlacementKind.unset,
+        CinematicActorInitialPlacementKind.fromMapEntity,
+        CinematicActorInitialPlacementKind.fromMovementTarget,
+      ]);
+      expect(decoded.movementTargetBindings.map((binding) => binding.kind), [
+        CinematicMovementTargetBindingKind.abstractPoint,
+        CinematicMovementTargetBindingKind.mapEntity,
+        CinematicMovementTargetBindingKind.mapEvent,
+      ]);
     });
 
     test('keeps timeline steps linear and rejects branch/gameplay step kinds',

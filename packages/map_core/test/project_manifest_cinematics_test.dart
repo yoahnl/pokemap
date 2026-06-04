@@ -46,6 +46,64 @@ void main() {
       expect(decoded.toJson()['cinematics'], isA<List<dynamic>>());
     });
 
+    test('round-trips cinematic stage context through manifest JSON', () {
+      final manifest = ProjectManifest(
+        name: 'Project',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_lab',
+            name: 'Lab',
+            relativePath: 'maps/lab.json',
+          ),
+        ],
+        tilesets: const [],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            mapId: 'map_lab',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+            ],
+            stageContext: CinematicStageContext(
+              backdropMode: CinematicStageBackdropMode.projectMap,
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_player',
+                  kind: CinematicActorBindingKind.player,
+                ),
+              ],
+              initialPlacements: [
+                CinematicActorInitialPlacement(
+                  actorId: 'actor_player',
+                  kind: CinematicActorInitialPlacementKind.unset,
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'step_wait',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final json =
+          jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
+      final decoded = ProjectManifest.fromJson(json);
+      final cinematicJson =
+          (json['cinematics'] as List<dynamic>).single as Map<String, dynamic>;
+
+      expect(decoded.cinematics, manifest.cinematics);
+      expect(cinematicJson, contains('stageContext'));
+      expect(cinematicJson['stageContext'], isNot(contains('mapId')));
+    });
+
     test('keeps scenarios and scenes independent from cinematics', () {
       final scenario = const ScenarioAsset(
         id: 'legacy_scenario',

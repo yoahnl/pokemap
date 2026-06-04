@@ -21,6 +21,30 @@ enum CinematicLegacyBridgeSourceKind {
   unknown,
 }
 
+enum CinematicStageBackdropMode {
+  none,
+  projectMap,
+}
+
+enum CinematicActorBindingKind {
+  player,
+  mapEntity,
+  cinematicOnly,
+  unbound,
+}
+
+enum CinematicActorInitialPlacementKind {
+  unset,
+  fromMapEntity,
+  fromMovementTarget,
+}
+
+enum CinematicMovementTargetBindingKind {
+  abstractPoint,
+  mapEntity,
+  mapEvent,
+}
+
 @immutable
 final class CinematicAsset {
   CinematicAsset({
@@ -34,6 +58,7 @@ final class CinematicAsset {
     List<CinematicActorRef> requiredActors = const <CinematicActorRef>[],
     List<CinematicMovementTargetRef> movementTargets =
         const <CinematicMovementTargetRef>[],
+    this.stageContext,
     required this.timeline,
     String? notes,
     Map<String, String> metadata = const <String, String>{},
@@ -70,6 +95,11 @@ final class CinematicAsset {
         'movementTargets',
         CinematicMovementTargetRef.fromJson,
       ),
+      stageContext: _readOptionalObject(
+        json,
+        'stageContext',
+        CinematicStageContext.fromJson,
+      ),
       timeline: _readOptionalObject(
             json,
             'timeline',
@@ -95,6 +125,7 @@ final class CinematicAsset {
   final List<String> tags;
   final List<CinematicActorRef> requiredActors;
   final List<CinematicMovementTargetRef> movementTargets;
+  final CinematicStageContext? stageContext;
   final CinematicTimeline timeline;
   final String? notes;
   final Map<String, String> metadata;
@@ -115,6 +146,7 @@ final class CinematicAsset {
             requiredActors.map((actor) => actor.toJson()).toList(),
         'movementTargets':
             movementTargets.map((target) => target.toJson()).toList(),
+        'stageContext': stageContext?.toJson(),
         'timeline': timeline.toJson(),
         'notes': notes,
         'metadata': metadata,
@@ -134,6 +166,7 @@ final class CinematicAsset {
           _listEquals(other.tags, tags) &&
           _listEquals(other.requiredActors, requiredActors) &&
           _listEquals(other.movementTargets, movementTargets) &&
+          other.stageContext == stageContext &&
           other.timeline == timeline &&
           other.notes == notes &&
           _mapEquals(other.metadata, metadata) &&
@@ -150,11 +183,226 @@ final class CinematicAsset {
         Object.hashAll(tags),
         Object.hashAll(requiredActors),
         Object.hashAll(movementTargets),
+        stageContext,
         timeline,
         notes,
         _mapHash(metadata),
         legacyBridge,
       );
+}
+
+@immutable
+final class CinematicStageContext {
+  CinematicStageContext({
+    this.backdropMode = CinematicStageBackdropMode.none,
+    List<CinematicActorBinding> actorBindings = const <CinematicActorBinding>[],
+    List<CinematicActorInitialPlacement> initialPlacements =
+        const <CinematicActorInitialPlacement>[],
+    List<CinematicMovementTargetBinding> movementTargetBindings =
+        const <CinematicMovementTargetBinding>[],
+  })  : actorBindings = List<CinematicActorBinding>.unmodifiable(actorBindings),
+        initialPlacements = List<CinematicActorInitialPlacement>.unmodifiable(
+          initialPlacements,
+        ),
+        movementTargetBindings =
+            List<CinematicMovementTargetBinding>.unmodifiable(
+          movementTargetBindings,
+        );
+
+  factory CinematicStageContext.fromJson(Map<String, dynamic> json) {
+    return CinematicStageContext(
+      backdropMode: _readEnum(
+        CinematicStageBackdropMode.values,
+        json['backdropMode'] ?? CinematicStageBackdropMode.none.name,
+        'backdropMode',
+      ),
+      actorBindings: _readObjectList(
+        json,
+        'actorBindings',
+        CinematicActorBinding.fromJson,
+      ),
+      initialPlacements: _readObjectList(
+        json,
+        'initialPlacements',
+        CinematicActorInitialPlacement.fromJson,
+      ),
+      movementTargetBindings: _readObjectList(
+        json,
+        'movementTargetBindings',
+        CinematicMovementTargetBinding.fromJson,
+      ),
+    );
+  }
+
+  final CinematicStageBackdropMode backdropMode;
+  final List<CinematicActorBinding> actorBindings;
+  final List<CinematicActorInitialPlacement> initialPlacements;
+  final List<CinematicMovementTargetBinding> movementTargetBindings;
+
+  Map<String, dynamic> toJson() => {
+        'backdropMode': backdropMode.name,
+        'actorBindings':
+            actorBindings.map((binding) => binding.toJson()).toList(),
+        'initialPlacements':
+            initialPlacements.map((placement) => placement.toJson()).toList(),
+        'movementTargetBindings':
+            movementTargetBindings.map((binding) => binding.toJson()).toList(),
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicStageContext &&
+          other.backdropMode == backdropMode &&
+          _listEquals(other.actorBindings, actorBindings) &&
+          _listEquals(other.initialPlacements, initialPlacements) &&
+          _listEquals(other.movementTargetBindings, movementTargetBindings);
+
+  @override
+  int get hashCode => Object.hash(
+        backdropMode,
+        Object.hashAll(actorBindings),
+        Object.hashAll(initialPlacements),
+        Object.hashAll(movementTargetBindings),
+      );
+}
+
+@immutable
+final class CinematicActorBinding {
+  CinematicActorBinding({
+    required String actorId,
+    required this.kind,
+    String? mapEntityId,
+  })  : actorId = _requireTrimmed(
+          actorId,
+          'CinematicActorBinding.actorId',
+        ),
+        mapEntityId = _trimOptional(mapEntityId);
+
+  factory CinematicActorBinding.fromJson(Map<String, dynamic> json) {
+    return CinematicActorBinding(
+      actorId: _readRequiredString(json, 'actorId'),
+      kind: _readEnum(
+        CinematicActorBindingKind.values,
+        json['kind'],
+        'kind',
+      ),
+      mapEntityId: _readOptionalString(json, 'mapEntityId'),
+    );
+  }
+
+  final String actorId;
+  final CinematicActorBindingKind kind;
+  final String? mapEntityId;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'actorId': actorId,
+        'kind': kind.name,
+        'mapEntityId': mapEntityId,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicActorBinding &&
+          other.actorId == actorId &&
+          other.kind == kind &&
+          other.mapEntityId == mapEntityId;
+
+  @override
+  int get hashCode => Object.hash(actorId, kind, mapEntityId);
+}
+
+@immutable
+final class CinematicActorInitialPlacement {
+  CinematicActorInitialPlacement({
+    required String actorId,
+    required this.kind,
+    String? targetId,
+  })  : actorId = _requireTrimmed(
+          actorId,
+          'CinematicActorInitialPlacement.actorId',
+        ),
+        targetId = _trimOptional(targetId);
+
+  factory CinematicActorInitialPlacement.fromJson(Map<String, dynamic> json) {
+    return CinematicActorInitialPlacement(
+      actorId: _readRequiredString(json, 'actorId'),
+      kind: _readEnum(
+        CinematicActorInitialPlacementKind.values,
+        json['kind'],
+        'kind',
+      ),
+      targetId: _readOptionalString(json, 'targetId'),
+    );
+  }
+
+  final String actorId;
+  final CinematicActorInitialPlacementKind kind;
+  final String? targetId;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'actorId': actorId,
+        'kind': kind.name,
+        'targetId': targetId,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicActorInitialPlacement &&
+          other.actorId == actorId &&
+          other.kind == kind &&
+          other.targetId == targetId;
+
+  @override
+  int get hashCode => Object.hash(actorId, kind, targetId);
+}
+
+@immutable
+final class CinematicMovementTargetBinding {
+  CinematicMovementTargetBinding({
+    required String targetId,
+    required this.kind,
+    String? sourceId,
+  })  : targetId = _requireTrimmed(
+          targetId,
+          'CinematicMovementTargetBinding.targetId',
+        ),
+        sourceId = _trimOptional(sourceId);
+
+  factory CinematicMovementTargetBinding.fromJson(Map<String, dynamic> json) {
+    return CinematicMovementTargetBinding(
+      targetId: _readRequiredString(json, 'targetId'),
+      kind: _readEnum(
+        CinematicMovementTargetBindingKind.values,
+        json['kind'],
+        'kind',
+      ),
+      sourceId: _readOptionalString(json, 'sourceId'),
+    );
+  }
+
+  final String targetId;
+  final CinematicMovementTargetBindingKind kind;
+  final String? sourceId;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'targetId': targetId,
+        'kind': kind.name,
+        'sourceId': sourceId,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicMovementTargetBinding &&
+          other.targetId == targetId &&
+          other.kind == kind &&
+          other.sourceId == sourceId;
+
+  @override
+  int get hashCode => Object.hash(targetId, kind, sourceId);
 }
 
 @immutable

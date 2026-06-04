@@ -126,16 +126,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0 | DONE | Handle droit uniquement sur les barres editables `wait`, `fade`, `camera`, `actorFace` et `actorMove`, visible sur selection, resize souris de `durationMs` via validations V1-68, quantification 100 ms, clamp min/max, clear probe, `selectedStepId` preserve, blocs suivants recalcules par layout derive, Visual Gate, sans drag de bloc, bord gauche, lane/reorder, playback, timeline libre ni `startMs/endMs` persistants. |
 | NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | DONE | Messages d'erreur, bornes min/max, pas 100 ms, feedback clamp resize, explication blocs non editables et diagnostics duree consolides, sans elargir le modele temporel. |
 | NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract | DONE | Contrat documentaire du futur contexte stage : option hybride retenue, mapId/backdropMode, actor bindings, positions initiales, targets map-aware, diagnostics futurs et roadmap post-V1-71 cadres sans code produit. |
-| NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0 | TODO | Implementer le modele authoring minimal du Stage Context dans CinematicAsset : mapId optionnel, backdropMode, actorBindings, initialPlacements, movementTargetBindings et diagnostics core, sans UI lourde ni preview reelle. |
+| NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0 | DONE | Modele authoring minimal du Stage Context dans `CinematicAsset` : `CinematicAsset.mapId` reste l'unique ancre Stage Map, `stageContext` ajoute backdropMode, actorBindings, initialPlacements, movementTargetBindings, operations pures et diagnostics core, sans UI ni preview reelle. |
+| NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0 | TODO | Exposer le Stage Context dans le Cinematic Builder/Library avec pickers no-code map/backdrop/bindings/placements/target bindings, en preservant sandbox, timeline et absence de preview reelle/runtime. |
 | NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage stage/map, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0`
+`NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`
 
-Raison : V1-71 a tranche le contrat stage/map sans code produit. Le prochain verrou produit est de materialiser ce contrat dans le modele core authoring minimal, avec diagnostics, sans UI lourde, preview reelle ou runtime.
+Raison : V1-72 a materialise le contrat stage/map dans `map_core`. Le prochain verrou produit est de rendre ce contexte authorable depuis le Builder/Library avec des controles no-code, sans encore promettre de preview reelle ou de runtime cinematic map-aware.
 
-Ordre apres V1-71 : `NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0`.
+Ordre apres V1-72 : `NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context, et le polish scroll/visibility est deplace explicitement en `NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
@@ -170,6 +171,20 @@ Limites : lot documentaire uniquement, aucun code produit, package, test, screen
 Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_71_cinematic_stage_map_context_prep_contract.md`, Gate 0 propre, audits core/map/editor documentes, checks anti-scope et `git diff --check` propre.
 
 Prochain lot exact : `NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0`.
+
+## Mise a jour V1-72
+
+Statut : `NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0` est DONE.
+
+Decision : le Stage Context authoring vit dans `CinematicAsset.stageContext`, mais l'ancre map reste exclusivement `CinematicAsset.mapId`. Aucun `stageContext.mapId` n'est ajoute. Le modele V0 couvre `backdropMode`, actor bindings `player/mapEntity/cinematicOnly/unbound`, placements initiaux `unset/fromMapEntity/fromMovementTarget` et movement target bindings `abstractPoint/mapEntity/mapEvent`.
+
+Scope realise : JSON/manifest round-trip, operations pures de map/stage/bindings/placements/target bindings, diagnostics core stage/readiness, tests RED puis GREEN, suite complete `map_core` verte. Les tests editor Library/Builder restent verts en non-regression.
+
+Limites : pas d'UI Stage Context, pas de preview reelle, pas de runtime cinematic map-aware, pas de pathfinding, pas de collision/warp, pas de playback, pas de build_runner, pas de donnees Selbrume. Les diagnostics ne resolvent pas encore les IDs d'entites/events dans le contenu d'une map chargee.
+
+Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_72_cinematic_stage_map_context_core_model_v0.md`, evidence pack `reports/narrativeStudio/scenes/ns_scenes_v1_72_evidence_pack.md`, `dart test --reporter=compact` `map_core` `+2354`, `dart analyze` `map_core` vert, tests editor Library `+10` et Builder `+93`. `flutter analyze` global `map_editor` reste rouge sur dette Pokemon SDK hors lot.
+
+Prochain lot exact : `NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`.
 
 ## Mise a jour V1-51
 

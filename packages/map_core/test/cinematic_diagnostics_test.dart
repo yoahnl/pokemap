@@ -636,6 +636,228 @@ void main() {
       expect(diagnostic.cinematicId, 'cinematic_intro');
     });
 
+    test('diagnoses unknown stage map and projectMap backdrop readiness', () {
+      final project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_known',
+            name: 'Known Map',
+            relativePath: 'maps/map_known.json',
+          ),
+        ],
+        tilesets: const [],
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            mapId: 'map_missing',
+            stageContext: CinematicStageContext(
+              backdropMode: CinematicStageBackdropMode.projectMap,
+            ),
+          ),
+          _cinematic(
+            id: 'cinematic_draft',
+            stageContext: CinematicStageContext(
+              backdropMode: CinematicStageBackdropMode.projectMap,
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseCinematicsAgainstProject(project);
+
+      final unknownMap =
+          report.byCode(CinematicDiagnosticCode.stageMapUnknown).single;
+      expect(unknownMap.severity, CinematicDiagnosticSeverity.error);
+      expect(unknownMap.referenceId, 'map_missing');
+      final requiresMap = report
+          .byCode(CinematicDiagnosticCode.stageBackdropRequiresMap)
+          .single;
+      expect(requiresMap.severity, CinematicDiagnosticSeverity.warning);
+      expect(requiresMap.cinematicId, 'cinematic_draft');
+    });
+
+    test('allows cinematic without stage context as draft', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(id: 'cinematic_intro'),
+      );
+
+      expect(report.byCode(CinematicDiagnosticCode.stageBackdropRequiresMap),
+          isEmpty);
+      expect(
+          report.byCode(CinematicDiagnosticCode.actorBindingMissing), isEmpty);
+      expect(report.hasErrors, isFalse);
+    });
+
+    test('diagnoses actor binding issues and preview readiness', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          mapId: null,
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            CinematicActorRef(actorId: 'actor_missing_binding', label: 'Extra'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_player',
+                kind: CinematicActorBindingKind.player,
+              ),
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.player,
+              ),
+              CinematicActorBinding(
+                actorId: 'actor_unknown',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.mapEntity,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.actorBindingUnknownActor),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.actorBindingDuplicatePlayer),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.actorBindingRequiresStageMap),
+        hasLength(1),
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.actorBindingMapEntityMissingSource),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.actorBindingMissing),
+        hasLength(1),
+      );
+    });
+
+    test('diagnoses initial placement issues and preview readiness', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            CinematicActorRef(actorId: 'actor_extra', label: 'Extra'),
+            CinematicActorRef(actorId: 'actor_no_placement', label: 'No place'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scene',
+            ),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_missing',
+                kind: CinematicActorInitialPlacementKind.unset,
+              ),
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+                targetId: 'target_missing',
+              ),
+              CinematicActorInitialPlacement(
+                actorId: 'actor_extra',
+                kind: CinematicActorInitialPlacementKind.fromMapEntity,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.actorInitialPlacementUnknownActor),
+        hasLength(1),
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.actorInitialPlacementTargetUnknown),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(
+            CinematicDiagnosticCode.actorInitialPlacementRequiresBinding),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.actorInitialPlacementMissing),
+        hasLength(1),
+      );
+    });
+
+    test('diagnoses movement target binding issues', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scene',
+            ),
+            CinematicMovementTargetRef(
+              targetId: 'target_abstract',
+              label: 'Point abstrait',
+            ),
+          ],
+          stageContext: CinematicStageContext(
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_missing',
+                kind: CinematicMovementTargetBindingKind.abstractPoint,
+              ),
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.mapEntity,
+              ),
+              CinematicMovementTargetBinding(
+                targetId: 'target_abstract',
+                kind: CinematicMovementTargetBindingKind.abstractPoint,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.movementTargetBindingUnknownTarget),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(
+            CinematicDiagnosticCode.movementTargetBindingRequiresStageMap),
+        hasLength(1),
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.movementTargetBindingMissingSource),
+        hasLength(1),
+      );
+      expect(report.hasErrors, isTrue);
+    });
+
     test('reports unknown storyline, chapter, and map references', () {
       final project = ProjectManifest(
         name: 'Cinematic diagnostics test',
@@ -719,6 +941,9 @@ CinematicAsset _cinematic({
   String? storylineId,
   String? chapterId,
   String? mapId,
+  List<CinematicActorRef> requiredActors = const [],
+  List<CinematicMovementTargetRef> movementTargets = const [],
+  CinematicStageContext? stageContext,
   CinematicLegacyBridge? legacyBridge,
 }) {
   return CinematicAsset(
@@ -727,6 +952,9 @@ CinematicAsset _cinematic({
     storylineId: storylineId,
     chapterId: chapterId,
     mapId: mapId,
+    requiredActors: requiredActors,
+    movementTargets: movementTargets,
+    stageContext: stageContext,
     timeline: CinematicTimeline(
       steps: [
         CinematicTimelineStep(

@@ -285,6 +285,219 @@ void main() {
       expect(findCinematicById(project, 'missing'), isNull);
     });
 
+    test('updates cinematic stage map and backdrop without mutating timeline',
+        () {
+      final cinematic = _cinematicWithSteps(
+        id: 'cinematic_intro',
+        stepIds: ['step_wait'],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final mapResult = updateCinematicStageMap(
+        project,
+        cinematicId: 'cinematic_intro',
+        mapId: '  map_lab  ',
+      );
+      final contextResult = updateCinematicStageContext(
+        mapResult.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stageContext: CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap,
+        ),
+      );
+      final cleared = updateCinematicStageMap(
+        contextResult.updatedProject,
+        cinematicId: 'cinematic_intro',
+        mapId: '   ',
+      );
+
+      expect(project.cinematics.single.mapId, isNull);
+      expect(mapResult.cinematic.mapId, 'map_lab');
+      expect(
+        contextResult.cinematic.stageContext?.backdropMode,
+        CinematicStageBackdropMode.projectMap,
+      );
+      expect(cleared.cinematic.mapId, isNull);
+      expect(contextResult.cinematic.timeline, cinematic.timeline);
+      expect(contextResult.cinematic.timeline.steps.single.durationMs, 100);
+    });
+
+    test('upserts and removes actor bindings with validation', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+          ),
+        ],
+      );
+
+      final player = upsertCinematicActorBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorBinding(
+          actorId: 'actor_player',
+          kind: CinematicActorBindingKind.player,
+        ),
+      );
+      final professor = upsertCinematicActorBinding(
+        player.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorBinding(
+          actorId: 'actor_professor',
+          kind: CinematicActorBindingKind.mapEntity,
+          mapEntityId: 'entity_professor',
+        ),
+      );
+      final removed = removeCinematicActorBinding(
+        professor.updatedProject,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_player',
+      );
+
+      expect(
+        professor.cinematic.stageContext?.actorBindings.map(
+          (binding) => binding.actorId,
+        ),
+        ['actor_player', 'actor_professor'],
+      );
+      expect(removed.cinematic.stageContext?.actorBindings.single.actorId,
+          'actor_professor');
+      expect(project.cinematics.single.stageContext, isNull);
+      expect(
+        () => upsertCinematicActorBinding(
+          project,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorBinding(
+            actorId: 'actor_missing',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => upsertCinematicActorBinding(
+          professor.updatedProject,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.player,
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test(
+        'upserts placements and target bindings while preserving legacy bridge',
+        () {
+      final bridge = CinematicLegacyBridge(
+        sourceKind: CinematicLegacyBridgeSourceKind.cutsceneStudio,
+        scenarioId: 'scenario_legacy_intro',
+      );
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            movementTargets: [
+              CinematicMovementTargetRef(
+                targetId: 'target_center',
+                label: 'Centre scene',
+              ),
+            ],
+            legacyBridge: bridge,
+          ),
+        ],
+      );
+
+      final placement = upsertCinematicActorInitialPlacement(
+        project,
+        cinematicId: 'cinematic_intro',
+        placement: CinematicActorInitialPlacement(
+          actorId: 'actor_professor',
+          kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+          targetId: 'target_center',
+        ),
+      );
+      final targetBinding = upsertCinematicMovementTargetBinding(
+        placement.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.mapEntity,
+          sourceId: 'entity_center',
+        ),
+      );
+      final removedPlacement = removeCinematicActorInitialPlacement(
+        targetBinding.updatedProject,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+      );
+      final removedTargetBinding = removeCinematicMovementTargetBinding(
+        removedPlacement.updatedProject,
+        cinematicId: 'cinematic_intro',
+        targetId: 'target_center',
+      );
+
+      expect(
+        targetBinding.cinematic.stageContext?.initialPlacements.single.targetId,
+        'target_center',
+      );
+      expect(
+        targetBinding
+            .cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'entity_center',
+      );
+      expect(
+          removedPlacement.cinematic.stageContext?.initialPlacements, isEmpty);
+      expect(
+          removedTargetBinding.cinematic.stageContext?.movementTargetBindings,
+          isEmpty);
+      expect(targetBinding.cinematic.legacyBridge, bridge);
+      expect(
+          targetBinding.cinematic.timeline, project.cinematics.single.timeline);
+      expect(
+        () => upsertCinematicActorInitialPlacement(
+          project,
+          cinematicId: 'cinematic_intro',
+          placement: CinematicActorInitialPlacement(
+            actorId: 'actor_missing',
+            kind: CinematicActorInitialPlacementKind.unset,
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => upsertCinematicActorInitialPlacement(
+          project,
+          cinematicId: 'cinematic_intro',
+          placement: CinematicActorInitialPlacement(
+            actorId: 'actor_professor',
+            kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+            targetId: 'target_missing',
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => upsertCinematicMovementTargetBinding(
+          project,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicMovementTargetBinding(
+            targetId: 'target_missing',
+            kind: CinematicMovementTargetBindingKind.abstractPoint,
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('addCinematicTimelineDraftStep inserts a marker draft after selection',
         () {
       final cinematic = _cinematic(id: 'cinematic_intro');
@@ -1247,6 +1460,7 @@ CinematicAsset _cinematic({
   String? description,
   List<CinematicActorRef> requiredActors = const [],
   List<CinematicMovementTargetRef> movementTargets = const [],
+  CinematicLegacyBridge? legacyBridge,
 }) {
   return CinematicAsset(
     id: id,
@@ -1263,6 +1477,7 @@ CinematicAsset _cinematic({
         ),
       ],
     ),
+    legacyBridge: legacyBridge,
   );
 }
 

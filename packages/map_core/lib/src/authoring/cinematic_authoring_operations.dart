@@ -58,6 +58,16 @@ final class CinematicMovementTargetRemovalResult {
   final CinematicMovementTargetRef removedTarget;
 }
 
+final class CinematicStageContextAuthoringResult {
+  const CinematicStageContextAuthoringResult({
+    required this.updatedProject,
+    required this.cinematic,
+  });
+
+  final ProjectManifest updatedProject;
+  final CinematicAsset cinematic;
+}
+
 final class CinematicTimelineDraftStepResult {
   const CinematicTimelineDraftStepResult({
     required this.updatedProject,
@@ -293,6 +303,282 @@ CinematicAsset? findCinematicById(
     }
   }
   return null;
+}
+
+CinematicStageContextAuthoringResult updateCinematicStageMap(
+  ProjectManifest project, {
+  required String cinematicId,
+  String? mapId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final updatedCinematic = _copyCinematicWithStageMap(
+    cinematic,
+    _trimOptional(mapId),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult updateCinematicStageContext(
+  ProjectManifest project, {
+  required String cinematicId,
+  CinematicStageContext? stageContext,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  if (stageContext != null) {
+    _validateStageContextForAuthoring(cinematic, stageContext);
+  }
+  final updatedCinematic = _copyCinematicWithStageContext(
+    cinematic,
+    stageContext,
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult upsertCinematicActorBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicActorBinding binding,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  _requireActor(cinematic, binding.actorId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final bindings = <CinematicActorBinding>[];
+  var replaced = false;
+  for (final existing in context.actorBindings) {
+    if (existing.actorId == binding.actorId) {
+      bindings.add(binding);
+      replaced = true;
+    } else {
+      bindings.add(existing);
+    }
+  }
+  if (!replaced) {
+    bindings.add(binding);
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: bindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult removeCinematicActorBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    actorId,
+    'actorId',
+    'Actor binding removal requires an actor id.',
+  );
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final bindings = context.actorBindings
+      .where((binding) => binding.actorId != id)
+      .toList(growable: false);
+  if (bindings.length == context.actorBindings.length) {
+    throw ArgumentError.value(
+      actorId,
+      'actorId',
+      'Actor binding removal references an unknown binding.',
+    );
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: bindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult upsertCinematicActorInitialPlacement(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicActorInitialPlacement placement,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  _requireActor(cinematic, placement.actorId);
+  if (placement.kind == CinematicActorInitialPlacementKind.fromMovementTarget) {
+    _requireMovementTarget(cinematic, placement.targetId ?? '');
+  }
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final placements = <CinematicActorInitialPlacement>[];
+  var replaced = false;
+  for (final existing in context.initialPlacements) {
+    if (existing.actorId == placement.actorId) {
+      placements.add(placement);
+      replaced = true;
+    } else {
+      placements.add(existing);
+    }
+  }
+  if (!replaced) {
+    placements.add(placement);
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    initialPlacements: placements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult removeCinematicActorInitialPlacement(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    actorId,
+    'actorId',
+    'Actor initial placement removal requires an actor id.',
+  );
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final placements = context.initialPlacements
+      .where((placement) => placement.actorId != id)
+      .toList(growable: false);
+  if (placements.length == context.initialPlacements.length) {
+    throw ArgumentError.value(
+      actorId,
+      'actorId',
+      'Actor initial placement removal references an unknown placement.',
+    );
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    initialPlacements: placements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult upsertCinematicMovementTargetBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicMovementTargetBinding binding,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  _requireMovementTarget(cinematic, binding.targetId);
+  if (_movementTargetBindingRequiresSource(binding) &&
+      binding.sourceId == null) {
+    throw ArgumentError.value(
+      binding.sourceId,
+      'sourceId',
+      'Map-aware movement target bindings require a source id.',
+    );
+  }
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final bindings = <CinematicMovementTargetBinding>[];
+  var replaced = false;
+  for (final existing in context.movementTargetBindings) {
+    if (existing.targetId == binding.targetId) {
+      bindings.add(binding);
+      replaced = true;
+    } else {
+      bindings.add(existing);
+    }
+  }
+  if (!replaced) {
+    bindings.add(binding);
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: bindings,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult removeCinematicMovementTargetBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String targetId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    targetId,
+    'targetId',
+    'Movement target binding removal requires a target id.',
+  );
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final bindings = context.movementTargetBindings
+      .where((binding) => binding.targetId != id)
+      .toList(growable: false);
+  if (bindings.length == context.movementTargetBindings.length) {
+    throw ArgumentError.value(
+      targetId,
+      'targetId',
+      'Movement target binding removal references an unknown binding.',
+    );
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: bindings,
+  );
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
 }
 
 CinematicRequiredActorResult addCinematicRequiredActor(
@@ -1096,6 +1382,7 @@ CinematicAsset _copyCinematicWithTimeline(
     tags: cinematic.tags,
     requiredActors: cinematic.requiredActors,
     movementTargets: cinematic.movementTargets,
+    stageContext: cinematic.stageContext,
     timeline: timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -1117,6 +1404,7 @@ CinematicAsset _copyCinematicWithActors(
     tags: cinematic.tags,
     requiredActors: requiredActors,
     movementTargets: cinematic.movementTargets,
+    stageContext: cinematic.stageContext,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -1138,6 +1426,51 @@ CinematicAsset _copyCinematicWithMovementTargets(
     tags: cinematic.tags,
     requiredActors: cinematic.requiredActors,
     movementTargets: movementTargets,
+    stageContext: cinematic.stageContext,
+    timeline: cinematic.timeline,
+    notes: cinematic.notes,
+    metadata: cinematic.metadata,
+    legacyBridge: cinematic.legacyBridge,
+  );
+}
+
+CinematicAsset _copyCinematicWithStageMap(
+  CinematicAsset cinematic,
+  String? mapId,
+) {
+  return CinematicAsset(
+    id: cinematic.id,
+    title: cinematic.title,
+    description: cinematic.description,
+    storylineId: cinematic.storylineId,
+    chapterId: cinematic.chapterId,
+    mapId: mapId,
+    tags: cinematic.tags,
+    requiredActors: cinematic.requiredActors,
+    movementTargets: cinematic.movementTargets,
+    stageContext: cinematic.stageContext,
+    timeline: cinematic.timeline,
+    notes: cinematic.notes,
+    metadata: cinematic.metadata,
+    legacyBridge: cinematic.legacyBridge,
+  );
+}
+
+CinematicAsset _copyCinematicWithStageContext(
+  CinematicAsset cinematic,
+  CinematicStageContext? stageContext,
+) {
+  return CinematicAsset(
+    id: cinematic.id,
+    title: cinematic.title,
+    description: cinematic.description,
+    storylineId: cinematic.storylineId,
+    chapterId: cinematic.chapterId,
+    mapId: cinematic.mapId,
+    tags: cinematic.tags,
+    requiredActors: cinematic.requiredActors,
+    movementTargets: cinematic.movementTargets,
+    stageContext: stageContext,
     timeline: cinematic.timeline,
     notes: cinematic.notes,
     metadata: cinematic.metadata,
@@ -1471,6 +1804,61 @@ CinematicMovementTargetRef _requireMovementTarget(
   );
 }
 
+void _validateStageContextForAuthoring(
+  CinematicAsset cinematic,
+  CinematicStageContext stageContext,
+) {
+  final playerActorIds = <String>{};
+  for (final binding in stageContext.actorBindings) {
+    _requireActor(cinematic, binding.actorId);
+    if (binding.kind == CinematicActorBindingKind.player &&
+        !playerActorIds.add(binding.actorId)) {
+      throw ArgumentError.value(
+        binding.actorId,
+        'actorId',
+        'Duplicate player actor binding.',
+      );
+    }
+  }
+  final playerBindings = stageContext.actorBindings
+      .where((binding) => binding.kind == CinematicActorBindingKind.player)
+      .toList();
+  if (playerBindings.length > 1) {
+    throw ArgumentError.value(
+      playerBindings.last.actorId,
+      'actorId',
+      'Only one player actor binding is allowed in a cinematic.',
+    );
+  }
+
+  for (final placement in stageContext.initialPlacements) {
+    _requireActor(cinematic, placement.actorId);
+    if (placement.kind ==
+        CinematicActorInitialPlacementKind.fromMovementTarget) {
+      _requireMovementTarget(cinematic, placement.targetId ?? '');
+    }
+  }
+
+  for (final binding in stageContext.movementTargetBindings) {
+    _requireMovementTarget(cinematic, binding.targetId);
+    if (_movementTargetBindingRequiresSource(binding) &&
+        binding.sourceId == null) {
+      throw ArgumentError.value(
+        binding.sourceId,
+        'sourceId',
+        'Map-aware movement target bindings require a source id.',
+      );
+    }
+  }
+}
+
+bool _movementTargetBindingRequiresSource(
+  CinematicMovementTargetBinding binding,
+) {
+  return binding.kind == CinematicMovementTargetBindingKind.mapEntity ||
+      binding.kind == CinematicMovementTargetBindingKind.mapEvent;
+}
+
 List<String> _sceneIdsReferencingCinematic(
   ProjectManifest project,
   String cinematicId,
@@ -1495,4 +1883,9 @@ String _trimRequired(String value, String fieldName, String message) {
     throw ArgumentError.value(value, fieldName, message);
   }
   return trimmed;
+}
+
+String? _trimOptional(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
