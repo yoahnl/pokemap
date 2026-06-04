@@ -124,20 +124,35 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract | DONE | Lot documentaire demande par Karim : contrat d'edition de `durationMs`, blocs authoring-owned editables, min/max, relation avec `startMs/endMs` derives, clear du probe apres modification, et trajectoire inspecteur V1-68 puis resize droit V1-69, sans code produit ni package modifie. |
 | NS-SCENES-V1-68 — Cinematic Timeline Duration Inspector Editing V0 | DONE | Edition no-code de `durationMs` depuis l'inspecteur pour `wait`, `fade`, `camera`, `actorFace` et `actorMove`, avec validation core min/max, champ numerique, presets courts, +/-100 ms, recalcul layout derive, clear du probe apres acceptation, Visual Gate, sans resize, playback ni timeline libre. |
 | NS-SCENES-V1-69 — Cinematic Timeline Duration Resize Handles V0 | DONE | Handle droit uniquement sur les barres editables `wait`, `fade`, `camera`, `actorFace` et `actorMove`, visible sur selection, resize souris de `durationMs` via validations V1-68, quantification 100 ms, clamp min/max, clear probe, `selectedStepId` preserve, blocs suivants recalcules par layout derive, Visual Gate, sans drag de bloc, bord gauche, lane/reorder, playback, timeline libre ni `startMs/endMs` persistants. |
-| NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | TODO | Consolider messages d'erreur, bornes et feedback no-code apres les premieres editions de duree, sans elargir le modele temporel. |
+| NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | DONE | Messages d'erreur, bornes min/max, pas 100 ms, feedback clamp resize, explication blocs non editables et diagnostics duree consolides, sans elargir le modele temporel. |
+| NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract | TODO | Cadrer map cible, decor, acteurs, bindings, positions initiales et cibles map-aware avant toute preview cinematic reelle. |
 | NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres les lots de duree, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0`
+`NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract`
 
-Raison : V1-69 ajoute le resize souris droit en reutilisant les bornes V1-68. Le prochain verrou produit est de consolider les messages d'erreur, diagnostics, feedback no-code et affordances autour de l'edition/resize de duree, sans elargir le modele temporel.
+Raison : V1-70 ferme le polish duration autour de l'edition et du resize. Le prochain verrou produit est de cadrer le contexte cinematic map/stage avant toute preview reelle : map cible, decor, acteurs, bindings, positions initiales et cibles map-aware.
 
-Ordre apres V1-69 : `NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0`.
+Ordre apres V1-70 : `NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract`.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract` et deplace en backlog futur comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
+
+## Mise a jour V1-70
+
+Statut : `NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0` est DONE.
+
+Decision : le Cinematic Builder rend maintenant les regles de duree lisibles sans donner plus de pouvoir a la timeline. L'inspecteur affiche les bornes `100-30000 ms` ou `200-30000 ms` pour `actorMove`, rappelle le pas `100 ms`, donne des erreurs inline no-code pour saisie vide, non entiere, sous minimum ou au-dessus maximum, et explique les blocs non editables.
+
+Scope realise : aide min/max/pas dans la section Duree, feedback compact `Minimum atteint` / `Maximum atteint` quand une duree selectionnee est aux bornes apres edition ou resize, messages specifiques pour marker draft et bloc lecture seule, diagnostics core renforces pour durees persistentes invalides, tests editor/core et Visual Gate V1-70.
+
+Limites : pas de nouveau modele temporel, pas de changement de bornes, pas de drag/reorder de blocs, pas de bord gauche draggable, pas de persistance `startMs/endMs`, pas de playback, pas de seek runtime, pas de scrubber runtime, pas de preview runtime, pas de modification runtime/gameplay/battle/examples, pas d'image IA ni donnees Selbrume.
+
+Preuve : rapport V1-70, evidence pack, capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_70_cinematic_timeline_duration_validation_diagnostics_polish_v0.png`, tests core/editor cibles verts, analyse cible editor verte. `flutter analyze` global `map_editor` reste rouge uniquement sur dette preexistante Pokemon SDK hors lot.
+
+Prochain lot exact : `NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract`.
 
 ## Mise a jour V1-51
 

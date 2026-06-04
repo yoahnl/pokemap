@@ -1125,6 +1125,295 @@ void main() {
     );
   });
 
+  testWidgets(
+      'shows duration validation guidance and rejects invalid duration without mutation',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    final before = latestProject.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bornes : 100–30000 ms · pas 100 ms'), findsOneWidget);
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '50');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Minimum pour ce bloc : 100 ms.'), findsOneWidget);
+    expect(latestProject.toJson(), before);
+    _expectTimelineStepSelected(tester, 'step_face');
+  });
+
+  testWidgets('shows actorMove specific minimum duration guidance',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await tester.tapAt(moveRect.center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bornes : 200–30000 ms · pas 100 ms'), findsOneWidget);
+  });
+
+  testWidgets('shows maximum duration guidance', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('30000 ms'), findsWidgets);
+  });
+
+  testWidgets('shows non editable duration reason for marker draft',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final markerFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_marker'));
+    await tester.ensureVisible(markerFinder);
+    await tester.tapAt(tester.getRect(markerFinder).center);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Durée non éditable — brouillon sans effet moteur.'),
+        findsOneWidget);
+  });
+
+  testWidgets('shows non editable duration reason for non-owned step',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final soundFinder =
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_sound'));
+    await tester.ensureVisible(soundFinder);
+    await tester.tapAt(tester.getRect(soundFinder).center);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Durée non éditable — bloc en lecture seule.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('shows inline error for empty duration input', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    final before = latestProject.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.tapAt(
+      tester
+          .getRect(
+            find.byKey(
+              const ValueKey('cinematic-builder-time-block-step_face'),
+            ),
+          )
+          .center,
+    );
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Saisis une durée en millisecondes.'), findsOneWidget);
+    expect(latestProject.toJson(), before);
+  });
+
+  testWidgets('shows inline error for non integer duration input',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    final before = latestProject.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.tapAt(
+      tester
+          .getRect(
+            find.byKey(
+              const ValueKey('cinematic-builder-time-block-step_face'),
+            ),
+          )
+          .center,
+    );
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, 'abc');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Utilise un nombre entier de millisecondes.'),
+      findsOneWidget,
+    );
+    expect(latestProject.toJson(), before);
+  });
+
+  testWidgets('shows inline error above maximum', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    final before = latestProject.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.tapAt(
+      tester
+          .getRect(
+            find.byKey(
+              const ValueKey('cinematic-builder-time-block-step_face'),
+            ),
+          )
+          .center,
+    );
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '30001');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maximum : 30000 ms.'), findsOneWidget);
+    expect(latestProject.toJson(), before);
+  });
+
+  testWidgets('shows resize minimum clamp feedback', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final moveRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
+    );
+    await tester.tapAt(moveRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_move'),
+      ),
+      const Offset(-2000, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Minimum atteint : 200 ms'), findsOneWidget);
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_move')
+          .durationMs,
+      200,
+    );
+  });
+
+  testWidgets('shows resize maximum clamp feedback', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(40000, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maximum atteint : 30000 ms'), findsOneWidget);
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      30000,
+    );
+  });
+
   testWidgets('shows local time probe help explaining selection and probe',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -3082,7 +3371,9 @@ void main() {
     expect(find.text('Step 1'), findsWidgets);
     expect(find.text('cinematicInvalidStepDuration'), findsWidgets);
     expect(
-      find.text('Une durée de step cinematic ne peut pas être négative.'),
+      find.text(
+        'Une durée cinematic doit être comprise entre 100 ms et 30000 ms.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Aucune action de correction dans ce lot.'), findsWidgets);
@@ -3125,10 +3416,7 @@ void main() {
     expect(find.text('Statut'), findsWidgets);
     expect(find.text('Placeholder authoring'), findsOneWidget);
     expect(
-      find.text(
-        'Ce bloc est un placeholder authoring. '
-        'Les vrais blocs arrivent dans un lot futur.',
-      ),
+      find.text('Durée non éditable — brouillon sans effet moteur.'),
       findsOneWidget,
     );
     expect(
@@ -4901,6 +5189,72 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-70 duration validation diagnostics polish when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_70_CAPTURE_CINEMATIC_TIMELINE_DURATION_VALIDATION',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    var latestProject = _project(cinematics: [_durationResizeCinematic()]);
+    await _pumpBuilderHarness(
+      tester,
+      latestProject,
+      'cinematic_duration_resize',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '50');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Bornes : 100–30000 ms · pas 100 ms'), findsOneWidget);
+    expect(find.text('Minimum pour ce bloc : 100 ms.'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      latestProject.cinematics.single.timeline.steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      500,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_70_cinematic_timeline_duration_validation_'
+      'diagnostics_polish_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -5820,6 +6174,13 @@ CinematicAsset _diagnosticCinematic() {
           id: 'step_bad',
           kind: CinematicTimelineStepKind.wait,
           durationMs: -5,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'wait',
+          },
         ),
       ],
     ),

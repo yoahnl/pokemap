@@ -49,6 +49,241 @@ void main() {
       );
     });
 
+    test('diagnoses wait duration below minimum', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_wait',
+                kind: CinematicTimelineStepKind.wait,
+                durationMs: cinematicTimelineMinimumDurationMs - 1,
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineAuthoringBlockMetadataKey: 'wait',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration)
+          .single;
+      expect(diagnostic.stepId, 'step_wait');
+      expect(diagnostic.message, contains('100 ms'));
+      expect(diagnostic.message, contains('30000 ms'));
+    });
+
+    test('diagnoses actorMove duration below minimum', () {
+      final report = diagnoseCinematicAsset(
+        _actorMoveDiagnosticCinematic(
+          durationMs: cinematicTimelineActorMoveMinimumDurationMs - 1,
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicActorMoveInvalidDuration)
+          .single;
+      expect(diagnostic.stepId, 'step_actor_move');
+      expect(diagnostic.message, contains('200 ms'));
+      expect(diagnostic.message, contains('30000 ms'));
+    });
+
+    test('diagnoses duration above maximum', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_camera',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: cinematicTimelineMaximumDurationMs + 1,
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration)
+          .single;
+      expect(diagnostic.stepId, 'step_camera');
+      expect(diagnostic.message, contains('30000 ms'));
+    });
+
+    test('does not diagnose missing duration when fallback is allowed', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_face',
+                kind: CinematicTimelineStepKind.actorFace,
+                actorId: 'actor_professor',
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineAuthoringBlockMetadataKey:
+                      cinematicTimelineActorFaceBlockMetadataValue,
+                  cinematicTimelineActorDirectionMetadataKey: 'right',
+                },
+              ),
+            ],
+          ),
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveInvalidDuration),
+        isEmpty,
+      );
+    });
+
+    test('does not diagnose marker draft without duration as duration error',
+        () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_marker',
+                kind: CinematicTimelineStepKind.marker,
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineDraftMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration),
+        isEmpty,
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveInvalidDuration),
+        isEmpty,
+      );
+    });
+
+    test('diagnostics use the same bounds as authoring validation', () {
+      final invalidBasicDuration = cinematicTimelineMinimumDurationMs - 1;
+      final invalidActorMoveDuration =
+          cinematicTimelineActorMoveMinimumDurationMs - 1;
+
+      expect(
+        () => validateCinematicTimelineDurationMs(
+          invalidBasicDuration,
+          argumentName: 'durationMs',
+          minMs: cinematicTimelineMinimumDurationMs,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => validateCinematicTimelineDurationMs(
+          invalidActorMoveDuration,
+          argumentName: 'durationMs',
+          minMs: cinematicTimelineActorMoveMinimumDurationMs,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_wait',
+                kind: CinematicTimelineStepKind.wait,
+                durationMs: invalidBasicDuration,
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineAuthoringBlockMetadataKey: 'wait',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'step_actor_move',
+                kind: CinematicTimelineStepKind.actorMove,
+                actorId: 'actor_professor',
+                targetId: 'target_center',
+                durationMs: invalidActorMoveDuration,
+                metadata: const {
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineAuthoringBlockMetadataKey:
+                      cinematicTimelineActorMoveBlockMetadataValue,
+                  cinematicTimelineActorMovementModeMetadataKey: 'walk',
+                  cinematicTimelineActorPathModeMetadataKey: 'direct',
+                },
+              ),
+            ],
+          ),
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scene',
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicInvalidStepDuration),
+        hasLength(1),
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorMoveInvalidDuration),
+        hasLength(1),
+      );
+    });
+
     test('reports legacy gameplay step leakage carried by metadata', () {
       final report = diagnoseCinematicAsset(
         CinematicAsset(
@@ -502,5 +737,42 @@ CinematicAsset _cinematic({
       ],
     ),
     legacyBridge: legacyBridge,
+  );
+}
+
+CinematicAsset _actorMoveDiagnosticCinematic({required int durationMs}) {
+  return CinematicAsset(
+    id: 'cinematic_intro',
+    title: 'Intro cinematic',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_actor_move',
+          kind: CinematicTimelineStepKind.actorMove,
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: durationMs,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+      ],
+    ),
   );
 }

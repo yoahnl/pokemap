@@ -3602,6 +3602,8 @@ class _SelectedStepInspector extends StatelessWidget {
     final isActorFacing = isCinematicTimelineActorFacingStep(step);
     final isActorMove = isCinematicTimelineActorMoveStep(step);
     final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
+    final durationNonEditableReason =
+        isDraft ? null : _durationNonEditableReason(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -3670,14 +3672,22 @@ class _SelectedStepInspector extends StatelessWidget {
           ),
           const SizedBox(height: 8),
         ],
+        if (durationNonEditableReason != null) ...[
+          _MutedText(
+            durationNonEditableReason,
+            key: const ValueKey(
+              'cinematic-builder-duration-non-editable-reason',
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         if (isDraft) ...[
           const _KeyValue(
             label: 'Statut',
             value: 'Placeholder authoring',
           ),
           const _BodyText(
-            'Ce bloc est un placeholder authoring. '
-            'Les vrais blocs arrivent dans un lot futur.',
+            'Durée non éditable — brouillon sans effet moteur.',
           ),
           const SizedBox(height: 8),
         ],
@@ -3910,10 +3920,31 @@ class _DurationEditorControlsState extends State<_DurationEditorControls> {
     final colors = context.pokeMapColors;
     final decrementValue = widget.currentDurationMs - 100;
     final incrementValue = widget.currentDurationMs + 100;
+    final boundaryFeedback = _durationBoundaryFeedback(
+      widget.currentDurationMs,
+      minDurationMs: widget.minDurationMs,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _KeyValue(label: 'Durée', value: 'Edition en millisecondes'),
+        _MutedText(
+          _durationGuidanceLabel(widget.minDurationMs),
+          key: ValueKey('${widget.keyPrefix}-guidance'),
+        ),
+        if (boundaryFeedback != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            boundaryFeedback,
+            key: ValueKey('${widget.keyPrefix}-boundary-feedback'),
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.info,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -3923,7 +3954,6 @@ class _DurationEditorControlsState extends State<_DurationEditorControls> {
                 controller: _controller,
                 keyboardType: TextInputType.number,
                 textInputAction: TextInputAction.done,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
                   vertical: 8,
@@ -4534,7 +4564,7 @@ class _BodyText extends StatelessWidget {
 }
 
 class _MutedText extends StatelessWidget {
-  const _MutedText(this.value);
+  const _MutedText(this.value, {super.key});
 
   final String value;
 
@@ -4657,10 +4687,10 @@ String? _durationValidationMessage(
   required int minDurationMs,
 }) {
   if (rawValue.trim().isEmpty) {
-    return 'Saisissez une durée en ms.';
+    return 'Saisis une durée en millisecondes.';
   }
   if (durationMs == null) {
-    return 'Durée numérique requise.';
+    return 'Utilise un nombre entier de millisecondes.';
   }
   try {
     validateCinematicTimelineDurationMs(
@@ -4670,7 +4700,7 @@ String? _durationValidationMessage(
     );
   } on ArgumentError {
     if (durationMs < minDurationMs) {
-      return 'Minimum : $minDurationMs ms.';
+      return 'Minimum pour ce bloc : $minDurationMs ms.';
     }
     if (durationMs > cinematicTimelineMaximumDurationMs) {
       return 'Maximum : $cinematicTimelineMaximumDurationMs ms.';
@@ -4678,6 +4708,37 @@ String? _durationValidationMessage(
     return 'Durée invalide.';
   }
   return null;
+}
+
+String _durationGuidanceLabel(int minDurationMs) {
+  return 'Bornes : $minDurationMs–$cinematicTimelineMaximumDurationMs ms · '
+      'pas 100 ms';
+}
+
+String? _durationBoundaryFeedback(
+  int durationMs, {
+  required int minDurationMs,
+}) {
+  if (durationMs <= minDurationMs) {
+    return 'Minimum atteint : $minDurationMs ms';
+  }
+  if (durationMs >= cinematicTimelineMaximumDurationMs) {
+    return 'Maximum atteint : $cinematicTimelineMaximumDurationMs ms';
+  }
+  return null;
+}
+
+String? _durationNonEditableReason(CinematicTimelineStep step) {
+  if (_canResizeTimelineStepDuration(step)) {
+    return null;
+  }
+  if (isCinematicTimelineDraftStep(step) && step.durationMs == null) {
+    return null;
+  }
+  if (!isCinematicTimelineAuthoringStep(step)) {
+    return 'Durée non éditable — bloc en lecture seule.';
+  }
+  return 'Durée non éditable — bloc en lecture seule.';
 }
 
 String _durationLabel(CinematicTimelineSummary timeline) {

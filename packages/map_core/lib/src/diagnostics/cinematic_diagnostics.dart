@@ -310,20 +310,7 @@ void _diagnoseTimeline(
         ),
       );
     }
-    final durationMs = step.durationMs;
-    if (durationMs != null && durationMs < 0) {
-      diagnostics.add(
-        CinematicDiagnostic(
-          code: CinematicDiagnosticCode.cinematicInvalidStepDuration,
-          severity: CinematicDiagnosticSeverity.error,
-          message: 'Une durée de step cinematic ne peut pas être négative.',
-          cinematicId: cinematic.id,
-          stepId: step.id,
-          target: CinematicDiagnosticTarget.step,
-          suggestedFixLabel: 'Utiliser une durée en millisecondes positive.',
-        ),
-      );
-    }
+    _diagnoseStepDuration(cinematic, step, diagnostics);
     final legacyKind = step.metadata['legacy.kind']?.trim() ??
         step.metadata['legacyKind']?.trim();
     if (legacyKind != null &&
@@ -368,6 +355,54 @@ void _diagnoseTimeline(
       );
     }
   }
+}
+
+void _diagnoseStepDuration(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step,
+  List<CinematicDiagnostic> diagnostics,
+) {
+  if (step.kind == CinematicTimelineStepKind.actorMove) {
+    return;
+  }
+  final durationMs = step.durationMs;
+  if (durationMs == null) {
+    return;
+  }
+  final minDurationMs = _diagnosticDurationMinimumMs(step);
+  final isBelowMinimum =
+      minDurationMs == null ? durationMs < 0 : durationMs < minDurationMs;
+  final isAboveMaximum = durationMs > cinematicTimelineMaximumDurationMs;
+  if (!isBelowMinimum && !isAboveMaximum) {
+    return;
+  }
+  final message = minDurationMs == null
+      ? 'Une durée cinematic ne peut pas être négative.'
+      : 'Une durée cinematic doit être comprise entre '
+          '$minDurationMs ms et $cinematicTimelineMaximumDurationMs ms.';
+  final suggestedFixLabel = minDurationMs == null
+      ? 'Utiliser une durée en millisecondes positive.'
+      : 'Choisir une durée entre '
+          '$minDurationMs ms et $cinematicTimelineMaximumDurationMs ms.';
+  diagnostics.add(
+    CinematicDiagnostic(
+      code: CinematicDiagnosticCode.cinematicInvalidStepDuration,
+      severity: CinematicDiagnosticSeverity.error,
+      message: message,
+      cinematicId: cinematic.id,
+      stepId: step.id,
+      target: CinematicDiagnosticTarget.step,
+      suggestedFixLabel: suggestedFixLabel,
+    ),
+  );
+}
+
+int? _diagnosticDurationMinimumMs(CinematicTimelineStep step) {
+  if (cinematicTimelineBasicBlockKindOf(step) != null ||
+      isCinematicTimelineActorFacingStep(step)) {
+    return cinematicTimelineMinimumDurationMs;
+  }
+  return null;
 }
 
 void _diagnoseActorMoveStep(
@@ -421,16 +456,22 @@ void _diagnoseActorMoveStep(
   }
 
   final durationMs = step.durationMs;
-  if (durationMs == null || durationMs <= 0) {
+  if (durationMs == null ||
+      durationMs < cinematicTimelineActorMoveMinimumDurationMs ||
+      durationMs > cinematicTimelineMaximumDurationMs) {
     diagnostics.add(
       CinematicDiagnostic(
         code: CinematicDiagnosticCode.cinematicActorMoveInvalidDuration,
         severity: CinematicDiagnosticSeverity.error,
-        message: 'Un déplacement acteur doit avoir une durée positive.',
+        message: 'Un déplacement acteur doit durer entre '
+            '$cinematicTimelineActorMoveMinimumDurationMs ms et '
+            '$cinematicTimelineMaximumDurationMs ms.',
         cinematicId: cinematic.id,
         stepId: step.id,
         target: CinematicDiagnosticTarget.step,
-        suggestedFixLabel: 'Choisir une durée via les presets.',
+        suggestedFixLabel: 'Choisir une durée entre '
+            '$cinematicTimelineActorMoveMinimumDurationMs ms et '
+            '$cinematicTimelineMaximumDurationMs ms.',
       ),
     );
   }
