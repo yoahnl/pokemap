@@ -75,6 +75,816 @@ void main() {
     expect(project.toJson(), before);
   });
 
+  testWidgets('edits cinematic stage map and backdrop from builder',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic(mapId: null)]);
+    var latestProject = project;
+    final beforeAsset = _asset(project, 'cinematic_stage_context');
+    final beforeSteps = beforeAsset.timeline.toJson();
+    final beforeDuration =
+        _entry(project, 'cinematic_stage_context').timeline.estimatedDurationMs;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    expect(find.text('Contexte de scène'), findsOneWidget);
+    expect(find.text('Map de scène'), findsOneWidget);
+    final mapButton =
+        find.byKey(const ValueKey('cinematic-builder-stage-map-map_lab'));
+    await tester.ensureVisible(mapButton);
+    await tester.tap(mapButton);
+    await tester.pumpAndSettle();
+    final backdropButton = find.byKey(
+      const ValueKey('cinematic-builder-backdrop-projectMap'),
+    );
+    await tester.ensureVisible(backdropButton);
+    await tester.tap(backdropButton);
+    await tester.pumpAndSettle();
+
+    final updated = _asset(latestProject, 'cinematic_stage_context');
+    expect(updated.mapId, 'map_lab');
+    expect(
+      updated.stageContext?.backdropMode,
+      CinematicStageBackdropMode.projectMap,
+    );
+    expect(updated.stageContext?.toJson(), isNot(contains('mapId')));
+    expect(updated.timeline.toJson(), beforeSteps);
+    expect(
+      _entry(latestProject, 'cinematic_stage_context')
+          .timeline
+          .estimatedDurationMs,
+      beforeDuration,
+    );
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets(
+      'shows cinematic stage preview readiness checklist without starting preview',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Préparation preview'), findsOneWidget);
+    expect(find.text('Contexte incomplet'), findsWidgets);
+    expect(find.textContaining('La preview réelle arrivera plus tard.'),
+        findsWidgets);
+    for (final label in <String>[
+      'Map de scène',
+      'Décor',
+      'Acteurs liés',
+      'Positions initiales',
+      'Cibles de mouvement',
+      'Sources map-aware',
+    ]) {
+      expect(find.textContaining(label), findsWidgets);
+    }
+    expect(find.textContaining('À compléter'), findsWidgets);
+    expect(find.textContaining('À venir'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets('shows sandbox-only readiness before stage context is configured',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageSandboxOnlyCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_sandbox');
+
+    expect(find.text('Préparation preview'), findsOneWidget);
+    expect(find.text('Sandbox uniquement'), findsWidgets);
+    expect(
+      find.textContaining('Ajoute un contexte de scène'),
+      findsWidgets,
+    );
+    expect(find.textContaining('La preview réelle arrivera plus tard.'),
+        findsWidgets);
+  });
+
+  testWidgets('shows blocked readiness with human stage diagnostic messages',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageUnknownMapCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Préparation preview'), findsOneWidget);
+    expect(find.text('À corriger avant preview'), findsWidgets);
+    expect(
+      find.textContaining('La map de scène n’existe plus dans le projet.'),
+      findsWidgets,
+    );
+    expect(find.text('Diagnostics stage'), findsOneWidget);
+    expect(find.text('stageMapUnknown'), findsWidgets);
+    expect(find.textContaining('Impossible'), findsNothing);
+    expect(find.textContaining('Non supporté définitivement'), findsNothing);
+  });
+
+  testWidgets('shows ready readiness for complete stage context',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageReadyCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_ready');
+
+    expect(find.text('Préparation preview'), findsOneWidget);
+    expect(find.text('Prêt pour future preview'), findsWidgets);
+    expect(find.textContaining('Map de scène — OK : Lab map'), findsWidgets);
+    expect(
+        find.textContaining('Décor — OK : décor depuis la map'), findsWidgets);
+    expect(find.textContaining('Acteurs liés — OK'), findsWidgets);
+    expect(find.textContaining('Positions initiales — OK'), findsWidgets);
+    expect(find.textContaining('Cibles de mouvement — OK'), findsWidgets);
+    expect(find.textContaining('Sources map-aware — À venir'), findsWidgets);
+    expect(find.textContaining('La preview réelle arrivera plus tard.'),
+        findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+  });
+
+  testWidgets('clears cinematic stage map from builder', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final clearButton =
+        find.byKey(const ValueKey('cinematic-builder-clear-stage-map'));
+    await tester.ensureVisible(clearButton);
+    await tester.tap(clearButton);
+    await tester.pumpAndSettle();
+
+    final updated = _asset(latestProject, 'cinematic_stage_context');
+    expect(updated.mapId, isNull);
+    expect(updated.stageContext?.backdropMode,
+        CinematicStageBackdropMode.projectMap);
+    expect(find.text('Aucune map'), findsWidgets);
+    expect(find.text('Choisis une map avant d’utiliser un décor de map.'),
+        findsWidgets);
+  });
+
+  testWidgets('switches backdrop mode without duplicating map id',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        _stageContextCinematic(
+          stageContext: CinematicStageContext(
+            backdropMode: CinematicStageBackdropMode.none,
+          ),
+        ),
+      ],
+    );
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final projectMapButton = find.byKey(
+      const ValueKey('cinematic-builder-backdrop-projectMap'),
+    );
+    await tester.ensureVisible(projectMapButton);
+    await tester.tap(projectMapButton);
+    await tester.pumpAndSettle();
+    final noneButton =
+        find.byKey(const ValueKey('cinematic-builder-backdrop-none'));
+    await tester.ensureVisible(noneButton);
+    await tester.tap(noneButton);
+    await tester.pumpAndSettle();
+
+    final updated = _asset(latestProject, 'cinematic_stage_context');
+    expect(updated.mapId, 'map_lab');
+    expect(updated.stageContext?.backdropMode, CinematicStageBackdropMode.none);
+    expect(updated.stageContext?.toJson(), isNot(contains('mapId')));
+  });
+
+  testWidgets('shows actor binding section for required actors',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Acteurs'), findsWidgets);
+    expect(find.text('Professor'), findsWidgets);
+    expect(find.text('Binding'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-binding-actor_professor-player',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('binds actor to player', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final playerButton = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-player'),
+    );
+    await tester.ensureVisible(playerButton);
+    await tester.tap(playerButton);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.actorBindings
+        .singleWhere((binding) => binding.actorId == 'actor_professor');
+    expect(binding?.kind, CinematicActorBindingKind.player);
+  });
+
+  testWidgets('prevents duplicate player binding', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextTwoActorsCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_two_actors',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final professorPlayer = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-player'),
+    );
+    await tester.ensureVisible(professorPlayer);
+    await tester.tap(professorPlayer);
+    await tester.pumpAndSettle();
+
+    final assistantPlayer = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_assistant-player'),
+    );
+    await tester.ensureVisible(assistantPlayer);
+    final button = tester.widget<PokeMapButton>(assistantPlayer);
+    expect(button.onPressed, isNull);
+    expect(
+        find.text('Un autre acteur est déjà lié au joueur.'), findsOneWidget);
+    expect(
+      _asset(latestProject, 'cinematic_stage_two_actors')
+          .stageContext
+          ?.actorBindings
+          .where((binding) => binding.kind == CinematicActorBindingKind.player)
+          .length,
+      1,
+    );
+  });
+
+  testWidgets('binds actor to cinematic only', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-cinematicOnly',
+      ),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.actorBindings
+        .singleWhere((binding) => binding.actorId == 'actor_professor');
+    expect(binding?.kind, CinematicActorBindingKind.cinematicOnly);
+  });
+
+  testWidgets('binds actor to unbound', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-unbound'),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.actorBindings
+        .singleWhere((binding) => binding.actorId == 'actor_professor');
+    expect(binding?.kind, CinematicActorBindingKind.unbound);
+  });
+
+  testWidgets(
+      'shows map entity binding option disabled when no stage map is selected',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [_stageContextCinematic(mapId: null)],
+    );
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    final button = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(button);
+    expect(tester.widget<PokeMapButton>(button).onPressed, isNull);
+    expect(find.text('Choisis d’abord une map de scène.'), findsWidgets);
+  });
+
+  testWidgets(
+      'shows honest disabled message when map entities/events are unavailable',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    final actorMapEntity = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(actorMapEntity);
+    expect(tester.widget<PokeMapButton>(actorMapEntity).onPressed, isNull);
+    expect(
+      find.text(
+        'Sélection d’entités prévue dans un lot suivant. '
+        'Le Builder ne reçoit pas encore les entités/events de la map.',
+      ),
+      findsWidgets,
+    );
+
+    final targetMapEvent = find.byKey(
+      const ValueKey('cinematic-builder-target-binding-target_center-mapEvent'),
+    );
+    await tester.ensureVisible(targetMapEvent);
+    expect(tester.widget<PokeMapButton>(targetMapEvent).onPressed, isNull);
+    expect(
+      find.text(
+        'Sélection d’events prévue dans un lot suivant. '
+        'Le Builder ne reçoit pas encore les entités/events de la map.',
+      ),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('shows initial placement section', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Positions initiales'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-initial-placement-actor_professor-unset',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('sets initial placement to unset', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey(
+          'cinematic-builder-initial-placement-actor_professor-unset'),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    final placement = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.initialPlacements
+        .singleWhere((placement) => placement.actorId == 'actor_professor');
+    expect(placement?.kind, CinematicActorInitialPlacementKind.unset);
+  });
+
+  testWidgets('sets initial placement from movement target', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final placementButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-initial-placement-actor_professor-fromMovementTarget',
+      ),
+    );
+    await tester.ensureVisible(placementButton);
+    await tester.tap(placementButton);
+    await tester.pumpAndSettle();
+    final targetButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-initial-placement-actor_professor-target-target_center',
+      ),
+    );
+    await tester.ensureVisible(targetButton);
+    await tester.tap(targetButton);
+    await tester.pumpAndSettle();
+
+    final placement = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.initialPlacements
+        .singleWhere((placement) => placement.actorId == 'actor_professor');
+    expect(
+        placement?.kind, CinematicActorInitialPlacementKind.fromMovementTarget);
+    expect(placement?.targetId, 'target_center');
+  });
+
+  testWidgets(
+      'sets initial placement from map entity only when actor binding supports it',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        _stageContextCinematic(
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: 'entity_professor',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey(
+        'cinematic-builder-initial-placement-actor_professor-fromMapEntity',
+      ),
+    );
+    await tester.ensureVisible(button);
+    expect(tester.widget<PokeMapButton>(button).onPressed, isNotNull);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    final placement = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.initialPlacements
+        .singleWhere((placement) => placement.actorId == 'actor_professor');
+    expect(placement?.kind, CinematicActorInitialPlacementKind.fromMapEntity);
+  });
+
+  testWidgets('shows movement target binding section', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Cibles de mouvement'), findsWidgets);
+    expect(find.text('Centre scène'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-target-binding-target_center-abstractPoint',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('sets movement target binding to abstract point', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey(
+          'cinematic-builder-target-binding-target_center-abstractPoint'),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.movementTargetBindings
+        .singleWhere((binding) => binding.targetId == 'target_center');
+    expect(binding?.kind, CinematicMovementTargetBindingKind.abstractPoint);
+    expect(binding?.sourceId, isNull);
+  });
+
+  testWidgets('shows stage diagnostics in builder', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        _stageContextCinematic(
+          mapId: null,
+          stageContext: CinematicStageContext(
+            backdropMode: CinematicStageBackdropMode.projectMap,
+          ),
+        ),
+      ],
+    );
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Diagnostics stage'), findsOneWidget);
+    expect(
+      find.text('Choisis une map avant d’utiliser un décor de map.'),
+      findsWidgets,
+    );
+    expect(find.text('stageBackdropRequiresMap'), findsOneWidget);
+    expect(
+      find.text('Le décor projectMap nécessite une map stage pour la preview.'),
+      findsNothing,
+    );
+  });
+
+  testWidgets('does not expose raw JSON', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('JSON'), findsNothing);
+    expect(find.text('stageContext'), findsNothing);
+    expect(find.textContaining('{'), findsNothing);
+  });
+
+  testWidgets('does not expose free ID text fields', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('mapEntityId'), findsNothing);
+    expect(find.text('sourceId'), findsNothing);
+    expect(find.text('eventId'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-stage-map-raw-id-field')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-stage-source-id-field')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('does not add stageContext map id during readiness polish',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final mapButton =
+        find.byKey(const ValueKey('cinematic-builder-stage-map-map_lab'));
+    await tester.ensureVisible(mapButton);
+    await tester.tap(mapButton);
+    await tester.pumpAndSettle();
+
+    final stageJson =
+        _asset(latestProject, 'cinematic_stage_context').stageContext?.toJson();
+    expect(stageJson, isNot(contains('mapId')));
+    expect(find.text('stageContext.mapId'), findsNothing);
+  });
+
+  testWidgets('does not mutate timeline steps', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    final beforeSteps =
+        _asset(project, 'cinematic_stage_context').timeline.toJson();
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-player'),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_context').timeline.toJson(),
+      beforeSteps,
+    );
+  });
+
+  testWidgets('does not mutate durationMs', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    final beforeDurations = _asset(project, 'cinematic_stage_context')
+        .timeline
+        .steps
+        .map((step) => step.durationMs)
+        .toList();
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final button = find.byKey(
+      const ValueKey(
+          'cinematic-builder-target-binding-target_center-abstractPoint'),
+    );
+    await tester.ensureVisible(button);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_context')
+          .timeline
+          .steps
+          .map((step) => step.durationMs)
+          .toList(),
+      beforeDurations,
+    );
+  });
+
+  testWidgets('does not enable transport controls', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets('does not start preview playback', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+
+    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Lecture read-only dans ce lot.'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+  });
+
+  testWidgets('duration editor still works after stage edits', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageDurationCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_duration',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final stageButton = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-player'),
+    );
+    await tester.ensureVisible(stageButton);
+    await tester.tap(stageButton);
+    await tester.pumpAndSettle();
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '700');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_duration')
+          .timeline
+          .steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      700,
+    );
+  });
+
+  testWidgets('resize handle still works after stage edits', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageDurationCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_duration',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final stageButton = find.byKey(
+      const ValueKey('cinematic-builder-actor-binding-actor_professor-player'),
+    );
+    await tester.ensureVisible(stageButton);
+    await tester.tap(stageButton);
+    await tester.pumpAndSettle();
+    final faceRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.tapAt(faceRect.center);
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(120, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_duration')
+          .timeline
+          .steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      greaterThan(500),
+    );
+  });
+
   testWidgets('renders a derived time axis with proportional bars',
       (tester) async {
     _setLargeSurface(tester);
@@ -3470,11 +4280,11 @@ void main() {
     await tester.tap(addDraftButton);
     await tester.pumpAndSettle();
     expect(find.text('Bloc brouillon'), findsWidgets);
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-remove-authoring-step-button'),
-      ),
+    final removeButton = find.byKey(
+      const ValueKey('cinematic-builder-remove-authoring-step-button'),
     );
+    await tester.ensureVisible(removeButton);
+    await tester.tap(removeButton);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('cinematic-builder-step-card-step_draft')),
@@ -5255,6 +6065,153 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-73 cinematic stage map context editor when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_73_CAPTURE_CINEMATIC_STAGE_CONTEXT_EDITOR',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final project = _project(
+      cinematics: [
+        _stageContextCinematic(
+          stageContext: CinematicStageContext(
+            backdropMode: CinematicStageBackdropMode.projectMap,
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.player,
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+                targetId: 'target_center',
+              ),
+            ],
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.abstractPoint,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(find.text('Contexte de scène'), findsOneWidget);
+    expect(find.text('Map de scène'), findsOneWidget);
+    expect(find.text('Lab map'), findsWidgets);
+    expect(find.text('Décor depuis la map'), findsWidgets);
+    expect(find.text('Acteurs'), findsWidgets);
+    expect(find.text('Positions initiales'), findsWidgets);
+    expect(find.text('Cibles de mouvement'), findsWidgets);
+    expect(find.text('Diagnostics stage'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-keyboard-focus')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-transport-controls')),
+      findsOneWidget,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_73_cinematic_stage_map_context_editor_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-74 cinematic stage preview readiness polish when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_74_CAPTURE_CINEMATIC_STAGE_PREVIEW_READINESS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final project = _project(cinematics: [_stageContextCinematic()]);
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(find.text('Aperçu sandbox'), findsOneWidget);
+    expect(find.text('Contexte de scène'), findsOneWidget);
+    expect(find.text('Préparation preview'), findsOneWidget);
+    expect(find.text('Contexte incomplet'), findsWidgets);
+    expect(find.textContaining('La preview réelle arrivera plus tard.'),
+        findsWidgets);
+    expect(find.textContaining('Map de scène — OK'), findsWidgets);
+    expect(find.textContaining('Décor — OK'), findsWidgets);
+    expect(find.textContaining('Acteurs liés — À compléter'), findsWidgets);
+    expect(
+        find.textContaining('Positions initiales — À compléter'), findsWidgets);
+    expect(
+        find.textContaining('Cibles de mouvement — À compléter'), findsWidgets);
+    expect(find.textContaining('Sources map-aware — À venir'), findsWidgets);
+    expect(find.text('Lab map'), findsWidgets);
+    expect(find.text('Décor depuis la map'), findsWidgets);
+    expect(find.text('Acteurs'), findsWidgets);
+    expect(find.text('Binding'), findsWidgets);
+    expect(find.text('Positions initiales'), findsWidgets);
+    expect(find.text('Cibles de mouvement'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_74_cinematic_stage_context_diagnostics_'
+      'preview_readiness_polish_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -5275,6 +6232,13 @@ Future<void> _pumpBuilder(
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
+              stageMaps: const <ProjectMapEntry>[
+                ProjectMapEntry(
+                  id: 'map_lab',
+                  name: 'Lab map',
+                  relativePath: 'lab.json',
+                ),
+              ],
               onBackToLibrary: onBackToLibrary ?? () {},
               onAddDraftStep: ({
                 required String cinematicId,
@@ -5353,6 +6317,31 @@ Future<void> _pumpBuilder(
                 required String stepId,
               }) async =>
                   false,
+              onUpdateStageMap: ({
+                required String cinematicId,
+                String? mapId,
+              }) async =>
+                  false,
+              onUpdateStageContext: ({
+                required String cinematicId,
+                required CinematicStageContext stageContext,
+              }) async =>
+                  false,
+              onUpsertActorBinding: ({
+                required String cinematicId,
+                required CinematicActorBinding binding,
+              }) async =>
+                  false,
+              onUpsertActorInitialPlacement: ({
+                required String cinematicId,
+                required CinematicActorInitialPlacement placement,
+              }) async =>
+                  false,
+              onUpsertMovementTargetBinding: ({
+                required String cinematicId,
+                required CinematicMovementTargetBinding binding,
+              }) async =>
+                  false,
             ),
           ),
         ),
@@ -5414,6 +6403,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
+              stageMaps: _project.maps,
               onBackToLibrary: () {},
               onAddDraftStep: _addDraftStep,
               onRemoveDraftStep: _removeDraftStep,
@@ -5428,6 +6418,11 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onAddActorMoveStep: _addActorMoveStep,
               onUpdateActorMoveStep: _updateActorMoveStep,
               onRemoveAuthoringStep: _removeAuthoringStep,
+              onUpdateStageMap: _updateStageMap,
+              onUpdateStageContext: _updateStageContext,
+              onUpsertActorBinding: _upsertActorBinding,
+              onUpsertActorInitialPlacement: _upsertActorInitialPlacement,
+              onUpsertMovementTargetBinding: _upsertMovementTargetBinding,
             ),
           ),
         ),
@@ -5551,6 +6546,76 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return result.removedTarget.targetId == targetId;
+  }
+
+  Future<bool> _updateStageMap({
+    required String cinematicId,
+    String? mapId,
+  }) async {
+    final result = updateCinematicStageMap(
+      _project,
+      cinematicId: cinematicId,
+      mapId: mapId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _updateStageContext({
+    required String cinematicId,
+    required CinematicStageContext stageContext,
+  }) async {
+    final result = updateCinematicStageContext(
+      _project,
+      cinematicId: cinematicId,
+      stageContext: stageContext,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _upsertActorBinding({
+    required String cinematicId,
+    required CinematicActorBinding binding,
+  }) async {
+    final result = upsertCinematicActorBinding(
+      _project,
+      cinematicId: cinematicId,
+      binding: binding,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _upsertActorInitialPlacement({
+    required String cinematicId,
+    required CinematicActorInitialPlacement placement,
+  }) async {
+    final result = upsertCinematicActorInitialPlacement(
+      _project,
+      cinematicId: cinematicId,
+      placement: placement,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _upsertMovementTargetBinding({
+    required String cinematicId,
+    required CinematicMovementTargetBinding binding,
+  }) async {
+    final result = upsertCinematicMovementTargetBinding(
+      _project,
+      cinematicId: cinematicId,
+      binding: binding,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
   }
 
   Future<String?> _addActorFacingStep({
@@ -6158,6 +7223,230 @@ CinematicAsset _richCinematic() {
           durationMs: 300,
           assetRef: 'door_chime',
           metadata: const {'volume': '0.8'},
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _stageContextCinematic({
+  String? mapId = 'map_lab',
+  CinematicStageContext? stageContext,
+}) {
+  return CinematicAsset(
+    id: 'cinematic_stage_context',
+    title: 'Stage context cinematic',
+    description: 'Stage context authoring.',
+    mapId: mapId,
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+    ],
+    stageContext: stageContext ??
+        CinematicStageContext(
+          backdropMode: CinematicStageBackdropMode.projectMap,
+        ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera reveal',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_move',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Move professor',
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _stageSandboxOnlyCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_stage_sandbox',
+    title: 'Stage sandbox cinematic',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _stageUnknownMapCinematic() {
+  return _stageContextCinematic(mapId: 'missing_map');
+}
+
+CinematicAsset _stageReadyCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_stage_ready',
+    title: 'Stage ready cinematic',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_center',
+        label: 'Centre scène',
+      ),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_professor',
+          kind: CinematicActorBindingKind.player,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_professor',
+          kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+          targetId: 'target_center',
+        ),
+      ],
+      movementTargetBindings: [
+        CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.abstractPoint,
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Camera reveal',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_move',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Move professor',
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _stageContextTwoActorsCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_stage_two_actors',
+    title: 'Stage two actors cinematic',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+      CinematicActorRef(
+        actorId: 'actor_assistant',
+        label: 'Assistant',
+      ),
+    ],
+    stageContext: CinematicStageContext(),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Beat',
+          durationMs: 500,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _stageDurationCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_stage_duration',
+    title: 'Stage duration cinematic',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(
+        actorId: 'actor_professor',
+        label: 'Professor',
+      ),
+    ],
+    stageContext: CinematicStageContext(),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Professor turns',
+          actorId: 'actor_professor',
+          durationMs: 500,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorFaceBlockMetadataValue,
+            cinematicTimelineActorDirectionMetadataKey: 'down',
+          },
         ),
       ],
     ),

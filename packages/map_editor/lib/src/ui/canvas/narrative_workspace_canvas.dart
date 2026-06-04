@@ -1114,6 +1114,11 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onAddTimelineActorMove: _addCinematicTimelineActorMove,
       onUpdateTimelineActorMove: _updateCinematicTimelineActorMove,
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
+      onUpdateStageMap: _updateCinematicStageMap,
+      onUpdateStageContext: _updateCinematicStageContext,
+      onUpsertActorBinding: _upsertCinematicActorBinding,
+      onUpsertActorInitialPlacement: _upsertCinematicActorInitialPlacement,
+      onUpsertMovementTargetBinding: _upsertCinematicMovementTargetBinding,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
       },
@@ -1176,6 +1181,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           tags: existing.tags,
           requiredActors: existing.requiredActors,
           movementTargets: existing.movementTargets,
+          stageContext: existing.stageContext,
           timeline: existing.timeline,
           notes: notes.trim(),
           metadata: existing.metadata,
@@ -1552,6 +1558,126 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         statusMessage: 'Cinematic timeline authoring step removed',
       );
       return result.removedStep.id == stepId;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _updateCinematicStageMap({
+    required String cinematicId,
+    String? mapId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicStageMap(
+        project,
+        cinematicId: cinematicId,
+        mapId: mapId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic stage map updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _updateCinematicStageContext({
+    required String cinematicId,
+    required CinematicStageContext stageContext,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicStageContext(
+        project,
+        cinematicId: cinematicId,
+        stageContext: stageContext,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic stage context updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _upsertCinematicActorBinding({
+    required String cinematicId,
+    required CinematicActorBinding binding,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = upsertCinematicActorBinding(
+        project,
+        cinematicId: cinematicId,
+        binding: binding,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor binding updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _upsertCinematicActorInitialPlacement({
+    required String cinematicId,
+    required CinematicActorInitialPlacement placement,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = upsertCinematicActorInitialPlacement(
+        project,
+        cinematicId: cinematicId,
+        placement: placement,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor placement updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _upsertCinematicMovementTargetBinding({
+    required String cinematicId,
+    required CinematicMovementTargetBinding binding,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = upsertCinematicMovementTargetBinding(
+        project,
+        cinematicId: cinematicId,
+        binding: binding,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic target binding updated',
+      );
+      return true;
     } on ArgumentError {
       return false;
     }

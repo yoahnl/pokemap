@@ -127,16 +127,18 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-70 — Cinematic Timeline Duration Validation / Diagnostics Polish V0 | DONE | Messages d'erreur, bornes min/max, pas 100 ms, feedback clamp resize, explication blocs non editables et diagnostics duree consolides, sans elargir le modele temporel. |
 | NS-SCENES-V1-71 — Cinematic Stage / Map Context Prep Contract | DONE | Contrat documentaire du futur contexte stage : option hybride retenue, mapId/backdropMode, actor bindings, positions initiales, targets map-aware, diagnostics futurs et roadmap post-V1-71 cadres sans code produit. |
 | NS-SCENES-V1-72 — Cinematic Stage / Map Context Core Model V0 | DONE | Modele authoring minimal du Stage Context dans `CinematicAsset` : `CinematicAsset.mapId` reste l'unique ancre Stage Map, `stageContext` ajoute backdropMode, actorBindings, initialPlacements, movementTargetBindings, operations pures et diagnostics core, sans UI ni preview reelle. |
-| NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0 | TODO | Exposer le Stage Context dans le Cinematic Builder/Library avec pickers no-code map/backdrop/bindings/placements/target bindings, en preservant sandbox, timeline et absence de preview reelle/runtime. |
+| NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0 | DONE | Stage Context expose dans le Cinematic Builder/Library : picker `ProjectManifest.maps`, clear map, backdrop none/projectMap, actor bindings, placements initiaux, target bindings, diagnostics stage, Visual Gate 1663x926, sans preview reelle/runtime ni `stageContext.mapId`. |
+| NS-SCENES-V1-74 — Cinematic Stage Context Diagnostics / Preview Readiness Polish V0 | DONE | Panneau `Preparation preview`, statuts sandbox/incomplet/bloquant/pret, checklist no-code stage, diagnostics humains et summary Library `Preview`, sans preview reelle ni runtime. |
+| NS-SCENES-V1-75 — Cinematic Map Entity/Event Source Audit / Picker Prep Contract | TODO | Auditer les sources editor fiables pour exposer plus tard des pickers `mapEntity` / `mapEvent` sans IDs libres, coordonnees libres, runtime preview ou faux branchement map-aware. |
 | NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage stage/map, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`
+`NS-SCENES-V1-75 — Cinematic Map Entity/Event Source Audit / Picker Prep Contract`
 
-Raison : V1-72 a materialise le contrat stage/map dans `map_core`. Le prochain verrou produit est de rendre ce contexte authorable depuis le Builder/Library avec des controles no-code, sans encore promettre de preview reelle ou de runtime cinematic map-aware.
+Raison : V1-74 rend le contexte stage lisible et diagnostique, mais `mapEntity` / `mapEvent` restent volontairement desactives. Le prochain verrou produit est d'auditer les sources editor disponibles avant d'ouvrir des pickers fiables.
 
-Ordre apres V1-72 : `NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`.
+Ordre apres V1-74 : `NS-SCENES-V1-75 — Cinematic Map Entity/Event Source Audit / Picker Prep Contract`.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context, et le polish scroll/visibility est deplace explicitement en `NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
@@ -185,6 +187,34 @@ Limites : pas d'UI Stage Context, pas de preview reelle, pas de runtime cinemati
 Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_72_cinematic_stage_map_context_core_model_v0.md`, evidence pack `reports/narrativeStudio/scenes/ns_scenes_v1_72_evidence_pack.md`, `dart test --reporter=compact` `map_core` `+2354`, `dart analyze` `map_core` vert, tests editor Library `+10` et Builder `+93`. `flutter analyze` global `map_editor` reste rouge sur dette Pokemon SDK hors lot.
 
 Prochain lot exact : `NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0`.
+
+## Mise a jour V1-73
+
+Statut : `NS-SCENES-V1-73 — Cinematic Stage / Map Context Editor V0` est DONE.
+
+Decision : le Builder expose le Stage Context V1-72 en authoring no-code. `CinematicAsset.mapId` reste l'unique ancre Stage Map ; aucun `stageContext.mapId` n'est ajoute. Les choix mapEntity/mapEvent restent visibles mais desactives avec messages honnetes, car le Builder ne dispose pas encore d'une source fiable `MapData.entities/events`.
+
+Scope realise : picker de map depuis `ProjectManifest.maps`, clear map, backdrop `none/projectMap`, actor bindings `player/mapEntity/cinematicOnly/unbound`, placements initiaux `unset/fromMapEntity/fromMovementTarget`, target bindings `abstractPoint/mapEntity/mapEvent`, diagnostics stage visibles, summary Library map lisible et compteur diagnostics stage, integration projet en memoire.
+
+Limites : pas de preview reelle, pas de runtime cinematic map-aware, pas de playback, pas de pathfinding/collision/warp, pas de coordonnees libres, pas de raw JSON/IDs libres, pas de donnees Selbrume codees. Les entites/events de map seront selectionnables dans un lot futur quand le Builder recevra une source de donnees map fiable.
+
+Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_73_cinematic_stage_map_context_editor_v0.md`, evidence pack `reports/narrativeStudio/scenes/ns_scenes_v1_73_evidence_pack.md`, screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_73_cinematic_stage_map_context_editor_v0.png` (`1663 x 926`, SHA-256 `79621972c1c50ef26ac1f5603b1587a6a2752087bd802d43173488154a3454ed`), tests Builder `+119`, Library `+11`, `map_core` cibles verts, analyse cible `map_editor` verte. `flutter analyze` global `map_editor` reste rouge sur dette Pokemon SDK hors lot.
+
+Prochain lot exact : `NS-SCENES-V1-74 — Cinematic Stage Context Diagnostics / Preview Readiness Polish V0`.
+
+## Mise a jour V1-74
+
+Statut : `NS-SCENES-V1-74 — Cinematic Stage Context Diagnostics / Preview Readiness Polish V0` est DONE.
+
+Decision : le Builder affiche maintenant une section `Preparation preview` pres du `Contexte de scene`. Elle classe le Stage Context en `Sandbox uniquement`, `Contexte incomplet`, `A corriger avant preview` ou `Pret pour future preview`, avec une checklist no-code : map, decor, acteurs lies, positions initiales, cibles de mouvement et sources map-aware. La Library affiche aussi un resume `Preview`.
+
+Scope realise : diagnostics stage regroupes avec messages humains, reference technique secondaire, messages explicites pour les gaps futurs `mapEntity` / `mapEvent`, transports toujours desactives, timeline et durees preservees, aucun `stageContext.mapId`.
+
+Limites : pas de preview reelle, pas de playback, pas de timer, pas de `currentTimeMs`/`playbackTimeMs`/`isPlaying`, pas de pathfinding/collision/warp/spawn, pas de donnees Selbrume, pas de source map-aware reelle pour entites/events.
+
+Preuve : rapport `reports/narrativeStudio/scenes/ns_scenes_v1_74_cinematic_stage_context_diagnostics_preview_readiness_polish_v0.md`, evidence pack `reports/narrativeStudio/scenes/ns_scenes_v1_74_evidence_pack.md`, capture `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_74_cinematic_stage_context_diagnostics_preview_readiness_polish_v0.png`, tests Builder/Library verts, `map_core` cibles verts, analyse cible `map_editor` verte. `flutter analyze` global `map_editor` reste rouge sur dette Pokemon SDK hors lot.
+
+Prochain lot exact : `NS-SCENES-V1-75 — Cinematic Map Entity/Event Source Audit / Picker Prep Contract`.
 
 ## Mise a jour V1-51
 

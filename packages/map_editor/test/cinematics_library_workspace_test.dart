@@ -81,6 +81,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Résumé timeline'), findsOneWidget);
+    expect(find.text('Map stage'), findsOneWidget);
+    expect(find.text('Lab map'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
+    expect(find.text('sandbox uniquement'), findsOneWidget);
     expect(find.text('2 step(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsOneWidget);
     expect(find.text('actor_professor'), findsWidgets);
@@ -93,6 +97,90 @@ void main() {
       ),
       isNotNull,
     );
+  });
+
+  testWidgets('shows stage diagnostics count for canonical entry',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_stage_diagnostic',
+              title: 'Stage diagnostic cinematic',
+              stageContext: CinematicStageContext(
+                backdropMode: CinematicStageBackdropMode.projectMap,
+              ),
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    label: 'Beat',
+                    durationMs: 500,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          includeBridge: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Map stage'), findsOneWidget);
+    expect(find.text('Aucune map'), findsOneWidget);
+    expect(find.text('1 diagnostic stage'), findsOneWidget);
+  });
+
+  testWidgets('shows preview readiness summary for incomplete stage context',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_stage_preview_summary',
+              title: 'Stage preview summary cinematic',
+              mapId: 'map_lab',
+              requiredActors: [
+                CinematicActorRef(
+                  actorId: 'actor_professor',
+                  label: 'Professor',
+                ),
+              ],
+              movementTargets: [
+                CinematicMovementTargetRef(
+                  targetId: 'target_center',
+                  label: 'Centre scène',
+                ),
+              ],
+              stageContext: CinematicStageContext(
+                backdropMode: CinematicStageBackdropMode.projectMap,
+              ),
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    label: 'Beat',
+                    durationMs: 500,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          includeBridge: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Preview'), findsOneWidget);
+    expect(find.text('contexte incomplet'), findsOneWidget);
   });
 
   testWidgets('opens builder shell for canonical cinematic and returns',
@@ -412,6 +500,7 @@ class _HarnessState extends State<_Harness> {
                     tags: existing.tags,
                     requiredActors: existing.requiredActors,
                     movementTargets: existing.movementTargets,
+                    stageContext: existing.stageContext,
                     timeline: existing.timeline,
                     notes: notes,
                     metadata: existing.metadata,
@@ -613,6 +702,66 @@ class _HarnessState extends State<_Harness> {
                 );
                 setState(() => _project = result.updatedProject);
                 return result.removedStep.id == stepId;
+              },
+              onUpdateStageMap: ({
+                required String cinematicId,
+                String? mapId,
+              }) async {
+                final result = updateCinematicStageMap(
+                  _project,
+                  cinematicId: cinematicId,
+                  mapId: mapId,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onUpdateStageContext: ({
+                required String cinematicId,
+                required CinematicStageContext stageContext,
+              }) async {
+                final result = updateCinematicStageContext(
+                  _project,
+                  cinematicId: cinematicId,
+                  stageContext: stageContext,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onUpsertActorBinding: ({
+                required String cinematicId,
+                required CinematicActorBinding binding,
+              }) async {
+                final result = upsertCinematicActorBinding(
+                  _project,
+                  cinematicId: cinematicId,
+                  binding: binding,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onUpsertActorInitialPlacement: ({
+                required String cinematicId,
+                required CinematicActorInitialPlacement placement,
+              }) async {
+                final result = upsertCinematicActorInitialPlacement(
+                  _project,
+                  cinematicId: cinematicId,
+                  placement: placement,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onUpsertMovementTargetBinding: ({
+                required String cinematicId,
+                required CinematicMovementTargetBinding binding,
+              }) async {
+                final result = upsertCinematicMovementTargetBinding(
+                  _project,
+                  cinematicId: cinematicId,
+                  binding: binding,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
               },
               onOpenLegacyCutsceneStudio: () {},
             ),

@@ -5,6 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import 'cinematic_builder_workspace.dart';
+import 'cinematic_stage_preview_readiness.dart';
 
 typedef CreateCinematicShellCallback = Future<String?> Function({
   required String title,
@@ -103,6 +104,31 @@ typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
   required String stepId,
 });
 
+typedef UpdateStageMapCallback = Future<bool> Function({
+  required String cinematicId,
+  String? mapId,
+});
+
+typedef UpdateStageContextCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicStageContext stageContext,
+});
+
+typedef UpsertActorBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicActorBinding binding,
+});
+
+typedef UpsertActorInitialPlacementCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicActorInitialPlacement placement,
+});
+
+typedef UpsertMovementTargetBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicMovementTargetBinding binding,
+});
+
 enum _CinematicsLibraryFilter {
   all,
   canonical,
@@ -129,6 +155,11 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onAddTimelineActorMove,
     required this.onUpdateTimelineActorMove,
     required this.onRemoveTimelineAuthoringStep,
+    required this.onUpdateStageMap,
+    required this.onUpdateStageContext,
+    required this.onUpsertActorBinding,
+    required this.onUpsertActorInitialPlacement,
+    required this.onUpsertMovementTargetBinding,
     this.onOpenLegacyCutsceneStudio,
   });
 
@@ -149,6 +180,11 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final AddTimelineActorMoveCallback onAddTimelineActorMove;
   final UpdateTimelineActorMoveCallback onUpdateTimelineActorMove;
   final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
+  final UpdateStageMapCallback onUpdateStageMap;
+  final UpdateStageContextCallback onUpdateStageContext;
+  final UpsertActorBindingCallback onUpsertActorBinding;
+  final UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
+  final UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -198,6 +234,7 @@ class _CinematicsLibraryWorkspaceState
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
+        stageMaps: widget.project.maps,
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
         },
@@ -214,6 +251,11 @@ class _CinematicsLibraryWorkspaceState
         onAddActorMoveStep: widget.onAddTimelineActorMove,
         onUpdateActorMoveStep: widget.onUpdateTimelineActorMove,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
+        onUpdateStageMap: widget.onUpdateStageMap,
+        onUpdateStageContext: widget.onUpdateStageContext,
+        onUpsertActorBinding: widget.onUpsertActorBinding,
+        onUpsertActorInitialPlacement: widget.onUpsertActorInitialPlacement,
+        onUpsertMovementTargetBinding: widget.onUpsertMovementTargetBinding,
       );
     }
     if (_builderEntryId != null) {
@@ -428,6 +470,7 @@ class _CinematicsLibraryWorkspaceState
     BuildContext context,
     CinematicsLibraryEntry entry,
   ) {
+    final asset = findCinematicById(widget.project, entry.id);
     final deleteEnabled = entry.isRemovable;
     final deleteLabel = _pendingDeleteId == entry.id
         ? 'Confirmer suppression'
@@ -526,7 +569,11 @@ class _CinematicsLibraryWorkspaceState
               ),
             ],
             const SizedBox(height: 16),
-            _MetadataSummary(entry: entry),
+            _MetadataSummary(
+              entry: entry,
+              maps: widget.project.maps,
+              asset: asset,
+            ),
             const SizedBox(height: 12),
             _TimelineSummaryPanel(timeline: entry.timeline),
           ],
@@ -916,12 +963,26 @@ class _BridgeDetailsPanel extends StatelessWidget {
 }
 
 class _MetadataSummary extends StatelessWidget {
-  const _MetadataSummary({required this.entry});
+  const _MetadataSummary({
+    required this.entry,
+    required this.maps,
+    required this.asset,
+  });
 
   final CinematicsLibraryEntry entry;
+  final List<ProjectMapEntry> maps;
+  final CinematicAsset? asset;
 
   @override
   Widget build(BuildContext context) {
+    final stageDiagnostics = _stageDiagnosticsFor(entry);
+    final readiness = asset == null
+        ? null
+        : buildCinematicStagePreviewReadiness(
+            asset: asset!,
+            entry: entry,
+            maps: maps,
+          );
     return PokeMapCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -932,7 +993,9 @@ class _MetadataSummary extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _KeyValue(label: 'Statut', value: entry.statusLabel),
-          _KeyValue(label: 'Map', value: entry.mapId ?? 'Aucune map'),
+          _KeyValue(label: 'Map stage', value: _stageMapLabel(entry, maps)),
+          if (readiness != null)
+            _KeyValue(label: 'Preview', value: readiness.libraryStatusLabel),
           _KeyValue(
             label: 'Storyline',
             value: entry.storylineId ?? 'Aucune storyline',
@@ -961,11 +1024,61 @@ class _MetadataSummary extends StatelessWidget {
                   ),
               ],
             ),
+          if (stageDiagnostics.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            PokeMapBadge(
+              label: stageDiagnostics.length == 1
+                  ? '1 diagnostic stage'
+                  : '${stageDiagnostics.length} diagnostics stage',
+              variant: PokeMapBadgeVariant.warning,
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+String _stageMapLabel(
+  CinematicsLibraryEntry entry,
+  List<ProjectMapEntry> maps,
+) {
+  final mapId = entry.mapId;
+  if (mapId == null || mapId.trim().isEmpty) {
+    return 'Aucune map';
+  }
+  for (final map in maps) {
+    if (map.id == mapId) {
+      return map.name.trim().isEmpty ? map.id : map.name;
+    }
+  }
+  return mapId;
+}
+
+List<CinematicsLibraryDiagnosticView> _stageDiagnosticsFor(
+  CinematicsLibraryEntry entry,
+) {
+  return entry.diagnostics
+      .where((diagnostic) => _stageDiagnosticCodes.contains(diagnostic.code))
+      .toList(growable: false);
+}
+
+const _stageDiagnosticCodes = <String>{
+  'stageMapUnknown',
+  'stageBackdropRequiresMap',
+  'actorBindingUnknownActor',
+  'actorBindingMissing',
+  'actorBindingDuplicatePlayer',
+  'actorBindingRequiresStageMap',
+  'actorBindingMapEntityMissingSource',
+  'actorInitialPlacementUnknownActor',
+  'actorInitialPlacementMissing',
+  'actorInitialPlacementTargetUnknown',
+  'actorInitialPlacementRequiresBinding',
+  'movementTargetBindingUnknownTarget',
+  'movementTargetBindingRequiresStageMap',
+  'movementTargetBindingMissingSource',
+};
 
 class _TimelineSummaryPanel extends StatelessWidget {
   const _TimelineSummaryPanel({required this.timeline});
