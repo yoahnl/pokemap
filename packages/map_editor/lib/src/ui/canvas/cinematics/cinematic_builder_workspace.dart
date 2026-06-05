@@ -212,6 +212,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.groups,
     required this.characters,
     this.stageMapSourceCatalog,
     required this.onBackToLibrary,
@@ -240,6 +241,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final VoidCallback onBackToLibrary;
@@ -397,6 +399,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       entry: widget.entry,
                       asset: widget.asset,
                       stageMaps: widget.stageMaps,
+                      groups: widget.groups,
                       characters: widget.characters,
                       stageMapSourceCatalog: widget.stageMapSourceCatalog,
                       selectedStep: selectedStep,
@@ -3634,6 +3637,7 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.groups,
     required this.characters,
     required this.stageMapSourceCatalog,
     required this.selectedStep,
@@ -3655,6 +3659,7 @@ class _InspectorPlaceholder extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicTimelineStep? selectedStep;
@@ -3693,6 +3698,7 @@ class _InspectorPlaceholder extends StatelessWidget {
               entry: entry,
               asset: asset,
               stageMaps: stageMaps,
+              groups: groups,
               characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog,
               onUpdateStageMap: onUpdateStageMap,
@@ -3768,6 +3774,7 @@ class _StageContextEditor extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.groups,
     required this.characters,
     required this.stageMapSourceCatalog,
     required this.onUpdateStageMap,
@@ -3782,6 +3789,7 @@ class _StageContextEditor extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpdateStageMapCallback onUpdateStageMap;
@@ -3815,6 +3823,7 @@ class _StageContextEditor extends StatelessWidget {
           _StageMapSection(
             asset: asset,
             stageMaps: stageMaps,
+            groups: groups,
             onUpdateStageMap: onUpdateStageMap,
           ),
           const SizedBox(height: 10),
@@ -3861,64 +3870,538 @@ class _StageContextEditor extends StatelessWidget {
   }
 }
 
-class _StageMapSection extends StatelessWidget {
+class _StageMapSection extends StatefulWidget {
   const _StageMapSection({
     required this.asset,
     required this.stageMaps,
+    required this.groups,
     required this.onUpdateStageMap,
   });
 
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectMapGroup> groups;
   final _UpdateStageMapCallback onUpdateStageMap;
 
   @override
+  State<_StageMapSection> createState() => _StageMapSectionState();
+}
+
+class _StageMapSectionState extends State<_StageMapSection> {
+  @override
   Widget build(BuildContext context) {
-    final selectedMap = _stageMapForId(stageMaps, asset.mapId);
+    final colors = context.pokeMapColors;
+    final selectedMap = _stageMapForId(widget.stageMaps, widget.asset.mapId);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _KeyValue(
-          label: 'Map de scène',
-          value: selectedMap == null ? 'Aucune map' : selectedMap.name,
-        ),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            _InlineControlAction(
-              label: 'Effacer la map',
-              button: PokeMapButton(
-                key: const ValueKey('cinematic-builder-clear-stage-map'),
-                onPressed:
-                    asset.mapId == null ? null : () => onUpdateStageMap(null),
-                variant: PokeMapButtonVariant.secondary,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(CupertinoIcons.xmark_circle),
-                child: const SizedBox.shrink(),
+        Text(
+          'Map de scène',
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: colors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
               ),
-            ),
-            for (final map in stageMaps)
-              _InlineControlAction(
-                label: map.name,
-                button: PokeMapButton(
-                  key: ValueKey('cinematic-builder-stage-map-${map.id}'),
-                  onPressed: () => onUpdateStageMap(map.id),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: asset.mapId == map.id,
-                  leading: const Icon(CupertinoIcons.map),
-                  child: const SizedBox.shrink(),
+        ),
+        const SizedBox(height: 4),
+        Builder(
+          builder: (dropdownContext) {
+            return GestureDetector(
+              key: const ValueKey('cinematic-builder-stage-map-dropdown'),
+              onTap: widget.stageMaps.isEmpty
+                  ? null
+                  : () => _showTreeDropdown(context, dropdownContext),
+              child: MouseRegion(
+                cursor: widget.stageMaps.isEmpty
+                    ? SystemMouseCursors.basic
+                    : SystemMouseCursors.click,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colors.controlSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colors.borderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        selectedMap == null ? CupertinoIcons.xmark_circle : CupertinoIcons.map,
+                        size: 14,
+                        color: selectedMap == null ? colors.textMuted : colors.brandPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          selectedMap == null ? 'Aucune map' : selectedMap.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                                color: colors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ),
+                      Icon(
+                        CupertinoIcons.chevron_down,
+                        size: 14,
+                        color: colors.textMuted,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-          ],
+            );
+          },
         ),
-        if (stageMaps.isEmpty) ...[
+        if (widget.stageMaps.isEmpty) ...[
           const SizedBox(height: 6),
           const _MutedText('Aucune map projet disponible.'),
         ],
       ],
     );
+  }
+
+  void _showTreeDropdown(BuildContext context, BuildContext dropdownContext) {
+    final box = dropdownContext.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final position = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    final colors = context.pokeMapColors;
+
+    final roots = _buildMapTree(widget.groups, widget.stageMaps);
+
+    late OverlayEntry entry;
+
+    void dismiss() {
+      if (entry.mounted) {
+        entry.remove();
+      }
+    }
+
+    entry = OverlayEntry(
+      builder: (ctx) {
+        final overlayBox = Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final maxH = overlayBox.size.height;
+        final maxW = overlayBox.size.width;
+
+        var left = position.dx;
+        var top = position.dy + size.height + 4;
+
+        const menuWidth = 280.0;
+        if (left + menuWidth > maxW - 8) {
+          left = maxW - menuWidth - 8;
+        }
+        if (left < 8) left = 8;
+
+        const estimatedHeight = 320.0;
+        if (top + estimatedHeight > maxH - 8) {
+          top = position.dy - estimatedHeight - 4;
+        }
+        if (top < 8) top = 8;
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => dismiss(),
+              ),
+            ),
+            Positioned(
+              left: left,
+              top: top,
+              child: Material(
+                color: Colors.transparent,
+                child: _MapTreeDropdownPopup(
+                  roots: roots,
+                  selectedMapId: widget.asset.mapId,
+                  colors: colors,
+                  width: menuWidth,
+                  height: estimatedHeight,
+                  onMapSelected: (map) {
+                    widget.onUpdateStageMap(map?.id);
+                    dismiss();
+                  },
+                  onDismiss: dismiss,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(entry);
+  }
+}
+
+class _MapTreeNode {
+  _MapTreeNode({
+    required this.id,
+    required this.name,
+    required this.isGroup,
+    this.group,
+    this.map,
+    required this.children,
+  });
+
+  final String id;
+  final String name;
+  final bool isGroup;
+  final ProjectMapGroup? group;
+  final ProjectMapEntry? map;
+  final List<_MapTreeNode> children;
+}
+
+List<_MapTreeNode> _buildMapTree(
+  List<ProjectMapGroup> groups,
+  List<ProjectMapEntry> maps,
+) {
+  final Map<String, List<_MapTreeNode>> childrenByGroupId = {};
+
+  for (final map in maps) {
+    if (map.groupId != null) {
+      childrenByGroupId.putIfAbsent(map.groupId!, () => []).add(
+        _MapTreeNode(
+          id: 'map_${map.id}',
+          name: map.name,
+          isGroup: false,
+          map: map,
+          children: [],
+        ),
+      );
+    }
+  }
+
+  final Map<String, List<ProjectMapGroup>> subGroupsByParentId = {};
+  for (final group in groups) {
+    if (group.parentGroupId != null) {
+      subGroupsByParentId.putIfAbsent(group.parentGroupId!, () => []).add(group);
+    }
+  }
+
+  _MapTreeNode buildGroupNode(ProjectMapGroup group) {
+    final List<_MapTreeNode> children = [];
+
+    final subGroups = subGroupsByParentId[group.id] ?? [];
+    for (final sg in subGroups) {
+      children.add(buildGroupNode(sg));
+    }
+
+    final gMaps = childrenByGroupId[group.id] ?? [];
+    children.addAll(gMaps);
+
+    return _MapTreeNode(
+      id: 'group_${group.id}',
+      name: group.name,
+      isGroup: true,
+      group: group,
+      children: children,
+    );
+  }
+
+  final List<_MapTreeNode> roots = [];
+
+  final rootGroups = groups.where((g) => g.parentGroupId == null).toList();
+  for (final rg in rootGroups) {
+    roots.add(buildGroupNode(rg));
+  }
+
+  final rootMaps = maps.where((m) => m.groupId == null).toList();
+  for (final rm in rootMaps) {
+    roots.add(
+      _MapTreeNode(
+        id: 'map_${rm.id}',
+        name: rm.name,
+        isGroup: false,
+        map: rm,
+        children: [],
+      ),
+    );
+  }
+
+  return roots;
+}
+
+class _MapTreeDropdownPopup extends StatefulWidget {
+  const _MapTreeDropdownPopup({
+    required this.roots,
+    required this.selectedMapId,
+    required this.colors,
+    required this.width,
+    required this.height,
+    required this.onMapSelected,
+    required this.onDismiss,
+  });
+
+  final List<_MapTreeNode> roots;
+  final String? selectedMapId;
+  final PokeMapColorTokens colors;
+  final double width;
+  final double height;
+  final ValueChanged<ProjectMapEntry?> onMapSelected;
+  final VoidCallback onDismiss;
+
+  @override
+  State<_MapTreeDropdownPopup> createState() => _MapTreeDropdownPopupState();
+}
+
+class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
+  final Set<String> _collapsedGroupIds = {};
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: widget.width,
+      height: widget.height,
+      decoration: BoxDecoration(
+        color: widget.colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: widget.colors.borderStrong),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildClearItem(),
+            Container(
+              height: 1,
+              color: widget.colors.divider,
+            ),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                children: [
+                  for (final root in widget.roots)
+                    ..._buildNodeWidgets(root, depth: 0),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildClearItem() {
+    final colors = widget.colors;
+    final isSelected = widget.selectedMapId == null;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        key: const ValueKey('cinematic-builder-clear-stage-map'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onMapSelected(null),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          color: isSelected ? colors.surfaceSelected : Colors.transparent,
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.xmark_circle,
+                size: 14,
+                color: colors.textMuted,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Effacer la map',
+                style: TextStyle(
+                  color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildNodeWidgets(_MapTreeNode node, {required int depth}) {
+    final List<Widget> list = [];
+    final colors = widget.colors;
+
+    if (node.isGroup) {
+      final isCollapsed = _collapsedGroupIds.contains(node.id);
+      final hasChildren = node.children.isNotEmpty;
+
+      list.add(
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              setState(() {
+                if (isCollapsed) {
+                  _collapsedGroupIds.remove(node.id);
+                } else {
+                  _collapsedGroupIds.add(node.id);
+                }
+              });
+            },
+            child: Container(
+              padding: EdgeInsets.only(
+                left: 12 + depth * 16.0,
+                right: 12,
+                top: 6,
+                bottom: 6,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    hasChildren
+                        ? (isCollapsed
+                            ? CupertinoIcons.chevron_right
+                            : CupertinoIcons.chevron_down)
+                        : CupertinoIcons.folder,
+                    size: 12,
+                    color: colors.textMuted,
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    _groupIcon(node.group?.type ?? MapGroupType.special),
+                    size: 14,
+                    color: colors.brandPrimary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          node.name,
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        Text(
+                          _translateGroupType(node.group?.type ?? MapGroupType.special).toUpperCase(),
+                          style: TextStyle(
+                            color: colors.textMuted,
+                            fontSize: 8,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      if (!isCollapsed) {
+        for (final child in node.children) {
+          list.addAll(_buildNodeWidgets(child, depth: depth + 1));
+        }
+      }
+    } else {
+      final isSelected = widget.selectedMapId == node.map!.id;
+      list.add(
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            key: ValueKey('cinematic-builder-stage-map-${node.map!.id}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => widget.onMapSelected(node.map),
+            child: Container(
+              padding: EdgeInsets.only(
+                left: 12 + depth * 16.0,
+                right: 12,
+                top: 6,
+                bottom: 6,
+              ),
+              color: isSelected ? colors.surfaceSelected : Colors.transparent,
+              child: Row(
+                children: [
+                  Icon(
+                    _roleIcon(node.map!.role),
+                    size: 14,
+                    color: isSelected ? colors.brandPrimary : colors.textMuted,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      node.name,
+                      style: TextStyle(
+                        color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (isSelected)
+                    Icon(
+                      CupertinoIcons.checkmark,
+                      size: 12,
+                      color: colors.brandPrimary,
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return list;
+  }
+
+  IconData _groupIcon(MapGroupType type) {
+    return switch (type) {
+      MapGroupType.city => CupertinoIcons.building_2_fill,
+      MapGroupType.village => CupertinoIcons.house_fill,
+      MapGroupType.route => CupertinoIcons.map_fill,
+      MapGroupType.dungeon => CupertinoIcons.lock_shield,
+      MapGroupType.cave => CupertinoIcons.circle_grid_hex,
+      MapGroupType.forest => CupertinoIcons.leaf_arrow_circlepath,
+      MapGroupType.tower => CupertinoIcons.arrow_up_circle_fill,
+      MapGroupType.facility => CupertinoIcons.briefcase_fill,
+      MapGroupType.special => CupertinoIcons.star_fill,
+    };
+  }
+
+  String _translateGroupType(MapGroupType type) {
+    return switch (type) {
+      MapGroupType.city => 'Ville',
+      MapGroupType.village => 'Village',
+      MapGroupType.route => 'Route',
+      MapGroupType.dungeon => 'Donjon',
+      MapGroupType.cave => 'Grotte',
+      MapGroupType.forest => 'Forêt',
+      MapGroupType.tower => 'Tour',
+      MapGroupType.facility => 'Installation',
+      MapGroupType.special => 'Spécial',
+    };
+  }
+
+  IconData _roleIcon(MapRole role) {
+    return switch (role) {
+      MapRole.exterior => CupertinoIcons.sun_max,
+      MapRole.interior => CupertinoIcons.house,
+      MapRole.basement => CupertinoIcons.arrow_down_circle,
+      MapRole.upper_floor => CupertinoIcons.arrow_up_circle,
+      MapRole.connector => CupertinoIcons.link,
+      MapRole.gate => CupertinoIcons.square_arrow_right,
+      MapRole.section => CupertinoIcons.square_split_2x1,
+      MapRole.room => CupertinoIcons.square_grid_2x2,
+      MapRole.sub_area => CupertinoIcons.layers_alt,
+    };
   }
 }
 

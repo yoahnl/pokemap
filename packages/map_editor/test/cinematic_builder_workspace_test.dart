@@ -95,6 +95,12 @@ void main() {
 
     expect(find.text('Contexte de scène'), findsOneWidget);
     expect(find.text('Map de scène'), findsOneWidget);
+    final dropdownButton =
+        find.byKey(const ValueKey('cinematic-builder-stage-map-dropdown'));
+    await tester.ensureVisible(dropdownButton);
+    await tester.tap(dropdownButton);
+    await tester.pumpAndSettle();
+
     final mapButton =
         find.byKey(const ValueKey('cinematic-builder-stage-map-map_lab'));
     await tester.ensureVisible(mapButton);
@@ -239,6 +245,12 @@ void main() {
       'cinematic_stage_context',
       onProjectChanged: (project) => latestProject = project,
     );
+
+    final dropdownButton =
+        find.byKey(const ValueKey('cinematic-builder-stage-map-dropdown'));
+    await tester.ensureVisible(dropdownButton);
+    await tester.tap(dropdownButton);
+    await tester.pumpAndSettle();
 
     final clearButton =
         find.byKey(const ValueKey('cinematic-builder-clear-stage-map'));
@@ -1648,6 +1660,12 @@ void main() {
       'cinematic_stage_context',
       onProjectChanged: (project) => latestProject = project,
     );
+
+    final dropdownButton =
+        find.byKey(const ValueKey('cinematic-builder-stage-map-dropdown'));
+    await tester.ensureVisible(dropdownButton);
+    await tester.tap(dropdownButton);
+    await tester.pumpAndSettle();
 
     final mapButton =
         find.byKey(const ValueKey('cinematic-builder-stage-map-map_lab'));
