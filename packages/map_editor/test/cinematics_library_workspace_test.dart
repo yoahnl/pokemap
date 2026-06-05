@@ -681,6 +681,36 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return result.actor.actorId;
               },
+              onRenameRequiredActor: ({
+                required String cinematicId,
+                required String actorId,
+                required String label,
+              }) async {
+                final result = renameCinematicRequiredActor(
+                  _project,
+                  cinematicId: cinematicId,
+                  actorId: actorId,
+                  label: label,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.actor.actorId == actorId;
+              },
+              onRemoveRequiredActor: ({
+                required String cinematicId,
+                required String actorId,
+              }) async {
+                try {
+                  final result = removeCinematicRequiredActor(
+                    _project,
+                    cinematicId: cinematicId,
+                    actorId: actorId,
+                  );
+                  setState(() => _project = result.updatedProject);
+                  return result.actor.actorId == actorId;
+                } on ArgumentError {
+                  return false;
+                }
+              },
               onAddMovementTarget: ({required String cinematicId}) async {
                 final result = addCinematicMovementTarget(
                   _project,

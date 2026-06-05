@@ -120,7 +120,6 @@ void main() {
     await tester.tap(backdropButton);
     await tester.pumpAndSettle();
 
-
     final updated = _asset(latestProject, 'cinematic_stage_context');
     expect(updated.mapId, 'map_lab');
     expect(
@@ -5021,7 +5020,8 @@ void main() {
     expect(find.text('Supprimer le bloc'), findsNothing);
     expect(
       find.descendant(
-        of: find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
+        of: find
+            .byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
         matching: find.byType(CupertinoTextField),
       ),
       findsNothing,
@@ -5453,6 +5453,159 @@ void main() {
     expect(latestProject.cinematics.single.requiredActors.single.label, 'Lysa');
     expect(find.text('Lysa'), findsWidgets);
     expect(tester.widget<PokeMapButton>(actorFaceButton).onPressed, isNotNull);
+  });
+
+  testWidgets('renames required actor from expanded actor row', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_rename_actor',
+          title: 'Rename actor cinematic',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_rename_actor',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    await tester.enterText(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-label-actor_rival'),
+      ),
+      'Lysa',
+    );
+    await tester.pumpAndSettle();
+    final saveButton = find.byKey(
+      const ValueKey('cinematic-builder-save-required-actor-actor_rival'),
+    );
+    await tester.ensureVisible(saveButton);
+    await tester.pumpAndSettle();
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+
+    final actor = latestProject.cinematics.single.requiredActors.single;
+    expect(actor.actorId, 'actor_rival');
+    expect(actor.label, 'Lysa');
+    expect(find.text('Lysa'), findsWidgets);
+  });
+
+  testWidgets('removes unused required actor from expanded actor row',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_remove_actor',
+          title: 'Remove actor cinematic',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: 'entity_rival',
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_rival',
+                characterId: 'character_rival',
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_rival',
+                kind: CinematicActorInitialPlacementKind.fromMapEntity,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_remove_actor',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final deleteButton = find.byKey(
+      const ValueKey('cinematic-builder-delete-required-actor-actor_rival'),
+    );
+    await tester.ensureVisible(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+
+    final asset = _asset(latestProject, 'cinematic_remove_actor');
+    expect(asset.requiredActors, isEmpty);
+    expect(asset.stageContext?.actorBindings, isEmpty);
+    expect(asset.stageContext?.actorAppearanceBindings, isEmpty);
+    expect(asset.stageContext?.initialPlacements, isEmpty);
+    expect(find.text('Rival'), findsNothing);
+  });
+
+  testWidgets(
+      'keeps required actor delete disabled while actor is used by timeline',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_used_actor',
+          title: 'Used actor cinematic',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_face',
+                kind: CinematicTimelineStepKind.actorFace,
+                label: 'Orientation Rival',
+                actorId: 'actor_rival',
+                metadata: const {
+                  cinematicTimelineActorDirectionMetadataKey: 'down',
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+      includeBridge: false,
+    );
+    await _pumpBuilderHarness(tester, project, 'cinematic_used_actor');
+
+    final deleteButtonFinder = find.byKey(
+      const ValueKey('cinematic-builder-delete-required-actor-actor_rival'),
+    );
+    await tester.ensureVisible(deleteButtonFinder);
+    await tester.pumpAndSettle();
+    final deleteButton = tester.widget<PokeMapButton>(deleteButtonFinder);
+
+    expect(deleteButton.onPressed, isNull);
+    expect(
+      find.text('Cet acteur est utilisé par 1 bloc(s) timeline.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('adds and edits actor facing with actor picker and direction',
@@ -7545,6 +7698,17 @@ Future<void> _pumpBuilder(
                 String? label,
               }) async =>
                   null,
+              onRenameRequiredActor: ({
+                required String cinematicId,
+                required String actorId,
+                required String label,
+              }) async =>
+                  false,
+              onRemoveRequiredActor: ({
+                required String cinematicId,
+                required String actorId,
+              }) async =>
+                  false,
               onAddMovementTarget: ({required String cinematicId}) async =>
                   null,
               onUpdateMovementTarget: ({
@@ -7715,6 +7879,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onAddBasicBlockStep: _addBasicBlockStep,
               onUpdateBasicBlockStep: _updateBasicBlockStep,
               onAddRequiredActor: _addRequiredActor,
+              onRenameRequiredActor: _renameRequiredActor,
+              onRemoveRequiredActor: _removeRequiredActor,
               onAddMovementTarget: _addMovementTarget,
               onUpdateMovementTarget: _updateMovementTarget,
               onRemoveMovementTarget: _removeMovementTarget,
@@ -7813,6 +7979,40 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
     return result.actor.actorId;
+  }
+
+  Future<bool> _renameRequiredActor({
+    required String cinematicId,
+    required String actorId,
+    required String label,
+  }) async {
+    final result = renameCinematicRequiredActor(
+      _project,
+      cinematicId: cinematicId,
+      actorId: actorId,
+      label: label,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _removeRequiredActor({
+    required String cinematicId,
+    required String actorId,
+  }) async {
+    try {
+      final result = removeCinematicRequiredActor(
+        _project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+      );
+      setState(() => _project = result.updatedProject);
+      widget.onProjectChanged?.call(_project);
+      return true;
+    } on ArgumentError {
+      return false;
+    }
   }
 
   Future<String?> _addMovementTarget({required String cinematicId}) async {

@@ -53,6 +53,17 @@ typedef AddRequiredActorCallback = Future<String?> Function({
   String? label,
 });
 
+typedef RenameRequiredActorCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+  required String label,
+});
+
+typedef RemoveRequiredActorCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+});
+
 typedef AddMovementTargetCallback = Future<String?> Function({
   required String cinematicId,
 });
@@ -162,6 +173,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onAddTimelineBasicBlock,
     required this.onUpdateTimelineBasicBlock,
     required this.onAddRequiredActor,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onAddMovementTarget,
     required this.onUpdateMovementTarget,
     required this.onRemoveMovementTarget,
@@ -193,6 +206,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final AddTimelineBasicBlockCallback onAddTimelineBasicBlock;
   final UpdateTimelineBasicBlockCallback onUpdateTimelineBasicBlock;
   final AddRequiredActorCallback onAddRequiredActor;
+  final RenameRequiredActorCallback onRenameRequiredActor;
+  final RemoveRequiredActorCallback onRemoveRequiredActor;
   final AddMovementTargetCallback onAddMovementTarget;
   final UpdateMovementTargetCallback onUpdateMovementTarget;
   final RemoveMovementTargetCallback onRemoveMovementTarget;
@@ -275,6 +290,8 @@ class _CinematicsLibraryWorkspaceState
         onAddBasicBlockStep: widget.onAddTimelineBasicBlock,
         onUpdateBasicBlockStep: widget.onUpdateTimelineBasicBlock,
         onAddRequiredActor: widget.onAddRequiredActor,
+        onRenameRequiredActor: widget.onRenameRequiredActor,
+        onRemoveRequiredActor: widget.onRemoveRequiredActor,
         onAddMovementTarget: widget.onAddMovementTarget,
         onUpdateMovementTarget: widget.onUpdateMovementTarget,
         onRemoveMovementTarget: widget.onRemoveMovementTarget,

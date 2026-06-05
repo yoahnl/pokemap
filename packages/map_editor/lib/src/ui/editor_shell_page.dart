@@ -241,6 +241,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             children: [
                               Expanded(
                                 child: MacosWindow(
+                                  backgroundColor: PokeMapLegacyColors.transparent,
                                   child: MacosScaffold(
                                     backgroundColor: const Color(0x00000000),
                                     toolBar: buildMapEditorToolbar(

@@ -39,6 +39,17 @@ typedef AddCinematicRequiredActorCallback = Future<String?> Function({
   String? label,
 });
 
+typedef RenameCinematicRequiredActorCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+  required String label,
+});
+
+typedef RemoveCinematicRequiredActorCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+});
+
 typedef AddCinematicMovementTargetCallback = Future<String?> Function({
   required String cinematicId,
 });
@@ -163,6 +174,15 @@ typedef _AddRequiredActorCallback = Future<bool> Function({
   required String label,
 });
 
+typedef _RenameRequiredActorCallback = Future<bool> Function(
+  CinematicActorRef actor, {
+  required String label,
+});
+
+typedef _RemoveRequiredActorCallback = Future<bool> Function(
+  CinematicActorRef actor,
+);
+
 typedef _AddMovementTargetCallback = Future<void> Function();
 
 typedef _UpdateMovementTargetCallback = Future<bool> Function(
@@ -225,6 +245,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onAddBasicBlockStep,
     required this.onUpdateBasicBlockStep,
     required this.onAddRequiredActor,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onAddMovementTarget,
     required this.onUpdateMovementTarget,
     required this.onRemoveMovementTarget,
@@ -255,6 +277,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final AddCinematicBasicBlockStepCallback onAddBasicBlockStep;
   final UpdateCinematicBasicBlockStepCallback onUpdateBasicBlockStep;
   final AddCinematicRequiredActorCallback onAddRequiredActor;
+  final RenameCinematicRequiredActorCallback onRenameRequiredActor;
+  final RemoveCinematicRequiredActorCallback onRemoveRequiredActor;
   final AddCinematicMovementTargetCallback onAddMovementTarget;
   final UpdateCinematicMovementTargetCallback onUpdateMovementTarget;
   final RemoveCinematicMovementTargetCallback onRemoveMovementTarget;
@@ -412,6 +436,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       startExpanded: widget.startExpanded,
                       onUpdateStageMap: _updateStageMap,
                       onUpdateStageContext: _updateStageContext,
+                      onRenameRequiredActor: _renameRequiredActor,
+                      onRemoveRequiredActor: _removeRequiredActor,
                       onUpsertActorBinding: _upsertActorBinding,
                       onUpsertActorAppearanceBinding:
                           _upsertActorAppearanceBinding,
@@ -544,6 +570,24 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     await widget.onUpdateStageContext(
       cinematicId: widget.asset.id,
       stageContext: stageContext,
+    );
+  }
+
+  Future<bool> _renameRequiredActor(
+    CinematicActorRef actor, {
+    required String label,
+  }) {
+    return widget.onRenameRequiredActor(
+      cinematicId: widget.asset.id,
+      actorId: actor.actorId,
+      label: label,
+    );
+  }
+
+  Future<bool> _removeRequiredActor(CinematicActorRef actor) {
+    return widget.onRemoveRequiredActor(
+      cinematicId: widget.asset.id,
+      actorId: actor.actorId,
     );
   }
 
@@ -3706,6 +3750,8 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.startExpanded,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
@@ -3729,6 +3775,8 @@ class _InspectorPlaceholder extends StatelessWidget {
   final bool startExpanded;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
+  final _RenameRequiredActorCallback onRenameRequiredActor;
+  final _RemoveRequiredActorCallback onRemoveRequiredActor;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
@@ -3767,6 +3815,8 @@ class _InspectorPlaceholder extends StatelessWidget {
               startExpanded: startExpanded,
               onUpdateStageMap: onUpdateStageMap,
               onUpdateStageContext: onUpdateStageContext,
+              onRenameRequiredActor: onRenameRequiredActor,
+              onRemoveRequiredActor: onRemoveRequiredActor,
               onUpsertActorBinding: onUpsertActorBinding,
               onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
               onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
@@ -3844,6 +3894,8 @@ class _StageContextEditor extends StatelessWidget {
     required this.startExpanded,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
@@ -3860,6 +3912,8 @@ class _StageContextEditor extends StatelessWidget {
   final bool startExpanded;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
+  final _RenameRequiredActorCallback onRenameRequiredActor;
+  final _RemoveRequiredActorCallback onRemoveRequiredActor;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
@@ -3907,6 +3961,8 @@ class _StageContextEditor extends StatelessWidget {
             characters: characters,
             stageMapSourceCatalog: stageMapSourceCatalog,
             startExpanded: startExpanded,
+            onRenameRequiredActor: onRenameRequiredActor,
+            onRemoveRequiredActor: onRemoveRequiredActor,
             onUpsertActorBinding: onUpsertActorBinding,
             onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
             onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
@@ -4507,7 +4563,8 @@ class _StageBackdropSection extends StatelessWidget {
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: colors.controlSurface,
                     borderRadius: BorderRadius.circular(8),
@@ -4668,7 +4725,8 @@ class _BackdropDropdownPopup extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
           children: [
-            for (final mode in CinematicStageBackdropMode.values) _buildItem(mode),
+            for (final mode in CinematicStageBackdropMode.values)
+              _buildItem(mode),
           ],
         ),
       ),
@@ -4698,7 +4756,8 @@ class _BackdropDropdownPopup extends StatelessWidget {
                 child: Text(
                   _stageBackdropModeLabel(mode),
                   style: TextStyle(
-                    color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                    color:
+                        isSelected ? colors.brandPrimary : colors.textPrimary,
                     fontSize: 12,
                     fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                   ),
@@ -4718,7 +4777,6 @@ class _BackdropDropdownPopup extends StatelessWidget {
   }
 }
 
-
 class _StageActorBindingsSection extends StatelessWidget {
   const _StageActorBindingsSection({
     required this.asset,
@@ -4726,6 +4784,8 @@ class _StageActorBindingsSection extends StatelessWidget {
     required this.characters,
     required this.stageMapSourceCatalog,
     required this.startExpanded,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
@@ -4737,6 +4797,8 @@ class _StageActorBindingsSection extends StatelessWidget {
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final bool startExpanded;
+  final _RenameRequiredActorCallback onRenameRequiredActor;
+  final _RemoveRequiredActorCallback onRemoveRequiredActor;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
@@ -4770,6 +4832,8 @@ class _StageActorBindingsSection extends StatelessWidget {
               stageMapSourceCatalog: stageMapSourceCatalog,
               playerActorId: playerActorId,
               startExpanded: startExpanded,
+              onRenameRequiredActor: onRenameRequiredActor,
+              onRemoveRequiredActor: onRemoveRequiredActor,
               onUpsertActorBinding: onUpsertActorBinding,
               onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
               onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
@@ -4837,6 +4901,8 @@ class _StageActorBindingRow extends StatefulWidget {
     required this.stageMapSourceCatalog,
     required this.playerActorId,
     required this.startExpanded,
+    required this.onRenameRequiredActor,
+    required this.onRemoveRequiredActor,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
@@ -4850,6 +4916,8 @@ class _StageActorBindingRow extends StatefulWidget {
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final String? playerActorId;
   final bool startExpanded;
+  final _RenameRequiredActorCallback onRenameRequiredActor;
+  final _RemoveRequiredActorCallback onRemoveRequiredActor;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
@@ -4861,20 +4929,37 @@ class _StageActorBindingRow extends StatefulWidget {
 
 class _StageActorBindingRowState extends State<_StageActorBindingRow> {
   final _entityDropdownKey = GlobalKey();
+  late final TextEditingController _labelController;
   bool _isExpanded = false;
+  bool _isRenaming = false;
+  bool _isRemoving = false;
+  String? _feedback;
 
   @override
   void initState() {
     super.initState();
+    _labelController = TextEditingController(
+      text: _actorDisplayLabel(widget.actor),
+    );
     _isExpanded = widget.startExpanded;
   }
 
   @override
   void didUpdateWidget(_StageActorBindingRow oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.actor.label != widget.actor.label ||
+        oldWidget.actor.actorId != widget.actor.actorId) {
+      _labelController.text = _actorDisplayLabel(widget.actor);
+    }
     if (oldWidget.startExpanded != widget.startExpanded) {
       _isExpanded = widget.startExpanded;
     }
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    super.dispose();
   }
 
   @override
@@ -4895,6 +4980,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
     final selectedSource = binding?.mapEntityId == null
         ? null
         : sourceCatalog?.entityById(binding!.mapEntityId!);
+    final usageCount = _requiredActorUsageCount(asset, actor.actorId);
+    final isUsed = usageCount > 0;
 
     final placement = _initialPlacementFor(stageContext, actor.actorId);
     final supportsMapEntityPlacement =
@@ -4915,7 +5002,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         case CinematicActorBindingKind.cinematicOnly:
           final appearanceBinding =
               _actorAppearanceBindingFor(stageContext, actor.actorId);
-          final character = _characterById(widget.characters, appearanceBinding?.characterId);
+          final character =
+              _characterById(widget.characters, appearanceBinding?.characterId);
           if (character != null) {
             return 'Ciné : ${character.name}';
           }
@@ -4969,13 +5057,15 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Row(
                   children: [
                     Icon(
                       CupertinoIcons.person_crop_circle,
                       size: 16,
-                      color: _isExpanded ? colors.brandPrimary : colors.textMuted,
+                      color:
+                          _isExpanded ? colors.brandPrimary : colors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -5002,7 +5092,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       ),
                     ),
                     Icon(
-                      _isExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
+                      _isExpanded
+                          ? CupertinoIcons.chevron_up
+                          : CupertinoIcons.chevron_down,
                       size: 14,
                       color: colors.textMuted,
                     ),
@@ -5021,6 +5113,61 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _KeyValue(label: 'Acteur', value: _actorDisplayLabel(actor)),
+                  const SizedBox(height: 6),
+                  _MovementTargetTextField(
+                    key: ValueKey(
+                      'cinematic-builder-actor-label-${actor.actorId}',
+                    ),
+                    controller: _labelController,
+                    placeholder: 'Nom de l’acteur',
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _InlineControlAction(
+                        label: 'Renommer',
+                        button: PokeMapButton(
+                          key: ValueKey(
+                            'cinematic-builder-save-required-actor-${actor.actorId}',
+                          ),
+                          onPressed: _isRenaming ? null : _rename,
+                          variant: PokeMapButtonVariant.secondary,
+                          size: PokeMapButtonSize.small,
+                          isLoading: _isRenaming,
+                          leading: const Icon(CupertinoIcons.check_mark),
+                          child: const SizedBox.shrink(),
+                        ),
+                      ),
+                      _InlineControlAction(
+                        label: 'Supprimer',
+                        button: PokeMapButton(
+                          key: ValueKey(
+                            'cinematic-builder-delete-required-actor-${actor.actorId}',
+                          ),
+                          onPressed: isUsed || _isRemoving ? null : _remove,
+                          variant: PokeMapButtonVariant.danger,
+                          size: PokeMapButtonSize.small,
+                          isLoading: _isRemoving,
+                          leading: const Icon(CupertinoIcons.trash),
+                          child: const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isUsed) ...[
+                    const SizedBox(height: 6),
+                    _MutedText(
+                      'Cet acteur est utilisé par $usageCount bloc(s) timeline.',
+                    ),
+                  ],
+                  if (_feedback != null) ...[
+                    const SizedBox(height: 6),
+                    _MutedText(_feedback!),
+                  ],
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(
@@ -5029,7 +5176,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               'cinematic-builder-actor-binding-${actor.actorId}-player',
                           label: 'Joueur',
                           icon: CupertinoIcons.person_crop_circle,
-                          selected: selectedKind == CinematicActorBindingKind.player,
+                          selected:
+                              selectedKind == CinematicActorBindingKind.player,
                           disabled: playerDisabled,
                           onPressed: () => widget.onUpsertActorBinding(
                             CinematicActorBinding(
@@ -5046,7 +5194,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               'cinematic-builder-actor-binding-${actor.actorId}-mapEntity',
                           label: 'Entité',
                           icon: CupertinoIcons.location,
-                          selected: selectedKind == CinematicActorBindingKind.mapEntity,
+                          selected: selectedKind ==
+                              CinematicActorBindingKind.mapEntity,
                           disabled: !canPickMapEntity,
                           onPressed: () {
                             widget.onUpsertActorBinding(
@@ -5058,8 +5207,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                             if (actorSources.isNotEmpty) {
                               WidgetsBinding.instance.addPostFrameCallback((_) {
                                 if (mounted) {
-                                  _showEntityDropdown(
-                                      context, _entityDropdownKey, actorSources, null);
+                                  _showEntityDropdown(context,
+                                      _entityDropdownKey, actorSources, null);
                                 }
                               });
                             }
@@ -5073,8 +5222,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               'cinematic-builder-actor-binding-${actor.actorId}-cinematicOnly',
                           label: 'Ciné',
                           icon: CupertinoIcons.sparkles,
-                          selected:
-                              selectedKind == CinematicActorBindingKind.cinematicOnly,
+                          selected: selectedKind ==
+                              CinematicActorBindingKind.cinematicOnly,
                           onPressed: () => widget.onUpsertActorBinding(
                             CinematicActorBinding(
                               actorId: actor.actorId,
@@ -5090,7 +5239,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               'cinematic-builder-actor-binding-${actor.actorId}-unbound',
                           label: 'Non lié',
                           icon: CupertinoIcons.question_circle,
-                          selected: selectedKind == CinematicActorBindingKind.unbound,
+                          selected:
+                              selectedKind == CinematicActorBindingKind.unbound,
                           onPressed: () => widget.onUpsertActorBinding(
                             CinematicActorBinding(
                               actorId: actor.actorId,
@@ -5134,8 +5284,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                             ? SystemMouseCursors.basic
                             : SystemMouseCursors.click,
                         child: Container(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 8),
                           decoration: BoxDecoration(
                             color: colors.controlSurface,
                             borderRadius: BorderRadius.circular(8),
@@ -5160,7 +5310,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                       : selectedSource.label,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: DefaultTextStyle.of(context).style.copyWith(
+                                  style: DefaultTextStyle.of(context)
+                                      .style
+                                      .copyWith(
                                         color: colors.textPrimary,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
@@ -5179,7 +5331,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     ),
                   ],
                   const SizedBox(height: 8),
-                  const _KeyValue(label: 'Positions initiales', value: 'Entrée de scène'),
+                  const _KeyValue(
+                      label: 'Positions initiales', value: 'Entrée de scène'),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -5189,8 +5342,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               'cinematic-builder-initial-placement-${actor.actorId}-unset',
                           label: 'Non défini',
                           icon: CupertinoIcons.circle,
-                          selected:
-                              placement?.kind == CinematicActorInitialPlacementKind.unset,
+                          selected: placement?.kind ==
+                              CinematicActorInitialPlacementKind.unset,
                           onPressed: () => widget.onUpsertActorInitialPlacement(
                             CinematicActorInitialPlacement(
                               actorId: actor.actorId,
@@ -5212,7 +5365,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                           onPressed: () => widget.onUpsertActorInitialPlacement(
                             CinematicActorInitialPlacement(
                               actorId: actor.actorId,
-                              kind: CinematicActorInitialPlacementKind.fromMapEntity,
+                              kind: CinematicActorInitialPlacementKind
+                                  .fromMapEntity,
                             ),
                           ),
                         ),
@@ -5225,12 +5379,14 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                           label: 'Depuis cible',
                           icon: CupertinoIcons.scope,
                           selected: placement?.kind ==
-                              CinematicActorInitialPlacementKind.fromMovementTarget,
+                              CinematicActorInitialPlacementKind
+                                  .fromMovementTarget,
                           disabled: !hasTargets,
                           onPressed: () => widget.onUpsertActorInitialPlacement(
                             CinematicActorInitialPlacement(
                               actorId: actor.actorId,
-                              kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+                              kind: CinematicActorInitialPlacementKind
+                                  .fromMovementTarget,
                               targetId: asset.movementTargets.first.targetId,
                             ),
                           ),
@@ -5247,7 +5403,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                   ],
                   if (hasTargets &&
                       placement?.kind ==
-                          CinematicActorInitialPlacementKind.fromMovementTarget) ...[
+                          CinematicActorInitialPlacementKind
+                              .fromMovementTarget) ...[
                     const SizedBox(height: 6),
                     Wrap(
                       spacing: 6,
@@ -5261,7 +5418,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                 'cinematic-builder-initial-placement-'
                                 '${actor.actorId}-target-${target.targetId}',
                               ),
-                              onPressed: () => widget.onUpsertActorInitialPlacement(
+                              onPressed: () =>
+                                  widget.onUpsertActorInitialPlacement(
                                 CinematicActorInitialPlacement(
                                   actorId: actor.actorId,
                                   kind: CinematicActorInitialPlacementKind
@@ -5271,7 +5429,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               ),
                               variant: PokeMapButtonVariant.secondary,
                               size: PokeMapButtonSize.small,
-                              isSelected: placement?.targetId == target.targetId,
+                              isSelected:
+                                  placement?.targetId == target.targetId,
                               leading: const Icon(CupertinoIcons.scope),
                               child: const SizedBox.shrink(),
                             ),
@@ -5294,7 +5453,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                         ),
                       );
                     },
-                    onClear: () => widget.onRemoveActorAppearanceBinding(actor.actorId),
+                    onClear: () =>
+                        widget.onRemoveActorAppearanceBinding(actor.actorId),
                   ),
                 ],
               ),
@@ -5303,6 +5463,44 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         ],
       ),
     );
+  }
+
+  Future<void> _rename() async {
+    final label = _labelController.text.trim();
+    if (label.isEmpty) {
+      setState(() => _feedback = 'Nom d’acteur obligatoire');
+      return;
+    }
+    setState(() {
+      _isRenaming = true;
+      _feedback = null;
+    });
+    final renamed = await widget.onRenameRequiredActor(
+      widget.actor,
+      label: label,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isRenaming = false;
+      _feedback = renamed ? null : 'Renommage impossible';
+    });
+  }
+
+  Future<void> _remove() async {
+    setState(() {
+      _isRemoving = true;
+      _feedback = null;
+    });
+    final removed = await widget.onRemoveRequiredActor(widget.actor);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isRemoving = false;
+      _feedback = removed ? null : 'Suppression impossible';
+    });
   }
 
   void _showEntityDropdown(
@@ -8439,6 +8637,10 @@ int _movementTargetUsageCount(CinematicAsset asset, String targetId) {
             step.targetId == targetId,
       )
       .length;
+}
+
+int _requiredActorUsageCount(CinematicAsset asset, String actorId) {
+  return asset.timeline.steps.where((step) => step.actorId == actorId).length;
 }
 
 String _actorDirectionLabel(CinematicTimelineActorFacingDirection? direction) {

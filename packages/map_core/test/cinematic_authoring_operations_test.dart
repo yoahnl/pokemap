@@ -63,6 +63,165 @@ void main() {
       );
     });
 
+    test('renameCinematicRequiredActor updates label without changing refs',
+        () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'face',
+                  kind: CinematicTimelineStepKind.actorFace,
+                  actorId: 'actor_rival',
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final result = renameCinematicRequiredActor(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_rival',
+        label: 'Lysa',
+      );
+
+      expect(result.actor.actorId, 'actor_rival');
+      expect(result.actor.label, 'Lysa');
+      expect(result.cinematic.requiredActors.single.label, 'Lysa');
+      expect(
+        result.cinematic.stageContext?.actorBindings.single.actorId,
+        'actor_rival',
+      );
+      expect(result.cinematic.timeline, project.cinematics.single.timeline);
+    });
+
+    test('renameCinematicRequiredActor refuses empty labels', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        () => renameCinematicRequiredActor(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorId: 'actor_rival',
+          label: '   ',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('removeCinematicRequiredActor cleans unused stage refs only', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+              CinematicActorRef(actorId: 'actor_guide', label: 'Guide'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+                CinematicActorBinding(
+                  actorId: 'actor_guide',
+                  kind: CinematicActorBindingKind.player,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_rival',
+                ),
+              ],
+              initialPlacements: [
+                CinematicActorInitialPlacement(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorInitialPlacementKind.unset,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final result = removeCinematicRequiredActor(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_rival',
+      );
+
+      expect(result.actor.actorId, 'actor_rival');
+      expect(
+        result.cinematic.requiredActors.map((actor) => actor.actorId),
+        ['actor_guide'],
+      );
+      expect(
+        result.cinematic.stageContext?.actorBindings
+            .map((binding) => binding.actorId),
+        ['actor_guide'],
+      );
+      expect(result.cinematic.stageContext?.actorAppearanceBindings, isEmpty);
+      expect(result.cinematic.stageContext?.initialPlacements, isEmpty);
+      expect(result.cinematic.timeline, project.cinematics.single.timeline);
+    });
+
+    test('removeCinematicRequiredActor refuses actor used by timeline', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'move',
+                  kind: CinematicTimelineStepKind.actorMove,
+                  actorId: 'actor_rival',
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        () => removeCinematicRequiredActor(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorId: 'actor_rival',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('addCinematicMovementTarget creates a stable authoring target', () {
       final project = _project(
         cinematics: [_cinematic(id: 'cinematic_intro')],
@@ -1812,6 +1971,8 @@ CinematicAsset _cinematic({
   String? mapId,
   List<CinematicActorRef> requiredActors = const [],
   List<CinematicMovementTargetRef> movementTargets = const [],
+  CinematicStageContext? stageContext,
+  CinematicTimeline? timeline,
   CinematicLegacyBridge? legacyBridge,
 }) {
   return CinematicAsset(
@@ -1821,15 +1982,17 @@ CinematicAsset _cinematic({
     mapId: mapId,
     requiredActors: requiredActors,
     movementTargets: movementTargets,
-    timeline: CinematicTimeline(
-      steps: [
-        CinematicTimelineStep(
-          id: 'step_wait',
-          kind: CinematicTimelineStepKind.wait,
-          durationMs: 100,
+    stageContext: stageContext,
+    timeline: timeline ??
+        CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_wait',
+              kind: CinematicTimelineStepKind.wait,
+              durationMs: 100,
+            ),
+          ],
         ),
-      ],
-    ),
     legacyBridge: legacyBridge,
   );
 }

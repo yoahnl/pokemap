@@ -696,6 +696,66 @@ CinematicRequiredActorResult addCinematicRequiredActor(
   );
 }
 
+CinematicRequiredActorResult renameCinematicRequiredActor(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+  required String label,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final currentActor = _requireActor(cinematic, actorId);
+  final actorLabel = _trimRequired(
+    label,
+    'label',
+    'Required actor authoring requires a readable label.',
+  );
+  final renamedActor = CinematicActorRef(
+    actorId: currentActor.actorId,
+    label: actorLabel,
+    entityId: currentActor.entityId,
+    role: currentActor.role,
+  );
+  final updatedActors = [
+    for (final actor in cinematic.requiredActors)
+      if (actor.actorId == currentActor.actorId) renamedActor else actor,
+  ];
+  final updatedCinematic = _copyCinematicWithActors(
+    cinematic,
+    updatedActors,
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicRequiredActorResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    actor: renamedActor,
+  );
+}
+
+CinematicRequiredActorResult removeCinematicRequiredActor(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final actor = _requireActor(cinematic, actorId);
+  _requireActorUnusedByTimeline(cinematic, actor.actorId);
+  final updatedCinematic = _copyCinematicWithStageContext(
+    _copyCinematicWithActors(
+      cinematic,
+      cinematic.requiredActors
+          .where((candidate) => candidate.actorId != actor.actorId)
+          .toList(growable: false),
+    ),
+    _stageContextWithoutActor(cinematic.stageContext, actor.actorId),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicRequiredActorResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    actor: actor,
+  );
+}
+
 CinematicMovementTargetResult addCinematicMovementTarget(
   ProjectManifest project, {
   required String cinematicId,
@@ -1867,6 +1927,40 @@ CinematicActorRef _requireActor(CinematicAsset cinematic, String actorId) {
     actorId,
     'actorId',
     'Actor authoring references an unknown required actor.',
+  );
+}
+
+void _requireActorUnusedByTimeline(CinematicAsset cinematic, String actorId) {
+  for (final step in cinematic.timeline.steps) {
+    if (step.actorId == actorId) {
+      throw ArgumentError.value(
+        actorId,
+        'actorId',
+        'Cannot remove a required actor used by cinematic timeline steps.',
+      );
+    }
+  }
+}
+
+CinematicStageContext? _stageContextWithoutActor(
+  CinematicStageContext? context,
+  String actorId,
+) {
+  if (context == null) {
+    return null;
+  }
+  return CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings
+        .where((binding) => binding.actorId != actorId)
+        .toList(growable: false),
+    actorAppearanceBindings: context.actorAppearanceBindings
+        .where((binding) => binding.actorId != actorId)
+        .toList(growable: false),
+    initialPlacements: context.initialPlacements
+        .where((placement) => placement.actorId != actorId)
+        .toList(growable: false),
+    movementTargetBindings: context.movementTargetBindings,
   );
 }
 

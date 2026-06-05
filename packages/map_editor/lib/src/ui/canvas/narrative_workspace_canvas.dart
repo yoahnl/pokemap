@@ -1106,6 +1106,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onAddTimelineBasicBlock: _addCinematicTimelineBasicBlock,
       onUpdateTimelineBasicBlock: _updateCinematicTimelineBasicBlock,
       onAddRequiredActor: _addCinematicRequiredActor,
+      onRenameRequiredActor: _renameCinematicRequiredActor,
+      onRemoveRequiredActor: _removeCinematicRequiredActor,
       onAddMovementTarget: _addCinematicMovementTarget,
       onUpdateMovementTarget: _updateCinematicMovementTarget,
       onRemoveMovementTarget: _removeCinematicMovementTarget,
@@ -1343,6 +1345,56 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       return result.actor.actorId;
     } on ArgumentError {
       return null;
+    }
+  }
+
+  Future<bool> _renameCinematicRequiredActor({
+    required String cinematicId,
+    required String actorId,
+    required String label,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = renameCinematicRequiredActor(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+        label: label,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic required actor renamed',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _removeCinematicRequiredActor({
+    required String cinematicId,
+    required String actorId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicRequiredActor(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic required actor removed',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
     }
   }
 
