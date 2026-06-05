@@ -154,7 +154,10 @@ void main() {
       expect(find.textContaining(label), findsWidgets);
     }
     expect(find.textContaining('À compléter'), findsWidgets);
-    expect(find.textContaining('À venir'), findsWidgets);
+    expect(
+      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      findsWidgets,
+    );
     expect(find.text('Lecture en cours'), findsNothing);
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
@@ -216,7 +219,10 @@ void main() {
     expect(find.textContaining('Acteurs liés — OK'), findsWidgets);
     expect(find.textContaining('Positions initiales — OK'), findsWidgets);
     expect(find.textContaining('Cibles de mouvement — OK'), findsWidgets);
-    expect(find.textContaining('Sources map-aware — À venir'), findsWidgets);
+    expect(
+      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      findsWidgets,
+    );
     expect(find.textContaining('La preview réelle arrivera plus tard.'),
         findsWidgets);
     expect(find.text('Lecture en cours'), findsNothing);
@@ -328,6 +334,46 @@ void main() {
         ?.actorBindings
         .singleWhere((binding) => binding.actorId == 'actor_professor');
     expect(binding?.kind, CinematicActorBindingKind.player);
+  });
+
+  testWidgets('binds actor to selected map entity through stage source picker',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final mapEntityButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(mapEntityButton);
+    await tester.tap(mapEntityButton);
+    await tester.pumpAndSettle();
+
+    final sourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity-source-entity_professor',
+      ),
+    );
+    await tester.ensureVisible(sourceButton);
+    expect(find.text('Professor Oak'), findsWidgets);
+    expect(find.textContaining('PNJ'), findsWidgets);
+    await tester.tap(sourceButton);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.actorBindings
+        .singleWhere((binding) => binding.actorId == 'actor_professor');
+    expect(binding?.kind, CinematicActorBindingKind.mapEntity);
+    expect(binding?.mapEntityId, 'entity_professor');
   });
 
   testWidgets('prevents duplicate player binding', (tester) async {
@@ -442,7 +488,12 @@ void main() {
       (tester) async {
     _setLargeSurface(tester);
     final project = _project(cinematics: [_stageContextCinematic()]);
-    await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      provideStageMapSourceCatalog: false,
+    );
 
     final actorMapEntity = find.byKey(
       const ValueKey(
@@ -453,8 +504,7 @@ void main() {
     expect(tester.widget<PokeMapButton>(actorMapEntity).onPressed, isNull);
     expect(
       find.text(
-        'Sélection d’entités prévue dans un lot suivant. '
-        'Le Builder ne reçoit pas encore les entités/events de la map.',
+        'Catalogue des entités/events de la map en cours de chargement.',
       ),
       findsWidgets,
     );
@@ -466,8 +516,7 @@ void main() {
     expect(tester.widget<PokeMapButton>(targetMapEvent).onPressed, isNull);
     expect(
       find.text(
-        'Sélection d’events prévue dans un lot suivant. '
-        'Le Builder ne reçoit pas encore les entités/events de la map.',
+        'Catalogue des entités/events de la map en cours de chargement.',
       ),
       findsWidgets,
     );
@@ -638,6 +687,81 @@ void main() {
         .singleWhere((binding) => binding.targetId == 'target_center');
     expect(binding?.kind, CinematicMovementTargetBindingKind.abstractPoint);
     expect(binding?.sourceId, isNull);
+  });
+
+  testWidgets('binds movement target to selected map entity source',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final mapEntityButton = find.byKey(
+      const ValueKey(
+          'cinematic-builder-target-binding-target_center-mapEntity'),
+    );
+    await tester.ensureVisible(mapEntityButton);
+    await tester.tap(mapEntityButton);
+    await tester.pumpAndSettle();
+
+    final sourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEntity-source-entity_professor',
+      ),
+    );
+    await tester.ensureVisible(sourceButton);
+    await tester.tap(sourceButton);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.movementTargetBindings
+        .singleWhere((binding) => binding.targetId == 'target_center');
+    expect(binding?.kind, CinematicMovementTargetBindingKind.mapEntity);
+    expect(binding?.sourceId, 'entity_professor');
+  });
+
+  testWidgets('binds movement target to selected map event source',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    var latestProject = project;
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    final mapEventButton = find.byKey(
+      const ValueKey('cinematic-builder-target-binding-target_center-mapEvent'),
+    );
+    await tester.ensureVisible(mapEventButton);
+    await tester.tap(mapEventButton);
+    await tester.pumpAndSettle();
+
+    final sourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEvent-source-event_gate_bell',
+      ),
+    );
+    await tester.ensureVisible(sourceButton);
+    expect(find.text('Gate bell'), findsWidgets);
+    expect(find.textContaining('Objet event'), findsWidgets);
+    await tester.tap(sourceButton);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.movementTargetBindings
+        .singleWhere((binding) => binding.targetId == 'target_center');
+    expect(binding?.kind, CinematicMovementTargetBindingKind.mapEvent);
+    expect(binding?.sourceId, 'event_gate_bell');
   });
 
   testWidgets('shows stage diagnostics in builder', (tester) async {
@@ -6177,7 +6301,10 @@ void main() {
         find.textContaining('Positions initiales — À compléter'), findsWidgets);
     expect(
         find.textContaining('Cibles de mouvement — À compléter'), findsWidgets);
-    expect(find.textContaining('Sources map-aware — À venir'), findsWidgets);
+    expect(
+      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      findsWidgets,
+    );
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('Décor depuis la map'), findsWidgets);
     expect(find.text('Acteurs'), findsWidgets);
@@ -6212,6 +6339,59 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-77 cinematic stage map source pickers when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_77_CAPTURE_CINEMATIC_STAGE_MAP_PICKERS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final project = _project(cinematics: [_stageContextCinematic()]);
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_stage_context',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final mapEventButton = find.byKey(
+      const ValueKey('cinematic-builder-target-binding-target_center-mapEvent'),
+    );
+    await tester.ensureVisible(mapEventButton);
+    await tester.tap(mapEventButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sources events'), findsWidgets);
+    expect(find.text('Gate bell'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-target-binding-target_center-mapEvent-source-event_gate_bell',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_77_cinematic_stage_map_entity_event_pickers_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -6219,6 +6399,8 @@ Future<void> _pumpBuilder(
   CinematicsLibraryEntry entry, {
   required CinematicAsset asset,
   VoidCallback? onBackToLibrary,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
+  bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
   await tester.pumpWidget(
@@ -6239,6 +6421,10 @@ Future<void> _pumpBuilder(
                   relativePath: 'lab.json',
                 ),
               ],
+              stageMapSourceCatalog: stageMapSourceCatalog ??
+                  (provideStageMapSourceCatalog
+                      ? _stageMapSourceCatalog()
+                      : null),
               onBackToLibrary: onBackToLibrary ?? () {},
               onAddDraftStep: ({
                 required String cinematicId,
@@ -6356,6 +6542,8 @@ Future<void> _pumpBuilderHarness(
   ProjectManifest project,
   String cinematicId, {
   ValueChanged<ProjectManifest>? onProjectChanged,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
+  bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
   await tester.pumpWidget(
@@ -6363,6 +6551,8 @@ Future<void> _pumpBuilderHarness(
       project: project,
       cinematicId: cinematicId,
       onProjectChanged: onProjectChanged,
+      stageMapSourceCatalog: stageMapSourceCatalog,
+      provideStageMapSourceCatalog: provideStageMapSourceCatalog,
       surfaceSize: surfaceSize,
     ),
   );
@@ -6374,12 +6564,16 @@ class _BuilderHarness extends StatefulWidget {
     required this.project,
     required this.cinematicId,
     required this.surfaceSize,
+    required this.provideStageMapSourceCatalog,
+    this.stageMapSourceCatalog,
     this.onProjectChanged,
   });
 
   final ProjectManifest project;
   final String cinematicId;
   final Size surfaceSize;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
+  final bool provideStageMapSourceCatalog;
   final ValueChanged<ProjectManifest>? onProjectChanged;
 
   @override
@@ -6404,6 +6598,10 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               entry: entry,
               asset: asset,
               stageMaps: _project.maps,
+              stageMapSourceCatalog: widget.stageMapSourceCatalog ??
+                  (widget.provideStageMapSourceCatalog
+                      ? _stageMapSourceCatalog()
+                      : null),
               onBackToLibrary: () {},
               onAddDraftStep: _addDraftStep,
               onRemoveDraftStep: _removeDraftStep,
@@ -7574,6 +7772,55 @@ ProjectManifest _project({
           ),
         ),
     ],
+  );
+}
+
+CinematicStageMapSourceCatalog _stageMapSourceCatalog({
+  MapData? mapData,
+}) {
+  return buildCinematicStageMapSourceCatalog(
+    stageMap: const ProjectMapEntry(
+      id: 'map_lab',
+      name: 'Lab map',
+      relativePath: 'lab.json',
+    ),
+    mapData: mapData ?? _stageMapData(),
+  );
+}
+
+MapData _stageMapData({
+  List<MapEntity> entities = const <MapEntity>[
+    MapEntity(
+      id: 'entity_professor',
+      name: 'Professor entity',
+      kind: MapEntityKind.npc,
+      pos: GridPos(x: 4, y: 6),
+      npc: MapEntityNpcData(displayName: 'Professor Oak'),
+    ),
+    MapEntity(
+      id: 'entity_notice',
+      name: 'Notice board',
+      kind: MapEntityKind.sign,
+      pos: GridPos(x: 7, y: 2),
+      sign: MapEntitySignData(title: 'Notice board'),
+    ),
+  ],
+  List<MapEventDefinition> events = const <MapEventDefinition>[
+    MapEventDefinition(
+      id: 'event_gate_bell',
+      title: 'Gate bell',
+      position: EventPosition(layerId: 'ground', x: 8, y: 3),
+      pages: [MapEventPage(pageNumber: 0)],
+      type: MapEventType.object,
+    ),
+  ],
+}) {
+  return MapData(
+    id: 'map_lab',
+    name: 'Lab map',
+    size: const GridSize(width: 12, height: 10),
+    entities: entities,
+    events: events,
   );
 }
 

@@ -64,6 +64,7 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   required CinematicAsset asset,
   required CinematicsLibraryEntry entry,
   required List<ProjectMapEntry> maps,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 }) {
   final stageContext = asset.stageContext;
   final effectiveContext = stageContext ?? CinematicStageContext();
@@ -79,10 +80,10 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   final items = <CinematicStagePreviewReadinessItem>[
     _mapItem(asset, maps),
     _backdropItem(asset, effectiveContext, maps),
-    _actorBindingsItem(asset, effectiveContext),
-    _initialPlacementsItem(asset, effectiveContext),
-    _movementTargetsItem(asset, effectiveContext),
-    _mapAwareSourcesItem(asset, effectiveContext),
+    _actorBindingsItem(asset, effectiveContext, stageMapSourceCatalog),
+    _initialPlacementsItem(asset, effectiveContext, stageMapSourceCatalog),
+    _movementTargetsItem(asset, effectiveContext, stageMapSourceCatalog),
+    _mapAwareSourcesItem(asset, effectiveContext, stageMapSourceCatalog),
   ];
 
   final hasBlocking = diagnostics.any(
@@ -192,6 +193,7 @@ CinematicStagePreviewReadinessItem _backdropItem(
 CinematicStagePreviewReadinessItem _actorBindingsItem(
   CinematicAsset asset,
   CinematicStageContext context,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 ) {
   if (asset.requiredActors.isEmpty) {
     return _item(
@@ -224,8 +226,17 @@ CinematicStagePreviewReadinessItem _actorBindingsItem(
         binding.mapEntityId == null) {
       return _item(
         'Acteurs liés',
-        CinematicStagePreviewReadinessItemKind.upcoming,
-        'Sélection d’entités prévue dans un lot suivant.',
+        CinematicStagePreviewReadinessItemKind.incomplete,
+        '${_actorDisplayLabel(actor)} doit choisir une entité de map',
+      );
+    }
+    if (binding.kind == CinematicActorBindingKind.mapEntity &&
+        !_hasBindableMapEntitySource(
+            stageMapSourceCatalog, binding.mapEntityId)) {
+      return _item(
+        'Acteurs liés',
+        CinematicStagePreviewReadinessItemKind.blocking,
+        '${_actorDisplayLabel(actor)} pointe vers une entité absente ou non PNJ',
       );
     }
   }
@@ -239,6 +250,7 @@ CinematicStagePreviewReadinessItem _actorBindingsItem(
 CinematicStagePreviewReadinessItem _initialPlacementsItem(
   CinematicAsset asset,
   CinematicStageContext context,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 ) {
   if (asset.requiredActors.isEmpty) {
     return _item(
@@ -276,6 +288,13 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
           '${_actorDisplayLabel(actor)} doit être lié à une entité de map',
         );
       }
+      if (!_hasMapEntitySource(stageMapSourceCatalog, binding!.mapEntityId)) {
+        return _item(
+          'Positions initiales',
+          CinematicStagePreviewReadinessItemKind.blocking,
+          '${_actorDisplayLabel(actor)} pointe vers une entité de map absente',
+        );
+      }
     }
   }
   return _item(
@@ -288,6 +307,7 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
 CinematicStagePreviewReadinessItem _movementTargetsItem(
   CinematicAsset asset,
   CinematicStageContext context,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 ) {
   if (asset.movementTargets.isEmpty) {
     return _item(
@@ -311,8 +331,22 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
     if (binding.sourceId == null) {
       return _item(
         'Cibles de mouvement',
-        CinematicStagePreviewReadinessItemKind.upcoming,
+        CinematicStagePreviewReadinessItemKind.incomplete,
         '${target.label} attend une source map-aware',
+      );
+    }
+    final hasSource = switch (binding.kind) {
+      CinematicMovementTargetBindingKind.abstractPoint => true,
+      CinematicMovementTargetBindingKind.mapEntity =>
+        _hasMapEntitySource(stageMapSourceCatalog, binding.sourceId),
+      CinematicMovementTargetBindingKind.mapEvent =>
+        _hasMapEventSource(stageMapSourceCatalog, binding.sourceId),
+    };
+    if (!hasSource) {
+      return _item(
+        'Cibles de mouvement',
+        CinematicStagePreviewReadinessItemKind.blocking,
+        '${target.label} pointe vers une source map absente',
       );
     }
   }
@@ -326,6 +360,7 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
 CinematicStagePreviewReadinessItem _mapAwareSourcesItem(
   CinematicAsset asset,
   CinematicStageContext context,
+  CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 ) {
   final hasMapAwareActor = context.actorBindings.any(
     (binding) => binding.kind == CinematicActorBindingKind.mapEntity,
@@ -338,9 +373,17 @@ CinematicStagePreviewReadinessItem _mapAwareSourcesItem(
   if (!hasMapAwareActor && !hasMapAwareTarget) {
     return _item(
       'Sources map-aware',
-      CinematicStagePreviewReadinessItemKind.upcoming,
-      'Sélection d’entités prévue dans un lot suivant. '
-          'Sélection d’events prévue dans un lot suivant.',
+      CinematicStagePreviewReadinessItemKind.ok,
+      'aucune source map-aware requise',
+    );
+  }
+  final catalogStatus =
+      _sourceCatalogReadinessMessage(asset, stageMapSourceCatalog);
+  if (catalogStatus != null) {
+    return _item(
+      'Sources map-aware',
+      CinematicStagePreviewReadinessItemKind.blocking,
+      catalogStatus,
     );
   }
   final hasMissingSource = context.actorBindings.any(
@@ -357,8 +400,8 @@ CinematicStagePreviewReadinessItem _mapAwareSourcesItem(
   if (hasMissingSource) {
     return _item(
       'Sources map-aware',
-      CinematicStagePreviewReadinessItemKind.upcoming,
-      'Le Builder ne reçoit pas encore les entités/events de la map.',
+      CinematicStagePreviewReadinessItemKind.incomplete,
+      'Choisis une entité ou un event depuis la map de scène.',
     );
   }
   return _item(
@@ -445,6 +488,74 @@ bool _hasMovementTarget(CinematicAsset asset, String? targetId) {
   return asset.movementTargets.any((target) => target.targetId == targetId);
 }
 
+bool _hasBindableMapEntitySource(
+  CinematicStageMapSourceCatalog? catalog,
+  String? sourceId,
+) {
+  final source = _mapEntitySource(catalog, sourceId);
+  return source != null && source.canBindActor;
+}
+
+bool _hasMapEntitySource(
+  CinematicStageMapSourceCatalog? catalog,
+  String? sourceId,
+) {
+  return _mapEntitySource(catalog, sourceId) != null;
+}
+
+bool _hasMapEventSource(
+  CinematicStageMapSourceCatalog? catalog,
+  String? sourceId,
+) {
+  return _mapEventSource(catalog, sourceId) != null;
+}
+
+CinematicStageMapEntitySource? _mapEntitySource(
+  CinematicStageMapSourceCatalog? catalog,
+  String? sourceId,
+) {
+  if (sourceId == null ||
+      catalog?.status != CinematicStageMapSourceCatalogStatus.available) {
+    return null;
+  }
+  return catalog!.entityById(sourceId);
+}
+
+CinematicStageMapEventSource? _mapEventSource(
+  CinematicStageMapSourceCatalog? catalog,
+  String? sourceId,
+) {
+  if (sourceId == null ||
+      catalog?.status != CinematicStageMapSourceCatalogStatus.available) {
+    return null;
+  }
+  return catalog!.eventById(sourceId);
+}
+
+String? _sourceCatalogReadinessMessage(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  if (asset.mapId == null) {
+    return 'Choisis une map de scène avant les sources map-aware.';
+  }
+  if (catalog == null) {
+    return 'Le catalogue des entités/events de la map est en cours de chargement.';
+  }
+  if (catalog.stageMapId != asset.mapId) {
+    return 'Le catalogue des sources ne correspond pas à la map de scène.';
+  }
+  return switch (catalog.status) {
+    CinematicStageMapSourceCatalogStatus.available => null,
+    CinematicStageMapSourceCatalogStatus.missingStageMap =>
+      'Choisis une map de scène avant les sources map-aware.',
+    CinematicStageMapSourceCatalogStatus.mapDataUnavailable =>
+      'La MapData de la map de scène est indisponible.',
+    CinematicStageMapSourceCatalogStatus.mapIdMismatch =>
+      'La MapData chargée ne correspond pas à la map de scène.',
+  };
+}
+
 List<CinematicsLibraryDiagnosticView> _stageDiagnostics(
   CinematicsLibraryEntry entry,
 ) {
@@ -472,7 +583,7 @@ String _humanStageDiagnosticMessage(
     'actorBindingRequiresStageMap' =>
       'Choisis une map avant de lier un acteur à une entité.',
     'actorBindingMapEntityMissingSource' =>
-      'Sélection d’entités prévue dans un lot suivant.',
+      'Choisis une entité depuis les sources de la map.',
     'actorInitialPlacementUnknownActor' =>
       'Une entrée de scène vise un acteur absent.',
     'actorInitialPlacementMissing' =>
@@ -486,7 +597,7 @@ String _humanStageDiagnosticMessage(
     'movementTargetBindingRequiresStageMap' =>
       'Choisis une map avant de lier une cible à une entité ou un event.',
     'movementTargetBindingMissingSource' => targetLabel == null
-        ? 'Sélection d’events prévue dans un lot suivant.'
+        ? 'Choisis une entité ou un event depuis les sources de la map.'
         : '$targetLabel attend une sélection d’entité ou d’event.',
     _ => diagnostic.message,
   };

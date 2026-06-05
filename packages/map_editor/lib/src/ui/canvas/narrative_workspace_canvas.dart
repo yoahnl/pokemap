@@ -1119,6 +1119,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onUpsertActorBinding: _upsertCinematicActorBinding,
       onUpsertActorInitialPlacement: _upsertCinematicActorInitialPlacement,
       onUpsertMovementTargetBinding: _upsertCinematicMovementTargetBinding,
+      onLoadStageMapSnapshot: widget.editorNotifier.loadMapSnapshotById,
       onOpenLegacyCutsceneStudio: () {
         setState(() => _showLegacyCutsceneStudio = true);
       },

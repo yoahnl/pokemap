@@ -224,6 +224,41 @@ void main() {
     expect(find.text('Bibliothèque'), findsWidgets);
   });
 
+  testWidgets('loads stage map source catalog when opening builder',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final mapEntityButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(mapEntityButton);
+    await tester.tap(mapEntityButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Professor Oak'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-binding-actor_professor-mapEntity-source-entity_professor',
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('adds a draft from builder and refreshes library summary',
       (tester) async {
     _setLargeSurface(tester);
@@ -763,6 +798,9 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return true;
               },
+              onLoadStageMapSnapshot: (mapId) async {
+                return mapId == 'map_lab' ? _stageMapData() : null;
+              },
               onOpenLegacyCutsceneStudio: () {},
             ),
           ),
@@ -789,6 +827,32 @@ class _HarnessState extends State<_Harness> {
     }
     return '${base}_$index';
   }
+}
+
+MapData _stageMapData() {
+  return const MapData(
+    id: 'map_lab',
+    name: 'Lab map',
+    size: GridSize(width: 12, height: 10),
+    entities: [
+      MapEntity(
+        id: 'entity_professor',
+        name: 'Professor entity',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 4, y: 6),
+        npc: MapEntityNpcData(displayName: 'Professor Oak'),
+      ),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'event_gate_bell',
+        title: 'Gate bell',
+        position: EventPosition(layerId: 'ground', x: 8, y: 3),
+        pages: [MapEventPage(pageNumber: 0)],
+        type: MapEventType.object,
+      ),
+    ],
+  );
 }
 
 ProjectManifest _project({

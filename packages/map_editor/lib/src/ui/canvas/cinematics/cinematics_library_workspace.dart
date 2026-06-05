@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -129,6 +131,8 @@ typedef UpsertMovementTargetBindingCallback = Future<bool> Function({
   required CinematicMovementTargetBinding binding,
 });
 
+typedef LoadStageMapSnapshotCallback = Future<MapData?> Function(String mapId);
+
 enum _CinematicsLibraryFilter {
   all,
   canonical,
@@ -160,6 +164,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpsertActorBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
+    this.onLoadStageMapSnapshot,
     this.onOpenLegacyCutsceneStudio,
   });
 
@@ -185,6 +190,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpsertActorBindingCallback onUpsertActorBinding;
   final UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
+  final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -205,6 +211,9 @@ class _CinematicsLibraryWorkspaceState
   String? _loadedEditorId;
   String? _pendingDeleteId;
   String? _feedback;
+  String? _loadingStageMapSourceCatalogMapId;
+  CinematicStageMapSourceCatalog? _stageMapSourceCatalog;
+  int _stageMapSourceCatalogGeneration = 0;
 
   @override
   void dispose() {
@@ -231,10 +240,12 @@ class _CinematicsLibraryWorkspaceState
     if (builderEntry != null &&
         builderEntry.kind == CinematicsLibraryEntryKind.canonical &&
         builderAsset != null) {
+      _ensureStageMapSourceCatalog(builderAsset);
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
         stageMaps: widget.project.maps,
+        stageMapSourceCatalog: _stageMapSourceCatalog,
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
         },
@@ -303,6 +314,52 @@ class _CinematicsLibraryWorkspaceState
         ),
       ),
     );
+  }
+
+  void _ensureStageMapSourceCatalog(CinematicAsset asset) {
+    final mapId = asset.mapId?.trim();
+    if (mapId == null || mapId.isEmpty) {
+      if (_stageMapSourceCatalog != null ||
+          _loadingStageMapSourceCatalogMapId != null) {
+        scheduleMicrotask(() {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _stageMapSourceCatalog = null;
+            _loadingStageMapSourceCatalogMapId = null;
+            _stageMapSourceCatalogGeneration++;
+          });
+        });
+      }
+      return;
+    }
+    if (_stageMapSourceCatalog?.stageMapId == mapId ||
+        _loadingStageMapSourceCatalogMapId == mapId) {
+      return;
+    }
+
+    final loader = widget.onLoadStageMapSnapshot;
+    if (loader == null) {
+      return;
+    }
+
+    final generation = ++_stageMapSourceCatalogGeneration;
+    _loadingStageMapSourceCatalogMapId = mapId;
+    unawaited(() async {
+      final mapData = await loader(mapId);
+      if (!mounted || generation != _stageMapSourceCatalogGeneration) {
+        return;
+      }
+      final stageMap = _stageMapForId(widget.project.maps, mapId);
+      setState(() {
+        _stageMapSourceCatalog = buildCinematicStageMapSourceCatalog(
+          stageMap: stageMap,
+          mapData: mapData,
+        );
+        _loadingStageMapSourceCatalogMapId = null;
+      });
+    }());
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -1448,4 +1505,13 @@ String _usageLabel(int count) {
     return '1 scène';
   }
   return '$count scènes';
+}
+
+ProjectMapEntry? _stageMapForId(List<ProjectMapEntry> maps, String mapId) {
+  for (final map in maps) {
+    if (map.id == mapId) {
+      return map;
+    }
+  }
+  return null;
 }

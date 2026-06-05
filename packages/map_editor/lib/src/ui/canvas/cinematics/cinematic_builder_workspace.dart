@@ -194,6 +194,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    this.stageMapSourceCatalog,
     required this.onBackToLibrary,
     required this.onAddDraftStep,
     required this.onRemoveDraftStep,
@@ -218,6 +219,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
   final RemoveCinematicDraftStepCallback onRemoveDraftStep;
@@ -369,6 +371,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       entry: widget.entry,
                       asset: widget.asset,
                       stageMaps: widget.stageMaps,
+                      stageMapSourceCatalog: widget.stageMapSourceCatalog,
                       selectedStep: selectedStep,
                       selectedStepIndex: selectedStepIndex,
                       onUpdateStageMap: _updateStageMap,
@@ -3584,6 +3587,7 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.stageMapSourceCatalog,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.onUpdateStageMap,
@@ -3601,6 +3605,7 @@ class _InspectorPlaceholder extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final _UpdateStageMapCallback onUpdateStageMap;
@@ -3635,6 +3640,7 @@ class _InspectorPlaceholder extends StatelessWidget {
               entry: entry,
               asset: asset,
               stageMaps: stageMaps,
+              stageMapSourceCatalog: stageMapSourceCatalog,
               onUpdateStageMap: onUpdateStageMap,
               onUpdateStageContext: onUpdateStageContext,
               onUpsertActorBinding: onUpsertActorBinding,
@@ -3706,6 +3712,7 @@ class _StageContextEditor extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.stageMapSourceCatalog,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
@@ -3716,6 +3723,7 @@ class _StageContextEditor extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
   final _UpsertActorBindingCallback onUpsertActorBinding;
@@ -3729,6 +3737,7 @@ class _StageContextEditor extends StatelessWidget {
       asset: asset,
       entry: entry,
       maps: stageMaps,
+      stageMapSourceCatalog: stageMapSourceCatalog,
     );
     return PokeMapCard(
       key: const ValueKey('cinematic-builder-stage-context-editor'),
@@ -3757,18 +3766,21 @@ class _StageContextEditor extends StatelessWidget {
           _StageActorBindingsSection(
             asset: asset,
             stageContext: stageContext,
+            stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertActorBinding: onUpsertActorBinding,
           ),
           const SizedBox(height: 10),
           _StageInitialPlacementsSection(
             asset: asset,
             stageContext: stageContext,
+            stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
           ),
           const SizedBox(height: 10),
           _StageMovementTargetBindingsSection(
             asset: asset,
             stageContext: stageContext,
+            stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
           ),
           const SizedBox(height: 10),
@@ -3902,11 +3914,13 @@ class _StageActorBindingsSection extends StatelessWidget {
   const _StageActorBindingsSection({
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.onUpsertActorBinding,
   });
 
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertActorBindingCallback onUpsertActorBinding;
 
   @override
@@ -3929,6 +3943,7 @@ class _StageActorBindingsSection extends StatelessWidget {
               actor: actor,
               asset: asset,
               stageContext: stageContext,
+              stageMapSourceCatalog: stageMapSourceCatalog,
               playerActorId: playerActorId,
               onUpsertActorBinding: onUpsertActorBinding,
             ),
@@ -3939,11 +3954,12 @@ class _StageActorBindingsSection extends StatelessWidget {
   }
 }
 
-class _StageActorBindingRow extends StatelessWidget {
+class _StageActorBindingRow extends StatefulWidget {
   const _StageActorBindingRow({
     required this.actor,
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.playerActorId,
     required this.onUpsertActorBinding,
   });
@@ -3951,19 +3967,43 @@ class _StageActorBindingRow extends StatelessWidget {
   final CinematicActorRef actor;
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final String? playerActorId;
   final _UpsertActorBindingCallback onUpsertActorBinding;
 
   @override
+  State<_StageActorBindingRow> createState() => _StageActorBindingRowState();
+}
+
+class _StageActorBindingRowState extends State<_StageActorBindingRow> {
+  bool _showMapEntitySources = false;
+
+  @override
+  void didUpdateWidget(_StageActorBindingRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.asset.mapId != widget.asset.mapId ||
+        oldWidget.actor.actorId != widget.actor.actorId) {
+      _showMapEntitySources = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final actor = widget.actor;
+    final asset = widget.asset;
+    final stageContext = widget.stageContext;
+    final sourceCatalog = widget.stageMapSourceCatalog;
     final binding = _actorBindingFor(stageContext, actor.actorId);
     final selectedKind = binding?.kind;
     final playerDisabled =
-        playerActorId != null && playerActorId != actor.actorId;
-    final mapEntityDisabledReason = asset.mapId == null
-        ? 'Choisis d’abord une map de scène.'
-        : 'Sélection d’entités prévue dans un lot suivant. '
-            'Le Builder ne reçoit pas encore les entités/events de la map.';
+        widget.playerActorId != null && widget.playerActorId != actor.actorId;
+    final actorSources = _actorBindableEntitySources(asset, sourceCatalog);
+    final mapEntityDisabledReason =
+        _mapEntityActorDisabledReason(asset, sourceCatalog, actorSources);
+    final canPickMapEntity = mapEntityDisabledReason == null;
+    final selectedSource = binding?.mapEntityId == null
+        ? null
+        : sourceCatalog?.entityById(binding!.mapEntityId!);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -3979,7 +4019,7 @@ class _StageActorBindingRow extends StatelessWidget {
               icon: CupertinoIcons.person_crop_circle,
               selected: selectedKind == CinematicActorBindingKind.player,
               disabled: playerDisabled,
-              onPressed: () => onUpsertActorBinding(
+              onPressed: () => widget.onUpsertActorBinding(
                 CinematicActorBinding(
                   actorId: actor.actorId,
                   kind: CinematicActorBindingKind.player,
@@ -3992,8 +4032,10 @@ class _StageActorBindingRow extends StatelessWidget {
               label: 'Entité de map',
               icon: CupertinoIcons.location,
               selected: selectedKind == CinematicActorBindingKind.mapEntity,
-              disabled: true,
-              onPressed: () {},
+              disabled: !canPickMapEntity,
+              onPressed: () {
+                setState(() => _showMapEntitySources = true);
+              },
             ),
             _StageChoice(
               keyValue:
@@ -4001,7 +4043,7 @@ class _StageActorBindingRow extends StatelessWidget {
               label: 'Cinématique uniquement',
               icon: CupertinoIcons.sparkles,
               selected: selectedKind == CinematicActorBindingKind.cinematicOnly,
-              onPressed: () => onUpsertActorBinding(
+              onPressed: () => widget.onUpsertActorBinding(
                 CinematicActorBinding(
                   actorId: actor.actorId,
                   kind: CinematicActorBindingKind.cinematicOnly,
@@ -4014,7 +4056,7 @@ class _StageActorBindingRow extends StatelessWidget {
               label: 'Non lié',
               icon: CupertinoIcons.question_circle,
               selected: selectedKind == CinematicActorBindingKind.unbound,
-              onPressed: () => onUpsertActorBinding(
+              onPressed: () => widget.onUpsertActorBinding(
                 CinematicActorBinding(
                   actorId: actor.actorId,
                   kind: CinematicActorBindingKind.unbound,
@@ -4027,8 +4069,35 @@ class _StageActorBindingRow extends StatelessWidget {
           const SizedBox(height: 4),
           const _MutedText('Un autre acteur est déjà lié au joueur.'),
         ],
-        const SizedBox(height: 4),
-        _MutedText(mapEntityDisabledReason),
+        if (selectedSource != null) ...[
+          const SizedBox(height: 4),
+          _MutedText(
+            'Entité liée : ${selectedSource.label} · '
+            '${selectedSource.kindLabel} · ${selectedSource.positionSummary}',
+          ),
+        ],
+        if (mapEntityDisabledReason != null) ...[
+          const SizedBox(height: 4),
+          _MutedText(mapEntityDisabledReason),
+        ],
+        if (canPickMapEntity &&
+            (_showMapEntitySources ||
+                selectedKind == CinematicActorBindingKind.mapEntity)) ...[
+          const SizedBox(height: 6),
+          _StageMapEntitySourcePicker(
+            keyPrefix: 'cinematic-builder-actor-binding-${actor.actorId}'
+                '-mapEntity',
+            sources: actorSources,
+            selectedSourceId: binding?.mapEntityId,
+            onSourceSelected: (source) => widget.onUpsertActorBinding(
+              CinematicActorBinding(
+                actorId: actor.actorId,
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: source.id,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -4038,11 +4107,13 @@ class _StageInitialPlacementsSection extends StatelessWidget {
   const _StageInitialPlacementsSection({
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.onUpsertActorInitialPlacement,
   });
 
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
 
   @override
@@ -4064,6 +4135,7 @@ class _StageInitialPlacementsSection extends StatelessWidget {
               actor: actor,
               asset: asset,
               stageContext: stageContext,
+              stageMapSourceCatalog: stageMapSourceCatalog,
               onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
             ),
             const SizedBox(height: 8),
@@ -4078,12 +4150,14 @@ class _StageInitialPlacementRow extends StatelessWidget {
     required this.actor,
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.onUpsertActorInitialPlacement,
   });
 
   final CinematicActorRef actor;
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
 
   @override
@@ -4092,7 +4166,8 @@ class _StageInitialPlacementRow extends StatelessWidget {
     final binding = _actorBindingFor(stageContext, actor.actorId);
     final supportsMapEntityPlacement =
         binding?.kind == CinematicActorBindingKind.mapEntity &&
-            binding?.mapEntityId != null;
+            binding?.mapEntityId != null &&
+            stageMapSourceCatalog?.entityById(binding!.mapEntityId!) != null;
     final hasTargets = asset.movementTargets.isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4196,11 +4271,13 @@ class _StageMovementTargetBindingsSection extends StatelessWidget {
   const _StageMovementTargetBindingsSection({
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.onUpsertMovementTargetBinding,
   });
 
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
 
   @override
@@ -4222,6 +4299,7 @@ class _StageMovementTargetBindingsSection extends StatelessWidget {
               target: target,
               asset: asset,
               stageContext: stageContext,
+              stageMapSourceCatalog: stageMapSourceCatalog,
               onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
             ),
             const SizedBox(height: 8),
@@ -4231,31 +4309,65 @@ class _StageMovementTargetBindingsSection extends StatelessWidget {
   }
 }
 
-class _StageMovementTargetBindingRow extends StatelessWidget {
+class _StageMovementTargetBindingRow extends StatefulWidget {
   const _StageMovementTargetBindingRow({
     required this.target,
     required this.asset,
     required this.stageContext,
+    required this.stageMapSourceCatalog,
     required this.onUpsertMovementTargetBinding,
   });
 
   final CinematicMovementTargetRef target;
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
 
   @override
+  State<_StageMovementTargetBindingRow> createState() =>
+      _StageMovementTargetBindingRowState();
+}
+
+class _StageMovementTargetBindingRowState
+    extends State<_StageMovementTargetBindingRow> {
+  CinematicMovementTargetBindingKind? _expandedSourceKind;
+
+  @override
+  void didUpdateWidget(_StageMovementTargetBindingRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.asset.mapId != widget.asset.mapId ||
+        oldWidget.target.targetId != widget.target.targetId) {
+      _expandedSourceKind = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final target = widget.target;
+    final asset = widget.asset;
+    final stageContext = widget.stageContext;
+    final sourceCatalog = widget.stageMapSourceCatalog;
     final binding = _movementTargetBindingFor(stageContext, target.targetId);
     final selectedKind = binding?.kind;
-    final entityReason = asset.mapId == null
-        ? 'Choisis d’abord une map de scène.'
-        : 'Sélection d’entités prévue dans un lot suivant. '
-            'Le Builder ne reçoit pas encore les entités/events de la map.';
-    final eventReason = asset.mapId == null
-        ? 'Choisis d’abord une map de scène.'
-        : 'Sélection d’events prévue dans un lot suivant. '
-            'Le Builder ne reçoit pas encore les entités/events de la map.';
+    final entitySources = _movementTargetEntitySources(asset, sourceCatalog);
+    final eventSources = _movementTargetEventSources(asset, sourceCatalog);
+    final entityReason =
+        _mapEntityTargetDisabledReason(asset, sourceCatalog, entitySources);
+    final eventReason =
+        _mapEventTargetDisabledReason(asset, sourceCatalog, eventSources);
+    final canPickEntity = entityReason == null;
+    final canPickEvent = eventReason == null;
+    final selectedEntity =
+        selectedKind == CinematicMovementTargetBindingKind.mapEntity &&
+                binding?.sourceId != null
+            ? sourceCatalog?.entityById(binding!.sourceId!)
+            : null;
+    final selectedEvent =
+        selectedKind == CinematicMovementTargetBindingKind.mapEvent &&
+                binding?.sourceId != null
+            ? sourceCatalog?.eventById(binding!.sourceId!)
+            : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -4271,7 +4383,7 @@ class _StageMovementTargetBindingRow extends StatelessWidget {
               icon: CupertinoIcons.scope,
               selected: selectedKind ==
                   CinematicMovementTargetBindingKind.abstractPoint,
-              onPressed: () => onUpsertMovementTargetBinding(
+              onPressed: () => widget.onUpsertMovementTargetBinding(
                 CinematicMovementTargetBinding(
                   targetId: target.targetId,
                   kind: CinematicMovementTargetBindingKind.abstractPoint,
@@ -4285,8 +4397,13 @@ class _StageMovementTargetBindingRow extends StatelessWidget {
               icon: CupertinoIcons.location,
               selected:
                   selectedKind == CinematicMovementTargetBindingKind.mapEntity,
-              disabled: true,
-              onPressed: () {},
+              disabled: !canPickEntity,
+              onPressed: () {
+                setState(() {
+                  _expandedSourceKind =
+                      CinematicMovementTargetBindingKind.mapEntity;
+                });
+              },
             ),
             _StageChoice(
               keyValue:
@@ -4295,15 +4412,229 @@ class _StageMovementTargetBindingRow extends StatelessWidget {
               icon: CupertinoIcons.flag,
               selected:
                   selectedKind == CinematicMovementTargetBindingKind.mapEvent,
-              disabled: true,
-              onPressed: () {},
+              disabled: !canPickEvent,
+              onPressed: () {
+                setState(() {
+                  _expandedSourceKind =
+                      CinematicMovementTargetBindingKind.mapEvent;
+                });
+              },
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        _MutedText(entityReason),
-        _MutedText(eventReason),
+        if (selectedEntity != null) ...[
+          const SizedBox(height: 4),
+          _MutedText(
+            'Entité cible : ${selectedEntity.label} · '
+            '${selectedEntity.kindLabel} · ${selectedEntity.positionSummary}',
+          ),
+        ],
+        if (selectedEvent != null) ...[
+          const SizedBox(height: 4),
+          _MutedText(
+            'Event cible : ${selectedEvent.label} · '
+            '${selectedEvent.kindLabel} · ${selectedEvent.positionSummary}',
+          ),
+        ],
+        if (entityReason != null || eventReason != null)
+          const SizedBox(height: 4),
+        if (entityReason != null) _MutedText(entityReason),
+        if (eventReason != null) _MutedText(eventReason),
+        if (canPickEntity &&
+            (_expandedSourceKind ==
+                    CinematicMovementTargetBindingKind.mapEntity ||
+                selectedKind ==
+                    CinematicMovementTargetBindingKind.mapEntity)) ...[
+          const SizedBox(height: 6),
+          _StageMapEntitySourcePicker(
+            keyPrefix: 'cinematic-builder-target-binding-${target.targetId}'
+                '-mapEntity',
+            sources: entitySources,
+            selectedSourceId:
+                selectedKind == CinematicMovementTargetBindingKind.mapEntity
+                    ? binding?.sourceId
+                    : null,
+            onSourceSelected: (source) => widget.onUpsertMovementTargetBinding(
+              CinematicMovementTargetBinding(
+                targetId: target.targetId,
+                kind: CinematicMovementTargetBindingKind.mapEntity,
+                sourceId: source.id,
+              ),
+            ),
+          ),
+        ],
+        if (canPickEvent &&
+            (_expandedSourceKind ==
+                    CinematicMovementTargetBindingKind.mapEvent ||
+                selectedKind ==
+                    CinematicMovementTargetBindingKind.mapEvent)) ...[
+          const SizedBox(height: 6),
+          _StageMapEventSourcePicker(
+            keyPrefix: 'cinematic-builder-target-binding-${target.targetId}'
+                '-mapEvent',
+            sources: eventSources,
+            selectedSourceId:
+                selectedKind == CinematicMovementTargetBindingKind.mapEvent
+                    ? binding?.sourceId
+                    : null,
+            onSourceSelected: (source) => widget.onUpsertMovementTargetBinding(
+              CinematicMovementTargetBinding(
+                targetId: target.targetId,
+                kind: CinematicMovementTargetBindingKind.mapEvent,
+                sourceId: source.id,
+              ),
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+typedef _SelectStageMapEntitySource = Future<void> Function(
+  CinematicStageMapEntitySource source,
+);
+
+typedef _SelectStageMapEventSource = Future<void> Function(
+  CinematicStageMapEventSource source,
+);
+
+class _StageMapEntitySourcePicker extends StatelessWidget {
+  const _StageMapEntitySourcePicker({
+    required this.keyPrefix,
+    required this.sources,
+    required this.selectedSourceId,
+    required this.onSourceSelected,
+  });
+
+  final String keyPrefix;
+  final List<CinematicStageMapEntitySource> sources;
+  final String? selectedSourceId;
+  final _SelectStageMapEntitySource onSourceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StageSourcePickerShell(
+      title: 'Sources entités',
+      children: [
+        for (final source in sources)
+          _StageSourceOption(
+            keyValue: '$keyPrefix-source-${source.id}',
+            label: source.label,
+            detail: '${source.kindLabel} · ${source.positionSummary}',
+            icon: CupertinoIcons.location,
+            selected: selectedSourceId == source.id,
+            onPressed: () => onSourceSelected(source),
+          ),
+      ],
+    );
+  }
+}
+
+class _StageMapEventSourcePicker extends StatelessWidget {
+  const _StageMapEventSourcePicker({
+    required this.keyPrefix,
+    required this.sources,
+    required this.selectedSourceId,
+    required this.onSourceSelected,
+  });
+
+  final String keyPrefix;
+  final List<CinematicStageMapEventSource> sources;
+  final String? selectedSourceId;
+  final _SelectStageMapEventSource onSourceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StageSourcePickerShell(
+      title: 'Sources events',
+      children: [
+        for (final source in sources)
+          _StageSourceOption(
+            keyValue: '$keyPrefix-source-${source.id}',
+            label: source.label,
+            detail: '${source.kindLabel} · ${source.positionSummary}',
+            icon: CupertinoIcons.flag,
+            selected: selectedSourceId == source.id,
+            onPressed: () => onSourceSelected(source),
+          ),
+      ],
+    );
+  }
+}
+
+class _StageSourcePickerShell extends StatelessWidget {
+  const _StageSourcePickerShell({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _KeyValue(label: title, value: '${children.length} source(s)'),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: children,
+        ),
+      ],
+    );
+  }
+}
+
+class _StageSourceOption extends StatelessWidget {
+  const _StageSourceOption({
+    required this.keyValue,
+    required this.label,
+    required this.detail,
+    required this.icon,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String keyValue;
+  final String label;
+  final String detail;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 245),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PokeMapButton(
+            key: ValueKey(keyValue),
+            onPressed: onPressed,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            isSelected: selected,
+            leading: Icon(icon),
+            child: const SizedBox.shrink(),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StrongText(label),
+                const SizedBox(height: 2),
+                _MutedText(detail),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -6137,6 +6468,124 @@ ProjectMapEntry? _stageMapForId(List<ProjectMapEntry> maps, String? mapId) {
     }
   }
   return null;
+}
+
+bool _stageSourceCatalogMatchesAsset(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  final mapId = asset.mapId;
+  return mapId != null && catalog?.stageMapId == mapId;
+}
+
+List<CinematicStageMapEntitySource> _actorBindableEntitySources(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  if (!_stageSourceCatalogMatchesAsset(asset, catalog) ||
+      catalog?.status != CinematicStageMapSourceCatalogStatus.available) {
+    return const <CinematicStageMapEntitySource>[];
+  }
+  return catalog!.entities
+      .where((source) => source.canBindActor)
+      .toList(growable: false);
+}
+
+List<CinematicStageMapEntitySource> _movementTargetEntitySources(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  if (!_stageSourceCatalogMatchesAsset(asset, catalog) ||
+      catalog?.status != CinematicStageMapSourceCatalogStatus.available) {
+    return const <CinematicStageMapEntitySource>[];
+  }
+  return catalog!.entities
+      .where((source) => source.canBeMovementTarget)
+      .toList(growable: false);
+}
+
+List<CinematicStageMapEventSource> _movementTargetEventSources(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  if (!_stageSourceCatalogMatchesAsset(asset, catalog) ||
+      catalog?.status != CinematicStageMapSourceCatalogStatus.available) {
+    return const <CinematicStageMapEventSource>[];
+  }
+  return catalog!.events
+      .where((source) => source.canBeMovementTarget)
+      .toList(growable: false);
+}
+
+String? _mapEntityActorDisabledReason(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+  List<CinematicStageMapEntitySource> sources,
+) {
+  final catalogReason = _sourceCatalogDisabledReason(asset, catalog);
+  if (catalogReason != null) {
+    return catalogReason;
+  }
+  if (sources.isEmpty) {
+    return catalog!.entities.isEmpty
+        ? 'La map de scène ne contient aucune entité.'
+        : 'Aucune entité PNJ bindable acteur sur cette map.';
+  }
+  return null;
+}
+
+String? _mapEntityTargetDisabledReason(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+  List<CinematicStageMapEntitySource> sources,
+) {
+  final catalogReason = _sourceCatalogDisabledReason(asset, catalog);
+  if (catalogReason != null) {
+    return catalogReason;
+  }
+  if (sources.isEmpty) {
+    return 'La map de scène ne contient aucune entité cible.';
+  }
+  return null;
+}
+
+String? _mapEventTargetDisabledReason(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+  List<CinematicStageMapEventSource> sources,
+) {
+  final catalogReason = _sourceCatalogDisabledReason(asset, catalog);
+  if (catalogReason != null) {
+    return catalogReason;
+  }
+  if (sources.isEmpty) {
+    return 'La map de scène ne contient aucun event cible.';
+  }
+  return null;
+}
+
+String? _sourceCatalogDisabledReason(
+  CinematicAsset asset,
+  CinematicStageMapSourceCatalog? catalog,
+) {
+  if (asset.mapId == null) {
+    return 'Choisis d’abord une map de scène.';
+  }
+  if (catalog == null) {
+    return 'Catalogue des entités/events de la map en cours de chargement.';
+  }
+  if (catalog.stageMapId != asset.mapId) {
+    return 'Catalogue de sources aligné sur une autre map.';
+  }
+  return switch (catalog.status) {
+    CinematicStageMapSourceCatalogStatus.available => null,
+    CinematicStageMapSourceCatalogStatus.missingStageMap =>
+      'Choisis d’abord une map de scène.',
+    CinematicStageMapSourceCatalogStatus.mapDataUnavailable =>
+      'MapData de la map de scène indisponible.',
+    CinematicStageMapSourceCatalogStatus.mapIdMismatch =>
+      'La MapData chargée ne correspond pas à la map de scène.',
+  };
 }
 
 CinematicStageContext _copyStageContext(

@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0
+NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0
 ```
 
 ## Principes
@@ -110,6 +110,8 @@ NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0
 | NS-SCENES-V1-74 | Cinematic Stage Context Diagnostics / Preview Readiness Polish V0 | editor / ui-polish | Rendre le Stage Context comprehensible avant preview future : status readiness, checklist no-code, diagnostics stage humains et resume Library `Preview`. | Pas de preview reelle, playback, timer, pathfinding, source map-aware reelle, `stageContext.mapId`, IDs libres ou runtime. | Builder/Library cinematics, petit read model editor pur, tests widget, rapport, screenshot. | DONE : `Preparation preview`, statuts sandbox/incomplet/bloquant/pret, checklist visible, messages mapEntity/mapEvent temporaires, Visual Gate. | Masquer les lacunes derriere un faux OK ; faire croire a une preview reelle ; casser la densite de l'inspecteur. | DONE : readiness lisible et honnete, sans nouveau pouvoir runtime/editor temporel. | V1-73. |
 | NS-SCENES-V1-75 | Cinematic Map Entity/Event Source Audit / Picker Prep Contract | doc / architecture-review | Auditer les donnees map accessibles cote editor pour preparer de futurs pickers `mapEntity` / `mapEvent` honnetes. | Pas de picker actif, pas de runtime preview, pas de free coordinates, pas de `sourceId` tape a la main, pas de donnees Selbrume. | Rapport V1-75, roadmaps, audit MapData/editor services. | DONE : `ProjectManifest.maps` audite comme metadata/relativePath, `MapData.entities/events` identifies comme sources reelles, snapshot editor non destructive reperee, Option E retenue, contrat `CinematicStageMapSourceCatalog` et tests futurs cadres. | Brancher des IDs bruts ou une source incomplete ; confondre map authoring et runtime state. | DONE : contrat pret avant implementation map-aware, sans package ni picker actif. | V1-74. |
 | NS-SCENES-V1-76 | Cinematic Stage Map Source Catalog V0 | core / read-model | Creer le catalogue pur des sources map-aware depuis `ProjectMapEntry` et `MapData`, avant tout picker. | Pas de UI, pas de picker actif, pas de preview reelle, pas de runtime, pas de pathfinding, pas de donnees Selbrume, pas de chargement MapData. | `cinematic_stage_map_source_catalog.dart`, export `map_core.dart`, test catalogue, rapports. | DONE : TDD RED/GREEN, statuts missing/unavailable/mismatch/available, entities/events reels, labels no-code, ids secondaires, `canBindActor`, `canBeMovementTarget`, tests/analyze core verts, tests editor cibles verts. | Lier le Builder trop tot ; charger la map depuis core ; exposer IDs bruts comme workflow. | DONE : catalogue consommable par V1-77, sans UI ni runtime. | V1-75. |
+| NS-SCENES-V1-77 | Cinematic Stage Map Entity/Event Pickers V0 | editor / authoring | Brancher le catalogue V1-76 au Builder pour choisir de vraies sources `MapData.entities/events` dans les bindings stage. | Pas de preview reelle, pas de runtime, pas de playback, pas de pathfinding, pas de coordonnees libres, pas de JSON/ID brut saisi, pas de donnees Selbrume. | Builder/Library cinematics, readiness preview, tests widget, rapport, screenshot. | DONE : actor binding -> vraie `mapEntity`, movement target -> vraie `mapEntity` ou vrai `mapEvent`, snapshot MapData non destructive, labels no-code, readiness alignee, Visual Gate 1663x926. | Charger la map au mauvais niveau ; exposer les ids bruts ; casser timeline/proportions ; faire croire a une preview reelle. | DONE : pickers map-aware honnetes actifs, sans runtime ni preview reelle. | V1-76. |
+| NS-SCENES-V1-78 | Cinematic Stage Source Drift Diagnostics Polish V0 | editor / ui-polish | Polir les diagnostics/resumes quand une source map-aware deja liee disparait, change de map ou devient indisponible. | Pas de preview reelle, pas de runtime, pas de playback, pas de pathfinding, pas de rechargement destructif, pas de changement de modele core si non requis. | Builder/Library cinematics, readiness, tests widget, rapport, screenshot si UI. | TODO : sources cassees expliquees sans ID libre, recovery via pickers V1-77, timeline/proportions preserves. | Diagnostiquer trop tard ; masquer les refs cassees ; surcharger l'inspecteur. | TODO : source drift lisible et corrigeable no-code. | V1-77. |
 | NS-SCENES-V1-80 | Cinematic Timeline Scroll / Visibility Polish V0 | editor / ui-polish | Backlog futur : polir la visibilite des blocs/repere/selection quand les interactions clavier ou souris placent l'element cible hors de la vue utile. | Pas de playback, seek runtime, scrubber runtime, transport fonctionnel, drag/resize/reorder, mutation JSON, runtime, zoom temporel ou changement de modele. | Builder cinematics, tests widget, rapport, screenshot. | TODO : scroll automatique/visibilite controles, proportions timeline preservees, selection/probe non mutants. | Casser les proportions visees ; confondre scroll de vue et navigation temporelle ; ajouter un pouvoir de montage. | TODO : visibilite plus fiable, sans nouveau pouvoir temporel. | Backlog post stage/map context. |
 
 ## Mise a jour V1-74
@@ -153,6 +155,20 @@ Preuve : test catalogue TDD RED/GREEN, tests core cinematics cibles, `dart analy
 Limites confirmees : pas de picker actif, pas de UI modifiee, pas de preview reelle, pas de runtime, pas de pathfinding, pas de `stageContext.mapId`, pas de donnees Selbrume.
 
 Prochain lot exact recommande : `NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0`.
+
+## Mise a jour V1-77
+
+Statut : `NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0` est DONE.
+
+Decision : le catalogue V1-76 est maintenant fourni au Builder depuis le niveau editor. La Library charge une snapshot `MapData` non destructive pour la map de scene, construit le `CinematicStageMapSourceCatalog`, puis le Builder active les choix `mapEntity` / `mapEvent` uniquement quand le catalogue est disponible et aligne.
+
+Scope realise : picker actor binding `mapEntity` depuis les entites PNJ bindables, picker movement target `mapEntity` depuis les entites cibles, picker movement target `mapEvent` depuis les events positionnes, labels no-code, detail type/tuile, readiness map-aware et messages d'indisponibilite honnetes.
+
+Preuve : rapport V1-77, evidence pack V1-77, tests Builder/Library, tests/analyze core, analyse cible editor et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_77_cinematic_stage_map_entity_event_pickers_v0.png` en 1663x926. L'analyse globale `map_editor` reste rouge sur dette Pokemon SDK preexistante hors lot.
+
+Limites confirmees : preview reelle eteinte, runtime intouché, timeline/duree/resize/probe/transports preserves, aucun ID libre, aucun JSON brut, aucun `stageContext.mapId`, aucune image IA ou `gpt-image-2`.
+
+Prochain lot exact recommande : `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0`.
 
 ## Mise a jour V1-66
 
