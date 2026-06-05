@@ -183,6 +183,68 @@ void main() {
     expect(find.text('contexte incomplet'), findsOneWidget);
   });
 
+  testWidgets('shows preview summary for actor appearance drift',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(
+          characters: const [
+            ProjectCharacterEntry(
+              id: 'character_rival',
+              name: 'Rival',
+              tilesetId: 'characters/rival',
+              frameWidth: 32,
+              frameHeight: 32,
+            ),
+          ],
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_appearance_drift_summary',
+              title: 'Appearance drift summary cinematic',
+              mapId: 'map_lab',
+              requiredActors: [
+                CinematicActorRef(
+                  actorId: 'actor_rival',
+                  label: 'Rival actor',
+                ),
+              ],
+              stageContext: CinematicStageContext(
+                actorBindings: [
+                  CinematicActorBinding(
+                    actorId: 'actor_rival',
+                    kind: CinematicActorBindingKind.player,
+                  ),
+                ],
+                actorAppearanceBindings: [
+                  CinematicActorAppearanceBinding(
+                    actorId: 'actor_rival',
+                    characterId: 'character_rival',
+                  ),
+                ],
+              ),
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    label: 'Beat',
+                    durationMs: 500,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          includeBridge: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Preview'), findsOneWidget);
+    expect(find.text('apparence à corriger'), findsOneWidget);
+  });
+
   testWidgets('opens builder shell for canonical cinematic and returns',
       (tester) async {
     _setLargeSurface(tester);
@@ -882,6 +944,7 @@ MapData _stageMapData() {
 ProjectManifest _project({
   List<CinematicAsset>? cinematics,
   List<CinematicAsset> extraCinematics = const [],
+  List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   bool includeBridge = true,
 }) {
   return ProjectManifest(
@@ -891,6 +954,7 @@ ProjectManifest _project({
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),
     ],
     tilesets: const <ProjectTilesetEntry>[],
+    characters: characters,
     scenes: [
       if (cinematics == null)
         _sceneReferencing(

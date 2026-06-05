@@ -78,11 +78,16 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
         ),
       )
       .toList(growable: false);
+  final actorAppearances = _actorAppearancesItem(
+    asset,
+    effectiveContext,
+    characters,
+  );
   final items = <CinematicStagePreviewReadinessItem>[
     _mapItem(asset, maps),
     _backdropItem(asset, effectiveContext, maps),
     _actorBindingsItem(asset, effectiveContext, stageMapSourceCatalog),
-    _actorAppearancesItem(asset, effectiveContext, characters),
+    actorAppearances,
     _initialPlacementsItem(asset, effectiveContext, stageMapSourceCatalog),
     _movementTargetsItem(asset, effectiveContext, stageMapSourceCatalog),
     _mapAwareSourcesItem(asset, effectiveContext, stageMapSourceCatalog),
@@ -113,7 +118,10 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
     return CinematicStagePreviewReadiness(
       kind: CinematicStagePreviewReadinessKind.blocked,
       statusLabel: 'À corriger avant preview',
-      libraryStatusLabel: 'à corriger avant preview',
+      libraryStatusLabel: actorAppearances.kind ==
+              CinematicStagePreviewReadinessItemKind.blocking
+          ? 'apparence à corriger'
+          : 'à corriger avant preview',
       summary:
           'Corrige les éléments bloquants avant une future preview. La preview réelle arrivera plus tard.',
       items: items,
@@ -124,7 +132,10 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
     return CinematicStagePreviewReadiness(
       kind: CinematicStagePreviewReadinessKind.incomplete,
       statusLabel: 'Contexte incomplet',
-      libraryStatusLabel: 'contexte incomplet',
+      libraryStatusLabel: actorAppearances.kind ==
+              CinematicStagePreviewReadinessItemKind.incomplete
+          ? 'apparence à compléter'
+          : 'contexte incomplet',
       summary:
           'Complète les éléments de préparation avant une future preview. La preview réelle arrivera plus tard.',
       items: items,
@@ -147,6 +158,24 @@ CinematicStagePreviewReadinessItem _actorAppearancesItem(
   CinematicStageContext context,
   List<ProjectCharacterEntry> characters,
 ) {
+  for (final appearance in context.actorAppearanceBindings) {
+    final actor = _requiredActorFor(asset, appearance.actorId);
+    if (actor == null) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.blocking,
+        'Une apparence référence un acteur supprimé.',
+      );
+    }
+    final binding = _actorBindingFor(context, appearance.actorId);
+    if (binding?.kind != CinematicActorBindingKind.cinematicOnly) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.blocking,
+        '${_actorDisplayLabel(actor)} n’est plus en Cinématique uniquement.',
+      );
+    }
+  }
   if (asset.requiredActors.isEmpty) {
     return _item(
       'Apparences acteurs',
@@ -169,7 +198,7 @@ CinematicStagePreviewReadinessItem _actorAppearancesItem(
     return _item(
       'Apparences acteurs',
       CinematicStagePreviewReadinessItemKind.incomplete,
-      'Character Library vide pour les acteurs cinématique uniquement',
+      'La Character Library est vide.',
     );
   }
   for (final actor in cinematicOnlyActors) {
@@ -178,7 +207,7 @@ CinematicStagePreviewReadinessItem _actorAppearancesItem(
       return _item(
         'Apparences acteurs',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${_actorDisplayLabel(actor)} n’a pas encore de personnage',
+        '${_actorDisplayLabel(actor)} n’a pas encore de personnage.',
       );
     }
     final character = _characterById(characters, appearance.characterId);
@@ -186,23 +215,28 @@ CinematicStagePreviewReadinessItem _actorAppearancesItem(
       return _item(
         'Apparences acteurs',
         CinematicStagePreviewReadinessItemKind.blocking,
-        '${_actorDisplayLabel(actor)} pointe vers un personnage absent',
+        '${_actorDisplayLabel(actor)} pointe vers un personnage absent.',
       );
     }
     if (character.tilesetId.trim().isEmpty) {
       return _item(
         'Apparences acteurs',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${character.name} n’a pas encore de sprite Character Library',
+        '${character.name} utilise un personnage sans sprite preview.',
       );
     }
-    if (character.frameWidth <= 0 ||
-        character.frameHeight <= 0 ||
-        character.animations.isEmpty) {
+    if (character.frameWidth <= 0 || character.frameHeight <= 0) {
       return _item(
         'Apparences acteurs',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${character.name} a des données de preview à compléter',
+        '${character.name} a des dimensions de preview à compléter.',
+      );
+    }
+    if (!_hasIdleAnimation(character)) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.incomplete,
+        '${character.name} n’a pas encore d’animation idle pour la future preview.',
       );
     }
   }
@@ -501,7 +535,7 @@ String _itemStatusLabel(CinematicStagePreviewReadinessItemKind kind) {
   return switch (kind) {
     CinematicStagePreviewReadinessItemKind.ok => 'OK',
     CinematicStagePreviewReadinessItemKind.incomplete => 'À compléter',
-    CinematicStagePreviewReadinessItemKind.blocking => 'Bloquant',
+    CinematicStagePreviewReadinessItemKind.blocking => 'À corriger',
     CinematicStagePreviewReadinessItemKind.upcoming => 'À venir',
   };
 }
@@ -530,6 +564,15 @@ CinematicActorBinding? _actorBindingFor(
   return null;
 }
 
+CinematicActorRef? _requiredActorFor(CinematicAsset asset, String actorId) {
+  for (final actor in asset.requiredActors) {
+    if (actor.actorId == actorId) {
+      return actor;
+    }
+  }
+  return null;
+}
+
 CinematicActorAppearanceBinding? _actorAppearanceBindingFor(
   CinematicStageContext context,
   String actorId,
@@ -540,6 +583,16 @@ CinematicActorAppearanceBinding? _actorAppearanceBindingFor(
     }
   }
   return null;
+}
+
+bool _hasIdleAnimation(ProjectCharacterEntry character) {
+  for (final animation in character.animations) {
+    if (animation.state == CharacterAnimationState.idle &&
+        animation.frames.isNotEmpty) {
+      return true;
+    }
+  }
+  return false;
 }
 
 CinematicActorInitialPlacement? _initialPlacementFor(

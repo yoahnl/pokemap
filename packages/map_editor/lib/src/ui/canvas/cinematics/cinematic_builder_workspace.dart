@@ -3998,6 +3998,10 @@ class _StageActorBindingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final playerActorId = _playerBoundActorId(stageContext);
+    final orphanAppearanceBindings = _orphanActorAppearanceBindings(
+      asset,
+      stageContext,
+    );
     return Column(
       key: const ValueKey('cinematic-builder-stage-actors-section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -4024,6 +4028,52 @@ class _StageActorBindingsSection extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ],
+        if (orphanAppearanceBindings.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          for (final binding in orphanAppearanceBindings) ...[
+            _StageOrphanAppearanceBindingNotice(
+              binding: binding,
+              onClear: () => onRemoveActorAppearanceBinding(binding.actorId),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _StageOrphanAppearanceBindingNotice extends StatelessWidget {
+  const _StageOrphanAppearanceBindingNotice({
+    required this.binding,
+    required this.onClear,
+  });
+
+  final CinematicActorAppearanceBinding binding;
+  final Future<void> Function() onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: ValueKey(
+        'cinematic-builder-character-appearance-${binding.actorId}-orphan',
+      ),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _KeyValue(
+          label: 'Apparence',
+          value: 'Référence orpheline',
+        ),
+        const SizedBox(height: 4),
+        const _MutedText('Une apparence référence un acteur supprimé.'),
+        _MutedText('Acteur référencé : ${binding.actorId}'),
+        _MutedText('Personnage référencé : ${binding.characterId}'),
+        const SizedBox(height: 6),
+        _StageAppearanceClearButton(
+          actorId: binding.actorId,
+          label: 'Nettoyer la référence',
+          onClear: onClear,
+        ),
       ],
     );
   }
@@ -4256,7 +4306,35 @@ class _StageActorAppearanceSection extends StatelessWidget {
         ),
         if (!canPick) ...[
           const SizedBox(height: 4),
-          _MutedText(_appearanceDisabledMessage(selectedKind)),
+          if (appearanceBinding == null)
+            _MutedText(_appearanceDisabledMessage(selectedKind))
+          else ...[
+            const _MutedText(
+              'Cet acteur n’est plus en “Cinématique uniquement”.',
+            ),
+            const _MutedText(
+              'L’apparence Character Library ne s’applique plus.',
+            ),
+            _MutedText(
+              'Personnage référencé : ${appearanceBinding!.characterId}',
+            ),
+            const SizedBox(height: 6),
+            const _MutedText('Action : Retirer l’apparence'),
+            const SizedBox(height: 4),
+            _StageAppearanceClearButton(
+              actorId: actor.actorId,
+              label: 'Retirer l’apparence',
+              onClear: onClear,
+            ),
+          ],
+        ] else if (characters.isEmpty) ...[
+          const SizedBox(height: 4),
+          const _MutedText(
+            'La Character Library est vide.',
+          ),
+          const _MutedText(
+            'Crée un personnage dans la Character Library pour l’utiliser ici.',
+          ),
           if (appearanceBinding != null) ...[
             const SizedBox(height: 6),
             _StageAppearanceClearButton(
@@ -4265,12 +4343,6 @@ class _StageActorAppearanceSection extends StatelessWidget {
               onClear: onClear,
             ),
           ],
-        ] else if (characters.isEmpty) ...[
-          const SizedBox(height: 4),
-          const _MutedText(
-            'Aucun personnage disponible dans la Character Library. '
-            'Crée un personnage dans la Character Library pour l’utiliser ici.',
-          ),
         ] else ...[
           const SizedBox(height: 4),
           if (appearanceBinding == null) ...[
@@ -4307,6 +4379,9 @@ class _StageActorAppearanceSection extends StatelessWidget {
             _MutedText(_characterDetailLine(selectedCharacter)),
             if (_characterTagsLine(selectedCharacter) case final tagsLine?)
               _MutedText(tagsLine),
+            for (final warning
+                in _characterAppearanceWarnings(selectedCharacter))
+              _MutedText(warning),
             _MutedText('Id technique : ${selectedCharacter.id}'),
             const SizedBox(height: 6),
             Wrap(
@@ -7000,6 +7075,24 @@ CinematicActorAppearanceBinding? _actorAppearanceBindingFor(
   return null;
 }
 
+List<CinematicActorAppearanceBinding> _orphanActorAppearanceBindings(
+  CinematicAsset asset,
+  CinematicStageContext context,
+) {
+  return context.actorAppearanceBindings.where((binding) {
+    return !_hasRequiredActor(asset, binding.actorId);
+  }).toList(growable: false);
+}
+
+bool _hasRequiredActor(CinematicAsset asset, String actorId) {
+  for (final actor in asset.requiredActors) {
+    if (actor.actorId == actorId) {
+      return true;
+    }
+  }
+  return false;
+}
+
 CinematicActorInitialPlacement? _initialPlacementFor(
   CinematicStageContext context,
   String actorId,
@@ -7057,6 +7150,34 @@ String? _characterTagsLine(ProjectCharacterEntry character) {
     return null;
   }
   return 'Tags : ${character.tags.join(' · ')}';
+}
+
+List<String> _characterAppearanceWarnings(ProjectCharacterEntry character) {
+  final warnings = <String>[];
+  if (character.tilesetId.trim().isEmpty) {
+    warnings.add('Ce personnage n’a pas encore de tileset utilisable.');
+  }
+  if (character.frameWidth <= 0 || character.frameHeight <= 0) {
+    warnings.add(
+      'Ce personnage n’a pas encore de dimensions exploitables pour la future preview.',
+    );
+  }
+  if (!_hasIdleAnimation(character)) {
+    warnings.add(
+      'Ce personnage n’a pas encore d’animation idle pour la future preview.',
+    );
+  }
+  return warnings;
+}
+
+bool _hasIdleAnimation(ProjectCharacterEntry character) {
+  for (final animation in character.animations) {
+    if (animation.state == CharacterAnimationState.idle &&
+        animation.frames.isNotEmpty) {
+      return true;
+    }
+  }
+  return false;
 }
 
 String _appearanceDisabledMessage(CinematicActorBindingKind? selectedKind) {
