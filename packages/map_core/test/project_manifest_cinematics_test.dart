@@ -104,6 +104,154 @@ void main() {
       expect(cinematicJson['stageContext'], isNot(contains('mapId')));
     });
 
+    test('project manifest roundtrips cinematic actor appearance bindings', () {
+      final manifest = ProjectManifest(
+        name: 'Project',
+        maps: const [],
+        tilesets: const [],
+        characters: const [
+          ProjectCharacterEntry(
+            id: 'character_rival',
+            name: 'Rival',
+            tilesetId: 'tileset_characters',
+          ),
+        ],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_rival',
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'step_wait',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final json =
+          jsonDecode(jsonEncode(manifest.toJson())) as Map<String, dynamic>;
+      final decoded = ProjectManifest.fromJson(json);
+      final cinematicJson =
+          (json['cinematics'] as List<dynamic>).single as Map<String, dynamic>;
+      final stageJson = cinematicJson['stageContext'] as Map<String, dynamic>;
+
+      expect(decoded.cinematics, manifest.cinematics);
+      expect(stageJson, contains('actorAppearanceBindings'));
+      expect(
+        (stageJson['actorAppearanceBindings'] as List<dynamic>).single
+            as Map<String, dynamic>,
+        containsPair('characterId', 'character_rival'),
+      );
+    });
+
+    test(
+        'project manifest old cinematic without appearance bindings still loads',
+        () {
+      final manifest = ProjectManifest.fromJson({
+        ..._minimalProjectJson(),
+        'cinematics': [
+          {
+            'id': 'cinematic_intro',
+            'title': 'Intro cinematic',
+            'stageContext': {
+              'backdropMode': 'none',
+              'actorBindings': [
+                {'actorId': 'actor_rival', 'kind': 'cinematicOnly'},
+              ],
+              'initialPlacements': <Object?>[],
+              'movementTargetBindings': <Object?>[],
+            },
+            'timeline': {'steps': <Object?>[]},
+          },
+        ],
+      });
+
+      expect(
+        manifest.cinematics.single.stageContext?.actorAppearanceBindings,
+        isEmpty,
+      );
+    });
+
+    test(
+        'diagnostics can resolve character ids from ProjectManifest.characters',
+        () {
+      final manifest = ProjectManifest(
+        name: 'Project',
+        maps: const [],
+        tilesets: const [],
+        characters: const [
+          ProjectCharacterEntry(
+            id: 'character_rival',
+            name: 'Rival',
+            tilesetId: 'tileset_characters',
+          ),
+        ],
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_rival',
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'step_wait',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseCinematicsAgainstProject(manifest);
+
+      expect(
+        report.byCode(
+          CinematicDiagnosticCode.actorAppearanceBindingUnknownCharacter,
+        ),
+        isEmpty,
+      );
+    });
+
     test('keeps scenarios and scenes independent from cinematics', () {
       final scenario = const ScenarioAsset(
         id: 'legacy_scenario',

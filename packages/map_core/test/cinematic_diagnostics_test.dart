@@ -686,6 +686,318 @@ void main() {
           isEmpty);
       expect(
           report.byCode(CinematicDiagnosticCode.actorBindingMissing), isEmpty);
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing),
+        isEmpty,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
+    test('diagnoses actor appearance binding unknown actor', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_missing',
+                characterId: 'character_rival',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.actorAppearanceBindingUnknownActor)
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.referenceId, 'actor_missing');
+    });
+
+    test('diagnoses actor appearance binding unknown character', () {
+      final project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        characters: [
+          _character(id: 'character_known', name: 'Known'),
+        ],
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_missing',
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseCinematicsAgainstProject(project);
+
+      final diagnostic = report
+          .byCode(
+              CinematicDiagnosticCode.actorAppearanceBindingUnknownCharacter)
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.referenceId, 'character_missing');
+    });
+
+    test('diagnoses actor appearance binding requiring cinematic only', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_player',
+                kind: CinematicActorBindingKind.player,
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_player',
+                characterId: 'character_player',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(
+            CinematicDiagnosticCode.actorAppearanceBindingRequiresCinematicOnly,
+          )
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.referenceId, 'actor_player');
+    });
+
+    test('warns when cinematic only actor has no character appearance', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing)
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.warning);
+      expect(diagnostic.referenceId, 'actor_rival');
+    });
+
+    test('warns when character library is unavailable for cinematic only actor',
+        () {
+      final project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseCinematicsAgainstProject(project);
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.characterLibraryUnavailable)
+          .single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.warning);
+      expect(diagnostic.referenceId, 'actor_rival');
+    });
+
+    test('warns when selected character has missing preview data if detectable',
+        () {
+      final project = ProjectManifest(
+        name: 'Cinematic diagnostics test',
+        maps: const [],
+        tilesets: const [],
+        characters: [
+          const ProjectCharacterEntry(
+            id: 'character_rival',
+            name: 'Rival',
+            tilesetId: '',
+          ),
+        ],
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_rival',
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final report = diagnoseCinematicsAgainstProject(project);
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.characterAssetMissingSprite),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.characterAssetMissingPreviewData),
+        hasLength(1),
+      );
+    });
+
+    test('does not warn character missing for map entity actor', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          mapId: 'map_stage',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_npc', label: 'NPC'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_npc',
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: 'entity_npc',
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing),
+        isEmpty,
+      );
+    });
+
+    test('does not warn character missing for player actor', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_player',
+                kind: CinematicActorBindingKind.player,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing),
+        isEmpty,
+      );
+    });
+
+    test('does not warn character missing for unbound actor', () {
+      final report = diagnoseCinematicAsset(
+        _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.unbound,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing),
+        isEmpty,
+      );
+    });
+
+    test('does not diagnose old asset without stage context as error', () {
+      final report = diagnoseCinematicAsset(_cinematic(id: 'cinematic_intro'));
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.actorAppearanceBindingUnknownActor),
+        isEmpty,
+      );
+      expect(
+        report.byCode(
+          CinematicDiagnosticCode.actorAppearanceBindingRequiresCinematicOnly,
+        ),
+        isEmpty,
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicOnlyCharacterMissing),
+        isEmpty,
+      );
       expect(report.hasErrors, isFalse);
     });
 
@@ -1002,5 +1314,27 @@ CinematicAsset _actorMoveDiagnosticCinematic({required int durationMs}) {
         ),
       ],
     ),
+  );
+}
+
+ProjectCharacterEntry _character({
+  required String id,
+  required String name,
+}) {
+  return ProjectCharacterEntry(
+    id: id,
+    name: name,
+    tilesetId: 'tileset_characters',
+    animations: const [
+      CharacterAnimation(
+        state: CharacterAnimationState.idle,
+        direction: EntityFacing.south,
+        frames: [
+          CharacterAnimationFrame(
+            source: TilesetSourceRect(x: 0, y: 0),
+          ),
+        ],
+      ),
+    ],
   );
 }

@@ -133,22 +133,39 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-76 — Cinematic Stage Map Source Catalog V0 | DONE | Read model pur `CinematicStageMapSourceCatalog` dans `map_core` : construit depuis `ProjectMapEntry` + `MapData`, projette entites/events reels, labels no-code, ids secondaires discrets, positionSummary secondaire, diagnostics locaux, statuses missing/unavailable/mismatch/available et capabilities `canBindActor` / `canBeMovementTarget`, avec tests core et analyze verts, sans picker actif, UI, preview reelle, runtime, pathfinding ou donnees Selbrume. |
 | NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0 | DONE | Catalogue V1-76 branche au Cinematic Builder via snapshot `MapData` editor non destructive : actor binding -> vraie `mapEntity`, movement target -> vraie `mapEntity` ou vrai `mapEvent`, labels no-code, ids secondaires, readiness map-aware mise a jour, Visual Gate 1663x926, sans ID libre, JSON brut, preview reelle, runtime, playback, pathfinding ou donnees Selbrume. |
 | NS-SCENES-V1-78 — Cinematic Character Library Binding Prep Contract | DONE | Lot documentaire demande par Karim : Character Library auditée, modèle `ProjectCharacterEntry` identifié, IDs stables/labels no-code/assets directionnels cadrés, options de stockage comparées, Option B recommandée avec `CinematicActorAppearanceBinding` / `stageContext.actorAppearanceBindings` futur, diagnostics/tests futurs définis, sans modèle, UI, picker, preview, runtime, package, test ou donnée Selbrume. |
-| NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0 | TODO | Prochain lot recommandé : implémenter le modèle authoring minimal permettant de lier un acteur `cinematicOnly` à un personnage de la Character Library, avec JSON backward-compatible, opérations pures et diagnostics, sans UI picker ni preview réelle. |
-| NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage stage/map, en preservant les proportions de timeline demandees par Karim. |
+| NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0 | DONE | Modele core `CinematicActorAppearanceBinding` ajoute dans `stageContext.actorAppearanceBindings`, JSON backward-compatible, operations pures upsert/remove, diagnostics actor/character binding, limite `cinematicOnly` V0, tests/analyze core verts, sans UI picker, preview réelle, runtime, pathfinding ni donnée Selbrume. |
+| NS-SCENES-V1-80 — Cinematic Character Library Picker V0 | TODO | Prochain lot recommandé : exposer dans le Cinematic Builder un picker no-code pour choisir un `ProjectCharacterEntry` pour un acteur `cinematicOnly`, en consommant `actorAppearanceBindings` V1-79, sans preview réelle ni runtime. |
+| NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur déplacé depuis V1-80 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage Character Library, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`
+`NS-SCENES-V1-80 — Cinematic Character Library Picker V0`
 
-Raison : V1-78 confirme que `cinematicOnly` ne doit pas rester un acteur abstrait sans apparence. Le prochain verrou produit recommande est de matérialiser un binding authoring minimal vers `ProjectManifest.characters`, limité aux acteurs `cinematicOnly` en V0, avant de coder le picker ou la preview.
+Raison : V1-79 matérialise maintenant le binding core vers `ProjectManifest.characters`. Le prochain verrou produit recommandé est d'exposer ce modèle dans le Cinematic Builder avec un picker no-code Character Library limité aux acteurs `cinematicOnly`, sans preview réelle ni runtime.
 
-Ordre apres V1-78 : `NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`.
+Ordre apres V1-79 : `NS-SCENES-V1-80 — Cinematic Character Library Picker V0`.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
-Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context, et le polish scroll/visibility est deplace explicitement en `NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0`.
+Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context. Le polish scroll/visibility a ensuite occupe le slot V1-80, mais V1-80 est maintenant reserve au Character Library Picker ; le polish scroll/visibility est donc deplace explicitement en `NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
+
+## Mise a jour V1-79
+
+Statut : `NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0` est DONE.
+
+Demande : lot implemente a la demande de Karim, dans la continuite du contrat V1-78. Le besoin etait de materialiser le binding core entre un acteur `cinematicOnly` et la Character Library, sans coder le picker UI ni faire croire a une preview reelle.
+
+Decision : l'apparence reste separee du binding logique. V1-79 ajoute `CinematicActorAppearanceBinding` dans `stageContext.actorAppearanceBindings`; `CinematicActorBinding` ne recoit pas de `characterId`. En V0, un binding d'apparence est autorise uniquement pour un acteur existant dont le binding stage est `cinematicOnly`.
+
+Scope realise : JSON backward-compatible, absence de `actorAppearanceBindings` lue comme liste vide, operations pures `upsertCinematicActorAppearanceBinding` et `removeCinematicActorAppearanceBinding`, validation authoring, diagnostics actor/character references, resolution de `ProjectManifest.characters`, tests JSON/manifest/operations/diagnostics.
+
+Preuve : `packages/map_core` passe les tests cibles, `dart analyze` est vert, et la suite complete `dart test --reporter=compact` termine sur `+2390 All tests passed!`. Les tests editor non-regression Library/Builder passent ; `flutter analyze` global `map_editor` reste rouge uniquement sur dette Pokemon SDK preexistante hors lot.
+
+Limites confirmees : pas de picker UI Character Library, pas de preview reelle, pas de runtime, pas de playback, pas de pathfinding, pas d'override player/mapEntity/unbound en V0, pas d'image IA, pas de donnee Selbrume et pas de `stageContext.mapId`.
+
+Prochain lot exact recommande : `NS-SCENES-V1-80 — Cinematic Character Library Picker V0`. L'ancien polish scroll/visibility de timeline est deplace en backlog futur `NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 ## Mise a jour V1-70
 

@@ -148,6 +148,189 @@ void main() {
       expect(encoded, isNot(contains('endMs')));
     });
 
+    test(
+        'serializes cinematic actor appearance binding for cinematic only actor',
+        () {
+      final asset = CinematicAsset(
+        id: 'cinematic_character_intro',
+        title: 'Character intro',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+        ],
+        stageContext: CinematicStageContext(
+          actorBindings: [
+            CinematicActorBinding(
+              actorId: 'actor_rival',
+              kind: CinematicActorBindingKind.cinematicOnly,
+            ),
+          ],
+          actorAppearanceBindings: [
+            CinematicActorAppearanceBinding(
+              actorId: 'actor_rival',
+              characterId: 'character_rival',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_face',
+              kind: CinematicTimelineStepKind.actorFace,
+              actorId: 'actor_rival',
+              metadata: const {
+                'authoring.source': 'cinematic-builder-v0',
+                'authoring.kind': 'basicBlock',
+                'authoring.block': 'actorFace',
+                'actor.direction': 'left',
+              },
+            ),
+          ],
+        ),
+      );
+
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final stageJson = json['stageContext'] as Map<String, dynamic>;
+      final actorBindingJson = (stageJson['actorBindings'] as List<dynamic>)
+          .single as Map<String, dynamic>;
+      final appearanceBindingJson =
+          (stageJson['actorAppearanceBindings'] as List<dynamic>).single
+              as Map<String, dynamic>;
+      final encoded = jsonEncode(json);
+      final decoded = CinematicAsset.fromJson(json);
+
+      expect(appearanceBindingJson, containsPair('actorId', 'actor_rival'));
+      expect(
+        appearanceBindingJson,
+        containsPair('characterId', 'character_rival'),
+      );
+      expect(actorBindingJson, isNot(contains('characterId')));
+      expect(decoded, asset);
+      expect(
+        decoded.stageContext?.actorAppearanceBindings.single.characterId,
+        'character_rival',
+      );
+      expect(decoded.timeline.steps, asset.timeline.steps);
+      expect(encoded, isNot(contains('startMs')));
+      expect(encoded, isNot(contains('endMs')));
+    });
+
+    test('deserializes cinematic asset without actor appearance bindings', () {
+      final decoded = CinematicAsset.fromJson({
+        'id': 'cinematic_intro',
+        'title': 'Intro cinematic',
+        'stageContext': {
+          'backdropMode': 'none',
+          'actorBindings': [
+            {'actorId': 'actor_rival', 'kind': 'cinematicOnly'},
+          ],
+          'initialPlacements': <Object>[],
+          'movementTargetBindings': <Object>[],
+        },
+        'timeline': {'steps': <Object>[]},
+      });
+
+      expect(decoded.stageContext?.actorAppearanceBindings, isEmpty);
+    });
+
+    test('does not store character id inside actor binding', () {
+      final context = CinematicStageContext(
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_rival',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        actorAppearanceBindings: [
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_rival',
+            characterId: 'character_rival',
+          ),
+        ],
+      );
+
+      final json = context.toJson();
+      final actorBindingJson = (json['actorBindings'] as List<dynamic>).single
+          as Map<String, dynamic>;
+      final appearanceJson = (json['actorAppearanceBindings'] as List<dynamic>)
+          .single as Map<String, dynamic>;
+
+      expect(actorBindingJson, isNot(contains('characterId')));
+      expect(appearanceJson, containsPair('characterId', 'character_rival'));
+    });
+
+    test('roundtrips actor appearance bindings in stage context', () {
+      final context = CinematicStageContext(
+        actorAppearanceBindings: [
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_rival',
+            characterId: 'character_rival',
+          ),
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_friend',
+            characterId: 'character_friend',
+          ),
+        ],
+      );
+
+      final decoded = CinematicStageContext.fromJson(
+        jsonDecode(jsonEncode(context.toJson())) as Map<String, dynamic>,
+      );
+
+      expect(decoded, context);
+      expect(
+          decoded.actorAppearanceBindings.map((binding) => binding.actorId), [
+        'actor_rival',
+        'actor_friend',
+      ]);
+    });
+
+    test('keeps actorAppearanceBindings empty by default', () {
+      final context = CinematicStageContext();
+
+      expect(context.actorAppearanceBindings, isEmpty);
+      expect(context.toJson(), contains('actorAppearanceBindings'));
+      expect(context.toJson()['actorAppearanceBindings'], isEmpty);
+    });
+
+    test('does not persist startMs or endMs for actor appearance binding', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_intro',
+        title: 'Intro cinematic',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+        ],
+        stageContext: CinematicStageContext(
+          actorBindings: [
+            CinematicActorBinding(
+              actorId: 'actor_rival',
+              kind: CinematicActorBindingKind.cinematicOnly,
+            ),
+          ],
+          actorAppearanceBindings: [
+            CinematicActorAppearanceBinding(
+              actorId: 'actor_rival',
+              characterId: 'character_rival',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_wait',
+              kind: CinematicTimelineStepKind.wait,
+              durationMs: 100,
+            ),
+          ],
+        ),
+      );
+
+      final encoded = jsonEncode(asset.toJson());
+
+      expect(encoded, isNot(contains('startMs')));
+      expect(encoded, isNot(contains('endMs')));
+    });
+
     test('defaults missing movement targets to an empty list', () {
       final decoded = CinematicAsset.fromJson({
         'id': 'cinematic_intro',

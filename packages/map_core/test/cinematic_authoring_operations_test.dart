@@ -391,6 +391,357 @@ void main() {
       );
     });
 
+    test('upserts actor appearance binding for cinematic only actor', () {
+      final original = CinematicAsset(
+        id: 'cinematic_intro',
+        title: 'Intro cinematic',
+        mapId: 'map_stage',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+        ],
+        stageContext: CinematicStageContext(
+          actorBindings: [
+            CinematicActorBinding(
+              actorId: 'actor_rival',
+              kind: CinematicActorBindingKind.cinematicOnly,
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_wait',
+              kind: CinematicTimelineStepKind.wait,
+              durationMs: 100,
+            ),
+          ],
+        ),
+      );
+      final project = _project(cinematics: [original]);
+
+      final result = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_rival',
+        ),
+      );
+
+      final context = result.cinematic.stageContext!;
+      expect(project.cinematics.single.stageContext?.actorAppearanceBindings,
+          isEmpty);
+      expect(context.actorAppearanceBindings.single.actorId, 'actor_rival');
+      expect(
+        context.actorAppearanceBindings.single.characterId,
+        'character_rival',
+      );
+      expect(context.actorBindings, original.stageContext?.actorBindings);
+      expect(result.cinematic.timeline.steps, original.timeline.steps);
+      expect(result.cinematic.mapId, 'map_stage');
+      expect(result.updatedProject.scenes, project.scenes);
+      expect(result.updatedProject.scenarios, project.scenarios);
+    });
+
+    test('replaces existing actor appearance binding for same actor', () {
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_old',
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'step_wait',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final result = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_new',
+        ),
+      );
+
+      expect(result.cinematic.stageContext?.actorAppearanceBindings, [
+        CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_new',
+        ),
+      ]);
+    });
+
+    test('removes actor appearance binding', () {
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+            stageContext: CinematicStageContext(
+              actorBindings: [
+                CinematicActorBinding(
+                  actorId: 'actor_rival',
+                  kind: CinematicActorBindingKind.cinematicOnly,
+                ),
+              ],
+              actorAppearanceBindings: [
+                CinematicActorAppearanceBinding(
+                  actorId: 'actor_rival',
+                  characterId: 'character_rival',
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(
+              steps: [
+                CinematicTimelineStep(
+                  id: 'step_wait',
+                  kind: CinematicTimelineStepKind.wait,
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+
+      final result = removeCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_rival',
+      );
+
+      expect(result.cinematic.stageContext?.actorAppearanceBindings, isEmpty);
+      expect(result.cinematic.stageContext?.actorBindings, hasLength(1));
+      expect(project.cinematics.single.stageContext?.actorAppearanceBindings,
+          hasLength(1));
+    });
+
+    test('rejects actor appearance binding for unknown actor', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        () => upsertCinematicActorAppearanceBinding(
+          project,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorAppearanceBinding(
+            actorId: 'actor_missing',
+            characterId: 'character_rival',
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects actor appearance binding for player actor in v0', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+            ],
+          ),
+        ],
+      );
+      final withPlayer = upsertCinematicActorBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorBinding(
+          actorId: 'actor_player',
+          kind: CinematicActorBindingKind.player,
+        ),
+      );
+
+      expect(
+        () => upsertCinematicActorAppearanceBinding(
+          withPlayer.updatedProject,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorAppearanceBinding(
+            actorId: 'actor_player',
+            characterId: 'character_player',
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects actor appearance binding for map entity actor in v0', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            mapId: 'map_stage',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_npc', label: 'NPC'),
+            ],
+          ),
+        ],
+      );
+      final withMapEntity = upsertCinematicActorBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorBinding(
+          actorId: 'actor_npc',
+          kind: CinematicActorBindingKind.mapEntity,
+          mapEntityId: 'entity_npc',
+        ),
+      );
+
+      expect(
+        () => upsertCinematicActorAppearanceBinding(
+          withMapEntity.updatedProject,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorAppearanceBinding(
+            actorId: 'actor_npc',
+            characterId: 'character_npc',
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects actor appearance binding for unbound actor in v0', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+            ],
+          ),
+        ],
+      );
+      final withUnbound = upsertCinematicActorBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorBinding(
+          actorId: 'actor_rival',
+          kind: CinematicActorBindingKind.unbound,
+        ),
+      );
+
+      expect(
+        () => upsertCinematicActorAppearanceBinding(
+          withUnbound.updatedProject,
+          cinematicId: 'cinematic_intro',
+          binding: CinematicActorAppearanceBinding(
+            actorId: 'actor_rival',
+            characterId: 'character_rival',
+          ),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('appearance binding operations do not mutate timeline steps', () {
+      final project = _project(
+        cinematics: [
+          _cinematicWithCharacterBinding('cinematic_intro'),
+        ],
+      );
+      final originalSteps = project.cinematics.single.timeline.steps;
+
+      final upserted = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_new',
+        ),
+      );
+      final removed = removeCinematicActorAppearanceBinding(
+        upserted.updatedProject,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_rival',
+      );
+
+      expect(upserted.cinematic.timeline.steps, originalSteps);
+      expect(removed.cinematic.timeline.steps, originalSteps);
+      expect(project.cinematics.single.timeline.steps, originalSteps);
+    });
+
+    test('appearance binding operations do not mutate durationMs', () {
+      final project = _project(
+        cinematics: [_cinematicWithCharacterBinding('cinematic_intro')],
+      );
+
+      final result = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_new',
+        ),
+      );
+
+      expect(result.cinematic.timeline.steps.single.durationMs, 450);
+      expect(project.cinematics.single.timeline.steps.single.durationMs, 450);
+    });
+
+    test(
+        'appearance binding operations preserve map id and stage context map-free invariant',
+        () {
+      final project = _project(
+        cinematics: [
+          _cinematicWithCharacterBinding('cinematic_intro', mapId: 'map_stage'),
+        ],
+      );
+
+      final result = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_new',
+        ),
+      );
+
+      final stageJson = result.cinematic.stageContext!.toJson();
+      expect(result.cinematic.mapId, 'map_stage');
+      expect(stageJson, isNot(contains('mapId')));
+      expect(
+        result.cinematic.stageContext?.actorBindings.single.kind,
+        CinematicActorBindingKind.cinematicOnly,
+      );
+    });
+
     test(
         'upserts placements and target bindings while preserving legacy bridge',
         () {
@@ -1458,6 +1809,7 @@ CinematicAsset _cinematic({
   required String id,
   String title = 'Intro cinematic',
   String? description,
+  String? mapId,
   List<CinematicActorRef> requiredActors = const [],
   List<CinematicMovementTargetRef> movementTargets = const [],
   CinematicLegacyBridge? legacyBridge,
@@ -1466,6 +1818,7 @@ CinematicAsset _cinematic({
     id: id,
     title: title,
     description: description,
+    mapId: mapId,
     requiredActors: requiredActors,
     movementTargets: movementTargets,
     timeline: CinematicTimeline(
@@ -1478,6 +1831,50 @@ CinematicAsset _cinematic({
       ],
     ),
     legacyBridge: legacyBridge,
+  );
+}
+
+CinematicAsset _cinematicWithCharacterBinding(
+  String id, {
+  String? mapId,
+}) {
+  return CinematicAsset(
+    id: id,
+    title: 'Intro cinematic',
+    mapId: mapId,
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    stageContext: CinematicStageContext(
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_rival',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      actorAppearanceBindings: [
+        CinematicActorAppearanceBinding(
+          actorId: 'actor_rival',
+          characterId: 'character_rival',
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_actor_face',
+          kind: CinematicTimelineStepKind.actorFace,
+          durationMs: 450,
+          actorId: 'actor_rival',
+          metadata: const {
+            'authoring.source': 'cinematic-builder-v0',
+            'authoring.kind': 'basicBlock',
+            'authoring.block': 'actorFace',
+            'actor.direction': 'right',
+          },
+        ),
+      ],
+    ),
   );
 }
 

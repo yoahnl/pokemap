@@ -366,6 +366,7 @@ CinematicStageContextAuthoringResult upsertCinematicActorBinding(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: bindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
   );
@@ -405,6 +406,87 @@ CinematicStageContextAuthoringResult removeCinematicActorBinding(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: bindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult upsertCinematicActorAppearanceBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicActorAppearanceBinding binding,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  _requireActor(cinematic, binding.actorId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  _requireCinematicOnlyActorBinding(context, binding.actorId);
+
+  final bindings = <CinematicActorAppearanceBinding>[];
+  var replaced = false;
+  for (final existing in context.actorAppearanceBindings) {
+    if (existing.actorId == binding.actorId) {
+      bindings.add(binding);
+      replaced = true;
+    } else {
+      bindings.add(existing);
+    }
+  }
+  if (!replaced) {
+    bindings.add(binding);
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: bindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult removeCinematicActorAppearanceBinding(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    actorId,
+    'actorId',
+    'Actor appearance binding removal requires an actor id.',
+  );
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final bindings = context.actorAppearanceBindings
+      .where((binding) => binding.actorId != id)
+      .toList(growable: false);
+  if (bindings.length == context.actorAppearanceBindings.length) {
+    throw ArgumentError.value(
+      actorId,
+      'actorId',
+      'Actor appearance binding removal references an unknown binding.',
+    );
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: bindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
   );
@@ -445,6 +527,7 @@ CinematicStageContextAuthoringResult upsertCinematicActorInitialPlacement(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: placements,
     movementTargetBindings: context.movementTargetBindings,
   );
@@ -484,6 +567,7 @@ CinematicStageContextAuthoringResult removeCinematicActorInitialPlacement(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: placements,
     movementTargetBindings: context.movementTargetBindings,
   );
@@ -529,6 +613,7 @@ CinematicStageContextAuthoringResult upsertCinematicMovementTargetBinding(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: bindings,
   );
@@ -568,6 +653,7 @@ CinematicStageContextAuthoringResult removeCinematicMovementTargetBinding(
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
     actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: bindings,
   );
@@ -1804,6 +1890,35 @@ CinematicMovementTargetRef _requireMovementTarget(
   );
 }
 
+CinematicActorBinding _requireCinematicOnlyActorBinding(
+  CinematicStageContext context,
+  String actorId,
+) {
+  final id = _trimRequired(
+    actorId,
+    'actorId',
+    'Actor appearance binding requires an actor id.',
+  );
+  for (final binding in context.actorBindings) {
+    if (binding.actorId == id) {
+      if (binding.kind == CinematicActorBindingKind.cinematicOnly) {
+        return binding;
+      }
+      throw ArgumentError.value(
+        binding.kind.name,
+        'binding.kind',
+        'Actor appearance binding is only supported for cinematicOnly '
+            'actor bindings in V0.',
+      );
+    }
+  }
+  throw ArgumentError.value(
+    actorId,
+    'actorId',
+    'Actor appearance binding requires an existing cinematicOnly actor binding.',
+  );
+}
+
 void _validateStageContextForAuthoring(
   CinematicAsset cinematic,
   CinematicStageContext stageContext,
@@ -1829,6 +1944,19 @@ void _validateStageContextForAuthoring(
       'actorId',
       'Only one player actor binding is allowed in a cinematic.',
     );
+  }
+
+  final appearanceActorIds = <String>{};
+  for (final binding in stageContext.actorAppearanceBindings) {
+    _requireActor(cinematic, binding.actorId);
+    if (!appearanceActorIds.add(binding.actorId)) {
+      throw ArgumentError.value(
+        binding.actorId,
+        'actorId',
+        'Only one actor appearance binding is allowed per actor.',
+      );
+    }
+    _requireCinematicOnlyActorBinding(stageContext, binding.actorId);
   }
 
   for (final placement in stageContext.initialPlacements) {

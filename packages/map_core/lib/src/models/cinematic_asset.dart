@@ -196,11 +196,17 @@ final class CinematicStageContext {
   CinematicStageContext({
     this.backdropMode = CinematicStageBackdropMode.none,
     List<CinematicActorBinding> actorBindings = const <CinematicActorBinding>[],
+    List<CinematicActorAppearanceBinding> actorAppearanceBindings =
+        const <CinematicActorAppearanceBinding>[],
     List<CinematicActorInitialPlacement> initialPlacements =
         const <CinematicActorInitialPlacement>[],
     List<CinematicMovementTargetBinding> movementTargetBindings =
         const <CinematicMovementTargetBinding>[],
   })  : actorBindings = List<CinematicActorBinding>.unmodifiable(actorBindings),
+        actorAppearanceBindings =
+            List<CinematicActorAppearanceBinding>.unmodifiable(
+          actorAppearanceBindings,
+        ),
         initialPlacements = List<CinematicActorInitialPlacement>.unmodifiable(
           initialPlacements,
         ),
@@ -221,6 +227,11 @@ final class CinematicStageContext {
         'actorBindings',
         CinematicActorBinding.fromJson,
       ),
+      actorAppearanceBindings: _readObjectList(
+        json,
+        'actorAppearanceBindings',
+        CinematicActorAppearanceBinding.fromJson,
+      ),
       initialPlacements: _readObjectList(
         json,
         'initialPlacements',
@@ -236,6 +247,7 @@ final class CinematicStageContext {
 
   final CinematicStageBackdropMode backdropMode;
   final List<CinematicActorBinding> actorBindings;
+  final List<CinematicActorAppearanceBinding> actorAppearanceBindings;
   final List<CinematicActorInitialPlacement> initialPlacements;
   final List<CinematicMovementTargetBinding> movementTargetBindings;
 
@@ -243,6 +255,8 @@ final class CinematicStageContext {
         'backdropMode': backdropMode.name,
         'actorBindings':
             actorBindings.map((binding) => binding.toJson()).toList(),
+        'actorAppearanceBindings':
+            actorAppearanceBindings.map((binding) => binding.toJson()).toList(),
         'initialPlacements':
             initialPlacements.map((placement) => placement.toJson()).toList(),
         'movementTargetBindings':
@@ -255,6 +269,10 @@ final class CinematicStageContext {
       other is CinematicStageContext &&
           other.backdropMode == backdropMode &&
           _listEquals(other.actorBindings, actorBindings) &&
+          _listEquals(
+            other.actorAppearanceBindings,
+            actorAppearanceBindings,
+          ) &&
           _listEquals(other.initialPlacements, initialPlacements) &&
           _listEquals(other.movementTargetBindings, movementTargetBindings);
 
@@ -262,6 +280,7 @@ final class CinematicStageContext {
   int get hashCode => Object.hash(
         backdropMode,
         Object.hashAll(actorBindings),
+        Object.hashAll(actorAppearanceBindings),
         Object.hashAll(initialPlacements),
         Object.hashAll(movementTargetBindings),
       );
@@ -311,6 +330,48 @@ final class CinematicActorBinding {
 
   @override
   int get hashCode => Object.hash(actorId, kind, mapEntityId);
+}
+
+@immutable
+final class CinematicActorAppearanceBinding {
+  CinematicActorAppearanceBinding({
+    required String actorId,
+    required String characterId,
+  })  : actorId = _requireTrimmed(
+          actorId,
+          'CinematicActorAppearanceBinding.actorId',
+        ),
+        characterId = _requireTrimmed(
+          characterId,
+          'CinematicActorAppearanceBinding.characterId',
+        );
+
+  factory CinematicActorAppearanceBinding.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return CinematicActorAppearanceBinding(
+      actorId: _readRequiredString(json, 'actorId'),
+      characterId: _readRequiredString(json, 'characterId'),
+    );
+  }
+
+  final String actorId;
+  final String characterId;
+
+  Map<String, dynamic> toJson() => {
+        'actorId': actorId,
+        'characterId': characterId,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicActorAppearanceBinding &&
+          other.actorId == actorId &&
+          other.characterId == characterId;
+
+  @override
+  int get hashCode => Object.hash(actorId, characterId);
 }
 
 @immutable

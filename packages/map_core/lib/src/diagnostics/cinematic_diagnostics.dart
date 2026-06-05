@@ -1,5 +1,6 @@
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
+import '../models/enums.dart';
 import '../models/project_manifest.dart';
 
 enum CinematicDiagnosticSeverity {
@@ -41,6 +42,13 @@ enum CinematicDiagnosticCode {
   movementTargetBindingUnknownTarget,
   movementTargetBindingRequiresStageMap,
   movementTargetBindingMissingSource,
+  actorAppearanceBindingUnknownActor,
+  actorAppearanceBindingUnknownCharacter,
+  actorAppearanceBindingRequiresCinematicOnly,
+  cinematicOnlyCharacterMissing,
+  characterLibraryUnavailable,
+  characterAssetMissingSprite,
+  characterAssetMissingPreviewData,
   cinematicLegacyBridge,
   cinematicScenarioBridgeNotCanonical,
 }
@@ -189,6 +197,9 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
       for (final chapter in storyline.chapters) chapter.id,
   };
   final mapIds = project.maps.map((map) => map.id).toSet();
+  final charactersById = {
+    for (final character in project.characters) character.id: character,
+  };
 
   for (final cinematic in project.cinematics) {
     final storylineId = cinematic.storylineId;
@@ -253,6 +264,12 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
         ),
       );
     }
+
+    _diagnoseCinematicCharacterBindingsAgainstProject(
+      cinematic,
+      charactersById: charactersById,
+      diagnostics: diagnostics,
+    );
   }
 
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
@@ -328,10 +345,12 @@ void _diagnoseStageContext(
   }
 
   final bindingActorIds = <String>{};
+  final actorBindingsById = <String, CinematicActorBinding>{};
   var playerBindingCount = 0;
   final mapEntityBoundActorIds = <String>{};
   for (final binding in stageContext.actorBindings) {
     bindingActorIds.add(binding.actorId);
+    actorBindingsById.putIfAbsent(binding.actorId, () => binding);
     if (!requiredActorIds.contains(binding.actorId)) {
       diagnostics.add(
         CinematicDiagnostic(
@@ -406,6 +425,63 @@ void _diagnoseStageContext(
           referenceId: actorId,
           target: CinematicDiagnosticTarget.stageContext,
           suggestedFixLabel: 'Binder l’acteur ou le laisser en brouillon.',
+        ),
+      );
+    }
+  }
+
+  final appearanceActorIds = <String>{};
+  for (final binding in stageContext.actorAppearanceBindings) {
+    appearanceActorIds.add(binding.actorId);
+    if (!requiredActorIds.contains(binding.actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorAppearanceBindingUnknownActor,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Une apparence Character Library référence un acteur inconnu.',
+          cinematicId: cinematic.id,
+          referenceId: binding.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir un acteur cinematicOnly existant.',
+        ),
+      );
+    }
+    final actorBinding = actorBindingsById[binding.actorId];
+    if (actorBinding == null ||
+        actorBinding.kind != CinematicActorBindingKind.cinematicOnly) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode
+              .actorAppearanceBindingRequiresCinematicOnly,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Une apparence Character Library est réservée aux acteurs cinematicOnly en V0.',
+          cinematicId: cinematic.id,
+          referenceId: binding.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Passer l’acteur en cinematicOnly ou retirer cette apparence.',
+        ),
+      );
+    }
+  }
+
+  for (final binding in stageContext.actorBindings) {
+    if (binding.kind == CinematicActorBindingKind.cinematicOnly &&
+        requiredActorIds.contains(binding.actorId) &&
+        !appearanceActorIds.contains(binding.actorId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.cinematicOnlyCharacterMissing,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Un acteur cinematicOnly n’a pas encore de personnage Character Library.',
+          cinematicId: cinematic.id,
+          referenceId: binding.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Choisir un personnage Character Library pour la future preview.',
         ),
       );
     }
@@ -527,6 +603,103 @@ void _diagnoseStageContext(
       );
     }
   }
+}
+
+void _diagnoseCinematicCharacterBindingsAgainstProject(
+  CinematicAsset cinematic, {
+  required Map<String, ProjectCharacterEntry> charactersById,
+  required List<CinematicDiagnostic> diagnostics,
+}) {
+  final stageContext = cinematic.stageContext;
+  if (stageContext == null) {
+    return;
+  }
+
+  final hasCinematicOnlyActor = stageContext.actorBindings.any(
+    (binding) => binding.kind == CinematicActorBindingKind.cinematicOnly,
+  );
+  if (hasCinematicOnlyActor && charactersById.isEmpty) {
+    for (final binding in stageContext.actorBindings) {
+      if (binding.kind != CinematicActorBindingKind.cinematicOnly) {
+        continue;
+      }
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.characterLibraryUnavailable,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'La Character Library est vide alors qu’un acteur cinematicOnly en dépendra.',
+          cinematicId: cinematic.id,
+          referenceId: binding.actorId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Créer un personnage dans la Character Library avant la preview.',
+        ),
+      );
+    }
+  }
+
+  for (final binding in stageContext.actorAppearanceBindings) {
+    final character = charactersById[binding.characterId];
+    if (character == null) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.actorAppearanceBindingUnknownCharacter,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Une apparence cinematic référence un personnage Character Library inconnu.',
+          cinematicId: cinematic.id,
+          referenceId: binding.characterId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir un personnage existant.',
+        ),
+      );
+      continue;
+    }
+
+    if (character.tilesetId.trim().isEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.characterAssetMissingSprite,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Le personnage choisi n’a pas de tileset utilisable pour la future preview.',
+          cinematicId: cinematic.id,
+          referenceId: character.id,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Associer un tileset au personnage Character Library.',
+        ),
+      );
+    }
+
+    if (_characterMissingPreviewData(character)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.characterAssetMissingPreviewData,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Le personnage choisi n’a pas encore d’animation idle exploitable pour la future preview.',
+          cinematicId: cinematic.id,
+          referenceId: character.id,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Ajouter au moins une animation idle avec une frame.',
+        ),
+      );
+    }
+  }
+}
+
+bool _characterMissingPreviewData(ProjectCharacterEntry character) {
+  if (character.animations.isEmpty) {
+    return true;
+  }
+  return !character.animations.any(
+    (animation) =>
+        animation.state == CharacterAnimationState.idle &&
+        animation.frames.isNotEmpty,
+  );
 }
 
 bool _movementTargetBindingRequiresStageMap(
