@@ -13045,10 +13045,19 @@
     {
       "id": "cinematic_uwu",
       "title": "UwU",
+      "mapId": "Selbrume",
       "tags": [],
       "requiredActors": [
         {
           "actorId": "actor",
+          "label": "Acteur"
+        },
+        {
+          "actorId": "actor_2",
+          "label": "Acteur"
+        },
+        {
+          "actorId": "actor_3",
           "label": "Acteur"
         }
       ],
@@ -13058,6 +13067,35 @@
           "label": "Cible"
         }
       ],
+      "stageContext": {
+        "backdropMode": "projectMap",
+        "actorBindings": [
+          {
+            "actorId": "actor_2",
+            "kind": "cinematicOnly"
+          },
+          {
+            "actorId": "actor_3",
+            "kind": "cinematicOnly"
+          },
+          {
+            "actorId": "actor",
+            "kind": "cinematicOnly"
+          }
+        ],
+        "initialPlacements": [
+          {
+            "actorId": "actor_2",
+            "kind": "fromMovementTarget",
+            "targetId": "target"
+          },
+          {
+            "actorId": "actor",
+            "kind": "unset"
+          }
+        ],
+        "movementTargetBindings": []
+      },
       "timeline": {
         "steps": [
           {
@@ -13090,7 +13128,7 @@
             "id": "step_actor_move_2",
             "kind": "actorMove",
             "label": "Déplacement Acteur",
-            "durationMs": 1000,
+            "durationMs": 700,
             "actorId": "actor",
             "targetId": "target",
             "metadata": {

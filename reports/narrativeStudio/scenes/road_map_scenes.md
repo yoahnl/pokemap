@@ -132,16 +132,19 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-75 — Cinematic Map Entity/Event Source Audit / Picker Prep Contract | DONE | Audit documentaire des vraies sources map-aware : `ProjectManifest.maps` fournit metadata/relativePath, `MapData.entities` et `MapData.events` portent les sources reelles, `EditorNotifier.loadMapSnapshotById` est le point d'entree editor non destructif recommande, Option E retenue avec contrat `CinematicStageMapSourceCatalog`, diagnostics/tests futurs cadres, sans picker actif, runtime, preview, package, test, screenshot ou donnees Selbrume. |
 | NS-SCENES-V1-76 — Cinematic Stage Map Source Catalog V0 | DONE | Read model pur `CinematicStageMapSourceCatalog` dans `map_core` : construit depuis `ProjectMapEntry` + `MapData`, projette entites/events reels, labels no-code, ids secondaires discrets, positionSummary secondaire, diagnostics locaux, statuses missing/unavailable/mismatch/available et capabilities `canBindActor` / `canBeMovementTarget`, avec tests core et analyze verts, sans picker actif, UI, preview reelle, runtime, pathfinding ou donnees Selbrume. |
 | NS-SCENES-V1-77 — Cinematic Stage Map Entity/Event Pickers V0 | DONE | Catalogue V1-76 branche au Cinematic Builder via snapshot `MapData` editor non destructive : actor binding -> vraie `mapEntity`, movement target -> vraie `mapEntity` ou vrai `mapEvent`, labels no-code, ids secondaires, readiness map-aware mise a jour, Visual Gate 1663x926, sans ID libre, JSON brut, preview reelle, runtime, playback, pathfinding ou donnees Selbrume. |
-| NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0 | TODO | Recommandation future : polir les diagnostics et resumes quand une entite/event lie disparait, change de map ou devient indisponible, en preservant les pickers V1-77, la timeline et la preview sandbox. |
+| NS-SCENES-V1-78 — Cinematic Character Library Binding Prep Contract | DONE | Lot documentaire demande par Karim : Character Library auditée, modèle `ProjectCharacterEntry` identifié, IDs stables/labels no-code/assets directionnels cadrés, options de stockage comparées, Option B recommandée avec `CinematicActorAppearanceBinding` / `stageContext.actorAppearanceBindings` futur, diagnostics/tests futurs définis, sans modèle, UI, picker, preview, runtime, package, test ou donnée Selbrume. |
+| NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0 | TODO | Prochain lot recommandé : implémenter le modèle authoring minimal permettant de lier un acteur `cinematicOnly` à un personnage de la Character Library, avec JSON backward-compatible, opérations pures et diagnostics, sans UI picker ni preview réelle. |
 | NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage stage/map, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0`
+`NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`
 
-Raison : V1-77 active les vrais pickers map-aware. Le prochain verrou produit recommande est de polir les diagnostics et resumes quand une source deja liee disparait, change de map ou devient indisponible, sans activer de preview reelle ni toucher au runtime.
+Raison : V1-78 confirme que `cinematicOnly` ne doit pas rester un acteur abstrait sans apparence. Le prochain verrou produit recommande est de matérialiser un binding authoring minimal vers `ProjectManifest.characters`, limité aux acteurs `cinematicOnly` en V0, avant de coder le picker ou la preview.
 
-Ordre apres V1-77 : `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0`.
+Ordre apres V1-78 : `NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`.
+
+Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context, et le polish scroll/visibility est deplace explicitement en `NS-SCENES-V1-80 — Cinematic Timeline Scroll / Visibility Polish V0`.
 

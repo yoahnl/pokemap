@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0
+NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0
 ```
 
 ## Principes
@@ -111,7 +111,8 @@ NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0
 | NS-SCENES-V1-75 | Cinematic Map Entity/Event Source Audit / Picker Prep Contract | doc / architecture-review | Auditer les donnees map accessibles cote editor pour preparer de futurs pickers `mapEntity` / `mapEvent` honnetes. | Pas de picker actif, pas de runtime preview, pas de free coordinates, pas de `sourceId` tape a la main, pas de donnees Selbrume. | Rapport V1-75, roadmaps, audit MapData/editor services. | DONE : `ProjectManifest.maps` audite comme metadata/relativePath, `MapData.entities/events` identifies comme sources reelles, snapshot editor non destructive reperee, Option E retenue, contrat `CinematicStageMapSourceCatalog` et tests futurs cadres. | Brancher des IDs bruts ou une source incomplete ; confondre map authoring et runtime state. | DONE : contrat pret avant implementation map-aware, sans package ni picker actif. | V1-74. |
 | NS-SCENES-V1-76 | Cinematic Stage Map Source Catalog V0 | core / read-model | Creer le catalogue pur des sources map-aware depuis `ProjectMapEntry` et `MapData`, avant tout picker. | Pas de UI, pas de picker actif, pas de preview reelle, pas de runtime, pas de pathfinding, pas de donnees Selbrume, pas de chargement MapData. | `cinematic_stage_map_source_catalog.dart`, export `map_core.dart`, test catalogue, rapports. | DONE : TDD RED/GREEN, statuts missing/unavailable/mismatch/available, entities/events reels, labels no-code, ids secondaires, `canBindActor`, `canBeMovementTarget`, tests/analyze core verts, tests editor cibles verts. | Lier le Builder trop tot ; charger la map depuis core ; exposer IDs bruts comme workflow. | DONE : catalogue consommable par V1-77, sans UI ni runtime. | V1-75. |
 | NS-SCENES-V1-77 | Cinematic Stage Map Entity/Event Pickers V0 | editor / authoring | Brancher le catalogue V1-76 au Builder pour choisir de vraies sources `MapData.entities/events` dans les bindings stage. | Pas de preview reelle, pas de runtime, pas de playback, pas de pathfinding, pas de coordonnees libres, pas de JSON/ID brut saisi, pas de donnees Selbrume. | Builder/Library cinematics, readiness preview, tests widget, rapport, screenshot. | DONE : actor binding -> vraie `mapEntity`, movement target -> vraie `mapEntity` ou vrai `mapEvent`, snapshot MapData non destructive, labels no-code, readiness alignee, Visual Gate 1663x926. | Charger la map au mauvais niveau ; exposer les ids bruts ; casser timeline/proportions ; faire croire a une preview reelle. | DONE : pickers map-aware honnetes actifs, sans runtime ni preview reelle. | V1-76. |
-| NS-SCENES-V1-78 | Cinematic Stage Source Drift Diagnostics Polish V0 | editor / ui-polish | Polir les diagnostics/resumes quand une source map-aware deja liee disparait, change de map ou devient indisponible. | Pas de preview reelle, pas de runtime, pas de playback, pas de pathfinding, pas de rechargement destructif, pas de changement de modele core si non requis. | Builder/Library cinematics, readiness, tests widget, rapport, screenshot si UI. | TODO : sources cassees expliquees sans ID libre, recovery via pickers V1-77, timeline/proportions preserves. | Diagnostiquer trop tard ; masquer les refs cassees ; surcharger l'inspecteur. | TODO : source drift lisible et corrigeable no-code. | V1-77. |
+| NS-SCENES-V1-78 | Cinematic Character Library Binding Prep Contract | doc / architecture-review | Cadrer comment un acteur `cinematicOnly` choisira un personnage depuis la Character Library. | Pas de code produit, pas de modèle, pas de widget, pas de picker, pas de preview réelle, pas de runtime, pas de package, pas de test, pas de screenshot, pas de donnée Selbrume. | Rapport V1-78, roadmaps, audit Character Library / Stage Context / usages characters. | DONE : Character Library auditée, modèle `ProjectCharacterEntry` identifié, IDs stables, labels no-code, assets tileset/animations/directions cadrés, options comparées, Option B retenue, contrat V0/diagnostics/tests futurs définis. | Mélanger identité d'acteur et apparence ; coder un picker avant le modèle ; faire croire à une preview réelle. | DONE : contrat prêt pour modèle Core V0, sans modifier le produit. | V1-77. |
+| NS-SCENES-V1-79 | Cinematic Character Library Binding Core Model V0 | core / authoring | Implémenter le modèle authoring minimal permettant de lier un actor `cinematicOnly` à un personnage de la Character Library, avec JSON backward-compatible, opérations pures et diagnostics. | Pas d'UI picker, pas de preview réelle, pas de runtime, pas de playback, pas de pathfinding, pas d'override player/mapEntity en V0, pas de donnée Selbrume. | `cinematic_asset.dart`, authoring operations, diagnostics cinematic, tests JSON/operations/diagnostics, rapport. | TODO : `actorAppearanceBindings` ou équivalent séparé, validation actor/character, diagnostics refs cassées et backward compatibility. | Trop alourdir `CinematicActorBinding` ; autoriser les overrides visuels trop tôt ; casser les anciens JSON. | TODO : modèle minimal stable avant le picker Character Library. | V1-78. |
 | NS-SCENES-V1-80 | Cinematic Timeline Scroll / Visibility Polish V0 | editor / ui-polish | Backlog futur : polir la visibilite des blocs/repere/selection quand les interactions clavier ou souris placent l'element cible hors de la vue utile. | Pas de playback, seek runtime, scrubber runtime, transport fonctionnel, drag/resize/reorder, mutation JSON, runtime, zoom temporel ou changement de modele. | Builder cinematics, tests widget, rapport, screenshot. | TODO : scroll automatique/visibilite controles, proportions timeline preservees, selection/probe non mutants. | Casser les proportions visees ; confondre scroll de vue et navigation temporelle ; ajouter un pouvoir de montage. | TODO : visibilite plus fiable, sans nouveau pouvoir temporel. | Backlog post stage/map context. |
 
 ## Mise a jour V1-74
@@ -168,7 +169,21 @@ Preuve : rapport V1-77, evidence pack V1-77, tests Builder/Library, tests/analyz
 
 Limites confirmees : preview reelle eteinte, runtime intouché, timeline/duree/resize/probe/transports preserves, aucun ID libre, aucun JSON brut, aucun `stageContext.mapId`, aucune image IA ou `gpt-image-2`.
 
-Prochain lot exact recommande : `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0`.
+Prochain lot exact recommande : `NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`.
+
+## Mise a jour V1-78
+
+Statut : `NS-SCENES-V1-78 — Cinematic Character Library Binding Prep Contract` est DONE.
+
+Decision : le besoin formule par Karim remplace temporairement le drift diagnostics. `cinematicOnly` doit signifier acteur propre a la cinematique, non place sur la map, mais capable de referencer un personnage de la Character Library pour son apparence authoring.
+
+Option recommandee : ne pas ajouter `characterId` directement dans `CinematicActorBinding` en V0. Creer plutot une couche separee d'apparence, conceptuellement `CinematicActorAppearanceBinding` / `stageContext.actorAppearanceBindings`, afin de ne pas melanger binding logique et apparence. En V0, ce binding est recommande seulement pour les acteurs `cinematicOnly`.
+
+Preuve : rapport V1-78, audit `ProjectManifest.characters`, `ProjectCharacterEntry`, Character Library editor, refs joueur/PNJ/dresseur/runtime et Stage Context V1-72/V1-77. Aucune modification de package, test, runtime, preview, screenshot, image IA ou donnee Selbrume n'est ajoutee.
+
+Limites confirmees : V1-78 est doc-only ; aucun modele core, aucune migration JSON, aucun picker Character Library, aucune preview acteur et aucun runtime ne sont codes.
+
+Prochain lot exact recommande : `NS-SCENES-V1-79 — Cinematic Character Library Binding Core Model V0`.
 
 ## Mise a jour V1-66
 

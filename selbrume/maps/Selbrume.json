@@ -51189,6 +51189,51 @@
       "properties": {}
     },
     {
+      "id": "l_tile_parasol_lampadaire::23::17",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 23,
+        "y": 17
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
+      "id": "l_tile_parasol_lampadaire::30::17",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 30,
+        "y": 17
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
+      "id": "l_tile_parasol_lampadaire::41::29",
+      "layerId": "l_tile_parasol_lampadaire",
+      "elementId": "lampadaire",
+      "pos": {
+        "x": 41,
+        "y": 29
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
       "id": "l_tile_maison_selbrume::24::12",
       "layerId": "l_tile_maison_selbrume",
       "elementId": "selbrum_maison_3",
@@ -67462,51 +67507,6 @@
       "shadowOverride": null,
       "behaviors": [],
       "properties": {}
-    },
-    {
-      "id": "l_tile_parasol_lampadaire::23::17",
-      "layerId": "l_tile_parasol_lampadaire",
-      "elementId": "lampadaire",
-      "pos": {
-        "x": 23,
-        "y": 17
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
-    },
-    {
-      "id": "l_tile_parasol_lampadaire::30::17",
-      "layerId": "l_tile_parasol_lampadaire",
-      "elementId": "lampadaire",
-      "pos": {
-        "x": 30,
-        "y": 17
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
-    },
-    {
-      "id": "l_tile_parasol_lampadaire::41::29",
-      "layerId": "l_tile_parasol_lampadaire",
-      "elementId": "lampadaire",
-      "pos": {
-        "x": 41,
-        "y": 29
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
     }
   ],
   "entities": [
@@ -67561,6 +67561,44 @@
         "phase": "P6-03",
         "contentStatus": "technical_golden_slice_v0"
       }
+    },
+    {
+      "id": "npc",
+      "name": "npc",
+      "kind": "npc",
+      "pos": {
+        "x": 34,
+        "y": 29
+      },
+      "size": {
+        "width": 2,
+        "height": 2
+      },
+      "npc": {
+        "displayName": "npc",
+        "dialogue": null,
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "mael",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {}
     }
   ],
   "connections": [
