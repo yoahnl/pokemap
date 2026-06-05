@@ -36,6 +36,7 @@ typedef UpdateCinematicBasicBlockStepCallback = Future<bool> Function({
 
 typedef AddCinematicRequiredActorCallback = Future<String?> Function({
   required String cinematicId,
+  String? label,
 });
 
 typedef AddCinematicMovementTargetCallback = Future<String?> Function({
@@ -158,7 +159,9 @@ typedef _AddBasicBlockCallback = Future<void> Function(
   CinematicTimelineBasicBlockKind blockKind,
 );
 
-typedef _AddRequiredActorCallback = Future<void> Function();
+typedef _AddRequiredActorCallback = Future<bool> Function({
+  required String label,
+});
 
 typedef _AddMovementTargetCallback = Future<void> Function();
 
@@ -215,6 +218,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.groups,
     required this.characters,
     this.stageMapSourceCatalog,
+    this.startExpanded = false,
     required this.onBackToLibrary,
     required this.onAddDraftStep,
     required this.onRemoveDraftStep,
@@ -244,6 +248,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
+  final bool startExpanded;
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
   final RemoveCinematicDraftStepCallback onRemoveDraftStep;
@@ -404,6 +409,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       stageMapSourceCatalog: widget.stageMapSourceCatalog,
                       selectedStep: selectedStep,
                       selectedStepIndex: selectedStepIndex,
+                      startExpanded: widget.startExpanded,
                       onUpdateStageMap: _updateStageMap,
                       onUpdateStageContext: _updateStageContext,
                       onUpsertActorBinding: _upsertActorBinding,
@@ -495,8 +501,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     });
   }
 
-  Future<void> _addRequiredActor() async {
-    await widget.onAddRequiredActor(cinematicId: widget.asset.id);
+  Future<bool> _addRequiredActor({required String label}) async {
+    final actorId = await widget.onAddRequiredActor(
+      cinematicId: widget.asset.id,
+      label: label,
+    );
+    return actorId != null;
   }
 
   Future<void> _addMovementTarget() async {
@@ -1015,7 +1025,7 @@ class _BlockPalette extends StatelessWidget {
   }
 }
 
-class _RequiredActorsCard extends StatelessWidget {
+class _RequiredActorsCard extends StatefulWidget {
   const _RequiredActorsCard({
     required this.asset,
     required this.onAddRequiredActor,
@@ -1025,6 +1035,21 @@ class _RequiredActorsCard extends StatelessWidget {
   final _AddRequiredActorCallback onAddRequiredActor;
 
   @override
+  State<_RequiredActorsCard> createState() => _RequiredActorsCardState();
+}
+
+class _RequiredActorsCardState extends State<_RequiredActorsCard> {
+  final TextEditingController _labelController = TextEditingController();
+  String? _feedback;
+  bool _isAdding = false;
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return PokeMapCard(
       child: Column(
@@ -1032,14 +1057,14 @@ class _RequiredActorsCard extends StatelessWidget {
         children: [
           const _StrongText('Acteurs requis'),
           const SizedBox(height: 4),
-          if (asset.requiredActors.isEmpty)
+          if (widget.asset.requiredActors.isEmpty)
             const _MutedText('Aucun acteur requis')
           else
             Wrap(
               spacing: 6,
               runSpacing: 6,
               children: [
-                for (final actor in asset.requiredActors)
+                for (final actor in widget.asset.requiredActors)
                   PokeMapBadge(
                     label: _actorDisplayLabel(actor),
                     variant: PokeMapBadgeVariant.narrative,
@@ -1047,22 +1072,58 @@ class _RequiredActorsCard extends StatelessWidget {
               ],
             ),
           const SizedBox(height: 8),
+          _MovementTargetTextField(
+            key: const ValueKey(
+              'cinematic-builder-required-actor-label-field',
+            ),
+            controller: _labelController,
+            placeholder: 'Nom de l’acteur',
+          ),
+          const SizedBox(height: 8),
           _InlineControlAction(
-            label: 'Acteur',
+            label: 'Ajouter',
             button: PokeMapButton(
               key: const ValueKey(
                 'cinematic-builder-add-required-actor-button',
               ),
-              onPressed: onAddRequiredActor,
+              onPressed: _isAdding ? null : _addActor,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
+              isLoading: _isAdding,
               leading: const Icon(CupertinoIcons.person_add),
               child: const SizedBox.shrink(),
             ),
           ),
+          if (_feedback != null) ...[
+            const SizedBox(height: 6),
+            _MutedText(_feedback!),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _addActor() async {
+    final label = _labelController.text.trim();
+    if (label.isEmpty) {
+      setState(() => _feedback = 'Nom d’acteur obligatoire');
+      return;
+    }
+    setState(() {
+      _isAdding = true;
+      _feedback = null;
+    });
+    final added = await widget.onAddRequiredActor(label: label);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isAdding = false;
+      _feedback = added ? null : 'Création impossible';
+      if (added) {
+        _labelController.clear();
+      }
+    });
   }
 }
 
@@ -3642,6 +3703,7 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.stageMapSourceCatalog,
     required this.selectedStep,
     required this.selectedStepIndex,
+    required this.startExpanded,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
@@ -3664,6 +3726,7 @@ class _InspectorPlaceholder extends StatelessWidget {
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
+  final bool startExpanded;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
   final _UpsertActorBindingCallback onUpsertActorBinding;
@@ -3701,6 +3764,7 @@ class _InspectorPlaceholder extends StatelessWidget {
               groups: groups,
               characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog,
+              startExpanded: startExpanded,
               onUpdateStageMap: onUpdateStageMap,
               onUpdateStageContext: onUpdateStageContext,
               onUpsertActorBinding: onUpsertActorBinding,
@@ -3777,6 +3841,7 @@ class _StageContextEditor extends StatelessWidget {
     required this.groups,
     required this.characters,
     required this.stageMapSourceCatalog,
+    required this.startExpanded,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
@@ -3792,6 +3857,7 @@ class _StageContextEditor extends StatelessWidget {
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
+  final bool startExpanded;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
   final _UpsertActorBindingCallback onUpsertActorBinding;
@@ -3840,15 +3906,10 @@ class _StageContextEditor extends StatelessWidget {
             stageContext: stageContext,
             characters: characters,
             stageMapSourceCatalog: stageMapSourceCatalog,
+            startExpanded: startExpanded,
             onUpsertActorBinding: onUpsertActorBinding,
             onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
             onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
-          ),
-          const SizedBox(height: 10),
-          _StageInitialPlacementsSection(
-            asset: asset,
-            stageContext: stageContext,
-            stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
           ),
           const SizedBox(height: 10),
@@ -3917,7 +3978,8 @@ class _StageMapSectionState extends State<_StageMapSection> {
                     ? SystemMouseCursors.basic
                     : SystemMouseCursors.click,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
                     color: colors.controlSurface,
                     borderRadius: BorderRadius.circular(8),
@@ -3926,9 +3988,13 @@ class _StageMapSectionState extends State<_StageMapSection> {
                   child: Row(
                     children: [
                       Icon(
-                        selectedMap == null ? CupertinoIcons.xmark_circle : CupertinoIcons.map,
+                        selectedMap == null
+                            ? CupertinoIcons.xmark_circle
+                            : CupertinoIcons.map,
                         size: 14,
-                        color: selectedMap == null ? colors.textMuted : colors.brandPrimary,
+                        color: selectedMap == null
+                            ? colors.textMuted
+                            : colors.brandPrimary,
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -3982,7 +4048,8 @@ class _StageMapSectionState extends State<_StageMapSection> {
 
     entry = OverlayEntry(
       builder: (ctx) {
-        final overlayBox = Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final overlayBox =
+            Overlay.of(ctx).context.findRenderObject() as RenderBox;
         final maxH = overlayBox.size.height;
         final maxW = overlayBox.size.width;
 
@@ -4064,21 +4131,23 @@ List<_MapTreeNode> _buildMapTree(
   for (final map in maps) {
     if (map.groupId != null) {
       childrenByGroupId.putIfAbsent(map.groupId!, () => []).add(
-        _MapTreeNode(
-          id: 'map_${map.id}',
-          name: map.name,
-          isGroup: false,
-          map: map,
-          children: [],
-        ),
-      );
+            _MapTreeNode(
+              id: 'map_${map.id}',
+              name: map.name,
+              isGroup: false,
+              map: map,
+              children: [],
+            ),
+          );
     }
   }
 
   final Map<String, List<ProjectMapGroup>> subGroupsByParentId = {};
   for (final group in groups) {
     if (group.parentGroupId != null) {
-      subGroupsByParentId.putIfAbsent(group.parentGroupId!, () => []).add(group);
+      subGroupsByParentId
+          .putIfAbsent(group.parentGroupId!, () => [])
+          .add(group);
     }
   }
 
@@ -4288,7 +4357,9 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
                           ),
                         ),
                         Text(
-                          _translateGroupType(node.group?.type ?? MapGroupType.special).toUpperCase(),
+                          _translateGroupType(
+                                  node.group?.type ?? MapGroupType.special)
+                              .toUpperCase(),
                           style: TextStyle(
                             color: colors.textMuted,
                             fontSize: 8,
@@ -4339,9 +4410,12 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
                     child: Text(
                       node.name,
                       style: TextStyle(
-                        color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                        color: isSelected
+                            ? colors.brandPrimary
+                            : colors.textPrimary,
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
                   ),
@@ -4418,35 +4492,58 @@ class _StageBackdropSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final currentMode = stageContext.backdropMode;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _KeyValue(label: 'Décor', value: 'Mode de backdrop V0'),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final mode in CinematicStageBackdropMode.values)
-              _InlineControlAction(
-                label: _stageBackdropModeLabel(mode),
-                button: PokeMapButton(
-                  key: ValueKey('cinematic-builder-backdrop-${mode.name}'),
-                  onPressed: () {
-                    onUpdateStageContext(
-                      _copyStageContext(
-                        stageContext,
-                        backdropMode: mode,
+        Builder(
+          builder: (btnCtx) {
+            return GestureDetector(
+              key: const ValueKey('cinematic-builder-backdrop-dropdown'),
+              onTap: () => _showBackdropDropdown(context, btnCtx),
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: colors.controlSurface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colors.borderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _stageBackdropModeIcon(currentMode),
+                        size: 14,
+                        color: colors.brandPrimary,
                       ),
-                    );
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: stageContext.backdropMode == mode,
-                  leading: Icon(_stageBackdropModeIcon(mode)),
-                  child: const SizedBox.shrink(),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _stageBackdropModeLabel(currentMode),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: DefaultTextStyle.of(context).style.copyWith(
+                                color: colors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ),
+                      Icon(
+                        CupertinoIcons.chevron_down,
+                        size: 14,
+                        color: colors.textMuted,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-          ],
+            );
+          },
         ),
         if (stageContext.backdropMode ==
                 CinematicStageBackdropMode.projectMap &&
@@ -4457,7 +4554,170 @@ class _StageBackdropSection extends StatelessWidget {
       ],
     );
   }
+
+  void _showBackdropDropdown(BuildContext context, BuildContext buttonContext) {
+    final box = buttonContext.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final position = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    final colors = context.pokeMapColors;
+
+    late OverlayEntry entry;
+
+    void dismiss() {
+      if (entry.mounted) {
+        entry.remove();
+      }
+    }
+
+    entry = OverlayEntry(
+      builder: (ctx) {
+        final overlayBox =
+            Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final maxH = overlayBox.size.height;
+        final maxW = overlayBox.size.width;
+
+        var left = position.dx;
+        var top = position.dy + size.height + 4;
+
+        const menuWidth = 245.0;
+        if (left + menuWidth > maxW - 8) {
+          left = maxW - menuWidth - 8;
+        }
+        if (left < 8) left = 8;
+
+        const estimatedHeight = 80.0;
+        if (top + estimatedHeight > maxH - 8) {
+          top = position.dy - estimatedHeight - 4;
+        }
+        if (top < 8) top = 8;
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => dismiss(),
+              ),
+            ),
+            Positioned(
+              left: left,
+              top: top,
+              child: Material(
+                color: Colors.transparent,
+                child: _BackdropDropdownPopup(
+                  selectedMode: stageContext.backdropMode,
+                  colors: colors,
+                  width: menuWidth,
+                  height: estimatedHeight,
+                  onModeSelected: (mode) {
+                    onUpdateStageContext(
+                      _copyStageContext(
+                        stageContext,
+                        backdropMode: mode,
+                      ),
+                    );
+                    dismiss();
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(entry);
+  }
 }
+
+class _BackdropDropdownPopup extends StatelessWidget {
+  const _BackdropDropdownPopup({
+    required this.selectedMode,
+    required this.colors,
+    required this.width,
+    required this.height,
+    required this.onModeSelected,
+  });
+
+  final CinematicStageBackdropMode selectedMode;
+  final PokeMapColorTokens colors;
+  final double width;
+  final double height;
+  final ValueChanged<CinematicStageBackdropMode> onModeSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.borderStrong),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          children: [
+            for (final mode in CinematicStageBackdropMode.values) _buildItem(mode),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(CinematicStageBackdropMode mode) {
+    final isSelected = selectedMode == mode;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        key: ValueKey('cinematic-builder-backdrop-${mode.name}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onModeSelected(mode),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: isSelected ? colors.surfaceSelected : Colors.transparent,
+          child: Row(
+            children: [
+              Icon(
+                _stageBackdropModeIcon(mode),
+                size: 14,
+                color: isSelected ? colors.brandPrimary : colors.textMuted,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  _stageBackdropModeLabel(mode),
+                  style: TextStyle(
+                    color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  CupertinoIcons.checkmark,
+                  size: 12,
+                  color: colors.brandPrimary,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _StageActorBindingsSection extends StatelessWidget {
   const _StageActorBindingsSection({
@@ -4465,18 +4725,22 @@ class _StageActorBindingsSection extends StatelessWidget {
     required this.stageContext,
     required this.characters,
     required this.stageMapSourceCatalog,
+    required this.startExpanded,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
+    required this.onUpsertActorInitialPlacement,
   });
 
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
+  final bool startExpanded;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
+  final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
 
   @override
   Widget build(BuildContext context) {
@@ -4505,9 +4769,11 @@ class _StageActorBindingsSection extends StatelessWidget {
               characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog,
               playerActorId: playerActorId,
+              startExpanded: startExpanded,
               onUpsertActorBinding: onUpsertActorBinding,
               onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
               onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
+              onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
             ),
             const SizedBox(height: 8),
           ],
@@ -4570,9 +4836,11 @@ class _StageActorBindingRow extends StatefulWidget {
     required this.characters,
     required this.stageMapSourceCatalog,
     required this.playerActorId,
+    required this.startExpanded,
     required this.onUpsertActorBinding,
     required this.onUpsertActorAppearanceBinding,
     required this.onRemoveActorAppearanceBinding,
+    required this.onUpsertActorInitialPlacement,
   });
 
   final CinematicActorRef actor;
@@ -4581,9 +4849,11 @@ class _StageActorBindingRow extends StatefulWidget {
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final String? playerActorId;
+  final bool startExpanded;
   final _UpsertActorBindingCallback onUpsertActorBinding;
   final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
+  final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
 
   @override
   State<_StageActorBindingRow> createState() => _StageActorBindingRowState();
@@ -4591,6 +4861,21 @@ class _StageActorBindingRow extends StatefulWidget {
 
 class _StageActorBindingRowState extends State<_StageActorBindingRow> {
   final _entityDropdownKey = GlobalKey();
+  bool _isExpanded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _isExpanded = widget.startExpanded;
+  }
+
+  @override
+  void didUpdateWidget(_StageActorBindingRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.startExpanded != widget.startExpanded) {
+      _isExpanded = widget.startExpanded;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -4610,156 +4895,114 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
     final selectedSource = binding?.mapEntityId == null
         ? null
         : sourceCatalog?.entityById(binding!.mapEntityId!);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _KeyValue(label: 'Acteur', value: _actorDisplayLabel(actor)),
-        Row(
-          children: [
-            Expanded(
-              child: _StageChoice(
-                keyValue:
-                    'cinematic-builder-actor-binding-${actor.actorId}-player',
-                label: 'Joueur',
-                icon: CupertinoIcons.person_crop_circle,
-                selected: selectedKind == CinematicActorBindingKind.player,
-                disabled: playerDisabled,
-                onPressed: () => widget.onUpsertActorBinding(
-                  CinematicActorBinding(
-                    actorId: actor.actorId,
-                    kind: CinematicActorBindingKind.player,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: _StageChoice(
-                keyValue:
-                    'cinematic-builder-actor-binding-${actor.actorId}-mapEntity',
-                label: 'Entité',
-                icon: CupertinoIcons.location,
-                selected: selectedKind == CinematicActorBindingKind.mapEntity,
-                disabled: !canPickMapEntity,
-                onPressed: () {
-                  widget.onUpsertActorBinding(
-                    CinematicActorBinding(
-                      actorId: actor.actorId,
-                      kind: CinematicActorBindingKind.mapEntity,
-                    ),
-                  );
-                  if (actorSources.isNotEmpty) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        _showEntityDropdown(context, _entityDropdownKey, actorSources, null);
-                      }
-                    });
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: _StageChoice(
-                keyValue:
-                    'cinematic-builder-actor-binding-${actor.actorId}-cinematicOnly',
-                label: 'Ciné',
-                icon: CupertinoIcons.sparkles,
-                selected: selectedKind == CinematicActorBindingKind.cinematicOnly,
-                onPressed: () => widget.onUpsertActorBinding(
-                  CinematicActorBinding(
-                    actorId: actor.actorId,
-                    kind: CinematicActorBindingKind.cinematicOnly,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: _StageChoice(
-                keyValue:
-                    'cinematic-builder-actor-binding-${actor.actorId}-unbound',
-                label: 'Non lié',
-                icon: CupertinoIcons.question_circle,
-                selected: selectedKind == CinematicActorBindingKind.unbound,
-                onPressed: () => widget.onUpsertActorBinding(
-                  CinematicActorBinding(
-                    actorId: actor.actorId,
-                    kind: CinematicActorBindingKind.unbound,
-                  ),
-                ),
-              ),
-            ),
-          ],
+
+    final placement = _initialPlacementFor(stageContext, actor.actorId);
+    final supportsMapEntityPlacement =
+        selectedKind == CinematicActorBindingKind.mapEntity &&
+            binding?.mapEntityId != null &&
+            sourceCatalog?.entityById(binding!.mapEntityId!) != null;
+    final hasTargets = asset.movementTargets.isNotEmpty;
+
+    final bindingPart = () {
+      switch (selectedKind) {
+        case CinematicActorBindingKind.player:
+          return 'Joueur';
+        case CinematicActorBindingKind.mapEntity:
+          if (selectedSource != null) {
+            return 'Entité : ${selectedSource.label}';
+          }
+          return 'Entité';
+        case CinematicActorBindingKind.cinematicOnly:
+          final appearanceBinding =
+              _actorAppearanceBindingFor(stageContext, actor.actorId);
+          final character = _characterById(widget.characters, appearanceBinding?.characterId);
+          if (character != null) {
+            return 'Ciné : ${character.name}';
+          }
+          return 'Ciné';
+        case CinematicActorBindingKind.unbound:
+        default:
+          return 'Non lié';
+      }
+    }();
+
+    final placementPart = () {
+      if (placement == null) return 'Position : Non défini';
+      switch (placement.kind) {
+        case CinematicActorInitialPlacementKind.unset:
+          return 'Position : Non défini';
+        case CinematicActorInitialPlacementKind.fromMapEntity:
+          return 'Position : Depuis l’entité';
+        case CinematicActorInitialPlacementKind.fromMovementTarget:
+          String? targetLabel;
+          for (final t in asset.movementTargets) {
+            if (t.targetId == placement.targetId) {
+              targetLabel = t.label;
+              break;
+            }
+          }
+          if (targetLabel != null) {
+            return 'Position : Cible ($targetLabel)';
+          }
+          return 'Position : Cible';
+      }
+    }();
+
+    final summaryText = '$bindingPart · $placementPart';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: colors.controlSurface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _isExpanded ? colors.brandPrimaryBorder : colors.borderSubtle,
+          width: _isExpanded ? 1.5 : 1.0,
         ),
-        if (playerDisabled) ...[
-          const SizedBox(height: 4),
-          const _MutedText('Un autre acteur est déjà lié au joueur.'),
-        ],
-        if (selectedSource != null) ...[
-          const SizedBox(height: 4),
-          _MutedText(
-            'Entité liée : ${selectedSource.label} · '
-            '${selectedSource.kindLabel} · ${selectedSource.positionSummary}',
-          ),
-        ],
-        if (mapEntityDisabledReason != null) ...[
-          const SizedBox(height: 4),
-          _MutedText(mapEntityDisabledReason),
-        ],
-        if (canPickMapEntity &&
-            selectedKind == CinematicActorBindingKind.mapEntity) ...[
-          const SizedBox(height: 6),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           GestureDetector(
-            key: _entityDropdownKey,
-            onTap: actorSources.isEmpty
-                ? null
-                : () => _showEntityDropdown(
-                      context,
-                      _entityDropdownKey,
-                      actorSources,
-                      binding?.mapEntityId,
-                    ),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
             child: MouseRegion(
-              cursor: actorSources.isEmpty
-                  ? SystemMouseCursors.basic
-                  : SystemMouseCursors.click,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                decoration: BoxDecoration(
-                  color: colors.controlSurface,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: colors.borderSubtle),
-                ),
+              cursor: SystemMouseCursors.click,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Row(
                   children: [
                     Icon(
-                      selectedSource == null
-                          ? CupertinoIcons.xmark_circle
-                          : CupertinoIcons.location,
-                      size: 14,
-                      color: selectedSource == null
-                          ? colors.textMuted
-                          : colors.brandPrimary,
+                      CupertinoIcons.person_crop_circle,
+                      size: 16,
+                      color: _isExpanded ? colors.brandPrimary : colors.textMuted,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        selectedSource == null
-                            ? 'Choisir une entité'
-                            : selectedSource.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DefaultTextStyle.of(context).style.copyWith(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _actorDisplayLabel(actor),
+                            style: TextStyle(
                               color: colors.textPrimary,
                               fontSize: 12,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            summaryText,
+                            style: TextStyle(
+                              color: colors.textMuted,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     Icon(
-                      CupertinoIcons.chevron_down,
+                      _isExpanded ? CupertinoIcons.chevron_up : CupertinoIcons.chevron_down,
                       size: 14,
                       color: colors.textMuted,
                     ),
@@ -4768,25 +5011,297 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               ),
             ),
           ),
-        ],
-        const SizedBox(height: 8),
-        _StageActorAppearanceSection(
-          actor: actor,
-          selectedKind: selectedKind,
-          appearanceBinding:
-              _actorAppearanceBindingFor(stageContext, actor.actorId),
-          characters: widget.characters,
-          onCharacterSelected: (character) async {
-            await widget.onUpsertActorAppearanceBinding(
-              CinematicActorAppearanceBinding(
-                actorId: actor.actorId,
-                characterId: character.id,
+          if (_isExpanded) ...[
+            Container(
+              height: 1,
+              color: colors.borderSubtle,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-actor-binding-${actor.actorId}-player',
+                          label: 'Joueur',
+                          icon: CupertinoIcons.person_crop_circle,
+                          selected: selectedKind == CinematicActorBindingKind.player,
+                          disabled: playerDisabled,
+                          onPressed: () => widget.onUpsertActorBinding(
+                            CinematicActorBinding(
+                              actorId: actor.actorId,
+                              kind: CinematicActorBindingKind.player,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-actor-binding-${actor.actorId}-mapEntity',
+                          label: 'Entité',
+                          icon: CupertinoIcons.location,
+                          selected: selectedKind == CinematicActorBindingKind.mapEntity,
+                          disabled: !canPickMapEntity,
+                          onPressed: () {
+                            widget.onUpsertActorBinding(
+                              CinematicActorBinding(
+                                actorId: actor.actorId,
+                                kind: CinematicActorBindingKind.mapEntity,
+                              ),
+                            );
+                            if (actorSources.isNotEmpty) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) {
+                                  _showEntityDropdown(
+                                      context, _entityDropdownKey, actorSources, null);
+                                }
+                              });
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-actor-binding-${actor.actorId}-cinematicOnly',
+                          label: 'Ciné',
+                          icon: CupertinoIcons.sparkles,
+                          selected:
+                              selectedKind == CinematicActorBindingKind.cinematicOnly,
+                          onPressed: () => widget.onUpsertActorBinding(
+                            CinematicActorBinding(
+                              actorId: actor.actorId,
+                              kind: CinematicActorBindingKind.cinematicOnly,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-actor-binding-${actor.actorId}-unbound',
+                          label: 'Non lié',
+                          icon: CupertinoIcons.question_circle,
+                          selected: selectedKind == CinematicActorBindingKind.unbound,
+                          onPressed: () => widget.onUpsertActorBinding(
+                            CinematicActorBinding(
+                              actorId: actor.actorId,
+                              kind: CinematicActorBindingKind.unbound,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (playerDisabled) ...[
+                    const SizedBox(height: 4),
+                    const _MutedText('Un autre acteur est déjà lié au joueur.'),
+                  ],
+                  if (selectedSource != null) ...[
+                    const SizedBox(height: 4),
+                    _MutedText(
+                      'Entité liée : ${selectedSource.label} · '
+                      '${selectedSource.kindLabel} · ${selectedSource.positionSummary}',
+                    ),
+                  ],
+                  if (mapEntityDisabledReason != null) ...[
+                    const SizedBox(height: 4),
+                    _MutedText(mapEntityDisabledReason),
+                  ],
+                  if (canPickMapEntity &&
+                      selectedKind == CinematicActorBindingKind.mapEntity) ...[
+                    const SizedBox(height: 6),
+                    GestureDetector(
+                      key: _entityDropdownKey,
+                      onTap: actorSources.isEmpty
+                          ? null
+                          : () => _showEntityDropdown(
+                                context,
+                                _entityDropdownKey,
+                                actorSources,
+                                binding?.mapEntityId,
+                              ),
+                      child: MouseRegion(
+                        cursor: actorSources.isEmpty
+                            ? SystemMouseCursors.basic
+                            : SystemMouseCursors.click,
+                        child: Container(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: colors.controlSurface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: colors.borderSubtle),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                selectedSource == null
+                                    ? CupertinoIcons.xmark_circle
+                                    : CupertinoIcons.location,
+                                size: 14,
+                                color: selectedSource == null
+                                    ? colors.textMuted
+                                    : colors.brandPrimary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  selectedSource == null
+                                      ? 'Choisir une entité'
+                                      : selectedSource.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: DefaultTextStyle.of(context).style.copyWith(
+                                        color: colors.textPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                ),
+                              ),
+                              Icon(
+                                CupertinoIcons.chevron_down,
+                                size: 14,
+                                color: colors.textMuted,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  const _KeyValue(label: 'Positions initiales', value: 'Entrée de scène'),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-initial-placement-${actor.actorId}-unset',
+                          label: 'Non défini',
+                          icon: CupertinoIcons.circle,
+                          selected:
+                              placement?.kind == CinematicActorInitialPlacementKind.unset,
+                          onPressed: () => widget.onUpsertActorInitialPlacement(
+                            CinematicActorInitialPlacement(
+                              actorId: actor.actorId,
+                              kind: CinematicActorInitialPlacementKind.unset,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-initial-placement-${actor.actorId}-fromMapEntity',
+                          label: 'Depuis l’entité',
+                          icon: CupertinoIcons.location_solid,
+                          selected: placement?.kind ==
+                              CinematicActorInitialPlacementKind.fromMapEntity,
+                          disabled: !supportsMapEntityPlacement,
+                          onPressed: () => widget.onUpsertActorInitialPlacement(
+                            CinematicActorInitialPlacement(
+                              actorId: actor.actorId,
+                              kind: CinematicActorInitialPlacementKind.fromMapEntity,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: _StageChoice(
+                          keyValue:
+                              'cinematic-builder-initial-placement-${actor.actorId}-fromMovementTarget',
+                          label: 'Depuis cible',
+                          icon: CupertinoIcons.scope,
+                          selected: placement?.kind ==
+                              CinematicActorInitialPlacementKind.fromMovementTarget,
+                          disabled: !hasTargets,
+                          onPressed: () => widget.onUpsertActorInitialPlacement(
+                            CinematicActorInitialPlacement(
+                              actorId: actor.actorId,
+                              kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+                              targetId: asset.movementTargets.first.targetId,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (!supportsMapEntityPlacement &&
+                      selectedKind == CinematicActorBindingKind.mapEntity) ...[
+                    const SizedBox(height: 4),
+                    const _MutedText(
+                      'Disponible seulement avec un actor lié à une entité de map.',
+                    ),
+                  ],
+                  if (hasTargets &&
+                      placement?.kind ==
+                          CinematicActorInitialPlacementKind.fromMovementTarget) ...[
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final target in asset.movementTargets)
+                          _InlineControlAction(
+                            label: target.label,
+                            button: PokeMapButton(
+                              key: ValueKey(
+                                'cinematic-builder-initial-placement-'
+                                '${actor.actorId}-target-${target.targetId}',
+                              ),
+                              onPressed: () => widget.onUpsertActorInitialPlacement(
+                                CinematicActorInitialPlacement(
+                                  actorId: actor.actorId,
+                                  kind: CinematicActorInitialPlacementKind
+                                      .fromMovementTarget,
+                                  targetId: target.targetId,
+                                ),
+                              ),
+                              variant: PokeMapButtonVariant.secondary,
+                              size: PokeMapButtonSize.small,
+                              isSelected: placement?.targetId == target.targetId,
+                              leading: const Icon(CupertinoIcons.scope),
+                              child: const SizedBox.shrink(),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  _StageActorAppearanceSection(
+                    actor: actor,
+                    selectedKind: selectedKind,
+                    appearanceBinding:
+                        _actorAppearanceBindingFor(stageContext, actor.actorId),
+                    characters: widget.characters,
+                    onCharacterSelected: (character) async {
+                      await widget.onUpsertActorAppearanceBinding(
+                        CinematicActorAppearanceBinding(
+                          actorId: actor.actorId,
+                          characterId: character.id,
+                        ),
+                      );
+                    },
+                    onClear: () => widget.onRemoveActorAppearanceBinding(actor.actorId),
+                  ),
+                ],
               ),
-            );
-          },
-          onClear: () => widget.onRemoveActorAppearanceBinding(actor.actorId),
-        ),
-      ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -4812,7 +5327,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
 
     entry = OverlayEntry(
       builder: (ctx) {
-        final overlayBox = Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final overlayBox =
+            Overlay.of(ctx).context.findRenderObject() as RenderBox;
         final maxH = overlayBox.size.height;
         final maxW = overlayBox.size.width;
 
@@ -4825,7 +5341,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight = (sources.length * 44.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight =
+            (sources.length * 44.0 + 8.0).clamp(100.0, 320.0);
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -4845,7 +5362,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               child: Material(
                 color: Colors.transparent,
                 child: _MapEntityDropdownPopup(
-                  keyPrefix: 'cinematic-builder-actor-binding-${widget.actor.actorId}-mapEntity',
+                  keyPrefix:
+                      'cinematic-builder-actor-binding-${widget.actor.actorId}-mapEntity',
                   sources: sources,
                   selectedSourceId: selectedSourceId,
                   colors: colors,
@@ -5068,7 +5586,8 @@ class _StageActorAppearanceSection extends StatelessWidget {
 
     entry = OverlayEntry(
       builder: (ctx) {
-        final overlayBox = Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final overlayBox =
+            Overlay.of(ctx).context.findRenderObject() as RenderBox;
         final maxH = overlayBox.size.height;
         final maxW = overlayBox.size.width;
 
@@ -5081,7 +5600,8 @@ class _StageActorAppearanceSection extends StatelessWidget {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight = (characters.length * 56.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight =
+            (characters.length * 56.0 + 8.0).clamp(100.0, 320.0);
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -5212,8 +5732,7 @@ class _CharacterDropdownPopup extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
           children: [
-            for (final character in characters)
-              _buildItem(character),
+            for (final character in characters) _buildItem(character),
           ],
         ),
       ),
@@ -5249,9 +5768,12 @@ class _CharacterDropdownPopup extends StatelessWidget {
                     Text(
                       character.name,
                       style: TextStyle(
-                        color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                        color: isSelected
+                            ? colors.brandPrimary
+                            : colors.textPrimary,
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
                     Text(
@@ -5284,222 +5806,6 @@ class _CharacterDropdownPopup extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _StageCharacterOption extends StatelessWidget {
-  const _StageCharacterOption({
-    required this.keyValue,
-    required this.character,
-    required this.selected,
-    required this.onPressed,
-  });
-
-  final String keyValue;
-  final ProjectCharacterEntry character;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final tagsLine = _characterTagsLine(character);
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 245),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PokeMapButton(
-            key: ValueKey(keyValue),
-            onPressed: onPressed,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            isSelected: selected,
-            leading: const Icon(CupertinoIcons.person_crop_square),
-            child: const SizedBox.shrink(),
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _StrongText(character.name),
-                const SizedBox(height: 2),
-                _MutedText(_characterDetailLine(character)),
-                if (tagsLine != null) ...[
-                  const SizedBox(height: 2),
-                  _MutedText(tagsLine),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StageInitialPlacementsSection extends StatelessWidget {
-  const _StageInitialPlacementsSection({
-    required this.asset,
-    required this.stageContext,
-    required this.stageMapSourceCatalog,
-    required this.onUpsertActorInitialPlacement,
-  });
-
-  final CinematicAsset asset;
-  final CinematicStageContext stageContext;
-  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
-  final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const ValueKey('cinematic-builder-stage-initial-placements-section'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const _SectionTitle(
-          title: 'Positions initiales',
-          subtitle: 'Entrées de scène',
-        ),
-        const SizedBox(height: 8),
-        if (asset.requiredActors.isEmpty)
-          const _MutedText('Aucun acteur à placer.')
-        else
-          for (final actor in asset.requiredActors) ...[
-            _StageInitialPlacementRow(
-              actor: actor,
-              asset: asset,
-              stageContext: stageContext,
-              stageMapSourceCatalog: stageMapSourceCatalog,
-              onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
-            ),
-            const SizedBox(height: 8),
-          ],
-      ],
-    );
-  }
-}
-
-class _StageInitialPlacementRow extends StatelessWidget {
-  const _StageInitialPlacementRow({
-    required this.actor,
-    required this.asset,
-    required this.stageContext,
-    required this.stageMapSourceCatalog,
-    required this.onUpsertActorInitialPlacement,
-  });
-
-  final CinematicActorRef actor;
-  final CinematicAsset asset;
-  final CinematicStageContext stageContext;
-  final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
-  final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
-
-  @override
-  Widget build(BuildContext context) {
-    final placement = _initialPlacementFor(stageContext, actor.actorId);
-    final binding = _actorBindingFor(stageContext, actor.actorId);
-    final supportsMapEntityPlacement =
-        binding?.kind == CinematicActorBindingKind.mapEntity &&
-            binding?.mapEntityId != null &&
-            stageMapSourceCatalog?.entityById(binding!.mapEntityId!) != null;
-    final hasTargets = asset.movementTargets.isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _KeyValue(label: 'Acteur', value: _actorDisplayLabel(actor)),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            _StageChoice(
-              keyValue:
-                  'cinematic-builder-initial-placement-${actor.actorId}-unset',
-              label: 'Non défini',
-              icon: CupertinoIcons.circle,
-              selected:
-                  placement?.kind == CinematicActorInitialPlacementKind.unset,
-              onPressed: () => onUpsertActorInitialPlacement(
-                CinematicActorInitialPlacement(
-                  actorId: actor.actorId,
-                  kind: CinematicActorInitialPlacementKind.unset,
-                ),
-              ),
-            ),
-            _StageChoice(
-              keyValue:
-                  'cinematic-builder-initial-placement-${actor.actorId}-fromMapEntity',
-              label: 'Depuis l’entité liée',
-              icon: CupertinoIcons.location_solid,
-              selected: placement?.kind ==
-                  CinematicActorInitialPlacementKind.fromMapEntity,
-              disabled: !supportsMapEntityPlacement,
-              onPressed: () => onUpsertActorInitialPlacement(
-                CinematicActorInitialPlacement(
-                  actorId: actor.actorId,
-                  kind: CinematicActorInitialPlacementKind.fromMapEntity,
-                ),
-              ),
-            ),
-            _StageChoice(
-              keyValue:
-                  'cinematic-builder-initial-placement-${actor.actorId}-fromMovementTarget',
-              label: 'Depuis une cible',
-              icon: CupertinoIcons.scope,
-              selected: placement?.kind ==
-                  CinematicActorInitialPlacementKind.fromMovementTarget,
-              disabled: !hasTargets,
-              onPressed: () => onUpsertActorInitialPlacement(
-                CinematicActorInitialPlacement(
-                  actorId: actor.actorId,
-                  kind: CinematicActorInitialPlacementKind.fromMovementTarget,
-                  targetId: asset.movementTargets.first.targetId,
-                ),
-              ),
-            ),
-          ],
-        ),
-        if (!supportsMapEntityPlacement) ...[
-          const SizedBox(height: 4),
-          const _MutedText(
-            'Disponible seulement avec un acteur lié à une entité de map.',
-          ),
-        ],
-        if (hasTargets) ...[
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final target in asset.movementTargets)
-                _InlineControlAction(
-                  label: target.label,
-                  button: PokeMapButton(
-                    key: ValueKey(
-                      'cinematic-builder-initial-placement-'
-                      '${actor.actorId}-target-${target.targetId}',
-                    ),
-                    onPressed: () => onUpsertActorInitialPlacement(
-                      CinematicActorInitialPlacement(
-                        actorId: actor.actorId,
-                        kind: CinematicActorInitialPlacementKind
-                            .fromMovementTarget,
-                        targetId: target.targetId,
-                      ),
-                    ),
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    isSelected: placement?.targetId == target.targetId,
-                    leading: const Icon(CupertinoIcons.scope),
-                    child: const SizedBox.shrink(),
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ],
     );
   }
 }
@@ -5809,8 +6115,7 @@ class _MapEntityDropdownPopup extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
           children: [
-            for (final source in sources)
-              _buildItem(source),
+            for (final source in sources) _buildItem(source),
           ],
         ),
       ),
@@ -5843,9 +6148,12 @@ class _MapEntityDropdownPopup extends StatelessWidget {
                     Text(
                       source.label,
                       style: TextStyle(
-                        color: isSelected ? colors.brandPrimary : colors.textPrimary,
+                        color: isSelected
+                            ? colors.brandPrimary
+                            : colors.textPrimary,
                         fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
                       ),
                     ),
                     Text(

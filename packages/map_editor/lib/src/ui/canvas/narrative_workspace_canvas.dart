@@ -1324,6 +1324,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
   Future<String?> _addCinematicRequiredActor({
     required String cinematicId,
+    String? label,
   }) async {
     final project = widget.project;
     if (project == null) {
@@ -1333,7 +1334,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       final result = addCinematicRequiredActor(
         project,
         cinematicId: cinematicId,
-        label: 'Acteur',
+        label: label ?? 'Acteur',
       );
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,

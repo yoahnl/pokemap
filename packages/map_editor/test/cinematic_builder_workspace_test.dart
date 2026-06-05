@@ -106,12 +106,20 @@ void main() {
     await tester.ensureVisible(mapButton);
     await tester.tap(mapButton);
     await tester.pumpAndSettle();
+    final backdropDropdown = find.byKey(
+      const ValueKey('cinematic-builder-backdrop-dropdown'),
+    );
+    await tester.ensureVisible(backdropDropdown);
+    await tester.tap(backdropDropdown);
+    await tester.pumpAndSettle();
+
     final backdropButton = find.byKey(
       const ValueKey('cinematic-builder-backdrop-projectMap'),
     );
     await tester.ensureVisible(backdropButton);
     await tester.tap(backdropButton);
     await tester.pumpAndSettle();
+
 
     final updated = _asset(latestProject, 'cinematic_stage_context');
     expect(updated.mapId, 'map_lab');
@@ -287,12 +295,24 @@ void main() {
       onProjectChanged: (project) => latestProject = project,
     );
 
+    final backdropDropdown = find.byKey(
+      const ValueKey('cinematic-builder-backdrop-dropdown'),
+    );
+    await tester.ensureVisible(backdropDropdown);
+    await tester.tap(backdropDropdown);
+    await tester.pumpAndSettle();
+
     final projectMapButton = find.byKey(
       const ValueKey('cinematic-builder-backdrop-projectMap'),
     );
     await tester.ensureVisible(projectMapButton);
     await tester.tap(projectMapButton);
     await tester.pumpAndSettle();
+
+    await tester.ensureVisible(backdropDropdown);
+    await tester.tap(backdropDropdown);
+    await tester.pumpAndSettle();
+
     final noneButton =
         find.byKey(const ValueKey('cinematic-builder-backdrop-none'));
     await tester.ensureVisible(noneButton);
@@ -4999,7 +5019,13 @@ void main() {
 
     expect(find.text('Ajouter un bloc'), findsNothing);
     expect(find.text('Supprimer le bloc'), findsNothing);
-    expect(find.byType(CupertinoTextField), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
+        matching: find.byType(CupertinoTextField),
+      ),
+      findsNothing,
+    );
     expect(project.toJson(), before);
   });
 
@@ -5411,6 +5437,12 @@ void main() {
     expect(tester.widget<PokeMapButton>(actorFaceButton).onPressed, isNull);
     expect(find.text('Ajoutez d’abord un acteur requis'), findsOneWidget);
 
+    await tester.enterText(
+      find.byKey(
+          const ValueKey('cinematic-builder-required-actor-label-field')),
+      'Lysa',
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-add-required-actor-button')),
     );
@@ -5418,9 +5450,8 @@ void main() {
 
     expect(
         latestProject.cinematics.single.requiredActors.single.actorId, 'actor');
-    expect(
-        latestProject.cinematics.single.requiredActors.single.label, 'Acteur');
-    expect(find.text('Acteur'), findsWidgets);
+    expect(latestProject.cinematics.single.requiredActors.single.label, 'Lysa');
+    expect(find.text('Lysa'), findsWidgets);
     expect(tester.widget<PokeMapButton>(actorFaceButton).onPressed, isNotNull);
   });
 
@@ -7470,6 +7501,7 @@ Future<void> _pumpBuilder(
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
+              startExpanded: true,
               stageMaps: const <ProjectMapEntry>[
                 ProjectMapEntry(
                   id: 'map_lab',
@@ -7508,7 +7540,11 @@ Future<void> _pumpBuilder(
                 CinematicTimelineCameraMode? cameraMode,
               }) async =>
                   false,
-              onAddRequiredActor: ({required String cinematicId}) async => null,
+              onAddRequiredActor: ({
+                required String cinematicId,
+                String? label,
+              }) async =>
+                  null,
               onAddMovementTarget: ({required String cinematicId}) async =>
                   null,
               onUpdateMovementTarget: ({
@@ -7665,6 +7701,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
             child: CinematicBuilderWorkspace(
               entry: entry,
               asset: asset,
+              startExpanded: true,
               stageMaps: _project.maps,
               groups: _project.groups,
               characters: _project.characters,
@@ -7764,11 +7801,14 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     return true;
   }
 
-  Future<String?> _addRequiredActor({required String cinematicId}) async {
+  Future<String?> _addRequiredActor({
+    required String cinematicId,
+    String? label,
+  }) async {
     final result = addCinematicRequiredActor(
       _project,
       cinematicId: cinematicId,
-      label: 'Acteur',
+      label: label ?? 'Acteur',
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);

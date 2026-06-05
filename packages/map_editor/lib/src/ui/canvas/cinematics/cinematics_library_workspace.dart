@@ -50,6 +50,7 @@ typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
 
 typedef AddRequiredActorCallback = Future<String?> Function({
   required String cinematicId,
+  String? label,
 });
 
 typedef AddMovementTargetCallback = Future<String?> Function({
@@ -178,7 +179,10 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpsertMovementTargetBinding,
     this.onLoadStageMapSnapshot,
     this.onOpenLegacyCutsceneStudio,
+    this.startExpanded = false,
   });
+
+  final bool startExpanded;
 
   final ProjectManifest project;
   final CreateCinematicShellCallback onCreateCinematicShell;
@@ -262,6 +266,7 @@ class _CinematicsLibraryWorkspaceState
         groups: widget.project.groups,
         characters: widget.project.characters,
         stageMapSourceCatalog: _stageMapSourceCatalog,
+        startExpanded: widget.startExpanded,
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
         },

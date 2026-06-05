@@ -13059,6 +13059,10 @@
         {
           "actorId": "actor_3",
           "label": "Acteur"
+        },
+        {
+          "actorId": "actor_4",
+          "label": "Jean"
         }
       ],
       "movementTargets": [
@@ -13072,7 +13076,8 @@
         "actorBindings": [
           {
             "actorId": "actor_2",
-            "kind": "cinematicOnly"
+            "kind": "mapEntity",
+            "mapEntityId": "npc"
           },
           {
             "actorId": "actor_3",
@@ -13080,7 +13085,13 @@
           },
           {
             "actorId": "actor",
-            "kind": "cinematicOnly"
+            "kind": "player"
+          }
+        ],
+        "actorAppearanceBindings": [
+          {
+            "actorId": "actor_3",
+            "characterId": "rival"
           }
         ],
         "initialPlacements": [

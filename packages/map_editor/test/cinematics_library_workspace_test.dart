@@ -562,6 +562,7 @@ class _HarnessState extends State<_Harness> {
             height: 820,
             child: CinematicsLibraryWorkspace(
               project: _project,
+              startExpanded: true,
               onCreateCinematicShell: ({required String title}) async {
                 final id = _nextCinematicId(title);
                 final result = addCinematicAsset(
@@ -668,11 +669,14 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return result.step.id == stepId;
               },
-              onAddRequiredActor: ({required String cinematicId}) async {
+              onAddRequiredActor: ({
+                required String cinematicId,
+                String? label,
+              }) async {
                 final result = addCinematicRequiredActor(
                   _project,
                   cinematicId: cinematicId,
-                  label: 'Acteur',
+                  label: label ?? 'Acteur',
                 );
                 setState(() => _project = result.updatedProject);
                 return result.actor.actorId;

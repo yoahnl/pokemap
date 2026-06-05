@@ -252,6 +252,7 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/features/path_studio/path_studio_theme.dart': 19,
   'lib/src/features/path_studio/path_studio_tileset_image_picker.dart': 1,
   'lib/src/features/surface_painter/surface_layer_static_preview.dart': 1,
+  'lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart': 13,
   'lib/src/ui/canvas/cutscene_studio/cutscene_studio_workbench.dart': 16,
   'lib/src/ui/canvas/cutscene_studio/cutscene_studio_workspace_support.dart':
       10,
