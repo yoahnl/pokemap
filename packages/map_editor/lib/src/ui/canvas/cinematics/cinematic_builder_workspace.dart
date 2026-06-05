@@ -107,6 +107,16 @@ typedef UpsertCinematicActorBindingCallback = Future<bool> Function({
   required CinematicActorBinding binding,
 });
 
+typedef UpsertCinematicActorAppearanceBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicActorAppearanceBinding binding,
+});
+
+typedef RemoveCinematicActorAppearanceBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+});
+
 typedef UpsertCinematicActorInitialPlacementCallback = Future<bool> Function({
   required String cinematicId,
   required CinematicActorInitialPlacement placement,
@@ -180,6 +190,14 @@ typedef _UpsertActorBindingCallback = Future<void> Function(
   CinematicActorBinding binding,
 );
 
+typedef _UpsertActorAppearanceBindingCallback = Future<void> Function(
+  CinematicActorAppearanceBinding binding,
+);
+
+typedef _RemoveActorAppearanceBindingCallback = Future<void> Function(
+  String actorId,
+);
+
 typedef _UpsertActorInitialPlacementCallback = Future<void> Function(
   CinematicActorInitialPlacement placement,
 );
@@ -194,6 +212,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.characters,
     this.stageMapSourceCatalog,
     required this.onBackToLibrary,
     required this.onAddDraftStep,
@@ -212,6 +231,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
   });
@@ -219,6 +240,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
@@ -237,6 +259,10 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final UpdateCinematicStageMapCallback onUpdateStageMap;
   final UpdateCinematicStageContextCallback onUpdateStageContext;
   final UpsertCinematicActorBindingCallback onUpsertActorBinding;
+  final UpsertCinematicActorAppearanceBindingCallback
+      onUpsertActorAppearanceBinding;
+  final RemoveCinematicActorAppearanceBindingCallback
+      onRemoveActorAppearanceBinding;
   final UpsertCinematicActorInitialPlacementCallback
       onUpsertActorInitialPlacement;
   final UpsertCinematicMovementTargetBindingCallback
@@ -371,12 +397,17 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       entry: widget.entry,
                       asset: widget.asset,
                       stageMaps: widget.stageMaps,
+                      characters: widget.characters,
                       stageMapSourceCatalog: widget.stageMapSourceCatalog,
                       selectedStep: selectedStep,
                       selectedStepIndex: selectedStepIndex,
                       onUpdateStageMap: _updateStageMap,
                       onUpdateStageContext: _updateStageContext,
                       onUpsertActorBinding: _upsertActorBinding,
+                      onUpsertActorAppearanceBinding:
+                          _upsertActorAppearanceBinding,
+                      onRemoveActorAppearanceBinding:
+                          _removeActorAppearanceBinding,
                       onUpsertActorInitialPlacement:
                           _upsertActorInitialPlacement,
                       onUpsertMovementTargetBinding:
@@ -507,6 +538,22 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     await widget.onUpsertActorBinding(
       cinematicId: widget.asset.id,
       binding: binding,
+    );
+  }
+
+  Future<void> _upsertActorAppearanceBinding(
+    CinematicActorAppearanceBinding binding,
+  ) async {
+    await widget.onUpsertActorAppearanceBinding(
+      cinematicId: widget.asset.id,
+      binding: binding,
+    );
+  }
+
+  Future<void> _removeActorAppearanceBinding(String actorId) async {
+    await widget.onRemoveActorAppearanceBinding(
+      cinematicId: widget.asset.id,
+      actorId: actorId,
     );
   }
 
@@ -3587,12 +3634,15 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.characters,
     required this.stageMapSourceCatalog,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
     required this.onRemoveDraftStep,
@@ -3605,12 +3655,15 @@ class _InspectorPlaceholder extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
   final _UpsertActorBindingCallback onUpsertActorBinding;
+  final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
+  final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
   final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
@@ -3640,10 +3693,13 @@ class _InspectorPlaceholder extends StatelessWidget {
               entry: entry,
               asset: asset,
               stageMaps: stageMaps,
+              characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog,
               onUpdateStageMap: onUpdateStageMap,
               onUpdateStageContext: onUpdateStageContext,
               onUpsertActorBinding: onUpsertActorBinding,
+              onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
+              onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
               onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
               onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
             ),
@@ -3712,10 +3768,13 @@ class _StageContextEditor extends StatelessWidget {
     required this.entry,
     required this.asset,
     required this.stageMaps,
+    required this.characters,
     required this.stageMapSourceCatalog,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
   });
@@ -3723,10 +3782,13 @@ class _StageContextEditor extends StatelessWidget {
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
   final List<ProjectMapEntry> stageMaps;
+  final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpdateStageMapCallback onUpdateStageMap;
   final _UpdateStageContextCallback onUpdateStageContext;
   final _UpsertActorBindingCallback onUpsertActorBinding;
+  final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
+  final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
   final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
 
@@ -3737,6 +3799,7 @@ class _StageContextEditor extends StatelessWidget {
       asset: asset,
       entry: entry,
       maps: stageMaps,
+      characters: characters,
       stageMapSourceCatalog: stageMapSourceCatalog,
     );
     return PokeMapCard(
@@ -3766,8 +3829,11 @@ class _StageContextEditor extends StatelessWidget {
           _StageActorBindingsSection(
             asset: asset,
             stageContext: stageContext,
+            characters: characters,
             stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertActorBinding: onUpsertActorBinding,
+            onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
+            onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
           ),
           const SizedBox(height: 10),
           _StageInitialPlacementsSection(
@@ -3914,14 +3980,20 @@ class _StageActorBindingsSection extends StatelessWidget {
   const _StageActorBindingsSection({
     required this.asset,
     required this.stageContext,
+    required this.characters,
     required this.stageMapSourceCatalog,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
   });
 
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final _UpsertActorBindingCallback onUpsertActorBinding;
+  final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
+  final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
 
   @override
   Widget build(BuildContext context) {
@@ -3943,9 +4015,12 @@ class _StageActorBindingsSection extends StatelessWidget {
               actor: actor,
               asset: asset,
               stageContext: stageContext,
+              characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog,
               playerActorId: playerActorId,
               onUpsertActorBinding: onUpsertActorBinding,
+              onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
+              onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
             ),
             const SizedBox(height: 8),
           ],
@@ -3959,17 +4034,23 @@ class _StageActorBindingRow extends StatefulWidget {
     required this.actor,
     required this.asset,
     required this.stageContext,
+    required this.characters,
     required this.stageMapSourceCatalog,
     required this.playerActorId,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
   });
 
   final CinematicActorRef actor;
   final CinematicAsset asset;
   final CinematicStageContext stageContext;
+  final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final String? playerActorId;
   final _UpsertActorBindingCallback onUpsertActorBinding;
+  final _UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
+  final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
 
   @override
   State<_StageActorBindingRow> createState() => _StageActorBindingRowState();
@@ -3977,6 +4058,7 @@ class _StageActorBindingRow extends StatefulWidget {
 
 class _StageActorBindingRowState extends State<_StageActorBindingRow> {
   bool _showMapEntitySources = false;
+  bool _showCharacterPicker = false;
 
   @override
   void didUpdateWidget(_StageActorBindingRow oldWidget) {
@@ -3984,6 +4066,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
     if (oldWidget.asset.mapId != widget.asset.mapId ||
         oldWidget.actor.actorId != widget.actor.actorId) {
       _showMapEntitySources = false;
+      _showCharacterPicker = false;
     }
   }
 
@@ -4098,7 +4181,293 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             ),
           ),
         ],
+        const SizedBox(height: 8),
+        _StageActorAppearanceSection(
+          actor: actor,
+          selectedKind: selectedKind,
+          appearanceBinding:
+              _actorAppearanceBindingFor(stageContext, actor.actorId),
+          characters: widget.characters,
+          showPicker: _showCharacterPicker,
+          onTogglePicker: () {
+            setState(() => _showCharacterPicker = !_showCharacterPicker);
+          },
+          onCharacterSelected: (character) async {
+            await widget.onUpsertActorAppearanceBinding(
+              CinematicActorAppearanceBinding(
+                actorId: actor.actorId,
+                characterId: character.id,
+              ),
+            );
+            if (mounted) {
+              setState(() => _showCharacterPicker = false);
+            }
+          },
+          onClear: () => widget.onRemoveActorAppearanceBinding(actor.actorId),
+        ),
       ],
+    );
+  }
+}
+
+typedef _SelectProjectCharacter = Future<void> Function(
+  ProjectCharacterEntry character,
+);
+
+class _StageActorAppearanceSection extends StatelessWidget {
+  const _StageActorAppearanceSection({
+    required this.actor,
+    required this.selectedKind,
+    required this.appearanceBinding,
+    required this.characters,
+    required this.showPicker,
+    required this.onTogglePicker,
+    required this.onCharacterSelected,
+    required this.onClear,
+  });
+
+  final CinematicActorRef actor;
+  final CinematicActorBindingKind? selectedKind;
+  final CinematicActorAppearanceBinding? appearanceBinding;
+  final List<ProjectCharacterEntry> characters;
+  final bool showPicker;
+  final VoidCallback onTogglePicker;
+  final _SelectProjectCharacter onCharacterSelected;
+  final Future<void> Function() onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final canPick = selectedKind == CinematicActorBindingKind.cinematicOnly;
+    final sortedCharacters = _sortedCharacters(characters);
+    final selectedCharacter = _characterById(
+      sortedCharacters,
+      appearanceBinding?.characterId,
+    );
+
+    return Column(
+      key: ValueKey(
+        'cinematic-builder-character-appearance-${actor.actorId}',
+      ),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const _KeyValue(
+          label: 'Apparence',
+          value: 'Personnage de cinématique',
+        ),
+        if (!canPick) ...[
+          const SizedBox(height: 4),
+          _MutedText(_appearanceDisabledMessage(selectedKind)),
+          if (appearanceBinding != null) ...[
+            const SizedBox(height: 6),
+            _StageAppearanceClearButton(
+              actorId: actor.actorId,
+              label: 'Retirer la référence',
+              onClear: onClear,
+            ),
+          ],
+        ] else if (characters.isEmpty) ...[
+          const SizedBox(height: 4),
+          const _MutedText(
+            'Aucun personnage disponible dans la Character Library. '
+            'Crée un personnage dans la Character Library pour l’utiliser ici.',
+          ),
+        ] else ...[
+          const SizedBox(height: 4),
+          if (appearanceBinding == null) ...[
+            const _MutedText('Aucun personnage choisi.'),
+            const SizedBox(height: 6),
+            _StageAppearanceToggleButton(
+              actorId: actor.actorId,
+              label: 'Choisir un personnage',
+              onTogglePicker: onTogglePicker,
+            ),
+          ] else if (selectedCharacter == null) ...[
+            const _MutedText(
+              'Le personnage choisi n’existe plus dans la Character Library.',
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _StageAppearanceToggleButton(
+                  actorId: actor.actorId,
+                  label: 'Choisir un autre personnage',
+                  onTogglePicker: onTogglePicker,
+                ),
+                _StageAppearanceClearButton(
+                  actorId: actor.actorId,
+                  label: 'Retirer la référence',
+                  onClear: onClear,
+                ),
+              ],
+            ),
+          ] else ...[
+            _KeyValue(label: 'Personnage', value: selectedCharacter.name),
+            _MutedText(_characterDetailLine(selectedCharacter)),
+            if (_characterTagsLine(selectedCharacter) case final tagsLine?)
+              _MutedText(tagsLine),
+            _MutedText('Id technique : ${selectedCharacter.id}'),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _StageAppearanceToggleButton(
+                  actorId: actor.actorId,
+                  label: 'Choisir un autre personnage',
+                  onTogglePicker: onTogglePicker,
+                ),
+                _StageAppearanceClearButton(
+                  actorId: actor.actorId,
+                  label: 'Retirer la référence',
+                  onClear: onClear,
+                ),
+              ],
+            ),
+          ],
+          if (showPicker) ...[
+            const SizedBox(height: 8),
+            _StageCharacterPicker(
+              actorId: actor.actorId,
+              characters: sortedCharacters,
+              selectedCharacterId: appearanceBinding?.characterId,
+              onCharacterSelected: onCharacterSelected,
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _StageAppearanceToggleButton extends StatelessWidget {
+  const _StageAppearanceToggleButton({
+    required this.actorId,
+    required this.label,
+    required this.onTogglePicker,
+  });
+
+  final String actorId;
+  final String label;
+  final VoidCallback onTogglePicker;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapButton(
+      key: ValueKey('cinematic-builder-character-appearance-$actorId-toggle'),
+      onPressed: onTogglePicker,
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      leading: const Icon(CupertinoIcons.person_crop_square),
+      child: Text(label),
+    );
+  }
+}
+
+class _StageAppearanceClearButton extends StatelessWidget {
+  const _StageAppearanceClearButton({
+    required this.actorId,
+    required this.label,
+    required this.onClear,
+  });
+
+  final String actorId;
+  final String label;
+  final Future<void> Function() onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapButton(
+      key: ValueKey('cinematic-builder-character-appearance-$actorId-clear'),
+      onPressed: onClear,
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      leading: const Icon(CupertinoIcons.xmark_circle),
+      child: Text(label),
+    );
+  }
+}
+
+class _StageCharacterPicker extends StatelessWidget {
+  const _StageCharacterPicker({
+    required this.actorId,
+    required this.characters,
+    required this.selectedCharacterId,
+    required this.onCharacterSelected,
+  });
+
+  final String actorId;
+  final List<ProjectCharacterEntry> characters;
+  final String? selectedCharacterId;
+  final _SelectProjectCharacter onCharacterSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StageSourcePickerShell(
+      title: 'Personnages',
+      children: [
+        for (final character in characters)
+          _StageCharacterOption(
+            keyValue: 'cinematic-builder-character-appearance-$actorId'
+                '-character-${character.id}',
+            character: character,
+            selected: selectedCharacterId == character.id,
+            onPressed: () => onCharacterSelected(character),
+          ),
+      ],
+    );
+  }
+}
+
+class _StageCharacterOption extends StatelessWidget {
+  const _StageCharacterOption({
+    required this.keyValue,
+    required this.character,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String keyValue;
+  final ProjectCharacterEntry character;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tagsLine = _characterTagsLine(character);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 245),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PokeMapButton(
+            key: ValueKey(keyValue),
+            onPressed: onPressed,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            isSelected: selected,
+            leading: const Icon(CupertinoIcons.person_crop_square),
+            child: const SizedBox.shrink(),
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StrongText(character.name),
+                const SizedBox(height: 2),
+                _MutedText(_characterDetailLine(character)),
+                if (tagsLine != null) ...[
+                  const SizedBox(height: 2),
+                  _MutedText(tagsLine),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -6592,12 +6961,15 @@ CinematicStageContext _copyStageContext(
   CinematicStageContext context, {
   CinematicStageBackdropMode? backdropMode,
   List<CinematicActorBinding>? actorBindings,
+  List<CinematicActorAppearanceBinding>? actorAppearanceBindings,
   List<CinematicActorInitialPlacement>? initialPlacements,
   List<CinematicMovementTargetBinding>? movementTargetBindings,
 }) {
   return CinematicStageContext(
     backdropMode: backdropMode ?? context.backdropMode,
     actorBindings: actorBindings ?? context.actorBindings,
+    actorAppearanceBindings:
+        actorAppearanceBindings ?? context.actorAppearanceBindings,
     initialPlacements: initialPlacements ?? context.initialPlacements,
     movementTargetBindings:
         movementTargetBindings ?? context.movementTargetBindings,
@@ -6616,6 +6988,18 @@ CinematicActorBinding? _actorBindingFor(
   return null;
 }
 
+CinematicActorAppearanceBinding? _actorAppearanceBindingFor(
+  CinematicStageContext context,
+  String actorId,
+) {
+  for (final binding in context.actorAppearanceBindings) {
+    if (binding.actorId == actorId) {
+      return binding;
+    }
+  }
+  return null;
+}
+
 CinematicActorInitialPlacement? _initialPlacementFor(
   CinematicStageContext context,
   String actorId,
@@ -6626,6 +7010,66 @@ CinematicActorInitialPlacement? _initialPlacementFor(
     }
   }
   return null;
+}
+
+List<ProjectCharacterEntry> _sortedCharacters(
+  List<ProjectCharacterEntry> characters,
+) {
+  final sorted = characters.toList(growable: false);
+  sorted.sort((a, b) {
+    final sortOrder = a.sortOrder.compareTo(b.sortOrder);
+    if (sortOrder != 0) {
+      return sortOrder;
+    }
+    final name = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    if (name != 0) {
+      return name;
+    }
+    return a.id.compareTo(b.id);
+  });
+  return sorted;
+}
+
+ProjectCharacterEntry? _characterById(
+  List<ProjectCharacterEntry> characters,
+  String? characterId,
+) {
+  if (characterId == null) {
+    return null;
+  }
+  for (final character in characters) {
+    if (character.id == characterId) {
+      return character;
+    }
+  }
+  return null;
+}
+
+String _characterDetailLine(ProjectCharacterEntry character) {
+  final tilesetId = character.tilesetId.trim().isEmpty
+      ? 'Aucun tileset'
+      : character.tilesetId;
+  return '$tilesetId · ${character.frameWidth}×${character.frameHeight}';
+}
+
+String? _characterTagsLine(ProjectCharacterEntry character) {
+  if (character.tags.isEmpty) {
+    return null;
+  }
+  return 'Tags : ${character.tags.join(' · ')}';
+}
+
+String _appearanceDisabledMessage(CinematicActorBindingKind? selectedKind) {
+  return switch (selectedKind) {
+    CinematicActorBindingKind.player => 'Apparence héritée du joueur.',
+    CinematicActorBindingKind.mapEntity =>
+      'Apparence héritée de l’entité de map.',
+    CinematicActorBindingKind.cinematicOnly =>
+      'Choisis un personnage dans la Character Library.',
+    CinematicActorBindingKind.unbound ||
+    null =>
+      'Lie d’abord l’acteur en Cinématique uniquement pour choisir un personnage.',
+  };
 }
 
 CinematicMovementTargetBinding? _movementTargetBindingFor(

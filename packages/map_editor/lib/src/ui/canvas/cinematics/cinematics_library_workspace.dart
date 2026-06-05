@@ -121,6 +121,16 @@ typedef UpsertActorBindingCallback = Future<bool> Function({
   required CinematicActorBinding binding,
 });
 
+typedef UpsertActorAppearanceBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicActorAppearanceBinding binding,
+});
+
+typedef RemoveActorAppearanceBindingCallback = Future<bool> Function({
+  required String cinematicId,
+  required String actorId,
+});
+
 typedef UpsertActorInitialPlacementCallback = Future<bool> Function({
   required String cinematicId,
   required CinematicActorInitialPlacement placement,
@@ -162,6 +172,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
     required this.onUpsertActorBinding,
+    required this.onUpsertActorAppearanceBinding,
+    required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
     this.onLoadStageMapSnapshot,
@@ -188,6 +200,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpdateStageMapCallback onUpdateStageMap;
   final UpdateStageContextCallback onUpdateStageContext;
   final UpsertActorBindingCallback onUpsertActorBinding;
+  final UpsertActorAppearanceBindingCallback onUpsertActorAppearanceBinding;
+  final RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
   final UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
   final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
@@ -245,6 +259,7 @@ class _CinematicsLibraryWorkspaceState
         entry: builderEntry,
         asset: builderAsset,
         stageMaps: widget.project.maps,
+        characters: widget.project.characters,
         stageMapSourceCatalog: _stageMapSourceCatalog,
         onBackToLibrary: () {
           setState(() => _builderEntryId = null);
@@ -265,6 +280,8 @@ class _CinematicsLibraryWorkspaceState
         onUpdateStageMap: widget.onUpdateStageMap,
         onUpdateStageContext: widget.onUpdateStageContext,
         onUpsertActorBinding: widget.onUpsertActorBinding,
+        onUpsertActorAppearanceBinding: widget.onUpsertActorAppearanceBinding,
+        onRemoveActorAppearanceBinding: widget.onRemoveActorAppearanceBinding,
         onUpsertActorInitialPlacement: widget.onUpsertActorInitialPlacement,
         onUpsertMovementTargetBinding: widget.onUpsertMovementTargetBinding,
       );
@@ -629,6 +646,7 @@ class _CinematicsLibraryWorkspaceState
             _MetadataSummary(
               entry: entry,
               maps: widget.project.maps,
+              characters: widget.project.characters,
               asset: asset,
             ),
             const SizedBox(height: 12),
@@ -1023,11 +1041,13 @@ class _MetadataSummary extends StatelessWidget {
   const _MetadataSummary({
     required this.entry,
     required this.maps,
+    required this.characters,
     required this.asset,
   });
 
   final CinematicsLibraryEntry entry;
   final List<ProjectMapEntry> maps;
+  final List<ProjectCharacterEntry> characters;
   final CinematicAsset? asset;
 
   @override
@@ -1039,6 +1059,7 @@ class _MetadataSummary extends StatelessWidget {
             asset: asset!,
             entry: entry,
             maps: maps,
+            characters: characters,
           );
     return PokeMapCard(
       child: Column(

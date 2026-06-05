@@ -774,6 +774,30 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return true;
               },
+              onUpsertActorAppearanceBinding: ({
+                required String cinematicId,
+                required CinematicActorAppearanceBinding binding,
+              }) async {
+                final result = upsertCinematicActorAppearanceBinding(
+                  _project,
+                  cinematicId: cinematicId,
+                  binding: binding,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
+              onRemoveActorAppearanceBinding: ({
+                required String cinematicId,
+                required String actorId,
+              }) async {
+                final result = removeCinematicActorAppearanceBinding(
+                  _project,
+                  cinematicId: cinematicId,
+                  actorId: actorId,
+                );
+                setState(() => _project = result.updatedProject);
+                return true;
+              },
               onUpsertActorInitialPlacement: ({
                 required String cinematicId,
                 required CinematicActorInitialPlacement placement,

@@ -1117,6 +1117,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onUpdateStageMap: _updateCinematicStageMap,
       onUpdateStageContext: _updateCinematicStageContext,
       onUpsertActorBinding: _upsertCinematicActorBinding,
+      onUpsertActorAppearanceBinding: _upsertCinematicActorAppearanceBinding,
+      onRemoveActorAppearanceBinding: _removeCinematicActorAppearanceBinding,
       onUpsertActorInitialPlacement: _upsertCinematicActorInitialPlacement,
       onUpsertMovementTargetBinding: _upsertCinematicMovementTargetBinding,
       onLoadStageMapSnapshot: widget.editorNotifier.loadMapSnapshotById,
@@ -1629,6 +1631,54 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,
         statusMessage: 'Cinematic actor binding updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _upsertCinematicActorAppearanceBinding({
+    required String cinematicId,
+    required CinematicActorAppearanceBinding binding,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = upsertCinematicActorAppearanceBinding(
+        project,
+        cinematicId: cinematicId,
+        binding: binding,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor appearance updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _removeCinematicActorAppearanceBinding({
+    required String cinematicId,
+    required String actorId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = removeCinematicActorAppearanceBinding(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor appearance removed',
       );
       return true;
     } on ArgumentError {

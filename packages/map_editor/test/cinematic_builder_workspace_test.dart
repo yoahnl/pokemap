@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 const _defaultBuilderSurfaceSize = Size(1280, 860);
@@ -437,6 +438,452 @@ void main() {
         ?.actorBindings
         .singleWhere((binding) => binding.actorId == 'actor_professor');
     expect(binding?.kind, CinematicActorBindingKind.cinematicOnly);
+  });
+
+  testWidgets('selects character library entry for cinematic only actor',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_rival',
+          name: 'Rival',
+          tilesetId: 'characters/rival',
+          frameWidth: 32,
+          frameHeight: 32,
+          tags: ['rival', 'cinematic'],
+        ),
+      ],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_character_picker',
+          title: 'Character picker cinematic',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_wait',
+                kind: CinematicTimelineStepKind.wait,
+                label: 'Opening wait',
+                durationMs: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+      includeBridge: false,
+    );
+    var latestProject = project;
+    final beforeSteps =
+        _asset(project, 'cinematic_character_picker').timeline.toJson();
+    final beforeRequiredActors =
+        _asset(project, 'cinematic_character_picker').requiredActors;
+    final beforeDuration = _entry(project, 'cinematic_character_picker')
+        .timeline
+        .estimatedDurationMs;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_character_picker',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    expect(find.text('Apparence'), findsWidgets);
+    expect(find.text('Aucun personnage choisi.'), findsOneWidget);
+    final chooseButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-toggle',
+      ),
+    );
+    await tester.ensureVisible(chooseButton);
+    await tester.tap(chooseButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Rival'), findsWidgets);
+    expect(find.text('characters/rival · 32×32'), findsWidgets);
+    expect(find.textContaining('rival · cinematic'), findsWidgets);
+    final rivalOption = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-character-character_rival',
+      ),
+    );
+    await tester.ensureVisible(rivalOption);
+    await tester.tap(rivalOption);
+    await tester.pumpAndSettle();
+
+    final updated = _asset(latestProject, 'cinematic_character_picker');
+    final context = updated.stageContext;
+    expect(context?.actorAppearanceBindings.single.actorId, 'actor_rival');
+    expect(
+      context?.actorAppearanceBindings.single.characterId,
+      'character_rival',
+    );
+    expect(
+      context?.actorBindings.single.toJson(),
+      isNot(contains('characterId')),
+    );
+    expect(updated.requiredActors, beforeRequiredActors);
+    expect(updated.timeline.toJson(), beforeSteps);
+    expect(
+      _entry(latestProject, 'cinematic_character_picker')
+          .timeline
+          .estimatedDurationMs,
+      beforeDuration,
+    );
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets('shows empty character library message for cinematic only actor',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_empty_character_library',
+          title: 'Empty Character Library',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_empty_character_library',
+    );
+
+    expect(find.text('Apparence'), findsWidgets);
+    expect(
+      find.text(
+        'Aucun personnage disponible dans la Character Library. '
+        'Crée un personnage dans la Character Library pour l’utiliser ici.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-character-appearance-actor_rival-toggle',
+        ),
+      ),
+      findsNothing,
+    );
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('keeps appearance picker disabled for inherited actor bindings',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_rival',
+          name: 'Rival',
+          tilesetId: 'characters/rival',
+        ),
+      ],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_inherited_appearances',
+          title: 'Inherited appearances',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_player', label: 'Player actor'),
+            CinematicActorRef(actorId: 'actor_npc', label: 'NPC actor'),
+            CinematicActorRef(actorId: 'actor_free', label: 'Free actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_player',
+                kind: CinematicActorBindingKind.player,
+              ),
+              CinematicActorBinding(
+                actorId: 'actor_npc',
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: 'entity_professor',
+              ),
+              CinematicActorBinding(
+                actorId: 'actor_free',
+                kind: CinematicActorBindingKind.unbound,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_inherited_appearances',
+    );
+
+    expect(find.text('Apparence héritée du joueur.'), findsOneWidget);
+    expect(find.text('Apparence héritée de l’entité de map.'), findsOneWidget);
+    expect(
+      find.text(
+        'Lie d’abord l’acteur en Cinématique uniquement pour choisir un personnage.',
+      ),
+      findsOneWidget,
+    );
+    for (final actorId in <String>[
+      'actor_player',
+      'actor_npc',
+      'actor_free',
+    ]) {
+      expect(
+        find.byKey(
+          ValueKey<String>(
+            'cinematic-builder-character-appearance-$actorId-toggle',
+          ),
+        ),
+        findsNothing,
+      );
+    }
+  });
+
+  testWidgets('clears broken character library reference explicitly',
+      (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_rival',
+          name: 'Rival',
+          tilesetId: 'characters/rival',
+        ),
+      ],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_broken_character_reference',
+          title: 'Broken character reference',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_rival',
+                characterId: 'character_deleted',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    var latestProject = project;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_broken_character_reference',
+      onProjectChanged: (project) => latestProject = project,
+    );
+
+    expect(
+      find.text(
+        'Le personnage choisi n’existe plus dans la Character Library.',
+      ),
+      findsWidgets,
+    );
+    expect(find.text('Choisir un autre personnage'), findsOneWidget);
+    final clearButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-clear',
+      ),
+    );
+    await tester.ensureVisible(clearButton);
+    await tester.tap(clearButton);
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_broken_character_reference')
+          .stageContext
+          ?.actorAppearanceBindings,
+      isEmpty,
+    );
+    expect(find.text('Aucun personnage choisi.'), findsOneWidget);
+  });
+
+  testWidgets('updates readiness for cinematic only character appearances',
+      (tester) async {
+    const readyCharacter = ProjectCharacterEntry(
+      id: 'character_rival',
+      name: 'Rival',
+      tilesetId: 'characters/rival',
+      frameWidth: 32,
+      frameHeight: 32,
+      animations: [
+        CharacterAnimation(
+          state: CharacterAnimationState.idle,
+          direction: EntityFacing.south,
+          frames: [
+            CharacterAnimationFrame(source: TilesetSourceRect(x: 0, y: 0)),
+          ],
+        ),
+      ],
+    );
+    CinematicStagePreviewReadinessItem appearanceItem(
+      ProjectManifest project,
+      String cinematicId,
+    ) {
+      final asset = _asset(project, cinematicId);
+      final readiness = buildCinematicStagePreviewReadiness(
+        asset: asset,
+        entry: _entry(project, cinematicId),
+        maps: project.maps,
+        characters: project.characters,
+        stageMapSourceCatalog: _stageMapSourceCatalog(),
+      );
+      return readiness.items.singleWhere(
+        (item) => item.label == 'Apparences acteurs',
+      );
+    }
+
+    final missingProject = _project(
+      characters: const [readyCharacter],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_missing_character',
+          title: 'Missing character',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    expect(
+      appearanceItem(missingProject, 'cinematic_missing_character').kind,
+      CinematicStagePreviewReadinessItemKind.incomplete,
+    );
+    expect(
+      appearanceItem(missingProject, 'cinematic_missing_character').message,
+      'Rival actor n’a pas encore de personnage',
+    );
+
+    final brokenProject = _project(
+      characters: const [readyCharacter],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_unknown_character',
+          title: 'Unknown character',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_rival',
+                characterId: 'character_deleted',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    expect(
+      appearanceItem(brokenProject, 'cinematic_unknown_character').kind,
+      CinematicStagePreviewReadinessItemKind.blocking,
+    );
+
+    final readyProject = _project(
+      characters: const [readyCharacter],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_ready_character',
+          title: 'Ready character',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            actorAppearanceBindings: [
+              CinematicActorAppearanceBinding(
+                actorId: 'actor_rival',
+                characterId: 'character_rival',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      ],
+      includeBridge: false,
+    );
+    final readyItem = appearanceItem(readyProject, 'cinematic_ready_character');
+    expect(readyItem.kind, CinematicStagePreviewReadinessItemKind.ok);
+    expect(readyItem.message, 'personnages de cinématique prêts');
   });
 
   testWidgets('binds actor to unbound', (tester) async {
@@ -6392,6 +6839,104 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-80 cinematic character library picker when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_80_CAPTURE_CINEMATIC_CHARACTER_PICKER',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final project = _project(
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_rival',
+          name: 'Rival',
+          tilesetId: 'characters/rival',
+          frameWidth: 32,
+          frameHeight: 32,
+          tags: ['rival', 'cinematic'],
+        ),
+        ProjectCharacterEntry(
+          id: 'character_guard',
+          name: 'Garde',
+          tilesetId: 'characters/guard',
+          frameWidth: 32,
+          frameHeight: 32,
+          tags: ['port'],
+          sortOrder: 1,
+        ),
+      ],
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_character_picker_capture',
+          title: 'Character picker capture',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_rival',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_wait',
+                kind: CinematicTimelineStepKind.wait,
+                label: 'Entrée rival',
+                durationMs: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+      includeBridge: false,
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_character_picker_capture',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    final toggle = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-toggle',
+      ),
+    );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Personnages'), findsWidgets);
+    expect(find.text('Rival'), findsWidgets);
+    expect(find.text('Garde'), findsWidgets);
+    expect(find.text('characters/rival · 32×32'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_80_cinematic_character_library_picker_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -6399,6 +6944,7 @@ Future<void> _pumpBuilder(
   CinematicsLibraryEntry entry, {
   required CinematicAsset asset,
   VoidCallback? onBackToLibrary,
+  List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
@@ -6421,6 +6967,7 @@ Future<void> _pumpBuilder(
                   relativePath: 'lab.json',
                 ),
               ],
+              characters: characters,
               stageMapSourceCatalog: stageMapSourceCatalog ??
                   (provideStageMapSourceCatalog
                       ? _stageMapSourceCatalog()
@@ -6518,6 +7065,16 @@ Future<void> _pumpBuilder(
                 required CinematicActorBinding binding,
               }) async =>
                   false,
+              onUpsertActorAppearanceBinding: ({
+                required String cinematicId,
+                required CinematicActorAppearanceBinding binding,
+              }) async =>
+                  false,
+              onRemoveActorAppearanceBinding: ({
+                required String cinematicId,
+                required String actorId,
+              }) async =>
+                  false,
               onUpsertActorInitialPlacement: ({
                 required String cinematicId,
                 required CinematicActorInitialPlacement placement,
@@ -6598,6 +7155,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               entry: entry,
               asset: asset,
               stageMaps: _project.maps,
+              characters: _project.characters,
               stageMapSourceCatalog: widget.stageMapSourceCatalog ??
                   (widget.provideStageMapSourceCatalog
                       ? _stageMapSourceCatalog()
@@ -6619,6 +7177,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onUpdateStageMap: _updateStageMap,
               onUpdateStageContext: _updateStageContext,
               onUpsertActorBinding: _upsertActorBinding,
+              onUpsertActorAppearanceBinding: _upsertActorAppearanceBinding,
+              onRemoveActorAppearanceBinding: _removeActorAppearanceBinding,
               onUpsertActorInitialPlacement: _upsertActorInitialPlacement,
               onUpsertMovementTargetBinding: _upsertMovementTargetBinding,
             ),
@@ -6782,6 +7342,34 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       _project,
       cinematicId: cinematicId,
       binding: binding,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _upsertActorAppearanceBinding({
+    required String cinematicId,
+    required CinematicActorAppearanceBinding binding,
+  }) async {
+    final result = upsertCinematicActorAppearanceBinding(
+      _project,
+      cinematicId: cinematicId,
+      binding: binding,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _removeActorAppearanceBinding({
+    required String cinematicId,
+    required String actorId,
+  }) async {
+    final result = removeCinematicActorAppearanceBinding(
+      _project,
+      cinematicId: cinematicId,
+      actorId: actorId,
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
@@ -7699,6 +8287,7 @@ Future<void> _loadScreenshotFonts() async {
 
 ProjectManifest _project({
   List<CinematicAsset>? cinematics,
+  List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   bool includeBridge = true,
 }) {
   return ProjectManifest(
@@ -7708,6 +8297,7 @@ ProjectManifest _project({
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),
     ],
     tilesets: const <ProjectTilesetEntry>[],
+    characters: characters,
     scenes: [
       if (cinematics == null)
         _sceneReferencing(

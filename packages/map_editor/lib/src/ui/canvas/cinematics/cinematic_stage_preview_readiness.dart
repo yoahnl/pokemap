@@ -64,6 +64,7 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   required CinematicAsset asset,
   required CinematicsLibraryEntry entry,
   required List<ProjectMapEntry> maps,
+  List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
 }) {
   final stageContext = asset.stageContext;
@@ -81,6 +82,7 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
     _mapItem(asset, maps),
     _backdropItem(asset, effectiveContext, maps),
     _actorBindingsItem(asset, effectiveContext, stageMapSourceCatalog),
+    _actorAppearancesItem(asset, effectiveContext, characters),
     _initialPlacementsItem(asset, effectiveContext, stageMapSourceCatalog),
     _movementTargetsItem(asset, effectiveContext, stageMapSourceCatalog),
     _mapAwareSourcesItem(asset, effectiveContext, stageMapSourceCatalog),
@@ -137,6 +139,77 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
         'Le contexte est prêt pour une future preview. La preview réelle arrivera plus tard.',
     items: items,
     diagnostics: diagnostics,
+  );
+}
+
+CinematicStagePreviewReadinessItem _actorAppearancesItem(
+  CinematicAsset asset,
+  CinematicStageContext context,
+  List<ProjectCharacterEntry> characters,
+) {
+  if (asset.requiredActors.isEmpty) {
+    return _item(
+      'Apparences acteurs',
+      CinematicStagePreviewReadinessItemKind.ok,
+      'aucun acteur requis',
+    );
+  }
+  final cinematicOnlyActors = asset.requiredActors.where((actor) {
+    final binding = _actorBindingFor(context, actor.actorId);
+    return binding?.kind == CinematicActorBindingKind.cinematicOnly;
+  }).toList(growable: false);
+  if (cinematicOnlyActors.isEmpty) {
+    return _item(
+      'Apparences acteurs',
+      CinematicStagePreviewReadinessItemKind.ok,
+      'aucune apparence dédiée requise',
+    );
+  }
+  if (characters.isEmpty) {
+    return _item(
+      'Apparences acteurs',
+      CinematicStagePreviewReadinessItemKind.incomplete,
+      'Character Library vide pour les acteurs cinématique uniquement',
+    );
+  }
+  for (final actor in cinematicOnlyActors) {
+    final appearance = _actorAppearanceBindingFor(context, actor.actorId);
+    if (appearance == null) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.incomplete,
+        '${_actorDisplayLabel(actor)} n’a pas encore de personnage',
+      );
+    }
+    final character = _characterById(characters, appearance.characterId);
+    if (character == null) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.blocking,
+        '${_actorDisplayLabel(actor)} pointe vers un personnage absent',
+      );
+    }
+    if (character.tilesetId.trim().isEmpty) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.incomplete,
+        '${character.name} n’a pas encore de sprite Character Library',
+      );
+    }
+    if (character.frameWidth <= 0 ||
+        character.frameHeight <= 0 ||
+        character.animations.isEmpty) {
+      return _item(
+        'Apparences acteurs',
+        CinematicStagePreviewReadinessItemKind.incomplete,
+        '${character.name} a des données de preview à compléter',
+      );
+    }
+  }
+  return _item(
+    'Apparences acteurs',
+    CinematicStagePreviewReadinessItemKind.ok,
+    'personnages de cinématique prêts',
   );
 }
 
@@ -457,6 +530,18 @@ CinematicActorBinding? _actorBindingFor(
   return null;
 }
 
+CinematicActorAppearanceBinding? _actorAppearanceBindingFor(
+  CinematicStageContext context,
+  String actorId,
+) {
+  for (final binding in context.actorAppearanceBindings) {
+    if (binding.actorId == actorId) {
+      return binding;
+    }
+  }
+  return null;
+}
+
 CinematicActorInitialPlacement? _initialPlacementFor(
   CinematicStageContext context,
   String actorId,
@@ -476,6 +561,18 @@ CinematicMovementTargetBinding? _movementTargetBindingFor(
   for (final binding in context.movementTargetBindings) {
     if (binding.targetId == targetId) {
       return binding;
+    }
+  }
+  return null;
+}
+
+ProjectCharacterEntry? _characterById(
+  List<ProjectCharacterEntry> characters,
+  String characterId,
+) {
+  for (final character in characters) {
+    if (character.id == characterId) {
+      return character;
     }
   }
   return null;
@@ -584,6 +681,20 @@ String _humanStageDiagnosticMessage(
       'Choisis une map avant de lier un acteur à une entité.',
     'actorBindingMapEntityMissingSource' =>
       'Choisis une entité depuis les sources de la map.',
+    'actorAppearanceBindingUnknownActor' =>
+      'Une apparence vise un acteur qui n’existe plus.',
+    'actorAppearanceBindingUnknownCharacter' =>
+      'Le personnage choisi n’existe plus dans la Character Library.',
+    'actorAppearanceBindingRequiresCinematicOnly' =>
+      'Lie d’abord cet acteur en Cinématique uniquement pour choisir un personnage.',
+    'cinematicOnlyCharacterMissing' =>
+      'Choisis un personnage Character Library pour ${actorLabel ?? 'cet acteur'}.',
+    'characterLibraryUnavailable' =>
+      'La Character Library ne contient aucun personnage disponible.',
+    'characterAssetMissingSprite' =>
+      'Le personnage choisi n’a pas encore de sprite exploitable.',
+    'characterAssetMissingPreviewData' =>
+      'Le personnage choisi a des données de preview à compléter.',
     'actorInitialPlacementUnknownActor' =>
       'Une entrée de scène vise un acteur absent.',
     'actorInitialPlacementMissing' =>
@@ -640,6 +751,13 @@ const _stageDiagnosticCodes = <String>{
   'actorBindingDuplicatePlayer',
   'actorBindingRequiresStageMap',
   'actorBindingMapEntityMissingSource',
+  'actorAppearanceBindingUnknownActor',
+  'actorAppearanceBindingUnknownCharacter',
+  'actorAppearanceBindingRequiresCinematicOnly',
+  'cinematicOnlyCharacterMissing',
+  'characterLibraryUnavailable',
+  'characterAssetMissingSprite',
+  'characterAssetMissingPreviewData',
   'actorInitialPlacementUnknownActor',
   'actorInitialPlacementMissing',
   'actorInitialPlacementTargetUnknown',
