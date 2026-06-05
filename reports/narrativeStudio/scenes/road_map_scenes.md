@@ -137,21 +137,39 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-80 — Cinematic Character Library Picker V0 | DONE | Picker no-code Character Library expose dans le Cinematic Builder pour les acteurs `cinematicOnly` : selection/clear de `ProjectCharacterEntry`, empty/broken states, messages herites player/mapEntity/unbound, readiness apparences et Visual Gate, sans preview reelle, runtime, playback, pathfinding, override player/mapEntity/unbound ou saisie libre de `characterId`. |
 | NS-SCENES-V1-81 — Cinematic Actor Appearance Readiness / Drift Diagnostics Polish V0 | DONE | Diagnostics apparence Character Library humanises apres V1-80 : ref character cassee, actor kind incompatible, actor supprime/orphelin, Character Library vide, character incomplet, actions de correction explicites, readiness `Apparences acteurs`, summary Library et Visual Gate, sans preview reelle, runtime, playback, pathfinding, mutation Character Library ni donnee Selbrume. |
 | NS-SCENES-V1-82 — Cinematic Map Backdrop Preview Prep Contract | DONE | Rapport documentaire avec sub-agents/passes specialisees : audit Stage Context/mapId/backdropMode, MapData snapshot, rendu Map Editor, anti-scope runtime/Flame, options comparees, Option E retenue, contrat backdrop preview, viewport/camera, diagnostics et tests futurs cadres, sans map affichee, preview reelle, runtime, playback, pathfinding, donnees Selbrume ni modification package V1-82. |
+| NS-SCENES-V1-83 — Cinematic Map Backdrop Preview Read Model V0 | DONE | Read model pur `map_core` `CinematicMapBackdropPreviewModel` depuis `CinematicAsset.mapId`, `ProjectMapEntry` et `MapData` : statuts backdrop disabled/missing/unknown/unavailable/mismatch/tileset unavailable/available, layers visuels, diagnostics, label/size summary et viewport recommendation, avec tests/analyze core verts, sans UI, renderer, runtime, Flame, playback, pathfinding ou donnees Selbrume. |
+| NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0 | TODO | Brancher le read model V1-83 dans le Cinematic Builder avec un renderer sandbox read-only du decor map, alimente par un snapshot editor deja charge, en gardant acteurs/playback/runtime/pathfinding hors scope. |
 | NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur déplacé depuis V1-80 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage Character Library, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-83 — Cinematic Map Backdrop Preview Read Model V0`
+`NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0`
 
-Raison : V1-82 ferme le contrat documentaire de preview backdrop sans afficher de map. Le prochain verrou recommande est un read model pur `CinematicMapBackdropPreviewModel` depuis Stage Context + `ProjectMapEntry` + `MapData`, avec statuts, labels, dimensions, layers visuels, diagnostics et recommandations viewport, sans encore rendre la map en UI.
+Raison : V1-83 materialise le contrat V1-82 en projection pure testable. Le prochain verrou recommande est de consommer ce read model dans le Builder pour afficher un decor sandbox read-only, sans acteurs rendus, playback, runtime, Flame, pathfinding ou collision.
 
-Ordre apres V1-82 : `NS-SCENES-V1-83 — Cinematic Map Backdrop Preview Read Model V0`.
+Ordre apres V1-83 : `NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0`.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context. Le polish scroll/visibility a ensuite occupe le slot V1-80, mais V1-80 est maintenant reserve au Character Library Picker ; le polish scroll/visibility est donc deplace explicitement en `NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
+
+## Mise a jour V1-83
+
+Statut : `NS-SCENES-V1-83 — Cinematic Map Backdrop Preview Read Model V0` est DONE.
+
+Demande : Karim a fourni le prompt du prochain lot et a autorise l'utilisation de sub agents au besoin. Le besoin etait de construire la projection testable du decor avant tout rendu.
+
+Decision : V1-83 vit dans `map_core` sous forme de read model pur. La source canonique reste `CinematicAsset.mapId -> ProjectMapEntry -> MapData`, avec `stageContext.backdropMode` comme intention backdrop et sans ajouter de `mapId` au Stage Context.
+
+Scope realise : `CinematicMapBackdropPreviewModel`, statuts, diagnostics, `CinematicMapBackdropLayerPreview`, projection des layers visuels `MapData.layers`, exclusion collision/entities/events/triggers/warps/gameplayZones, fallback label/size summary, verification optionnelle des tilesets et viewport recommendation pure sans Flutter/Flame.
+
+Preuve : test TDD RED/GREEN `cinematic_map_backdrop_preview_model_test.dart`, tests core non-regression cibles verts, `dart analyze` map_core vert. Le test editor `cinematics_library_workspace_test.dart` est vert ; `cinematic_builder_workspace_test.dart` reste rouge sur un champ de renommage acteur visible dans un test read-only hors scope V1-83.
+
+Limites confirmees : aucune map affichee en UI, aucun renderer, aucun runtime, aucun Flame, aucun playback, aucun pathfinding/collision, aucun actor rendering, aucun chargement disque depuis core, aucune image IA et aucune donnee Selbrume.
+
+Prochain lot exact recommande : `NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0`.
 
 ## Mise a jour V1-82
 
