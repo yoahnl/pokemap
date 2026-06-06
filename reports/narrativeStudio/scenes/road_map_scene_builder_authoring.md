@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0
+NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract
 ```
 
 ## Principes
@@ -118,7 +118,24 @@ NS-SCENES-V1-84 — Cinematic Map Backdrop Preview Renderer V0
 | NS-SCENES-V1-82 | Cinematic Map Backdrop Preview Prep Contract | doc-only / architecture-review | Cadrer la future preview de decor map du Cinematic Builder avant toute implementation visuelle : source MapData, renderer autorise, viewport/camera, diagnostics, anti-runtime, tests futurs. | Pas de code produit, pas de package, pas de widget, pas de test, pas de screenshot, pas de map affichee, pas de preview reelle, runtime, playback, pathfinding, collision, image IA ou donnees Selbrume. | Rapport V1-82, roadmaps. | DONE : sub-agents/passes A-E, arbitrage final, Option E retenue, contrat backdrop/viewport/readiness/tests futurs, checks anti-scope documentaires. | Coder la preview trop tot ; reutiliser PlayableMapGame ; coupler MapCanvas massif ; vendre une fausse preview. | DONE : contrat pret pour V1-83 read model, sans modifier les packages par V1-82. | V1-81. |
 | NS-SCENES-V1-83 | Cinematic Map Backdrop Preview Read Model V0 | core / read-model | Creer un read model pur du backdrop preview depuis Stage Context + `ProjectMapEntry` + `MapData` : statuts, labels, dimensions, layers visuels, diagnostics, viewport recommendation. | Pas de renderer UI, pas de map affichee, pas de runtime/Flame, pas de playback, pas d'acteurs rendus, pas de pathfinding/collision. | `cinematic_map_backdrop_preview_model.dart`, export `map_core.dart`, tests purs, rapport. | DONE : RED/GREEN sur statuses disabled/missing/unknown/unavailable/mismatch/tilesetUnavailable/available, layers visuels, diagnostics, viewport recommendation, tests/analyze core verts. | Confondre read model et renderer ; charger le disque depuis core ; ignorer les erreurs snapshot. | DONE : contrat V1-82 materialise en projection testable, sans rendu. | V1-82. |
 | NS-SCENES-V1-84 | Cinematic Map Backdrop Preview Renderer V0 | editor / preview-sandbox | Brancher le read model V1-83 dans le Cinematic Builder pour afficher un decor map sandbox read-only depuis une `MapData` deja chargee par l'editor. | Pas de runtime/Flame, pas de `PlayableMapGame`, pas de playback, pas d'acteurs rendus, pas de pathfinding/collision, pas de mutation map/projet. | Builder cinematics, snapshot map editor, renderer read-only, tests widget, rapport, screenshot. | DONE : `CinematicMapBackdropPreviewModel` passe au Builder, renderer sandbox read-only visible, fallbacks humains tous statuts, diagnostics, snapshot non destructive, Visual Gate, tests builder/library/core et analyse ciblee verts. | Refaire un runtime dans l'editor ; casser les proportions demandees par Karim ; rendre des acteurs ou collisions trop tot. | DONE : V1-84 affiche enfin un decor de map statique dans le Builder ; V1-84 ne lance toujours pas la cinematique. | V1-83. |
+| NS-SCENES-V1-85 | Cinematic Map Backdrop Visual Primitives V0 | core / editor preview-sandbox | Remplacer le rendu de bandes V1-84 par des primitives visuelles spatiales derivees de `MapData` reelle : cellules, chemins, surfaces, ancres objet/environnement et fallback summary honnete. | Pas de runtime/Flame, pas de `PlayableMapGame`, pas de playback, pas d'acteurs rendus, pas de fake tiles, pas de pathfinding/collision, pas de mutation map/projet. | Read model backdrop, panel/painter cinematic, tests widget/core, rapport, screenshot. | DONE : `visualPrimitives`, mini renderer CustomPainter tokenise, grille/cellules visibles, fallbacks V1-84 preserves, Visual Gate, tests builder/library/core et analyse ciblee verts. | Inventer une fake map ; brancher MapCanvas complet ; casser les proportions preview/timeline. | DONE : V1-85 rend le decor plus map-like sans rendre une cinematique jouable. | V1-84. |
 | NS-SCENES-V1-90 | Cinematic Timeline Scroll / Visibility Polish V0 | editor / ui-polish | Backlog futur : polir la visibilite des blocs/repere/selection quand les interactions clavier ou souris placent l'element cible hors de la vue utile. | Pas de playback, seek runtime, scrubber runtime, transport fonctionnel, drag/resize/reorder, mutation JSON, runtime, zoom temporel ou changement de modele. | Builder cinematics, tests widget, rapport, screenshot. | TODO : scroll automatique/visibilite controles, proportions timeline preservees, selection/probe non mutants. | Casser les proportions visees ; confondre scroll de vue et navigation temporelle ; ajouter un pouvoir de montage. | TODO : visibilite plus fiable, sans nouveau pouvoir temporel. | Backlog post Character Library. |
+
+## Mise a jour V1-85
+
+Statut : `NS-SCENES-V1-85 — Cinematic Map Backdrop Visual Primitives V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-85 et a autorise l'utilisation de sub-agents au besoin. Le scope etait de rendre le decor map plus credible que V1-84 avec des primitives derivees de `MapData`, tout en restant sandbox/read-only.
+
+Decision : `map_core` expose des primitives pures dans `CinematicMapBackdropPreviewModel` (`visualPrimitives`, `mapWidth`, `mapHeight`) et le Builder les rend via un mini painter editor-only recevant ses couleurs depuis le design system. Les layers sans donnees spatiales restent en fallback `layerSummary`.
+
+Scope realise : cellules tile/path/surface, ancres objet depuis `MapPlacedElement`, support environnement par masques, grille proportionnelle, compteur de primitives, legendes layer, fallback sans primitives, fallbacks/diagnostics V1-84 preserves, transports disabled, timeline/duree/resize/probe/pickers preserves.
+
+Preuve : RED/GREEN core et editor, `cinematic_map_backdrop_preview_model_test.dart` vert, `cinematic_builder_workspace_test.dart` vert, `cinematics_library_workspace_test.dart` vert, Visual Gate V1-85 1663x926, analyse ciblee editor verte, `dart analyze` core vert.
+
+Limites : rendu tiles/assets final absent ; V1-85 ne rend pas d'acteurs, ne lance pas la cinematique, n'importe pas Flame/runtime, ne rend pas collisions/triggers/events/entities et n'utilise aucune donnee Selbrume ni image IA.
+
+Prochain lot exact recommande : `NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract`.
 
 ## Mise a jour V1-84
 

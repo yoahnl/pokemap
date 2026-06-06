@@ -26,6 +26,17 @@ enum CinematicMapBackdropLayerKind {
   environment,
 }
 
+enum CinematicMapBackdropVisualPrimitiveKind {
+  tileCell,
+  terrainCell,
+  pathCell,
+  surfaceCell,
+  objectAnchor,
+  environmentAnchor,
+  layerSummary,
+  unsupportedLayer,
+}
+
 enum CinematicMapBackdropViewportMode {
   fitMap,
   centerMap,
@@ -92,6 +103,45 @@ final class CinematicMapBackdropLayerPreview {
 }
 
 @immutable
+final class CinematicMapBackdropVisualPrimitive {
+  const CinematicMapBackdropVisualPrimitive({
+    required this.id,
+    required this.layerId,
+    required this.layerLabel,
+    required this.layerKind,
+    required this.kind,
+    required this.layerIndex,
+    required this.localOrder,
+    required this.visible,
+    required this.opacity,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.label,
+    required this.summary,
+    required this.source,
+  });
+
+  final String id;
+  final String layerId;
+  final String layerLabel;
+  final CinematicMapBackdropLayerKind layerKind;
+  final CinematicMapBackdropVisualPrimitiveKind kind;
+  final int layerIndex;
+  final int localOrder;
+  final bool visible;
+  final double opacity;
+  final int x;
+  final int y;
+  final int width;
+  final int height;
+  final String label;
+  final String summary;
+  final String source;
+}
+
+@immutable
 final class CinematicMapBackdropViewportSize {
   const CinematicMapBackdropViewportSize({
     required this.width,
@@ -137,10 +187,18 @@ final class CinematicMapBackdropPreviewModel {
     required this.mapRelativePath,
     required this.mapDataId,
     required this.sizeSummary,
+    required this.mapWidth,
+    required this.mapHeight,
     required this.viewportRecommendation,
     required List<CinematicMapBackdropLayerPreview> layers,
+    List<CinematicMapBackdropVisualPrimitive> visualPrimitives =
+        const <CinematicMapBackdropVisualPrimitive>[],
     required List<CinematicMapBackdropPreviewDiagnostic> diagnostics,
   })  : layers = List<CinematicMapBackdropLayerPreview>.unmodifiable(layers),
+        visualPrimitives =
+            List<CinematicMapBackdropVisualPrimitive>.unmodifiable(
+          visualPrimitives,
+        ),
         diagnostics = List<CinematicMapBackdropPreviewDiagnostic>.unmodifiable(
           diagnostics,
         );
@@ -151,8 +209,11 @@ final class CinematicMapBackdropPreviewModel {
   final String? mapRelativePath;
   final String? mapDataId;
   final String? sizeSummary;
+  final int? mapWidth;
+  final int? mapHeight;
   final CinematicMapBackdropViewportRecommendation viewportRecommendation;
   final List<CinematicMapBackdropLayerPreview> layers;
+  final List<CinematicMapBackdropVisualPrimitive> visualPrimitives;
   final List<CinematicMapBackdropPreviewDiagnostic> diagnostics;
 
   bool get isAvailable => status == CinematicMapBackdropPreviewStatus.available;
@@ -185,6 +246,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
       mapRelativePath: stageMapRelativePath,
       mapDataId: mapData?._normalizedId,
       sizeSummary: mapData?._sizeSummary,
+      mapWidth: mapData?.size.width,
+      mapHeight: mapData?.size.height,
       viewportRecommendation: fallbackViewport,
       layers: const [],
       diagnostics: const [
@@ -205,6 +268,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
       mapRelativePath: null,
       mapDataId: mapData?._normalizedId,
       sizeSummary: mapData?._sizeSummary,
+      mapWidth: mapData?.size.width,
+      mapHeight: mapData?.size.height,
       viewportRecommendation: fallbackViewport,
       layers: const [],
       diagnostics: const [
@@ -226,6 +291,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
       mapRelativePath: stageMapRelativePath,
       mapDataId: mapData?._normalizedId,
       sizeSummary: mapData?._sizeSummary,
+      mapWidth: mapData?.size.width,
+      mapHeight: mapData?.size.height,
       viewportRecommendation: fallbackViewport,
       layers: const [],
       diagnostics: [
@@ -248,6 +315,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
       mapRelativePath: stageMapRelativePath,
       mapDataId: null,
       sizeSummary: null,
+      mapWidth: null,
+      mapHeight: null,
       viewportRecommendation: fallbackViewport,
       layers: const [],
       diagnostics: [
@@ -272,6 +341,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
       mapRelativePath: stageMapRelativePath,
       mapDataId: mapDataId,
       sizeSummary: mapData._sizeSummary,
+      mapWidth: mapData.size.width,
+      mapHeight: mapData.size.height,
       viewportRecommendation: fallbackViewport,
       layers: const [],
       diagnostics: [
@@ -288,6 +359,7 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
   }
 
   final layers = _projectVisualLayers(mapData);
+  final visualPrimitives = _projectVisualPrimitives(mapData);
   final diagnostics = <CinematicMapBackdropPreviewDiagnostic>[];
   final missingTilesetIds = _missingTilesetIds(
     mapData: mapData,
@@ -315,13 +387,283 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
     mapRelativePath: stageMapRelativePath,
     mapDataId: mapDataId,
     sizeSummary: mapData._sizeSummary,
+    mapWidth: mapData.size.width,
+    mapHeight: mapData.size.height,
     viewportRecommendation: _viewportRecommendationFor(
       mapData: mapData,
       viewportSize: viewportSize,
     ),
     layers: layers,
+    visualPrimitives: visualPrimitives,
     diagnostics: diagnostics,
   );
+}
+
+List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
+  MapData mapData,
+) {
+  final primitives = <CinematicMapBackdropVisualPrimitive>[];
+
+  for (var layerIndex = 0; layerIndex < mapData.layers.length; layerIndex++) {
+    final layer = mapData.layers[layerIndex];
+    if (layer is TileLayer) {
+      var localOrder = 0;
+      for (var index = 0; index < layer.tiles.length; index++) {
+        final tileId = layer.tiles[index];
+        if (tileId <= 0) {
+          continue;
+        }
+        final x = index % mapData.size.width;
+        final y = index ~/ mapData.size.width;
+        if (!_isInsideMap(mapData, x, y)) {
+          continue;
+        }
+        primitives.add(
+          _primitive(
+            layer: layer,
+            layerIndex: layerIndex,
+            localOrder: localOrder++,
+            kind: CinematicMapBackdropVisualPrimitiveKind.tileCell,
+            x: x,
+            y: y,
+            label: 'Tuile $tileId',
+            summary: 'Tuile positionnee depuis MapData.',
+            source: 'tile:$tileId',
+          ),
+        );
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    } else if (layer is TerrainLayer) {
+      var localOrder = 0;
+      for (var index = 0; index < layer.terrains.length; index++) {
+        final terrain = layer.terrains[index];
+        final x = index % mapData.size.width;
+        final y = index ~/ mapData.size.width;
+        if (!_isInsideMap(mapData, x, y)) {
+          continue;
+        }
+        primitives.add(
+          _primitive(
+            layer: layer,
+            layerIndex: layerIndex,
+            localOrder: localOrder++,
+            kind: CinematicMapBackdropVisualPrimitiveKind.terrainCell,
+            x: x,
+            y: y,
+            label: terrain.name,
+            summary: 'Terrain ${terrain.name} depuis MapData.',
+            source: 'terrain:${terrain.name}',
+          ),
+        );
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    } else if (layer is PathLayer) {
+      var localOrder = 0;
+      final presetId = layer.presetId.trim();
+      for (var index = 0; index < layer.cells.length; index++) {
+        if (!layer.cells[index]) {
+          continue;
+        }
+        final x = index % mapData.size.width;
+        final y = index ~/ mapData.size.width;
+        if (!_isInsideMap(mapData, x, y)) {
+          continue;
+        }
+        primitives.add(
+          _primitive(
+            layer: layer,
+            layerIndex: layerIndex,
+            localOrder: localOrder++,
+            kind: CinematicMapBackdropVisualPrimitiveKind.pathCell,
+            x: x,
+            y: y,
+            label: presetId.isEmpty ? 'Chemin' : presetId,
+            summary: 'Cellule de chemin depuis MapData.',
+            source: presetId.isEmpty ? 'pathCell' : 'pathPreset:$presetId',
+          ),
+        );
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    } else if (layer is SurfaceLayer) {
+      var localOrder = 0;
+      for (final placement in layer.placements) {
+        if (!_isInsideMap(mapData, placement.x, placement.y)) {
+          continue;
+        }
+        primitives.add(
+          _primitive(
+            layer: layer,
+            layerIndex: layerIndex,
+            localOrder: localOrder++,
+            kind: CinematicMapBackdropVisualPrimitiveKind.surfaceCell,
+            x: placement.x,
+            y: placement.y,
+            label: placement.surfacePresetId,
+            summary: 'Placement surface depuis MapData.',
+            source: 'surfacePreset:${placement.surfacePresetId}',
+          ),
+        );
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    } else if (layer is ObjectLayer) {
+      var localOrder = 0;
+      for (final element in mapData.placedElements) {
+        if (element.layerId.trim() != layer.id.trim() ||
+            !_isInsideMap(mapData, element.pos.x, element.pos.y)) {
+          continue;
+        }
+        primitives.add(
+          CinematicMapBackdropVisualPrimitive(
+            id: '${layer.id}:element:${element.id}:$localOrder',
+            layerId: layer.id,
+            layerLabel: _labelOrId(layer.name, layer.id),
+            layerKind: CinematicMapBackdropLayerKind.object,
+            kind: CinematicMapBackdropVisualPrimitiveKind.objectAnchor,
+            layerIndex: layerIndex,
+            localOrder: localOrder++,
+            visible: layer.isVisible,
+            opacity: layer.opacity * element.opacity,
+            x: element.pos.x,
+            y: element.pos.y,
+            width: 1,
+            height: 1,
+            label: element.elementId,
+            summary: 'Objet decoratif positionne depuis MapData.',
+            source: 'element:${element.elementId}',
+          ),
+        );
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    } else if (layer is EnvironmentLayer) {
+      var localOrder = 0;
+      for (final area in layer.content.areas) {
+        for (var index = 0; index < area.mask.cells.length; index++) {
+          if (!area.mask.cells[index]) {
+            continue;
+          }
+          final x = index % area.mask.width;
+          final y = index ~/ area.mask.width;
+          if (!_isInsideMap(mapData, x, y)) {
+            continue;
+          }
+          primitives.add(
+            _primitive(
+              layer: layer,
+              layerIndex: layerIndex,
+              localOrder: localOrder++,
+              kind: CinematicMapBackdropVisualPrimitiveKind.environmentAnchor,
+              x: x,
+              y: y,
+              label: area.name,
+              summary: 'Masque environnement depuis MapData.',
+              source: 'environmentArea:${area.id}',
+            ),
+          );
+        }
+      }
+      if (localOrder == 0) {
+        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
+      }
+    }
+  }
+
+  primitives.sort((a, b) {
+    final layerCompare = a.layerIndex.compareTo(b.layerIndex);
+    if (layerCompare != 0) {
+      return layerCompare;
+    }
+    return a.localOrder.compareTo(b.localOrder);
+  });
+  return primitives;
+}
+
+CinematicMapBackdropVisualPrimitive _primitive({
+  required MapLayer layer,
+  required int layerIndex,
+  required int localOrder,
+  required CinematicMapBackdropVisualPrimitiveKind kind,
+  required int x,
+  required int y,
+  required String label,
+  required String summary,
+  required String source,
+}) {
+  return CinematicMapBackdropVisualPrimitive(
+    id: '${layer.id}:$source:$x:$y:$localOrder',
+    layerId: layer.id,
+    layerLabel: _labelOrId(layer.name, layer.id),
+    layerKind: _layerKindFor(layer),
+    kind: kind,
+    layerIndex: layerIndex,
+    localOrder: localOrder,
+    visible: layer.isVisible,
+    opacity: layer.opacity,
+    x: x,
+    y: y,
+    width: 1,
+    height: 1,
+    label: label,
+    summary: summary,
+    source: source,
+  );
+}
+
+CinematicMapBackdropVisualPrimitive _summaryPrimitive(
+  MapLayer layer,
+  MapData mapData,
+  int layerIndex,
+) {
+  return CinematicMapBackdropVisualPrimitive(
+    id: '${layer.id}:summary',
+    layerId: layer.id,
+    layerLabel: _labelOrId(layer.name, layer.id),
+    layerKind: _layerKindFor(layer),
+    kind: CinematicMapBackdropVisualPrimitiveKind.layerSummary,
+    layerIndex: layerIndex,
+    localOrder: 0,
+    visible: layer.isVisible,
+    opacity: layer.opacity,
+    x: 0,
+    y: 0,
+    width: math.max(1, mapData.size.width),
+    height: math.max(1, mapData.size.height),
+    label: _labelOrId(layer.name, layer.id),
+    summary: 'Resume de couche sans geometrie spatiale exploitable.',
+    source: 'layerSummary',
+  );
+}
+
+bool _isInsideMap(MapData mapData, int x, int y) {
+  return x >= 0 && y >= 0 && x < mapData.size.width && y < mapData.size.height;
+}
+
+CinematicMapBackdropLayerKind _layerKindFor(MapLayer layer) {
+  if (layer is TileLayer) {
+    return CinematicMapBackdropLayerKind.tile;
+  }
+  if (layer is TerrainLayer) {
+    return CinematicMapBackdropLayerKind.terrain;
+  }
+  if (layer is PathLayer) {
+    return CinematicMapBackdropLayerKind.path;
+  }
+  if (layer is SurfaceLayer) {
+    return CinematicMapBackdropLayerKind.surface;
+  }
+  if (layer is ObjectLayer) {
+    return CinematicMapBackdropLayerKind.object;
+  }
+  return CinematicMapBackdropLayerKind.environment;
 }
 
 List<CinematicMapBackdropLayerPreview> _projectVisualLayers(MapData mapData) {

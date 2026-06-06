@@ -234,6 +234,135 @@ void main() {
       ]);
     });
 
+    test('builds visual primitives from positioned MapData layers', () {
+      final model = buildCinematicMapBackdropPreviewModel(
+        asset: _asset(),
+        stageMap: _stageMap(),
+        mapData: _mapData(
+          size: const GridSize(width: 4, height: 3),
+          layers: const [
+            MapLayer.tile(
+              id: 'ground',
+              name: 'Ground',
+              tilesetId: 'tileset_lab',
+              tiles: [0, 7, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0],
+            ),
+            MapLayer.path(
+              id: 'walkway',
+              name: 'Walkway',
+              presetId: 'stone_path',
+              cells: [false, true, false, false, false, false, true, false],
+            ),
+            MapLayer.surface(
+              id: 'decor',
+              name: 'Decor',
+              placements: [
+                SurfaceCellPlacement(
+                  x: 3,
+                  y: 2,
+                  surfacePresetId: 'flowers',
+                ),
+              ],
+            ),
+            MapLayer.object(id: 'objects', name: 'Objects'),
+          ],
+        ),
+      );
+
+      expect(model.visualPrimitives.map((primitive) => primitive.kind), [
+        CinematicMapBackdropVisualPrimitiveKind.tileCell,
+        CinematicMapBackdropVisualPrimitiveKind.tileCell,
+        CinematicMapBackdropVisualPrimitiveKind.pathCell,
+        CinematicMapBackdropVisualPrimitiveKind.pathCell,
+        CinematicMapBackdropVisualPrimitiveKind.surfaceCell,
+        CinematicMapBackdropVisualPrimitiveKind.layerSummary,
+      ]);
+      expect(
+        model.visualPrimitives.map((primitive) => (
+              primitive.layerId,
+              primitive.x,
+              primitive.y,
+              primitive.width,
+              primitive.height,
+              primitive.source,
+            )),
+        [
+          ('ground', 1, 0, 1, 1, 'tile:7'),
+          ('ground', 2, 1, 1, 1, 'tile:8'),
+          ('walkway', 1, 0, 1, 1, 'pathPreset:stone_path'),
+          ('walkway', 2, 1, 1, 1, 'pathPreset:stone_path'),
+          ('decor', 3, 2, 1, 1, 'surfacePreset:flowers'),
+          ('objects', 0, 0, 4, 3, 'layerSummary'),
+        ],
+      );
+    });
+
+    test('builds object anchors only from placed element coordinates', () {
+      final model = buildCinematicMapBackdropPreviewModel(
+        asset: _asset(),
+        stageMap: _stageMap(),
+        mapData: _mapData(
+          layers: const [
+            MapLayer.object(id: 'objects', name: 'Objects'),
+          ],
+          placedElements: const [
+            MapPlacedElement(
+              id: 'barrel_1',
+              layerId: 'objects',
+              elementId: 'barrel',
+              pos: GridPos(x: 2, y: 4),
+            ),
+          ],
+        ),
+      );
+
+      expect(model.visualPrimitives, hasLength(1));
+      expect(
+        model.visualPrimitives.single.kind,
+        CinematicMapBackdropVisualPrimitiveKind.objectAnchor,
+      );
+      expect(model.visualPrimitives.single.layerId, 'objects');
+      expect(model.visualPrimitives.single.x, 2);
+      expect(model.visualPrimitives.single.y, 4);
+      expect(model.visualPrimitives.single.source, 'element:barrel');
+    });
+
+    test('falls back to layer summary when no spatial data is available', () {
+      final model = buildCinematicMapBackdropPreviewModel(
+        asset: _asset(),
+        stageMap: _stageMap(),
+        mapData: _mapData(
+          size: const GridSize(width: 6, height: 4),
+          layers: const [
+            MapLayer.object(id: 'objects', name: 'Objects'),
+          ],
+        ),
+      );
+
+      expect(model.visualPrimitives, hasLength(1));
+      expect(
+        model.visualPrimitives.single.kind,
+        CinematicMapBackdropVisualPrimitiveKind.layerSummary,
+      );
+      expect(model.visualPrimitives.single.layerId, 'objects');
+      expect(model.visualPrimitives.single.width, 6);
+      expect(model.visualPrimitives.single.height, 4);
+      expect(model.visualPrimitives.single.source, 'layerSummary');
+    });
+
+    test('does not create fake primitives when map data has no visual layers',
+        () {
+      final model = buildCinematicMapBackdropPreviewModel(
+        asset: _asset(),
+        stageMap: _stageMap(),
+        mapData: _mapData(),
+      );
+
+      expect(model.status, CinematicMapBackdropPreviewStatus.available);
+      expect(model.layers, isEmpty);
+      expect(model.visualPrimitives, isEmpty);
+    });
+
     test(
         'excludes entities events triggers warps and gameplay zones from visual layers',
         () {
@@ -293,6 +422,9 @@ void main() {
 
       expect(model.layers, hasLength(1));
       expect(model.layers.single.id, 'ground');
+      expect(model.visualPrimitives.map((primitive) => primitive.layerId), [
+        'ground',
+      ]);
       expect(
         model.diagnostics.map((diagnostic) => diagnostic.code),
         isNot(contains(
@@ -399,6 +531,7 @@ MapData _mapData({
   GridSize size = const GridSize(width: 12, height: 10),
   String tilesetId = '',
   List<MapLayer> layers = const [],
+  List<MapPlacedElement> placedElements = const [],
   List<MapEntity> entities = const [],
   List<MapEventDefinition> events = const [],
   List<MapTrigger> triggers = const [],
@@ -411,6 +544,7 @@ MapData _mapData({
     size: size,
     tilesetId: tilesetId,
     layers: layers,
+    placedElements: placedElements,
     entities: entities,
     events: events,
     triggers: triggers,

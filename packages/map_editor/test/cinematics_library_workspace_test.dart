@@ -374,7 +374,16 @@ void main() {
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('12 x 10 tuiles'), findsOneWidget);
     expect(find.text('Aperçu structurel read-only'), findsOneWidget);
-    expect(find.text('Aucune couche visuelle lisible.'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('3 primitive(s) spatiale(s)'), findsOneWidget);
+    expect(find.text('Library ground · 2'), findsOneWidget);
+    expect(find.text('Library path · 1'), findsOneWidget);
     expect(find.text('Aperçu sandbox'), findsNothing);
   });
 
@@ -1011,6 +1020,20 @@ MapData _stageMapData() {
     id: 'map_lab',
     name: 'Lab map',
     size: GridSize(width: 12, height: 10),
+    layers: [
+      MapLayer.tile(
+        id: 'library_ground',
+        name: 'Library ground',
+        tilesetId: 'lab_tiles',
+        tiles: [1, 0, 2],
+      ),
+      MapLayer.path(
+        id: 'library_path',
+        name: 'Library path',
+        presetId: 'library_path_preset',
+        cells: [false, true, false],
+      ),
+    ],
     entities: [
       MapEntity(
         id: 'entity_professor',

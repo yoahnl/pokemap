@@ -13076,9 +13076,18 @@
           {
             "actorId": "actor",
             "kind": "unset"
+          },
+          {
+            "actorId": "actor_4",
+            "kind": "unset"
           }
         ],
-        "movementTargetBindings": []
+        "movementTargetBindings": [
+          {
+            "targetId": "target",
+            "kind": "abstractPoint"
+          }
+        ]
       },
       "timeline": {
         "steps": [

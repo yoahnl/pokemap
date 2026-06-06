@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_map_backdrop_visual_primitives_painter.dart';
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   const CinematicMapBackdropPreviewPanel({
@@ -123,7 +124,7 @@ class _BackdropMapFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final layers = model.layers.where((layer) => layer.visible).toList();
+    final spatialPrimitives = _spatialPrimitives(model.visualPrimitives);
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surfaceBase,
@@ -144,28 +145,17 @@ class _BackdropMapFrame extends StatelessWidget {
                 ),
                 child: Padding(
                   padding: EdgeInsets.all(compact ? 6 : 10),
-                  child: layers.isEmpty
+                  child: spatialPrimitives.isEmpty
                       ? Center(
                           child: _BackdropMutedText(
                             'Aucune couche visuelle lisible.',
                             compact: compact,
                           ),
                         )
-                      : Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            for (final layer in layers.take(compact ? 3 : 5))
-                              Expanded(
-                                child: Padding(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 3),
-                                  child: _BackdropLayerBand(
-                                    layer: layer,
-                                    compact: compact,
-                                  ),
-                                ),
-                              ),
-                          ],
+                      : _BackdropVisualPrimitiveMap(
+                          model: model,
+                          primitives: spatialPrimitives,
+                          compact: compact,
                         ),
                 ),
               ),
@@ -198,92 +188,107 @@ class _BackdropMapFrame extends StatelessWidget {
   }
 }
 
-class _BackdropLayerBand extends StatelessWidget {
-  const _BackdropLayerBand({
-    required this.layer,
+class _BackdropVisualPrimitiveMap extends StatelessWidget {
+  const _BackdropVisualPrimitiveMap({
+    required this.model,
+    required this.primitives,
     required this.compact,
   });
 
-  final CinematicMapBackdropLayerPreview layer;
+  final CinematicMapBackdropPreviewModel model;
+  final List<CinematicMapBackdropVisualPrimitive> primitives;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final layerTone = _toneForLayerKind(layer.kind).resolve(context);
-    final opacity = layer.opacity.clamp(0.18, 1.0).toDouble();
-    return Align(
-      alignment: Alignment.center,
-      child: SizedBox.expand(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final narrow = constraints.maxWidth < 220;
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: layerTone.soft.withValues(alpha: 0.38 * opacity),
-                border: Border.all(color: layerTone.border),
-                borderRadius: BorderRadius.circular(6),
+    final mapTone = PokeMapTone.map.resolve(context);
+    final terrainTone = PokeMapTone.success.resolve(context);
+    final pathTone = PokeMapTone.warning.resolve(context);
+    final surfaceTone = PokeMapTone.info.resolve(context);
+    final objectTone = PokeMapTone.cinematic.resolve(context);
+    final environmentTone = PokeMapTone.narrative.resolve(context);
+    final palette = CinematicMapBackdropPrimitivePalette(
+      background: colors.controlSurface,
+      border: colors.controlBorder,
+      grid: colors.borderSubtle,
+      tile: mapTone.icon,
+      terrain: terrainTone.icon,
+      path: pathTone.icon,
+      surface: surfaceTone.icon,
+      object: objectTone.icon,
+      environment: environmentTone.icon,
+      summary: colors.textMuted,
+    );
+    final layerCounts = _primitiveLayerCounts(primitives);
+    final mapWidth = model.mapWidth ?? _maxPrimitiveX(primitives);
+    final mapHeight = model.mapHeight ?? _maxPrimitiveY(primitives);
+    return Stack(
+      key: const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
+      children: [
+        Positioned.fill(
+          child: ClipRect(
+            child: CustomPaint(
+              painter: CinematicMapBackdropVisualPrimitivesPainter(
+                mapWidth: mapWidth,
+                mapHeight: mapHeight,
+                primitives: primitives,
+                palette: palette,
               ),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: compact ? 8 : 12,
-                  vertical: compact ? 3 : 5,
-                ),
-                child: Row(
-                  children: [
-                    if (!narrow) ...[
-                      Icon(
-                        _iconForLayerKind(layer.kind),
-                        color: layerTone.icon,
-                        size: compact ? 13 : 15,
-                      ),
-                      const SizedBox(width: 7),
-                    ],
-                    Expanded(
-                      child: Text(
-                        layer.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              color: colors.textPrimary,
-                              fontSize: compact ? 10 : 12,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ),
-                    if (!narrow) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        'Couche ${layer.kind.name}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              color: layerTone.text,
-                              fontSize: compact ? 9 : 11,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                    ],
-                    if (!compact) ...[
-                      const SizedBox(width: 8),
-                      Text(
-                        layer.summary,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              color: colors.textMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          },
+              child: const SizedBox.expand(),
+            ),
+          ),
         ),
-      ),
+        Align(
+          alignment: Alignment.topLeft,
+          child: Wrap(
+            spacing: 6,
+            runSpacing: 5,
+            children: [
+              const PokeMapBadge(
+                label: 'Aperçu spatial structurel',
+                variant: PokeMapBadgeVariant.info,
+              ),
+              PokeMapBadge(
+                label: '${primitives.length} primitive(s) spatiale(s)',
+                variant: PokeMapBadgeVariant.mapAccent,
+              ),
+            ],
+          ),
+        ),
+        Align(
+          alignment: Alignment.bottomLeft,
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 5,
+            children: [
+              for (final entry in layerCounts.take(compact ? 3 : 4))
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: colors.surfaceBase.withValues(alpha: 0.82),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
+                    child: Text(
+                      '${entry.$1} · ${entry.$2}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DefaultTextStyle.of(context).style.copyWith(
+                            color: colors.textMuted,
+                            fontSize: compact ? 9 : 10,
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -409,6 +414,56 @@ class _BackdropMutedText extends StatelessWidget {
   }
 }
 
+List<CinematicMapBackdropVisualPrimitive> _spatialPrimitives(
+  List<CinematicMapBackdropVisualPrimitive> primitives,
+) {
+  return primitives
+      .where((primitive) =>
+          primitive.kind !=
+              CinematicMapBackdropVisualPrimitiveKind.layerSummary &&
+          primitive.kind !=
+              CinematicMapBackdropVisualPrimitiveKind.unsupportedLayer)
+      .toList(growable: false);
+}
+
+List<(String, int)> _primitiveLayerCounts(
+  List<CinematicMapBackdropVisualPrimitive> primitives,
+) {
+  final counts = <String, int>{};
+  for (final primitive in primitives) {
+    counts.update(
+      primitive.layerLabel,
+      (count) => count + 1,
+      ifAbsent: () => 1,
+    );
+  }
+  return [
+    for (final entry in counts.entries) (entry.key, entry.value),
+  ];
+}
+
+int _maxPrimitiveX(List<CinematicMapBackdropVisualPrimitive> primitives) {
+  var maxX = 1;
+  for (final primitive in primitives) {
+    final right = primitive.x + primitive.width;
+    if (right > maxX) {
+      maxX = right;
+    }
+  }
+  return maxX;
+}
+
+int _maxPrimitiveY(List<CinematicMapBackdropVisualPrimitive> primitives) {
+  var maxY = 1;
+  for (final primitive in primitives) {
+    final bottom = primitive.y + primitive.height;
+    if (bottom > maxY) {
+      maxY = bottom;
+    }
+  }
+  return maxY;
+}
+
 String _statusLabel(CinematicMapBackdropPreviewStatus status) {
   return switch (status) {
     CinematicMapBackdropPreviewStatus.available => 'Décor disponible',
@@ -509,17 +564,6 @@ PokeMapTone _toneForStatus(CinematicMapBackdropPreviewStatus status) {
   };
 }
 
-PokeMapTone _toneForLayerKind(CinematicMapBackdropLayerKind kind) {
-  return switch (kind) {
-    CinematicMapBackdropLayerKind.tile => PokeMapTone.map,
-    CinematicMapBackdropLayerKind.terrain => PokeMapTone.success,
-    CinematicMapBackdropLayerKind.path => PokeMapTone.warning,
-    CinematicMapBackdropLayerKind.surface => PokeMapTone.info,
-    CinematicMapBackdropLayerKind.object => PokeMapTone.cinematic,
-    CinematicMapBackdropLayerKind.environment => PokeMapTone.narrative,
-  };
-}
-
 IconData _iconForStatus(CinematicMapBackdropPreviewStatus status) {
   return switch (status) {
     CinematicMapBackdropPreviewStatus.available => CupertinoIcons.map,
@@ -532,17 +576,5 @@ IconData _iconForStatus(CinematicMapBackdropPreviewStatus status) {
     CinematicMapBackdropPreviewStatus.mapDataMismatch ||
     CinematicMapBackdropPreviewStatus.tilesetUnavailable =>
       CupertinoIcons.exclamationmark_triangle,
-  };
-}
-
-IconData _iconForLayerKind(CinematicMapBackdropLayerKind kind) {
-  return switch (kind) {
-    CinematicMapBackdropLayerKind.tile => CupertinoIcons.square_grid_2x2,
-    CinematicMapBackdropLayerKind.terrain =>
-      CupertinoIcons.leaf_arrow_circlepath,
-    CinematicMapBackdropLayerKind.path => CupertinoIcons.arrow_turn_up_right,
-    CinematicMapBackdropLayerKind.surface => CupertinoIcons.layers,
-    CinematicMapBackdropLayerKind.object => CupertinoIcons.cube_box,
-    CinematicMapBackdropLayerKind.environment => CupertinoIcons.sparkles,
   };
 }
