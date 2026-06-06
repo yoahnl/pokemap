@@ -530,6 +530,18 @@
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
+    },
+    {
+      "id": "ponton_selbrume",
+      "name": "ponton selbrume",
+      "relativePath": "assets/tilesets/ponton_selbrume.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "batiments_1",
+      "sortOrder": 1,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
     }
   ],
   "elementCategories": [
@@ -6058,6 +6070,32 @@
       "collisionProfile": null,
       "shadow": null,
       "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [],
+      "sortOrder": 0
+    },
+    {
+      "id": "ponton_selbrume",
+      "name": "ponton selbrume",
+      "tilesetId": "ponton_selbrume",
+      "categoryId": "batiments",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 8,
+            "height": 7
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "generic",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": "group_1777757343053",
       "recommendedLayerId": null,
       "tags": [],
       "sortOrder": 0
