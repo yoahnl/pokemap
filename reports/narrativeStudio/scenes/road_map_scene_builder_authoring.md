@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract
+NS-SCENES-V1-87 — Cinematic Actor Display Preview Prep Contract
 ```
 
 ## Principes
@@ -119,7 +119,25 @@ NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract
 | NS-SCENES-V1-83 | Cinematic Map Backdrop Preview Read Model V0 | core / read-model | Creer un read model pur du backdrop preview depuis Stage Context + `ProjectMapEntry` + `MapData` : statuts, labels, dimensions, layers visuels, diagnostics, viewport recommendation. | Pas de renderer UI, pas de map affichee, pas de runtime/Flame, pas de playback, pas d'acteurs rendus, pas de pathfinding/collision. | `cinematic_map_backdrop_preview_model.dart`, export `map_core.dart`, tests purs, rapport. | DONE : RED/GREEN sur statuses disabled/missing/unknown/unavailable/mismatch/tilesetUnavailable/available, layers visuels, diagnostics, viewport recommendation, tests/analyze core verts. | Confondre read model et renderer ; charger le disque depuis core ; ignorer les erreurs snapshot. | DONE : contrat V1-82 materialise en projection testable, sans rendu. | V1-82. |
 | NS-SCENES-V1-84 | Cinematic Map Backdrop Preview Renderer V0 | editor / preview-sandbox | Brancher le read model V1-83 dans le Cinematic Builder pour afficher un decor map sandbox read-only depuis une `MapData` deja chargee par l'editor. | Pas de runtime/Flame, pas de `PlayableMapGame`, pas de playback, pas d'acteurs rendus, pas de pathfinding/collision, pas de mutation map/projet. | Builder cinematics, snapshot map editor, renderer read-only, tests widget, rapport, screenshot. | DONE : `CinematicMapBackdropPreviewModel` passe au Builder, renderer sandbox read-only visible, fallbacks humains tous statuts, diagnostics, snapshot non destructive, Visual Gate, tests builder/library/core et analyse ciblee verts. | Refaire un runtime dans l'editor ; casser les proportions demandees par Karim ; rendre des acteurs ou collisions trop tot. | DONE : V1-84 affiche enfin un decor de map statique dans le Builder ; V1-84 ne lance toujours pas la cinematique. | V1-83. |
 | NS-SCENES-V1-85 | Cinematic Map Backdrop Visual Primitives V0 | core / editor preview-sandbox | Remplacer le rendu de bandes V1-84 par des primitives visuelles spatiales derivees de `MapData` reelle : cellules, chemins, surfaces, ancres objet/environnement et fallback summary honnete. | Pas de runtime/Flame, pas de `PlayableMapGame`, pas de playback, pas d'acteurs rendus, pas de fake tiles, pas de pathfinding/collision, pas de mutation map/projet. | Read model backdrop, panel/painter cinematic, tests widget/core, rapport, screenshot. | DONE : `visualPrimitives`, mini renderer CustomPainter tokenise, grille/cellules visibles, fallbacks V1-84 preserves, Visual Gate, tests builder/library/core et analyse ciblee verts. | Inventer une fake map ; brancher MapCanvas complet ; casser les proportions preview/timeline. | DONE : V1-85 rend le decor plus map-like sans rendre une cinematique jouable. | V1-84. |
+| NS-SCENES-V1-86 | Cinematic Map Backdrop Visual Composition Polish V0 | editor / ui-polish | A la demande de Karim, corriger la composition du backdrop avant Actor Display : viewport map plus grand/proportionnel, rail meta/legende secondaire, grille/primitives plus lisibles, preview/timeline equilibrees. | Pas de tiles/assets finaux, runtime/Flame, `PlayableMapGame`, playback, acteurs rendus, pathfinding/collision, mutation map/projet, donnees Selbrume ou image IA. | Builder cinematics, panel/painter backdrop, tests widget, rapport, screenshot. | DONE : test RED/GREEN viewport >= 220 px, ratio map preserve, legende secondaire, diagnostics sans overflow, Visual Gate 1663x926, tests builder/library/core cibles et analyse ciblee verts. | Trop reduire la timeline ; vendre une preview runtime ; agrandir les badges au lieu de la carte ; oublier le rapport avec code. | DONE : V1-86 rend le decor beaucoup plus lisible ; V1-86 ne rend toujours pas la cinematique jouable. | V1-85. |
+| NS-SCENES-V1-87 | Cinematic Actor Display Preview Prep Contract | doc-only / architecture-review | Cadrer l'affichage statique futur des acteurs dans la preview backdrop lisible, en decidant sources, apparences, positions et diagnostics avant tout renderer actor. | Pas de rendu acteur actif, pas de runtime/Flame, pas de playback/interpolation, pas de pathfinding/collision, pas de donnee Selbrume. | Rapport V1-87, roadmaps. | TODO : contrat acteurs preview, sources actor bindings/placements/Character Library, anti-scope runtime. | Poser des acteurs sur une projection encore trop abstraite ; confondre actor display et gameplay runtime. | TODO : contrat pret pour un renderer actor statique futur. | V1-86. |
 | NS-SCENES-V1-90 | Cinematic Timeline Scroll / Visibility Polish V0 | editor / ui-polish | Backlog futur : polir la visibilite des blocs/repere/selection quand les interactions clavier ou souris placent l'element cible hors de la vue utile. | Pas de playback, seek runtime, scrubber runtime, transport fonctionnel, drag/resize/reorder, mutation JSON, runtime, zoom temporel ou changement de modele. | Builder cinematics, tests widget, rapport, screenshot. | TODO : scroll automatique/visibilite controles, proportions timeline preservees, selection/probe non mutants. | Casser les proportions visees ; confondre scroll de vue et navigation temporelle ; ajouter un pouvoir de montage. | TODO : visibilite plus fiable, sans nouveau pouvoir temporel. | Backlog post Character Library. |
+
+## Mise a jour V1-86
+
+Statut : `NS-SCENES-V1-86 — Cinematic Map Backdrop Visual Composition Polish V0` est DONE.
+
+Demande : Karim a demande ce lot de polish backdrop avant de passer aux acteurs. L'ancien prochain lot recommande `NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract` est donc repousse a `NS-SCENES-V1-87`.
+
+Decision : le Builder adapte l'equilibre preview/timeline uniquement quand un backdrop preview model est disponible, agrandit le viewport map structurel, deplace meta et legende hors de la surface map, rend les diagnostics sous forme de pills compactes et renforce le painter editor-only par grille adaptive, chemins ruban et ancres halo/core.
+
+Scope realise : map structurelle plus lisible, carte proportionnelle avec shortest side teste >= 220 px, legende secondaire, diagnostics sans overflow, timeline par pistes preservee, transports toujours desactives, pickers/inspector preserves.
+
+Preuve : Visual Gate V1-86 1663x926, `cinematic_builder_workspace_test.dart` vert, `cinematics_library_workspace_test.dart` vert, test core backdrop vert, analyse ciblee editor verte. Verification large tentee : `flutter test --reporter=compact` sur tout `map_editor` reste rouge hors lot (`+2191 -18`) et `flutter analyze` global reste rouge sur dette Pokemon SDK preexistante.
+
+Limites : le rendu reste structurel et non jouable. Aucun tileset asset final, acteur rendu, runtime, Flame, playback, pathfinding/collision, mutation map/projet, donnee Selbrume, image IA ou `gpt-image-2` n'est ajoute.
+
+Prochain lot exact recommande : `NS-SCENES-V1-87 — Cinematic Actor Display Preview Prep Contract`.
 
 ## Mise a jour V1-85
 
@@ -135,7 +153,7 @@ Preuve : RED/GREEN core et editor, `cinematic_map_backdrop_preview_model_test.da
 
 Limites : rendu tiles/assets final absent ; V1-85 ne rend pas d'acteurs, ne lance pas la cinematique, n'importe pas Flame/runtime, ne rend pas collisions/triggers/events/entities et n'utilise aucune donnee Selbrume ni image IA.
 
-Prochain lot exact recommande : `NS-SCENES-V1-86 — Cinematic Actor Display Preview Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-86 — Cinematic Map Backdrop Visual Composition Polish V0`, a la demande de Karim avant l'Actor Display.
 
 ## Mise a jour V1-84
 

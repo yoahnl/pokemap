@@ -55,7 +55,7 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
     final border = Paint()
       ..color = palette.border
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 1.4;
     canvas
       ..drawRect(frame, background)
       ..drawRect(frame, border);
@@ -84,21 +84,32 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
   void _paintGrid(Canvas canvas, Rect frame) {
     final cellWidth = frame.width / mapWidth;
     final cellHeight = frame.height / mapHeight;
+    final cellSize = math.min(cellWidth, cellHeight);
     final grid = Paint()
       ..color = palette.grid
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.6;
+    final majorGrid = Paint()
+      ..color = palette.border.withValues(alpha: 0.38)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
 
-    if (cellWidth >= 6) {
+    if (cellSize >= 7) {
       for (var x = 1; x < mapWidth; x++) {
         final dx = frame.left + x * cellWidth;
-        canvas.drawLine(Offset(dx, frame.top), Offset(dx, frame.bottom), grid);
+        canvas.drawLine(
+          Offset(dx, frame.top),
+          Offset(dx, frame.bottom),
+          x % 5 == 0 ? majorGrid : grid,
+        );
       }
-    }
-    if (cellHeight >= 6) {
       for (var y = 1; y < mapHeight; y++) {
         final dy = frame.top + y * cellHeight;
-        canvas.drawLine(Offset(frame.left, dy), Offset(frame.right, dy), grid);
+        canvas.drawLine(
+          Offset(frame.left, dy),
+          Offset(frame.right, dy),
+          y % 5 == 0 ? majorGrid : grid,
+        );
       }
     }
   }
@@ -110,16 +121,31 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
   ) {
     final rect = _primitiveRect(frame, primitive);
     final opacity = primitive.opacity.clamp(0.16, 1.0).toDouble();
-    final color = _colorFor(primitive.kind).withValues(alpha: 0.62 * opacity);
-    final paint = Paint()
-      ..color = color
+    final baseColor = _colorFor(primitive.kind);
+    final fillPaint = Paint()
+      ..color =
+          baseColor.withValues(alpha: _fillAlpha(primitive.kind) * opacity)
       ..style = PaintingStyle.fill;
+    final strokePaint = Paint()
+      ..color =
+          baseColor.withValues(alpha: _strokeAlpha(primitive.kind) * opacity)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.min(2.2, math.max(0.8, rect.shortestSide * 0.08));
 
     switch (primitive.kind) {
       case CinematicMapBackdropVisualPrimitiveKind.objectAnchor:
       case CinematicMapBackdropVisualPrimitiveKind.environmentAnchor:
-        canvas.drawOval(
-            rect.deflate(math.min(rect.width, rect.height) * 0.2), paint);
+        final halo = rect.deflate(math.min(rect.width, rect.height) * 0.08);
+        final core = rect.deflate(math.min(rect.width, rect.height) * 0.28);
+        canvas
+          ..drawOval(
+            halo,
+            Paint()
+              ..color = baseColor.withValues(alpha: 0.2 * opacity)
+              ..style = PaintingStyle.fill,
+          )
+          ..drawOval(core, fillPaint)
+          ..drawOval(core, strokePaint);
       case CinematicMapBackdropVisualPrimitiveKind.layerSummary:
       case CinematicMapBackdropVisualPrimitiveKind.unsupportedLayer:
         final summaryPaint = Paint()
@@ -131,11 +157,24 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
         canvas.drawRect(rect.deflate(1), outlinePaint);
-      case CinematicMapBackdropVisualPrimitiveKind.tileCell:
       case CinematicMapBackdropVisualPrimitiveKind.terrainCell:
-      case CinematicMapBackdropVisualPrimitiveKind.pathCell:
       case CinematicMapBackdropVisualPrimitiveKind.surfaceCell:
-        canvas.drawRect(rect.deflate(1), paint);
+        final inset = _cellInset(rect);
+        final cellRect = rect.deflate(inset);
+        canvas
+          ..drawRect(cellRect, fillPaint)
+          ..drawRect(cellRect, strokePaint);
+      case CinematicMapBackdropVisualPrimitiveKind.tileCell:
+        canvas.drawRect(rect.deflate(_cellInset(rect)), fillPaint);
+      case CinematicMapBackdropVisualPrimitiveKind.pathCell:
+        final inset = _cellInset(rect);
+        final ribbonRect =
+            rect.deflate(inset).deflate(rect.shortestSide * 0.14);
+        final radius =
+            Radius.circular(math.max(1, ribbonRect.shortestSide * 0.2));
+        canvas
+          ..drawRRect(RRect.fromRectAndRadius(ribbonRect, radius), fillPaint)
+          ..drawRRect(RRect.fromRectAndRadius(ribbonRect, radius), strokePaint);
     }
   }
 
@@ -165,6 +204,47 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
       CinematicMapBackdropVisualPrimitiveKind.layerSummary ||
       CinematicMapBackdropVisualPrimitiveKind.unsupportedLayer =>
         palette.summary,
+    };
+  }
+
+  double _cellInset(Rect rect) {
+    final cellSize = rect.shortestSide;
+    if (cellSize < 3) {
+      return 0;
+    }
+    if (cellSize < 7) {
+      return 0.4;
+    }
+    return math.min(1.5, cellSize * 0.12);
+  }
+
+  double _fillAlpha(CinematicMapBackdropVisualPrimitiveKind kind) {
+    return switch (kind) {
+      CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.48,
+      CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.58,
+      CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.78,
+      CinematicMapBackdropVisualPrimitiveKind.surfaceCell => 0.7,
+      CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
+      CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
+        0.82,
+      CinematicMapBackdropVisualPrimitiveKind.layerSummary ||
+      CinematicMapBackdropVisualPrimitiveKind.unsupportedLayer =>
+        0.22,
+    };
+  }
+
+  double _strokeAlpha(CinematicMapBackdropVisualPrimitiveKind kind) {
+    return switch (kind) {
+      CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.0,
+      CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.54,
+      CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.9,
+      CinematicMapBackdropVisualPrimitiveKind.surfaceCell => 0.78,
+      CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
+      CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
+        0.9,
+      CinematicMapBackdropVisualPrimitiveKind.layerSummary ||
+      CinematicMapBackdropVisualPrimitiveKind.unsupportedLayer =>
+        0.5,
     };
   }
 

@@ -382,8 +382,8 @@ void main() {
     );
     expect(find.text('Aperçu spatial structurel'), findsOneWidget);
     expect(find.text('3 primitive(s) spatiale(s)'), findsOneWidget);
-    expect(find.text('Library ground · 2'), findsOneWidget);
-    expect(find.text('Library path · 1'), findsOneWidget);
+    expect(find.text('Library ground · 2 · tile'), findsOneWidget);
+    expect(find.text('Library path · 1 · path'), findsOneWidget);
     expect(find.text('Aperçu sandbox'), findsNothing);
   });
 

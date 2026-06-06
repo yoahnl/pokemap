@@ -188,7 +188,7 @@ void main() {
   testWidgets(
       'renders static map backdrop preview when backdrop model is available',
       (tester) async {
-    _setLargeSurface(tester);
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final project = _project(cinematics: [_stageContextCinematic()]);
     final before = project.toJson();
     final asset = _asset(project, 'cinematic_stage_context');
@@ -225,10 +225,35 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-viewport'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-meta-bar')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-legend')),
+      findsOneWidget,
+    );
+    final mapViewportSize = tester.getSize(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-viewport'),
+      ),
+    );
+    final legendSize = tester.getSize(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-legend')),
+    );
+    expect(mapViewportSize.shortestSide, greaterThanOrEqualTo(220));
+    expect(mapViewportSize.aspectRatio, closeTo(12 / 10, 0.08));
+    expect(legendSize.height, lessThan(mapViewportSize.height * 0.35));
     expect(find.text('Aperçu spatial structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
-    expect(find.text('Ground · 4'), findsOneWidget);
-    expect(find.text('Main path · 2'), findsOneWidget);
+    expect(find.text('Ground · 4 · tile'), findsOneWidget);
+    expect(find.text('Main path · 2 · path'), findsOneWidget);
     expect(find.text('Collision'), findsNothing);
     expect(find.text('Couche collision'), findsNothing);
     expect(find.text('Professor Oak'), findsNothing);
@@ -8294,6 +8319,84 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_85_cinematic_map_backdrop_visual_primitives_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-86 cinematic map backdrop visual composition when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_86_CAPTURE_CINEMATIC_MAP_BACKDROP_VISUAL_COMPOSITION',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    final asset = _asset(project, 'cinematic_stage_context');
+    final stageMapData = _stageMapDataWithVisualLayers();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 360,
+      ),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final mapViewportSize = tester.getSize(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-viewport'),
+      ),
+    );
+    expect(mapViewportSize.shortestSide, greaterThanOrEqualTo(220));
+    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
+    expect(find.text('Lab map'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
+    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Professor Oak'), findsNothing);
+    expect(find.text('Collision'), findsNothing);
+    expect(find.text('Couche collision'), findsNothing);
+    expect(find.text('Lecture en cours'), findsNothing);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_86_cinematic_map_backdrop_visual_composition_polish_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

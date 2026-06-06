@@ -365,8 +365,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                   Expanded(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        final timelineHeight =
-                            _builderTimelineHeight(constraints.maxHeight);
+                        final timelineHeight = _builderTimelineHeight(
+                          constraints.maxHeight,
+                          hasBackdrop: widget.backdropPreviewModel != null,
+                        );
                         final previewHeight = math.max(
                           0.0,
                           constraints.maxHeight -
@@ -1663,43 +1665,18 @@ class _PreviewSandbox extends StatelessWidget {
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-preview-placeholder'),
       expandChild: true,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 260;
-          final ultraCompact = constraints.maxHeight < 205;
           final backdropPreviewModel = this.backdropPreviewModel;
           if (backdropPreviewModel != null) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: CinematicMapBackdropPreviewPanel(
-                    model: backdropPreviewModel,
-                    compact: compact,
-                  ),
-                ),
-                if (!ultraCompact) ...[
-                  SizedBox(height: compact ? 8 : 10),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      PokeMapBadge(
-                        label: '${entry.timeline.stepCount} step(s)',
-                        variant: PokeMapBadgeVariant.neutral,
-                      ),
-                      PokeMapBadge(
-                        label: _durationLabel(entry.timeline),
-                        variant: PokeMapBadgeVariant.info,
-                      ),
-                    ],
-                  ),
-                ],
-              ],
+            return CinematicMapBackdropPreviewPanel(
+              model: backdropPreviewModel,
+              compact: compact,
             );
           }
+          final ultraCompact = constraints.maxHeight < 205;
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),
@@ -1796,20 +1773,43 @@ const _builderPreviewMaxHeight = 420.0;
 const _builderTimelineMinHeight = 500.0;
 const _builderTimelineMaxHeight = 680.0;
 const _builderTimelinePreferredShare = 0.62;
+const _builderBackdropPreviewMinHeight = 400.0;
+const _builderBackdropPreviewMaxHeight = 450.0;
+const _builderBackdropTimelineMinHeight = 420.0;
+const _builderBackdropTimelineMaxHeight = 620.0;
+const _builderBackdropTimelinePreferredShare = 0.52;
 
-double _builderTimelineHeight(double availableHeight) {
+double _builderTimelineHeight(
+  double availableHeight, {
+  required bool hasBackdrop,
+}) {
   if (availableHeight <= 0) {
     return 0;
   }
+  final previewMinHeight =
+      hasBackdrop ? _builderBackdropPreviewMinHeight : _builderPreviewMinHeight;
+  final previewMaxHeight =
+      hasBackdrop ? _builderBackdropPreviewMaxHeight : _builderPreviewMaxHeight;
+  final timelineMinHeight = hasBackdrop
+      ? _builderBackdropTimelineMinHeight
+      : _builderTimelineMinHeight;
+  final timelineMaxHeight = hasBackdrop
+      ? _builderBackdropTimelineMaxHeight
+      : _builderTimelineMaxHeight;
+  final timelinePreferredShare = hasBackdrop
+      ? _builderBackdropTimelinePreferredShare
+      : _builderTimelinePreferredShare;
   final maxTimeline = math.min(
-    _builderTimelineMaxHeight,
+    timelineMaxHeight,
     math.max(
-        0.0, availableHeight - _builderTimelineGap - _builderPreviewMinHeight),
+      0.0,
+      availableHeight - _builderTimelineGap - previewMinHeight,
+    ),
   );
-  final minTimeline = math.min(_builderTimelineMinHeight, maxTimeline);
+  final minTimeline = math.min(timelineMinHeight, maxTimeline);
   final preferredHeight = math.max(
-    availableHeight * _builderTimelinePreferredShare,
-    availableHeight - _builderTimelineGap - _builderPreviewMaxHeight,
+    availableHeight * timelinePreferredShare,
+    availableHeight - _builderTimelineGap - previewMaxHeight,
   );
   return preferredHeight.clamp(minTimeline, maxTimeline).toDouble();
 }

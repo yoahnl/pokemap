@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
@@ -62,11 +64,11 @@ class _BackdropHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const PokeMapIconTile(
+        PokeMapIconTile(
           icon: CupertinoIcons.map,
           tone: PokeMapTone.map,
-          size: 32,
-          iconSize: 16,
+          size: compact ? 26 : 28,
+          iconSize: compact ? 14 : 15,
         ),
         const SizedBox(width: 10),
         Expanded(
@@ -74,7 +76,7 @@ class _BackdropHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Décor map statique', style: titleStyle),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Wrap(
                 spacing: 7,
                 runSpacing: 5,
@@ -132,54 +134,30 @@ class _BackdropMapFrame extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: EdgeInsets.all(compact ? 8 : 12),
+        padding: EdgeInsets.all(compact ? 7 : 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surfaceSubtle,
-                  border: Border.all(color: colors.controlBorder),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(compact ? 6 : 10),
-                  child: spatialPrimitives.isEmpty
-                      ? Center(
-                          child: _BackdropMutedText(
-                            'Aucune couche visuelle lisible.',
-                            compact: compact,
-                          ),
-                        )
-                      : _BackdropVisualPrimitiveMap(
-                          model: model,
-                          primitives: spatialPrimitives,
+              child: spatialPrimitives.isEmpty
+                  ? DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.surfaceSubtle,
+                        border: Border.all(color: colors.controlBorder),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: _BackdropMutedText(
+                          'Aucune couche visuelle lisible.',
                           compact: compact,
                         ),
-                ),
-              ),
-            ),
-            SizedBox(height: compact ? 8 : 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                PokeMapBadge(
-                  label: _viewportModeLabel(model.viewportRecommendation.mode),
-                  variant: PokeMapBadgeVariant.mapAccent,
-                ),
-                PokeMapBadge(
-                  label:
-                      'Zoom ${model.viewportRecommendation.zoom.toStringAsFixed(2)}',
-                  variant: PokeMapBadgeVariant.neutral,
-                ),
-                const PokeMapBadge(
-                  label: 'Preview réelle à venir.',
-                  variant: PokeMapBadgeVariant.neutral,
-                ),
-              ],
+                      ),
+                    )
+                  : _BackdropVisualPrimitiveMap(
+                      model: model,
+                      primitives: spatialPrimitives,
+                      compact: compact,
+                    ),
             ),
           ],
         ),
@@ -223,71 +201,255 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
     final layerCounts = _primitiveLayerCounts(primitives);
     final mapWidth = model.mapWidth ?? _maxPrimitiveX(primitives);
     final mapHeight = model.mapHeight ?? _maxPrimitiveY(primitives);
-    return Stack(
-      key: const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
-      children: [
-        Positioned.fill(
-          child: ClipRect(
-            child: CustomPaint(
-              painter: CinematicMapBackdropVisualPrimitivesPainter(
-                mapWidth: mapWidth,
-                mapHeight: mapHeight,
-                primitives: primitives,
-                palette: palette,
-              ),
-              child: const SizedBox.expand(),
+    if (!compact) {
+      return Row(
+        key: const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _BackdropPrimitiveCanvas(
+              mapWidth: mapWidth,
+              mapHeight: mapHeight,
+              primitives: primitives,
+              palette: palette,
+              compact: compact,
             ),
           ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 330,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _BackdropMetaBar(
+                  model: model,
+                  primitiveCount: primitives.length,
+                  compact: compact,
+                ),
+                const Spacer(),
+                _BackdropPrimitiveLegend(
+                  entries: layerCounts,
+                  compact: compact,
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    return Column(
+      key: const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _BackdropMetaBar(
+          model: model,
+          primitiveCount: primitives.length,
+          compact: compact,
         ),
-        Align(
-          alignment: Alignment.topLeft,
-          child: Wrap(
-            spacing: 6,
-            runSpacing: 5,
-            children: [
-              const PokeMapBadge(
-                label: 'Aperçu spatial structurel',
-                variant: PokeMapBadgeVariant.info,
-              ),
-              PokeMapBadge(
-                label: '${primitives.length} primitive(s) spatiale(s)',
-                variant: PokeMapBadgeVariant.mapAccent,
-              ),
-            ],
+        SizedBox(height: compact ? 6 : 8),
+        Expanded(
+          child: _BackdropPrimitiveCanvas(
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
+            primitives: primitives,
+            palette: palette,
+            compact: compact,
           ),
         ),
-        Align(
-          alignment: Alignment.bottomLeft,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 5,
-            children: [
-              for (final entry in layerCounts.take(compact ? 3 : 4))
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.surfaceBase.withValues(alpha: 0.82),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
+        SizedBox(height: compact ? 5 : 7),
+        _BackdropPrimitiveLegend(
+          entries: layerCounts,
+          compact: compact,
+        ),
+      ],
+    );
+  }
+}
+
+class _BackdropPrimitiveCanvas extends StatelessWidget {
+  const _BackdropPrimitiveCanvas({
+    required this.mapWidth,
+    required this.mapHeight,
+    required this.primitives,
+    required this.palette,
+    required this.compact,
+  });
+
+  final int mapWidth;
+  final int mapHeight;
+  final List<CinematicMapBackdropVisualPrimitive> primitives;
+  final CinematicMapBackdropPrimitivePalette palette;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surfaceSubtle,
+        border: Border.all(color: colors.controlBorder),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 4 : 6),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = math.min(
+              constraints.maxWidth / mapWidth,
+              constraints.maxHeight / mapHeight,
+            );
+            final viewportWidth = mapWidth * scale;
+            final viewportHeight = mapHeight * scale;
+            return Center(
+              child: SizedBox(
+                key: const ValueKey(
+                  'cinematic-builder-map-backdrop-visual-viewport',
+                ),
+                width: viewportWidth,
+                height: viewportHeight,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: CustomPaint(
+                    painter: CinematicMapBackdropVisualPrimitivesPainter(
+                      mapWidth: mapWidth,
+                      mapHeight: mapHeight,
+                      primitives: primitives,
+                      palette: palette,
                     ),
-                    child: Text(
-                      '${entry.$1} · ${entry.$2}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: DefaultTextStyle.of(context).style.copyWith(
-                            color: colors.textMuted,
-                            fontSize: compact ? 9 : 10,
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
+                    child: const SizedBox.expand(),
                   ),
                 ),
-            ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _BackdropMetaBar extends StatelessWidget {
+  const _BackdropMetaBar({
+    required this.model,
+    required this.primitiveCount,
+    required this.compact,
+  });
+
+  final CinematicMapBackdropPreviewModel model;
+  final int primitiveCount;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      key: const ValueKey('cinematic-builder-map-backdrop-meta-bar'),
+      spacing: 7,
+      runSpacing: 5,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        const _BackdropMetaPill(
+          label: 'Aperçu spatial structurel',
+          tone: PokeMapTone.info,
+        ),
+        _BackdropMetaPill(
+          label: '$primitiveCount primitive(s) spatiale(s)',
+          tone: PokeMapTone.map,
+        ),
+        _BackdropMetaPill(
+          label: _viewportModeLabel(model.viewportRecommendation.mode),
+        ),
+        if (!compact)
+          _BackdropMetaPill(
+            label:
+                'Zoom ${model.viewportRecommendation.zoom.toStringAsFixed(2)}',
+          ),
+        const _BackdropMetaPill(
+          label: 'Preview réelle à venir.',
+        ),
+      ],
+    );
+  }
+}
+
+class _BackdropMetaPill extends StatelessWidget {
+  const _BackdropMetaPill({
+    required this.label,
+    this.tone,
+  });
+
+  final String label;
+  final PokeMapTone? tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final resolvedTone = tone?.resolve(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: resolvedTone?.soft ?? colors.surfaceBase,
+        border: Border.all(
+          color: resolvedTone?.border ?? colors.borderSubtle,
+        ),
+        borderRadius: BorderRadius.circular(100),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 220),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: resolvedTone?.text ?? colors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BackdropPrimitiveLegend extends StatelessWidget {
+  const _BackdropPrimitiveLegend({
+    required this.entries,
+    required this.compact,
+  });
+
+  final List<(String, int, CinematicMapBackdropLayerKind)> entries;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Wrap(
+      key: const ValueKey('cinematic-builder-map-backdrop-legend'),
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        for (final entry in entries.take(compact ? 3 : 5))
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.surfaceBase.withValues(alpha: 0.78),
+              border: Border.all(color: colors.borderSubtle),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              child: Text(
+                '${entry.$1} · ${entry.$2} · ${_layerKindLabel(entry.$3)}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.textMuted,
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -384,9 +546,9 @@ class _BackdropDiagnostics extends StatelessWidget {
       runSpacing: 6,
       children: [
         for (final diagnostic in diagnostics.take(3))
-          PokeMapBadge(
+          _BackdropMetaPill(
             label: diagnostic.message,
-            variant: _diagnosticBadgeVariant(diagnostic.severity),
+            tone: _toneForDiagnostic(diagnostic.severity),
           ),
       ],
     );
@@ -426,20 +588,32 @@ List<CinematicMapBackdropVisualPrimitive> _spatialPrimitives(
       .toList(growable: false);
 }
 
-List<(String, int)> _primitiveLayerCounts(
+List<(String, int, CinematicMapBackdropLayerKind)> _primitiveLayerCounts(
   List<CinematicMapBackdropVisualPrimitive> primitives,
 ) {
-  final counts = <String, int>{};
+  final counts = <String, (int, CinematicMapBackdropLayerKind)>{};
   for (final primitive in primitives) {
     counts.update(
       primitive.layerLabel,
-      (count) => count + 1,
-      ifAbsent: () => 1,
+      (entry) => (entry.$1 + 1, entry.$2),
+      ifAbsent: () => (1, primitive.layerKind),
     );
   }
   return [
-    for (final entry in counts.entries) (entry.key, entry.value),
+    for (final entry in counts.entries)
+      (entry.key, entry.value.$1, entry.value.$2),
   ];
+}
+
+String _layerKindLabel(CinematicMapBackdropLayerKind kind) {
+  return switch (kind) {
+    CinematicMapBackdropLayerKind.tile => 'tile',
+    CinematicMapBackdropLayerKind.terrain => 'terrain',
+    CinematicMapBackdropLayerKind.path => 'path',
+    CinematicMapBackdropLayerKind.surface => 'surface',
+    CinematicMapBackdropLayerKind.object => 'objet',
+    CinematicMapBackdropLayerKind.environment => 'env',
+  };
 }
 
 int _maxPrimitiveX(List<CinematicMapBackdropVisualPrimitive> primitives) {
@@ -537,16 +711,14 @@ PokeMapBadgeVariant _statusBadgeVariant(
   };
 }
 
-PokeMapBadgeVariant _diagnosticBadgeVariant(
+PokeMapTone _toneForDiagnostic(
   CinematicMapBackdropPreviewDiagnosticSeverity severity,
 ) {
   return switch (severity) {
-    CinematicMapBackdropPreviewDiagnosticSeverity.info =>
-      PokeMapBadgeVariant.info,
+    CinematicMapBackdropPreviewDiagnosticSeverity.info => PokeMapTone.info,
     CinematicMapBackdropPreviewDiagnosticSeverity.warning =>
-      PokeMapBadgeVariant.warning,
-    CinematicMapBackdropPreviewDiagnosticSeverity.error =>
-      PokeMapBadgeVariant.error,
+      PokeMapTone.warning,
+    CinematicMapBackdropPreviewDiagnosticSeverity.error => PokeMapTone.danger,
   };
 }
 
