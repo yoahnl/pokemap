@@ -13053,14 +13053,6 @@
           "label": "Acteur"
         },
         {
-          "actorId": "actor_2",
-          "label": "Acteur"
-        },
-        {
-          "actorId": "actor_3",
-          "label": "Acteur"
-        },
-        {
           "actorId": "actor_4",
           "label": "Jean"
         }
@@ -13075,31 +13067,12 @@
         "backdropMode": "projectMap",
         "actorBindings": [
           {
-            "actorId": "actor_2",
-            "kind": "mapEntity",
-            "mapEntityId": "npc"
-          },
-          {
-            "actorId": "actor_3",
-            "kind": "cinematicOnly"
-          },
-          {
             "actorId": "actor",
             "kind": "player"
           }
         ],
-        "actorAppearanceBindings": [
-          {
-            "actorId": "actor_3",
-            "characterId": "rival"
-          }
-        ],
+        "actorAppearanceBindings": [],
         "initialPlacements": [
-          {
-            "actorId": "actor_2",
-            "kind": "fromMovementTarget",
-            "targetId": "target"
-          },
           {
             "actorId": "actor",
             "kind": "unset"
