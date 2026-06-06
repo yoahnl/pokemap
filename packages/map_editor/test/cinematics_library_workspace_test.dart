@@ -391,6 +391,91 @@ void main() {
     expect(find.text('Aperçu sandbox'), findsNothing);
   });
 
+  testWidgets('wires actor display preview model into builder', (tester) async {
+    _setLargeSurface(tester);
+    final project = _project(
+      cinematics: [
+        CinematicAsset(
+          id: 'cinematic_actor_display_wiring',
+          title: 'Actor display wiring',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(
+              actorId: 'actor_professor',
+              label: 'Professor',
+            ),
+          ],
+          stageContext: CinematicStageContext(
+            backdropMode: CinematicStageBackdropMode.projectMap,
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.mapEntity,
+                mapEntityId: 'entity_professor',
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.fromMapEntity,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_wait',
+                kind: CinematicTimelineStepKind.wait,
+                label: 'Hold',
+                durationMs: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+      includeBridge: false,
+    );
+
+    await tester.pumpWidget(
+      _Harness(
+        project: project,
+        stageMapSnapshots: {'map_lab': _stageMapData()},
+      ),
+    );
+    await _pumpAsyncFrames(tester);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-entry-cinematic_actor_display_wiring'),
+      ),
+    );
+    await _pumpAsyncFrames(tester);
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await _pumpAsyncFrames(tester);
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-display-actor-actor_professor',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Acteurs statiques'), findsWidgets);
+    expect(find.text('1 acteur(s) placés'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+  });
+
   testWidgets(
       'wires project tileset assets into cinematic real tile backdrop plan',
       (tester) async {

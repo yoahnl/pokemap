@@ -296,6 +296,9 @@ class _CinematicsLibraryWorkspaceState
         builderAsset != null) {
       _ensureStageMapSourceCatalog(builderAsset);
       final backdropPreviewModel = _buildBackdropPreviewModel(builderAsset);
+      final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(
+        builderAsset,
+      );
       final backdropTileRenderPlan = _buildBackdropTileRenderPlan(
         builderAsset,
         backdropPreviewModel,
@@ -309,6 +312,7 @@ class _CinematicsLibraryWorkspaceState
         stageMapSourceCatalog: _stageMapSourceCatalog,
         backdropPreviewModel: backdropPreviewModel,
         backdropTileRenderPlan: backdropTileRenderPlan,
+        actorDisplayPreviewModel: actorDisplayPreviewModel,
         startExpanded: widget.startExpanded,
         onBackToLibrary: _closeBuilder,
         onAddDraftStep: widget.onAddTimelineDraft,
@@ -507,6 +511,30 @@ class _CinematicsLibraryWorkspaceState
       asset: asset,
       stageMap: stageMap,
       mapData: mapData,
+    );
+  }
+
+  CinematicActorDisplayPreviewModel? _buildActorDisplayPreviewModel(
+    CinematicAsset asset,
+  ) {
+    if (asset.stageContext?.backdropMode !=
+        CinematicStageBackdropMode.projectMap) {
+      return null;
+    }
+    final mapId = asset.mapId?.trim();
+    final stageMap = mapId == null || mapId.isEmpty
+        ? null
+        : _stageMapForId(widget.project.maps, mapId);
+    final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
+    final sourceCatalog = _stageMapSourceCatalog?.stageMapId == mapId
+        ? _stageMapSourceCatalog
+        : null;
+    return buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: widget.project,
+      stageMap: stageMap,
+      mapData: mapData,
+      stageMapSourceCatalog: sourceCatalog,
     );
   }
 

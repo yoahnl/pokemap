@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 
 final class CinematicMapBackdropTileRenderPalette {
@@ -81,16 +82,9 @@ class CinematicMapBackdropTileRenderPainter extends CustomPainter {
   }
 
   Rect _fittedMapRect(Size size) {
-    final horizontalScale = size.width / plan.pixelWidth;
-    final verticalScale = size.height / plan.pixelHeight;
-    final scale = math.min(horizontalScale, verticalScale);
-    final width = plan.pixelWidth * scale;
-    final height = plan.pixelHeight * scale;
-    return Rect.fromLTWH(
-      (size.width - width) / 2,
-      (size.height - height) / 2,
-      width,
-      height,
+    return fittedCinematicMapBackdropRect(
+      availableSize: size,
+      mapPixelSize: Size(plan.pixelWidth, plan.pixelHeight),
     );
   }
 

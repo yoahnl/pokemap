@@ -242,6 +242,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
+    this.actorDisplayPreviewModel,
     this.startExpanded = false,
     required this.onBackToLibrary,
     required this.onAddDraftStep,
@@ -276,6 +277,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool startExpanded;
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
@@ -390,6 +392,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     widget.backdropPreviewModel,
                                 backdropTileRenderPlan:
                                     widget.backdropTileRenderPlan,
+                                actorDisplayPreviewModel:
+                                    widget.actorDisplayPreviewModel,
                                 selectedStep: selectedStep,
                                 selectedStepIndex: selectedStepIndex,
                                 timelineProbeTimeMs: _timelineProbeTimeMs,
@@ -1653,6 +1657,7 @@ class _PreviewSandbox extends StatelessWidget {
     required this.asset,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
+    this.actorDisplayPreviewModel,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.timelineProbeTimeMs,
@@ -1662,6 +1667,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicAsset asset;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final int? timelineProbeTimeMs;
@@ -1682,6 +1688,7 @@ class _PreviewSandbox extends StatelessWidget {
               model: backdropPreviewModel,
               compact: compact,
               tileRenderPlan: backdropTileRenderPlan,
+              actorDisplayPreviewModel: actorDisplayPreviewModel,
             );
           }
           final ultraCompact = constraints.maxHeight < 205;

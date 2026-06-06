@@ -146,16 +146,16 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-89 — Cinematic Map Backdrop Real Tile Renderer Integration / Fidelity Polish V0 | DONE | Integre le renderer bitmap V1-88 au vrai workspace editor : resolution tileset via parent/editor notifier, fallback structurel uniquement diagnostique, fidelity TileLayer durcie, Visual Gate 1663x926, sans acteurs/playback/runtime. |
 | NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract | DONE | Lot documentaire demande par Karim : audit actor sources/stage bindings, positions/placements, Character Library/appearances, overlay/viewport, anti-runtime/Flame et UX ; Option C retenue, contrat futur read model actor display, diagnostics/tests/Visual Gate V1-91 cadres, sans code produit, packages, tests, screenshot, rendu acteur, runtime, playback, pathfinding/collision ni donnee Selbrume. |
 | NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0 | DONE | Read model pur `map_core` `CinematicActorDisplayPreviewModel` demande par Karim : inventaire `requiredActors`, bindings player/mapEntity/cinematicOnly/unbound, positions resolues/manquantes, apparences Character Library/player/mapEntity, directions statiques, render hints abstraits, diagnostics locaux, tests/analyze core verts, sans renderer UI, sprite affiche, runtime, Flame, playback, pathfinding/collision ni donnee Selbrume. |
-| NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0 | TODO | Brancher le read model V1-91 dans le Cinematic Builder pour afficher des acteurs statiques sous forme de placeholders ou sprites si les assets sont resolus, par-dessus le decor V1-89, sans playback, sans actorMove interpolation, sans runtime et sans Flame. |
-| NS-SCENES-V1-93 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur deplace depuis V1-80/V1-91 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le renderer Actor Display, en preservant les proportions de timeline demandees par Karim. |
+| NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0 | DONE | Read model V1-91 branche dans le Cinematic Builder a la demande de Karim : overlay editor-only de placeholders statiques sur le decor reel V1-89, transform viewport partage, labels courts, hints direction actorFace, diagnostics acteurs, noActors preserve en `Sans acteurs`, Visual Gate 1663x926, tests builder/library/core et analyse ciblee verts, sans playback, actorMove interpolation, runtime, Flame, pathfinding/collision ni rendu sprite final. |
+| NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres les placeholders V1-92 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics et anti-scope runtime. Le polish timeline scroll/visibility est repousse apres ce verrou actor readability. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0`
+`NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
 
-Raison : V1-91 materialise maintenant le contrat d'affichage statique futur des acteurs sous forme de read model pur. Le prochain verrou logique est de brancher ce modele dans le Builder pour afficher les acteurs statiques, sans playback ni runtime.
+Raison : V1-92 affiche maintenant les acteurs sous forme de placeholders statiques sur le vrai decor. Le prochain verrou utilisateur est de rendre ces placeholders reconnaissables sans lancer la cinematique : preparer le resolver de sprites editor-only et ses diagnostics, toujours sans runtime ni playback.
 
-Ordre apres V1-91 : `NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0`, puis `NS-SCENES-V1-93 — Cinematic Timeline Scroll / Visibility Polish V0` reste un backlog futur.
+Ordre apres V1-92 : `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis le polish timeline scroll/visibility reste un backlog futur.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 

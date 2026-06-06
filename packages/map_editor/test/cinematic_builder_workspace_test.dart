@@ -373,6 +373,204 @@ void main() {
   });
 
   testWidgets(
+      'renders static actor placeholders over the cinematic map backdrop',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(
+      cinematics: [asset],
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_lysa',
+          name: 'Lysa',
+          tilesetId: '',
+        ),
+      ],
+    );
+    final stageMapData = _stageMapDataWithActorDisplayFixtures();
+    final beforeProject = project.toJson();
+    final beforeMapData = stageMapData.toJson();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 640,
+        height: 360,
+      ),
+    );
+    final tileRenderPlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: stageMapData,
+      manifest: project.copyWith(
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: 'lab_tiles',
+            name: 'Lab tiles',
+            relativePath: 'assets/tilesets/lab.png',
+          ),
+        ],
+        settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      ),
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropTileRenderPlan: tileRenderPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')),
+      findsOneWidget,
+    );
+    for (final actorId in <String>[
+      'actor_player',
+      'actor_guard',
+      'actor_lysa',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>(
+          'cinematic-builder-actor-display-actor-$actorId',
+        )),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(ValueKey<String>(
+          'cinematic-builder-actor-display-direction-$actorId',
+        )),
+        findsOneWidget,
+      );
+    }
+    for (final actorId in <String>[
+      'actor_unbound',
+      'actor_missing',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>(
+          'cinematic-builder-actor-display-actor-$actorId',
+        )),
+        findsNothing,
+      );
+    }
+    expect(find.text('Acteurs statiques'), findsWidgets);
+    expect(find.text('3 acteur(s) placés'), findsWidgets);
+    expect(find.text('2 à compléter'), findsWidgets);
+    expect(find.text('Placeholders'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-display-diagnostics'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Définis l’entrée de scène'), findsWidgets);
+    expect(
+        find.textContaining('son apparence reste à compléter'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Playing'), findsNothing);
+    expect(find.text('Playback'), findsNothing);
+    expect(find.text('Seek'), findsNothing);
+    expect(find.text('Scrubber'), findsNothing);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(project.toJson(), beforeProject);
+    expect(stageMapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('aligns actor placeholders with the backdrop viewport transform',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(cinematics: [asset]);
+    final stageMapData = _stageMapDataWithActorDisplayFixtures();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 640,
+        height: 360,
+      ),
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+    );
+
+    final viewportRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-viewport'),
+      ),
+    );
+    final guardRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-display-actor-actor_guard'),
+      ),
+    );
+    final expectedGuardAnchor = Offset(
+      viewportRect.left + (6.5 * viewportRect.width / 12),
+      viewportRect.top + (6 * viewportRect.height / 10),
+    );
+    expect(guardRect.center.dx, closeTo(expectedGuardAnchor.dx, 1));
+    expect(guardRect.bottom, closeTo(expectedGuardAnchor.dy, 1));
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey(
+            'cinematic-builder-actor-display-direction-actor_lysa',
+          ),
+        ),
+        matching: find.text('E'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
       'falls back to structural backdrop when tileset image is unavailable',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -8770,6 +8968,99 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-92 cinematic actor display preview renderer when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_92_CAPTURE_CINEMATIC_ACTOR_DISPLAY_PREVIEW',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final tilesetImage = await _makeReferenceTilesetImage();
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(cinematics: [asset]);
+    final stageMapData = _stageMapDataWithActorDisplayFixtures();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 360,
+      ),
+    );
+    final bitmapProject = project.copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+    );
+    final tileRenderPlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: stageMapData,
+      manifest: bitmapProject,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropTileRenderPlan: tileRenderPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')),
+      findsOneWidget,
+    );
+    expect(find.text('Acteurs statiques'), findsWidgets);
+    expect(find.text('3 acteur(s) placés'), findsWidgets);
+    expect(find.text('2 à compléter'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_92_cinematic_actor_display_preview_renderer_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -8781,6 +9072,7 @@ Future<void> _pumpBuilder(
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
   CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan,
+  CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
@@ -8811,6 +9103,7 @@ Future<void> _pumpBuilder(
                       : null),
               backdropPreviewModel: backdropPreviewModel,
               backdropTileRenderPlan: backdropTileRenderPlan,
+              actorDisplayPreviewModel: actorDisplayPreviewModel,
               onBackToLibrary: onBackToLibrary ?? () {},
               onAddDraftStep: ({
                 required String cinematicId,
@@ -8955,6 +9248,7 @@ Future<void> _pumpBuilderHarness(
   ValueChanged<ProjectManifest>? onProjectChanged,
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
+  CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
@@ -8965,6 +9259,7 @@ Future<void> _pumpBuilderHarness(
       onProjectChanged: onProjectChanged,
       stageMapSourceCatalog: stageMapSourceCatalog,
       backdropPreviewModel: backdropPreviewModel,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
       provideStageMapSourceCatalog: provideStageMapSourceCatalog,
       surfaceSize: surfaceSize,
     ),
@@ -8980,6 +9275,7 @@ class _BuilderHarness extends StatefulWidget {
     required this.provideStageMapSourceCatalog,
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
+    this.actorDisplayPreviewModel,
     this.onProjectChanged,
   });
 
@@ -8988,6 +9284,7 @@ class _BuilderHarness extends StatefulWidget {
   final Size surfaceSize;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool provideStageMapSourceCatalog;
   final ValueChanged<ProjectManifest>? onProjectChanged;
 
@@ -9021,6 +9318,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
                       ? _stageMapSourceCatalog()
                       : null),
               backdropPreviewModel: widget.backdropPreviewModel,
+              actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
               onBackToLibrary: () {},
               onAddDraftStep: _addDraftStep,
               onRemoveDraftStep: _removeDraftStep,
@@ -10001,6 +10299,116 @@ CinematicAsset _stageSandboxOnlyCinematic() {
   );
 }
 
+CinematicAsset _actorDisplayPreviewCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_actor_display_preview',
+    title: 'Actor display preview',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_player', label: 'Joueur'),
+      CinematicActorRef(actorId: 'actor_guard', label: 'Garde'),
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+      CinematicActorRef(actorId: 'actor_unbound', label: 'Silhouette'),
+      CinematicActorRef(actorId: 'actor_missing', label: 'Acteur sans entrée'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(
+        targetId: 'target_player_start',
+        label: 'Entrée joueur',
+      ),
+      CinematicMovementTargetRef(
+        targetId: 'target_lysa_start',
+        label: 'Entrée Lysa',
+      ),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_player',
+          kind: CinematicActorBindingKind.player,
+        ),
+        CinematicActorBinding(
+          actorId: 'actor_guard',
+          kind: CinematicActorBindingKind.mapEntity,
+          mapEntityId: 'entity_guard',
+        ),
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+        CinematicActorBinding(
+          actorId: 'actor_unbound',
+          kind: CinematicActorBindingKind.unbound,
+        ),
+        CinematicActorBinding(
+          actorId: 'actor_missing',
+          kind: CinematicActorBindingKind.player,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_player',
+          kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+          targetId: 'target_player_start',
+        ),
+        CinematicActorInitialPlacement(
+          actorId: 'actor_guard',
+          kind: CinematicActorInitialPlacementKind.fromMapEntity,
+        ),
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+          targetId: 'target_lysa_start',
+        ),
+        CinematicActorInitialPlacement(
+          actorId: 'actor_unbound',
+          kind: CinematicActorInitialPlacementKind.fromMovementTarget,
+          targetId: 'target_lysa_start',
+        ),
+      ],
+      movementTargetBindings: [
+        CinematicMovementTargetBinding(
+          targetId: 'target_player_start',
+          kind: CinematicMovementTargetBindingKind.mapEvent,
+          sourceId: 'event_player_start',
+        ),
+        CinematicMovementTargetBinding(
+          targetId: 'target_lysa_start',
+          kind: CinematicMovementTargetBindingKind.mapEvent,
+          sourceId: 'event_lysa_start',
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_camera',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Static camera',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_face_lysa',
+          kind: CinematicTimelineStepKind.actorFace,
+          label: 'Lysa faces east',
+          actorId: 'actor_lysa',
+          durationMs: 300,
+          metadata: const {'actor.direction': 'right'},
+        ),
+        CinematicTimelineStep(
+          id: 'step_move_guard_ignored',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Move guard',
+          actorId: 'actor_guard',
+          targetId: 'target_lysa_start',
+          durationMs: 900,
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicAsset _stageUnknownMapCinematic() {
   return _stageContextCinematic(mapId: 'missing_map');
 }
@@ -10355,6 +10763,50 @@ MapData _stageMapDataWithBitmapTileLayer() {
         id: 'collision',
         name: 'Collision',
         collisions: [true, false],
+      ),
+    ],
+  );
+}
+
+MapData _stageMapDataWithActorDisplayFixtures() {
+  final tiles = <int>[];
+  for (var index = 0; index < 120; index += 1) {
+    tiles.add(index.isEven ? 1 : 2);
+  }
+  return _stageMapData(
+    entities: const <MapEntity>[
+      MapEntity(
+        id: 'entity_guard',
+        name: 'Guard entity',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 6, y: 5),
+        npc: MapEntityNpcData(displayName: 'Garde'),
+      ),
+    ],
+    events: const <MapEventDefinition>[
+      MapEventDefinition(
+        id: 'event_player_start',
+        title: 'Entrée joueur',
+        position: EventPosition(layerId: 'ground', x: 3, y: 4),
+        pages: [MapEventPage(pageNumber: 0)],
+        type: MapEventType.object,
+      ),
+      MapEventDefinition(
+        id: 'event_lysa_start',
+        title: 'Entrée Lysa',
+        position: EventPosition(layerId: 'ground', x: 8, y: 3),
+        pages: [MapEventPage(pageNumber: 0)],
+        type: MapEventType.object,
+      ),
+    ],
+  ).copyWith(
+    size: const GridSize(width: 12, height: 10),
+    layers: [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Ground',
+        tilesetId: 'lab_tiles',
+        tiles: tiles,
       ),
     ],
   );

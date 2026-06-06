@@ -1,12 +1,12 @@
-import 'dart:math' as math;
-
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_actor_display_preview_overlay.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_map_backdrop_tile_renderer.dart';
+import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_visual_primitives_painter.dart';
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
@@ -15,11 +15,13 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     required this.model,
     required this.compact,
     this.tileRenderPlan,
+    this.actorDisplayPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final bool compact;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,11 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
       key: const ValueKey('cinematic-builder-map-backdrop-preview'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BackdropHeader(model: model, compact: compact),
+        _BackdropHeader(
+          model: model,
+          actorDisplayPreviewModel: actorDisplayPreviewModel,
+          compact: compact,
+        ),
         SizedBox(height: compact ? 8 : 12),
         Expanded(
           child: model.isAvailable
@@ -35,12 +41,16 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   model: model,
                   compact: compact,
                   tileRenderPlan: tileRenderPlan,
+                  actorDisplayPreviewModel: actorDisplayPreviewModel,
                 )
               : _BackdropFallback(model: model, compact: compact),
         ),
         if (!compact) ...[
           const SizedBox(height: 10),
-          _BackdropDiagnostics(model: model),
+          _BackdropDiagnostics(
+            model: model,
+            actorDisplayPreviewModel: actorDisplayPreviewModel,
+          ),
         ],
       ],
     );
@@ -50,10 +60,12 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
 class _BackdropHeader extends StatelessWidget {
   const _BackdropHeader({
     required this.model,
+    required this.actorDisplayPreviewModel,
     required this.compact,
   });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool compact;
 
   @override
@@ -69,6 +81,8 @@ class _BackdropHeader extends StatelessWidget {
           fontSize: compact ? 10 : 11,
           fontWeight: FontWeight.w700,
         );
+    final hasActorDisplayEntries =
+        _hasActorDisplayEntries(actorDisplayPreviewModel);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -108,17 +122,36 @@ class _BackdropHeader extends StatelessWidget {
                     label: _statusLabel(model.status),
                     variant: _statusBadgeVariant(model.status),
                   ),
-                  const PokeMapBadge(
-                    label: 'Décor seul',
-                    variant: PokeMapBadgeVariant.info,
-                  ),
-                  const PokeMapBadge(
-                    label: 'Sans acteurs',
-                    variant: PokeMapBadgeVariant.neutral,
-                  ),
-                  const PokeMapBadge(
+                  if (!hasActorDisplayEntries) ...[
+                    const PokeMapBadge(
+                      label: 'Décor seul',
+                      variant: PokeMapBadgeVariant.info,
+                    ),
+                    const PokeMapBadge(
+                      label: 'Sans acteurs',
+                      variant: PokeMapBadgeVariant.neutral,
+                    ),
+                  ] else ...[
+                    const _BackdropMetaPill(
+                      label: 'Acteurs statiques',
+                      tone: PokeMapTone.info,
+                    ),
+                    _BackdropMetaPill(
+                      label: _placedActorsLabel(actorDisplayPreviewModel!),
+                      tone: PokeMapTone.success,
+                    ),
+                    if (_actorCompletionCount(actorDisplayPreviewModel!) > 0)
+                      _BackdropMetaPill(
+                        label:
+                            '${_actorCompletionCount(actorDisplayPreviewModel!)} à compléter',
+                        tone: PokeMapTone.warning,
+                      ),
+                    const _BackdropMetaPill(
+                      label: 'Placeholders',
+                    ),
+                  ],
+                  const _BackdropMetaPill(
                     label: 'Sans lecture',
-                    variant: PokeMapBadgeVariant.neutral,
                   ),
                 ],
               ),
@@ -135,11 +168,13 @@ class _BackdropMapFrame extends StatelessWidget {
     required this.model,
     required this.compact,
     this.tileRenderPlan,
+    this.actorDisplayPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final bool compact;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +198,7 @@ class _BackdropMapFrame extends StatelessWidget {
                       model: model,
                       plan: bitmapPlan,
                       compact: compact,
+                      actorDisplayPreviewModel: actorDisplayPreviewModel,
                     )
                   : spatialPrimitives.isEmpty
                       ? DecoratedBox(
@@ -183,6 +219,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           primitives: spatialPrimitives,
                           compact: compact,
                           tileRenderPlan: bitmapPlan,
+                          actorDisplayPreviewModel: actorDisplayPreviewModel,
                         ),
             ),
           ],
@@ -197,11 +234,13 @@ class _BackdropBitmapMap extends StatelessWidget {
     required this.model,
     required this.plan,
     required this.compact,
+    this.actorDisplayPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final CinematicMapBackdropTileRenderPlan plan;
   final bool compact;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +259,7 @@ class _BackdropBitmapMap extends StatelessWidget {
           primitiveCount: plan.instructions.length,
           compact: compact,
           bitmapPlan: plan,
+          actorDisplayPreviewModel: actorDisplayPreviewModel,
         ),
         SizedBox(height: compact ? 6 : 8),
         Expanded(
@@ -233,28 +273,37 @@ class _BackdropBitmapMap extends StatelessWidget {
               padding: EdgeInsets.all(compact ? 4 : 6),
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final scale = math.min(
-                    constraints.maxWidth / plan.pixelWidth,
-                    constraints.maxHeight / plan.pixelHeight,
+                  final viewportRect = fittedCinematicMapBackdropRect(
+                    availableSize: constraints.biggest,
+                    mapPixelSize: Size(plan.pixelWidth, plan.pixelHeight),
                   );
-                  final viewportWidth = plan.pixelWidth * scale;
-                  final viewportHeight = plan.pixelHeight * scale;
                   return Center(
                     child: RepaintBoundary(
                       key: const ValueKey(
                         'cinematic-builder-map-backdrop-bitmap-viewport',
                       ),
                       child: SizedBox(
-                        width: viewportWidth,
-                        height: viewportHeight,
+                        width: viewportRect.width,
+                        height: viewportRect.height,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(6),
-                          child: CustomPaint(
-                            painter: CinematicMapBackdropTileRenderPainter(
-                              plan: plan,
-                              palette: palette,
-                            ),
-                            child: const SizedBox.expand(),
+                          child: Stack(
+                            children: [
+                              CustomPaint(
+                                painter: CinematicMapBackdropTileRenderPainter(
+                                  plan: plan,
+                                  palette: palette,
+                                ),
+                                child: const SizedBox.expand(),
+                              ),
+                              if (actorDisplayPreviewModel != null)
+                                CinematicActorDisplayPreviewOverlay(
+                                  model: actorDisplayPreviewModel!,
+                                  mapWidth: plan.mapWidth,
+                                  mapHeight: plan.mapHeight,
+                                  compact: compact,
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -276,12 +325,14 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
     required this.primitives,
     required this.compact,
     this.tileRenderPlan,
+    this.actorDisplayPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final List<CinematicMapBackdropVisualPrimitive> primitives;
   final bool compact;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -319,26 +370,30 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
               primitives: primitives,
               palette: palette,
               compact: compact,
+              actorDisplayPreviewModel: actorDisplayPreviewModel,
             ),
           ),
           const SizedBox(width: 8),
           SizedBox(
             width: 330,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _BackdropMetaBar(
-                  model: model,
-                  primitiveCount: primitives.length,
-                  compact: compact,
-                  bitmapPlan: tileRenderPlan,
-                ),
-                const Spacer(),
-                _BackdropPrimitiveLegend(
-                  entries: layerCounts,
-                  compact: compact,
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _BackdropMetaBar(
+                    model: model,
+                    primitiveCount: primitives.length,
+                    compact: compact,
+                    bitmapPlan: tileRenderPlan,
+                    actorDisplayPreviewModel: actorDisplayPreviewModel,
+                  ),
+                  const SizedBox(height: 8),
+                  _BackdropPrimitiveLegend(
+                    entries: layerCounts,
+                    compact: compact,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -353,6 +408,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
           primitiveCount: primitives.length,
           compact: compact,
           bitmapPlan: tileRenderPlan,
+          actorDisplayPreviewModel: actorDisplayPreviewModel,
         ),
         SizedBox(height: compact ? 6 : 8),
         Expanded(
@@ -362,6 +418,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
             primitives: primitives,
             palette: palette,
             compact: compact,
+            actorDisplayPreviewModel: actorDisplayPreviewModel,
           ),
         ),
         SizedBox(height: compact ? 5 : 7),
@@ -381,6 +438,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
     required this.primitives,
     required this.palette,
     required this.compact,
+    this.actorDisplayPreviewModel,
   });
 
   final int mapWidth;
@@ -388,6 +446,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
   final List<CinematicMapBackdropVisualPrimitive> primitives;
   final CinematicMapBackdropPrimitivePalette palette;
   final bool compact;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -402,29 +461,38 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
         padding: EdgeInsets.all(compact ? 4 : 6),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final scale = math.min(
-              constraints.maxWidth / mapWidth,
-              constraints.maxHeight / mapHeight,
+            final viewportRect = fittedCinematicMapBackdropRect(
+              availableSize: constraints.biggest,
+              mapPixelSize: Size(mapWidth.toDouble(), mapHeight.toDouble()),
             );
-            final viewportWidth = mapWidth * scale;
-            final viewportHeight = mapHeight * scale;
             return Center(
               child: SizedBox(
                 key: const ValueKey(
                   'cinematic-builder-map-backdrop-visual-viewport',
                 ),
-                width: viewportWidth,
-                height: viewportHeight,
+                width: viewportRect.width,
+                height: viewportRect.height,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(6),
-                  child: CustomPaint(
-                    painter: CinematicMapBackdropVisualPrimitivesPainter(
-                      mapWidth: mapWidth,
-                      mapHeight: mapHeight,
-                      primitives: primitives,
-                      palette: palette,
-                    ),
-                    child: const SizedBox.expand(),
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        painter: CinematicMapBackdropVisualPrimitivesPainter(
+                          mapWidth: mapWidth,
+                          mapHeight: mapHeight,
+                          primitives: primitives,
+                          palette: palette,
+                        ),
+                        child: const SizedBox.expand(),
+                      ),
+                      if (actorDisplayPreviewModel != null)
+                        CinematicActorDisplayPreviewOverlay(
+                          model: actorDisplayPreviewModel!,
+                          mapWidth: mapWidth,
+                          mapHeight: mapHeight,
+                          compact: compact,
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -442,15 +510,19 @@ class _BackdropMetaBar extends StatelessWidget {
     required this.primitiveCount,
     required this.compact,
     this.bitmapPlan,
+    this.actorDisplayPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final int primitiveCount;
   final bool compact;
   final CinematicMapBackdropTileRenderPlan? bitmapPlan;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
+    final hasActorDisplayEntries =
+        _hasActorDisplayEntries(actorDisplayPreviewModel);
     return Wrap(
       key: const ValueKey('cinematic-builder-map-backdrop-meta-bar'),
       spacing: 7,
@@ -479,8 +551,26 @@ class _BackdropMetaBar extends StatelessWidget {
             label:
                 'Zoom ${model.viewportRecommendation.zoom.toStringAsFixed(2)}',
           ),
-        const _BackdropMetaPill(label: 'Décor seul'),
-        const _BackdropMetaPill(label: 'Sans acteurs'),
+        if (!hasActorDisplayEntries) ...[
+          const _BackdropMetaPill(label: 'Décor seul'),
+          const _BackdropMetaPill(label: 'Sans acteurs'),
+        ] else ...[
+          _BackdropMetaPill(
+            label: _placedActorsLabel(actorDisplayPreviewModel!),
+            tone: PokeMapTone.success,
+          ),
+          if (_actorCompletionCount(actorDisplayPreviewModel!) > 0)
+            _BackdropMetaPill(
+              label:
+                  '${_actorCompletionCount(actorDisplayPreviewModel!)} à compléter',
+              tone: PokeMapTone.warning,
+            ),
+          const _BackdropMetaPill(
+            label: 'Acteurs statiques',
+            tone: PokeMapTone.info,
+          ),
+          const _BackdropMetaPill(label: 'Placeholders'),
+        ],
         const _BackdropMetaPill(label: 'Sans lecture'),
         if (bitmapPlan != null && bitmapPlan!.diagnostics.isNotEmpty)
           _BackdropMetaPill(
@@ -645,33 +735,65 @@ class _BackdropFallback extends StatelessWidget {
 }
 
 class _BackdropDiagnostics extends StatelessWidget {
-  const _BackdropDiagnostics({required this.model});
+  const _BackdropDiagnostics({
+    required this.model,
+    required this.actorDisplayPreviewModel,
+  });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
 
   @override
   Widget build(BuildContext context) {
     final diagnostics = model.diagnostics;
-    if (diagnostics.isEmpty) {
-      return const Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          PokeMapBadge(
-            label: 'Décor map prêt pour aperçu statique.',
-            variant: PokeMapBadgeVariant.success,
-          ),
-        ],
-      );
-    }
     return Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
+        if (diagnostics.isEmpty)
+          const _BackdropMetaPill(
+            label: 'Décor map prêt pour aperçu statique.',
+            tone: PokeMapTone.success,
+          ),
         for (final diagnostic in diagnostics.take(3))
           _BackdropMetaPill(
             label: diagnostic.message,
             tone: _toneForDiagnostic(diagnostic.severity),
+          ),
+        if (actorDisplayPreviewModel != null)
+          _ActorDisplayDiagnostics(model: actorDisplayPreviewModel!),
+      ],
+    );
+  }
+}
+
+class _ActorDisplayDiagnostics extends StatelessWidget {
+  const _ActorDisplayDiagnostics({required this.model});
+
+  final CinematicActorDisplayPreviewModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final diagnostics = _sortedActorDiagnostics(model);
+    if (diagnostics.isEmpty) {
+      return _BackdropMetaPill(
+        label: '${_placedActorsLabel(model)} en pose initiale.',
+        tone: PokeMapTone.success,
+      );
+    }
+    return Wrap(
+      key: const ValueKey('cinematic-builder-actor-display-diagnostics'),
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        _BackdropMetaPill(
+          label: model.summary,
+          tone: _toneForActorStatus(model.status),
+        ),
+        for (final diagnostic in diagnostics.take(6))
+          _BackdropMetaPill(
+            label: _actorDiagnosticLabel(model, diagnostic),
+            tone: _toneForActorDiagnostic(diagnostic.severity),
           ),
       ],
     );
@@ -815,6 +937,108 @@ String _viewportModeLabel(CinematicMapBackdropViewportMode mode) {
     CinematicMapBackdropViewportMode.centerMap => 'Cadrage centré map',
     CinematicMapBackdropViewportMode.centerActor => 'Cadrage acteur',
     CinematicMapBackdropViewportMode.centerTarget => 'Cadrage cible',
+  };
+}
+
+String _placedActorsLabel(CinematicActorDisplayPreviewModel model) {
+  return '${model.renderableActorCount} acteur(s) placés';
+}
+
+bool _hasActorDisplayEntries(CinematicActorDisplayPreviewModel? model) {
+  return model != null &&
+      model.status != CinematicActorDisplayPreviewStatus.noActors;
+}
+
+int _actorCompletionCount(CinematicActorDisplayPreviewModel model) {
+  return model.actors.length - model.renderableActorCount;
+}
+
+List<CinematicActorDisplayPreviewDiagnostic> _sortedActorDiagnostics(
+  CinematicActorDisplayPreviewModel model,
+) {
+  final diagnostics = [...model.diagnostics];
+  diagnostics.sort((a, b) {
+    final severityCompare =
+        _actorDiagnosticRank(b.severity) - _actorDiagnosticRank(a.severity);
+    if (severityCompare != 0) {
+      return severityCompare;
+    }
+    return a.code.name.compareTo(b.code.name);
+  });
+  return diagnostics;
+}
+
+int _actorDiagnosticRank(
+  CinematicActorDisplayPreviewDiagnosticSeverity severity,
+) {
+  return switch (severity) {
+    CinematicActorDisplayPreviewDiagnosticSeverity.error => 3,
+    CinematicActorDisplayPreviewDiagnosticSeverity.warning => 2,
+    CinematicActorDisplayPreviewDiagnosticSeverity.info => 1,
+  };
+}
+
+String _actorDiagnosticLabel(
+  CinematicActorDisplayPreviewModel model,
+  CinematicActorDisplayPreviewDiagnostic diagnostic,
+) {
+  final actor =
+      diagnostic.actorId == null ? null : model.actorById(diagnostic.actorId!);
+  final label = actor?.label ?? diagnostic.actorId ?? 'Cet acteur';
+  return switch (diagnostic.code) {
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayNoActors =>
+      'Aucun acteur requis pour cette cinématique.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayMissingBinding =>
+      'Choisis comment $label est lié à la scène.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayUnboundActor =>
+      '$label est volontairement hors scène.',
+    CinematicActorDisplayPreviewDiagnosticCode
+          .actorDisplayMissingInitialPlacement =>
+      'Définis l’entrée de scène de $label pour l’afficher.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayMissingMapEntity =>
+      'L’entité liée à $label n’existe plus sur cette map.',
+    CinematicActorDisplayPreviewDiagnosticCode
+          .actorDisplayMissingMovementTarget =>
+      'La cible de placement de $label est absente.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayAbstractTargetOnly =>
+      '$label utilise une cible abstraite; ajoute une source map.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayOutOfMapBounds =>
+      '$label est placé hors du décor affiché.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayMissingAppearance =>
+      '$label est placé; son apparence reste à compléter.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayUnknownCharacter =>
+      'Le personnage choisi pour $label n’existe plus.',
+    CinematicActorDisplayPreviewDiagnosticCode
+          .actorDisplayCharacterMissingTileset =>
+      '$label a besoin d’un tileset preview.',
+    CinematicActorDisplayPreviewDiagnosticCode
+          .actorDisplayCharacterMissingIdleAnimation =>
+      '$label a besoin d’une pose idle preview.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayDirectionFallback =>
+      'Direction par défaut utilisée pour $label.',
+    CinematicActorDisplayPreviewDiagnosticCode.actorDisplayRuntimeUnsupported =>
+      'Aperçu statique uniquement pour $label.',
+    _ => diagnostic.message,
+  };
+}
+
+PokeMapTone _toneForActorStatus(CinematicActorDisplayPreviewStatus status) {
+  return switch (status) {
+    CinematicActorDisplayPreviewStatus.ready => PokeMapTone.success,
+    CinematicActorDisplayPreviewStatus.incomplete => PokeMapTone.warning,
+    CinematicActorDisplayPreviewStatus.blocked => PokeMapTone.danger,
+    CinematicActorDisplayPreviewStatus.noActors => PokeMapTone.info,
+  };
+}
+
+PokeMapTone _toneForActorDiagnostic(
+  CinematicActorDisplayPreviewDiagnosticSeverity severity,
+) {
+  return switch (severity) {
+    CinematicActorDisplayPreviewDiagnosticSeverity.info => PokeMapTone.info,
+    CinematicActorDisplayPreviewDiagnosticSeverity.warning =>
+      PokeMapTone.warning,
+    CinematicActorDisplayPreviewDiagnosticSeverity.error => PokeMapTone.danger,
   };
 }
 
