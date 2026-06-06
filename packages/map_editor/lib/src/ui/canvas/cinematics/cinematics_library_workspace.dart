@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import 'cinematic_builder_workspace.dart';
+import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
 typedef CreateCinematicShellCallback = Future<String?> Function({
@@ -155,6 +156,13 @@ typedef UpsertMovementTargetBindingCallback = Future<bool> Function({
 
 typedef LoadStageMapSnapshotCallback = Future<MapData?> Function(String mapId);
 
+typedef BuildCinematicBackdropTileRenderPlanCallback
+    = CinematicMapBackdropTileRenderPlan? Function({
+  required CinematicAsset asset,
+  required MapData? mapData,
+  required CinematicMapBackdropPreviewModel? previewModel,
+});
+
 enum _CinematicsLibraryFilter {
   all,
   canonical,
@@ -191,6 +199,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
     this.onLoadStageMapSnapshot,
+    this.onBuildBackdropTileRenderPlan,
     this.onOpenLegacyCutsceneStudio,
     this.startExpanded = false,
   });
@@ -224,6 +233,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
   final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
+  final BuildCinematicBackdropTileRenderPlanCallback?
+      onBuildBackdropTileRenderPlan;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -277,6 +288,10 @@ class _CinematicsLibraryWorkspaceState
         builderAsset != null) {
       _ensureStageMapSourceCatalog(builderAsset);
       final backdropPreviewModel = _buildBackdropPreviewModel(builderAsset);
+      final backdropTileRenderPlan = _buildBackdropTileRenderPlan(
+        builderAsset,
+        backdropPreviewModel,
+      );
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
@@ -285,6 +300,7 @@ class _CinematicsLibraryWorkspaceState
         characters: widget.project.characters,
         stageMapSourceCatalog: _stageMapSourceCatalog,
         backdropPreviewModel: backdropPreviewModel,
+        backdropTileRenderPlan: backdropTileRenderPlan,
         startExpanded: widget.startExpanded,
         onBackToLibrary: _closeBuilder,
         onAddDraftStep: widget.onAddTimelineDraft,
@@ -434,6 +450,25 @@ class _CinematicsLibraryWorkspaceState
       stageMap: stageMap,
       mapData: mapData,
       availableTilesetIds: _availableTilesetIds(widget.project),
+    );
+  }
+
+  CinematicMapBackdropTileRenderPlan? _buildBackdropTileRenderPlan(
+    CinematicAsset asset,
+    CinematicMapBackdropPreviewModel? previewModel,
+  ) {
+    final builder = widget.onBuildBackdropTileRenderPlan;
+    if (builder == null ||
+        asset.stageContext?.backdropMode !=
+            CinematicStageBackdropMode.projectMap) {
+      return null;
+    }
+    final mapId = asset.mapId?.trim();
+    final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
+    return builder(
+      asset: asset,
+      mapData: mapData,
+      previewModel: previewModel,
     );
   }
 

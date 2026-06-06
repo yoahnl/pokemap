@@ -370,17 +370,17 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
       findsOneWidget,
     );
-    expect(find.text('Décor map statique'), findsOneWidget);
+    expect(find.text('Carte du projet (statique)'), findsOneWidget);
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('12 x 10 tuiles'), findsOneWidget);
-    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
+    expect(find.text('Décor seul'), findsWidgets);
     expect(
       find.byKey(
         const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
       ),
       findsOneWidget,
     );
-    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('3 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Library ground · 2 · tile'), findsOneWidget);
     expect(find.text('Library path · 1 · path'), findsOneWidget);

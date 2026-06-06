@@ -142,23 +142,39 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-85 — Cinematic Map Backdrop Visual Primitives V0 | DONE | Primitives visuelles pures derivees de `MapData` ajoutees au read model et rendues dans le Builder via mini painter editor-only : grille/cellules/ancres spatiales, fallback summary honnete, Visual Gate, tests core/editor/library et analyse ciblee verts, sans fake tile, runtime, Flame, playback, acteurs rendus, pathfinding/collision, donnees Selbrume ni image IA. |
 | NS-SCENES-V1-86 — Cinematic Map Backdrop Visual Composition Polish V0 | DONE | Polish de composition demande par Karim : preview backdrop plus lisible, viewport map agrandi et proportionnel, meta/legende compactes et secondaires, grille/primitives renforcees, timeline preservee, Visual Gate 1663x926, sans tiles/assets finaux, runtime, Flame, playback, acteurs rendus, collision/pathfinding, donnees Selbrume ni image IA. |
 | NS-SCENES-V1-87 — Cinematic Map Backdrop Real Tile Rendering Prep Contract | DONE | Lot documentaire demande par Karim : audit MapData/layers visuels, tilesets/assets, rendu Map Editor et anti-scope runtime/Flame ; Option E retenue, contrat futur renderer V1-88 defini, sans code produit, package, test, screenshot, renderer, map rendue, playback ni acteurs. |
-| NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0 | TODO | Afficher les vraies tiles/assets de la map dans la preview du Cinematic Builder via un renderer editor-only read-only, avec images resolues en amont, layer ordering defini, diagnostics/fallbacks visibles, sans runtime, Flame, playback ni acteurs rendus. |
+| NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0 | DONE | Renderer bitmap editor-only read-only pour la preview du Cinematic Builder : instructions tiles derivees de `MapData`, images tileset resolues en amont, painter dedie proportionnel, diagnostics/fallbacks, Visual Gate 1663x926, tests builder/library/core et analyse ciblee verts, sans runtime, Flame, playback, acteurs rendus, pathfinding, collision, mutation projet/map, donnees Selbrume ni image IA. |
 | NS-SCENES-V1-89 — Cinematic Actor Display Preview Prep Contract | TODO | Cadrer l'affichage statique futur des acteurs apres le vrai decor map : sources actor bindings/placements/Character Library, positions, apparences et diagnostics, sans rendu acteur actif, runtime, playback, pathfinding ou collision. |
 | NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur déplacé depuis V1-80 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage Character Library, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0`
+`NS-SCENES-V1-89 — Cinematic Actor Display Preview Prep Contract`
 
-Raison : V1-87 confirme que le decor reste structurel et que poser des acteurs dessus serait premature. Le prochain verrou recommande est donc de rendre les vraies tiles/assets de la map dans le Builder avec un renderer editor-only read-only, sans runtime, Flame, playback ni acteurs.
+Raison : V1-88 affiche maintenant un decor de map statique a partir de vraies tiles resolues cote editor. Le prochain verrou logique est de cadrer l'affichage statique futur des acteurs par-dessus ce decor, sans encore rendre d'acteur actif ni lancer de runtime/playback.
 
-Ordre apres V1-87 : `NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0`, puis `NS-SCENES-V1-89 — Cinematic Actor Display Preview Prep Contract`.
+Ordre apres V1-88 : `NS-SCENES-V1-89 — Cinematic Actor Display Preview Prep Contract`, puis `NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0` reste un backlog futur.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
 Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context. Le polish scroll/visibility a ensuite occupe le slot V1-80, mais V1-80 est maintenant reserve au Character Library Picker ; le polish scroll/visibility est donc deplace explicitement en `NS-SCENES-V1-90 — Cinematic Timeline Scroll / Visibility Polish V0`.
 
 Note : l'overview n'affiche plus `Facts — necessite un modele`; Facts et Regles du monde pointent maintenant vers des workspaces actifs.
+
+## Mise a jour V1-88
+
+Statut : `NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-88 et a demande explicitement d'utiliser des sub-agents/passes et Codex computer use pour tester via capture/screenshot. Le lot devait rendre les vraies tiles/assets de la map dans la preview Cinematic Builder avant tout Actor Display.
+
+Decision : le renderer reste dedie au Builder, editor-only et read-only. Les images sont resolues hors build/paint par un registre asset, le plan de rendu transforme les `TileLayer` visibles en instructions bitmap, puis un `CustomPainter` cinematic dessine les tiles proportionnellement dans le viewport V1-86.
+
+Scope realise : plan de rendu tiles, diagnostic/fallback asset, painter bitmap statique, integration Builder/Library par injection optionnelle, labels UX `Carte du projet (statique)` / `Tiles reelles affichees`, tests RED/GREEN/fallback/plan, Visual Gate 1663x926 et screenshot artefact.
+
+Preuve : rapports `ns_scenes_v1_88_cinematic_map_backdrop_real_tile_renderer_v0.md` et `ns_scenes_v1_88_evidence_pack.md`, screenshot `screenshots/ns_scenes_v1_88_cinematic_map_backdrop_real_tile_renderer_v0.png`, tests ciblés et `git diff --check`.
+
+Limites : l'integration automatique depuis le workspace parent n'est pas cablee dans ce lot parce que le prompt bornait les fichiers autorises ; V1-88 expose le contrat `BuildCinematicBackdropTileRenderPlanCallback` cote Library/Builder. Les placements visuels hors `TileLayer` restent au fallback structurel pour un lot futur.
+
+Prochain lot exact recommande : `NS-SCENES-V1-89 — Cinematic Actor Display Preview Prep Contract`.
 
 ## Mise a jour V1-87
 

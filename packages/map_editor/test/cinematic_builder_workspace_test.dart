@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
@@ -216,7 +218,7 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
       findsOneWidget,
     );
-    expect(find.text('Décor map statique'), findsOneWidget);
+    expect(find.text('Carte du projet (statique)'), findsOneWidget);
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('12 x 10 tuiles'), findsOneWidget);
     expect(
@@ -250,15 +252,16 @@ void main() {
     expect(mapViewportSize.shortestSide, greaterThanOrEqualTo(220));
     expect(mapViewportSize.aspectRatio, closeTo(12 / 10, 0.08));
     expect(legendSize.height, lessThan(mapViewportSize.height * 0.35));
-    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Ground · 4 · tile'), findsOneWidget);
     expect(find.text('Main path · 2 · path'), findsOneWidget);
     expect(find.text('Collision'), findsNothing);
     expect(find.text('Couche collision'), findsNothing);
     expect(find.text('Professor Oak'), findsNothing);
-    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
-    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Décor seul'), findsWidgets);
+    expect(find.text('Sans acteurs'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
 
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
@@ -273,6 +276,250 @@ void main() {
 
     expect(project.toJson(), before);
     expect(stageMapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('renders real tile map backdrop when tileset image is available',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    final before = project.toJson();
+    final asset = _asset(project, 'cinematic_stage_context');
+    final stageMapData = _stageMapDataWithBitmapTileLayer();
+    final beforeMapData = stageMapData.toJson();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 640,
+        height: 360,
+      ),
+    );
+    final bitmapProject = project.copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+    );
+    final tileRenderPlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: stageMapData,
+      manifest: bitmapProject,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropTileRenderPlan: tileRenderPlan,
+    );
+
+    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Décor seul'), findsWidgets);
+    expect(find.text('Sans acteurs'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Tiles réelles affichées'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      findsOneWidget,
+    );
+    expect(tileRenderPlan.instructions, hasLength(2));
+    expect(tileRenderPlan.instructions.first.tileId, 1);
+    expect(tileRenderPlan.instructions.last.tileId, 2);
+    expect(tileRenderPlan.instructions.first.sourceRect.left, 0);
+    expect(tileRenderPlan.instructions.last.sourceRect.left, 8);
+    expect(find.text('Aperçu spatial structurel'), findsNothing);
+    expect(find.text('Preview réelle à venir.'), findsNothing);
+    expect(find.text('Collision'), findsNothing);
+    expect(find.text('Gate bell'), findsNothing);
+    expect(find.text('Professor Oak'), findsNothing);
+
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      findsOneWidget,
+    );
+    expect(project.toJson(), before);
+    expect(stageMapData.toJson(), beforeMapData);
+  });
+
+  testWidgets(
+      'falls back to structural backdrop when tileset image is unavailable',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    final asset = _asset(project, 'cinematic_stage_context');
+    final stageMapData = _stageMapDataWithBitmapTileLayer();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 640,
+        height: 360,
+      ),
+    );
+    final tileRenderPlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: stageMapData,
+      manifest: project.copyWith(
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: 'lab_tiles',
+            name: 'Lab tiles',
+            relativePath: 'assets/tilesets/lab.png',
+          ),
+        ],
+        settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      ),
+      tilesets: const {},
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropTileRenderPlan: tileRenderPlan,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-visual-primitives'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Fallback structurel'), findsOneWidget);
+    expect(
+      find.text('Image de tileset indisponible pour lab_tiles.'),
+      findsOneWidget,
+    );
+    expect(find.text('Collision'), findsNothing);
+    expect(find.text('Gate bell'), findsNothing);
+    expect(find.text('Professor Oak'), findsNothing);
+  });
+
+  testWidgets('builds bitmap instructions only from visible tile layers',
+      (tester) async {
+    final tilesetImage = await _makeTestTilesetImage();
+    final manifest = _project().copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+    );
+    const mapData = MapData(
+      id: 'map_lab',
+      name: 'Lab map',
+      size: GridSize(width: 3, height: 1),
+      layers: [
+        MapLayer.tile(
+          id: 'visible',
+          name: 'Visible tiles',
+          tilesetId: 'lab_tiles',
+          tiles: [1, 0, 2],
+        ),
+        MapLayer.tile(
+          id: 'hidden',
+          name: 'Hidden tiles',
+          tilesetId: 'lab_tiles',
+          isVisible: false,
+          tiles: [1, 1, 1],
+        ),
+        MapLayer.tile(
+          id: 'semi',
+          name: 'Semi transparent tiles',
+          tilesetId: 'lab_tiles',
+          opacity: 0.5,
+          tiles: [0, 2, 0],
+        ),
+        MapLayer.tile(
+          id: 'transparent',
+          name: 'Transparent tiles',
+          tilesetId: 'lab_tiles',
+          opacity: 0,
+          tiles: [1, 1, 1],
+        ),
+        MapLayer.collision(
+          id: 'collision',
+          name: 'Collision',
+          collisions: [true, true, true],
+        ),
+        MapLayer.tile(
+          id: 'missing',
+          name: 'Missing tileset',
+          tilesetId: 'missing_tiles',
+          tiles: [1, 1, 1],
+        ),
+      ],
+    );
+
+    final plan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: mapData,
+      manifest: manifest,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    expect(plan.instructions, hasLength(3));
+    expect(plan.instructions.map((instruction) => instruction.layerId),
+        ['visible', 'visible', 'semi']);
+    expect(
+        plan.instructions.map((instruction) => instruction.tileId), [1, 2, 2]);
+    expect(plan.instructions.map((instruction) => instruction.opacity),
+        [1.0, 1.0, 0.5]);
+    expect(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      contains('missingTilesetEntry'),
+    );
+    expect(
+      plan.instructions
+          .any((instruction) => instruction.layerId == 'collision'),
+      isFalse,
+    );
   });
 
   testWidgets('shows human fallbacks for every non available backdrop status',
@@ -2264,7 +2511,7 @@ void main() {
     final project = _project(cinematics: [_stageContextCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
-    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Scène non jouée.'), findsWidgets);
     expect(find.text('Lecture read-only dans ce lot.'), findsWidgets);
     expect(find.text('Lecture en cours'), findsNothing);
   });
@@ -7917,7 +8164,7 @@ void main() {
     expect(find.text('Positions initiales'), findsWidgets);
     expect(find.text('Cibles de mouvement'), findsWidgets);
     expect(find.text('Timeline par pistes'), findsOneWidget);
-    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Scène non jouée.'), findsWidgets);
     expect(find.text('Lecture en cours'), findsNothing);
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
@@ -8252,8 +8499,8 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
       findsOneWidget,
     );
-    expect(find.text('Décor map statique'), findsOneWidget);
-    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
+    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Décor seul'), findsWidgets);
     expect(find.text('Timeline par pistes'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -8310,7 +8557,7 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Timeline par pistes'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
@@ -8368,7 +8615,7 @@ void main() {
       ),
     );
     expect(mapViewportSize.shortestSide, greaterThanOrEqualTo(220));
-    expect(find.text('Aperçu spatial structurel'), findsOneWidget);
+    expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('Timeline par pistes'), findsOneWidget);
@@ -8376,8 +8623,9 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
       findsOneWidget,
     );
-    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
-    expect(find.text('Preview réelle à venir.'), findsWidgets);
+    expect(find.text('Décor seul'), findsWidgets);
+    expect(find.text('Sans acteurs'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
     expect(find.text('Professor Oak'), findsNothing);
     expect(find.text('Collision'), findsNothing);
     expect(find.text('Couche collision'), findsNothing);
@@ -8406,6 +8654,91 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-88 cinematic map backdrop real tile renderer when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_88_CAPTURE_CINEMATIC_MAP_BACKDROP_REAL_TILE_RENDERER',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final tilesetImage = await _makeReferenceTilesetImage();
+    final project = _project(cinematics: [_stageContextCinematic()]);
+    final asset = _asset(project, 'cinematic_stage_context');
+    final stageMapData = _stageMapDataWithReferenceBitmapLayer();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 360,
+      ),
+    );
+    final bitmapProject = project.copyWith(
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+    );
+    final tileRenderPlan = buildCinematicMapBackdropTileRenderPlan(
+      mapData: stageMapData,
+      manifest: bitmapProject,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropTileRenderPlan: tileRenderPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Tiles réelles affichées'), findsWidgets);
+    expect(find.text('Décor seul'), findsWidgets);
+    expect(find.text('Sans acteurs'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Professor Oak'), findsNothing);
+    expect(find.text('Collision'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_88_cinematic_map_backdrop_real_tile_renderer_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -8416,6 +8749,7 @@ Future<void> _pumpBuilder(
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
+  CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
@@ -8445,6 +8779,7 @@ Future<void> _pumpBuilder(
                       ? _stageMapSourceCatalog()
                       : null),
               backdropPreviewModel: backdropPreviewModel,
+              backdropTileRenderPlan: backdropTileRenderPlan,
               onBackToLibrary: onBackToLibrary ?? () {},
               onAddDraftStep: ({
                 required String cinematicId,
@@ -9970,6 +10305,112 @@ MapData _stageMapDataWithVisualLayers() {
       ),
     ],
   );
+}
+
+MapData _stageMapDataWithBitmapTileLayer() {
+  return _stageMapData(
+    entities: const <MapEntity>[],
+    events: const <MapEventDefinition>[],
+  ).copyWith(
+    size: const GridSize(width: 2, height: 1),
+    layers: const [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Ground',
+        tilesetId: 'lab_tiles',
+        tiles: [1, 2],
+      ),
+      MapLayer.collision(
+        id: 'collision',
+        name: 'Collision',
+        collisions: [true, false],
+      ),
+    ],
+  );
+}
+
+MapData _stageMapDataWithReferenceBitmapLayer() {
+  final tiles = <int>[];
+  for (var y = 0; y < 10; y += 1) {
+    for (var x = 0; x < 12; x += 1) {
+      if (x < 2 || x > 9 || y == 0 || y == 9) {
+        tiles.add(3);
+      } else if ((x >= 4 && x <= 7) || (y >= 4 && y <= 5)) {
+        tiles.add(2);
+      } else if ((x + y) % 5 == 0) {
+        tiles.add(4);
+      } else {
+        tiles.add(1);
+      }
+    }
+  }
+  return _stageMapData(
+    entities: const <MapEntity>[],
+    events: const <MapEventDefinition>[],
+  ).copyWith(
+    size: const GridSize(width: 12, height: 10),
+    layers: [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Ground',
+        tilesetId: 'lab_tiles',
+        tiles: tiles,
+      ),
+      const MapLayer.collision(
+        id: 'collision',
+        name: 'Collision',
+        collisions: [true],
+      ),
+    ],
+  );
+}
+
+Future<ui.Image> _makeTestTilesetImage() {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas
+    ..drawRect(
+      const Rect.fromLTWH(0, 0, 8, 8),
+      Paint()..color = const Color(0xFFFF0000),
+    )
+    ..drawRect(
+      const Rect.fromLTWH(8, 0, 8, 8),
+      Paint()..color = const Color(0xFF00FF00),
+    );
+  final picture = recorder.endRecording();
+  return picture.toImage(16, 8);
+}
+
+Future<ui.Image> _makeReferenceTilesetImage() {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paints = [
+    Paint()..color = const Color(0xFF31424D),
+    Paint()..color = const Color(0xFF516571),
+    Paint()..color = const Color(0xFF1D4F73),
+    Paint()..color = const Color(0xFF6E5A2E),
+  ];
+  for (var index = 0; index < paints.length; index += 1) {
+    final x = (index % 2) * 8.0;
+    final y = (index ~/ 2) * 8.0;
+    canvas.drawRect(Rect.fromLTWH(x, y, 8, 8), paints[index]);
+    canvas.drawLine(
+      Offset(x, y + 7),
+      Offset(x + 8, y + 7),
+      Paint()
+        ..color = const Color(0x66232935)
+        ..strokeWidth = 1,
+    );
+    canvas.drawLine(
+      Offset(x + 7, y),
+      Offset(x + 7, y + 8),
+      Paint()
+        ..color = const Color(0x66232935)
+        ..strokeWidth = 1,
+    );
+  }
+  final picture = recorder.endRecording();
+  return picture.toImage(16, 16);
 }
 
 SceneAsset _sceneReferencing({
