@@ -482,9 +482,7 @@ class _BackdropMetaBar extends StatelessWidget {
         const _BackdropMetaPill(label: 'Décor seul'),
         const _BackdropMetaPill(label: 'Sans acteurs'),
         const _BackdropMetaPill(label: 'Sans lecture'),
-        if (bitmapPlan != null &&
-            !bitmapPlan!.hasBitmapInstructions &&
-            bitmapPlan!.diagnostics.isNotEmpty)
+        if (bitmapPlan != null && bitmapPlan!.diagnostics.isNotEmpty)
           _BackdropMetaPill(
             label: bitmapPlan!.diagnostics.first.message,
             tone: _toneForTileDiagnostic(

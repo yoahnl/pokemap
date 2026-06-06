@@ -442,6 +442,11 @@ void main() {
           name: 'Lab tiles',
           relativePath: 'assets/tilesets/lab.png',
         ),
+        ProjectTilesetEntry(
+          id: 'wide_tiles',
+          name: 'Wide tiles',
+          relativePath: 'assets/tilesets/wide.png',
+        ),
       ],
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
     );
@@ -488,6 +493,18 @@ void main() {
           tilesetId: 'missing_tiles',
           tiles: [1, 1, 1],
         ),
+        MapLayer.tile(
+          id: 'out_of_bounds',
+          name: 'Out of bounds tile',
+          tilesetId: 'lab_tiles',
+          tiles: [3, 0, 0],
+        ),
+        MapLayer.tile(
+          id: 'wide_metrics',
+          name: 'Wide metrics tile',
+          tilesetId: 'wide_tiles',
+          tiles: [1, 0, 0],
+        ),
       ],
     );
 
@@ -499,6 +516,12 @@ void main() {
           tilesetId: 'lab_tiles',
           image: tilesetImage,
           tileWidth: 8,
+          tileHeight: 8,
+        ),
+        'wide_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'wide_tiles',
+          image: tilesetImage,
+          tileWidth: 16,
           tileHeight: 8,
         ),
       },
@@ -514,6 +537,14 @@ void main() {
     expect(
       plan.diagnostics.map((diagnostic) => diagnostic.code),
       contains('missingTilesetEntry'),
+    );
+    expect(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      contains('sourceRectOutOfBounds'),
+    );
+    expect(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      contains('tileMetricMismatch'),
     );
     expect(
       plan.instructions

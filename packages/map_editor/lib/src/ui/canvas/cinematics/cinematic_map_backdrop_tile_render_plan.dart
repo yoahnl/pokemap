@@ -247,6 +247,18 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
       );
       continue;
     }
+    if (tileset.tileWidth != tileWidth || tileset.tileHeight != tileHeight) {
+      diagnostics.add(
+        CinematicMapBackdropTileDiagnostic(
+          code: 'tileMetricMismatch',
+          message: 'Métriques de tileset incompatibles pour $tilesetId.',
+          severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+          layerId: layer.id,
+          tilesetId: tilesetId,
+        ),
+      );
+      continue;
+    }
 
     final image = tileset.image!;
     for (var y = 0; y < mapData.size.height; y += 1) {
@@ -308,6 +320,15 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
   }
 
   instructions.sort((a, b) => a.zOrder.compareTo(b.zOrder));
+  if (instructions.isEmpty && diagnostics.isEmpty) {
+    diagnostics.add(
+      const CinematicMapBackdropTileDiagnostic(
+        code: 'noBitmapInstructions',
+        message: 'Aucune tuile bitmap à rendre.',
+        severity: CinematicMapBackdropTileDiagnosticSeverity.info,
+      ),
+    );
+  }
   return CinematicMapBackdropTileRenderPlan(
     mapWidth: mapData.size.width,
     mapHeight: mapData.size.height,

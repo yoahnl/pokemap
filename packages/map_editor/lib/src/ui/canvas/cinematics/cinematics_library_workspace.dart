@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import 'cinematic_builder_workspace.dart';
+import 'cinematic_map_backdrop_tile_plan_loader.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
@@ -200,6 +201,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpsertMovementTargetBinding,
     this.onLoadStageMapSnapshot,
     this.onBuildBackdropTileRenderPlan,
+    this.onResolveBackdropTilesetPath,
     this.onOpenLegacyCutsceneStudio,
     this.startExpanded = false,
   });
@@ -235,6 +237,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
   final BuildCinematicBackdropTileRenderPlanCallback?
       onBuildBackdropTileRenderPlan;
+  final ResolveCinematicBackdropTilesetPath? onResolveBackdropTilesetPath;
   final VoidCallback? onOpenLegacyCutsceneStudio;
 
   @override
@@ -248,6 +251,7 @@ class _CinematicsLibraryWorkspaceState
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
+  final _backdropTilePlanLoader = CinematicMapBackdropTilePlanLoader();
 
   _CinematicsLibraryFilter _filter = _CinematicsLibraryFilter.all;
   String? _selectedEntryId;
@@ -259,6 +263,9 @@ class _CinematicsLibraryWorkspaceState
   CinematicStageMapSourceCatalog? _stageMapSourceCatalog;
   MapData? _stageMapSnapshot;
   String? _stageMapSnapshotMapId;
+  CinematicMapBackdropTileRenderPlan? _backdropTileRenderPlan;
+  String? _backdropTileRenderPlanMapId;
+  String? _loadingBackdropTileRenderPlanMapId;
   int _stageMapSourceCatalogGeneration = 0;
 
   @override
@@ -267,6 +274,7 @@ class _CinematicsLibraryWorkspaceState
     _titleController.dispose();
     _descriptionController.dispose();
     _notesController.dispose();
+    _backdropTilePlanLoader.clear();
     super.dispose();
   }
 
@@ -332,6 +340,9 @@ class _CinematicsLibraryWorkspaceState
       _stageMapSourceCatalog = null;
       _stageMapSnapshot = null;
       _stageMapSnapshotMapId = null;
+      _backdropTileRenderPlan = null;
+      _backdropTileRenderPlanMapId = null;
+      _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
     }
 
@@ -393,6 +404,9 @@ class _CinematicsLibraryWorkspaceState
             _stageMapSourceCatalog = null;
             _stageMapSnapshot = null;
             _stageMapSnapshotMapId = null;
+            _backdropTileRenderPlan = null;
+            _backdropTileRenderPlanMapId = null;
+            _loadingBackdropTileRenderPlanMapId = null;
             _loadingStageMapSourceCatalogMapId = null;
             _stageMapSourceCatalogGeneration++;
           });
@@ -400,8 +414,24 @@ class _CinematicsLibraryWorkspaceState
       }
       return;
     }
-    if (_stageMapSourceCatalog?.stageMapId == mapId ||
-        _loadingStageMapSourceCatalogMapId == mapId) {
+    if (_stageMapSourceCatalog?.stageMapId == mapId) {
+      if (widget.onBuildBackdropTileRenderPlan == null &&
+          _stageMapSnapshotMapId == mapId &&
+          _backdropTileRenderPlanMapId != mapId &&
+          _loadingBackdropTileRenderPlanMapId != mapId) {
+        unawaited(
+          _loadBackdropTileRenderPlan(
+            asset: asset,
+            mapId: mapId,
+            mapData: _stageMapSnapshot,
+            previewModel: _buildBackdropPreviewModel(asset),
+            generation: _stageMapSourceCatalogGeneration,
+          ),
+        );
+      }
+      return;
+    }
+    if (_loadingStageMapSourceCatalogMapId == mapId) {
       return;
     }
 
@@ -415,12 +445,20 @@ class _CinematicsLibraryWorkspaceState
     _stageMapSourceCatalog = null;
     _stageMapSnapshot = null;
     _stageMapSnapshotMapId = mapId;
+    _backdropTileRenderPlan = null;
+    _backdropTileRenderPlanMapId = null;
+    _loadingBackdropTileRenderPlanMapId = null;
     unawaited(() async {
       final mapData = await loader(mapId);
       if (!mounted || generation != _stageMapSourceCatalogGeneration) {
         return;
       }
       final stageMap = _stageMapForId(widget.project.maps, mapId);
+      final previewModel = _buildBackdropPreviewModelFor(
+        asset: asset,
+        stageMap: stageMap,
+        mapData: mapData,
+      );
       setState(() {
         _stageMapSourceCatalog = buildCinematicStageMapSourceCatalog(
           stageMap: stageMap,
@@ -430,21 +468,25 @@ class _CinematicsLibraryWorkspaceState
         _stageMapSnapshotMapId = mapId;
         _loadingStageMapSourceCatalogMapId = null;
       });
+      await _loadBackdropTileRenderPlan(
+        asset: asset,
+        mapId: mapId,
+        mapData: mapData,
+        previewModel: previewModel,
+        generation: generation,
+      );
     }());
   }
 
-  CinematicMapBackdropPreviewModel? _buildBackdropPreviewModel(
-    CinematicAsset asset,
-  ) {
+  CinematicMapBackdropPreviewModel? _buildBackdropPreviewModelFor({
+    required CinematicAsset asset,
+    required ProjectMapEntry? stageMap,
+    required MapData? mapData,
+  }) {
     if (asset.stageContext?.backdropMode !=
         CinematicStageBackdropMode.projectMap) {
       return null;
     }
-    final mapId = asset.mapId?.trim();
-    final stageMap = mapId == null || mapId.isEmpty
-        ? null
-        : _stageMapForId(widget.project.maps, mapId);
-    final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
     return buildCinematicMapBackdropPreviewModel(
       asset: asset,
       stageMap: stageMap,
@@ -453,23 +495,80 @@ class _CinematicsLibraryWorkspaceState
     );
   }
 
+  CinematicMapBackdropPreviewModel? _buildBackdropPreviewModel(
+    CinematicAsset asset,
+  ) {
+    final mapId = asset.mapId?.trim();
+    final stageMap = mapId == null || mapId.isEmpty
+        ? null
+        : _stageMapForId(widget.project.maps, mapId);
+    final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
+    return _buildBackdropPreviewModelFor(
+      asset: asset,
+      stageMap: stageMap,
+      mapData: mapData,
+    );
+  }
+
+  Future<void> _loadBackdropTileRenderPlan({
+    required CinematicAsset asset,
+    required String mapId,
+    required MapData? mapData,
+    required CinematicMapBackdropPreviewModel? previewModel,
+    required int generation,
+  }) async {
+    final resolver = widget.onResolveBackdropTilesetPath;
+    if (resolver == null || mapData == null || previewModel == null) {
+      return;
+    }
+    if (_loadingBackdropTileRenderPlanMapId == mapId) {
+      return;
+    }
+    _loadingBackdropTileRenderPlanMapId = mapId;
+    final plan = await _backdropTilePlanLoader.load(
+      manifest: widget.project,
+      mapData: mapData,
+      previewModel: previewModel,
+      resolveTilesetPath: resolver,
+    );
+    if (!mounted) {
+      return;
+    }
+    if (generation != _stageMapSourceCatalogGeneration) {
+      if (_loadingBackdropTileRenderPlanMapId == mapId) {
+        _loadingBackdropTileRenderPlanMapId = null;
+      }
+      return;
+    }
+    setState(() {
+      _backdropTileRenderPlan = plan;
+      _backdropTileRenderPlanMapId = mapId;
+      _loadingBackdropTileRenderPlanMapId = null;
+    });
+  }
+
   CinematicMapBackdropTileRenderPlan? _buildBackdropTileRenderPlan(
     CinematicAsset asset,
     CinematicMapBackdropPreviewModel? previewModel,
   ) {
-    final builder = widget.onBuildBackdropTileRenderPlan;
-    if (builder == null ||
-        asset.stageContext?.backdropMode !=
-            CinematicStageBackdropMode.projectMap) {
+    if (asset.stageContext?.backdropMode !=
+        CinematicStageBackdropMode.projectMap) {
       return null;
     }
     final mapId = asset.mapId?.trim();
     final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
-    return builder(
-      asset: asset,
-      mapData: mapData,
-      previewModel: previewModel,
-    );
+    final builder = widget.onBuildBackdropTileRenderPlan;
+    if (builder != null) {
+      return builder(
+        asset: asset,
+        mapData: mapData,
+        previewModel: previewModel,
+      );
+    }
+    if (_backdropTileRenderPlanMapId == mapId) {
+      return _backdropTileRenderPlan;
+    }
+    return null;
   }
 
   void _closeBuilder() {
@@ -478,6 +577,9 @@ class _CinematicsLibraryWorkspaceState
       _stageMapSourceCatalog = null;
       _stageMapSnapshot = null;
       _stageMapSnapshotMapId = null;
+      _backdropTileRenderPlan = null;
+      _backdropTileRenderPlanMapId = null;
+      _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
       _stageMapSourceCatalogGeneration++;
     });
