@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
@@ -238,6 +239,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.groups,
     required this.characters,
     this.stageMapSourceCatalog,
+    this.backdropPreviewModel,
     this.startExpanded = false,
     required this.onBackToLibrary,
     required this.onAddDraftStep,
@@ -270,6 +272,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
+  final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final bool startExpanded;
   final VoidCallback onBackToLibrary;
   final AddCinematicDraftStepCallback onAddDraftStep;
@@ -378,6 +381,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                               child: _PreviewSandbox(
                                 entry: widget.entry,
                                 asset: widget.asset,
+                                backdropPreviewModel:
+                                    widget.backdropPreviewModel,
                                 selectedStep: selectedStep,
                                 selectedStepIndex: selectedStepIndex,
                                 timelineProbeTimeMs: _timelineProbeTimeMs,
@@ -1639,6 +1644,7 @@ class _PreviewSandbox extends StatelessWidget {
   const _PreviewSandbox({
     required this.entry,
     required this.asset,
+    this.backdropPreviewModel,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.timelineProbeTimeMs,
@@ -1646,6 +1652,7 @@ class _PreviewSandbox extends StatelessWidget {
 
   final CinematicsLibraryEntry entry;
   final CinematicAsset asset;
+  final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final int? timelineProbeTimeMs;
@@ -1661,6 +1668,38 @@ class _PreviewSandbox extends StatelessWidget {
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 260;
           final ultraCompact = constraints.maxHeight < 205;
+          final backdropPreviewModel = this.backdropPreviewModel;
+          if (backdropPreviewModel != null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: CinematicMapBackdropPreviewPanel(
+                    model: backdropPreviewModel,
+                    compact: compact,
+                  ),
+                ),
+                if (!ultraCompact) ...[
+                  SizedBox(height: compact ? 8 : 10),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      PokeMapBadge(
+                        label: '${entry.timeline.stepCount} step(s)',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      PokeMapBadge(
+                        label: _durationLabel(entry.timeline),
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            );
+          }
           return Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 520),

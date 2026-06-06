@@ -246,6 +246,8 @@ class _CinematicsLibraryWorkspaceState
   String? _feedback;
   String? _loadingStageMapSourceCatalogMapId;
   CinematicStageMapSourceCatalog? _stageMapSourceCatalog;
+  MapData? _stageMapSnapshot;
+  String? _stageMapSnapshotMapId;
   int _stageMapSourceCatalogGeneration = 0;
 
   @override
@@ -274,6 +276,7 @@ class _CinematicsLibraryWorkspaceState
         builderEntry.kind == CinematicsLibraryEntryKind.canonical &&
         builderAsset != null) {
       _ensureStageMapSourceCatalog(builderAsset);
+      final backdropPreviewModel = _buildBackdropPreviewModel(builderAsset);
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
@@ -281,10 +284,9 @@ class _CinematicsLibraryWorkspaceState
         groups: widget.project.groups,
         characters: widget.project.characters,
         stageMapSourceCatalog: _stageMapSourceCatalog,
+        backdropPreviewModel: backdropPreviewModel,
         startExpanded: widget.startExpanded,
-        onBackToLibrary: () {
-          setState(() => _builderEntryId = null);
-        },
+        onBackToLibrary: _closeBuilder,
         onAddDraftStep: widget.onAddTimelineDraft,
         onRemoveDraftStep: widget.onRemoveTimelineDraft,
         onAddBasicBlockStep: widget.onAddTimelineBasicBlock,
@@ -311,6 +313,10 @@ class _CinematicsLibraryWorkspaceState
     }
     if (_builderEntryId != null) {
       _builderEntryId = null;
+      _stageMapSourceCatalog = null;
+      _stageMapSnapshot = null;
+      _stageMapSnapshotMapId = null;
+      _loadingStageMapSourceCatalogMapId = null;
     }
 
     return Material(
@@ -360,6 +366,8 @@ class _CinematicsLibraryWorkspaceState
     final mapId = asset.mapId?.trim();
     if (mapId == null || mapId.isEmpty) {
       if (_stageMapSourceCatalog != null ||
+          _stageMapSnapshot != null ||
+          _stageMapSnapshotMapId != null ||
           _loadingStageMapSourceCatalogMapId != null) {
         scheduleMicrotask(() {
           if (!mounted) {
@@ -367,6 +375,8 @@ class _CinematicsLibraryWorkspaceState
           }
           setState(() {
             _stageMapSourceCatalog = null;
+            _stageMapSnapshot = null;
+            _stageMapSnapshotMapId = null;
             _loadingStageMapSourceCatalogMapId = null;
             _stageMapSourceCatalogGeneration++;
           });
@@ -386,6 +396,9 @@ class _CinematicsLibraryWorkspaceState
 
     final generation = ++_stageMapSourceCatalogGeneration;
     _loadingStageMapSourceCatalogMapId = mapId;
+    _stageMapSourceCatalog = null;
+    _stageMapSnapshot = null;
+    _stageMapSnapshotMapId = mapId;
     unawaited(() async {
       final mapData = await loader(mapId);
       if (!mounted || generation != _stageMapSourceCatalogGeneration) {
@@ -397,9 +410,42 @@ class _CinematicsLibraryWorkspaceState
           stageMap: stageMap,
           mapData: mapData,
         );
+        _stageMapSnapshot = mapData;
+        _stageMapSnapshotMapId = mapId;
         _loadingStageMapSourceCatalogMapId = null;
       });
     }());
+  }
+
+  CinematicMapBackdropPreviewModel? _buildBackdropPreviewModel(
+    CinematicAsset asset,
+  ) {
+    if (asset.stageContext?.backdropMode !=
+        CinematicStageBackdropMode.projectMap) {
+      return null;
+    }
+    final mapId = asset.mapId?.trim();
+    final stageMap = mapId == null || mapId.isEmpty
+        ? null
+        : _stageMapForId(widget.project.maps, mapId);
+    final mapData = _stageMapSnapshotMapId == mapId ? _stageMapSnapshot : null;
+    return buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: stageMap,
+      mapData: mapData,
+      availableTilesetIds: _availableTilesetIds(widget.project),
+    );
+  }
+
+  void _closeBuilder() {
+    setState(() {
+      _builderEntryId = null;
+      _stageMapSourceCatalog = null;
+      _stageMapSnapshot = null;
+      _stageMapSnapshotMapId = null;
+      _loadingStageMapSourceCatalogMapId = null;
+      _stageMapSourceCatalogGeneration++;
+    });
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -1556,6 +1602,17 @@ String _usageLabel(int count) {
     return '1 scène';
   }
   return '$count scènes';
+}
+
+Set<String>? _availableTilesetIds(ProjectManifest project) {
+  final ids = project.tilesets
+      .map((tileset) => tileset.id.trim())
+      .where((tilesetId) => tilesetId.isNotEmpty)
+      .toSet();
+  if (ids.isEmpty) {
+    return null;
+  }
+  return ids;
 }
 
 ProjectMapEntry? _stageMapForId(List<ProjectMapEntry> maps, String mapId) {

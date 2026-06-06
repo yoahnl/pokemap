@@ -321,6 +321,63 @@ void main() {
     );
   });
 
+  testWidgets('wires loaded stage map snapshot into static backdrop preview',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(
+          cinematics: [
+            CinematicAsset(
+              id: 'cinematic_backdrop_preview',
+              title: 'Backdrop preview cinematic',
+              mapId: 'map_lab',
+              stageContext: CinematicStageContext(
+                backdropMode: CinematicStageBackdropMode.projectMap,
+              ),
+              timeline: CinematicTimeline(
+                steps: [
+                  CinematicTimelineStep(
+                    id: 'step_wait',
+                    kind: CinematicTimelineStepKind.wait,
+                    label: 'Hold',
+                    durationMs: 500,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          includeBridge: false,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_backdrop_preview')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
+      findsOneWidget,
+    );
+    expect(find.text('Décor map statique'), findsOneWidget);
+    expect(find.text('Lab map'), findsWidgets);
+    expect(find.text('12 x 10 tuiles'), findsOneWidget);
+    expect(find.text('Aperçu structurel read-only'), findsOneWidget);
+    expect(find.text('Aucune couche visuelle lisible.'), findsOneWidget);
+    expect(find.text('Aperçu sandbox'), findsNothing);
+  });
+
   testWidgets('adds a draft from builder and refreshes library summary',
       (tester) async {
     _setLargeSurface(tester);
