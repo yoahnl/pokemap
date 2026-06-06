@@ -144,20 +144,37 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-87 — Cinematic Map Backdrop Real Tile Rendering Prep Contract | DONE | Lot documentaire demande par Karim : audit MapData/layers visuels, tilesets/assets, rendu Map Editor et anti-scope runtime/Flame ; Option E retenue, contrat futur renderer V1-88 defini, sans code produit, package, test, screenshot, renderer, map rendue, playback ni acteurs. |
 | NS-SCENES-V1-88 — Cinematic Map Backdrop Real Tile Renderer V0 | DONE | Renderer bitmap editor-only read-only pour la preview du Cinematic Builder : instructions tiles derivees de `MapData`, images tileset resolues en amont, painter dedie proportionnel, diagnostics/fallbacks, Visual Gate 1663x926, tests builder/library/core et analyse ciblee verts, sans runtime, Flame, playback, acteurs rendus, pathfinding, collision, mutation projet/map, donnees Selbrume ni image IA. |
 | NS-SCENES-V1-89 — Cinematic Map Backdrop Real Tile Renderer Integration / Fidelity Polish V0 | DONE | Integre le renderer bitmap V1-88 au vrai workspace editor : resolution tileset via parent/editor notifier, fallback structurel uniquement diagnostique, fidelity TileLayer durcie, Visual Gate 1663x926, sans acteurs/playback/runtime. |
-| NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract | TODO | Cadrer l'affichage statique futur des acteurs apres le vrai decor map : sources actor bindings/placements/Character Library, positions, apparences et diagnostics, sans rendu acteur actif, runtime, playback, pathfinding ou collision. |
-| NS-SCENES-V1-91 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur déplacé depuis V1-80 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le cadrage Character Library, en preservant les proportions de timeline demandees par Karim. |
+| NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract | DONE | Lot documentaire demande par Karim : audit actor sources/stage bindings, positions/placements, Character Library/appearances, overlay/viewport, anti-runtime/Flame et UX ; Option C retenue, contrat futur read model actor display, diagnostics/tests/Visual Gate V1-91 cadres, sans code produit, packages, tests, screenshot, rendu acteur, runtime, playback, pathfinding/collision ni donnee Selbrume. |
+| NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0 | TODO | Creer un read model pur des acteurs affichables dans la preview cinematic : acteurs, bindings, positions resolues ou manquantes, apparences, placeholders, diagnostics et summary, sans encore rendre les acteurs en UI. |
+| NS-SCENES-V1-92 — Cinematic Timeline Scroll / Visibility Polish V0 | TODO | Backlog futur déplacé depuis V1-80/V1-91 : polir le scroll automatique et la visibilite des blocs/selection/probe apres le read model Actor Display, en preservant les proportions de timeline demandees par Karim. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract`
+`NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0`
 
-Raison : V1-89 branche maintenant le renderer de vraies tiles au workspace editor et prouve la resolution d'assets depuis le parent. Le prochain verrou logique est de cadrer l'affichage statique futur des acteurs par-dessus ce decor, sans encore rendre d'acteur actif ni lancer de runtime/playback.
+Raison : V1-90 a tranche le contrat d'affichage statique futur des acteurs et retient un read model pur avant tout renderer. Le prochain verrou logique est de materialiser ce modele : inventaire acteurs, bindings, positions resolues ou manquantes, apparences, placeholders et diagnostics, sans encore dessiner d'acteur.
 
-Ordre apres V1-89 : `NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract`, puis `NS-SCENES-V1-91 — Cinematic Timeline Scroll / Visibility Polish V0` reste un backlog futur.
+Ordre apres V1-90 : `NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0`, puis `NS-SCENES-V1-92 — Cinematic Timeline Scroll / Visibility Polish V0` reste un backlog futur.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
-Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context. Le polish scroll/visibility a ensuite occupe le slot V1-80, mais V1-80 est maintenant reserve au Character Library Picker ; V1-90 est maintenant reserve a Actor Display Prep apres le lot V1-89 demande par Karim, donc le polish scroll/visibility est deplace explicitement en `NS-SCENES-V1-91 — Cinematic Timeline Scroll / Visibility Polish V0`.
+Le lot `NS-SCENES-V1-67 — Cinematic Timeline Scroll / Visibility Polish V0` precedemment recommande est remplace par `NS-SCENES-V1-67 — Cinematic Timeline Duration Editing / Resize Prep Contract`, puis deplace en backlog futur. Il etait stocke comme `NS-SCENES-V1-72 — Cinematic Timeline Scroll / Visibility Polish V0`; V1-72 devient maintenant le modele core Stage/Map Context. Le polish scroll/visibility a ensuite occupe le slot V1-80, mais V1-80 est maintenant reserve au Character Library Picker ; V1-90 est maintenant reserve a Actor Display Prep apres le lot V1-89 demande par Karim, puis V1-91 est pris par Actor Display Read Model. Le polish scroll/visibility est donc deplace explicitement en `NS-SCENES-V1-92 — Cinematic Timeline Scroll / Visibility Polish V0`.
+
+## Mise a jour V1-90
+
+Statut : `NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract` est DONE.
+
+Demande : Karim a fourni le prompt V1-90 et a demande explicitement des sub-agents/passes, sans coder l'affichage des acteurs. Le lot devait preparer l'affichage statique futur apres le decor reel V1-89, tout en confirmant que V1-90 ne rend toujours aucun acteur.
+
+Decision : l'Option C est retenue. Le futur actor display doit passer par un read model pur, idealement dans `map_core`, puis par un resolver editor pour les assets/sprites. Le Builder ne doit pas calculer directement toute la logique dans le widget, et le runtime/Flame/GameState sont exclus.
+
+Scope realise : audit actor sources/stage bindings, contrat positions/placements, contrat Character Library/appearances, contrat overlay/viewport transform, anti-scope runtime/playback, wording UX, diagnostics futurs, tests futurs et Visual Gate V1-91.
+
+Preuve : rapports `ns_scenes_v1_90_cinematic_actor_display_preview_prep_contract.md` et `ns_scenes_v1_90_evidence_pack.md`, sub-agents A-F, Gate 0 propre, checks anti-scope documentaires et `git diff --check`.
+
+Limites : lot documentaire uniquement. Aucun code produit, package, test, screenshot, rendu acteur, sprite Character Library, placeholder acteur, runtime, Flame, playback, pathfinding/collision, mutation MapData/ProjectManifest ou donnee Selbrume n'est ajoute.
+
+Prochain lot exact recommande : `NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0`.
 
 ## Mise a jour V1-89
 
