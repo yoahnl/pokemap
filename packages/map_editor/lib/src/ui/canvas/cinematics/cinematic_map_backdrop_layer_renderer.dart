@@ -12,14 +12,16 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
     required this.palette,
     this.passes,
     this.paintBackground = true,
-    this.paintGridAndBorder = true,
+    this.paintGrid = true,
+    this.paintBorder = true,
   });
 
   final CinematicMapBackdropLayerRenderPlan plan;
   final CinematicMapBackdropTileRenderPalette palette;
   final Set<CinematicMapBackdropRenderPass>? passes;
   final bool paintBackground;
-  final bool paintGridAndBorder;
+  final bool paintGrid;
+  final bool paintBorder;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -61,8 +63,10 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
       );
     }
 
-    if (paintGridAndBorder) {
+    if (paintGrid) {
       _paintGrid(canvas, size);
+    }
+    if (paintBorder) {
       canvas.drawRect(
         Offset.zero & size,
         Paint()
@@ -96,6 +100,7 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
         oldDelegate.palette != palette ||
         oldDelegate.passes != passes ||
         oldDelegate.paintBackground != paintBackground ||
-        oldDelegate.paintGridAndBorder != paintGridAndBorder;
+        oldDelegate.paintGrid != paintGrid ||
+        oldDelegate.paintBorder != paintBorder;
   }
 }

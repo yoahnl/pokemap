@@ -15,6 +15,9 @@ final class CinematicBackdropPreviewFramingState {
   const CinematicBackdropPreviewFramingState({
     this.mode = CinematicBackdropPreviewFramingMode.fitMap,
     this.zoom = 1,
+    this.panTiles = Offset.zero,
+    this.showDetails = false,
+    this.showGrid = false,
   });
 
   static const minZoom = 1.0;
@@ -23,16 +26,25 @@ final class CinematicBackdropPreviewFramingState {
 
   final CinematicBackdropPreviewFramingMode mode;
   final double zoom;
+  final Offset panTiles;
+  final bool showDetails;
+  final bool showGrid;
 
   double get clampedZoom => clampZoom(zoom);
 
   CinematicBackdropPreviewFramingState copyWith({
     CinematicBackdropPreviewFramingMode? mode,
     double? zoom,
+    Offset? panTiles,
+    bool? showDetails,
+    bool? showGrid,
   }) {
     return CinematicBackdropPreviewFramingState(
       mode: mode ?? this.mode,
       zoom: zoom ?? this.zoom,
+      panTiles: panTiles ?? this.panTiles,
+      showDetails: showDetails ?? this.showDetails,
+      showGrid: showGrid ?? this.showGrid,
     );
   }
 
@@ -62,12 +74,14 @@ final class CinematicBackdropPreviewFramingResult {
   const CinematicBackdropPreviewFramingResult({
     required this.mode,
     required this.zoom,
+    required this.panTiles,
     required this.focus,
     required this.transform,
   });
 
   final CinematicBackdropPreviewFramingMode mode;
   final double zoom;
+  final Offset panTiles;
   final CinematicBackdropPreviewFocus focus;
   final CinematicMapBackdropViewportTransform transform;
 }
@@ -137,6 +151,7 @@ CinematicBackdropPreviewFramingResult resolveCinematicBackdropPreviewFraming({
     return CinematicBackdropPreviewFramingResult(
       mode: state.mode,
       zoom: state.clampedZoom,
+      panTiles: Offset.zero,
       focus: focus,
       transform: CinematicMapBackdropViewportTransform(
         frame: Rect.zero,
@@ -155,6 +170,7 @@ CinematicBackdropPreviewFramingResult resolveCinematicBackdropPreviewFraming({
     return CinematicBackdropPreviewFramingResult(
       mode: CinematicBackdropPreviewFramingMode.fitMap,
       zoom: CinematicBackdropPreviewFramingState.minZoom,
+      panTiles: Offset.zero,
       focus: focus,
       transform: CinematicMapBackdropViewportTransform(
         frame: fitFrame,
@@ -182,9 +198,24 @@ CinematicBackdropPreviewFramingResult resolveCinematicBackdropPreviewFraming({
     focus.tileCenter.dx.clamp(0.0, mapWidth.toDouble()).toDouble(),
     focus.tileCenter.dy.clamp(0.0, mapHeight.toDouble()).toDouble(),
   );
+  final visibleTilesX = viewportSize.width / (tilePixelWidth * scale);
+  final visibleTilesY = viewportSize.height / (tilePixelHeight * scale);
+  final centerTile = Offset(
+    _clampCenterTile(
+      focusTile.dx + state.panTiles.dx,
+      visibleTilesX / 2,
+      mapWidth.toDouble(),
+    ),
+    _clampCenterTile(
+      focusTile.dy + state.panTiles.dy,
+      visibleTilesY / 2,
+      mapHeight.toDouble(),
+    ),
+  );
+  final clampedPanTiles = centerTile - focusTile;
   final focusPixel = Offset(
-    focusTile.dx * tilePixelWidth,
-    focusTile.dy * tilePixelHeight,
+    centerTile.dx * tilePixelWidth,
+    centerTile.dy * tilePixelHeight,
   );
   final desiredLeft = viewportSize.width / 2 - focusPixel.dx * scale;
   final desiredTop = viewportSize.height / 2 - focusPixel.dy * scale;
@@ -197,6 +228,7 @@ CinematicBackdropPreviewFramingResult resolveCinematicBackdropPreviewFraming({
   return CinematicBackdropPreviewFramingResult(
     mode: CinematicBackdropPreviewFramingMode.scene,
     zoom: state.clampedZoom,
+    panTiles: clampedPanTiles,
     focus: focus,
     transform: CinematicMapBackdropViewportTransform(
       frame: frame,
@@ -204,6 +236,19 @@ CinematicBackdropPreviewFramingResult resolveCinematicBackdropPreviewFraming({
       mapHeight: mapHeight,
     ),
   );
+}
+
+double _clampCenterTile(
+  double desired,
+  double halfVisibleTiles,
+  double mapExtent,
+) {
+  if (mapExtent <= 0 || halfVisibleTiles * 2 >= mapExtent) {
+    return mapExtent / 2;
+  }
+  return desired
+      .clamp(halfVisibleTiles, mapExtent - halfVisibleTiles)
+      .toDouble();
 }
 
 bool _hasResolvedActorTile(

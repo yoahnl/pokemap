@@ -25,6 +25,10 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.selectedStep,
     this.onFramingModeChanged,
     this.onFramingZoomChanged,
+    this.onFramingPanChanged,
+    this.onFramingResetView,
+    this.onFramingDetailsChanged,
+    this.onFramingGridChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -36,19 +40,27 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
   final ValueChanged<double>? onFramingZoomChanged;
+  final ValueChanged<Offset>? onFramingPanChanged;
+  final VoidCallback? onFramingResetView;
+  final ValueChanged<bool>? onFramingDetailsChanged;
+  final ValueChanged<bool>? onFramingGridChanged;
 
   @override
   Widget build(BuildContext context) {
+    final isSceneMode =
+        framingState.mode == CinematicBackdropPreviewFramingMode.scene;
     return Column(
       key: const ValueKey('cinematic-builder-map-backdrop-preview'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _BackdropHeader(
-          model: model,
-          actorDisplayPreviewModel: actorDisplayPreviewModel,
-          compact: compact,
-        ),
-        SizedBox(height: compact ? 8 : 12),
+        if (!isSceneMode) ...[
+          _BackdropHeader(
+            model: model,
+            actorDisplayPreviewModel: actorDisplayPreviewModel,
+            compact: compact,
+          ),
+          SizedBox(height: compact ? 8 : 12),
+        ],
         Expanded(
           child: model.isAvailable
               ? _BackdropMapFrame(
@@ -61,10 +73,14 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   selectedStep: selectedStep,
                   onFramingModeChanged: onFramingModeChanged,
                   onFramingZoomChanged: onFramingZoomChanged,
+                  onFramingPanChanged: onFramingPanChanged,
+                  onFramingResetView: onFramingResetView,
+                  onFramingDetailsChanged: onFramingDetailsChanged,
+                  onFramingGridChanged: onFramingGridChanged,
                 )
               : _BackdropFallback(model: model, compact: compact),
         ),
-        if (!compact) ...[
+        if (!compact && !isSceneMode) ...[
           const SizedBox(height: 10),
           _BackdropDiagnostics(
             model: model,
@@ -193,6 +209,10 @@ class _BackdropMapFrame extends StatelessWidget {
     this.selectedStep,
     this.onFramingModeChanged,
     this.onFramingZoomChanged,
+    this.onFramingPanChanged,
+    this.onFramingResetView,
+    this.onFramingDetailsChanged,
+    this.onFramingGridChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -204,6 +224,10 @@ class _BackdropMapFrame extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
   final ValueChanged<double>? onFramingZoomChanged;
+  final ValueChanged<Offset>? onFramingPanChanged;
+  final VoidCallback? onFramingResetView;
+  final ValueChanged<bool>? onFramingDetailsChanged;
+  final ValueChanged<bool>? onFramingGridChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +235,8 @@ class _BackdropMapFrame extends StatelessWidget {
     final spatialPrimitives = _spatialPrimitives(model.visualPrimitives);
     final layerBitmapPlan = layerRenderPlan;
     final bitmapPlan = tileRenderPlan;
+    final isSceneMode =
+        framingState.mode == CinematicBackdropPreviewFramingMode.scene;
     return DecoratedBox(
       decoration: BoxDecoration(
         color: colors.surfaceBase,
@@ -218,7 +244,11 @@ class _BackdropMapFrame extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Padding(
-        padding: EdgeInsets.all(compact ? 7 : 8),
+        padding: EdgeInsets.all(isSceneMode
+            ? 4
+            : compact
+                ? 7
+                : 8),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final effectiveCompact = compact || constraints.maxHeight < 220;
@@ -237,6 +267,10 @@ class _BackdropMapFrame extends StatelessWidget {
                           selectedStep: selectedStep,
                           onFramingModeChanged: onFramingModeChanged,
                           onFramingZoomChanged: onFramingZoomChanged,
+                          onFramingPanChanged: onFramingPanChanged,
+                          onFramingResetView: onFramingResetView,
+                          onFramingDetailsChanged: onFramingDetailsChanged,
+                          onFramingGridChanged: onFramingGridChanged,
                         )
                       : bitmapPlan != null && bitmapPlan.hasBitmapInstructions
                           ? _BackdropBitmapMap(
@@ -249,6 +283,10 @@ class _BackdropMapFrame extends StatelessWidget {
                               selectedStep: selectedStep,
                               onFramingModeChanged: onFramingModeChanged,
                               onFramingZoomChanged: onFramingZoomChanged,
+                              onFramingPanChanged: onFramingPanChanged,
+                              onFramingResetView: onFramingResetView,
+                              onFramingDetailsChanged: onFramingDetailsChanged,
+                              onFramingGridChanged: onFramingGridChanged,
                             )
                           : spatialPrimitives.isEmpty
                               ? DecoratedBox(
@@ -295,6 +333,10 @@ class _BackdropBitmapMap extends StatelessWidget {
     this.selectedStep,
     this.onFramingModeChanged,
     this.onFramingZoomChanged,
+    this.onFramingPanChanged,
+    this.onFramingResetView,
+    this.onFramingDetailsChanged,
+    this.onFramingGridChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -305,6 +347,10 @@ class _BackdropBitmapMap extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
   final ValueChanged<double>? onFramingZoomChanged;
+  final ValueChanged<Offset>? onFramingPanChanged;
+  final VoidCallback? onFramingResetView;
+  final ValueChanged<bool>? onFramingDetailsChanged;
+  final ValueChanged<bool>? onFramingGridChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -314,11 +360,13 @@ class _BackdropBitmapMap extends StatelessWidget {
       border: colors.controlBorder,
       grid: colors.borderSubtle,
     );
+    final isSceneMode =
+        framingState.mode == CinematicBackdropPreviewFramingMode.scene;
     return Column(
       key: const ValueKey('cinematic-builder-map-backdrop-bitmap'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!compact) ...[
+        if (!compact && !isSceneMode) ...[
           _BackdropMetaBar(
             model: model,
             primitiveCount: plan.instructions.length,
@@ -331,10 +379,33 @@ class _BackdropBitmapMap extends StatelessWidget {
         _BackdropFramingControls(
           state: framingState,
           compact: compact,
+          model: model,
+          primitiveCount: plan.instructions.length,
+          hasBitmapInstructions: plan.hasBitmapInstructions,
           onModeChanged: onFramingModeChanged,
           onZoomChanged: onFramingZoomChanged,
+          onResetView: onFramingResetView,
+          onDetailsChanged: onFramingDetailsChanged,
+          onGridChanged: onFramingGridChanged,
         ),
-        SizedBox(height: compact ? 6 : 8),
+        if (isSceneMode && framingState.showDetails) ...[
+          SizedBox(height: compact ? 5 : 6),
+          _BackdropDetailsPanel(
+            child: _BackdropMetaBar(
+              model: model,
+              primitiveCount: plan.instructions.length,
+              compact: true,
+              bitmapPlan: plan,
+              actorDisplayPreviewModel: actorDisplayPreviewModel,
+            ),
+          ),
+        ],
+        SizedBox(
+            height: isSceneMode
+                ? 3
+                : compact
+                    ? 6
+                    : 8),
         Expanded(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -343,7 +414,11 @@ class _BackdropBitmapMap extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Padding(
-              padding: EdgeInsets.all(compact ? 4 : 6),
+              padding: EdgeInsets.all(isSceneMode
+                  ? 3
+                  : compact
+                      ? 4
+                      : 6),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final focus = resolveCinematicBackdropPreviewFocus(
@@ -360,45 +435,71 @@ class _BackdropBitmapMap extends StatelessWidget {
                     state: framingState,
                     focus: focus,
                   );
-                  return RepaintBoundary(
-                    key: const ValueKey(
-                      'cinematic-builder-map-backdrop-bitmap-viewport',
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: ClipRect(
-                        child: Stack(
-                          clipBehavior: Clip.hardEdge,
-                          children: [
-                            Positioned.fromRect(
-                              rect: framing.transform.frame,
-                              child: SizedBox(
-                                key: const ValueKey(
-                                  'cinematic-builder-map-backdrop-map-frame',
-                                ),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    CustomPaint(
-                                      painter:
-                                          CinematicMapBackdropTileRenderPainter(
-                                        plan: plan,
-                                        palette: palette,
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanUpdate: isSceneMode && onFramingPanChanged != null
+                        ? (details) {
+                            onFramingPanChanged!(
+                              framing.panTiles +
+                                  _dragDeltaToPanTiles(
+                                    details.delta,
+                                    framing.transform.frame,
+                                    plan.mapWidth,
+                                    plan.mapHeight,
+                                  ),
+                            );
+                          }
+                        : null,
+                    child: RepaintBoundary(
+                      key: const ValueKey(
+                        'cinematic-builder-map-backdrop-bitmap-viewport',
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: ClipRect(
+                          child: Stack(
+                            clipBehavior: Clip.hardEdge,
+                            children: [
+                              Positioned.fromRect(
+                                rect: framing.transform.frame,
+                                child: SizedBox(
+                                  key: const ValueKey(
+                                    'cinematic-builder-map-backdrop-map-frame',
+                                  ),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      CustomPaint(
+                                        painter:
+                                            CinematicMapBackdropTileRenderPainter(
+                                          plan: plan,
+                                          palette: palette,
+                                          paintGrid: !isSceneMode ||
+                                              framingState.showGrid,
+                                        ),
+                                        child: const SizedBox.expand(),
                                       ),
-                                      child: const SizedBox.expand(),
-                                    ),
-                                    if (actorDisplayPreviewModel != null)
-                                      CinematicActorDisplayPreviewOverlay(
-                                        model: actorDisplayPreviewModel!,
-                                        mapWidth: plan.mapWidth,
-                                        mapHeight: plan.mapHeight,
-                                        compact: compact,
-                                      ),
-                                  ],
+                                      if (actorDisplayPreviewModel != null)
+                                        CinematicActorDisplayPreviewOverlay(
+                                          model: actorDisplayPreviewModel!,
+                                          mapWidth: plan.mapWidth,
+                                          mapHeight: plan.mapHeight,
+                                          compact: compact,
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                              if (isSceneMode)
+                                Positioned(
+                                  left: 8,
+                                  bottom: 8,
+                                  child: _BackdropPanBadge(
+                                    panTiles: framing.panTiles,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -423,6 +524,10 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     this.selectedStep,
     this.onFramingModeChanged,
     this.onFramingZoomChanged,
+    this.onFramingPanChanged,
+    this.onFramingResetView,
+    this.onFramingDetailsChanged,
+    this.onFramingGridChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -433,6 +538,10 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
   final ValueChanged<double>? onFramingZoomChanged;
+  final ValueChanged<Offset>? onFramingPanChanged;
+  final VoidCallback? onFramingResetView;
+  final ValueChanged<bool>? onFramingDetailsChanged;
+  final ValueChanged<bool>? onFramingGridChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -450,11 +559,13 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
       for (final pass in CinematicMapBackdropRenderPass.values)
         if (pass.paintsAfterActorOverlay) pass,
     };
+    final isSceneMode =
+        framingState.mode == CinematicBackdropPreviewFramingMode.scene;
     return Column(
       key: const ValueKey('cinematic-builder-map-backdrop-bitmap'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (!compact) ...[
+        if (!compact && !isSceneMode) ...[
           _BackdropMetaBar(
             model: model,
             primitiveCount: plan.instructions.length,
@@ -467,10 +578,33 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
         _BackdropFramingControls(
           state: framingState,
           compact: compact,
+          model: model,
+          primitiveCount: plan.instructions.length,
+          hasBitmapInstructions: plan.hasBitmapInstructions,
           onModeChanged: onFramingModeChanged,
           onZoomChanged: onFramingZoomChanged,
+          onResetView: onFramingResetView,
+          onDetailsChanged: onFramingDetailsChanged,
+          onGridChanged: onFramingGridChanged,
         ),
-        SizedBox(height: compact ? 6 : 8),
+        if (isSceneMode && framingState.showDetails) ...[
+          SizedBox(height: compact ? 5 : 6),
+          _BackdropDetailsPanel(
+            child: _BackdropMetaBar(
+              model: model,
+              primitiveCount: plan.instructions.length,
+              compact: true,
+              layerBitmapPlan: plan,
+              actorDisplayPreviewModel: actorDisplayPreviewModel,
+            ),
+          ),
+        ],
+        SizedBox(
+            height: isSceneMode
+                ? 3
+                : compact
+                    ? 6
+                    : 8),
         Expanded(
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -479,7 +613,11 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: Padding(
-              padding: EdgeInsets.all(compact ? 4 : 6),
+              padding: EdgeInsets.all(isSceneMode
+                  ? 3
+                  : compact
+                      ? 4
+                      : 6),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final focus = resolveCinematicBackdropPreviewFocus(
@@ -496,57 +634,85 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                     state: framingState,
                     focus: focus,
                   );
-                  return RepaintBoundary(
-                    key: const ValueKey(
-                      'cinematic-builder-map-backdrop-bitmap-viewport',
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: ClipRect(
-                        child: Stack(
-                          clipBehavior: Clip.hardEdge,
-                          children: [
-                            Positioned.fromRect(
-                              rect: framing.transform.frame,
-                              child: SizedBox(
-                                key: const ValueKey(
-                                  'cinematic-builder-map-backdrop-map-frame',
-                                ),
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    CustomPaint(
-                                      painter:
-                                          CinematicMapBackdropLayerRenderPainter(
-                                        plan: plan,
-                                        palette: palette,
-                                        passes: backgroundPasses,
-                                        paintGridAndBorder: false,
+                  return GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onPanUpdate: isSceneMode && onFramingPanChanged != null
+                        ? (details) {
+                            onFramingPanChanged!(
+                              framing.panTiles +
+                                  _dragDeltaToPanTiles(
+                                    details.delta,
+                                    framing.transform.frame,
+                                    plan.mapWidth,
+                                    plan.mapHeight,
+                                  ),
+                            );
+                          }
+                        : null,
+                    child: RepaintBoundary(
+                      key: const ValueKey(
+                        'cinematic-builder-map-backdrop-bitmap-viewport',
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: ClipRect(
+                          child: Stack(
+                            clipBehavior: Clip.hardEdge,
+                            children: [
+                              Positioned.fromRect(
+                                rect: framing.transform.frame,
+                                child: SizedBox(
+                                  key: const ValueKey(
+                                    'cinematic-builder-map-backdrop-map-frame',
+                                  ),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      CustomPaint(
+                                        painter:
+                                            CinematicMapBackdropLayerRenderPainter(
+                                          plan: plan,
+                                          palette: palette,
+                                          passes: backgroundPasses,
+                                          paintGrid: false,
+                                          paintBorder: false,
+                                        ),
+                                        child: const SizedBox.expand(),
                                       ),
-                                      child: const SizedBox.expand(),
-                                    ),
-                                    if (actorDisplayPreviewModel != null)
-                                      CinematicActorDisplayPreviewOverlay(
-                                        model: actorDisplayPreviewModel!,
-                                        mapWidth: plan.mapWidth,
-                                        mapHeight: plan.mapHeight,
-                                        compact: compact,
+                                      if (actorDisplayPreviewModel != null)
+                                        CinematicActorDisplayPreviewOverlay(
+                                          model: actorDisplayPreviewModel!,
+                                          mapWidth: plan.mapWidth,
+                                          mapHeight: plan.mapHeight,
+                                          compact: compact,
+                                        ),
+                                      CustomPaint(
+                                        painter:
+                                            CinematicMapBackdropLayerRenderPainter(
+                                          plan: plan,
+                                          palette: palette,
+                                          passes: foregroundPasses,
+                                          paintBackground: false,
+                                          paintGrid: !isSceneMode ||
+                                              framingState.showGrid,
+                                          paintBorder: true,
+                                        ),
+                                        child: const SizedBox.expand(),
                                       ),
-                                    CustomPaint(
-                                      painter:
-                                          CinematicMapBackdropLayerRenderPainter(
-                                        plan: plan,
-                                        palette: palette,
-                                        passes: foregroundPasses,
-                                        paintBackground: false,
-                                      ),
-                                      child: const SizedBox.expand(),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                              if (isSceneMode)
+                                Positioned(
+                                  left: 8,
+                                  bottom: 8,
+                                  child: _BackdropPanBadge(
+                                    panTiles: framing.panTiles,
+                                  ),
+                                ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -565,20 +731,33 @@ class _BackdropFramingControls extends StatelessWidget {
   const _BackdropFramingControls({
     required this.state,
     required this.compact,
+    required this.model,
+    required this.primitiveCount,
+    required this.hasBitmapInstructions,
     this.onModeChanged,
     this.onZoomChanged,
+    this.onResetView,
+    this.onDetailsChanged,
+    this.onGridChanged,
   });
 
   final CinematicBackdropPreviewFramingState state;
   final bool compact;
+  final CinematicMapBackdropPreviewModel model;
+  final int primitiveCount;
+  final bool hasBitmapInstructions;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onModeChanged;
   final ValueChanged<double>? onZoomChanged;
+  final VoidCallback? onResetView;
+  final ValueChanged<bool>? onDetailsChanged;
+  final ValueChanged<bool>? onGridChanged;
 
   @override
   Widget build(BuildContext context) {
     final isSceneMode = state.mode == CinematicBackdropPreviewFramingMode.scene;
     final zoom = state.clampedZoom;
     final canAdjustZoom = isSceneMode && onZoomChanged != null;
+    final canAdjustSceneOptions = isSceneMode;
     final buttonSize = compact ? 28.0 : 30.0;
     return Wrap(
       key: const ValueKey('cinematic-builder-map-backdrop-framing-controls'),
@@ -654,6 +833,14 @@ class _BackdropFramingControls extends StatelessWidget {
           icon: const Icon(CupertinoIcons.arrow_counterclockwise),
         ),
         PokeMapIconButton(
+          key: const ValueKey('cinematic-builder-map-backdrop-reset-view'),
+          tooltip: 'Recentrer la vue',
+          size: buttonSize,
+          variant: PokeMapIconButtonVariant.soft,
+          onPressed: canAdjustSceneOptions ? onResetView : null,
+          icon: const Icon(CupertinoIcons.scope),
+        ),
+        PokeMapIconButton(
           key: const ValueKey('cinematic-builder-map-backdrop-zoom-in'),
           tooltip: 'Zoom +',
           size: buttonSize,
@@ -677,7 +864,97 @@ class _BackdropFramingControls extends StatelessWidget {
               ? PokeMapBadgeVariant.info
               : PokeMapBadgeVariant.neutral,
         ),
+        PokeMapIconButton(
+          key: const ValueKey('cinematic-builder-map-backdrop-grid-toggle'),
+          tooltip: state.showGrid ? 'Masquer la grille' : 'Afficher la grille',
+          size: buttonSize,
+          variant: PokeMapIconButtonVariant.soft,
+          onPressed: canAdjustSceneOptions && onGridChanged != null
+              ? () => onGridChanged!(!state.showGrid)
+              : null,
+          icon: Icon(
+            state.showGrid ? CupertinoIcons.grid : CupertinoIcons.square,
+          ),
+        ),
+        PokeMapBadge(
+          label: isSceneMode && !state.showGrid
+              ? 'Grille masquée'
+              : 'Grille visible',
+          variant: isSceneMode && !state.showGrid
+              ? PokeMapBadgeVariant.neutral
+              : PokeMapBadgeVariant.info,
+        ),
+        PokeMapBadge(
+          label: hasBitmapInstructions
+              ? 'Décor disponible'
+              : 'Fallback structurel',
+          variant: hasBitmapInstructions
+              ? PokeMapBadgeVariant.success
+              : PokeMapBadgeVariant.warning,
+        ),
+        if (model.sizeSummary != null)
+          PokeMapBadge(
+            label: model.sizeSummary!,
+            variant: PokeMapBadgeVariant.neutral,
+          ),
+        PokeMapBadge(
+          label: '$primitiveCount couche(s)',
+          variant: PokeMapBadgeVariant.neutral,
+        ),
+        PokeMapIconButton(
+          key: const ValueKey('cinematic-builder-map-backdrop-details-toggle'),
+          tooltip: state.showDetails ? 'Masquer les détails' : 'Détails',
+          size: buttonSize,
+          variant: PokeMapIconButtonVariant.soft,
+          onPressed: onDetailsChanged == null
+              ? null
+              : () => onDetailsChanged!(!state.showDetails),
+          icon: Icon(
+            state.showDetails
+                ? CupertinoIcons.chevron_up
+                : CupertinoIcons.chevron_down,
+          ),
+        ),
       ],
+    );
+  }
+}
+
+class _BackdropDetailsPanel extends StatelessWidget {
+  const _BackdropDetailsPanel({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return DecoratedBox(
+      key: const ValueKey('cinematic-builder-map-backdrop-details'),
+      decoration: BoxDecoration(
+        color: colors.surfaceSubtle,
+        border: Border.all(color: colors.borderSubtle),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _BackdropPanBadge extends StatelessWidget {
+  const _BackdropPanBadge({required this.panTiles});
+
+  final Offset panTiles;
+
+  @override
+  Widget build(BuildContext context) {
+    final panX = panTiles.dx.abs() < 0.05 ? 0.0 : panTiles.dx;
+    final panY = panTiles.dy.abs() < 0.05 ? 0.0 : panTiles.dy;
+    return PokeMapBadge(
+      label: 'Pan ${panX.toStringAsFixed(1)}, ${panY.toStringAsFixed(1)}',
+      variant: PokeMapBadgeVariant.neutral,
     );
   }
 }
@@ -796,6 +1073,21 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
       ],
     );
   }
+}
+
+Offset _dragDeltaToPanTiles(
+  Offset delta,
+  Rect mapFrame,
+  int mapWidth,
+  int mapHeight,
+) {
+  if (mapFrame.width <= 0 || mapFrame.height <= 0) {
+    return Offset.zero;
+  }
+  return Offset(
+    -delta.dx * mapWidth / mapFrame.width,
+    -delta.dy * mapHeight / mapFrame.height,
+  );
 }
 
 class _BackdropPrimitiveCanvas extends StatelessWidget {

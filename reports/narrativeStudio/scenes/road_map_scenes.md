@@ -151,17 +151,32 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0 | DONE | Plan cinematic multi-layer editor-only/read-only ajoute au Builder/Library : terrain, paths, TileLayer background/foreground, surfaces, MapPlacedElement et generated placements environment resolus quand assets/donnees existent ; actor overlay V1-92 preserve entre passes background/foreground, diagnostics/fallbacks par famille, Visual Gate 1663x926, sans runtime, Flame, playback, MapCanvas complet, mutation projet/map ni sprites acteurs finaux. |
 | NS-SCENES-V1-94 bis — Cinematic Path Studio Water Fidelity Fix | DONE | Correctif demande par Karim avant V1-95 : les `PathLayer` qui referencent un preset de base Path Studio resolvent maintenant l'unique `ProjectPathPatternPreset.basePathPresetId`, ce qui restaure l'eau/motif Path Studio dans le backdrop cinematic ; tests Builder verts, sans runtime, Flame, playback, sprites acteurs ni Selbrume. |
 | NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0 | DONE | A la demande de Karim, la preview backdrop cinematic ajoute un cadrage editor-only local : mode Carte entiere preserve, mode Vue scene zoome, zoom/reset non persistants, focus acteur selectionne puis bbox acteurs puis centre map, transform partage backdrop/foreground/acteurs, eau Path Studio visible, Visual Gate, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
-| NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible V1-95 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
+| NS-SCENES-V1-95 bis — Cinematic Backdrop Preview Canvas UX Polish V0 | DONE | A la demande de Karim, la preview backdrop cinematic devient plus canvas-first : chrome secondaire replie en Vue scene, pan local drag + clamp + reset/recentrage non persistants, grille masquee par defaut avec toggle local, timeline/transports/inspector preserves, eau Path Studio et placeholders acteurs conserves, Visual Gate 1663x926, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
+| NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible V1-95 bis : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
 
 ## Prochain lot recommande
 
 `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
 
-Raison : V1-95 rend le decor cinematic lisible comme une scene cadree sans lancer la cinematique. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs, tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
+Raison : V1-95 bis rend le decor cinematic plus canvas-first sans lancer la cinematique. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs, tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
 
-Ordre apres V1-95 : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-96 est valide. Le polish timeline scroll/visibility reste un backlog futur.
+Ordre apres V1-95 bis : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-96 est valide. Le polish timeline scroll/visibility reste un backlog futur.
 
 Le lot `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` precedemment recommande est volontairement repousse en V1-96. Raison : les sprites acteurs viennent apres la fidelite map et le cadrage V1-95, afin d'eviter d'habiller les comediens avant d'avoir fini le decor et la loupe.
+
+## Mise a jour V1-95 bis
+
+Statut : `NS-SCENES-V1-95 bis — Cinematic Backdrop Preview Canvas UX Polish V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-95 bis pour que la preview backdrop respecte mieux les proportions attendues, avec moins de chrome et une timeline conservee.
+
+Decision : V1-95 bis reste editor-only. Le Builder garde les donnees cinematic intactes, ajoute un pan local borne en `Vue scene`, un reset/recentrage local, un toggle local de grille et replie les details secondaires pour laisser le canvas dominer.
+
+Preuve : tests Builder ciblés et suite complete verts, suite Library verte, tests `map_core` cinematic verts, analyse cible editor verte, `dart analyze` map_core vert, Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_95_bis_cinematic_backdrop_preview_canvas_ux_polish_v0.png`.
+
+Limites : V1-95 bis ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final, aucune persistence pan/zoom/grille/details, aucune mutation projet/map.
+
+Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-95
 

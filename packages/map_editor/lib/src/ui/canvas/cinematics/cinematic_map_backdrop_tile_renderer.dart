@@ -21,10 +21,14 @@ class CinematicMapBackdropTileRenderPainter extends CustomPainter {
   const CinematicMapBackdropTileRenderPainter({
     required this.plan,
     required this.palette,
+    this.paintGrid = true,
+    this.paintBorder = true,
   });
 
   final CinematicMapBackdropTileRenderPlan plan;
   final CinematicMapBackdropTileRenderPalette palette;
+  final bool paintGrid;
+  final bool paintBorder;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -70,14 +74,18 @@ class CinematicMapBackdropTileRenderPainter extends CustomPainter {
       );
     }
 
-    _paintGrid(canvas, frame);
-    canvas.drawRect(
-      frame.deflate(0.5),
-      Paint()
-        ..color = palette.border
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.2,
-    );
+    if (paintGrid) {
+      _paintGrid(canvas, frame);
+    }
+    if (paintBorder) {
+      canvas.drawRect(
+        frame.deflate(0.5),
+        Paint()
+          ..color = palette.border
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2,
+      );
+    }
     canvas.restore();
   }
 
@@ -123,6 +131,9 @@ class CinematicMapBackdropTileRenderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(CinematicMapBackdropTileRenderPainter oldDelegate) {
-    return oldDelegate.plan != plan || oldDelegate.palette != palette;
+    return oldDelegate.plan != plan ||
+        oldDelegate.palette != palette ||
+        oldDelegate.paintGrid != paintGrid ||
+        oldDelegate.paintBorder != paintBorder;
   }
 }

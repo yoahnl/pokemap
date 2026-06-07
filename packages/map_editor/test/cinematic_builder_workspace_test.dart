@@ -1060,6 +1060,356 @@ void main() {
   });
 
   testWidgets(
+      'renders a larger canvas-first scene preview with compact backdrop chrome',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final viewportSize = tester.getSize(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+    );
+    expect(viewportSize.height, greaterThanOrEqualTo(300));
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-details')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-details-toggle'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Carte entière'), findsOneWidget);
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    for (final key in const [
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(find.byKey(ValueKey(key)));
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets(
+      'expands and collapses backdrop details without mutating the project',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final detailsToggle = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-details-toggle'),
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-details')),
+      findsNothing,
+    );
+
+    await tester.tap(detailsToggle);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-details')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('55 x 55'), findsWidgets);
+
+    await tester.tap(detailsToggle);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-details')),
+      findsNothing,
+    );
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('pans the scene view locally by dragging the backdrop viewport',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+
+    final viewportFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+    );
+    final frameFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-map-frame'),
+    );
+    final beforeFrame = tester.getRect(frameFinder);
+
+    await tester.drag(viewportFinder, const Offset(-120, -80));
+    await tester.pumpAndSettle();
+
+    final afterFrame = tester.getRect(frameFinder);
+    expect(afterFrame.left, isNot(closeTo(beforeFrame.left, 0.5)));
+    expect(afterFrame.top, isNot(closeTo(beforeFrame.top, 0.5)));
+    expect(find.textContaining('Pan'), findsOneWidget);
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
+  });
+
+  test('clamps scene view pan in tile units', () {
+    final result = resolveCinematicBackdropPreviewFraming(
+      viewportSize: const Size(400, 300),
+      mapPixelSize: const Size(440, 440),
+      mapWidth: 55,
+      mapHeight: 55,
+      state: const CinematicBackdropPreviewFramingState(
+        mode: CinematicBackdropPreviewFramingMode.scene,
+        zoom: 2,
+        panTiles: Offset(1000, -1000),
+      ),
+      focus: const CinematicBackdropPreviewFocus(
+        tileCenter: Offset(27.5, 27.5),
+        reason: 'test clamp',
+      ),
+    );
+
+    expect(result.panTiles.dx, lessThan(1000));
+    expect(result.panTiles.dy, greaterThan(-1000));
+    expect(result.transform.frame.left, lessThanOrEqualTo(0));
+    expect(result.transform.frame.top, lessThanOrEqualTo(0));
+    expect(result.transform.frame.right, greaterThanOrEqualTo(400));
+    expect(result.transform.frame.bottom, greaterThanOrEqualTo(300));
+  });
+
+  testWidgets('resets scene view pan and zoom without mutating cinematic data',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final frameFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-map-frame'),
+    );
+    final sceneFrame = tester.getRect(frameFinder);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zoom 1.25×'), findsOneWidget);
+    expect(
+        tester.getRect(frameFinder).left, isNot(closeTo(sceneFrame.left, 1)));
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-reset-view')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zoom 1.00×'), findsOneWidget);
+    final resetFrame = tester.getRect(frameFinder);
+    expect(resetFrame.left, closeTo(sceneFrame.left, 1));
+    expect(resetFrame.top, closeTo(sceneFrame.top, 1));
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('keeps actor placeholders aligned after scene framing pan',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(cinematics: [asset]).copyWith(
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+    );
+    final stageMapData = _stageMapDataWithActorDisplayFixtures();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+    );
+    final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: stageMapData,
+      manifest: project,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: layerPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-100, -60),
+    );
+    await tester.pumpAndSettle();
+
+    final mapFrameRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-map-frame')),
+    );
+    final actorRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+      ),
+    );
+    final expectedAnchor = Offset(
+      mapFrameRect.left + (8.5 * mapFrameRect.width / 12),
+      mapFrameRect.top + (4 * mapFrameRect.height / 10),
+    );
+    expect(actorRect.center.dx, closeTo(expectedAnchor.dx, 1));
+    expect(actorRect.bottom, closeTo(expectedAnchor.dy, 1));
+  });
+
+  testWidgets(
+      'keeps grid hidden by default in scene view and toggles it locally',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grille masquée'), findsOneWidget);
+    expect(find.text('Grille visible'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-grid-toggle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Grille visible'), findsOneWidget);
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets(
       'renders extended cinematic map backdrop with terrain path surface and placed elements',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -10110,6 +10460,76 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_95_cinematic_backdrop_preview_framing_zoom_controls_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-95-bis cinematic backdrop canvas ux polish visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_95_BIS_CAPTURE_CINEMATIC_BACKDROP_CANVAS_UX',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(find.text('Zoom 1.25×'), findsOneWidget);
+    expect(find.text('Grille masquée'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-details')),
+      findsNothing,
+    );
+    expect(find.textContaining('Pan'), findsOneWidget);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_95_bis_cinematic_backdrop_preview_canvas_ux_polish_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

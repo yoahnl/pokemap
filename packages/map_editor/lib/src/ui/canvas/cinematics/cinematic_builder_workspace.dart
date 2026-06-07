@@ -409,6 +409,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     _backdropFramingState =
                                         _backdropFramingState.copyWith(
                                       mode: mode,
+                                      panTiles: Offset.zero,
                                     );
                                   });
                                 },
@@ -417,6 +418,40 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     _backdropFramingState =
                                         _backdropFramingState.copyWith(
                                       zoom: zoom,
+                                    );
+                                  });
+                                },
+                                onBackdropFramingPanChanged: (panTiles) {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      panTiles: panTiles,
+                                    );
+                                  });
+                                },
+                                onBackdropFramingResetView: () {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      zoom: CinematicBackdropPreviewFramingState
+                                          .minZoom,
+                                      panTiles: Offset.zero,
+                                    );
+                                  });
+                                },
+                                onBackdropFramingDetailsChanged: (showDetails) {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      showDetails: showDetails,
+                                    );
+                                  });
+                                },
+                                onBackdropFramingGridChanged: (showGrid) {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      showGrid: showGrid,
                                     );
                                   });
                                 },
@@ -1688,6 +1723,10 @@ class _PreviewSandbox extends StatelessWidget {
     required this.backdropFramingState,
     required this.onBackdropFramingModeChanged,
     required this.onBackdropFramingZoomChanged,
+    required this.onBackdropFramingPanChanged,
+    required this.onBackdropFramingResetView,
+    required this.onBackdropFramingDetailsChanged,
+    required this.onBackdropFramingGridChanged,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.timelineProbeTimeMs,
@@ -1703,6 +1742,10 @@ class _PreviewSandbox extends StatelessWidget {
   final ValueChanged<CinematicBackdropPreviewFramingMode>
       onBackdropFramingModeChanged;
   final ValueChanged<double> onBackdropFramingZoomChanged;
+  final ValueChanged<Offset> onBackdropFramingPanChanged;
+  final VoidCallback onBackdropFramingResetView;
+  final ValueChanged<bool> onBackdropFramingDetailsChanged;
+  final ValueChanged<bool> onBackdropFramingGridChanged;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final int? timelineProbeTimeMs;
@@ -1713,7 +1756,7 @@ class _PreviewSandbox extends StatelessWidget {
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-preview-placeholder'),
       expandChild: true,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(backdropPreviewModel != null ? 8 : 12),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 260;
@@ -1729,6 +1772,10 @@ class _PreviewSandbox extends StatelessWidget {
               selectedStep: selectedStep,
               onFramingModeChanged: onBackdropFramingModeChanged,
               onFramingZoomChanged: onBackdropFramingZoomChanged,
+              onFramingPanChanged: onBackdropFramingPanChanged,
+              onFramingResetView: onBackdropFramingResetView,
+              onFramingDetailsChanged: onBackdropFramingDetailsChanged,
+              onFramingGridChanged: onBackdropFramingGridChanged,
             );
           }
           final ultraCompact = constraints.maxHeight < 205;
@@ -1828,11 +1875,11 @@ const _builderPreviewMaxHeight = 420.0;
 const _builderTimelineMinHeight = 500.0;
 const _builderTimelineMaxHeight = 680.0;
 const _builderTimelinePreferredShare = 0.62;
-const _builderBackdropPreviewMinHeight = 400.0;
-const _builderBackdropPreviewMaxHeight = 450.0;
-const _builderBackdropTimelineMinHeight = 420.0;
-const _builderBackdropTimelineMaxHeight = 620.0;
-const _builderBackdropTimelinePreferredShare = 0.52;
+const _builderBackdropPreviewMinHeight = 450.0;
+const _builderBackdropPreviewMaxHeight = 560.0;
+const _builderBackdropTimelineMinHeight = 320.0;
+const _builderBackdropTimelineMaxHeight = 520.0;
+const _builderBackdropTimelinePreferredShare = 0.40;
 
 double _builderTimelineHeight(
   double availableHeight, {
