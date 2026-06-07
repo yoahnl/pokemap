@@ -119,9 +119,44 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
     });
 
-    final double expandedWidth = 344.0;
-    final double currentSidebarWidth =
-        _leftSidebarVisible ? expandedWidth : 52.0;
+    ref.listen(editorShellSnapshotProvider.select((s) => s.workspaceMode),
+        (prev, next) {
+      final wasNarrative = prev != null && switch (prev) {
+        EditorWorkspaceMode.narrativeOverview ||
+        EditorWorkspaceMode.globalStory ||
+        EditorWorkspaceMode.scenes ||
+        EditorWorkspaceMode.step ||
+        EditorWorkspaceMode.cutscene ||
+        EditorWorkspaceMode.dialogue ||
+        EditorWorkspaceMode.facts ||
+        EditorWorkspaceMode.worldRules =>
+          true,
+        _ => false,
+      };
+      final isNarrative = switch (next) {
+        EditorWorkspaceMode.narrativeOverview ||
+        EditorWorkspaceMode.globalStory ||
+        EditorWorkspaceMode.scenes ||
+        EditorWorkspaceMode.step ||
+        EditorWorkspaceMode.cutscene ||
+        EditorWorkspaceMode.dialogue ||
+        EditorWorkspaceMode.facts ||
+        EditorWorkspaceMode.worldRules =>
+          true,
+        _ => false,
+      };
+      if (isNarrative && (prev == null || !wasNarrative)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _leftSidebarVisible = false;
+            });
+          }
+        });
+      }
+    });
+
+    const double expandedWidth = 344.0;
 
     return Shortcuts(
       shortcuts: const <ShortcutActivator, Intent>{
@@ -242,375 +277,381 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                               Expanded(
                                 child: MacosWindow(
                                   backgroundColor: PokeMapLegacyColors.transparent,
-                                  child: MacosScaffold(
-                                    backgroundColor: const Color(0x00000000),
-                                    toolBar: buildMapEditorToolbar(
-                                      context,
-                                      ref,
-                                      onToggleRightPanel: () {
-                                        setState(() {
-                                          _rightInspectorVisible =
-                                              !_rightInspectorVisible;
-                                        });
-                                      },
-                                      rightPanelVisible: _rightInspectorVisible,
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween<double>(
+                                      begin: _leftSidebarVisible ? expandedWidth : 52.0,
+                                      end: _leftSidebarVisible ? expandedWidth : 52.0,
                                     ),
-                                    children: [
-                                      ResizablePane.noScrollBar(
-                                        key: ValueKey<String>(
-                                          'left_sidebar_pane_${_leftSidebarVisible ? 'expanded' : 'reduced'}',
+                                    duration: const Duration(milliseconds: 150),
+                                    curve: Curves.easeInOutCubic,
+                                    builder: (context, animWidth, child) {
+                                      return MacosScaffold(
+                                        backgroundColor: const Color(0x00000000),
+                                        toolBar: buildMapEditorToolbar(
+                                          context,
+                                          ref,
+                                          onToggleRightPanel: () {
+                                            setState(() {
+                                              _rightInspectorVisible =
+                                                  !_rightInspectorVisible;
+                                            });
+                                          },
+                                          rightPanelVisible: _rightInspectorVisible,
                                         ),
-                                        resizableSide: ResizableSide.right,
-                                        minSize: currentSidebarWidth,
-                                        maxSize: currentSidebarWidth,
-                                        startSize: currentSidebarWidth,
-                                        decoration: BoxDecoration(
-                                          color: context
-                                              .pokeMapColors.backgroundShell,
-                                        ),
-                                        child: KeyedSubtree(
-                                          key: const ValueKey<String>(
-                                            'project-explorer-region',
-                                          ),
-                                          child: OverflowBox(
-                                            minWidth: 52,
-                                            maxWidth: isNarrativeWorkspace
-                                                ? 460
-                                                : 520,
-                                            alignment: Alignment.topLeft,
-                                            child: SizedBox(
-                                              width: currentSidebarWidth,
-                                              child: Stack(
-                                                children: [
-                                                  Positioned.fill(
-                                                    child: AnimatedOpacity(
-                                                      key: const ValueKey<
-                                                          String>(
-                                                        'project-explorer-expanded-state',
-                                                      ),
-                                                      duration: const Duration(
-                                                        milliseconds: 180,
-                                                      ),
-                                                      opacity:
-                                                          _leftSidebarVisible
-                                                              ? 1.0
-                                                              : 0.0,
-                                                      child: IgnorePointer(
-                                                        ignoring:
-                                                            !_leftSidebarVisible,
-                                                        child:
-                                                            _leftSidebarVisible
-                                                                ? KeyedSubtree(
-                                                                    key: const ValueKey<
-                                                                        String>(
-                                                                      'project-explorer-expanded',
-                                                                    ),
-                                                                    child:
-                                                                        Padding(
-                                                                      padding:
-                                                                          const EdgeInsets
-                                                                              .fromLTRB(
-                                                                        16,
-                                                                        18,
-                                                                        12,
-                                                                        18,
-                                                                      ),
-                                                                      child:
-                                                                          ProjectExplorerPanel(
-                                                                        onCollapse:
-                                                                            () {
-                                                                          setState(
-                                                                              () {
-                                                                            _leftSidebarVisible =
-                                                                                false;
-                                                                          });
-                                                                        },
-                                                                      ),
-                                                                    ),
-                                                                  )
-                                                                : const SizedBox
-                                                                    .shrink(),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Positioned(
-                                                    left: 0,
-                                                    right: 0,
-                                                    top: 14,
-                                                    child: AnimatedOpacity(
-                                                      key: const ValueKey<
-                                                          String>(
-                                                        'project-explorer-reduced-state',
-                                                      ),
-                                                      duration: const Duration(
-                                                        milliseconds: 180,
-                                                      ),
-                                                      opacity:
-                                                          !_leftSidebarVisible
-                                                              ? 1.0
-                                                              : 0.0,
-                                                      child: IgnorePointer(
-                                                        ignoring:
-                                                            _leftSidebarVisible,
-                                                        child:
-                                                            !_leftSidebarVisible
-                                                                ? KeyedSubtree(
-                                                                    key: const ValueKey<
-                                                                        String>(
-                                                                      'project-explorer-reduced',
-                                                                    ),
-                                                                    child:
-                                                                        Column(
-                                                                      children: [
-                                                                        _CollapsedExpandButton(
-                                                                          key: const ValueKey<
-                                                                              String>(
-                                                                            'project-explorer-reopen-toggle',
-                                                                          ),
-                                                                          onTap:
-                                                                              () {
-                                                                            setState(() {
-                                                                              _leftSidebarVisible = true;
-                                                                            });
-                                                                          },
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  )
-                                                                : const SizedBox
-                                                                    .shrink(),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
+                                        children: [
+                                          ResizablePane.noScrollBar(
+                                            key: const ValueKey<String>(
+                                              'left_sidebar_pane_animated',
+                                            ),
+                                            resizableSide: ResizableSide.right,
+                                            minSize: animWidth,
+                                            maxSize: animWidth,
+                                            startSize: animWidth,
+                                            decoration: BoxDecoration(
+                                              color: context
+                                                  .pokeMapColors.backgroundShell,
+                                            ),
+                                            child: KeyedSubtree(
+                                              key: const ValueKey<String>(
+                                                'project-explorer-region',
                                               ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                      ContentArea(
-                                        builder: (context, scrollController) {
-                                          return Padding(
-                                            padding: EdgeInsets.fromLTRB(
-                                              isNarrativeWorkspace ? 10 : 18,
-                                              isNarrativeWorkspace ? 12 : 18,
-                                              isNarrativeWorkspace ? 10 : 18,
-                                              isNarrativeWorkspace ? 6 : 8,
-                                            ),
-                                            child: EditorIsland(
-                                              radius: 36,
-                                              tint: EditorChrome.islandCoolTint,
-                                              child: Padding(
-                                                padding: EdgeInsets.fromLTRB(
-                                                  isNarrativeWorkspace
-                                                      ? 12
-                                                      : 18,
-                                                  isNarrativeWorkspace
-                                                      ? 12
-                                                      : 18,
-                                                  isNarrativeWorkspace
-                                                      ? 12
-                                                      : 18,
-                                                  isNarrativeWorkspace
-                                                      ? 10
-                                                      : 16,
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment
-                                                          .stretch,
-                                                  children: [
-                                                    if (!isNarrativeWorkspace) ...[
-                                                      _WorkspaceStageHeader(
-                                                        title: shell
-                                                            .workspaceTitle,
-                                                        subtitle: shell
-                                                            .workspaceSubtitle,
-                                                        workspaceMode:
-                                                            workspaceMode,
-                                                        rightPanelVisible:
-                                                            _rightInspectorVisible,
-                                                        showRightPanelToggle:
-                                                            supportsRightInspector,
-                                                        onToggleRightPanel: () {
-                                                          setState(() {
-                                                            _rightInspectorVisible =
-                                                                !_rightInspectorVisible;
-                                                          });
-                                                        },
-                                                      ),
-                                                      const SizedBox(
-                                                          height: 18),
-                                                    ],
-                                                    Expanded(
-                                                      child: workspaceMode ==
-                                                                  EditorWorkspaceMode
-                                                                      .map &&
-                                                              activeMap != null
-                                                          ? Container(
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: colors
-                                                                    .backgroundApp,
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            20),
-                                                                border:
-                                                                    Border.all(
-                                                                  color: colors
-                                                                      .borderSubtle,
-                                                                  width: 1.5,
+                                              child: OverflowBox(
+                                                minWidth: 52,
+                                                maxWidth: isNarrativeWorkspace
+                                                    ? 460
+                                                    : 520,
+                                                alignment: Alignment.topLeft,
+                                                child: SizedBox(
+                                                  width: animWidth,
+                                                  child: Stack(
+                                                    clipBehavior: Clip.hardEdge,
+                                                    children: [
+                                                      Positioned(
+                                                        left: 0,
+                                                        top: 0,
+                                                        bottom: 0,
+                                                        width: expandedWidth,
+                                                        child: AnimatedOpacity(
+                                                          key: const ValueKey<
+                                                              String>(
+                                                            'project-explorer-expanded-state',
+                                                          ),
+                                                          duration: const Duration(
+                                                            milliseconds: 100,
+                                                          ),
+                                                          opacity:
+                                                              _leftSidebarVisible
+                                                                  ? 1.0
+                                                                  : 0.0,
+                                                          child: IgnorePointer(
+                                                            ignoring:
+                                                                !_leftSidebarVisible,
+                                                            child: KeyedSubtree(
+                                                              key: const ValueKey<
+                                                                  String>(
+                                                                'project-explorer-expanded',
+                                                              ),
+                                                              child: Padding(
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .fromLTRB(
+                                                                  16,
+                                                                  18,
+                                                                  12,
+                                                                  18,
                                                                 ),
-                                                                boxShadow: const [
-                                                                  BoxShadow(
-                                                                    color: Color(
-                                                                        0x1F000000),
-                                                                    blurRadius:
-                                                                        8,
-                                                                    offset:
-                                                                        Offset(
-                                                                            0,
-                                                                            4),
+                                                                child:
+                                                                    ProjectExplorerPanel(
+                                                                  onCollapse:
+                                                                      () {
+                                                                    setState(
+                                                                        () {
+                                                                      _leftSidebarVisible =
+                                                                          false;
+                                                                    });
+                                                                  },
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Positioned(
+                                                        left: 0,
+                                                        right: 0,
+                                                        top: 14,
+                                                        child: AnimatedOpacity(
+                                                          key: const ValueKey<
+                                                              String>(
+                                                            'project-explorer-reduced-state',
+                                                          ),
+                                                          duration: const Duration(
+                                                            milliseconds: 100,
+                                                          ),
+                                                          opacity:
+                                                              !_leftSidebarVisible
+                                                                  ? 1.0
+                                                                  : 0.0,
+                                                          child: IgnorePointer(
+                                                            ignoring:
+                                                                _leftSidebarVisible,
+                                                            child: KeyedSubtree(
+                                                              key: const ValueKey<
+                                                                  String>(
+                                                                'project-explorer-reduced',
+                                                              ),
+                                                              child: Column(
+                                                                children: [
+                                                                  _CollapsedExpandButton(
+                                                                    key: const ValueKey<
+                                                                        String>(
+                                                                      'project-explorer-reopen-toggle',
+                                                                    ),
+                                                                    onTap:
+                                                                        () {
+                                                                      setState(() {
+                                                                        _leftSidebarVisible =
+                                                                            true;
+                                                                      });
+                                                                    },
                                                                   ),
                                                                 ],
                                                               ),
-                                                              child: ClipRRect(
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                            19),
-                                                                child: Padding(
-                                                                  padding:
-                                                                      EdgeInsets
-                                                                          .all(
-                                                                    isNarrativeWorkspace
-                                                                        ? 8
-                                                                        : 14,
-                                                                  ),
-                                                                  child:
-                                                                      const EditorCanvasHost(),
-                                                                ),
-                                                              ),
-                                                            )
-                                                          : ClipRRect(
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          26),
-                                                              child: Padding(
-                                                                padding:
-                                                                    EdgeInsets
-                                                                        .all(
-                                                                  isNarrativeWorkspace
-                                                                      ? 8
-                                                                      : 14,
-                                                                ),
-                                                                child:
-                                                                    const EditorCanvasHost(),
-                                                              ),
                                                             ),
-                                                    ),
-                                                  ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
                                             ),
-                                          );
-                                        },
-                                      ),
-                                      if (supportsRightInspector &&
-                                          _rightInspectorVisible)
-                                        ResizablePane.noScrollBar(
-                                          key: ValueKey<String>(
-                                            'editor_right_${isNarrativeWorkspace ? 'n' : 'm'}',
                                           ),
-                                          resizableSide: ResizableSide.left,
-                                          minSize:
-                                              isNarrativeWorkspace ? 220 : 240,
-                                          maxSize: 620,
-                                          startSize:
-                                              isNarrativeWorkspace ? 292 : 336,
-                                          decoration: const BoxDecoration(
-                                            color: MacosColors.transparent,
+                                          ContentArea(
+                                            builder: (context, scrollController) {
+                                              return Padding(
+                                                padding: EdgeInsets.fromLTRB(
+                                                  isNarrativeWorkspace ? 10 : 18,
+                                                  isNarrativeWorkspace ? 12 : 18,
+                                                  isNarrativeWorkspace ? 10 : 18,
+                                                  isNarrativeWorkspace ? 6 : 8,
+                                                ),
+                                                child: EditorIsland(
+                                                  radius: 36,
+                                                  tint: EditorChrome.islandCoolTint,
+                                                  child: Padding(
+                                                    padding: EdgeInsets.fromLTRB(
+                                                      isNarrativeWorkspace
+                                                          ? 12
+                                                          : 18,
+                                                      isNarrativeWorkspace
+                                                          ? 12
+                                                          : 18,
+                                                      isNarrativeWorkspace
+                                                          ? 12
+                                                          : 18,
+                                                      isNarrativeWorkspace
+                                                          ? 10
+                                                          : 16,
+                                                    ),
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .stretch,
+                                                      children: [
+                                                        if (!isNarrativeWorkspace) ...[
+                                                          _WorkspaceStageHeader(
+                                                            title: shell
+                                                                .workspaceTitle,
+                                                            subtitle: shell
+                                                                .workspaceSubtitle,
+                                                            workspaceMode:
+                                                                workspaceMode,
+                                                            rightPanelVisible:
+                                                                _rightInspectorVisible,
+                                                            showRightPanelToggle:
+                                                                supportsRightInspector,
+                                                            onToggleRightPanel: () {
+                                                              setState(() {
+                                                                _rightInspectorVisible =
+                                                                    !_rightInspectorVisible;
+                                                              });
+                                                            },
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 18),
+                                                        ],
+                                                        Expanded(
+                                                          child: workspaceMode ==
+                                                                      EditorWorkspaceMode
+                                                                          .map &&
+                                                                  activeMap != null
+                                                              ? Container(
+                                                                  decoration:
+                                                                      BoxDecoration(
+                                                                    color: colors
+                                                                        .backgroundApp,
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(
+                                                                                20),
+                                                                    border:
+                                                                        Border.all(
+                                                                      color: colors
+                                                                          .borderSubtle,
+                                                                      width: 1.5,
+                                                                    ),
+                                                                    boxShadow: const [
+                                                                      BoxShadow(
+                                                                        color: Color(
+                                                                            0x1F000000),
+                                                                        blurRadius:
+                                                                            8,
+                                                                        offset:
+                                                                            Offset(
+                                                                                0,
+                                                                                4),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                  child: ClipRRect(
+                                                                    borderRadius:
+                                                                        BorderRadius
+                                                                            .circular(
+                                                                                19),
+                                                                    child: Padding(
+                                                                      padding:
+                                                                          EdgeInsets
+                                                                              .all(
+                                                                        isNarrativeWorkspace
+                                                                            ? 8
+                                                                            : 14,
+                                                                      ),
+                                                                      child:
+                                                                          const EditorCanvasHost(),
+                                                                      ),
+                                                                    ),
+                                                                  )
+                                                              : ClipRRect(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              26),
+                                                                  child: Padding(
+                                                                    padding:
+                                                                        EdgeInsets
+                                                                            .all(
+                                                                      isNarrativeWorkspace
+                                                                          ? 8
+                                                                          : 14,
+                                                                    ),
+                                                                    child:
+                                                                        const EditorCanvasHost(),
+                                                                  ),
+                                                                ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.fromLTRB(
-                                                12, 18, 16, 18),
-                                            child: EditorIsland(
-                                              radius: 32,
-                                              tint: switch (workspaceMode) {
-                                                EditorWorkspaceMode.map =>
-                                                  EditorChrome
-                                                      .islandNeutralTint,
-                                                EditorWorkspaceMode.tileset =>
-                                                  EditorChrome.islandWarmTint,
-                                                EditorWorkspaceMode.trainer =>
-                                                  EditorChrome.islandWarmTint,
-                                                EditorWorkspaceMode.pokedex =>
-                                                  EditorChrome.islandWarmTint,
-                                                EditorWorkspaceMode
-                                                      .narrativeOverview =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode
-                                                      .globalStory =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode.scenes =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode.step =>
-                                                  EditorChrome.islandWarmTint,
-                                                EditorWorkspaceMode.cutscene =>
-                                                  EditorChrome
-                                                      .islandNeutralTint,
-                                                EditorWorkspaceMode.dialogue =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode.facts =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode
-                                                      .worldRules =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode
-                                                      .pathStudio =>
-                                                  EditorChrome.islandCoolTint,
-                                                EditorWorkspaceMode
-                                                      .environmentStudio =>
-                                                  EditorChrome.islandWarmTint,
-                                              },
-                                              child: switch (workspaceMode) {
-                                                EditorWorkspaceMode.map =>
-                                                  const MapInspectorPanel(),
-                                                EditorWorkspaceMode.tileset =>
-                                                  const TilesetPalettePanel(),
-                                                EditorWorkspaceMode.trainer =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode.pokedex =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                      .narrativeOverview =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode.scenes =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode.facts =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                      .worldRules =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                      .pathStudio =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                      .environmentStudio =>
-                                                  const _EmptyWorkspaceInspector(),
-                                                EditorWorkspaceMode
-                                                    .globalStory ||
-                                                EditorWorkspaceMode.step ||
-                                                EditorWorkspaceMode.cutscene ||
-                                                EditorWorkspaceMode.dialogue =>
-                                                  const _EmptyWorkspaceInspector(),
-                                              },
+                                          if (supportsRightInspector &&
+                                              _rightInspectorVisible)
+                                            ResizablePane.noScrollBar(
+                                              key: ValueKey<String>(
+                                                'editor_right_${isNarrativeWorkspace ? 'n' : 'm'}',
+                                              ),
+                                              resizableSide: ResizableSide.left,
+                                              minSize:
+                                                  isNarrativeWorkspace ? 220 : 240,
+                                              maxSize: 620,
+                                              startSize:
+                                                  isNarrativeWorkspace ? 292 : 336,
+                                              decoration: const BoxDecoration(
+                                                color: MacosColors.transparent,
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.fromLTRB(
+                                                    12, 18, 16, 18),
+                                                child: EditorIsland(
+                                                  radius: 32,
+                                                  tint: switch (workspaceMode) {
+                                                    EditorWorkspaceMode.map =>
+                                                      EditorChrome
+                                                          .islandNeutralTint,
+                                                    EditorWorkspaceMode.tileset =>
+                                                      EditorChrome.islandWarmTint,
+                                                    EditorWorkspaceMode.trainer =>
+                                                      EditorChrome.islandWarmTint,
+                                                    EditorWorkspaceMode.pokedex =>
+                                                      EditorChrome.islandWarmTint,
+                                                    EditorWorkspaceMode
+                                                          .narrativeOverview =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode
+                                                          .globalStory =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode.scenes =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode.step =>
+                                                      EditorChrome.islandWarmTint,
+                                                    EditorWorkspaceMode.cutscene =>
+                                                      EditorChrome
+                                                          .islandNeutralTint,
+                                                    EditorWorkspaceMode.dialogue =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode.facts =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode
+                                                          .worldRules =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode
+                                                          .pathStudio =>
+                                                      EditorChrome.islandCoolTint,
+                                                    EditorWorkspaceMode
+                                                          .environmentStudio =>
+                                                      EditorChrome.islandWarmTint,
+                                                  },
+                                                  child: switch (workspaceMode) {
+                                                    EditorWorkspaceMode.map =>
+                                                      const MapInspectorPanel(),
+                                                    EditorWorkspaceMode.tileset =>
+                                                      const TilesetPalettePanel(),
+                                                    EditorWorkspaceMode.trainer =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode.pokedex =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode
+                                                          .narrativeOverview =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode.scenes =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode.facts =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode
+                                                          .worldRules =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode
+                                                          .pathStudio =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode
+                                                          .environmentStudio =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                    EditorWorkspaceMode
+                                                        .globalStory ||
+                                                    EditorWorkspaceMode.step ||
+                                                    EditorWorkspaceMode.cutscene ||
+                                                    EditorWorkspaceMode.dialogue =>
+                                                      const _EmptyWorkspaceInspector(),
+                                                  },
+                                                ),
+                                              ),
                                             ),
-                                          ),
-                                        ),
-                                    ],
+                                        ],
+                                      );
+                                    },
                                   ),
                                 ),
                               ),

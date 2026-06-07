@@ -6,6 +6,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
+import '../design_system/design_system.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 import '../../theme/theme.dart';
@@ -220,81 +221,99 @@ class _WorkspaceQuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _ActionChip(
-          label: 'Aperçu',
-          selected:
-              editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
-          onTap: onOverview,
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
+                  onPressed: onOverview,
+                  child: const Text('Aperçu'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.globalStory,
+                  onPressed: onGlobal,
+                  child: const Text('Histoire globale'),
+                ),
+              ),
+            ),
+          ],
         ),
-        _ActionChip(
-          label: 'Histoire globale',
-          selected: editor.workspaceMode == EditorWorkspaceMode.globalStory,
-          onTap: onGlobal,
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.scenes,
+                  onPressed: onScenes,
+                  child: const Text('Scènes'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.step,
+                  onPressed: onStep,
+                  child: const Text('Étape'),
+                ),
+              ),
+            ),
+          ],
         ),
-        _ActionChip(
-          label: 'Scènes',
-          selected: editor.workspaceMode == EditorWorkspaceMode.scenes,
-          onTap: onScenes,
-        ),
-        _ActionChip(
-          label: 'Étape',
-          selected: editor.workspaceMode == EditorWorkspaceMode.step,
-          onTap: onStep,
-        ),
-        _ActionChip(
-          label: 'Cinématique',
-          selected: editor.workspaceMode == EditorWorkspaceMode.cutscene,
-          onTap: onCutscene,
-        ),
-        _ActionChip(
-          label: 'Dialogue',
-          selected: editor.workspaceMode == EditorWorkspaceMode.dialogue,
-          onTap: onDialogue,
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.cutscene,
+                  onPressed: onCutscene,
+                  child: const Text('Cinématique'),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: SizedBox(
+                height: 32,
+                child: PokeMapButton(
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  isSelected: editor.workspaceMode == EditorWorkspaceMode.dialogue,
+                  onPressed: onDialogue,
+                  child: const Text('Dialogue'),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
-    );
-  }
-}
-
-class _ActionChip extends StatelessWidget {
-  const _ActionChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    final color = selected ? colors.brandPrimary : colors.textSecondary;
-    return CupertinoButton(
-      minimumSize: const Size(28, 28),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      onPressed: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: color.withValues(alpha: 0.75)),
-          color: selected ? colors.surfaceSelected : colors.surfaceSubtle,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ),
     );
   }
 }
