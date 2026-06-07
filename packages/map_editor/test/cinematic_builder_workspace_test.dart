@@ -815,6 +815,39 @@ void main() {
   });
 
   testWidgets(
+      'uses Path Studio center pattern when a path layer references its base preset',
+      (tester) async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final manifest = _pathStudioWaterBackdropProject();
+
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: _stageMapDataWithPathStudioWaterBackdrop(),
+      manifest: manifest,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    final pathInstructions = plan.instructions
+        .where((instruction) => instruction.sourceFamily == 'path')
+        .toList();
+    expect(pathInstructions, hasLength(4));
+    expect(
+      pathInstructions.map((instruction) => instruction.sourceId).toSet(),
+      {'water_pattern'},
+    );
+    expect(
+      pathInstructions.map((instruction) => instruction.sourceRect.left),
+      [0.0, 8.0, 16.0, 24.0],
+    );
+  });
+
+  testWidgets(
       'renders extended cinematic map backdrop with terrain path surface and placed elements',
       (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -11543,6 +11576,67 @@ ProjectManifest _extendedBackdropProject({
   );
 }
 
+ProjectManifest _pathStudioWaterBackdropProject() {
+  return _extendedBackdropProject().copyWith(
+    pathPresets: [
+      const ProjectPathPreset(
+        id: 'water_base',
+        name: 'Water base',
+        tilesetId: 'neutral_tiles',
+        surfaceKind: ProjectPathSurfaceKind.water,
+        variants: [
+          PathPresetVariantMapping(
+            variant: TerrainPathVariant.cross,
+            frames: [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 7, y: 1)),
+            ],
+          ),
+        ],
+      ),
+    ],
+    pathPatternPresets: const [
+      ProjectPathPatternPreset(
+        id: 'water_pattern',
+        name: 'Water pattern',
+        basePathPresetId: 'water_base',
+        centerPattern: PathCenterPattern(
+          size: PathCenterPatternSize(width: 2, height: 2),
+          cells: [
+            PathCenterPatternCell(
+              localX: 0,
+              localY: 0,
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 1,
+              localY: 0,
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 0,
+              localY: 1,
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 1,
+              localY: 1,
+              frames: [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
 CinematicStageMapSourceCatalog _stageMapSourceCatalog({
   MapData? mapData,
 }) {
@@ -11831,6 +11925,28 @@ MapData _stageMapDataWithExtendedBackdrop() {
         layerId: 'neutral_objects',
         elementId: 'neutral_tree',
         pos: GridPos(x: 2, y: 1),
+      ),
+    ],
+  );
+}
+
+MapData _stageMapDataWithPathStudioWaterBackdrop() {
+  return _stageMapData(
+    entities: const <MapEntity>[],
+    events: const <MapEventDefinition>[],
+  ).copyWith(
+    size: const GridSize(width: 2, height: 2),
+    layers: const [
+      MapLayer.path(
+        id: 'water_path_layer',
+        name: 'Water path',
+        presetId: 'water_base',
+        cells: [
+          true,
+          true,
+          true,
+          true,
+        ],
       ),
     ],
   );

@@ -37,8 +37,9 @@ void main() {
         container: container,
         child: MacosTheme(
           data: MacosThemeData.light(),
-          child: const MaterialApp(
-            home: CupertinoPageScaffold(
+          child: MaterialApp(
+            theme: ThemeData(splashFactory: NoSplash.splashFactory),
+            home: const CupertinoPageScaffold(
               child: SizedBox(
                 width: 360,
                 height: 900,
@@ -57,6 +58,10 @@ void main() {
       find.text('Pokédex, capacités et objets dans un espace guidé unique'),
       findsOneWidget,
     );
+
+    await tester.tap(find.text('Catalogues Pokémon'));
+    await tester.pumpAndSettle();
+
     expect(find.byKey(const Key('pokemon-catalog-entry-pokedex')),
         findsOneWidget);
     expect(find.byKey(const Key('pokemon-catalog-entry-moves')), findsOneWidget);
@@ -96,8 +101,9 @@ void main() {
         container: container,
         child: MacosTheme(
           data: MacosThemeData.light(),
-          child: const MaterialApp(
-            home: CupertinoPageScaffold(
+          child: MaterialApp(
+            theme: ThemeData(splashFactory: NoSplash.splashFactory),
+            home: const CupertinoPageScaffold(
               child: SizedBox(
                 width: 360,
                 height: 900,
@@ -110,6 +116,9 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
+
+    await tester.tap(find.text('Catalogues Pokémon'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('pokemon-catalog-entry-moves')));
     await tester.pumpAndSettle();

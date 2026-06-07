@@ -111,6 +111,11 @@ void main() {
         ),
       );
 
+      await tester.tap(find.text('World Maps'));
+      await tester.tap(find.text('Catalogues Pokémon'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
       // Verify that French section headers and labels are rendered
       expect(find.text('CARTES NON GROUPÉES'), findsOneWidget);
       expect(find.text('UNGROUPED MAPS'), findsNothing);

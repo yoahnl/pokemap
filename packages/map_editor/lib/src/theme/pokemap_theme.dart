@@ -22,6 +22,7 @@ abstract final class PokeMapTheme {
     return ThemeData(
       brightness: Brightness.light,
       useMaterial3: true,
+      splashFactory: NoSplash.splashFactory,
       scaffoldBackgroundColor: tokens.backgroundApp,
       colorScheme: ColorScheme.light(
         primary: tokens.brandPrimary,
@@ -82,6 +83,7 @@ abstract final class PokeMapTheme {
     return ThemeData(
       brightness: Brightness.dark,
       useMaterial3: true,
+      splashFactory: NoSplash.splashFactory,
       scaffoldBackgroundColor: tokens.backgroundApp,
       colorScheme: ColorScheme.dark(
         primary: tokens.brandPrimary,

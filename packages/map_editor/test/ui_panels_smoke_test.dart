@@ -55,6 +55,7 @@ void main() {
           child: MacosTheme(
             data: MacosThemeData.light(),
             child: MaterialApp(
+              theme: ThemeData(splashFactory: NoSplash.splashFactory),
               home: CupertinoPageScaffold(
                 child: Center(
                   child: SizedBox(
@@ -195,6 +196,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('World Explorer'), findsOneWidget);
+
+      await tester.tap(find.text('World Maps'));
+      await tester.tap(find.text('Terrain Library'));
+      await tester.tap(find.text('Path Library'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
       expect(find.text('Route 1'), findsOneWidget);
       expect(find.text('Tileset Library'), findsOneWidget);
       // On verrouille explicitement la branche non vide qui cassait en runtime
