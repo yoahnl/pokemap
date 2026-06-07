@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_render_plan.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -749,6 +751,708 @@ void main() {
           .any((instruction) => instruction.layerId == 'collision'),
       isFalse,
     );
+  });
+
+  testWidgets(
+      'builds extended backdrop bitmap instructions for neutral terrain path surface and placed elements',
+      (tester) async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final manifest = _extendedBackdropProject();
+    final mapData = _stageMapDataWithExtendedBackdrop();
+    final beforeManifest = manifest.toJson();
+    final beforeMapData = mapData.toJson();
+
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: manifest,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    expect(plan.hasBitmapInstructions, isTrue);
+    expect(plan.instructions.map((instruction) => instruction.renderPass), [
+      CinematicMapBackdropRenderPass.terrain,
+      CinematicMapBackdropRenderPass.path,
+      CinematicMapBackdropRenderPass.tileBackground,
+      CinematicMapBackdropRenderPass.surface,
+      CinematicMapBackdropRenderPass.placedBackground,
+      CinematicMapBackdropRenderPass.tileForeground,
+      CinematicMapBackdropRenderPass.placedForeground,
+    ]);
+    expect(
+      plan.instructions.map((instruction) => instruction.layerKind).toSet(),
+      containsAll(<CinematicMapBackdropLayerKind>{
+        CinematicMapBackdropLayerKind.terrain,
+        CinematicMapBackdropLayerKind.path,
+        CinematicMapBackdropLayerKind.tile,
+        CinematicMapBackdropLayerKind.surface,
+        CinematicMapBackdropLayerKind.object,
+      }),
+    );
+    expect(
+      plan.instructions
+          .where((instruction) => instruction.sourceFamily == 'environment')
+          .map((instruction) => instruction.sourceId)
+          .toSet(),
+      {'neutral_generated_tree'},
+    );
+    expect(
+      plan.instructions.map((instruction) => instruction.sourceFamily),
+      isNot(contains('event')),
+    );
+    expect(
+      plan.instructions.map((instruction) => instruction.sourceFamily),
+      isNot(contains('collision')),
+    );
+    expect(manifest.toJson(), beforeManifest);
+    expect(mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets(
+      'renders extended cinematic map backdrop with terrain path surface and placed elements',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final project = _extendedBackdropProject(
+      cinematics: [_stageContextCinematic()],
+    );
+    final asset = _asset(project, 'cinematic_stage_context');
+    final mapData = _stageMapDataWithExtendedBackdrop();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 640,
+        height: 360,
+      ),
+    );
+    final layerRenderPlan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: project,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: layerRenderPlan,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(find.text('Tiles réelles affichées'), findsWidgets);
+    expect(find.text('7 couche(s) bitmap'), findsWidgets);
+    expect(find.text('Aperçu spatial structurel'), findsNothing);
+    expect(find.text('Preview réelle à venir.'), findsNothing);
+    expect(find.text('Collision'), findsNothing);
+    expect(find.text('Neutral event'), findsNothing);
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('preserves actor display placeholders over extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(
+      cinematics: [asset],
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_lysa',
+          name: 'Lysa',
+          tilesetId: '',
+        ),
+      ],
+    ).copyWith(
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+    );
+    final mapData = _stageMapDataWithActorDisplayFixtures();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: mapData,
+    );
+    final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: project,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: mapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: layerPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Placeholders'), findsWidgets);
+    expect(find.text('Sans lecture'), findsWidgets);
+  });
+
+  testWidgets('keeps real tile backdrop visible with extended render plan',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final project = _project(cinematics: [_stageContextCinematic()]).copyWith(
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+    );
+    final asset = _asset(project, 'cinematic_stage_context');
+    final mapData = _stageMapDataWithBitmapTileLayer();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: mapData,
+    );
+    final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: project,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_stage_context'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: layerPlan,
+    );
+
+    expect(layerPlan.instructions, hasLength(2));
+    expect(find.text('Tiles réelles affichées'), findsWidgets);
+    expect(find.text('2 couche(s) bitmap'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+  });
+
+  test('shows partial backdrop diagnostics for missing visual families',
+      () async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final project = _project(cinematics: [_stageContextCinematic()]).copyWith(
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'neutral_tiles',
+          name: 'Neutral tiles',
+          relativePath: 'assets/tilesets/neutral.png',
+        ),
+      ],
+    );
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: _stageMapDataWithExtendedBackdrop(),
+      manifest: project,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    expect(plan.hasBitmapInstructions, isTrue);
+    expect(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      containsAll(<String>[
+        'missingTerrainPreset',
+        'missingPathPreset',
+        'missingSurfaceVisual',
+        'missingPlacedElement',
+      ]),
+    );
+  });
+
+  testWidgets('keeps transport controls disabled with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _extendedBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, 'cinematic_stage_context'),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    for (final key in <String>[
+      'cinematic-builder-transport-reset-button',
+      'cinematic-builder-transport-play-button',
+      'cinematic-builder-transport-stop-button',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull);
+    }
+  });
+
+  testWidgets('keeps timeline visible with extended backdrop', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _extendedBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, 'cinematic_stage_context'),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      findsOneWidget,
+    );
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+  });
+
+  testWidgets('keeps duration editor working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final asset = _stageDurationCinematic(
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+      ),
+    );
+    final fixture = await _extendedBackdropFixture(asset: asset);
+    var latestProject = fixture.project;
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_stage_duration',
+      onProjectChanged: (project) => latestProject = project,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.pumpAndSettle();
+    final durationField = find.byKey(
+      const ValueKey('cinematic-builder-actor-facing-duration-ms-field'),
+    );
+    await tester.ensureVisible(durationField);
+    await tester.enterText(durationField, '700');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_duration')
+          .timeline
+          .steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      700,
+    );
+  });
+
+  testWidgets('keeps resize handle working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final asset = _stageDurationCinematic(
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+      ),
+    );
+    final fixture = await _extendedBackdropFixture(asset: asset);
+    var latestProject = fixture.project;
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_stage_duration',
+      onProjectChanged: (project) => latestProject = project,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-duration-resize-handle-step_face'),
+      ),
+      const Offset(90, 0),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      _asset(latestProject, 'cinematic_stage_duration')
+          .timeline
+          .steps
+          .singleWhere((step) => step.id == 'step_face')
+          .durationMs,
+      greaterThan(500),
+    );
+  });
+
+  testWidgets('keeps mouse probe working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final asset = _stageDurationCinematic(
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+      ),
+    );
+    final fixture = await _extendedBackdropFixture(asset: asset);
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_stage_duration',
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    final tick0Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
+    );
+    final tick500Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+    );
+    final probeX = tick0Rect.left + (tick500Rect.left - tick0Rect.left) * 0.5;
+    await tester.tapAt(Offset(probeX, axisRect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('keeps mapEntity actor picker working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final fixture = await _extendedBackdropFixture();
+    var latestProject = fixture.project;
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    final mapEntityButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(mapEntityButton);
+    await tester.tap(mapEntityButton);
+    await tester.pumpAndSettle();
+    final sourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-actor-binding-actor_professor-mapEntity-source-entity_professor',
+      ),
+    );
+    await tester.ensureVisible(sourceButton);
+    await tester.tap(sourceButton);
+    await tester.pumpAndSettle();
+
+    final binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.actorBindings
+        .singleWhere((binding) => binding.actorId == 'actor_professor');
+    expect(binding?.kind, CinematicActorBindingKind.mapEntity);
+    expect(binding?.mapEntityId, 'entity_professor');
+  });
+
+  testWidgets(
+      'keeps movement target mapEntity/mapEvent pickers working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final fixture = await _extendedBackdropFixture();
+    var latestProject = fixture.project;
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_stage_context',
+      onProjectChanged: (project) => latestProject = project,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    final mapEntityButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEntity',
+      ),
+    );
+    await tester.ensureVisible(mapEntityButton);
+    await tester.tap(mapEntityButton);
+    await tester.pumpAndSettle();
+    final entitySourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEntity-source-entity_professor',
+      ),
+    );
+    await tester.ensureVisible(entitySourceButton);
+    await tester.tap(entitySourceButton);
+    await tester.pumpAndSettle();
+
+    var binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.movementTargetBindings
+        .singleWhere((binding) => binding.targetId == 'target_center');
+    expect(binding?.kind, CinematicMovementTargetBindingKind.mapEntity);
+    expect(binding?.sourceId, 'entity_professor');
+
+    final mapEventButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEvent',
+      ),
+    );
+    await tester.ensureVisible(mapEventButton);
+    await tester.tap(mapEventButton);
+    await tester.pumpAndSettle();
+    final eventSourceButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-target-binding-target_center-mapEvent-source-neutral_event',
+      ),
+    );
+    await tester.ensureVisible(eventSourceButton);
+    await tester.tap(eventSourceButton);
+    await tester.pumpAndSettle();
+
+    binding = _asset(latestProject, 'cinematic_stage_context')
+        .stageContext
+        ?.movementTargetBindings
+        .singleWhere((binding) => binding.targetId == 'target_center');
+    expect(binding?.kind, CinematicMovementTargetBindingKind.mapEvent);
+    expect(binding?.sourceId, 'neutral_event');
+  });
+
+  testWidgets('keeps Character Library picker working with extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester);
+    final asset = CinematicAsset(
+      id: 'cinematic_character_extended_picker',
+      title: 'Character picker extended cinematic',
+      mapId: 'map_lab',
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_rival', label: 'Rival actor'),
+      ],
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_rival',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+      ),
+      timeline: CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'step_wait',
+            kind: CinematicTimelineStepKind.wait,
+            label: 'Opening wait',
+            durationMs: 500,
+          ),
+        ],
+      ),
+    );
+    final project = _extendedBackdropProject(cinematics: [asset]).copyWith(
+      characters: const [
+        ProjectCharacterEntry(
+          id: 'character_rival',
+          name: 'Rival',
+          tilesetId: 'characters/rival',
+          frameWidth: 32,
+          frameHeight: 32,
+          tags: ['rival', 'cinematic'],
+        ),
+      ],
+    );
+    final fixture = await _extendedBackdropFixture(
+      asset: asset,
+      project: project,
+    );
+    var latestProject = fixture.project;
+
+    await _pumpBuilderHarness(
+      tester,
+      fixture.project,
+      'cinematic_character_extended_picker',
+      onProjectChanged: (project) => latestProject = project,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    final chooseButton = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-toggle',
+      ),
+    );
+    await tester.ensureVisible(chooseButton);
+    await tester.tap(chooseButton);
+    await tester.pumpAndSettle();
+    final rivalOption = find.byKey(
+      const ValueKey(
+        'cinematic-builder-character-appearance-actor_rival-character-character_rival',
+      ),
+    );
+    await tester.ensureVisible(rivalOption);
+    await tester.tap(rivalOption);
+    await tester.pumpAndSettle();
+
+    final context = _asset(
+      latestProject,
+      'cinematic_character_extended_picker',
+    ).stageContext;
+    expect(
+        context?.actorAppearanceBindings.single.characterId, 'character_rival');
+  });
+
+  test('does not render runtime entities events triggers collisions or warps',
+      () async {
+    final fixture = await _extendedBackdropFixture();
+
+    expect(
+      fixture.layerPlan.instructions
+          .map((instruction) => instruction.sourceFamily),
+      isNot(contains('event')),
+    );
+    expect(
+      fixture.layerPlan.instructions
+          .map((instruction) => instruction.sourceFamily),
+      isNot(contains('collision')),
+    );
+    expect(
+      fixture.layerPlan.instructions
+          .map((instruction) => instruction.sourceFamily),
+      isNot(contains('trigger')),
+    );
+    expect(
+      fixture.layerPlan.instructions
+          .map((instruction) => instruction.sourceFamily),
+      isNot(contains('warp')),
+    );
+  });
+
+  testWidgets('does not mutate project when rendering extended backdrop',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _extendedBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, 'cinematic_stage_context'),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
   });
 
   testWidgets('shows human fallbacks for every non available backdrop status',
@@ -9061,6 +9765,53 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-94 cinematic extended map backdrop visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_94_CAPTURE_CINEMATIC_EXTENDED_MAP_BACKDROP',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _extendedBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, 'cinematic_stage_context'),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(find.text('Tiles réelles affichées'), findsWidgets);
+    expect(find.text('7 couche(s) bitmap'), findsWidgets);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(find.text('Neutral event'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_94_cinematic_extended_map_backdrop_visual_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -9072,6 +9823,7 @@ Future<void> _pumpBuilder(
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
   CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan,
+  CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan,
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
@@ -9103,6 +9855,7 @@ Future<void> _pumpBuilder(
                       : null),
               backdropPreviewModel: backdropPreviewModel,
               backdropTileRenderPlan: backdropTileRenderPlan,
+              backdropLayerRenderPlan: backdropLayerRenderPlan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
               onBackToLibrary: onBackToLibrary ?? () {},
               onAddDraftStep: ({
@@ -9248,6 +10001,7 @@ Future<void> _pumpBuilderHarness(
   ValueChanged<ProjectManifest>? onProjectChanged,
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
+  CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan,
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
@@ -9259,6 +10013,7 @@ Future<void> _pumpBuilderHarness(
       onProjectChanged: onProjectChanged,
       stageMapSourceCatalog: stageMapSourceCatalog,
       backdropPreviewModel: backdropPreviewModel,
+      backdropLayerRenderPlan: backdropLayerRenderPlan,
       actorDisplayPreviewModel: actorDisplayPreviewModel,
       provideStageMapSourceCatalog: provideStageMapSourceCatalog,
       surfaceSize: surfaceSize,
@@ -9275,6 +10030,7 @@ class _BuilderHarness extends StatefulWidget {
     required this.provideStageMapSourceCatalog,
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
+    this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
     this.onProjectChanged,
   });
@@ -9284,6 +10040,7 @@ class _BuilderHarness extends StatefulWidget {
   final Size surfaceSize;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
+  final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool provideStageMapSourceCatalog;
   final ValueChanged<ProjectManifest>? onProjectChanged;
@@ -9318,6 +10075,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
                       ? _stageMapSourceCatalog()
                       : null),
               backdropPreviewModel: widget.backdropPreviewModel,
+              backdropLayerRenderPlan: widget.backdropLayerRenderPlan,
               actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
               onBackToLibrary: () {},
               onAddDraftStep: _addDraftStep,
@@ -10673,6 +11431,118 @@ ProjectManifest _project({
   );
 }
 
+ProjectManifest _extendedBackdropProject({
+  List<CinematicAsset>? cinematics,
+}) {
+  return _project(cinematics: cinematics, includeBridge: false).copyWith(
+    settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'neutral_tiles',
+        name: 'Neutral tiles',
+        relativePath: 'assets/tilesets/neutral.png',
+      ),
+    ],
+    elementCategories: const [
+      ProjectElementCategory(id: 'neutral_element_category', name: 'Neutral'),
+    ],
+    elements: const [
+      ProjectElementEntry(
+        id: 'neutral_tree',
+        name: 'Neutral tree',
+        tilesetId: 'neutral_tiles',
+        categoryId: 'neutral_element_category',
+        frames: [
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 4, y: 0, height: 2),
+          ),
+        ],
+        collisionProfile: ElementCollisionProfile(
+          cells: [
+            GridPos(x: 0, y: 1),
+          ],
+        ),
+      ),
+    ],
+    terrainPresets: const [
+      ProjectTerrainPreset(
+        id: 'neutral_grass',
+        name: 'Neutral grass',
+        terrainType: TerrainType.grass,
+        tilesetId: 'neutral_tiles',
+        variants: [
+          TerrainPresetVariant(
+            frames: [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+      ),
+    ],
+    pathPresets: [
+      ProjectPathPreset(
+        id: 'neutral_path',
+        name: 'Neutral path',
+        tilesetId: 'neutral_tiles',
+        variants: [
+          for (final variant in TerrainPathVariant.values)
+            PathPresetVariantMapping(
+              variant: variant,
+              frames: const [
+                TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
+              ],
+            ),
+        ],
+      ),
+    ],
+    surfaceCatalog: ProjectSurfaceCatalog(
+      atlases: [
+        ProjectSurfaceAtlas(
+          id: 'neutral_surface_atlas',
+          name: 'Neutral surface atlas',
+          tilesetId: 'neutral_tiles',
+          geometry: SurfaceAtlasGeometry(
+            tileSize: SurfaceAtlasTileSize(width: 8, height: 8),
+            gridSize: SurfaceAtlasGridSize(columns: 8, rows: 2),
+          ),
+        ),
+      ],
+      animations: [
+        ProjectSurfaceAnimation(
+          id: 'neutral_surface_animation',
+          name: 'Neutral surface animation',
+          timeline: SurfaceAnimationTimeline(
+            frames: [
+              SurfaceAnimationFrame(
+                tileRef: SurfaceAtlasTileRef(
+                  atlasId: 'neutral_surface_atlas',
+                  column: 2,
+                  row: 0,
+                ),
+                durationMs: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+      presets: [
+        ProjectSurfacePreset(
+          id: 'neutral_surface',
+          name: 'Neutral surface',
+          variantAnimations: SurfaceVariantAnimationRefSet(
+            refs: [
+              SurfaceVariantAnimationRef(
+                role: SurfaceVariantRole.isolated,
+                animationId: 'neutral_surface_animation',
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicStageMapSourceCatalog _stageMapSourceCatalog({
   MapData? mapData,
 }) {
@@ -10763,6 +11633,204 @@ MapData _stageMapDataWithBitmapTileLayer() {
         id: 'collision',
         name: 'Collision',
         collisions: [true, false],
+      ),
+    ],
+  );
+}
+
+MapData _stageMapDataWithExtendedBackdrop() {
+  return _stageMapData(
+    entities: const <MapEntity>[
+      MapEntity(
+        id: 'entity_professor',
+        name: 'Professor entity',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 1),
+        npc: MapEntityNpcData(displayName: 'Professor Oak'),
+      ),
+    ],
+    events: const <MapEventDefinition>[
+      MapEventDefinition(
+        id: 'neutral_event',
+        title: 'Neutral event',
+        position: EventPosition(layerId: 'ground', x: 3, y: 3),
+        pages: [MapEventPage(pageNumber: 0)],
+        type: MapEventType.object,
+      ),
+    ],
+  ).copyWith(
+    size: const GridSize(width: 4, height: 4),
+    layers: [
+      const MapLayer.terrain(
+        id: 'neutral_terrain',
+        name: 'Neutral terrain',
+        terrains: [
+          TerrainType.grass,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+          TerrainType.none,
+        ],
+      ),
+      const MapLayer.path(
+        id: 'neutral_path_layer',
+        name: 'Neutral path',
+        presetId: 'neutral_path',
+        cells: [
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ],
+      ),
+      const MapLayer.tile(
+        id: 'neutral_ground',
+        name: 'Neutral ground',
+        tilesetId: 'neutral_tiles',
+        tiles: [
+          0,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
+      const MapLayer.surface(
+        id: 'neutral_surface_layer',
+        name: 'Neutral surface',
+        placements: [
+          SurfaceCellPlacement(
+            x: 0,
+            y: 2,
+            surfacePresetId: 'neutral_surface',
+          ),
+        ],
+      ),
+      const MapLayer.object(id: 'neutral_objects', name: 'Neutral objects'),
+      MapLayer.environment(
+        id: 'neutral_environment',
+        name: 'Neutral environment',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'neutral_ground',
+          areas: [
+            EnvironmentArea(
+              id: 'neutral_area',
+              name: 'Neutral area',
+              presetId: 'neutral_environment_preset',
+              mask: EnvironmentAreaMask(
+                width: 4,
+                height: 4,
+                cells: [
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  true,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                  false,
+                ],
+              ),
+              seed: 7,
+              generatedPlacementIds: ['neutral_generated_tree'],
+            ),
+          ],
+        ),
+      ),
+      const MapLayer.tile(
+        id: 'neutral_foreground',
+        name: 'Neutral foreground',
+        tilesetId: 'neutral_tiles',
+        tiles: [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
+      const MapLayer.collision(
+        id: 'neutral_collision',
+        name: 'Collision',
+        collisions: [
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ],
+      ),
+    ],
+    placedElements: const [
+      MapPlacedElement(
+        id: 'neutral_generated_tree',
+        layerId: 'neutral_objects',
+        elementId: 'neutral_tree',
+        pos: GridPos(x: 2, y: 1),
       ),
     ],
   );
@@ -10862,6 +11930,94 @@ Future<ui.Image> _makeTestTilesetImage() {
     );
   final picture = recorder.endRecording();
   return picture.toImage(16, 8);
+}
+
+Future<ui.Image> _makeExtendedBackdropTilesetImage() {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paints = [
+    Paint()..color = const Color(0xFF2F6F4E),
+    Paint()..color = const Color(0xFF8A7B54),
+    Paint()..color = const Color(0xFF526274),
+    Paint()..color = const Color(0xFF9EA7B3),
+    Paint()..color = const Color(0xFF254E35),
+    Paint()..color = const Color(0xFF14311F),
+    Paint()..color = const Color(0xFF4A5968),
+    Paint()..color = const Color(0xFF6A5572),
+  ];
+  for (var index = 0; index < paints.length; index += 1) {
+    canvas.drawRect(
+      Rect.fromLTWH(index * 8.0, 0, 8, 8),
+      paints[index],
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(index * 8.0, 8, 8, 8),
+      paints[index],
+    );
+  }
+  final picture = recorder.endRecording();
+  return picture.toImage(64, 16);
+}
+
+Future<CinematicMapBackdropLayerRenderPlan> _extendedBackdropLayerPlan({
+  ProjectManifest? project,
+  MapData? mapData,
+}) async {
+  final tilesetImage = await _makeExtendedBackdropTilesetImage();
+  return buildCinematicMapBackdropLayerRenderPlan(
+    mapData: mapData ?? _stageMapDataWithExtendedBackdrop(),
+    manifest: project ?? _extendedBackdropProject(),
+    tilesets: {
+      'neutral_tiles': CinematicResolvedTilesetAsset.available(
+        tilesetId: 'neutral_tiles',
+        image: tilesetImage,
+        tileWidth: 8,
+        tileHeight: 8,
+      ),
+    },
+  );
+}
+
+Future<_ExtendedBackdropFixture> _extendedBackdropFixture({
+  CinematicAsset? asset,
+  ProjectManifest? project,
+  MapData? mapData,
+}) async {
+  final cinematic = asset ?? _stageContextCinematic();
+  final manifest = project ?? _extendedBackdropProject(cinematics: [cinematic]);
+  final stageMapData = mapData ?? _stageMapDataWithExtendedBackdrop();
+  final backdropModel = buildCinematicMapBackdropPreviewModel(
+    asset: cinematic,
+    stageMap: manifest.maps.single,
+    mapData: stageMapData,
+  );
+  final layerPlan = await _extendedBackdropLayerPlan(
+    project: manifest,
+    mapData: stageMapData,
+  );
+  return _ExtendedBackdropFixture(
+    project: manifest,
+    asset: cinematic,
+    mapData: stageMapData,
+    backdropModel: backdropModel,
+    layerPlan: layerPlan,
+  );
+}
+
+final class _ExtendedBackdropFixture {
+  const _ExtendedBackdropFixture({
+    required this.project,
+    required this.asset,
+    required this.mapData,
+    required this.backdropModel,
+    required this.layerPlan,
+  });
+
+  final ProjectManifest project;
+  final CinematicAsset asset;
+  final MapData mapData;
+  final CinematicMapBackdropPreviewModel backdropModel;
+  final CinematicMapBackdropLayerRenderPlan layerPlan;
 }
 
 Future<ui.Image> _makeReferenceTilesetImage() {

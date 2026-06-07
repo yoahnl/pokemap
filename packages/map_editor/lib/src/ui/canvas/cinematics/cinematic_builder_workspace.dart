@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_stage_preview_readiness.dart';
@@ -242,6 +243,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
+    this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
     this.startExpanded = false,
     required this.onBackToLibrary,
@@ -277,6 +279,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
+  final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool startExpanded;
   final VoidCallback onBackToLibrary;
@@ -392,6 +395,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     widget.backdropPreviewModel,
                                 backdropTileRenderPlan:
                                     widget.backdropTileRenderPlan,
+                                backdropLayerRenderPlan:
+                                    widget.backdropLayerRenderPlan,
                                 actorDisplayPreviewModel:
                                     widget.actorDisplayPreviewModel,
                                 selectedStep: selectedStep,
@@ -1657,6 +1662,7 @@ class _PreviewSandbox extends StatelessWidget {
     required this.asset,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
+    this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
     required this.selectedStep,
     required this.selectedStepIndex,
@@ -1667,6 +1673,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicAsset asset;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
+  final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
@@ -1688,6 +1695,7 @@ class _PreviewSandbox extends StatelessWidget {
               model: backdropPreviewModel,
               compact: compact,
               tileRenderPlan: backdropTileRenderPlan,
+              layerRenderPlan: backdropLayerRenderPlan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
             );
           }

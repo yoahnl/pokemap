@@ -548,7 +548,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Tiles réelles affichées'), findsWidgets);
-    expect(find.text('2 tuile(s) bitmap'), findsOneWidget);
+    expect(find.text('2 couche(s) bitmap'), findsOneWidget);
     expect(find.text('Fallback structurel'), findsNothing);
     expect(find.text('Sans acteurs'), findsWidgets);
     expect(find.text('Sans lecture'), findsWidgets);

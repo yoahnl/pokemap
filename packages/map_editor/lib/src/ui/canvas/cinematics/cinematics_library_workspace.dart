@@ -7,6 +7,8 @@ import 'package:map_core/map_core.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import 'cinematic_builder_workspace.dart';
+import 'cinematic_map_backdrop_layer_plan_loader.dart';
+import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_tile_plan_loader.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_stage_preview_readiness.dart';
@@ -251,7 +253,7 @@ class _CinematicsLibraryWorkspaceState
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
-  final _backdropTilePlanLoader = CinematicMapBackdropTilePlanLoader();
+  final _backdropLayerPlanLoader = CinematicMapBackdropLayerPlanLoader();
 
   _CinematicsLibraryFilter _filter = _CinematicsLibraryFilter.all;
   String? _selectedEntryId;
@@ -264,7 +266,9 @@ class _CinematicsLibraryWorkspaceState
   MapData? _stageMapSnapshot;
   String? _stageMapSnapshotMapId;
   CinematicMapBackdropTileRenderPlan? _backdropTileRenderPlan;
+  CinematicMapBackdropLayerRenderPlan? _backdropLayerRenderPlan;
   String? _backdropTileRenderPlanMapId;
+  String? _backdropLayerRenderPlanMapId;
   String? _loadingBackdropTileRenderPlanMapId;
   int _stageMapSourceCatalogGeneration = 0;
 
@@ -274,7 +278,7 @@ class _CinematicsLibraryWorkspaceState
     _titleController.dispose();
     _descriptionController.dispose();
     _notesController.dispose();
-    _backdropTilePlanLoader.clear();
+    _backdropLayerPlanLoader.clear();
     super.dispose();
   }
 
@@ -303,6 +307,9 @@ class _CinematicsLibraryWorkspaceState
         builderAsset,
         backdropPreviewModel,
       );
+      final backdropLayerRenderPlan = _buildBackdropLayerRenderPlan(
+        builderAsset,
+      );
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
@@ -312,6 +319,7 @@ class _CinematicsLibraryWorkspaceState
         stageMapSourceCatalog: _stageMapSourceCatalog,
         backdropPreviewModel: backdropPreviewModel,
         backdropTileRenderPlan: backdropTileRenderPlan,
+        backdropLayerRenderPlan: backdropLayerRenderPlan,
         actorDisplayPreviewModel: actorDisplayPreviewModel,
         startExpanded: widget.startExpanded,
         onBackToLibrary: _closeBuilder,
@@ -345,7 +353,9 @@ class _CinematicsLibraryWorkspaceState
       _stageMapSnapshot = null;
       _stageMapSnapshotMapId = null;
       _backdropTileRenderPlan = null;
+      _backdropLayerRenderPlan = null;
       _backdropTileRenderPlanMapId = null;
+      _backdropLayerRenderPlanMapId = null;
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
     }
@@ -409,7 +419,9 @@ class _CinematicsLibraryWorkspaceState
             _stageMapSnapshot = null;
             _stageMapSnapshotMapId = null;
             _backdropTileRenderPlan = null;
+            _backdropLayerRenderPlan = null;
             _backdropTileRenderPlanMapId = null;
+            _backdropLayerRenderPlanMapId = null;
             _loadingBackdropTileRenderPlanMapId = null;
             _loadingStageMapSourceCatalogMapId = null;
             _stageMapSourceCatalogGeneration++;
@@ -421,7 +433,7 @@ class _CinematicsLibraryWorkspaceState
     if (_stageMapSourceCatalog?.stageMapId == mapId) {
       if (widget.onBuildBackdropTileRenderPlan == null &&
           _stageMapSnapshotMapId == mapId &&
-          _backdropTileRenderPlanMapId != mapId &&
+          _backdropLayerRenderPlanMapId != mapId &&
           _loadingBackdropTileRenderPlanMapId != mapId) {
         unawaited(
           _loadBackdropTileRenderPlan(
@@ -450,7 +462,9 @@ class _CinematicsLibraryWorkspaceState
     _stageMapSnapshot = null;
     _stageMapSnapshotMapId = mapId;
     _backdropTileRenderPlan = null;
+    _backdropLayerRenderPlan = null;
     _backdropTileRenderPlanMapId = null;
+    _backdropLayerRenderPlanMapId = null;
     _loadingBackdropTileRenderPlanMapId = null;
     unawaited(() async {
       final mapData = await loader(mapId);
@@ -553,7 +567,7 @@ class _CinematicsLibraryWorkspaceState
       return;
     }
     _loadingBackdropTileRenderPlanMapId = mapId;
-    final plan = await _backdropTilePlanLoader.load(
+    final plan = await _backdropLayerPlanLoader.load(
       manifest: widget.project,
       mapData: mapData,
       previewModel: previewModel,
@@ -569,8 +583,8 @@ class _CinematicsLibraryWorkspaceState
       return;
     }
     setState(() {
-      _backdropTileRenderPlan = plan;
-      _backdropTileRenderPlanMapId = mapId;
+      _backdropLayerRenderPlan = plan;
+      _backdropLayerRenderPlanMapId = mapId;
       _loadingBackdropTileRenderPlanMapId = null;
     });
   }
@@ -599,6 +613,23 @@ class _CinematicsLibraryWorkspaceState
     return null;
   }
 
+  CinematicMapBackdropLayerRenderPlan? _buildBackdropLayerRenderPlan(
+    CinematicAsset asset,
+  ) {
+    if (asset.stageContext?.backdropMode !=
+        CinematicStageBackdropMode.projectMap) {
+      return null;
+    }
+    if (widget.onBuildBackdropTileRenderPlan != null) {
+      return null;
+    }
+    final mapId = asset.mapId?.trim();
+    if (_backdropLayerRenderPlanMapId == mapId) {
+      return _backdropLayerRenderPlan;
+    }
+    return null;
+  }
+
   void _closeBuilder() {
     setState(() {
       _builderEntryId = null;
@@ -606,7 +637,9 @@ class _CinematicsLibraryWorkspaceState
       _stageMapSnapshot = null;
       _stageMapSnapshotMapId = null;
       _backdropTileRenderPlan = null;
+      _backdropLayerRenderPlan = null;
       _backdropTileRenderPlanMapId = null;
+      _backdropLayerRenderPlanMapId = null;
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
       _stageMapSourceCatalogGeneration++;
