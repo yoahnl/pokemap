@@ -825,9 +825,29 @@ _ResolvedPathPreset? _resolvePathPreset(
     }
   }
   final base = _pathPresetById(manifest, trimmed);
-  return base == null
-      ? null
-      : _ResolvedPathPreset(sourceId: base.id, basePreset: base);
+  if (base == null) {
+    return null;
+  }
+  ProjectPathPatternPreset? linkedPattern;
+  var hasAmbiguousPattern = false;
+  for (final pattern in manifest.pathPatternPresets) {
+    if (pattern.basePathPresetId.trim() != trimmed) {
+      continue;
+    }
+    if (linkedPattern != null) {
+      hasAmbiguousPattern = true;
+      break;
+    }
+    linkedPattern = pattern;
+  }
+  if (!hasAmbiguousPattern && linkedPattern != null) {
+    return _ResolvedPathPreset(
+      sourceId: linkedPattern.id,
+      basePreset: base,
+      patternPreset: linkedPattern,
+    );
+  }
+  return _ResolvedPathPreset(sourceId: base.id, basePreset: base);
 }
 
 TilesetVisualFrame? _pathFrameForCell({

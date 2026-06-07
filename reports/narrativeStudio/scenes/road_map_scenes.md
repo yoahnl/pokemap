@@ -149,6 +149,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0 | DONE | Read model V1-91 branche dans le Cinematic Builder a la demande de Karim : overlay editor-only de placeholders statiques sur le decor reel V1-89, transform viewport partage, labels courts, hints direction actorFace, diagnostics acteurs, noActors preserve en `Sans acteurs`, Visual Gate 1663x926, tests builder/library/core et analyse ciblee verts, sans playback, actorMove interpolation, runtime, Flame, pathfinding/collision ni rendu sprite final. |
 | NS-SCENES-V1-93 — Cinematic Map Backdrop Layer Fidelity Prep Contract | DONE | Lot documentaire demande par Karim : suspension volontaire du Sprite Resolver pour auditer la fidelite map restante apres V1-92 ; audit MapData/layers, rendu Map Editor, assets/catalogues, render plan multi-layer, anti-scope runtime/Flame/MapCanvas, tests/Visual Gate V1-94, Option E retenue, sans code produit, packages, tests, screenshot, renderer, Selbrume modifiee ni playback. |
 | NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0 | DONE | Plan cinematic multi-layer editor-only/read-only ajoute au Builder/Library : terrain, paths, TileLayer background/foreground, surfaces, MapPlacedElement et generated placements environment resolus quand assets/donnees existent ; actor overlay V1-92 preserve entre passes background/foreground, diagnostics/fallbacks par famille, Visual Gate 1663x926, sans runtime, Flame, playback, MapCanvas complet, mutation projet/map ni sprites acteurs finaux. |
+| NS-SCENES-V1-94 bis — Cinematic Path Studio Water Fidelity Fix | DONE | Correctif demande par Karim avant V1-95 : les `PathLayer` qui referencent un preset de base Path Studio resolvent maintenant l'unique `ProjectPathPatternPreset.basePathPresetId`, ce qui restaure l'eau/motif Path Studio dans le backdrop cinematic ; tests Builder verts, sans runtime, Flame, playback, sprites acteurs ni Selbrume. |
 | NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres fidelity backdrop V1-94 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
 
 ## Prochain lot recommande
@@ -174,6 +175,22 @@ Scope realise : terrain, path, TileLayer background/foreground, surface, MapPlac
 Preuve : rapports `ns_scenes_v1_94_cinematic_map_backdrop_layer_fidelity_renderer_v0.md` et `ns_scenes_v1_94_evidence_pack.md`, screenshot `screenshots/ns_scenes_v1_94_cinematic_extended_map_backdrop_visual_gate_v0.png`, tests Builder/Library cibles verts, `dart test` complet `map_core` vert, analyse ciblee editor verte et checks anti-scope.
 
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet. Les sprites acteurs finaux restent hors scope et doivent etre cadres par V1-95.
+
+Prochain lot exact recommande : `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+
+## Mise a jour V1-94 bis
+
+Statut : `NS-SCENES-V1-94 bis — Cinematic Path Studio Water Fidelity Fix` est DONE.
+
+Demande : Karim a signale apres V1-94 que les elements du Path Studio, notamment l'eau, manquaient dans le backdrop cinematic. Le prompt colle preparait V1-95, mais cette remarque directe a ete priorisee comme correctif V1-94 bis.
+
+Decision : `_resolvePathPreset` conserve la resolution par id exact de pattern, puis, si le calque reference un preset de base, cherche l'unique `ProjectPathPatternPreset` lie par `basePathPresetId`. En cas d'ambiguite, fallback base preserve pour eviter un rendu arbitraire.
+
+Scope realise : correction locale du plan `CinematicMapBackdropLayerRenderPlan`, test de regression Path Studio/eau dans `cinematic_builder_workspace_test.dart`, evidence pack et rapport avec code.
+
+Preuve : rapports `ns_scenes_v1_94_bis_cinematic_path_studio_water_fidelity_fix.md` et `ns_scenes_v1_94_bis_evidence_pack.md`, `cinematic_builder_workspace_test.dart` complet vert (`+175`), analyse ciblee editor verte, `git diff --check` et checks anti-scope sans sortie.
+
+Limites : aucun screenshot nouveau, aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
 Prochain lot exact recommande : `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 

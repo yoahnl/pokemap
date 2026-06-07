@@ -11583,7 +11583,7 @@ ProjectManifest _pathStudioWaterBackdropProject() {
         id: 'water_base',
         name: 'Water base',
         tilesetId: 'neutral_tiles',
-        surfaceKind: ProjectPathSurfaceKind.water,
+        surfaceKind: PathSurfaceKind.water,
         variants: [
           PathPresetVariantMapping(
             variant: TerrainPathVariant.cross,
@@ -11594,7 +11594,7 @@ ProjectManifest _pathStudioWaterBackdropProject() {
         ],
       ),
     ],
-    pathPatternPresets: const [
+    pathPatternPresets: [
       ProjectPathPatternPreset(
         id: 'water_pattern',
         name: 'Water pattern',
@@ -11605,28 +11605,28 @@ ProjectManifest _pathStudioWaterBackdropProject() {
             PathCenterPatternCell(
               localX: 0,
               localY: 0,
-              frames: [
+              frames: const [
                 TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
               ],
             ),
             PathCenterPatternCell(
               localX: 1,
               localY: 0,
-              frames: [
+              frames: const [
                 TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
               ],
             ),
             PathCenterPatternCell(
               localX: 0,
               localY: 1,
-              frames: [
+              frames: const [
                 TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
               ],
             ),
             PathCenterPatternCell(
               localX: 1,
               localY: 1,
-              frames: [
+              frames: const [
                 TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0)),
               ],
             ),
