@@ -119,7 +119,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
     });
 
-    final double expandedWidth = isNarrativeWorkspace ? 268.0 : 344.0;
+    final double expandedWidth = 344.0;
     final double currentSidebarWidth =
         _leftSidebarVisible ? expandedWidth : 52.0;
 
@@ -308,20 +308,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                     child:
                                                                         Padding(
                                                                       padding:
-                                                                          EdgeInsets
+                                                                          const EdgeInsets
                                                                               .fromLTRB(
-                                                                        isNarrativeWorkspace
-                                                                            ? 12
-                                                                            : 16,
-                                                                        isNarrativeWorkspace
-                                                                            ? 16
-                                                                            : 18,
-                                                                        isNarrativeWorkspace
-                                                                            ? 10
-                                                                            : 12,
-                                                                        isNarrativeWorkspace
-                                                                            ? 16
-                                                                            : 18,
+                                                                        16,
+                                                                        18,
+                                                                        12,
+                                                                        18,
                                                                       ),
                                                                       child:
                                                                           ProjectExplorerPanel(

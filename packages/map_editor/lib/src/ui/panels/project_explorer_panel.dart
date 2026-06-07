@@ -331,7 +331,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (isNarrativeWorkspace) narrativeModuleCard,
         ProjectExplorerModuleCard(
           title: 'Tileset Library',
           description: 'Dossiers, imports et peinture de carte',
@@ -378,7 +377,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           expandedHeight: hPokedex,
           child: _buildPokemonCatalogsCard(context, snapshot, notifier),
         ),
-        if (!isNarrativeWorkspace) narrativeModuleCard,
+        narrativeModuleCard,
         ProjectExplorerModuleCard(
           title: 'World Maps',
           description:
