@@ -1,0 +1,35 @@
+title: Discussion_meteo
+---
+Narrateur: Un après-midi calme dans un village de montagne. L'air est frais et une brume légère flotte entre les arbres. Deux villageois, Marc et Léa, se croisent près de la fontaine.
+Marc: Tiens, Léa ! Tu sors aussi profiter de cette fraîcheur ?
+Léa: Oh, Marc ! Oui, je me disais que c'était le moment idéal pour une petite promenade. Mais cette brume... elle me rappelle les matins d'automne.
+Marc: Exactement. Et avec ce vent léger, on dirait que l'hiver n'est pas loin. Tu as remarqué les feuilles qui commencent à tomber ?
+Léa: Oui, c'est vrai. Les arbres perdent leurs couleurs déjà. Tu penses qu'on va avoir un hiver précoce cette année ?
+Marc: Difficile à dire. Mais d'après ce que j'ai entendu, les anciens disent que quand la brume reste collée aux montagnes, c'est signe de neige tôt.
+Léa: Oh là là... J'espère que ce ne sera pas trop rigoureux. Mes réserves de bois ne sont pas encore complètes.
+-> Demander des nouvelles du village
+  Marc: Au fait, tu sais si le vieux Thomas a fini de réparer le toit de l'église ? Je n'ai pas osé lui demander directement.
+  Léa: (soupir) Apparemment oui, mais il a dit que le bois était plus abîmé que prévu...
+  Marc: Dommage, avec ces pluies récentes...
+  <<jump Discussion_meteo_fin>>
+-> Parler des préparatifs
+  Léa: Et toi, tu as commencé à préparer tes réserves ? Moi, je stocke des pommes de terre et des courges.
+  Marc: Oui, mais j'avoue que j'ai un peu traîné. J'espère que je pourrai finir avant les premières neiges.
+  Léa: (souriant) Tu devrais peut-être demander à ton neveu, il est costaud et adore rendre service.
+  Marc: Bonne idée ! Merci pour le conseil, Léa.
+  <<jump Discussion_meteo_fin>>
+-> Changer de sujet
+  Marc: Au fait, tu as entendu parler de la fête des moissons ce week-end ?
+  Léa: Oh ! J'avais complètement oublié ! Tu y vas ?
+  Marc: Bien sûr ! Et cette année, ils annoncent un concours de tartes aux pommes.
+  Léa: (riant) Tu comptes participer ? Avec tes talents en cuisine, tu pourrais gagner !
+  Marc: Qui sait ? En tout cas, j'irai voir.
+  <<jump Discussion_meteo_fin>>
+===
+title: Discussion_meteo_fin
+---
+Léa: Bon, je vais continuer ma promenade avant que la brume ne devienne trop épaisse.
+Marc: Oui, prends soin de toi, Léa. Et n'oublie pas de vérifier tes fenêtres, avec ce vent...
+Léa: (riant) Promis ! À plus tard, Marc.
+(Ils se séparent, chacun reprenant son chemin sous la brume qui s'épaissit légèrement.)
+===

@@ -52844,6 +52844,21 @@
   ],
   "placedElements": [
     {
+      "id": "l_tile_ponton::6::33",
+      "layerId": "l_tile_ponton",
+      "elementId": "ponton_selbrume",
+      "pos": {
+        "x": 6,
+        "y": 33
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
       "id": "env_gen_env_area_foret_4_0_arbre_pixellab_1",
       "layerId": "l_tile_trees",
       "elementId": "arbre_pixellab_1",
@@ -70542,21 +70557,6 @@
       "shadowOverride": null,
       "behaviors": [],
       "properties": {}
-    },
-    {
-      "id": "l_tile_ponton::6::33",
-      "layerId": "l_tile_ponton",
-      "elementId": "ponton_selbrume",
-      "pos": {
-        "x": 6,
-        "y": 33
-      },
-      "applyCollision": true,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {}
     }
   ],
   "entities": [
@@ -70626,7 +70626,11 @@
       },
       "npc": {
         "displayName": "npc",
-        "dialogue": null,
+        "dialogue": {
+          "dialogueId": "test",
+          "scriptPathRelative": "",
+          "startNode": null
+        },
         "facing": "south",
         "visualElementId": "",
         "trainerId": null,

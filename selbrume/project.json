@@ -12562,6 +12562,16 @@
       "defaultStartNode": null,
       "folderId": null,
       "sortOrder": 0
+    },
+    {
+      "id": "test",
+      "name": "test",
+      "relativePath": "dialogues/test.yarn",
+      "tags": [],
+      "description": "",
+      "defaultStartNode": null,
+      "folderId": null,
+      "sortOrder": 1
     }
   ],
   "scripts": [],
@@ -13312,8 +13322,8 @@
           },
           {
             "nodeId": "node_end",
-            "x": 741.24609375,
-            "y": -21.7734375
+            "x": 790.8046875,
+            "y": -87.60546875
           },
           {
             "nodeId": "node_end_2",
@@ -13322,13 +13332,13 @@
           },
           {
             "nodeId": "node_battle",
-            "x": 400.4609375,
-            "y": 185.28515625
+            "x": 368.78515625,
+            "y": 184.95703125
           },
           {
             "nodeId": "node_yarn_dialogue",
-            "x": 550.84765625,
-            "y": 30.796875
+            "x": 574.40625,
+            "y": 42.3203125
           },
           {
             "nodeId": "node_yarn_dialogue_2",
@@ -13799,10 +13809,13 @@
           "shiny": false
         },
         {
-          "speciesId": "metapod",
+          "speciesId": "dratini",
           "level": 25,
           "moves": [
-            "harden"
+            "harden",
+            "wrap",
+            "thunder_wave",
+            "dragon_rage"
           ],
           "heldItemId": null,
           "formId": null,
@@ -15030,7 +15043,8 @@
     "displayScale": 3.0,
     "defaultMapWidth": 45,
     "defaultMapHeight": 45,
-    "defaultPlayerCharacterId": "vova"
+    "defaultPlayerCharacterId": "vova",
+    "mistralApiKey": "YxQWaPOS8SR11EaUUWJU6dxnVJSfZGzO"
   },
   "pokemon": {
     "enabled": true,
