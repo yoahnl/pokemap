@@ -6,8 +6,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_backdrop_preview_framing.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
@@ -778,8 +779,8 @@ void main() {
     expect(plan.hasBitmapInstructions, isTrue);
     expect(plan.instructions.map((instruction) => instruction.renderPass), [
       CinematicMapBackdropRenderPass.terrain,
-      CinematicMapBackdropRenderPass.path,
       CinematicMapBackdropRenderPass.tileBackground,
+      CinematicMapBackdropRenderPass.path,
       CinematicMapBackdropRenderPass.surface,
       CinematicMapBackdropRenderPass.placedBackground,
       CinematicMapBackdropRenderPass.tileForeground,
@@ -845,6 +846,217 @@ void main() {
       pathInstructions.map((instruction) => instruction.sourceRect.left),
       [0.0, 8.0, 16.0, 24.0],
     );
+  });
+
+  testWidgets('renders scene framing mode zoomed beyond full map fit',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    expect(find.text('Carte entière'), findsOneWidget);
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(find.text('Zoom 1.00×'), findsOneWidget);
+
+    final viewportFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+    );
+    final frameFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-map-frame'),
+    );
+    final viewportRect = tester.getRect(viewportFinder);
+    final fitFrameRect = tester.getRect(frameFinder);
+    expect(fitFrameRect.width, lessThanOrEqualTo(viewportRect.width + 0.5));
+    expect(fitFrameRect.height, lessThanOrEqualTo(viewportRect.height + 0.5));
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final sceneFrameRect = tester.getRect(frameFinder);
+    expect(sceneFrameRect.width, greaterThan(viewportRect.width));
+    expect(sceneFrameRect.height, greaterThan(viewportRect.height));
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+  });
+
+  testWidgets(
+      'zooms in and resets cinematic backdrop framing without mutating project or map',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largeBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final frameFinder = find.byKey(
+      const ValueKey('cinematic-builder-map-backdrop-map-frame'),
+    );
+    final sceneFrameRect = tester.getRect(frameFinder);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zoom 1.25×'), findsOneWidget);
+    final zoomedFrameRect = tester.getRect(frameFinder);
+    expect(zoomedFrameRect.width, greaterThan(sceneFrameRect.width));
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-reset')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zoom 1.00×'), findsOneWidget);
+    final resetFrameRect = tester.getRect(frameFinder);
+    expect(resetFrameRect.width, closeTo(sceneFrameRect.width, 1));
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('keeps actor placeholders aligned after scene framing zoom',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final tilesetImage = await _makeTestTilesetImage();
+    final asset = _actorDisplayPreviewCinematic();
+    final project = _project(cinematics: [asset]).copyWith(
+      settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'lab_tiles',
+          name: 'Lab tiles',
+          relativePath: 'assets/tilesets/lab.png',
+        ),
+      ],
+    );
+    final stageMapData = _stageMapDataWithActorDisplayFixtures();
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+    );
+    final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: stageMapData,
+      manifest: project,
+      tilesets: {
+        'lab_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'lab_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: asset,
+      project: project,
+      stageMap: project.maps.single,
+      mapData: stageMapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_actor_display_preview'),
+      asset: asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: stageMapData),
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: layerPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+
+    final mapFrameRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-map-frame')),
+    );
+    final actorRect = tester.getRect(
+      find.byKey(
+        const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+      ),
+    );
+    final expectedAnchor = Offset(
+      mapFrameRect.left + (8.5 * mapFrameRect.width / 12),
+      mapFrameRect.top + (4 * mapFrameRect.height / 10),
+    );
+    expect(actorRect.center.dx, closeTo(expectedAnchor.dx, 1));
+    expect(actorRect.bottom, closeTo(expectedAnchor.dy, 1));
+  });
+
+  test('resolves cinematic backdrop focus from selected actor before fallbacks',
+      () {
+    final model = CinematicActorDisplayPreviewModel(
+      status: CinematicActorDisplayPreviewStatus.ready,
+      summary: '2 actor(s)',
+      actors: [
+        _focusPreviewActor('actor_player', x: 1, y: 2),
+        _focusPreviewActor('actor_lysa', x: 8, y: 3),
+      ],
+      diagnostics: const [],
+    );
+    final selectedStep = _actorDisplayPreviewCinematic()
+        .timeline
+        .steps
+        .firstWhere((step) => step.id == 'step_face_lysa');
+
+    final selectedFocus = resolveCinematicBackdropPreviewFocus(
+      mapWidth: 12,
+      mapHeight: 10,
+      actorDisplayPreviewModel: model,
+      selectedStep: selectedStep,
+    );
+    expect(selectedFocus.reason, 'selectedActor');
+    expect(selectedFocus.actorId, 'actor_lysa');
+    expect(selectedFocus.tileCenter, const Offset(8.5, 3.5));
+
+    final actorBoundsFocus = resolveCinematicBackdropPreviewFocus(
+      mapWidth: 12,
+      mapHeight: 10,
+      actorDisplayPreviewModel: model,
+    );
+    expect(actorBoundsFocus.reason, 'actorBounds');
+    expect(actorBoundsFocus.tileCenter, const Offset(5, 3));
+
+    final mapCenterFocus = resolveCinematicBackdropPreviewFocus(
+      mapWidth: 12,
+      mapHeight: 10,
+    );
+    expect(mapCenterFocus.reason, 'mapCenter');
+    expect(mapCenterFocus.tileCenter, const Offset(6, 5));
   });
 
   testWidgets(
@@ -9845,6 +10057,68 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-95 cinematic backdrop framing zoom controls when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_95_CAPTURE_CINEMATIC_BACKDROP_FRAMING_ZOOM_CONTROLS',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+
+    final pathInstructions = fixture.layerPlan.instructions
+        .where((instruction) => instruction.sourceFamily == 'path')
+        .toList();
+    expect(pathInstructions, isNotEmpty);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
+      findsOneWidget,
+    );
+    expect(find.text('Carte entière'), findsOneWidget);
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(find.text('Zoom 1.25×'), findsOneWidget);
+    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Lecture en cours'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_95_cinematic_backdrop_preview_framing_zoom_controls_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -11090,6 +11364,37 @@ CinematicAsset _stageSandboxOnlyCinematic() {
   );
 }
 
+CinematicActorDisplayPreviewActor _focusPreviewActor(
+  String actorId, {
+  required int x,
+  required int y,
+}) {
+  return CinematicActorDisplayPreviewActor(
+    actorId: actorId,
+    label: actorId,
+    role: null,
+    bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+    bindingKind: CinematicActorBindingKind.cinematicOnly,
+    bindingSourceId: actorId,
+    bindingSourceLabel: actorId,
+    position: CinematicActorPreviewPosition(
+      status: CinematicActorPreviewPositionStatus.resolved,
+      sourceKind: CinematicActorPreviewPositionSourceKind.movementTarget,
+      x: x,
+      y: y,
+      sourceId: actorId,
+      sourceLabel: actorId,
+    ),
+    appearance: const CinematicActorPreviewAppearance(
+      status: CinematicActorPreviewAppearanceStatus.placeholderOnly,
+    ),
+    direction: CinematicActorPreviewDirection.south,
+    directionSource: CinematicActorPreviewDirectionSource.fallback,
+    renderHint: CinematicActorPreviewRenderHint.placeholder,
+    diagnostics: const [],
+  );
+}
+
 CinematicAsset _actorDisplayPreviewCinematic() {
   return CinematicAsset(
     id: 'cinematic_actor_display_preview',
@@ -11576,8 +11881,10 @@ ProjectManifest _extendedBackdropProject({
   );
 }
 
-ProjectManifest _pathStudioWaterBackdropProject() {
-  return _extendedBackdropProject().copyWith(
+ProjectManifest _pathStudioWaterBackdropProject({
+  List<CinematicAsset>? cinematics,
+}) {
+  return _extendedBackdropProject(cinematics: cinematics).copyWith(
     pathPresets: [
       const ProjectPathPreset(
         id: 'water_base',
@@ -11952,6 +12259,47 @@ MapData _stageMapDataWithPathStudioWaterBackdrop() {
   );
 }
 
+MapData _stageMapDataWithLargePathStudioWaterBackdrop() {
+  final waterCells = List<bool>.filled(55 * 55, true);
+  return _stageMapData(
+    entities: const <MapEntity>[],
+    events: const <MapEventDefinition>[],
+  ).copyWith(
+    size: const GridSize(width: 55, height: 55),
+    layers: [
+      MapLayer.tile(
+        id: 'large_ground',
+        name: 'Large ground',
+        tilesetId: 'neutral_tiles',
+        tiles: List<int>.filled(55 * 55, 5),
+      ),
+      MapLayer.path(
+        id: 'large_water_path_layer',
+        name: 'Large water path',
+        presetId: 'water_base',
+        cells: waterCells,
+      ),
+    ],
+  );
+}
+
+MapData _stageMapDataWithLargeBackdrop() {
+  return _stageMapData(
+    entities: const <MapEntity>[],
+    events: const <MapEventDefinition>[],
+  ).copyWith(
+    size: const GridSize(width: 55, height: 55),
+    layers: [
+      MapLayer.tile(
+        id: 'large_ground',
+        name: 'Large ground',
+        tilesetId: 'neutral_tiles',
+        tiles: List<int>.filled(55 * 55, 1),
+      ),
+    ],
+  );
+}
+
 MapData _stageMapDataWithActorDisplayFixtures() {
   final tiles = <int>[];
   for (var index = 0; index < 120; index += 1) {
@@ -12075,6 +12423,33 @@ Future<ui.Image> _makeExtendedBackdropTilesetImage() {
   return picture.toImage(64, 16);
 }
 
+Future<ui.Image> _makePathStudioWaterBackdropTilesetImage() {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paints = [
+    Paint()..color = const Color(0xFF0D6EA8),
+    Paint()..color = const Color(0xFF1896D4),
+    Paint()..color = const Color(0xFF3DB9E6),
+    Paint()..color = const Color(0xFF7DD7F0),
+    Paint()..color = const Color(0xFF2F6F4E),
+    Paint()..color = const Color(0xFF2F6F4E),
+    Paint()..color = const Color(0xFF254E35),
+    Paint()..color = const Color(0xFF14311F),
+  ];
+  for (var index = 0; index < paints.length; index += 1) {
+    canvas.drawRect(
+      Rect.fromLTWH(index * 8.0, 0, 8, 8),
+      paints[index],
+    );
+    canvas.drawRect(
+      Rect.fromLTWH(index * 8.0, 8, 8, 8),
+      paints[index],
+    );
+  }
+  final picture = recorder.endRecording();
+  return picture.toImage(64, 16);
+}
+
 Future<CinematicMapBackdropLayerRenderPlan> _extendedBackdropLayerPlan({
   ProjectManifest? project,
   MapData? mapData,
@@ -12090,6 +12465,44 @@ Future<CinematicMapBackdropLayerRenderPlan> _extendedBackdropLayerPlan({
         tileWidth: 8,
         tileHeight: 8,
       ),
+    },
+  );
+}
+
+Future<_ExtendedBackdropFixture> _largeBackdropFixture() {
+  return _extendedBackdropFixture(mapData: _stageMapDataWithLargeBackdrop());
+}
+
+Future<_ExtendedBackdropFixture> _largePathStudioWaterBackdropFixture() {
+  final cinematic = _stageContextCinematic();
+  final project = _pathStudioWaterBackdropProject(cinematics: [cinematic]);
+  final mapData = _stageMapDataWithLargePathStudioWaterBackdrop();
+  final backdropModel = buildCinematicMapBackdropPreviewModel(
+    asset: cinematic,
+    stageMap: project.maps.single,
+    mapData: mapData,
+  );
+  return _makePathStudioWaterBackdropTilesetImage().then(
+    (tilesetImage) {
+      final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
+        mapData: mapData,
+        manifest: project,
+        tilesets: {
+          'neutral_tiles': CinematicResolvedTilesetAsset.available(
+            tilesetId: 'neutral_tiles',
+            image: tilesetImage,
+            tileWidth: 8,
+            tileHeight: 8,
+          ),
+        },
+      );
+      return _ExtendedBackdropFixture(
+        project: project,
+        asset: cinematic,
+        mapData: mapData,
+        backdropModel: backdropModel,
+        layerPlan: layerPlan,
+      );
     },
   );
 }

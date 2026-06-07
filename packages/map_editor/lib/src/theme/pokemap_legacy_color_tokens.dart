@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:macos_ui/macos_ui.dart';
+import '../ui/shared/pokemap_macos_ui_shim.dart';
 
 import 'pokemap_theme_extension.dart';
 

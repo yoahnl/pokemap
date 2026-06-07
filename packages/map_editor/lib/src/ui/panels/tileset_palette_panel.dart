@@ -16,7 +16,7 @@ import 'package:flutter/material.dart'
         PopupMenuItem,
         RoundedRectangleBorder;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_shadow_override_section.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart';

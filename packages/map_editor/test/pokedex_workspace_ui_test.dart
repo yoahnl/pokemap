@@ -5,7 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/pokedex_providers.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
@@ -62,7 +62,10 @@ void main() {
               child: SizedBox(
                 width: 1280,
                 height: 900,
-                child: child,
+                child: Material(
+                  type: MaterialType.transparency,
+                  child: child,
+                ),
               ),
             ),
           ),

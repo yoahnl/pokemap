@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';

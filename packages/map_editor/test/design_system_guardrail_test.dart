@@ -329,6 +329,7 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/ui/shared/editor_paint_palette.dart': 25,
   'lib/src/ui/shared/editor_visual_tokens.dart': 8,
   'lib/src/ui/shared/inspector_embedded_widgets.dart': 7,
+  'lib/src/ui/shared/pokemap_macos_ui_shim.dart': 10,
   'lib/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart': 2,
   'lib/src/ui/shared/top_toolbar/widgets/toolbar_brand.dart': 1,
   'lib/src/ui/widgets/element_collision_triple_mask_editor.dart': 27,

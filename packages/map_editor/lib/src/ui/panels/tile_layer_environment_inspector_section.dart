@@ -1,5 +1,5 @@
 import 'package:flutter/cupertino.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/tile_layer_environment_attachment_read_model.dart';

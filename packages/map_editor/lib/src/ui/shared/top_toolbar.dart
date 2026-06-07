@@ -1,7 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -15,21 +15,7 @@ import 'top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'top_toolbar/widgets/toolbar_brand.dart';
 import 'top_toolbar/widgets/toolbar_capsules.dart';
 
-/// Exposé pour [MacosScaffold.toolBar], qui attend un [ToolBar] typé (pas un [ConsumerWidget]).
-ToolBar buildMapEditorToolbar(
-  BuildContext context,
-  WidgetRef ref, {
-  VoidCallback? onToggleRightPanel,
-  bool rightPanelVisible = false,
-}) =>
-    TopToolbar.buildToolBar(
-      context,
-      ref,
-      onToggleRightPanel: onToggleRightPanel,
-      rightPanelVisible: rightPanelVisible,
-    );
-
-/// Barre d’outils native [macos_ui] pour [MacosScaffold].
+/// Barre d’outils native PokeMap.
 class TopToolbar extends ConsumerWidget {
   const TopToolbar({
     super.key,
@@ -77,7 +63,7 @@ class TopToolbar extends ConsumerWidget {
         .toList(growable: false);
   }
 
-  static ToolBar buildToolBar(
+  static Widget buildToolBar(
     BuildContext context,
     WidgetRef ref, {
     VoidCallback? onToggleRightPanel,
@@ -115,7 +101,7 @@ class TopToolbar extends ConsumerWidget {
         (toolbar.activeTool == EditorToolType.collisionPaint ||
             toolbar.activeTool == EditorToolType.eraser);
 
-    final actions = <ToolbarItem>[
+    final actions = <Widget>[
       _groupItem(
         context,
         title: 'Fichier',
@@ -146,7 +132,7 @@ class TopToolbar extends ConsumerWidget {
               width: 32,
               height: 32,
               child: Center(
-                child: ProgressCircle(),
+                child: CupertinoActivityIndicator(),
               ),
             )
           else
@@ -545,64 +531,11 @@ class TopToolbar extends ConsumerWidget {
             ),
           ],
         ),
-      const ToolBarSpacer(spacerUnits: 4),
-      if (toolbar.statusMessage != null)
-        CustomToolbarItem(
-          inToolbarBuilder: (_) => Container(
-            margin: const EdgeInsets.only(left: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: colors.brandPrimarySoft,
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(
-                color: colors.brandPrimaryBorder,
-                width: 1,
-              ),
-            ),
-            child: Text(
-              toolbar.statusMessage!,
-              style: TextStyle(
-                color: colors.brandPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                decoration: TextDecoration.none,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          inOverflowedBuilder: (_) => const ToolbarOverflowMenuItem(
-            label: 'Status',
-            onPressed: null,
-          ),
-        ),
     ];
 
-    return ToolBar(
-      height: 72.0,
-      title: TopToolbarBrand(
-        projectName: toolbar.project?.name,
-        workspaceLabel: switch (toolbar.workspaceMode) {
-          EditorWorkspaceMode.map => 'World Editor',
-          EditorWorkspaceMode.tileset => 'Tileset Studio',
-          EditorWorkspaceMode.trainer => 'Trainer Studio',
-          EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
-          EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
-          EditorWorkspaceMode.globalStory => 'Global Story',
-          EditorWorkspaceMode.scenes => 'Scenes Workspace',
-          EditorWorkspaceMode.step => 'Step Studio',
-          EditorWorkspaceMode.cutscene => 'Cutscene Studio',
-          EditorWorkspaceMode.dialogue => 'Dialogue Studio',
-          EditorWorkspaceMode.facts => 'Facts Manager',
-          EditorWorkspaceMode.worldRules => 'World Rules Manager',
-          EditorWorkspaceMode.pathStudio => 'Path Studio',
-          EditorWorkspaceMode.environmentStudio => 'Environment Studio',
-        },
-      ),
-      titleWidth: 280, // slightly wider to fit new side-by-side branding
-      automaticallyImplyLeading: false,
-      centerTitle: false,
+    return Container(
+      height: 78.0,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      dividerColor: colors.divider,
       decoration: BoxDecoration(
         color: colors.backgroundShell,
         border: Border(
@@ -612,27 +545,80 @@ class TopToolbar extends ConsumerWidget {
           ),
         ),
       ),
-      actions: actions,
+      child: Row(
+        children: [
+          SizedBox(
+            width: 280,
+            child: TopToolbarBrand(
+              projectName: toolbar.project?.name,
+              workspaceLabel: switch (toolbar.workspaceMode) {
+                EditorWorkspaceMode.map => 'World Editor',
+                EditorWorkspaceMode.tileset => 'Tileset Studio',
+                EditorWorkspaceMode.trainer => 'Trainer Studio',
+                EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
+                EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
+                EditorWorkspaceMode.globalStory => 'Global Story',
+                EditorWorkspaceMode.scenes => 'Scenes Workspace',
+                EditorWorkspaceMode.step => 'Step Studio',
+                EditorWorkspaceMode.cutscene => 'Cutscene Studio',
+                EditorWorkspaceMode.dialogue => 'Dialogue Studio',
+                EditorWorkspaceMode.facts => 'Facts Manager',
+                EditorWorkspaceMode.worldRules => 'World Rules Manager',
+                EditorWorkspaceMode.pathStudio => 'Path Studio',
+                EditorWorkspaceMode.environmentStudio => 'Environment Studio',
+              },
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: actions,
+              ),
+            ),
+          ),
+          if (toolbar.statusMessage != null) ...[
+            const SizedBox(width: 12),
+            Container(
+              margin: const EdgeInsets.only(left: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: colors.brandPrimarySoft,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: colors.brandPrimaryBorder,
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                toolbar.statusMessage!,
+                style: TextStyle(
+                  color: colors.brandPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  decoration: TextDecoration.none,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  static CustomToolbarItem _groupItem(
+  static Widget _groupItem(
     BuildContext context, {
     required String overflowLabel,
     required List<Widget> children,
     String? title,
     bool selected = false,
   }) {
-    return CustomToolbarItem(
-      inToolbarBuilder: (_) => ToolbarCapsuleGroup(
-        title: title,
-        selected: selected,
-        children: children,
-      ),
-      inOverflowedBuilder: (_) => ToolbarOverflowMenuItem(
-        label: overflowLabel,
-        onPressed: null,
-      ),
+    return ToolbarCapsuleGroup(
+      title: title,
+      selected: selected,
+      children: children,
     );
   }
 
@@ -658,3 +644,4 @@ class TopToolbar extends ConsumerWidget {
     };
   }
 }
+

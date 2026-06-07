@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import 'cinematic_backdrop_preview_framing.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
@@ -319,6 +320,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
   String? _selectedStepId;
   int? _timelineProbeTimeMs;
   _TimelineProbeSnapHint? _timelineProbeSnapHint;
+  CinematicBackdropPreviewFramingState _backdropFramingState =
+      const CinematicBackdropPreviewFramingState();
 
   @override
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
@@ -330,6 +333,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     if (!sameCinematic) {
       _timelineProbeTimeMs = null;
       _timelineProbeSnapHint = null;
+      _backdropFramingState = const CinematicBackdropPreviewFramingState();
     }
   }
 
@@ -399,6 +403,23 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                     widget.backdropLayerRenderPlan,
                                 actorDisplayPreviewModel:
                                     widget.actorDisplayPreviewModel,
+                                backdropFramingState: _backdropFramingState,
+                                onBackdropFramingModeChanged: (mode) {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      mode: mode,
+                                    );
+                                  });
+                                },
+                                onBackdropFramingZoomChanged: (zoom) {
+                                  setState(() {
+                                    _backdropFramingState =
+                                        _backdropFramingState.copyWith(
+                                      zoom: zoom,
+                                    );
+                                  });
+                                },
                                 selectedStep: selectedStep,
                                 selectedStepIndex: selectedStepIndex,
                                 timelineProbeTimeMs: _timelineProbeTimeMs,
@@ -1664,6 +1685,9 @@ class _PreviewSandbox extends StatelessWidget {
     this.backdropTileRenderPlan,
     this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
+    required this.backdropFramingState,
+    required this.onBackdropFramingModeChanged,
+    required this.onBackdropFramingZoomChanged,
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.timelineProbeTimeMs,
@@ -1675,6 +1699,10 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicBackdropPreviewFramingState backdropFramingState;
+  final ValueChanged<CinematicBackdropPreviewFramingMode>
+      onBackdropFramingModeChanged;
+  final ValueChanged<double> onBackdropFramingZoomChanged;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final int? timelineProbeTimeMs;
@@ -1697,6 +1725,10 @@ class _PreviewSandbox extends StatelessWidget {
               tileRenderPlan: backdropTileRenderPlan,
               layerRenderPlan: backdropLayerRenderPlan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
+              framingState: backdropFramingState,
+              selectedStep: selectedStep,
+              onFramingModeChanged: onBackdropFramingModeChanged,
+              onFramingZoomChanged: onBackdropFramingZoomChanged,
             );
           }
           final ultraCompact = constraints.maxHeight < 205;

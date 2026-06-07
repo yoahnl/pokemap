@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show BoxShadow, Material;
 import 'package:flutter/services.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../../theme/theme.dart';
 import 'editor_visual_tokens.dart';

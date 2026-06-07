@@ -39,7 +39,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Material, Tooltip;
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../../../features/narrative/application/cutscene_studio_authoring.dart';
 import '../../shared/cupertino_editor_widgets.dart';

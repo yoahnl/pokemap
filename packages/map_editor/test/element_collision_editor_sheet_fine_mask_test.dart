@@ -2,7 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/panels/element_collision_editor_sheet.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';

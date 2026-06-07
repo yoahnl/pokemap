@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../../shell_chrome_test_harness.dart';
 

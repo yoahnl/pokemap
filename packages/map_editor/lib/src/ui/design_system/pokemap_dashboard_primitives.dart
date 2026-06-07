@@ -348,12 +348,14 @@ class PokeMapInspectorPanel extends StatelessWidget {
 
 class PokeMapSegmentedTab {
   const PokeMapSegmentedTab({
+    this.key,
     required this.label,
     required this.selected,
     this.icon,
     this.onTap,
   });
 
+  final Key? key;
   final String label;
   final bool selected;
   final IconData? icon;
@@ -390,7 +392,7 @@ class PokeMapSegmentedTabs extends StatelessWidget {
 }
 
 class _PokeMapSegmentedTabButton extends StatelessWidget {
-  const _PokeMapSegmentedTabButton({required this.tab});
+  _PokeMapSegmentedTabButton({required this.tab}) : super(key: tab.key);
 
   final PokeMapSegmentedTab tab;
 
@@ -407,6 +409,7 @@ class _PokeMapSegmentedTabButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: enabled ? tab.onTap : null,
         child: Container(
           decoration: BoxDecoration(

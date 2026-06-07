@@ -150,17 +150,34 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-93 — Cinematic Map Backdrop Layer Fidelity Prep Contract | DONE | Lot documentaire demande par Karim : suspension volontaire du Sprite Resolver pour auditer la fidelite map restante apres V1-92 ; audit MapData/layers, rendu Map Editor, assets/catalogues, render plan multi-layer, anti-scope runtime/Flame/MapCanvas, tests/Visual Gate V1-94, Option E retenue, sans code produit, packages, tests, screenshot, renderer, Selbrume modifiee ni playback. |
 | NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0 | DONE | Plan cinematic multi-layer editor-only/read-only ajoute au Builder/Library : terrain, paths, TileLayer background/foreground, surfaces, MapPlacedElement et generated placements environment resolus quand assets/donnees existent ; actor overlay V1-92 preserve entre passes background/foreground, diagnostics/fallbacks par famille, Visual Gate 1663x926, sans runtime, Flame, playback, MapCanvas complet, mutation projet/map ni sprites acteurs finaux. |
 | NS-SCENES-V1-94 bis — Cinematic Path Studio Water Fidelity Fix | DONE | Correctif demande par Karim avant V1-95 : les `PathLayer` qui referencent un preset de base Path Studio resolvent maintenant l'unique `ProjectPathPatternPreset.basePathPresetId`, ce qui restaure l'eau/motif Path Studio dans le backdrop cinematic ; tests Builder verts, sans runtime, Flame, playback, sprites acteurs ni Selbrume. |
-| NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres fidelity backdrop V1-94 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
+| NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0 | DONE | A la demande de Karim, la preview backdrop cinematic ajoute un cadrage editor-only local : mode Carte entiere preserve, mode Vue scene zoome, zoom/reset non persistants, focus acteur selectionne puis bbox acteurs puis centre map, transform partage backdrop/foreground/acteurs, eau Path Studio visible, Visual Gate, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
+| NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible V1-95 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
+`NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
 
-Raison : V1-94 rend le decor cinematic beaucoup plus proche du Map Editor sans lancer la cinematique. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs, tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
+Raison : V1-95 rend le decor cinematic lisible comme une scene cadree sans lancer la cinematique. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs, tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
 
-Ordre apres V1-94 : `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-95 est valide. Le polish timeline scroll/visibility reste un backlog futur.
+Ordre apres V1-95 : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-96 est valide. Le polish timeline scroll/visibility reste un backlog futur.
 
-Le lot `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` precedemment recommande est volontairement repousse en V1-95. Raison : les sprites acteurs viendront apres la fidelite map, afin d'eviter d'habiller les comediens avant d'avoir fini le decor.
+Le lot `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` precedemment recommande est volontairement repousse en V1-96. Raison : les sprites acteurs viennent apres la fidelite map et le cadrage V1-95, afin d'eviter d'habiller les comediens avant d'avoir fini le decor et la loupe.
+
+## Mise a jour V1-95
+
+Statut : `NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-95 pour arreter l'effet mini-map apres V1-94/V1-94 bis et a rappele que les elements Path Studio/eau devaient rester visibles.
+
+Decision : Option E retenue : conserver `Carte entiere` comme comportement par defaut et ajouter `Vue scene` avec zoom local non persistant. Le focus V0 privilegie l'acteur renderable du bloc selectionne, puis la bounding box des acteurs renderable, puis le centre de la map.
+
+Scope realise : helper editor-only `CinematicBackdropPreviewFramingState`, calcul de framing/crop par frame commun, controles `Carte entiere` / `Vue scene` / zoom - reset + / badge zoom, partage du transform entre backdrop background, actor overlay V1-92 et foreground V1-94, compact layout sans overflow, ordre de render pass corrige pour que Path Studio/eau peigne au-dessus du tile background.
+
+Preuve : rapports `ns_scenes_v1_95_cinematic_backdrop_preview_framing_zoom_controls_v0.md` et `ns_scenes_v1_95_evidence_pack.md`, Visual Gate `screenshots/ns_scenes_v1_95_cinematic_backdrop_preview_framing_zoom_controls_v0.png`, `cinematic_builder_workspace_test.dart` complet vert, `cinematics_library_workspace_test.dart` vert, tests core cibles verts et analyses ciblees vertes.
+
+Limites : V1-95 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final, aucune persistence zoom/framing, aucune mutation projet/map, aucune donnee Selbrume.
+
+Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-94
 
@@ -168,15 +185,15 @@ Statut : `NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0`
 
 Demande : Karim a fourni le prompt V1-94 et a demande de rendre le backdrop cinematic beaucoup plus fidele au Map Editor avant de continuer vers les sprites acteurs.
 
-Decision : l'Option E de V1-93 est materialisee par un plan `CinematicMapBackdropLayerRenderPlan` separe du plan tiles V1-89. Le loader reste editor-only/read-only, utilise `CinematicTilesetAssetRegistry`, et le panel compose `terrain -> path -> tileBackground -> surface -> placedBackground -> actorOverlayV1-92 -> tileForeground -> placedForeground`.
+Decision : l'Option E de V1-93 est materialisee par un plan `CinematicMapBackdropLayerRenderPlan` separe du plan tiles V1-89. Le loader reste editor-only/read-only, utilise `CinematicTilesetAssetRegistry`, et le panel compose `terrain -> tileBackground -> path -> surface -> placedBackground -> actorOverlayV1-92 -> tileForeground -> placedForeground`.
 
 Scope realise : terrain, path, TileLayer background/foreground, surface, MapPlacedElement, generated placements environment via vrais `MapPlacedElement`, diagnostics/fallbacks par famille, partial render, preservation timeline/transports/duration/resize/probe/pickers, Visual Gate V1-94 et tests cibles.
 
 Preuve : rapports `ns_scenes_v1_94_cinematic_map_backdrop_layer_fidelity_renderer_v0.md` et `ns_scenes_v1_94_evidence_pack.md`, screenshot `screenshots/ns_scenes_v1_94_cinematic_extended_map_backdrop_visual_gate_v0.png`, tests Builder/Library cibles verts, `dart test` complet `map_core` vert, analyse ciblee editor verte et checks anti-scope.
 
-Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet. Les sprites acteurs finaux restent hors scope et doivent etre cadres par V1-95.
+Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet. Les sprites acteurs finaux restent hors scope et doivent etre cadres par V1-96 apres le cadrage backdrop V1-95.
 
-Prochain lot exact recommande : `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Historique avant V1-95 : le prochain lot recommande etait `NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0`, desormais traite.
 
 ## Mise a jour V1-94 bis
 
@@ -192,7 +209,7 @@ Preuve : rapports `ns_scenes_v1_94_bis_cinematic_path_studio_water_fidelity_fix.
 
 Limites : aucun screenshot nouveau, aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
-Prochain lot exact recommande : `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Historique avant V1-95 : le prochain lot recommande etait `NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0`, desormais traite.
 
 ## Mise a jour V1-93
 

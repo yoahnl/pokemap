@@ -1,6 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:macos_ui/macos_ui.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../theme/theme.dart';
@@ -33,15 +33,15 @@ class ProjectExplorerPanel extends ConsumerStatefulWidget {
 }
 
 class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
-  bool _expandTileLib = false;
-  bool _expandPokedex = false;
-  bool _expandNarrative = false;
-  bool _expandWorld = false;
-  bool _expandTerrains = false;
-  bool _expandPaths = false;
-  bool _expandEnvironment = false;
-  bool _expandTrainers = false;
-  bool _expandCharacters = false;
+  bool _expandTileLib = true;
+  bool _expandPokedex = true;
+  bool _expandNarrative = true;
+  bool _expandWorld = true;
+  bool _expandTerrains = true;
+  bool _expandPaths = true;
+  bool _expandEnvironment = true;
+  bool _expandTrainers = true;
+  bool _expandCharacters = true;
 
   @override
   Widget build(BuildContext context) {
