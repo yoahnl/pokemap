@@ -147,15 +147,35 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-90 — Cinematic Actor Display Preview Prep Contract | DONE | Lot documentaire demande par Karim : audit actor sources/stage bindings, positions/placements, Character Library/appearances, overlay/viewport, anti-runtime/Flame et UX ; Option C retenue, contrat futur read model actor display, diagnostics/tests/Visual Gate V1-91 cadres, sans code produit, packages, tests, screenshot, rendu acteur, runtime, playback, pathfinding/collision ni donnee Selbrume. |
 | NS-SCENES-V1-91 — Cinematic Actor Display Preview Read Model V0 | DONE | Read model pur `map_core` `CinematicActorDisplayPreviewModel` demande par Karim : inventaire `requiredActors`, bindings player/mapEntity/cinematicOnly/unbound, positions resolues/manquantes, apparences Character Library/player/mapEntity, directions statiques, render hints abstraits, diagnostics locaux, tests/analyze core verts, sans renderer UI, sprite affiche, runtime, Flame, playback, pathfinding/collision ni donnee Selbrume. |
 | NS-SCENES-V1-92 — Cinematic Actor Display Preview Renderer V0 | DONE | Read model V1-91 branche dans le Cinematic Builder a la demande de Karim : overlay editor-only de placeholders statiques sur le decor reel V1-89, transform viewport partage, labels courts, hints direction actorFace, diagnostics acteurs, noActors preserve en `Sans acteurs`, Visual Gate 1663x926, tests builder/library/core et analyse ciblee verts, sans playback, actorMove interpolation, runtime, Flame, pathfinding/collision ni rendu sprite final. |
-| NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres les placeholders V1-92 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics et anti-scope runtime. Le polish timeline scroll/visibility est repousse apres ce verrou actor readability. |
+| NS-SCENES-V1-93 — Cinematic Map Backdrop Layer Fidelity Prep Contract | DONE | Lot documentaire demande par Karim : suspension volontaire du Sprite Resolver pour auditer la fidelite map restante apres V1-92 ; audit MapData/layers, rendu Map Editor, assets/catalogues, render plan multi-layer, anti-scope runtime/Flame/MapCanvas, tests/Visual Gate V1-94, Option E retenue, sans code produit, packages, tests, screenshot, renderer, Selbrume modifiee ni playback. |
+| NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0 | TODO | Etendre le renderer backdrop cinematic pour rendre terrain, paths, surfaces, placed elements et generated placements quand les donnees/assets sont disponibles, via plan multi-layer editor-only/read-only, sans MapCanvas complet, runtime, Flame, playback, mutation projet/map ni sprites acteurs finaux. |
+| NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres fidelity backdrop V1-94 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
+`NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0`
 
-Raison : V1-92 affiche maintenant les acteurs sous forme de placeholders statiques sur le vrai decor. Le prochain verrou utilisateur est de rendre ces placeholders reconnaissables sans lancer la cinematique : preparer le resolver de sprites editor-only et ses diagnostics, toujours sans runtime ni playback.
+Raison : Karim a demande de corriger d'abord le vrai probleme visuel restant : la preview Cinematic Builder reste trop limitee aux `TileLayer` bitmap et ne ressemble pas encore assez au rendu Map Editor complet. Avant de remplacer les placeholders acteurs par des sprites, V1-94 doit rendre terrain, paths, surfaces et elements places dans un plan backdrop multi-layer editor-only.
 
-Ordre apres V1-92 : `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis le polish timeline scroll/visibility reste un backlog futur.
+Ordre apres V1-93 : `NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0`, puis `NS-SCENES-V1-95 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`. Le polish timeline scroll/visibility reste un backlog futur.
+
+Le lot `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` precedemment recommande est volontairement repousse en V1-95. Raison : les sprites acteurs viendront apres la fidelite map, afin d'eviter d'habiller les comediens avant d'avoir fini le decor.
+
+## Mise a jour V1-93
+
+Statut : `NS-SCENES-V1-93 — Cinematic Map Backdrop Layer Fidelity Prep Contract` est DONE.
+
+Demande : Karim a fourni le prompt V1-93 et a explicitement demande de corriger la fidelite du decor avant le Sprite Resolver. Le lot est documentaire/architecture-review uniquement : aucun renderer, aucun package, aucun test, aucun screenshot.
+
+Decision : l'Option E est retenue. V1-94 doit creer un plan de rendu cinematic multi-layer dedie, editor-only/read-only, qui reutilise seulement des helpers purs du Map Editor et garde `CinematicTilesetAssetRegistry` comme cache bas niveau. `MapCanvas`, `MapGridPainter` brut, runtime, Flame et playback restent exclus.
+
+Scope realise : audit MapData layer semantics, audit rendering parity Map Editor, audit assets/catalogues, audit render plan, anti-scope runtime/Flame/MapCanvas, review produit fidelite backdrop, plan tests/Visual Gate V1-94 et arbitrage sub-agents A-G.
+
+Preuve : rapports `ns_scenes_v1_93_cinematic_map_backdrop_layer_fidelity_prep_contract.md` et `ns_scenes_v1_93_evidence_pack.md`, Gate 0 propre, sub-agents A-G, recherches `rg`, checks anti-scope et `git diff --check`.
+
+Limites : doc-only. Aucun code produit, package, test, screenshot, renderer, MapCanvas, runtime, Flame, playback, mutation MapData/ProjectManifest, modification Selbrume, fake terrain/path/environment ou image IA n'est ajoute.
+
+Prochain lot exact recommande : `NS-SCENES-V1-94 — Cinematic Map Backdrop Layer Fidelity Renderer V0`.
 
 Le lot `NS-SCENES-V1-78 — Cinematic Stage Source Drift Diagnostics Polish V0` précédemment recommandé est repoussé après la séquence Character Library Binding. Il reste pertinent, mais il ne doit plus occuper V1-78.
 
