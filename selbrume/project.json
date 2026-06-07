@@ -13113,11 +13113,13 @@
         "initialPlacements": [
           {
             "actorId": "actor",
-            "kind": "unset"
+            "kind": "fromMovementTarget",
+            "targetId": "target"
           },
           {
             "actorId": "actor_4",
-            "kind": "unset"
+            "kind": "fromMovementTarget",
+            "targetId": "target"
           }
         ],
         "movementTargetBindings": [
