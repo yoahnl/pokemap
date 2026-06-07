@@ -492,12 +492,17 @@ void main() {
 
       expect(
         tester.getTopLeft(narrativeCard).dy,
-        lessThan(tester.getTopLeft(tilesetCard).dy),
+        greaterThan(tester.getTopLeft(tilesetCard).dy),
       );
       expect(
         tester.getTopLeft(narrativeCard).dy,
-        lessThan(tester.getTopLeft(catalogsCard).dy),
+        greaterThan(tester.getTopLeft(catalogsCard).dy),
       );
+
+      await tester.ensureVisible(narrativeCard);
+      await tester.tap(narrativeCard);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Aperçu'), findsWidgets);
       expect(find.text('Histoire globale'), findsWidgets);
@@ -638,8 +643,13 @@ void main() {
       expect(tilesetCard, findsOneWidget);
       expect(
         tester.getTopLeft(narrativeCard).dy,
-        lessThan(tester.getTopLeft(tilesetCard).dy),
+        greaterThan(tester.getTopLeft(tilesetCard).dy),
       );
+
+      await tester.ensureVisible(narrativeCard);
+      await tester.tap(narrativeCard);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Aperçu'), findsOneWidget);
       expect(find.text('Histoire globale'), findsOneWidget);
