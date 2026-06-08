@@ -376,7 +376,7 @@ void main() {
         sourceY: 2,
       );
       expect(assigned.configuredVariantCount, 1);
-      expect(assigned.variantTiles[variant]?.coordinateLabel, '6,2');
+      expect(assigned.variantCellFrames[variant]?.firstOrNull?.tile.coordinateLabel, '6,2');
 
       final replaced = assignPathStudioNewPathDraftVariantTile(
         draft: assigned,
@@ -385,14 +385,14 @@ void main() {
         sourceY: 7,
       );
       expect(replaced.configuredVariantCount, 1);
-      expect(replaced.variantTiles[variant]?.coordinateLabel, '1,7');
+      expect(replaced.variantCellFrames[variant]?.firstOrNull?.tile.coordinateLabel, '1,7');
 
       final cleared = clearPathStudioNewPathDraftVariant(
         draft: replaced,
         variant: variant,
       );
       expect(cleared.configuredVariantCount, 0);
-      expect(cleared.variantTiles[variant], isNull);
+      expect(cleared.variantCellFrames[variant], isNull);
     });
 
     test('resize keeps variants, tileset change clears center and variants',
@@ -419,7 +419,7 @@ void main() {
         width: 2,
         height: 2,
       );
-      expect(resized.variantTiles[variant]?.coordinateLabel, '8,1');
+      expect(resized.variantCellFrames[variant]?.firstOrNull?.tile.coordinateLabel, '8,1');
 
       final changedTileset = selectPathStudioNewPathDraftTileset(
         resized,
@@ -678,7 +678,7 @@ void main() {
       expect(draft.cells.single.frames[1].tile.tilesetId, 'tileset-alt');
       expect(draft.cells.single.frames[1].durationMs, 220);
       expect(
-        draft.variantTiles[TerrainPathVariant.endNorth]?.coordinateLabel,
+        draft.variantCellFrames[TerrainPathVariant.endNorth]?.firstOrNull?.tile.coordinateLabel,
         '1,2',
       );
       expect(

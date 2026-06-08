@@ -382,6 +382,7 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
             projectRootPath: projectRootPath,
             draft: draft,
             onCellSelected: onCellSelected,
+            onVariantSelected: onVariantSelected,
           ),
           const SizedBox(height: 14),
           _NewPathSelectedCellDetails(
@@ -391,6 +392,7 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
             onCenterFrameRemoved: onCenterFrameRemoved,
             onCenterFrameDurationChanged: onCenterFrameDurationChanged,
             onCellCleared: onCellCleared,
+            onVariantCleared: onVariantCleared,
             sequenceFeedbackMessage: sequenceFeedbackMessage,
             onCenterAnimationSequenceRequested:
                 onCenterAnimationSequenceRequested,
@@ -418,6 +420,171 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
   }
 }
 
+String _variantShortLabel(TerrainPathVariant variant) {
+  return switch (variant) {
+    TerrainPathVariant.isolated => 'Isolé',
+    TerrainPathVariant.endNorth => 'Bout N',
+    TerrainPathVariant.endEast => 'Bout E',
+    TerrainPathVariant.endSouth => 'Bout S',
+    TerrainPathVariant.endWest => 'Bout O',
+    TerrainPathVariant.horizontal => 'Ligne H',
+    TerrainPathVariant.vertical => 'Ligne V',
+    TerrainPathVariant.cornerNE => 'Coin NE',
+    TerrainPathVariant.cornerSE => 'Coin SE',
+    TerrainPathVariant.cornerSW => 'Coin SO',
+    TerrainPathVariant.cornerNW => 'Coin NO',
+    TerrainPathVariant.innerCornerNE => 'Intér. NE',
+    TerrainPathVariant.innerCornerSE => 'Intér. SE',
+    TerrainPathVariant.innerCornerSW => 'Intér. SO',
+    TerrainPathVariant.innerCornerNW => 'Intér. NO',
+    TerrainPathVariant.teeNorth => 'Bord B',
+    TerrainPathVariant.teeEast => 'Bord G',
+    TerrainPathVariant.teeSouth => 'Bord H',
+    TerrainPathVariant.teeWest => 'Bord D',
+    TerrainPathVariant.cross => 'Croix',
+  };
+}
+
+class _GridSpacer extends StatelessWidget {
+  const _GridSpacer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(4),
+      child: SizedBox(
+        width: 88,
+        height: 128,
+      ),
+    );
+  }
+}
+
+class _NewPathSpatialCell extends StatelessWidget {
+  const _NewPathSpatialCell({
+    super.key,
+    required this.label,
+    required this.cellKeyLabel,
+    required this.selected,
+    required this.tile,
+    required this.onTap,
+    this.isCenterCell = false,
+    this.centerFramesCount = 0,
+    required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
+  });
+
+  final String label;
+  final String cellKeyLabel;
+  final bool selected;
+  final PathStudioNewPathDraftTile? tile;
+  final VoidCallback onTap;
+  final bool isCenterCell;
+  final int centerFramesCount;
+  final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 88,
+        height: 128,
+        margin: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Color.lerp(
+            isCenterCell ? PathStudioTheme.surface : PathStudioTheme.surfaceStrong,
+            selected ? PathStudioTheme.accent : PathStudioTheme.accentCyan,
+            selected ? 0.32 : (isCenterCell ? 0.12 : 0.08),
+          ),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected
+                ? PathStudioTheme.accentHover
+                : (isCenterCell
+                    ? PathStudioTheme.accent.withValues(alpha: 0.3)
+                    : PathStudioTheme.borderStrong.withValues(alpha: 0.45)),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: selected ? PathStudioTheme.textPrimary : PathStudioTheme.textSecondary,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const Spacer(),
+            Align(
+              alignment: Alignment.center,
+              child: tile != null
+                  ? _TilePreviewBadge(
+                      cellLabel: cellKeyLabel,
+                      tilesets: tilesets,
+                      settings: settings,
+                      projectRootPath: projectRootPath,
+                      tile: tile!,
+                    )
+                  : _EmptyTileBadge(cellLabel: cellKeyLabel),
+            ),
+            const Spacer(),
+            if (tile == null) ...[
+              if (!isCenterCell) ...[
+                const Text(
+                  'Aucune tuile',
+                  style: TextStyle(
+                    color: PathStudioTheme.textMuted,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Text(
+                  'À configurer',
+                  style: TextStyle(
+                    color: PathStudioTheme.textSecondary,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ] else ...[
+                const Text(
+                  'Absent',
+                  style: TextStyle(
+                    color: PathStudioTheme.textMuted,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ]
+            ] else ...[
+              Text(
+                isCenterCell
+                    ? (centerFramesCount > 1 ? 'Animé ($centerFramesCount)' : 'Statique')
+                    : 'Configuré',
+                style: const TextStyle(
+                  color: PathStudioTheme.success,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _NewPathPatternGrid extends StatelessWidget {
   const _NewPathPatternGrid({
     required this.tilesets,
@@ -425,6 +592,7 @@ class _NewPathPatternGrid extends StatelessWidget {
     required this.projectRootPath,
     required this.draft,
     required this.onCellSelected,
+    required this.onVariantSelected,
   });
 
   final List<ProjectTilesetEntry> tilesets;
@@ -432,29 +600,50 @@ class _NewPathPatternGrid extends StatelessWidget {
   final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final void Function(int localX, int localY) onCellSelected;
+  final ValueChanged<TerrainPathVariant> onVariantSelected;
 
   @override
   Widget build(BuildContext context) {
+    final centerWidth = draft.centerWidth;
+    final centerHeight = draft.centerHeight;
+    final gridWidth = centerWidth + 2;
+    final gridHeight = centerHeight + 2;
+
     final rows = <Widget>[];
-    for (var y = 0; y < draft.centerHeight; y += 1) {
-      final cells = <Widget>[];
-      for (var x = 0; x < draft.centerWidth; x += 1) {
-        final cell = draft.cells.firstWhere(
-          (candidate) => candidate.localX == x && candidate.localY == y,
-        );
-        cells.add(
-          _NewPathPatternCell(
-            key: Key('path-studio-new-path-cell-$x-$y'),
-            tilesets: tilesets,
-            settings: settings,
-            projectRootPath: projectRootPath,
-            cell: cell,
-            selected: draft.selectedCellX == x && draft.selectedCellY == y,
-            onTap: () => onCellSelected(x, y),
-          ),
-        );
+    for (var y = 0; y < gridHeight; y += 1) {
+      final rowCells = <Widget>[];
+      for (var x = 0; x < gridWidth; x += 1) {
+        final isCorner = (x == 0 || x == gridWidth - 1) && (y == 0 || y == gridHeight - 1);
+        final isEdge = !isCorner && (x == 0 || x == gridWidth - 1 || y == 0 || y == gridHeight - 1);
+
+        if (isCorner) {
+          final variant = (x == 0 && y == 0)
+              ? TerrainPathVariant.cornerNW
+              : (x == gridWidth - 1 && y == 0)
+                  ? TerrainPathVariant.cornerNE
+                  : (x == 0 && y == gridHeight - 1)
+                      ? TerrainPathVariant.cornerSW
+                      : TerrainPathVariant.cornerSE;
+          rowCells.add(_buildVariantGridCell(variant, _variantShortLabel(variant), x, y));
+        } else if (isEdge) {
+          final variant = (y == 0)
+              ? TerrainPathVariant.teeSouth
+              : (y == gridHeight - 1)
+                  ? TerrainPathVariant.teeNorth
+                  : (x == 0)
+                      ? TerrainPathVariant.teeEast
+                      : TerrainPathVariant.teeWest;
+          rowCells.add(_buildVariantGridCell(variant, _variantShortLabel(variant), x, y));
+        } else {
+          final cellX = x - 1;
+          final cellY = y - 1;
+          final cell = draft.cells.firstWhere(
+            (c) => c.localX == cellX && c.localY == cellY,
+          );
+          rowCells.add(_buildCenterGridCell(cell));
+        }
       }
-      rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
+      rows.add(Row(mainAxisSize: MainAxisSize.min, children: rowCells));
     }
 
     return Container(
@@ -465,90 +654,73 @@ class _NewPathPatternGrid extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: rows),
     );
   }
-}
 
-class _NewPathPatternCell extends StatelessWidget {
-  const _NewPathPatternCell({
-    super.key,
-    required this.tilesets,
-    required this.settings,
-    required this.projectRootPath,
-    required this.cell,
-    required this.selected,
-    required this.onTap,
-  });
+  Widget _buildCenterGridCell(PathStudioNewPathDraftCell cell) {
+    final selected = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell &&
+        draft.selectedCellX == cell.localX &&
+        draft.selectedCellY == cell.localY;
 
-  final List<ProjectTilesetEntry> tilesets;
-  final ProjectSettings settings;
-  final String? projectRootPath;
-  final PathStudioNewPathDraftCell cell;
-  final bool selected;
-  final VoidCallback onTap;
+    return _NewPathSpatialCell(
+      key: Key('path-studio-new-path-cell-${cell.localX}-${cell.localY}'),
+      label: cell.label,
+      cellKeyLabel: cell.label,
+      selected: selected,
+      tile: cell.tile,
+      isCenterCell: true,
+      centerFramesCount: cell.frames.length,
+      tilesets: tilesets,
+      settings: settings,
+      projectRootPath: projectRootPath,
+      onTap: () => onCellSelected(cell.localX, cell.localY),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final tile = cell.tile;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 112,
-        height: 136,
-        margin: const EdgeInsets.all(6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: Color.lerp(
-            PathStudioTheme.surfaceStrong,
-            selected ? PathStudioTheme.accent : PathStudioTheme.accentCyan,
-            selected ? 0.32 : 0.16,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected
-                ? PathStudioTheme.accentHover
-                : PathStudioTheme.accentCyan.withValues(alpha: 0.45),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              cell.label,
-              style: const TextStyle(
-                color: PathStudioTheme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const Spacer(),
-            if (tile != null)
-              _TilePreviewBadge(
-                cellLabel: cell.label,
-                tilesets: tilesets,
-                settings: settings,
-                projectRootPath: projectRootPath,
-                tile: tile,
-              )
-            else
-              _EmptyTileBadge(cellLabel: cell.label),
-            const SizedBox(height: 6),
-            Text(
-              tile == null
-                  ? 'À configurer'
-                  : (cell.frames.length > 1
-                      ? 'Animé — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}'
-                      : 'Statique — ${pluralizeFr(1, 'frame', 'frames')}'),
-              style: TextStyle(
-                color: tile == null
-                    ? PathStudioTheme.textSecondary
-                    : PathStudioTheme.success,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildVariantGridCell(
+    TerrainPathVariant variant,
+    String label,
+    int x,
+    int y,
+  ) {
+    final frames = draft.variantCellFrames[variant] ?? const [];
+    final isSelected = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant &&
+        draft.selectedVariant == variant;
+    final selectedIndex = (isSelected && frames.isNotEmpty)
+        ? draft.selectedCenterFrameIndex.clamp(0, frames.length - 1)
+        : 0;
+    final tile = frames.isEmpty ? null : frames[selectedIndex].tile;
+    final selected = isSelected;
+
+    final gridWidth = draft.centerWidth + 2;
+    final gridHeight = draft.centerHeight + 2;
+
+    final bool isPrimary;
+    if (variant == TerrainPathVariant.teeSouth) {
+      isPrimary = (x == 1 && y == 0);
+    } else if (variant == TerrainPathVariant.teeNorth) {
+      isPrimary = (x == 1 && y == gridHeight - 1);
+    } else if (variant == TerrainPathVariant.teeEast) {
+      isPrimary = (x == 0 && y == 1);
+    } else if (variant == TerrainPathVariant.teeWest) {
+      isPrimary = (x == gridWidth - 1 && y == 1);
+    } else {
+      isPrimary = true;
+    }
+
+    final key = isPrimary
+        ? Key('path-studio-new-path-variant-${variant.name}')
+        : Key('path-studio-new-path-variant-${variant.name}-extra-$x-$y');
+
+    return _NewPathSpatialCell(
+      key: key,
+      label: label,
+      cellKeyLabel: variant.name,
+      selected: selected,
+      tile: tile,
+      isCenterCell: false,
+      tilesets: tilesets,
+      settings: settings,
+      projectRootPath: projectRootPath,
+      onTap: () => onVariantSelected(variant),
     );
   }
 }
@@ -561,6 +733,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
     required this.onCenterFrameRemoved,
     required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
+    required this.onVariantCleared,
     this.sequenceFeedbackMessage,
     required this.onCenterAnimationSequenceRequested,
   });
@@ -572,6 +745,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
   final void Function(int frameIndex, int durationMs)
       onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
+  final ValueChanged<TerrainPathVariant> onVariantCleared;
   final String? sequenceFeedbackMessage;
   final void Function(
     PathStudioCenterAnimationSequenceTarget target,
@@ -583,9 +757,31 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cell = draft.selectedCell;
-    final selectedFrame = cell.selectedFrame;
-    final isAnimated = cell.frames.length > 1;
+    final isVariantTarget = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant;
+
+    final String titleText;
+    final String subtitleText;
+    final VoidCallback? onClearPressed;
+    final String clearButtonText;
+
+    final frames = draft.selectedTargetFrames;
+    final selectedFrame = draft.selectedTargetFrame;
+    final isAnimated = frames.length > 1;
+
+    if (isVariantTarget) {
+      final variant = draft.selectedVariant;
+      titleText = 'Variant : ${_variantLabel(variant)}';
+      subtitleText = 'Bordure / Coin';
+      onClearPressed = () => onVariantCleared(variant);
+      clearButtonText = 'Effacer le variant';
+    } else {
+      final cell = draft.selectedCell;
+      titleText = 'Cellule ${cell.label}';
+      subtitleText = 'Position ${cell.localX},${cell.localY}';
+      onClearPressed = () => onCellCleared(cell.localX, cell.localY);
+      clearButtonText = 'Effacer la cellule';
+    }
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: PathStudioTheme.subtleDecoration(),
@@ -593,7 +789,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Cellule ${cell.label}',
+            titleText,
             style: const TextStyle(
               color: PathStudioTheme.textPrimary,
               fontSize: 13,
@@ -602,7 +798,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Position ${cell.localX},${cell.localY}',
+            subtitleText,
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 12,
@@ -612,7 +808,9 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             selectedFrame == null
-                ? 'Aucune tuile configurée pour cette cellule.'
+                ? (isVariantTarget
+                    ? 'Aucune tuile configurée.'
+                    : 'Aucune tuile configurée pour cette cellule.')
                 : 'Tuile ${selectedFrame.tile.coordinateLabel} assignée depuis ${selectedFrame.tile.tilesetId}.',
             style: const TextStyle(
               color: PathStudioTheme.textMuted,
@@ -623,8 +821,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             isAnimated
-                ? 'Animé — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}'
-                : 'Statique — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}',
+                ? 'Animé — ${pluralizeFr(frames.length, 'frame', 'frames')}'
+                : 'Statique — ${pluralizeFr(frames.length, 'frame', 'frames')}',
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 11,
@@ -632,22 +830,34 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Text(
-            'Centre : ${pluralizeFr(draft.centerCellCount, 'cellule', 'cellules')} · '
-            '${pluralizeFr(draft.totalCenterFrameCount, 'frame', 'frames')} · '
-            '${pluralizeFr(draft.animatedCenterCellCount, 'cellule animée', 'cellules animées')}',
-            key: const Key('path-studio-new-path-center-animation-summary'),
-            style: const TextStyle(
-              color: PathStudioTheme.textMuted,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
+          if (!isVariantTarget)
+            Text(
+              'Centre : ${pluralizeFr(draft.centerCellCount, 'cellule', 'cellules')} · '
+              '${pluralizeFr(draft.totalCenterFrameCount, 'frame', 'frames')} · '
+              '${pluralizeFr(draft.animatedCenterCellCount, 'cellule animée', 'cellules animées')}',
+              key: const Key('path-studio-new-path-center-animation-summary'),
+              style: const TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          else
+            Text(
+              'Couverture: ${draft.configuredVariantCount}/${draft.requiredVariantCount} variants',
+              style: const TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          if (cell.frames.isNotEmpty) ...[
+          if (frames.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Animation du centre — Cellule ${cell.label}',
-              key: Key('path-studio-new-path-animation-title-${cell.label}'),
+              isVariantTarget ? 'Animation du variant' : 'Animation du centre — Cellule ${draft.selectedCell.label}',
+              key: isVariantTarget 
+                  ? const Key('path-studio-new-path-animation-title-variant')
+                  : Key('path-studio-new-path-animation-title-${draft.selectedCell.label}'),
               style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
                 fontSize: 12,
@@ -669,13 +879,13 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: [
-                for (var index = 0; index < cell.frames.length; index += 1)
+                for (var index = 0; index < frames.length; index += 1)
                   _CenterFrameChip(
                     key: Key('path-studio-new-path-frame-chip-$index'),
                     frameIndex: index,
-                    frame: cell.frames[index],
-                    selected: index == cell.selectedFrameIndex,
-                    canRemove: cell.frames.length > 1,
+                    frame: frames[index],
+                    selected: index == draft.selectedCenterFrameIndex,
+                    canRemove: frames.length > 1,
                     onSelect: () => onCenterFrameSelected(index),
                     onRemove: () => onCenterFrameRemoved(index),
                     onDurationChanged: (duration) {
@@ -739,7 +949,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Frame ${cell.selectedFrameIndex + 1} / ${cell.frames.length}',
+              'Frame ${draft.selectedCenterFrameIndex + 1} / ${frames.length}',
               key: const Key('path-studio-new-path-active-frame-index'),
               style: const TextStyle(
                 color: PathStudioTheme.textSecondary,
@@ -766,28 +976,293 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
               ),
             ),
           ],
-          if (selectedFrame != null) ...[
+          if (selectedFrame != null && onClearPressed != null) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: CupertinoButton(
-                key: const Key('path-studio-new-path-clear-selected-cell'),
+                key: isVariantTarget
+                    ? Key('path-studio-new-path-clear-variant-${draft.selectedVariant.name}')
+                    : const Key('path-studio-new-path-clear-selected-cell'),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
                   vertical: 7,
                 ),
                 minimumSize: Size.zero,
                 color: PathStudioTheme.error.withValues(alpha: 0.16),
-                onPressed: () => onCellCleared(cell.localX, cell.localY),
-                child: const Text(
-                  'Effacer la cellule',
-                  style: TextStyle(
+                onPressed: onClearPressed,
+                child: Text(
+                  clearButtonText,
+                  style: const TextStyle(
                     color: PathStudioTheme.error,
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NewPathVariantMappingSection extends StatefulWidget {
+  const _NewPathVariantMappingSection({
+    required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
+    required this.draft,
+    required this.onVariantSelected,
+    required this.onVariantCleared,
+  });
+
+  final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
+  final PathStudioNewPathDraft draft;
+  final ValueChanged<TerrainPathVariant> onVariantSelected;
+  final ValueChanged<TerrainPathVariant> onVariantCleared;
+
+  @override
+  State<_NewPathVariantMappingSection> createState() =>
+      _NewPathVariantMappingSectionState();
+}
+
+class _NewPathVariantMappingSectionState
+    extends State<_NewPathVariantMappingSection> {
+  bool _expanded = true;
+
+  Widget _buildVariantGridCell(TerrainPathVariant variant, String label) {
+    final frames = widget.draft.variantCellFrames[variant] ?? const [];
+    final isSelected = widget.draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant &&
+        widget.draft.selectedVariant == variant;
+    final selectedIndex = (isSelected && frames.isNotEmpty)
+        ? widget.draft.selectedCenterFrameIndex.clamp(0, frames.length - 1)
+        : 0;
+    final tile = frames.isEmpty ? null : frames[selectedIndex].tile;
+    final selected = isSelected;
+
+    return _NewPathSpatialCell(
+      key: Key('path-studio-new-path-variant-${variant.name}'),
+      label: label,
+      cellKeyLabel: variant.name,
+      selected: selected,
+      tile: tile,
+      isCenterCell: false,
+      tilesets: widget.tilesets,
+      settings: widget.settings,
+      projectRootPath: widget.projectRootPath,
+      onTap: () => widget.onVariantSelected(variant),
+    );
+  }
+
+  Widget _buildEndsGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Extrémités & Isolé',
+          style: TextStyle(
+            color: PathStudioTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _GridSpacer(),
+                  _buildVariantGridCell(TerrainPathVariant.endNorth, 'Fin N'),
+                  const _GridSpacer(),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildVariantGridCell(TerrainPathVariant.endWest, 'Fin O'),
+                  _buildVariantGridCell(TerrainPathVariant.isolated, 'Isolé'),
+                  _buildVariantGridCell(TerrainPathVariant.endEast, 'Fin E'),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _GridSpacer(),
+                  _buildVariantGridCell(TerrainPathVariant.endSouth, 'Fin S'),
+                  const _GridSpacer(),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInnerCornersGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Coins intérieurs',
+          style: TextStyle(
+            color: PathStudioTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildVariantGridCell(TerrainPathVariant.innerCornerNW, 'Intér. NO'),
+                  _buildVariantGridCell(TerrainPathVariant.innerCornerNE, 'Intér. NE'),
+                ],
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildVariantGridCell(TerrainPathVariant.innerCornerSW, 'Intér. SO'),
+                  _buildVariantGridCell(TerrainPathVariant.innerCornerSE, 'Intér. SE'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSimpleLinesGrid(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Lignes 1-tuile',
+          style: TextStyle(
+            color: PathStudioTheme.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildVariantGridCell(TerrainPathVariant.horizontal, 'Ligne H'),
+                  _buildVariantGridCell(TerrainPathVariant.vertical, 'Ligne V'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: PathStudioTheme.subtleDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            key: const Key('path-studio-new-path-variants-accordion-toggle'),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Bords, coins et jonctions',
+                    style: TextStyle(
+                      color: PathStudioTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  _expanded ? 'Replier' : 'Déplier',
+                  style: const TextStyle(
+                    color: PathStudioTheme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  color: PathStudioTheme.textSecondary,
+                  size: 13,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Progression variants: ${widget.draft.configuredVariantCount}/${widget.draft.requiredVariantCount} configurés',
+            key: const Key('path-studio-new-path-variant-progress'),
+            style: const TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          if (_expanded) ...[
+            const SizedBox(height: 10),
+            const Text(
+              'Ces tuiles permettront de créer les bords, coins, extrémités et jonctions du futur chemin.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const Text(
+              'Le centre reste géré séparément par le motif principal.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              alignment: WrapAlignment.start,
+              children: [
+                _buildEndsGrid(context),
+                _buildInnerCornersGrid(context),
+                _buildSimpleLinesGrid(context),
+              ],
             ),
           ],
         ],
@@ -867,7 +1342,8 @@ class _NewPathCenterSequenceAssistantState
     }
     final target = switch (_targetKey) {
       'selected' => PathStudioCenterAnimationSequenceTarget.selectedCell,
-      _ => PathStudioCenterAnimationSequenceTarget.allCenterCells,
+      'allCenter' => PathStudioCenterAnimationSequenceTarget.allCenterCells,
+      _ => PathStudioCenterAnimationSequenceTarget.allCells,
     };
     widget.onGenerateRequested(
       target,
@@ -899,8 +1375,7 @@ class _NewPathCenterSequenceAssistantState
           const SizedBox(height: 6),
           const Text(
             'Génère une timeline à partir de la première frame de chaque '
-            'cellule ciblée.\nUtile pour les tilesets d’eau organisés en '
-            'colonnes espacées régulièrement.',
+            'cellule ciblée (y compris le centre et les variants configurés).',
             style: TextStyle(
               color: PathStudioTheme.textMuted,
               fontSize: 11,
@@ -936,8 +1411,16 @@ class _NewPathCenterSequenceAssistantState
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                 ),
               ),
-              'all': Padding(
+              'allCenter': Padding(
                 key: Key('path-studio-new-path-seq-target-all-center'),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Text(
+                  'Centre uniquement',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ),
+              'all': Padding(
+                key: Key('path-studio-new-path-seq-target-all'),
                 padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 child: Text(
                   'Toutes les cellules',
@@ -1171,252 +1654,6 @@ class _CenterFrameChip extends StatelessWidget {
   }
 }
 
-class _NewPathVariantMappingSection extends StatefulWidget {
-  const _NewPathVariantMappingSection({
-    required this.tilesets,
-    required this.settings,
-    required this.projectRootPath,
-    required this.draft,
-    required this.onVariantSelected,
-    required this.onVariantCleared,
-  });
-
-  final List<ProjectTilesetEntry> tilesets;
-  final ProjectSettings settings;
-  final String? projectRootPath;
-  final PathStudioNewPathDraft draft;
-  final ValueChanged<TerrainPathVariant> onVariantSelected;
-  final ValueChanged<TerrainPathVariant> onVariantCleared;
-
-  @override
-  State<_NewPathVariantMappingSection> createState() =>
-      _NewPathVariantMappingSectionState();
-}
-
-class _NewPathVariantMappingSectionState
-    extends State<_NewPathVariantMappingSection> {
-  bool _expanded = true;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: PathStudioTheme.subtleDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GestureDetector(
-            key: const Key('path-studio-new-path-variants-accordion-toggle'),
-            onTap: () => setState(() => _expanded = !_expanded),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Bords, coins et jonctions',
-                    style: TextStyle(
-                      color: PathStudioTheme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-                Text(
-                  _expanded ? 'Replier' : 'Déplier',
-                  style: const TextStyle(
-                    color: PathStudioTheme.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Icon(
-                  _expanded
-                      ? CupertinoIcons.chevron_up
-                      : CupertinoIcons.chevron_down,
-                  color: PathStudioTheme.textSecondary,
-                  size: 13,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Progression variants: ${widget.draft.configuredVariantCount}/${widget.draft.requiredVariantCount} configurés',
-            key: const Key('path-studio-new-path-variant-progress'),
-            style: const TextStyle(
-              color: PathStudioTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          if (_expanded) ...[
-            const SizedBox(height: 6),
-            const Text(
-              'Ces tuiles permettront de créer les bords, coins, extrémités et jonctions du futur chemin.',
-              style: TextStyle(
-                color: PathStudioTheme.textMuted,
-                fontSize: 11,
-                height: 1.35,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const Text(
-              'Le centre reste géré séparément par le motif multi-cases.',
-              style: TextStyle(
-                color: PathStudioTheme.textMuted,
-                fontSize: 11,
-                height: 1.35,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final variant in PathStudioNewPathDraft.requiredVariants)
-                  _NewPathVariantTileCard(
-                    tilesets: widget.tilesets,
-                    settings: widget.settings,
-                    projectRootPath: widget.projectRootPath,
-                    variant: variant,
-                    tile: widget.draft.variantTiles[variant],
-                    selected: widget.draft.selectedTarget ==
-                            PathStudioNewPathDraftSelectionTarget.variant &&
-                        widget.draft.selectedVariant == variant,
-                    onTap: () => widget.onVariantSelected(variant),
-                    onClear: () => widget.onVariantCleared(variant),
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _NewPathVariantTileCard extends StatelessWidget {
-  const _NewPathVariantTileCard({
-    required this.tilesets,
-    required this.settings,
-    required this.projectRootPath,
-    required this.variant,
-    required this.tile,
-    required this.selected,
-    required this.onTap,
-    required this.onClear,
-  });
-
-  final List<ProjectTilesetEntry> tilesets;
-  final ProjectSettings settings;
-  final String? projectRootPath;
-  final TerrainPathVariant variant;
-  final PathStudioNewPathDraftTile? tile;
-  final bool selected;
-  final VoidCallback onTap;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final configured = tile != null;
-    final variantName = _variantLabel(variant);
-    final cardColor = selected
-        ? PathStudioTheme.accentCyan.withValues(alpha: 0.22)
-        : PathStudioTheme.backgroundAlt;
-    final borderColor = selected
-        ? PathStudioTheme.accentHover
-        : PathStudioTheme.borderStrong.withValues(alpha: 0.6);
-    return GestureDetector(
-      key: Key('path-studio-new-path-variant-$variantName'),
-      onTap: onTap,
-      child: Container(
-        width: 190,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: borderColor, width: selected ? 2 : 1),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              variantName,
-              style: const TextStyle(
-                color: PathStudioTheme.textPrimary,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                if (tile != null)
-                  _TilePreviewBadge(
-                    cellLabel: variantName,
-                    tilesets: tilesets,
-                    settings: settings,
-                    projectRootPath: projectRootPath,
-                    tile: tile!,
-                  )
-                else
-                  _EmptyTileBadge(cellLabel: variantName),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        configured ? 'Configuré' : 'À configurer',
-                        style: TextStyle(
-                          color: configured
-                              ? PathStudioTheme.success
-                              : PathStudioTheme.textSecondary,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        configured
-                            ? 'Tuile ${tile!.coordinateLabel}'
-                            : 'Aucune tuile',
-                        style: const TextStyle(
-                          color: PathStudioTheme.textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (configured) ...[
-              const SizedBox(height: 8),
-              CupertinoButton(
-                key: Key('path-studio-new-path-clear-variant-$variantName'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                minimumSize: Size.zero,
-                color: PathStudioTheme.error.withValues(alpha: 0.16),
-                onPressed: onClear,
-                child: const Text(
-                  'Effacer',
-                  style: TextStyle(
-                    color: PathStudioTheme.error,
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _TilePreviewBadge extends StatelessWidget {
   const _TilePreviewBadge({

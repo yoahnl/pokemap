@@ -94,11 +94,11 @@ PathStudioNewPathBuildPlan createPathStudioNewPathBuildPlan({
   final proposedPathPatternPresetId = '$proposedBasePathPresetId-pattern';
   final configuredVariants = <TerrainPathVariant>[
     for (final variant in PathStudioNewPathDraft.requiredVariants)
-      if (draft.variantTiles[variant] != null) variant,
+      if (draft.variantCellFrames[variant]?.isNotEmpty ?? false) variant,
   ];
   final missingVariants = <TerrainPathVariant>[
     for (final variant in PathStudioNewPathDraft.requiredVariants)
-      if (draft.variantTiles[variant] == null) variant,
+      if (draft.variantCellFrames[variant]?.isEmpty ?? true) variant,
   ];
 
   final blockingIssues = <PathStudioNewPathBuildIssue>[];
@@ -197,7 +197,10 @@ PathStudioNewPathBuildPlan createPathStudioNewPathBuildPlan({
         for (final variant in configuredVariants)
           PathPresetVariantMapping(
             variant: variant,
-            frames: [draft.variantTiles[variant]!.toFrame()],
+            frames: [
+              for (final f in draft.variantCellFrames[variant] ?? const <PathStudioNewPathDraftCenterFrame>[])
+                f.toFrame(),
+            ],
           ),
       ];
       final basePathPreset = ProjectPathPreset(

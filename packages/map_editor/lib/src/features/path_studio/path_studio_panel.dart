@@ -2198,7 +2198,7 @@ class _DraftPatternCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 112,
-        height: 92,
+        height: 108,
         margin: const EdgeInsets.all(6),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(

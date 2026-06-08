@@ -181,11 +181,12 @@ PathStudioEditPathBuildPlan createPathStudioEditPathBuildPlan({
   final updatedVariantMappings = <PathPresetVariantMapping>[
     ...draft.preservedVariantMappings,
     for (final variant in PathStudioNewPathDraft.requiredVariants)
-      if (draft.variantTiles[variant] case final tile?)
-        PathPresetVariantMapping(
-          variant: variant,
-          frames: [tile.toFrame()],
-        ),
+      if (draft.variantCellFrames[variant] case final frames?)
+        if (frames.isNotEmpty)
+          PathPresetVariantMapping(
+            variant: variant,
+            frames: [for (final f in frames) f.toFrame()],
+          ),
   ];
 
   final updatedBase = ProjectPathPreset(

@@ -155,7 +155,7 @@ final class PathStudioNewPathDraft {
     this.preservedVariantMappings = const [],
     Map<String, List<PathStudioNewPathDraftCenterFrame>> centerCellFrames =
         const {},
-    Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles = const {},
+    Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>> variantCellFrames = const {},
     this.selectedCenterFrameIndex = 0,
   })  : assert(centerWidth > 0),
         assert(centerHeight > 0),
@@ -174,9 +174,14 @@ final class PathStudioNewPathDraft {
             ),
           ),
         ),
-        variantTiles =
-            Map<TerrainPathVariant, PathStudioNewPathDraftTile>.unmodifiable(
-          variantTiles,
+        variantCellFrames =
+            Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.unmodifiable(
+          variantCellFrames.map(
+            (key, value) => MapEntry(
+              key,
+              List<PathStudioNewPathDraftCenterFrame>.unmodifiable(value),
+            ),
+          ),
         );
 
   final String basePathPresetId;
@@ -202,7 +207,7 @@ final class PathStudioNewPathDraft {
   /// en place. Les helpers de ce fichier retournent toujours une nouvelle
   /// instance de [PathStudioNewPathDraft].
   final Map<String, List<PathStudioNewPathDraftCenterFrame>> centerCellFrames;
-  final Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles;
+  final Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>> variantCellFrames;
 
   static final List<TerrainPathVariant> requiredVariants =
       List<TerrainPathVariant>.unmodifiable(_requiredVariants);
@@ -223,7 +228,7 @@ final class PathStudioNewPathDraft {
   int get requiredVariantCount => requiredVariants.length;
 
   int get configuredVariantCount =>
-      requiredVariants.where((variant) => variantTiles[variant] != null).length;
+      requiredVariants.where((variant) => variantCellFrames[variant]?.isNotEmpty ?? false).length;
 
   String get id => basePathPresetId;
 
@@ -262,8 +267,22 @@ final class PathStudioNewPathDraft {
     );
   }
 
+  List<PathStudioNewPathDraftCenterFrame> get selectedTargetFrames {
+    if (selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+      return centerCellFrames[_cellKey(selectedCellX, selectedCellY)] ?? const [];
+    } else {
+      return variantCellFrames[selectedVariant] ?? const [];
+    }
+  }
+
+  PathStudioNewPathDraftCenterFrame? get selectedTargetFrame {
+    final frames = selectedTargetFrames;
+    if (frames.isEmpty) return null;
+    return frames[selectedCenterFrameIndex.clamp(0, frames.length - 1)];
+  }
+
   PathStudioNewPathDraftTile? get selectedVariantTile =>
-      variantTiles[selectedVariant];
+      variantCellFrames[selectedVariant]?.firstOrNull?.tile;
 
   List<PathStudioNewPathDraftIssueCode> get issues {
     final result = <PathStudioNewPathDraftIssueCode>[];
@@ -296,7 +315,7 @@ final class PathStudioNewPathDraft {
     bool? isDirty,
     List<PathPresetVariantMapping>? preservedVariantMappings,
     Map<String, List<PathStudioNewPathDraftCenterFrame>>? centerCellFrames,
-    Map<TerrainPathVariant, PathStudioNewPathDraftTile>? variantTiles,
+    Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>? variantCellFrames,
     int? selectedCenterFrameIndex,
   }) {
     return PathStudioNewPathDraft(
@@ -321,7 +340,7 @@ final class PathStudioNewPathDraft {
       preservedVariantMappings:
           preservedVariantMappings ?? this.preservedVariantMappings,
       centerCellFrames: centerCellFrames ?? this.centerCellFrames,
-      variantTiles: variantTiles ?? this.variantTiles,
+      variantCellFrames: variantCellFrames ?? this.variantCellFrames,
       selectedCenterFrameIndex:
           selectedCenterFrameIndex ?? this.selectedCenterFrameIndex,
     );
@@ -355,7 +374,7 @@ final class PathStudioNewPathDraft {
             ) &&
             _centerCellFrameMapsEqual(
                 centerCellFrames, other.centerCellFrames) &&
-            _variantTileMapsEqual(variantTiles, other.variantTiles);
+            _variantCellFramesMapsEqual(variantCellFrames, other.variantCellFrames);
   }
 
   @override
@@ -385,7 +404,7 @@ final class PathStudioNewPathDraft {
           ),
         ),
         _centerCellFrameMapHash(centerCellFrames),
-        _variantTileMapHash(variantTiles),
+        _variantCellFramesMapHash(variantCellFrames),
       );
 }
 
@@ -431,22 +450,24 @@ PathStudioNewPathDraft createPathStudioEditDraftFromExistingPathPattern({
     ];
   }
 
-  final variantTiles = <TerrainPathVariant, PathStudioNewPathDraftTile>{};
+  final variantCellFrames = <TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>{};
   final preservedVariantMappings = <PathPresetVariantMapping>[];
   for (final mapping in basePathPreset.variants) {
     if (_requiredVariants.contains(mapping.variant) &&
         mapping.frames.isNotEmpty) {
-      final frame = mapping.frames.first;
-      final effectiveTilesetId = frame.tilesetId.trim().isEmpty
-          ? basePathPreset.tilesetId
-          : frame.tilesetId;
-      if (effectiveTilesetId.isNotEmpty) {
-        variantTiles[mapping.variant] = PathStudioNewPathDraftTile(
-          tilesetId: effectiveTilesetId,
-          sourceX: frame.source.x,
-          sourceY: frame.source.y,
-        );
-      }
+      variantCellFrames[mapping.variant] = [
+        for (final frame in mapping.frames)
+          PathStudioNewPathDraftCenterFrame(
+            tile: PathStudioNewPathDraftTile(
+              tilesetId: frame.tilesetId.trim().isEmpty
+                  ? basePathPreset.tilesetId
+                  : frame.tilesetId,
+              sourceX: frame.source.x,
+              sourceY: frame.source.y,
+            ),
+            durationMs: frame.durationMs ?? defaultPlacedElementAnimationFrameDurationMs,
+          ),
+      ];
       continue;
     }
     preservedVariantMappings.add(mapping);
@@ -474,7 +495,7 @@ PathStudioNewPathDraft createPathStudioEditDraftFromExistingPathPattern({
       preservedVariantMappings,
     ),
     centerCellFrames: centerCellFrames,
-    variantTiles: variantTiles,
+    variantCellFrames: variantCellFrames,
   );
 }
 
@@ -522,7 +543,7 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftTileset(
   return draft.copyWith(
     tilesetId: tilesetId.isEmpty ? null : tilesetId,
     centerCellFrames: const {},
-    variantTiles: const {},
+    variantCellFrames: const {},
     selectedCenterFrameIndex: 0,
     isDirty: true,
   );
@@ -585,36 +606,67 @@ PathStudioNewPathDraft appendPathStudioNewPathDraftCenterFrame({
   required int localX,
   required int localY,
 }) {
-  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
-  final cellKey = _cellKey(localX, localY);
-  final nextCellFrames =
-      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
-    draft.centerCellFrames,
-  );
-  final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
-      nextCellFrames[cellKey] ?? const []);
-  if (currentFrames.isEmpty) {
-    return draft;
-  }
-  final selectedIndex =
-      draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
-  final sourceFrame = currentFrames[selectedIndex];
-  currentFrames.add(
-    PathStudioNewPathDraftCenterFrame(
-      tile: PathStudioNewPathDraftTile(
-        tilesetId: sourceFrame.tile.tilesetId,
-        sourceX: sourceFrame.tile.sourceX,
-        sourceY: sourceFrame.tile.sourceY,
+  if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+    _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+    final cellKey = _cellKey(localX, localY);
+    final nextCellFrames =
+        Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.centerCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextCellFrames[cellKey] ?? const []);
+    if (currentFrames.isEmpty) {
+      return draft;
+    }
+    final selectedIndex =
+        draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+    final sourceFrame = currentFrames[selectedIndex];
+    currentFrames.add(
+      PathStudioNewPathDraftCenterFrame(
+        tile: PathStudioNewPathDraftTile(
+          tilesetId: sourceFrame.tile.tilesetId,
+          sourceX: sourceFrame.tile.sourceX,
+          sourceY: sourceFrame.tile.sourceY,
+        ),
+        durationMs: sourceFrame.durationMs,
       ),
-      durationMs: sourceFrame.durationMs,
-    ),
-  );
-  nextCellFrames[cellKey] = currentFrames;
-  return draft.copyWith(
-    centerCellFrames: nextCellFrames,
-    selectedCenterFrameIndex: currentFrames.length - 1,
-    isDirty: true,
-  );
+    );
+    nextCellFrames[cellKey] = currentFrames;
+    return draft.copyWith(
+      centerCellFrames: nextCellFrames,
+      selectedCenterFrameIndex: currentFrames.length - 1,
+      isDirty: true,
+    );
+  } else {
+    final variant = draft.selectedVariant;
+    final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.variantCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextVariantCellFrames[variant] ?? const []);
+    if (currentFrames.isEmpty) {
+      return draft;
+    }
+    final selectedIndex =
+        draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+    final sourceFrame = currentFrames[selectedIndex];
+    currentFrames.add(
+      PathStudioNewPathDraftCenterFrame(
+        tile: PathStudioNewPathDraftTile(
+          tilesetId: sourceFrame.tile.tilesetId,
+          sourceX: sourceFrame.tile.sourceX,
+          sourceY: sourceFrame.tile.sourceY,
+        ),
+        durationMs: sourceFrame.durationMs,
+      ),
+    );
+    nextVariantCellFrames[variant] = currentFrames;
+    return draft.copyWith(
+      variantCellFrames: nextVariantCellFrames,
+      selectedCenterFrameIndex: currentFrames.length - 1,
+      isDirty: true,
+    );
+  }
 }
 
 PathStudioNewPathDraft removePathStudioNewPathDraftCenterFrame({
@@ -623,32 +675,59 @@ PathStudioNewPathDraft removePathStudioNewPathDraftCenterFrame({
   required int localY,
   required int frameIndex,
 }) {
-  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
-  final cellKey = _cellKey(localX, localY);
-  final nextCellFrames =
-      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
-    draft.centerCellFrames,
-  );
-  final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
-      nextCellFrames[cellKey] ?? const []);
-  if (frameIndex < 0 || frameIndex >= currentFrames.length) {
-    throw RangeError.range(
-        frameIndex, 0, currentFrames.length - 1, 'frameIndex');
-  }
-  currentFrames.removeAt(frameIndex);
-  if (currentFrames.isEmpty) {
-    nextCellFrames.remove(cellKey);
+  if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+    _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+    final cellKey = _cellKey(localX, localY);
+    final nextCellFrames =
+        Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.centerCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextCellFrames[cellKey] ?? const []);
+    if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+      throw RangeError.range(
+          frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+    }
+    currentFrames.removeAt(frameIndex);
+    if (currentFrames.isEmpty) {
+      nextCellFrames.remove(cellKey);
+    } else {
+      nextCellFrames[cellKey] = currentFrames;
+    }
+    final nextSelectedIndex = currentFrames.isEmpty
+        ? 0
+        : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+    return draft.copyWith(
+      centerCellFrames: nextCellFrames,
+      selectedCenterFrameIndex: nextSelectedIndex,
+      isDirty: true,
+    );
   } else {
-    nextCellFrames[cellKey] = currentFrames;
+    final variant = draft.selectedVariant;
+    final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.variantCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextVariantCellFrames[variant] ?? const []);
+    if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+      throw RangeError.range(
+          frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+    }
+    currentFrames.removeAt(frameIndex);
+    if (currentFrames.isEmpty) {
+      nextVariantCellFrames.remove(variant);
+    } else {
+      nextVariantCellFrames[variant] = currentFrames;
+    }
+    final nextSelectedIndex = currentFrames.isEmpty
+        ? 0
+        : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+    return draft.copyWith(
+      variantCellFrames: nextVariantCellFrames,
+      selectedCenterFrameIndex: nextSelectedIndex,
+      isDirty: true,
+    );
   }
-  final nextSelectedIndex = currentFrames.isEmpty
-      ? 0
-      : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
-  return draft.copyWith(
-    centerCellFrames: nextCellFrames,
-    selectedCenterFrameIndex: nextSelectedIndex,
-    isDirty: true,
-  );
 }
 
 PathStudioNewPathDraft selectPathStudioNewPathDraftCenterFrame({
@@ -657,17 +736,28 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftCenterFrame({
   required int localY,
   required int frameIndex,
 }) {
-  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
-  final frames = draft.centerCellFrames[_cellKey(localX, localY)] ?? const [];
-  if (frameIndex < 0 || frameIndex >= frames.length) {
-    throw RangeError.range(frameIndex, 0, frames.length - 1, 'frameIndex');
+  if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+    _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+    final frames = draft.centerCellFrames[_cellKey(localX, localY)] ?? const [];
+    if (frameIndex < 0 || frameIndex >= frames.length) {
+      throw RangeError.range(frameIndex, 0, frames.length - 1, 'frameIndex');
+    }
+    return draft.copyWith(
+      selectedCellX: localX,
+      selectedCellY: localY,
+      selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
+      selectedCenterFrameIndex: frameIndex,
+    );
+  } else {
+    final frames = draft.variantCellFrames[draft.selectedVariant] ?? const [];
+    if (frameIndex < 0 || frameIndex >= frames.length) {
+      throw RangeError.range(frameIndex, 0, frames.length - 1, 'frameIndex');
+    }
+    return draft.copyWith(
+      selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+      selectedCenterFrameIndex: frameIndex,
+    );
   }
-  return draft.copyWith(
-    selectedCellX: localX,
-    selectedCellY: localY,
-    selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
-    selectedCenterFrameIndex: frameIndex,
-  );
 }
 
 PathStudioNewPathDraft updatePathStudioNewPathDraftCenterFrameDuration({
@@ -680,29 +770,53 @@ PathStudioNewPathDraft updatePathStudioNewPathDraftCenterFrameDuration({
   if (durationMs <= 0) {
     throw ArgumentError.value(durationMs, 'durationMs', 'must be positive');
   }
-  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
-  final cellKey = _cellKey(localX, localY);
-  final nextCellFrames =
-      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
-    draft.centerCellFrames,
-  );
-  final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
-      nextCellFrames[cellKey] ?? const []);
-  if (frameIndex < 0 || frameIndex >= currentFrames.length) {
-    throw RangeError.range(
-        frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+  if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+    _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+    final cellKey = _cellKey(localX, localY);
+    final nextCellFrames =
+        Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.centerCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextCellFrames[cellKey] ?? const []);
+    if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+      throw RangeError.range(
+          frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+    }
+    final frame = currentFrames[frameIndex];
+    currentFrames[frameIndex] = PathStudioNewPathDraftCenterFrame(
+      tile: PathStudioNewPathDraftTile(
+        tilesetId: frame.tile.tilesetId,
+        sourceX: frame.tile.sourceX,
+        sourceY: frame.tile.sourceY,
+      ),
+      durationMs: durationMs,
+    );
+    nextCellFrames[cellKey] = currentFrames;
+    return draft.copyWith(centerCellFrames: nextCellFrames, isDirty: true);
+  } else {
+    final variant = draft.selectedVariant;
+    final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.variantCellFrames,
+    );
+    final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+        nextVariantCellFrames[variant] ?? const []);
+    if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+      throw RangeError.range(
+          frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+    }
+    final frame = currentFrames[frameIndex];
+    currentFrames[frameIndex] = PathStudioNewPathDraftCenterFrame(
+      tile: PathStudioNewPathDraftTile(
+        tilesetId: frame.tile.tilesetId,
+        sourceX: frame.tile.sourceX,
+        sourceY: frame.tile.sourceY,
+      ),
+      durationMs: durationMs,
+    );
+    nextVariantCellFrames[variant] = currentFrames;
+    return draft.copyWith(variantCellFrames: nextVariantCellFrames, isDirty: true);
   }
-  final frame = currentFrames[frameIndex];
-  currentFrames[frameIndex] = PathStudioNewPathDraftCenterFrame(
-    tile: PathStudioNewPathDraftTile(
-      tilesetId: frame.tile.tilesetId,
-      sourceX: frame.tile.sourceX,
-      sourceY: frame.tile.sourceY,
-    ),
-    durationMs: durationMs,
-  );
-  nextCellFrames[cellKey] = currentFrames;
-  return draft.copyWith(centerCellFrames: nextCellFrames, isDirty: true);
 }
 
 PathStudioNewPathDraft clearPathStudioNewPathDraftCell({
@@ -710,17 +824,28 @@ PathStudioNewPathDraft clearPathStudioNewPathDraftCell({
   required int localX,
   required int localY,
 }) {
-  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+  if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+    _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
 
-  final nextCellFrames =
-      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
-    draft.centerCellFrames,
-  )..remove(_cellKey(localX, localY));
-  return draft.copyWith(
-    centerCellFrames: nextCellFrames,
-    selectedCenterFrameIndex: 0,
-    isDirty: true,
-  );
+    final nextCellFrames =
+        Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.centerCellFrames,
+    )..remove(_cellKey(localX, localY));
+    return draft.copyWith(
+      centerCellFrames: nextCellFrames,
+      selectedCenterFrameIndex: 0,
+      isDirty: true,
+    );
+  } else {
+    final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+      draft.variantCellFrames,
+    )..remove(draft.selectedVariant);
+    return draft.copyWith(
+      variantCellFrames: nextVariantCellFrames,
+      selectedCenterFrameIndex: 0,
+      isDirty: true,
+    );
+  }
 }
 
 PathStudioNewPathDraft selectPathStudioNewPathDraftCell({
@@ -751,6 +876,7 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftVariant({
   return draft.copyWith(
     selectedVariant: variant,
     selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+    selectedCenterFrameIndex: 0,
   );
 }
 
@@ -777,18 +903,35 @@ PathStudioNewPathDraft assignPathStudioNewPathDraftVariantTile({
   if (sourceY < 0) {
     throw ArgumentError.value(sourceY, 'sourceY', 'must be non-negative');
   }
-  final nextTiles = Map<TerrainPathVariant, PathStudioNewPathDraftTile>.from(
-    draft.variantTiles,
+  final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.variantCellFrames,
   );
-  nextTiles[variant] = PathStudioNewPathDraftTile(
-    tilesetId: tilesetId,
-    sourceX: sourceX,
-    sourceY: sourceY,
+  final currentFrames = List<PathStudioNewPathDraftCenterFrame>.from(
+      nextVariantCellFrames[variant] ?? const []);
+  final selectedIndex = currentFrames.isEmpty
+      ? 0
+      : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+  final nextFrame = PathStudioNewPathDraftCenterFrame(
+    tile: PathStudioNewPathDraftTile(
+      tilesetId: tilesetId,
+      sourceX: sourceX,
+      sourceY: sourceY,
+    ),
+    durationMs: currentFrames.isEmpty
+        ? defaultPlacedElementAnimationFrameDurationMs
+        : currentFrames[selectedIndex].durationMs,
   );
+  if (currentFrames.isEmpty) {
+    currentFrames.add(nextFrame);
+  } else {
+    currentFrames[selectedIndex] = nextFrame;
+  }
+  nextVariantCellFrames[variant] = currentFrames;
   return draft.copyWith(
-    variantTiles: nextTiles,
+    variantCellFrames: nextVariantCellFrames,
     selectedVariant: variant,
     selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+    selectedCenterFrameIndex: selectedIndex,
     isDirty: true,
   );
 }
@@ -804,13 +947,14 @@ PathStudioNewPathDraft clearPathStudioNewPathDraftVariant({
       'must belong to required variants',
     );
   }
-  final nextTiles = Map<TerrainPathVariant, PathStudioNewPathDraftTile>.from(
-    draft.variantTiles,
+  final nextVariantCellFrames = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.variantCellFrames,
   )..remove(variant);
   return draft.copyWith(
-    variantTiles: nextTiles,
+    variantCellFrames: nextVariantCellFrames,
     selectedVariant: variant,
     selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+    selectedCenterFrameIndex: 0,
     isDirty: true,
   );
 }
@@ -819,6 +963,7 @@ PathStudioNewPathDraft clearPathStudioNewPathDraftVariant({
 enum PathStudioCenterAnimationSequenceTarget {
   selectedCell,
   allCenterCells,
+  allCells,
 }
 
 sealed class PathStudioCenterAnimationSequenceResult {
@@ -874,27 +1019,41 @@ PathStudioCenterAnimationSequenceResult generatePathStudioCenterAnimationSequenc
     );
   }
 
-  final coords = switch (target) {
-    PathStudioCenterAnimationSequenceTarget.selectedCell => [
-      (draft.selectedCellX, draft.selectedCellY),
-    ],
-    PathStudioCenterAnimationSequenceTarget.allCenterCells => [
-      for (var y = 0; y < draft.centerHeight; y += 1)
-        for (var x = 0; x < draft.centerWidth; x += 1)
-          (x, y),
-    ],
-  };
+  final targetCenterCells = <String>[];
+  final targetVariants = <TerrainPathVariant>[];
 
-  for (final coord in coords) {
-    final key = _cellKey(coord.$1, coord.$2);
+  if (target == PathStudioCenterAnimationSequenceTarget.selectedCell) {
+    if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+      targetCenterCells.add(_cellKey(draft.selectedCellX, draft.selectedCellY));
+    } else {
+      targetVariants.add(draft.selectedVariant);
+    }
+  } else if (target == PathStudioCenterAnimationSequenceTarget.allCenterCells) {
+    for (var y = 0; y < draft.centerHeight; y += 1) {
+      for (var x = 0; x < draft.centerWidth; x += 1) {
+        targetCenterCells.add(_cellKey(x, y));
+      }
+    }
+  } else if (target == PathStudioCenterAnimationSequenceTarget.allCells) {
+    for (var y = 0; y < draft.centerHeight; y += 1) {
+      for (var x = 0; x < draft.centerWidth; x += 1) {
+        targetCenterCells.add(_cellKey(x, y));
+      }
+    }
+    for (final variant in PathStudioNewPathDraft.requiredVariants) {
+      if (draft.variantCellFrames[variant]?.isNotEmpty ?? false) {
+        targetVariants.add(variant);
+      }
+    }
+  }
+
+  for (final key in targetCenterCells) {
     final existing = draft.centerCellFrames[key];
     if (existing == null || existing.isEmpty) {
       return PathStudioCenterAnimationSequenceFailure(
         target == PathStudioCenterAnimationSequenceTarget.selectedCell
-            ? 'Impossible de générer l’animation : la cellule active n’a pas '
-                'de frame de départ.'
-            : 'Impossible de générer l’animation : une cellule du centre n’a '
-                'pas de frame de départ.',
+            ? 'Impossible de générer l’animation : la cellule active n’a pas de frame de départ.'
+            : 'Impossible de générer l’animation : une cellule du centre n’a pas de frame de départ.',
       );
     }
     final start = existing.first.tile;
@@ -903,21 +1062,39 @@ PathStudioCenterAnimationSequenceResult generatePathStudioCenterAnimationSequenc
       final gy = start.sourceY + stepY * i;
       if (gx < 0 || gy < 0) {
         return const PathStudioCenterAnimationSequenceFailure(
-          'Impossible de générer l’animation : une coordonnée générée serait '
-          'négative.',
+          'Impossible de générer l’animation : une coordonnée générée serait négative.',
         );
       }
     }
   }
 
-  final nextFramesMap =
-      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+  for (final variant in targetVariants) {
+    final existing = draft.variantCellFrames[variant];
+    if (existing == null || existing.isEmpty) {
+      return PathStudioCenterAnimationSequenceFailure(
+        target == PathStudioCenterAnimationSequenceTarget.selectedCell
+            ? 'Impossible de générer l’animation : la cellule active n’a pas de frame de départ.'
+            : 'Impossible de générer l’animation : le variant ${variant.name} n’a pas de frame de départ.',
+      );
+    }
+    final start = existing.first.tile;
+    for (var i = 0; i < frameCount; i += 1) {
+      final gx = start.sourceX + stepX * i;
+      final gy = start.sourceY + stepY * i;
+      if (gx < 0 || gy < 0) {
+        return const PathStudioCenterAnimationSequenceFailure(
+          'Impossible de générer l’animation : une coordonnée générée serait négative.',
+        );
+      }
+    }
+  }
+
+  final nextCenterMap = Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
     draft.centerCellFrames,
   );
-  for (final coord in coords) {
-    final key = _cellKey(coord.$1, coord.$2);
+  for (final key in targetCenterCells) {
     final start = draft.centerCellFrames[key]!.first.tile;
-    final built = <PathStudioNewPathDraftCenterFrame>[
+    nextCenterMap[key] = [
       for (var i = 0; i < frameCount; i += 1)
         PathStudioNewPathDraftCenterFrame(
           tile: PathStudioNewPathDraftTile(
@@ -928,20 +1105,44 @@ PathStudioCenterAnimationSequenceResult generatePathStudioCenterAnimationSequenc
           durationMs: durationMs,
         ),
     ];
-    nextFramesMap[key] = built;
   }
 
-  final feedback = switch (target) {
-    PathStudioCenterAnimationSequenceTarget.selectedCell =>
-      'Animation générée pour la cellule ${draft.selectedCell.label}.',
-    PathStudioCenterAnimationSequenceTarget.allCenterCells =>
-      'Animation générée pour les ${draft.centerCellCount} cellules du '
-          'centre.',
-  };
+  final nextVariantMap = Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.variantCellFrames,
+  );
+  for (final variant in targetVariants) {
+    final start = draft.variantCellFrames[variant]!.first.tile;
+    nextVariantMap[variant] = [
+      for (var i = 0; i < frameCount; i += 1)
+        PathStudioNewPathDraftCenterFrame(
+          tile: PathStudioNewPathDraftTile(
+            tilesetId: start.tilesetId,
+            sourceX: start.sourceX + stepX * i,
+            sourceY: start.sourceY + stepY * i,
+          ),
+          durationMs: durationMs,
+        ),
+    ];
+  }
+
+  final String feedback;
+  if (target == PathStudioCenterAnimationSequenceTarget.selectedCell) {
+    if (draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell) {
+      feedback = 'Animation générée pour la cellule ${draft.selectedCell.label}.';
+    } else {
+      feedback = 'Animation générée pour le variant ${draft.selectedVariant.name}.';
+    }
+  } else if (target == PathStudioCenterAnimationSequenceTarget.allCenterCells) {
+    feedback = 'Animation générée pour les ${draft.centerCellCount} cellules du centre.';
+  } else {
+    final totalCount = targetCenterCells.length + targetVariants.length;
+    feedback = 'Animation générée pour les $totalCount cellules (centre + variants).';
+  }
 
   return PathStudioCenterAnimationSequenceSuccess(
     draft: draft.copyWith(
-      centerCellFrames: nextFramesMap,
+      centerCellFrames: nextCenterMap,
+      variantCellFrames: nextVariantMap,
       selectedCenterFrameIndex: 0,
       isDirty: true,
     ),
@@ -1038,9 +1239,9 @@ bool _centerFrameListsEqual(
   return true;
 }
 
-bool _variantTileMapsEqual(
-  Map<TerrainPathVariant, PathStudioNewPathDraftTile> left,
-  Map<TerrainPathVariant, PathStudioNewPathDraftTile> right,
+bool _variantCellFramesMapsEqual(
+  Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>> left,
+  Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>> right,
 ) {
   if (identical(left, right)) {
     return true;
@@ -1049,7 +1250,9 @@ bool _variantTileMapsEqual(
     return false;
   }
   for (final entry in left.entries) {
-    if (right[entry.key] != entry.value) {
+    final otherFrames = right[entry.key];
+    if (otherFrames == null ||
+        !_centerFrameListsEqual(entry.value, otherFrames)) {
       return false;
     }
   }
@@ -1074,12 +1277,13 @@ bool _pathPresetVariantMappingsEqual(
   return true;
 }
 
-int _variantTileMapHash(
-    Map<TerrainPathVariant, PathStudioNewPathDraftTile> tiles) {
-  final entries = tiles.entries.toList()
+int _variantCellFramesMapHash(
+  Map<TerrainPathVariant, List<PathStudioNewPathDraftCenterFrame>> map,
+) {
+  final entries = map.entries.toList()
     ..sort((left, right) => left.key.index.compareTo(right.key.index));
   return Object.hashAll(
-    entries.map((entry) => Object.hash(entry.key, entry.value)),
+    entries.map((entry) => Object.hash(entry.key, Object.hashAll(entry.value))),
   );
 }
 
