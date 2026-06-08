@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'cinematic_actor_display_preview_overlay.dart';
+import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_backdrop_preview_framing.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_layer_renderer.dart';
@@ -21,6 +22,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorSpritePreviewPlan,
     this.framingState = const CinematicBackdropPreviewFramingState(),
     this.selectedStep,
     this.onFramingModeChanged,
@@ -36,6 +38,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -69,6 +72,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   tileRenderPlan: tileRenderPlan,
                   layerRenderPlan: layerRenderPlan,
                   actorDisplayPreviewModel: actorDisplayPreviewModel,
+                  actorSpritePreviewPlan: actorSpritePreviewPlan,
                   framingState: framingState,
                   selectedStep: selectedStep,
                   onFramingModeChanged: onFramingModeChanged,
@@ -205,6 +209,7 @@ class _BackdropMapFrame extends StatelessWidget {
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -220,6 +225,7 @@ class _BackdropMapFrame extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -263,6 +269,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           plan: layerBitmapPlan,
                           compact: effectiveCompact,
                           actorDisplayPreviewModel: actorDisplayPreviewModel,
+                          actorSpritePreviewPlan: actorSpritePreviewPlan,
                           framingState: framingState,
                           selectedStep: selectedStep,
                           onFramingModeChanged: onFramingModeChanged,
@@ -279,6 +286,7 @@ class _BackdropMapFrame extends StatelessWidget {
                               compact: effectiveCompact,
                               actorDisplayPreviewModel:
                                   actorDisplayPreviewModel,
+                              actorSpritePreviewPlan: actorSpritePreviewPlan,
                               framingState: framingState,
                               selectedStep: selectedStep,
                               onFramingModeChanged: onFramingModeChanged,
@@ -329,6 +337,7 @@ class _BackdropBitmapMap extends StatelessWidget {
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
+    this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -343,6 +352,7 @@ class _BackdropBitmapMap extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -482,6 +492,8 @@ class _BackdropBitmapMap extends StatelessWidget {
                                       if (actorDisplayPreviewModel != null)
                                         CinematicActorDisplayPreviewOverlay(
                                           model: actorDisplayPreviewModel!,
+                                          spritePreviewPlan: actorSpritePreviewPlan,
+                                          tilesets: plan.tilesets,
                                           mapWidth: plan.mapWidth,
                                           mapHeight: plan.mapHeight,
                                           compact: compact,
@@ -520,6 +532,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
+    this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -534,6 +547,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final CinematicMapBackdropLayerRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -682,6 +696,8 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                       if (actorDisplayPreviewModel != null)
                                         CinematicActorDisplayPreviewOverlay(
                                           model: actorDisplayPreviewModel!,
+                                          spritePreviewPlan: actorSpritePreviewPlan,
+                                          tilesets: plan.tilesets,
                                           mapWidth: plan.mapWidth,
                                           mapHeight: plan.mapHeight,
                                           compact: compact,

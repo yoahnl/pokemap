@@ -14782,9 +14782,18 @@
           {
             "actorId": "actor",
             "kind": "player"
+          },
+          {
+            "actorId": "actor_4",
+            "kind": "cinematicOnly"
           }
         ],
-        "actorAppearanceBindings": [],
+        "actorAppearanceBindings": [
+          {
+            "actorId": "actor_4",
+            "characterId": "rival"
+          }
+        ],
         "initialPlacements": [
           {
             "actorId": "actor",

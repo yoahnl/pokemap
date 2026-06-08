@@ -363,7 +363,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> _rememberMacOsProjectBookmark(String manifestPath) async {
-    if (!Platform.isMacOS) {
+    if (kIsWeb || !Platform.isMacOS) {
       return;
     }
     try {
@@ -377,7 +377,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<String?> _resolveLastProjectManifestFromMacOsBookmark() async {
-    if (!Platform.isMacOS) {
+    if (kIsWeb || !Platform.isMacOS) {
       return null;
     }
     try {
@@ -394,7 +394,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> _clearMacOsProjectBookmark() async {
-    if (!Platform.isMacOS) {
+    if (kIsWeb || !Platform.isMacOS) {
       return;
     }
     try {

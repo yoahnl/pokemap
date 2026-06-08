@@ -14,6 +14,7 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_plan.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 const _defaultBuilderSurfaceSize = Size(1280, 860);
@@ -10830,6 +10831,176 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-99 cinematic actor sprite renderer visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_99_CAPTURE_CINEMATIC_ACTOR_SPRITE_RENDERER',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final professorActor = CinematicActorDisplayPreviewActor(
+      actorId: 'actor_professor',
+      label: 'Professor',
+      role: null,
+      bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+      bindingKind: CinematicActorBindingKind.cinematicOnly,
+      bindingSourceId: null,
+      bindingSourceLabel: null,
+      position: const CinematicActorPreviewPosition(
+        status: CinematicActorPreviewPositionStatus.resolved,
+        sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
+        x: 6,
+        y: 7,
+      ),
+      appearance: const CinematicActorPreviewAppearance(
+        status: CinematicActorPreviewAppearanceStatus.spriteReady,
+        characterId: 'char_professor',
+        tilesetId: 'neutral_tiles',
+      ),
+      direction: CinematicActorPreviewDirection.south,
+      directionSource: CinematicActorPreviewDirectionSource.actorFace,
+      renderHint: CinematicActorPreviewRenderHint.sprite,
+      diagnostics: const [],
+    );
+
+    final fallbackActor = CinematicActorDisplayPreviewActor(
+      actorId: 'actor_unresolved',
+      label: 'Missing actor',
+      role: null,
+      bindingStatus: CinematicActorDisplayBindingStatus.unbound,
+      bindingKind: CinematicActorBindingKind.unbound,
+      bindingSourceId: null,
+      bindingSourceLabel: null,
+      position: const CinematicActorPreviewPosition(
+        status: CinematicActorPreviewPositionStatus.resolved,
+        sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
+        x: 9,
+        y: 7,
+      ),
+      appearance: const CinematicActorPreviewAppearance(
+        status: CinematicActorPreviewAppearanceStatus.missingCharacter,
+        characterId: 'char_missing',
+        tilesetId: 'neutral_tiles',
+      ),
+      direction: CinematicActorPreviewDirection.north,
+      directionSource: CinematicActorPreviewDirectionSource.fallback,
+      renderHint: CinematicActorPreviewRenderHint.sprite,
+      diagnostics: const [],
+    );
+
+    final actorDisplayModel = CinematicActorDisplayPreviewModel(
+      status: CinematicActorDisplayPreviewStatus.ready,
+      summary: '2 actor(s)',
+      actors: [professorActor, fallbackActor],
+      diagnostics: const [],
+    );
+
+    final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      actors: [
+        CinematicActorSpritePreviewActor(
+          actorId: 'actor_professor',
+          actorLabel: 'Professor',
+          bindingKind: CinematicActorBindingKind.cinematicOnly,
+          position: const GridPos(x: 6, y: 7),
+          direction: CinematicActorPreviewDirection.south,
+          status: CinematicActorSpriteStatus.spriteReady,
+          spriteRef: const CinematicActorSpriteRef(
+            characterId: 'char_professor',
+            tilesetId: 'neutral_tiles',
+            sourceTileRect: TilesetSourceRect(x: 0, y: 0, width: 1, height: 2),
+            frameWidthTiles: 1,
+            frameHeightTiles: 2,
+            direction: CinematicActorPreviewDirection.south,
+          ),
+          placeholderFallback: false,
+          depthHint: const CinematicActorSpriteDepthHint(
+            tileX: 6,
+            tileY: 7,
+            anchorTileX: 6.5,
+            anchorTileY: 9.0,
+            visualBottom: 9.0,
+            footprintWidthTiles: 1,
+            footprintHeightTiles: 2,
+            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+          ),
+          diagnostics: const [],
+        ),
+        CinematicActorSpritePreviewActor(
+          actorId: 'actor_unresolved',
+          actorLabel: 'Missing actor',
+          bindingKind: CinematicActorBindingKind.unbound,
+          position: const GridPos(x: 9, y: 7),
+          direction: CinematicActorPreviewDirection.north,
+          status: CinematicActorSpriteStatus.missingCharacter,
+          placeholderFallback: true,
+          depthHint: const CinematicActorSpriteDepthHint(
+            tileX: 9,
+            tileY: 7,
+            anchorTileX: 9.5,
+            anchorTileY: 9.0,
+            visualBottom: 9.0,
+            footprintWidthTiles: 1,
+            footprintHeightTiles: 2,
+            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+          ),
+          diagnostics: const [],
+        ),
+      ],
+      diagnostics: const [],
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      actorDisplayPreviewModel: actorDisplayModel,
+      actorSpritePreviewPlan: actorSpritePreviewPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_99_cinematic_actor_display_sprite_renderer_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -10843,6 +11014,7 @@ Future<void> _pumpBuilder(
   CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan,
   CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan,
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
+  CinematicActorSpritePreviewPlan? actorSpritePreviewPlan,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
 }) async {
@@ -10858,6 +11030,7 @@ Future<void> _pumpBuilder(
               entry: entry,
               asset: asset,
               startExpanded: true,
+              actorSpritePreviewPlan: actorSpritePreviewPlan,
               stageMaps: const <ProjectMapEntry>[
                 ProjectMapEntry(
                   id: 'map_lab',

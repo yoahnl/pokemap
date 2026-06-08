@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 
 /// Resolve the editor-wide Mistral key without exposing or logging it.
@@ -11,8 +11,12 @@ String resolveEditorMistralApiKey(ProjectSettings? settings) {
   if (fromProject.isNotEmpty) {
     return fromProject;
   }
+  if (kIsWeb) {
+    return '';
+  }
   return Platform.environment['MISTRAL_API_KEY'] ?? '';
 }
 
 bool hasEditorMistralApiKey(ProjectSettings? settings) =>
     resolveEditorMistralApiKey(settings).trim().isNotEmpty;
+

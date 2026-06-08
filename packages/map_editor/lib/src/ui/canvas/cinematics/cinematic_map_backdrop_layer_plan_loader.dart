@@ -12,11 +12,14 @@ final class CinematicMapBackdropLayerPlanLoader {
 
   final CinematicTilesetAssetRegistry _registry;
 
+  CinematicTilesetAssetRegistry get registry => _registry;
+
   Future<CinematicMapBackdropLayerRenderPlan?> load({
     required ProjectManifest manifest,
     required MapData? mapData,
     required CinematicMapBackdropPreviewModel? previewModel,
     required ResolveCinematicBackdropTilesetPath resolveTilesetPath,
+    Set<String> additionalTilesetIds = const {},
   }) async {
     if (mapData == null || previewModel == null || !previewModel.isAvailable) {
       return null;
@@ -25,8 +28,9 @@ final class CinematicMapBackdropLayerPlanLoader {
       mapData: mapData,
       manifest: manifest,
     );
+    final allTilesetIds = <String>{...tilesetIds, ...additionalTilesetIds};
     final resolvedTilesets = <String, CinematicResolvedTilesetAsset>{};
-    for (final tilesetId in tilesetIds) {
+    for (final tilesetId in allTilesetIds) {
       final tileset = _tilesetById(manifest, tilesetId);
       resolvedTilesets[tilesetId] = await _registry.resolve(
         tileset: tileset,

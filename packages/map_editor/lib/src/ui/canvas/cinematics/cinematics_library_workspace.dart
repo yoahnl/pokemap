@@ -6,6 +6,8 @@ import 'package:map_core/map_core.dart';
 
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
+import 'cinematic_actor_sprite_preview_plan.dart';
+import 'cinematic_actor_sprite_preview_resolver.dart';
 import 'cinematic_builder_workspace.dart';
 import 'cinematic_map_backdrop_layer_plan_loader.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
@@ -271,6 +273,8 @@ class _CinematicsLibraryWorkspaceState
   String? _backdropLayerRenderPlanMapId;
   String? _loadingBackdropTileRenderPlanMapId;
   int _stageMapSourceCatalogGeneration = 0;
+  Map<String, CinematicResolvedTilesetAsset> _resolvedActorTilesets = const {};
+  final Set<String> _loadingActorTilesetIds = {};
 
   @override
   void dispose() {
@@ -279,6 +283,7 @@ class _CinematicsLibraryWorkspaceState
     _descriptionController.dispose();
     _notesController.dispose();
     _backdropLayerPlanLoader.clear();
+    _loadingActorTilesetIds.clear();
     super.dispose();
   }
 
@@ -299,6 +304,7 @@ class _CinematicsLibraryWorkspaceState
         builderEntry.kind == CinematicsLibraryEntryKind.canonical &&
         builderAsset != null) {
       _ensureStageMapSourceCatalog(builderAsset);
+      _ensureActorTilesets(builderAsset);
       final backdropPreviewModel = _buildBackdropPreviewModel(builderAsset);
       final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(
         builderAsset,
@@ -310,6 +316,17 @@ class _CinematicsLibraryWorkspaceState
       final backdropLayerRenderPlan = _buildBackdropLayerRenderPlan(
         builderAsset,
       );
+      final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan = actorDisplayPreviewModel == null
+          ? null
+          : buildCinematicActorSpritePreviewPlan(
+              actorDisplayModel: actorDisplayPreviewModel,
+              project: widget.project,
+            );
+      final combinedTilesets = <String, CinematicResolvedTilesetAsset>{
+        ...?backdropLayerRenderPlan?.tilesets,
+        ...?backdropTileRenderPlan?.tilesets,
+        ..._resolvedActorTilesets,
+      };
       return CinematicBuilderWorkspace(
         entry: builderEntry,
         asset: builderAsset,
@@ -321,6 +338,8 @@ class _CinematicsLibraryWorkspaceState
         backdropTileRenderPlan: backdropTileRenderPlan,
         backdropLayerRenderPlan: backdropLayerRenderPlan,
         actorDisplayPreviewModel: actorDisplayPreviewModel,
+        actorSpritePreviewPlan: actorSpritePreviewPlan,
+        tilesets: combinedTilesets,
         startExpanded: widget.startExpanded,
         onBackToLibrary: _closeBuilder,
         onAddDraftStep: widget.onAddTimelineDraft,
@@ -431,10 +450,33 @@ class _CinematicsLibraryWorkspaceState
       return;
     }
     if (_stageMapSourceCatalog?.stageMapId == mapId) {
+      bool needsTilesetReload = false;
       if (widget.onBuildBackdropTileRenderPlan == null &&
           _stageMapSnapshotMapId == mapId &&
-          _backdropLayerRenderPlanMapId != mapId &&
           _loadingBackdropTileRenderPlanMapId != mapId) {
+        if (_backdropLayerRenderPlanMapId != mapId || _backdropLayerRenderPlan == null) {
+          needsTilesetReload = true;
+        } else {
+          final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(asset);
+          if (actorDisplayPreviewModel != null) {
+            final actorSpritePreviewPlan = buildCinematicActorSpritePreviewPlan(
+              actorDisplayModel: actorDisplayPreviewModel,
+              project: widget.project,
+            );
+            for (final actor in actorSpritePreviewPlan.actors) {
+              final tilesetId = actor.spriteRef?.tilesetId;
+              if (tilesetId != null && tilesetId.isNotEmpty) {
+                if (!_backdropLayerRenderPlan!.tilesets.containsKey(tilesetId)) {
+                  needsTilesetReload = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (needsTilesetReload) {
         unawaited(
           _loadBackdropTileRenderPlan(
             asset: asset,
@@ -552,6 +594,101 @@ class _CinematicsLibraryWorkspaceState
     );
   }
 
+  ProjectTilesetEntry? _tilesetById(ProjectManifest manifest, String tilesetId) {
+    for (final tileset in manifest.tilesets) {
+      if (tileset.id.trim() == tilesetId) {
+        return tileset;
+      }
+    }
+    return null;
+  }
+
+  void _ensureActorTilesets(CinematicAsset asset) {
+    final resolver = widget.onResolveBackdropTilesetPath;
+    if (resolver == null) {
+      print('[CinematicsDebug] onResolveBackdropTilesetPath is null');
+      return;
+    }
+
+    final requiredTilesetIds = <String>{};
+
+    // 1. Scan actor appearance bindings
+    final bindings = asset.stageContext?.actorAppearanceBindings ?? const [];
+    for (final binding in bindings) {
+      final characterId = binding.characterId.trim();
+      if (characterId.isNotEmpty) {
+        for (final character in widget.project.characters) {
+          if (character.id.trim() == characterId) {
+            final tilesetId = character.tilesetId.trim();
+            if (tilesetId.isNotEmpty) {
+              requiredTilesetIds.add(tilesetId);
+            }
+            break;
+          }
+        }
+      }
+    }
+
+    // 2. Scan default player character settings as fallback
+    final defaultPlayerCharId = widget.project.settings.defaultPlayerCharacterId?.trim();
+    if (defaultPlayerCharId != null && defaultPlayerCharId.isNotEmpty) {
+      for (final character in widget.project.characters) {
+        if (character.id.trim() == defaultPlayerCharId) {
+          final tilesetId = character.tilesetId.trim();
+          if (tilesetId.isNotEmpty) {
+            requiredTilesetIds.add(tilesetId);
+          }
+          break;
+        }
+      }
+    }
+
+    print('[CinematicsDebug] requiredTilesetIds: $requiredTilesetIds');
+
+    final missingTilesetIds = requiredTilesetIds.where((id) {
+      return !_resolvedActorTilesets.containsKey(id) && !_loadingActorTilesetIds.contains(id);
+    }).toList();
+
+    print('[CinematicsDebug] missingTilesetIds: $missingTilesetIds');
+
+    if (missingTilesetIds.isEmpty) {
+      return;
+    }
+
+    _loadingActorTilesetIds.addAll(missingTilesetIds);
+
+    unawaited(() async {
+      final newResolved = Map<String, CinematicResolvedTilesetAsset>.from(_resolvedActorTilesets);
+      bool changed = false;
+      for (final id in missingTilesetIds) {
+        try {
+          final tileset = _tilesetById(widget.project, id);
+          final path = resolver(id);
+          print('[CinematicsDebug] resolving tileset: id=$id, tileset=$tileset, path=$path');
+          final asset = await _backdropLayerPlanLoader.registry.resolve(
+            tileset: tileset,
+            absolutePath: path,
+            tileWidth: widget.project.settings.tileWidth,
+            tileHeight: widget.project.settings.tileHeight,
+          );
+          print('[CinematicsDebug] successfully resolved tileset: id=$id, asset.isAvailable=${asset.isAvailable}');
+          newResolved[id] = asset;
+          changed = true;
+        } catch (e, stack) {
+          print('[CinematicsDebug] Error resolving tileset id: $id, error: $e, stack: $stack');
+        } finally {
+          _loadingActorTilesetIds.remove(id);
+        }
+      }
+
+      if (changed && mounted) {
+        setState(() {
+          _resolvedActorTilesets = Map.unmodifiable(newResolved);
+        });
+      }
+    }());
+  }
+
   Future<void> _loadBackdropTileRenderPlan({
     required CinematicAsset asset,
     required String mapId,
@@ -567,11 +704,28 @@ class _CinematicsLibraryWorkspaceState
       return;
     }
     _loadingBackdropTileRenderPlanMapId = mapId;
+
+    final additionalTilesetIds = <String>{};
+    final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(asset);
+    if (actorDisplayPreviewModel != null) {
+      final actorSpritePreviewPlan = buildCinematicActorSpritePreviewPlan(
+        actorDisplayModel: actorDisplayPreviewModel,
+        project: widget.project,
+      );
+      for (final actor in actorSpritePreviewPlan.actors) {
+        final tilesetId = actor.spriteRef?.tilesetId;
+        if (tilesetId != null && tilesetId.isNotEmpty) {
+          additionalTilesetIds.add(tilesetId);
+        }
+      }
+    }
+
     final plan = await _backdropLayerPlanLoader.load(
       manifest: widget.project,
       mapData: mapData,
       previewModel: previewModel,
       resolveTilesetPath: resolver,
+      additionalTilesetIds: additionalTilesetIds,
     );
     if (!mounted) {
       return;
@@ -643,6 +797,8 @@ class _CinematicsLibraryWorkspaceState
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
       _stageMapSourceCatalogGeneration++;
+      _resolvedActorTilesets = const {};
+      _loadingActorTilesetIds.clear();
     });
   }
 

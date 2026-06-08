@@ -50579,6 +50579,21 @@
       "properties": {}
     },
     {
+      "id": "l_tile_grass_element::36::39",
+      "layerId": "l_tile_grass_element",
+      "elementId": "grass_element_1",
+      "pos": {
+        "x": 36,
+        "y": 39
+      },
+      "applyCollision": true,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {}
+    },
+    {
       "id": "l_tile_objectif::4::12",
       "layerId": "l_tile_objectif",
       "elementId": "test",
@@ -53693,13 +53708,13 @@
   "triggers": [],
   "gameplayZones": [],
   "mapMetadata": {
-    "displayName": "",
-    "mapType": "route",
+    "displayName": "Selbrume",
+    "mapType": "city",
     "musicId": null,
     "weather": "none",
     "isIndoor": false,
-    "allowEscapeRope": true,
-    "defaultSpawnId": null,
+    "allowEscapeRope": false,
+    "defaultSpawnId": "spawn",
     "tags": []
   },
   "properties": {},

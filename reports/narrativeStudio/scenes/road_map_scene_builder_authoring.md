@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract
+NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract
 ```
 
 ## Principes
@@ -22,6 +22,7 @@ NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contrac
 - `Event -> Scene` passe avant `StorylineStep -> Scene` pour le golden slice Selbrume.
 - Une Condition no-code doit lire une source metier explicite ; pas de condition textuelle magique ni de flag technique expose comme experience principale.
 - Les Facts et World Rules doivent etre cadres avant le golden slice, meme si le premier authoring Condition peut rester limite aux sources existantes.
+- Les dimensions d'acteurs doivent venir de `frameWidth` et `frameHeight` de la fiche personnage.
 
 ## Roadmap recommandee
 
@@ -134,7 +135,8 @@ NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contrac
 | NS-SCENES-V1-96 | Cinematic Backdrop Depth / Z-Order Parity Polish V0 | editor / preview-sandbox-depth | Correctif Y-sorting/depth sorting deterministe pour le decor backdrop et l'overlay des acteurs placeholders : tri par visual bottom Y, layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground completes. Tri Y-sorting des acteurs statiques. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Plan backdrop plans, tests widget/plan, rapport V1-96, evidence pack, screenshots, roadmaps. | DONE : tri Y-sorting deterministe fonctionnel, heuristiques foreground verifiees. | Mauvais tri Y-sorting ; desalignement ; regression foreground/background passes ; collision non coupee. | DONE : decor et acteurs triés deterministiquement par Y, sans runtime. | V1-95 bis. |
 | NS-SCENES-V1-96-bis | Cinematic Backdrop Real Map Editor Ordering Investigation / Fix V0 | editor / preview-sandbox-ordering | Enquête et alignement de la preview de décor sur l'ordre exact du Map Editor (Terrain -> Path -> TileBackground -> Surface -> PlacedBackground -> Foreground, boucle de calques inversée length - 1 down to 0). Tri intra-calque/intra-passe uniquement en tie-breaker. Rendu multi-tuiles split par cellule. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Plan backdrop, tests ciblés, rapport V1-96-bis, evidence pack, screenshots/Visual Gate, roadmaps. | DONE : ordre de rendu conforme à MapGridPainter, pontons sur l'eau, calques inversés corrects, multi-tuiles split. | Prioriser le y-sort global au lieu de la hiérarchie de calques ; inverser path/tileBackground. | DONE : décor et acteurs triés par calques conformes à l'éditeur, sans runtime. | V1-96. |
 | NS-SCENES-V1-97 | Cinematic Actor Display Preview Sprite Resolver Prep Contract | doc-only / architecture-review | Cadrer le futur resolver de sprites statiques apres preview backdrop lisible et triee V1-96 : sources Character Library/player/mapEntity, frames idle, fallback, diagnostics, cache et anti-scope runtime. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Rapport V1-97, evidence pack, roadmaps. | DONE : contrat sprite resolver editor-only, diagnostic et tests futures. | Charger trop tot des sprites dans core ; confondre sprite statique et animation runtime ; masquer les placeholders incomplets. | DONE : contrat pret pour afficher des acteurs reconnaissables sans lancer la cinematique. | V1-96-bis. |
-| NS-SCENES-V1-98 | Cinematic Actor Display Preview Sprite Resolver V0 | editor / pure-resolver | Implémenter le resolver purement logique et ses tests unitaires de parité associés sans rendu visuel. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Resolver, tests unitaires, rapports, roadmaps. | TODO : resolver et tests associés. | Coupler le resolver à la couche UI ; importer map_runtime ; casser les fallbacks de placeholders. | TODO : resolver logique capable d'associer un acteur à ses coordonnées d'atlas et son tileset. | V1-97. |
+| NS-SCENES-V1-98 | Cinematic Actor Display Preview Sprite Resolver V0 | editor / pure-resolver | Implémenter le resolver purement logique et ses tests unitaires de parité associés sans rendu visuel. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Resolver, tests unitaires, rapports, roadmaps. | DONE : resolver et 9 tests unitaires. | Coupler le resolver à la couche UI ; importer map_runtime ; casser les fallbacks de placeholders. | DONE : resolver logique capable d'associer un acteur à ses coordonnées d'atlas et son tileset. | V1-97. |
+| NS-SCENES-V1-99 | Cinematic Actor Display Preview Sprite Renderer V0 | editor / preview-sandbox | Intégrer les sprites acteurs résolus par V1-98 au rendu de la preview du Cinematic Builder avec fallbacks et gestion de profondeur. | Pas de lecture de fichier synchrone dans le paint, interpolation de mouvement runtime, playback interactif ou données Selbrume. | Preview rendering canvas, actor rendering pass, fallback visuals, rapports, Visual Gate. | DONE : rendu des sprites résolus. | Casser le z-order / Y-sort des calques ; charger l'image pendant le paint ; ignorer les diagnostics de fallback. | DONE : sprites résolus dessinés à leur place respective avec la bonne hauteur et le fallback placeholder respecté. | V1-98. |
 
 ## Mise a jour V1-94
 
@@ -150,7 +152,35 @@ Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinema
 
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
-Prochain lot exact recommande : `NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0`.
+Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
+
+## Mise a jour V1-99
+
+Statut : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0` est DONE.
+
+Demande : Karim a demandé d’afficher des sprites statiques réels quand ils sont résolus dans la preview, tout en conservant les placeholders V1-92 comme fallback, en préservant la profondeur V1-96-bis et sans enfreindre l'anti-scope.
+
+Decision : Branchement du CinematicActorSpritePreviewPlan. Les images des sprites acteurs sont préchargées et mises en cache hors des cycles build/paint. CustomPaint dédié avec CinematicActorSpritePainter pour le rendu bitmap statique. Les labels, direction hints et diagnostics restent lisibles et accessibles.
+
+Preuve : 17 tests unitaires de rendu validés dans `cinematic_actor_sprite_preview_renderer_test.dart` et test visual gate validé dans `cinematic_builder_workspace_test.dart`. Tous les tests passent au vert (213/213).
+
+Limites : Rendu purement statique et sans playback temporel interactif ni interpolation.
+
+Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
+
+## Mise a jour V1-98
+
+Statut : `NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0` est DONE.
+
+Demande : Karim a demandé d'exécuter la V1-98 en implémentant le résolveur synchrone et purement symbolique, sans chargement/décodage d'images ni widgets Flame, en extrayant les dimensions de `frameWidth`/`frameHeight` du personnage plutôt que de `TilesetSourceRect`, et avec gestion des diagnostics/fallbacks de direction de l'animation idle.
+
+Decision : Résolveur synchrone implémenté dans `CinematicActorSpritePreviewPlan` et `buildCinematicActorSpritePreviewPlan`. Support des fallbacks directionnels avec avertissement `actorDisplayDirectionFallback`, gestion de `missingIdleAnimation`, `missingDirectionFrame`, `missingCharacter`, `missingTileset` et `invalidSourceRect`. Les dimensions d'acteurs viennent de `frameWidth` et `frameHeight` de la fiche personnage.
+
+Preuve : 9 tests unitaires complets écrits dans `cinematic_actor_sprite_preview_resolver_test.dart` passant à 100% au vert. Analyse statique Dart/Flutter propre à 100%.
+
+Limites : Résolution logique pure, sans aucun chargement/décodage réel d'images ni affichage UI.
+
+Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
 
 ## Mise a jour V1-97
 
@@ -164,7 +194,7 @@ Preuve : Rapport de contrat V1-97 rédigé, diagnostics et tests unitaires V1-98
 
 Limites : Lot documentaire de design-first uniquement. Aucun code produit modifié.
 
-Prochain lot exact recommande : `NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0`.
+Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
 
 ## Mise a jour V1-96 bis
 
