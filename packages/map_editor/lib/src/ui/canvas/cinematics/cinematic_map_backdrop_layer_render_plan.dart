@@ -21,6 +21,9 @@ final class CinematicMapBackdropLayerBitmapInstruction {
     required this.opacity,
     required this.sourceFamily,
     required this.sourceId,
+    required this.elementBottomY,
+    required this.elementX,
+    required this.layerIndex,
     this.tileId,
   });
 
@@ -36,6 +39,9 @@ final class CinematicMapBackdropLayerBitmapInstruction {
   final double opacity;
   final String sourceFamily;
   final String sourceId;
+  final double elementBottomY;
+  final double elementX;
+  final int layerIndex;
   final int? tileId;
 }
 
@@ -106,7 +112,8 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
   final generatedPlacementIds =
       collectCinematicBackdropGeneratedPlacementIds(mapData);
 
-  for (final layer in mapData.layers) {
+  for (var i = 0; i < mapData.layers.length; i++) {
+    final layer = mapData.layers[i];
     if (!layer.isVisible || layer.opacity <= 0) {
       continue;
     }
@@ -123,6 +130,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           diagnostics: diagnostics,
           instructions: instructions,
           zOrder: zOrder,
+          layerIndex: i,
         );
       case PathLayer():
         zOrder = _appendPathInstructions(
@@ -136,6 +144,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           diagnostics: diagnostics,
           instructions: instructions,
           zOrder: zOrder,
+          layerIndex: i,
         );
       case TileLayer():
         zOrder = _appendTileInstructions(
@@ -149,6 +158,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           instructions: instructions,
           foregroundTileCells: foregroundTileCells[layer.id] ?? const <int>{},
           zOrder: zOrder,
+          layerIndex: i,
         );
       case SurfaceLayer():
         zOrder = _appendSurfaceInstructions(
@@ -160,6 +170,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           diagnostics: diagnostics,
           instructions: instructions,
           zOrder: zOrder,
+          layerIndex: i,
         );
       case CollisionLayer():
       case ObjectLayer():
@@ -185,6 +196,18 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     final passCompare = a.renderPass.order.compareTo(b.renderPass.order);
     if (passCompare != 0) {
       return passCompare;
+    }
+    final yCompare = a.elementBottomY.compareTo(b.elementBottomY);
+    if (yCompare != 0) {
+      return yCompare;
+    }
+    final layerCompare = a.layerIndex.compareTo(b.layerIndex);
+    if (layerCompare != 0) {
+      return layerCompare;
+    }
+    final xCompare = a.elementX.compareTo(b.elementX);
+    if (xCompare != 0) {
+      return xCompare;
     }
     return a.zOrder.compareTo(b.zOrder);
   });
@@ -354,6 +377,7 @@ int _appendTerrainInstructions({
   required List<CinematicMapBackdropTileDiagnostic> diagnostics,
   required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
   required int zOrder,
+  required int layerIndex,
 }) {
   var nextZ = zOrder;
   for (var index = 0; index < layer.terrains.length; index += 1) {
@@ -439,6 +463,9 @@ int _appendTerrainInstructions({
         opacity: _opacity(layer.opacity),
         sourceFamily: 'terrain',
         sourceId: preset.id,
+        elementBottomY: y + 1.0,
+        elementX: x.toDouble(),
+        layerIndex: layerIndex,
       ),
     );
     nextZ += 1;
@@ -457,6 +484,7 @@ int _appendPathInstructions({
   required List<CinematicMapBackdropTileDiagnostic> diagnostics,
   required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
   required int zOrder,
+  required int layerIndex,
 }) {
   var nextZ = zOrder;
   final resolver = _resolvePathPreset(manifest, layer.presetId);
@@ -539,6 +567,9 @@ int _appendPathInstructions({
         opacity: _opacity(layer.opacity),
         sourceFamily: 'path',
         sourceId: resolver.sourceId,
+        elementBottomY: y + 1.0,
+        elementX: x.toDouble(),
+        layerIndex: layerIndex,
       ),
     );
     nextZ += 1;
@@ -557,6 +588,7 @@ int _appendTileInstructions({
   required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
   required Set<int> foregroundTileCells,
   required int zOrder,
+  required int layerIndex,
 }) {
   var nextZ = zOrder;
   final tilesetId = (layer.tilesetId ?? mapData.tilesetId).trim();
@@ -615,6 +647,9 @@ int _appendTileInstructions({
         sourceFamily: 'tile',
         sourceId: layer.id,
         tileId: tileId,
+        elementBottomY: y + 1.0,
+        elementX: x.toDouble(),
+        layerIndex: layerIndex,
       ),
     );
     nextZ += 1;
@@ -631,6 +666,7 @@ int _appendSurfaceInstructions({
   required List<CinematicMapBackdropTileDiagnostic> diagnostics,
   required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
   required int zOrder,
+  required int layerIndex,
 }) {
   var nextZ = zOrder;
   final availableTilesetIds = {
@@ -695,11 +731,53 @@ int _appendSurfaceInstructions({
         opacity: _opacity(layer.opacity),
         sourceFamily: 'surface',
         sourceId: placement.surfacePresetId,
+        elementBottomY: placement.y + 1.0,
+        elementX: placement.x.toDouble(),
+        layerIndex: layerIndex,
       ),
     );
     nextZ += 1;
   }
   return nextZ;
+}
+
+bool _shouldElementRenderInForeground(
+  MapPlacedElement placement,
+  ProjectElementEntry element,
+  MapLayer? layer,
+) {
+  if (layer != null) {
+    final marker = '${layer.id} ${layer.name}'.toLowerCase();
+    if (marker.contains('foreground') ||
+        marker.contains(' fg') ||
+        marker.endsWith('_fg') ||
+        marker.endsWith('-fg') ||
+        marker.contains(' above') ||
+        marker.contains('overlay') ||
+        marker.contains('front') ||
+        marker.contains('roof') ||
+        marker.contains('toit')) {
+      return true;
+    }
+  }
+  const keys = ['renderInForeground', 'foreground', 'above'];
+  for (final key in keys) {
+    final val = placement.properties[key]?.toLowerCase();
+    if (val == 'true' || val == '1') {
+      return true;
+    }
+  }
+  for (final tag in element.tags) {
+    final lowerTag = tag.toLowerCase();
+    if (lowerTag == 'foreground' ||
+        lowerTag == 'fg' ||
+        lowerTag == 'above' ||
+        lowerTag == 'roof' ||
+        lowerTag == 'toit') {
+      return true;
+    }
+  }
+  return false;
 }
 
 int _appendPlacedElementInstructions({
@@ -748,6 +826,9 @@ int _appendPlacedElementInstructions({
         : const <GridPos>{};
     final splitByCollision =
         collisionCells.isNotEmpty && (source.width > 1 || source.height > 1);
+    final isForegroundElement =
+        _shouldElementRenderInForeground(placement, element, layer);
+    final layerIndex = mapData.layers.indexOf(layer);
     for (var localY = 0; localY < source.height; localY += 1) {
       for (var localX = 0; localX < source.width; localX += 1) {
         final x = placement.pos.x + localX;
@@ -756,10 +837,11 @@ int _appendPlacedElementInstructions({
           continue;
         }
         final localPos = GridPos(x: localX, y: localY);
-        final renderPass =
-            splitByCollision && !collisionCells.contains(localPos)
+        final renderPass = isForegroundElement
+            ? CinematicMapBackdropRenderPass.placedForeground
+            : (splitByCollision && !collisionCells.contains(localPos)
                 ? CinematicMapBackdropRenderPass.placedForeground
-                : CinematicMapBackdropRenderPass.placedBackground;
+                : CinematicMapBackdropRenderPass.placedBackground);
         final sourceRect = _tileSourceRect(
           tileWidth: tileWidth,
           tileHeight: tileHeight,
@@ -795,6 +877,9 @@ int _appendPlacedElementInstructions({
             opacity: _opacity(layer.opacity * placement.opacity),
             sourceFamily: sourceFamily,
             sourceId: placement.id,
+            elementBottomY: placement.pos.y + source.height.toDouble(),
+            elementX: placement.pos.x.toDouble(),
+            layerIndex: layerIndex,
           ),
         );
         nextZ += 1;

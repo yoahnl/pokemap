@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract
+NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract
 ```
 
 ## Principes
@@ -131,7 +131,8 @@ NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contrac
 | NS-SCENES-V1-94 bis | Cinematic Path Studio Water Fidelity Fix | editor / preview-sandbox fix | Corriger le rendu backdrop cinematic quand un `PathLayer` reference un preset de base Path Studio : retrouver l'unique pattern lie par `basePathPresetId` pour rendre l'eau/motif Path Studio comme le Map Editor. | Pas de runtime/Flame, playback, MapCanvas complet, sprites acteurs, Selbrume, image IA, refonte timeline ou changement gameplay. | Plan backdrop cinematic, test Builder ciblé, rapport, evidence pack, roadmaps. | DONE : `_resolvePathPreset` aligne la resolution base preset -> pattern unique, fallback base en cas d'ambiguite, test eau Path Studio vert et suite Builder complete verte. | Oublier que `PathLayer.presetId` pointe souvent vers le base preset ; choisir arbitrairement parmi plusieurs patterns ; casser le fallback base. | DONE : eau Path Studio restauree dans le backdrop cinematic sans elargir le scope V1-94. | V1-94. |
 | NS-SCENES-V1-95 | Cinematic Backdrop Preview Framing / Zoom Controls V0 | editor / preview-sandbox | Rendre la preview backdrop lisible comme une scene cadree : Carte entiere, Vue scene, zoom local, focus acteur/bbox/centre map, transform partage et eau Path Studio visible. | Pas de runtime/Flame, playback, CameraComponent, GameState, actorMove interpolation, MapCanvas complet, MapGridPainter brut, sprites acteurs finaux, persistence zoom/framing, mutation projet/map ou donnees Selbrume. | Helper framing editor-only, Builder preview panel, render pass backdrop, test Builder, Visual Gate, rapports, roadmaps. | DONE : controles framing/zoom locaux, scene plus lisible que fit map, non-mutation, focus/fallback, acteurs placeholders alignes, Path Studio/eau visible, timeline/transports preserves, screenshot V1-95. | Zoom trop violent ; overlay acteur decale ; eau Path Studio cachee par tile background ; controls qui mangent la timeline ; confondre cadrage editor et camera runtime. | DONE : preview cadree, eau visible, acteurs V1-92 alignes, aucun runtime/playback. | V1-94 bis. |
 | NS-SCENES-V1-95 bis | Cinematic Backdrop Preview Canvas UX Polish V0 | editor / preview-sandbox-ux | Polir la preview backdrop apres V1-95 : canvas plus dominant, chrome secondaire replie, pan local borne, reset/recentrage, grille masquee par defaut avec toggle local, timeline/inspector/transports conserves. | Pas de runtime/Flame, playback, CameraComponent, GameState, actorMove interpolation, MapCanvas complet, MapGridPainter brut, sprites acteurs finaux, persistence pan/zoom/grille/details, mutation projet/map ou donnees Selbrume. | Framing state local et clamp, Builder preview panel compact, renderers avec grille separable, tests Builder, Visual Gate, rapports, roadmaps. | DONE : canvas-first en Vue scene, details repliables, pan drag local + clamp + reset, grille locale, acteurs placeholders alignes, Path Studio/eau preserve, suites Builder/Library vertes. | Trop reduire la timeline ; masquer les controles utiles ; desaligner acteurs/backdrop ; rendre le pan persistant ; reintroduire un rendu runtime. | DONE : UX canvas polish editor-only, sans mutation ni runtime/playback. | V1-95. |
-| NS-SCENES-V1-96 | Cinematic Actor Display Preview Sprite Resolver Prep Contract | doc-only / architecture-review | Cadrer le futur resolver de sprites statiques apres preview backdrop lisible V1-95 bis : sources Character Library/player/mapEntity, frames idle, fallback, diagnostics, cache et anti-scope runtime. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Rapport V1-96, evidence pack, roadmaps. | TODO : contrat sprite resolver editor-only. | Charger trop tot des sprites dans core ; confondre sprite statique et animation runtime ; masquer les placeholders incomplets. | TODO : contrat pret pour afficher des acteurs reconnaissables sans lancer la cinematique. | V1-95 bis. |
+| NS-SCENES-V1-96 | Cinematic Backdrop Depth / Z-Order Parity Polish V0 | editor / preview-sandbox-depth | Correctif Y-sorting/depth sorting deterministe pour le decor backdrop et l'overlay des acteurs placeholders : tri par visual bottom Y, layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground completes. Tri Y-sorting des acteurs statiques. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Plan backdrop plans, tests widget/plan, rapport V1-96, evidence pack, screenshots, roadmaps. | DONE : tri Y-sorting deterministe fonctionnel, heuristiques foreground verifiees. | Mauvais tri Y-sorting ; desalignement ; regression foreground/background passes ; collision non coupee. | DONE : decor et acteurs triés deterministiquement par Y, sans runtime. | V1-95 bis. |
+| NS-SCENES-V1-97 | Cinematic Actor Display Preview Sprite Resolver Prep Contract | doc-only / architecture-review | Cadrer le futur resolver de sprites statiques apres preview backdrop lisible et triee V1-96 : sources Character Library/player/mapEntity, frames idle, fallback, diagnostics, cache et anti-scope runtime. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Rapport V1-97, evidence pack, roadmaps. | TODO : contrat sprite resolver editor-only. | Charger trop tot des sprites dans core ; confondre sprite statique et animation runtime ; masquer les placeholders incomplets. | TODO : contrat pret pour afficher des acteurs reconnaissables sans lancer la cinematique. | V1-96. |
 
 ## Mise a jour V1-94
 
@@ -147,7 +148,21 @@ Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinema
 
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
-Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+
+## Mise a jour V1-96
+
+Statut : `NS-SCENES-V1-96 — Cinematic Backdrop Depth / Z-Order Parity Polish V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-96 pour intercaler ce lot de profondeur afin d'avoir une parité z-index / depth ordering parfaite avec le rendu jeu / Map Editor (Y-sorting sur le visual bottom, foreground par layer/properties/tags, et tri des acteurs).
+
+Decision : Option Z-Order V0 retenue : tri par visual bottom Y (tuiles/surfaces = y+1, objets = pos.y + height), layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground pour forcer les éléments entiers dans la pass foreground si la couche, les propriétés de l'objet, ou l'élément projet possède des marqueurs de foreground. Tri Y-sorting des acteurs dans l'overlay.
+
+Preuve : tests de tri et d'heuristiques verts, suite Builder verte (+190), suite Library verte (+21), tests map_core verts, analyse ciblée verte, et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_96_cinematic_backdrop_depth_z_order_parity_gate_v0.png`.
+
+Limites : aucun runtime, aucun Flame, aucun playback, aucun sprite acteur final, aucune persistance.
+
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-95 bis
 
@@ -163,7 +178,7 @@ Preuve : RED puis GREEN sur le test de canvas-first, paquet V1-95 bis vert, suit
 
 Limites : aucun runtime, aucun Flame, aucun playback, aucun sprite acteur final, aucune persistence pan/zoom/grille/details, aucune mutation projet/map, aucune donnee Selbrume.
 
-Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-95
 
@@ -179,7 +194,7 @@ Preuve : tests Builder complets verts, Library verte, tests core cibles verts, a
 
 Limites : aucun runtime, aucun Flame, aucun playback, aucun sprite acteur final, aucune persistence zoom/framing, aucune mutation projet/map, aucune donnee Selbrume.
 
-Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-94 bis
 

@@ -10539,6 +10539,174 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'orders cinematic backdrop placed elements by visual depth around the actor overlay',
+      (tester) async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final manifest = _extendedBackdropProject();
+    final mapData = _stageMapDataWithExtendedBackdrop().copyWith(
+      placedElements: const [
+        MapPlacedElement(
+          id: 'tree_B',
+          layerId: 'neutral_objects',
+          elementId: 'neutral_tree',
+          pos: GridPos(x: 2, y: 2), // bottom = 2 + 2 = 4
+        ),
+        MapPlacedElement(
+          id: 'tree_A',
+          layerId: 'neutral_objects',
+          elementId: 'neutral_tree',
+          pos: GridPos(x: 1, y: 1), // bottom = 1 + 2 = 3
+        ),
+        MapPlacedElement(
+          id: 'tree_C',
+          layerId: 'neutral_objects',
+          elementId: 'neutral_tree',
+          pos: GridPos(x: 3, y: 0), // bottom = 0 + 2 = 2
+        ),
+      ],
+    );
+
+    final beforeManifest = manifest.toJson();
+    final beforeMapData = mapData.toJson();
+
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: manifest,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    // Verifies sorting by visual depth (bottom Y): C (2), A (3), B (4)
+    final bgInstructions = plan.instructions
+        .where((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedBackground)
+        .toList();
+    expect(bgInstructions, hasLength(3));
+    expect(bgInstructions[0].sourceId, 'tree_C');
+    expect(bgInstructions[1].sourceId, 'tree_A');
+    expect(bgInstructions[2].sourceId, 'tree_B');
+
+    final fgInstructions = plan.instructions
+        .where((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedForeground)
+        .toList();
+    expect(fgInstructions, hasLength(3));
+    expect(fgInstructions[0].sourceId, 'tree_C');
+    expect(fgInstructions[1].sourceId, 'tree_A');
+    expect(fgInstructions[2].sourceId, 'tree_B');
+
+    // Verifies it does not mutate project or mapData
+    expect(manifest.toJson(), beforeManifest);
+    expect(mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets(
+      'keeps placed foreground above actor placeholders when marked as foreground',
+      (tester) async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    
+    // Test with layer name marked as foreground
+    final manifest = _extendedBackdropProject();
+    final mapData = _stageMapDataWithExtendedBackdrop().copyWith(
+      layers: [
+        const MapLayer.object(
+          id: 'foreground_layer_objects', 
+          name: 'Foreground Object Layer',
+        ),
+      ],
+      placedElements: const [
+        MapPlacedElement(
+          id: 'tree_foreground',
+          layerId: 'foreground_layer_objects',
+          elementId: 'neutral_tree',
+          pos: GridPos(x: 1, y: 1),
+        ),
+      ],
+    );
+
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: manifest,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    // Since the layer is explicitly marked as foreground, all cells (even collision) go to placedForeground pass
+    final fgInstructions = plan.instructions
+        .where((inst) => inst.sourceId == 'tree_foreground')
+        .toList();
+    expect(fgInstructions, hasLength(2));
+    expect(fgInstructions.every((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedForeground), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-96 cinematic backdrop depth z order parity visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_96_CAPTURE_CINEMATIC_BACKDROP_DEPTH_Z_ORDER',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_96_cinematic_backdrop_depth_z_order_parity_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(

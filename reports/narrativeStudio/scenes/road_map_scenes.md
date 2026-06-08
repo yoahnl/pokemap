@@ -152,17 +152,30 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-94 bis — Cinematic Path Studio Water Fidelity Fix | DONE | Correctif demande par Karim avant V1-95 : les `PathLayer` qui referencent un preset de base Path Studio resolvent maintenant l'unique `ProjectPathPatternPreset.basePathPresetId`, ce qui restaure l'eau/motif Path Studio dans le backdrop cinematic ; tests Builder verts, sans runtime, Flame, playback, sprites acteurs ni Selbrume. |
 | NS-SCENES-V1-95 — Cinematic Backdrop Preview Framing / Zoom Controls V0 | DONE | A la demande de Karim, la preview backdrop cinematic ajoute un cadrage editor-only local : mode Carte entiere preserve, mode Vue scene zoome, zoom/reset non persistants, focus acteur selectionne puis bbox acteurs puis centre map, transform partage backdrop/foreground/acteurs, eau Path Studio visible, Visual Gate, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
 | NS-SCENES-V1-95 bis — Cinematic Backdrop Preview Canvas UX Polish V0 | DONE | A la demande de Karim, la preview backdrop cinematic devient plus canvas-first : chrome secondaire replie en Vue scene, pan local drag + clamp + reset/recentrage non persistants, grille masquee par defaut avec toggle local, timeline/transports/inspector preserves, eau Path Studio et placeholders acteurs conserves, Visual Gate 1663x926, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
-| NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible V1-95 bis : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
+| NS-SCENES-V1-96 — Cinematic Backdrop Depth / Z-Order Parity Polish V0 | DONE | A la demande de Karim, correctif Y-sorting/depth sorting deterministe pour le decor backdrop et l'overlay des acteurs placeholders : tri par visual bottom Y (pos.y + height), layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground completes basées sur la couche (foreground/fg/roof/etc.), propriétés du placement (renderInForeground/above/foreground) et tags projet de l'element. Tri Y-sorting des acteurs statiques de l'overlay. Visual Gate, tests complets editor/library/core et analyse cibles verts, sans runtime, Flame ni playback. |
+| NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible et triee V1-96 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
+`NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
 
-Raison : V1-95 bis rend le decor cinematic plus canvas-first sans lancer la cinematique. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs, tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
+Raison : V1-96 apporte la parité de profondeur (Z-Order et Y-sorting) entre le décor et l'overlay des acteurs. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs (V1-97), tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
 
-Ordre apres V1-95 bis : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-96 est valide. Le polish timeline scroll/visibility reste un backlog futur.
+Ordre apres V1-96 : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-97 est valide. Le polish timeline scroll/visibility reste un backlog futur.
 
-Le lot `NS-SCENES-V1-93 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` precedemment recommande est volontairement repousse en V1-96. Raison : les sprites acteurs viennent apres la fidelite map et le cadrage V1-95, afin d'eviter d'habiller les comediens avant d'avoir fini le decor et la loupe.
+## Mise a jour V1-96
+
+Statut : `NS-SCENES-V1-96 — Cinematic Backdrop Depth / Z-Order Parity Polish V0` est DONE.
+
+Demande : Karim a fourni le prompt V1-96 pour intercaler ce lot de profondeur afin d'avoir une parité z-index / depth ordering parfaite avec le rendu jeu / Map Editor (Y-sorting sur le visual bottom, foreground par layer/properties/tags, et tri des acteurs).
+
+Decision : Option Z-Order V0 retenue : tri par visual bottom Y (tuiles/surfaces = y+1, objets = pos.y + height), layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground pour forcer les éléments entiers dans la pass foreground si la couche, les propriétés de l'objet, ou l'élément projet possède des marqueurs de foreground. Tri Y-sorting des acteurs dans l'overlay.
+
+Preuve : tests de tri et d'heuristiques verts, suite Builder verte (+190), suite Library verte (+21), tests map_core verts, analyse ciblée verte, et Visual Gate `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_96_cinematic_backdrop_depth_z_order_parity_gate_v0.png`.
+
+Limites : aucun runtime, aucun Flame, aucun playback, aucun sprite acteur final, aucune persistance.
+
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-95 bis
 
@@ -176,7 +189,7 @@ Preuve : tests Builder ciblés et suite complete verts, suite Library verte, tes
 
 Limites : V1-95 bis ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final, aucune persistence pan/zoom/grille/details, aucune mutation projet/map.
 
-Prochain lot exact recommande : `NS-SCENES-V1-96 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`.
 
 ## Mise a jour V1-95
 

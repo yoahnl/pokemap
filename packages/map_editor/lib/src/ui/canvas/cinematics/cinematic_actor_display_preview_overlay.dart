@@ -22,6 +22,21 @@ class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final actors = model.actors.where((actor) => actor.isRenderable).toList();
+    actors.sort((a, b) {
+      final yA = a.position.y ?? 0.0;
+      final yB = b.position.y ?? 0.0;
+      final yCompare = yA.compareTo(yB);
+      if (yCompare != 0) {
+        return yCompare;
+      }
+      final xA = a.position.x ?? 0.0;
+      final xB = b.position.x ?? 0.0;
+      final xCompare = xA.compareTo(xB);
+      if (xCompare != 0) {
+        return xCompare;
+      }
+      return a.actorId.compareTo(b.actorId);
+    });
     if (actors.isEmpty || mapWidth <= 0 || mapHeight <= 0) {
       return const SizedBox.shrink(
         key: ValueKey('cinematic-builder-actor-display-overlay'),
