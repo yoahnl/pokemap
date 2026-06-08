@@ -155,6 +155,16 @@ Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
 
+## Mise a jour V1-102 ter
+
+Statut : `NS-SCENES-V1-102-ter — Stage Point Placement Evidence Pack Final Closure` est DONE.
+
+Demande : Clôturer proprement et documenter le pack de preuves sans modifier le code produit.
+
+Decision : Rédaction du rapport final de clôture ter et de l'Evidence Pack. Exécution à blanc des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum de la Visual Gate.
+
+Preuve : Rapports finaux et Evidence Pack complets sans modification de code produit.
+
 ## Mise a jour V1-102 bis
 
 Statut : `NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment` est DONE.

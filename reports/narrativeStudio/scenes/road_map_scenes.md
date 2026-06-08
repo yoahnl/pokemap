@@ -162,6 +162,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0 | DONE | Modèle core de Stage Point cinématique (`CinematicStagePoint`) stocké dans `CinematicStageContext.stagePoints`, sérialisation JSON backward-compatible avec ordre et description facultative, opérations pures add/update/remove, et 6 codes de diagnostics statiques (duplicate, empty ID/label, coordonnées invalides, out-of-map, point sans map). |
 | NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0 | DONE | Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur. |
 | NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment | DONE | Rendre évidente et documentée la pose de points dans la preview cinématique, avec bouton texte clair, active mode banner overlay, empty states, Escape key deactivation et sidebar chip point list section. |
+| NS-SCENES-V1-102-ter — Stage Point Placement Evidence Pack Final Closure | DONE | Clôture documentaire propre et vérifiable de V1-102 + V1-102-bis, avec rapport final conforme, Evidence Pack complet et preuves de Visual Gate par shasum. |
 
 ## Prochain lot recommande
 
@@ -176,6 +177,16 @@ Ordre apres V1-102 :
 4. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
 5. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
 6. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-102 ter
+
+Statut : `NS-SCENES-V1-102-ter — Stage Point Placement Evidence Pack Final Closure` est DONE.
+
+Demande : Clôturer proprement et documenter le pack de preuves sans modifier le code produit.
+
+Decision : Rédaction du rapport final de clôture ter et de l'Evidence Pack. Exécution à blanc des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum de la Visual Gate.
+
+Preuve : Rapports finaux et Evidence Pack complets sans modification de code produit.
 
 ## Mise a jour V1-102 bis
 
