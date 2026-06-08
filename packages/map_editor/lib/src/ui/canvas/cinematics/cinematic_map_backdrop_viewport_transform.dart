@@ -72,4 +72,33 @@ final class CinematicMapBackdropViewportTransform {
     }
     return Offset(rect.center.dx, rect.bottom);
   }
+
+  Offset tileToPreview(double tileX, double tileY) {
+    if (!isUsable) {
+      return Offset.zero;
+    }
+    final cellWidth = frame.width / mapWidth;
+    final cellHeight = frame.height / mapHeight;
+    return Offset(
+      frame.left + tileX * cellWidth,
+      frame.top + tileY * cellHeight,
+    );
+  }
+
+  Offset previewToTile(Offset previewOffset) {
+    if (!isUsable) {
+      return Offset.zero;
+    }
+    final cellWidth = frame.width / mapWidth;
+    final cellHeight = frame.height / mapHeight;
+    return Offset(
+      (previewOffset.dx - frame.left) / cellWidth,
+      (previewOffset.dy - frame.top) / cellHeight,
+    );
+  }
+
+  bool isTileInsideMap(double tileX, double tileY) {
+    return tileX >= 0 && tileX <= mapWidth && tileY >= 0 && tileY <= mapHeight;
+  }
 }
+

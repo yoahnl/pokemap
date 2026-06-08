@@ -66,10 +66,12 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   required List<ProjectMapEntry> maps,
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
+  int? mapWidth,
+  int? mapHeight,
 }) {
   final stageContext = asset.stageContext;
   final effectiveContext = stageContext ?? CinematicStageContext();
-  final diagnostics = _stageDiagnostics(entry)
+  final diagnostics = _stageDiagnostics(entry, asset, mapWidth, mapHeight)
       .map(
         (diagnostic) => CinematicStagePreviewReadinessDiagnostic(
           code: diagnostic.code,
@@ -708,10 +710,46 @@ String? _sourceCatalogReadinessMessage(
 
 List<CinematicsLibraryDiagnosticView> _stageDiagnostics(
   CinematicsLibraryEntry entry,
+  CinematicAsset asset,
+  int? mapWidth,
+  int? mapHeight,
 ) {
-  return entry.diagnostics
+  final entryDiagnostics = entry.diagnostics
       .where((diagnostic) => _stageDiagnosticCodes.contains(diagnostic.code))
-      .toList(growable: false);
+      .toList();
+
+  final report = diagnoseCinematicAsset(
+    asset,
+    mapWidth: mapWidth,
+    mapHeight: mapHeight,
+  );
+
+  final assetDiagnostics = report.diagnostics
+      .where((diagnostic) => _stageDiagnosticCodes.contains(diagnostic.code.name))
+      .map((diagnostic) => CinematicsLibraryDiagnosticView(
+            code: diagnostic.code.name,
+            severity: switch (diagnostic.severity) {
+              CinematicDiagnosticSeverity.error =>
+                CinematicsLibraryDiagnosticSeverity.error,
+              CinematicDiagnosticSeverity.warning =>
+                CinematicsLibraryDiagnosticSeverity.warning,
+              CinematicDiagnosticSeverity.info =>
+                CinematicsLibraryDiagnosticSeverity.info,
+            },
+            message: diagnostic.message,
+            sourceId: diagnostic.referenceId ?? diagnostic.stepId,
+          ))
+      .toList();
+
+  final allDiagnostics = <String, CinematicsLibraryDiagnosticView>{};
+  for (final d in entryDiagnostics) {
+    allDiagnostics['${d.code}_${d.sourceId ?? ""}'] = d;
+  }
+  for (final d in assetDiagnostics) {
+    allDiagnostics['${d.code}_${d.sourceId ?? ""}'] = d;
+  }
+
+  return allDiagnostics.values.toList(growable: false);
 }
 
 String _humanStageDiagnosticMessage(
@@ -721,6 +759,12 @@ String _humanStageDiagnosticMessage(
   final actorLabel = _actorLabelFor(asset, diagnostic.sourceId);
   final targetLabel = _targetLabelFor(asset, diagnostic.sourceId);
   return switch (diagnostic.code) {
+    'stagePointDuplicateId' => 'Un point de scène possède un identifiant en doublon.',
+    'stagePointEmptyId' => 'Un point de scène possède un identifiant vide.',
+    'stagePointEmptyLabel' => 'Le nom du point de scène ne doit pas être vide.',
+    'stagePointInvalidCoordinate' => 'Les coordonnées du point de scène doivent être des nombres valides.',
+    'stagePointOutOfMap' => 'Le point de scène est en dehors des limites de la carte.',
+    'stagePointWithoutStageMap' => 'Des points de scène sont placés mais aucune map n’est sélectionnée.',
     'stageMapUnknown' => 'La map de scène n’existe plus dans le projet.',
     'stageBackdropRequiresMap' =>
       'Choisis une map avant d’utiliser un décor de map.',
@@ -818,4 +862,10 @@ const _stageDiagnosticCodes = <String>{
   'movementTargetBindingUnknownTarget',
   'movementTargetBindingRequiresStageMap',
   'movementTargetBindingMissingSource',
+  'stagePointDuplicateId',
+  'stagePointEmptyId',
+  'stagePointEmptyLabel',
+  'stagePointInvalidCoordinate',
+  'stagePointOutOfMap',
+  'stagePointWithoutStageMap',
 };

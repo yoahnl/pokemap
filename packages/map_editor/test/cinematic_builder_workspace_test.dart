@@ -11224,6 +11224,84 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-102 cinematic preview point placement ui visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_102_CAPTURE_PREVIEW_POINT_PLACEMENT',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithPoints = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: fixture.asset.requiredActors,
+      movementTargets: fixture.asset.movementTargets,
+      stageContext: CinematicStageContext(
+        backdropMode: fixture.asset.stageContext?.backdropMode ?? CinematicStageBackdropMode.projectMap,
+        actorBindings: fixture.asset.stageContext?.actorBindings ?? const [],
+        actorAppearanceBindings: fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
+        initialPlacements: fixture.asset.stageContext?.initialPlacements ?? const [],
+        movementTargetBindings: fixture.asset.stageContext?.movementTargetBindings ?? const [],
+        stagePoints: [
+          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+        ],
+      ),
+      timeline: fixture.asset.timeline,
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    final project = _project(cinematics: [assetWithPoints]);
+
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: assetWithPoints,
+      stageMap: project.maps.single,
+      mapData: fixture.mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 260,
+      ),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, assetWithPoints.id),
+      asset: assetWithPoints,
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // Tap on Point 1 to select it so the inspector shows it
+    await tester.tap(find.text('Point 1'));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_102_cinematic_preview_point_placement_ui_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(

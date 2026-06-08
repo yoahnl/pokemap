@@ -1064,6 +1064,12 @@ class _CinematicsLibraryWorkspaceState
               maps: widget.project.maps,
               characters: widget.project.characters,
               asset: asset,
+              mapWidth: _stageMapSnapshotMapId == asset?.mapId
+                  ? _stageMapSnapshot?.size.width
+                  : null,
+              mapHeight: _stageMapSnapshotMapId == asset?.mapId
+                  ? _stageMapSnapshot?.size.height
+                  : null,
             ),
             const SizedBox(height: 12),
             _TimelineSummaryPanel(timeline: entry.timeline),
@@ -1459,12 +1465,16 @@ class _MetadataSummary extends StatelessWidget {
     required this.maps,
     required this.characters,
     required this.asset,
+    this.mapWidth,
+    this.mapHeight,
   });
 
   final CinematicsLibraryEntry entry;
   final List<ProjectMapEntry> maps;
   final List<ProjectCharacterEntry> characters;
   final CinematicAsset? asset;
+  final int? mapWidth;
+  final int? mapHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -1476,6 +1486,8 @@ class _MetadataSummary extends StatelessWidget {
             entry: entry,
             maps: maps,
             characters: characters,
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
           );
     return PokeMapCard(
       child: Column(

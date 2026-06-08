@@ -160,21 +160,33 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0 | DONE | Prouver la fidélité visuelle du rendu avec un vrai sprite de personnage (Timi) et des tests robustes de non-platitude et hors-limites. |
 | NS-SCENES-V1-100 — Cinematic Spatial Authoring / Stage Points Prep Contract V0 | DONE | Cadrage spatial de la preview du Cinematic Builder : modèle Stage Point décorrélé de MapData/mapEntities/mapEvents, transformation click->tile avec pan/zoom, modèle UX (Option C), intégration avec placements/cibles/timeline et waypoints futurs. |
 | NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0 | DONE | Modèle core de Stage Point cinématique (`CinematicStagePoint`) stocké dans `CinematicStageContext.stagePoints`, sérialisation JSON backward-compatible avec ordre et description facultative, opérations pures add/update/remove, et 6 codes de diagnostics statiques (duplicate, empty ID/label, coordonnées invalides, out-of-map, point sans map). |
+| NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0 | DONE | Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0`
+`NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`
 
-Raison : V1-101 a implémenté le modèle de données, les opérations d'édition et les diagnostics. Le prochain verrou logique est d'ajouter l'UI permettant de placer, déplacer et supprimer ces points directement sur le canvas de la preview par clic/drag avec inversion géométrique.
+Raison : Maintenant que les points de scène peuvent être placés et configurés visuellement sur la carte preview, le prochain lot logique est de permettre de lier les positions initiales des acteurs à ces points de scène au lieu d'utiliser des coordonnées brutes.
 
-Ordre apres V1-101 :
-1. `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0`
-2. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`
-3. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
-4. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
-5. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
-6. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
-7. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+Ordre apres V1-102 :
+1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`
+2. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
+3. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
+4. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
+5. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
+6. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-102
+
+Statut : `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0` est DONE.
+
+Demande : Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur, sans modifier MapData ni perturber Flame runtime.
+
+Decision : Création du composant `CinematicStagePointPreviewOverlay` positionné dans le frame de preview du décor de fond. Conversion géométrique écran-carte correcte (correctif du décalage lié au cadrage/pan/zoom). Alignement du comportement du drag and drop en éliminant la zone de tolérance de geste de Flutter (touch slop) via la capture des coordonnées initiales globales de touch-down. Gestion de l'inspecteur latéral pour l'édition de nom et la suppression.
+
+Preuve : Test de non-régression visual gate `captures V1-102...` passant à 100% vert, générant le snapshot de référence dans narrativeStudio/scenes/screenshots. Tous les tests widgets dédiés verts.
+
+Limites : Pas de liaison au placement initial d'acteur ou aux targets actorMove. Pas de playback visuel ni d'interaction runtime map/Flame.
 
 ## Mise a jour V1-101
 

@@ -328,6 +328,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
   _TimelineProbeSnapHint? _timelineProbeSnapHint;
   CinematicBackdropPreviewFramingState _backdropFramingState =
       const CinematicBackdropPreviewFramingState();
+  String? _selectedStagePointId;
+  bool _addStagePointMode = false;
 
   @override
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
@@ -340,6 +342,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       _timelineProbeTimeMs = null;
       _timelineProbeSnapHint = null;
       _backdropFramingState = const CinematicBackdropPreviewFramingState();
+      _selectedStagePointId = null;
+      _addStagePointMode = false;
     }
   }
 
@@ -412,6 +416,21 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                 actorSpritePreviewPlan:
                                     widget.actorSpritePreviewPlan,
                                 backdropFramingState: _backdropFramingState,
+                                stagePoints: widget.asset.stageContext?.stagePoints ?? const [],
+                                selectedStagePointId: _selectedStagePointId,
+                                addStagePointMode: _addStagePointMode,
+                                onSelectStagePointId: (id) {
+                                  setState(() {
+                                    _selectedStagePointId = id;
+                                  });
+                                },
+                                onUpdateStagePoint: _updateStagePoint,
+                                onAddStagePointAtTile: _addStagePointAtTile,
+                                onAddStagePointModeChanged: (val) {
+                                  setState(() {
+                                    _addStagePointMode = val;
+                                  });
+                                },
                                 onBackdropFramingModeChanged: (mode) {
                                   setState(() {
                                     _backdropFramingState =
@@ -540,6 +559,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                       onAddMovementTarget: _addMovementTarget,
                       actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
                       tilesets: widget.tilesets,
+                      selectedStagePointId: _selectedStagePointId,
+                      onSelectStagePointId: (id) {
+                        setState(() {
+                          _selectedStagePointId = id;
+                        });
+                      },
+                      onUpdateStagePoint: _updateStagePoint,
+                      onRemoveStagePoint: _removeStagePoint,
+                      mapWidth: widget.backdropPreviewModel?.mapWidth,
+                      mapHeight: widget.backdropPreviewModel?.mapHeight,
                     ),
                   ),
                 ],
@@ -659,6 +688,156 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       cinematicId: widget.asset.id,
       stageContext: stageContext,
     );
+  }
+
+  String _generateUniqueStagePointId(List<CinematicStagePoint> existingPoints) {
+    int maxIndex = 0;
+    final regExp = RegExp(r'^(?:stage_)?point_(\d+)$');
+    for (final p in existingPoints) {
+      final match = regExp.firstMatch(p.id);
+      if (match != null) {
+        final index = int.tryParse(match.group(1) ?? '');
+        if (index != null && index > maxIndex) {
+          maxIndex = index;
+        }
+      }
+    }
+    
+    // Find the next unique index
+    int nextIndex = maxIndex + 1;
+    while (existingPoints.any((p) => p.id == 'stage_point_$nextIndex' || p.id == 'point_$nextIndex')) {
+      nextIndex++;
+    }
+    return 'stage_point_$nextIndex';
+  }
+
+  void _addStagePointAtTile(Offset tilePosition) {
+    final snappedX = tilePosition.dx.floor() + 0.5;
+    final snappedY = tilePosition.dy.floor() + 0.5;
+    
+    final existing = widget.asset.stageContext?.stagePoints ?? const [];
+    final id = _generateUniqueStagePointId(existing);
+    final count = existing.length + 1;
+    int labelIndex = count;
+    while (existing.any((p) => p.label == 'Point $labelIndex')) {
+      labelIndex++;
+    }
+    final label = 'Point $labelIndex';
+
+    final newPoint = CinematicStagePoint(
+      id: id,
+      label: label,
+      x: snappedX,
+      y: snappedY,
+    );
+    
+    _addStagePoint(newPoint);
+    
+    setState(() {
+      _selectedStagePointId = id;
+      _addStagePointMode = false;
+    });
+  }
+
+  Future<void> _addStagePoint(CinematicStagePoint point) async {
+    try {
+      final dummyProject = ProjectManifest(
+        name: 'dummy',
+        maps: [],
+        tilesets: [],
+        cinematics: [
+          CinematicAsset(
+            id: widget.asset.id,
+            title: widget.asset.title,
+            description: widget.asset.description,
+            mapId: widget.asset.mapId,
+            requiredActors: widget.asset.requiredActors,
+            timeline: widget.asset.timeline,
+            stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+          ),
+        ],
+      );
+
+      final result = addCinematicStagePoint(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        point: point,
+      );
+
+      final updatedContext = result.cinematic.stageContext ?? CinematicStageContext();
+      await _updateStageContext(updatedContext);
+    } catch (e) {
+      debugPrint('Error adding stage point: $e');
+    }
+  }
+
+  Future<void> _updateStagePoint(CinematicStagePoint point) async {
+    try {
+      final dummyProject = ProjectManifest(
+        name: 'dummy',
+        maps: [],
+        tilesets: [],
+        cinematics: [
+          CinematicAsset(
+            id: widget.asset.id,
+            title: widget.asset.title,
+            description: widget.asset.description,
+            mapId: widget.asset.mapId,
+            requiredActors: widget.asset.requiredActors,
+            timeline: widget.asset.timeline,
+            stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+          ),
+        ],
+      );
+
+      final result = updateCinematicStagePoint(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        point: point,
+      );
+
+      final updatedContext = result.cinematic.stageContext ?? CinematicStageContext();
+      await _updateStageContext(updatedContext);
+    } catch (e) {
+      debugPrint('Error updating stage point: $e');
+    }
+  }
+
+  Future<void> _removeStagePoint(String id) async {
+    try {
+      final dummyProject = ProjectManifest(
+        name: 'dummy',
+        maps: [],
+        tilesets: [],
+        cinematics: [
+          CinematicAsset(
+            id: widget.asset.id,
+            title: widget.asset.title,
+            description: widget.asset.description,
+            mapId: widget.asset.mapId,
+            requiredActors: widget.asset.requiredActors,
+            timeline: widget.asset.timeline,
+            stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+          ),
+        ],
+      );
+
+      final result = removeCinematicStagePoint(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        stagePointId: id,
+      );
+
+      final updatedContext = result.cinematic.stageContext ?? CinematicStageContext();
+      await _updateStageContext(updatedContext);
+      if (_selectedStagePointId == id) {
+        setState(() {
+          _selectedStagePointId = null;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error removing stage point: $e');
+    }
   }
 
   Future<bool> _renameRequiredActor(
@@ -1742,6 +1921,13 @@ class _PreviewSandbox extends StatelessWidget {
     required this.selectedStep,
     required this.selectedStepIndex,
     required this.timelineProbeTimeMs,
+    required this.stagePoints,
+    this.selectedStagePointId,
+    required this.addStagePointMode,
+    this.onSelectStagePointId,
+    this.onUpdateStagePoint,
+    this.onAddStagePointAtTile,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicsLibraryEntry entry;
@@ -1762,6 +1948,13 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
   final int? timelineProbeTimeMs;
+  final List<CinematicStagePoint> stagePoints;
+  final String? selectedStagePointId;
+  final bool addStagePointMode;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<Offset>? onAddStagePointAtTile;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1790,6 +1983,13 @@ class _PreviewSandbox extends StatelessWidget {
               onFramingResetView: onBackdropFramingResetView,
               onFramingDetailsChanged: onBackdropFramingDetailsChanged,
               onFramingGridChanged: onBackdropFramingGridChanged,
+              stagePoints: stagePoints,
+              selectedStagePointId: selectedStagePointId,
+              addStagePointMode: addStagePointMode,
+              onSelectStagePointId: onSelectStagePointId,
+              onUpdateStagePoint: onUpdateStagePoint,
+              onAddStagePointAtTile: onAddStagePointAtTile,
+              onAddStagePointModeChanged: onAddStagePointModeChanged,
             );
           }
           final ultraCompact = constraints.maxHeight < 205;
@@ -3892,6 +4092,167 @@ class _EmptyTimelineState extends StatelessWidget {
   }
 }
 
+class _SelectedStagePointInspector extends StatefulWidget {
+  const _SelectedStagePointInspector({
+    super.key,
+    required this.point,
+    required this.onUpdateStagePoint,
+    required this.onRemoveStagePoint,
+  });
+
+  final CinematicStagePoint point;
+  final ValueChanged<CinematicStagePoint> onUpdateStagePoint;
+  final ValueChanged<String> onRemoveStagePoint;
+
+  @override
+  State<_SelectedStagePointInspector> createState() => _SelectedStagePointInspectorState();
+}
+
+class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspector> {
+  late TextEditingController _labelController;
+  late TextEditingController _descriptionController;
+
+  @override
+  void initState() {
+    super.initState();
+    _labelController = TextEditingController(text: widget.point.label);
+    _descriptionController = TextEditingController(text: widget.point.description ?? '');
+  }
+
+  @override
+  void didUpdateWidget(_SelectedStagePointInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.point.id != widget.point.id) {
+      _labelController.text = widget.point.label;
+      _descriptionController.text = widget.point.description ?? '';
+    } else {
+      if (_labelController.text != widget.point.label && !_labelController.value.isComposingRangeValid) {
+        _labelController.text = widget.point.label;
+      }
+      if ((_descriptionController.text != (widget.point.description ?? '')) && !_descriptionController.value.isComposingRangeValid) {
+        _descriptionController.text = widget.point.description ?? '';
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _labelController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _onChanged() {
+    final newLabel = _labelController.text;
+    final newDescription = _descriptionController.text.isEmpty ? null : _descriptionController.text;
+    if (newLabel != widget.point.label || newDescription != widget.point.description) {
+      widget.onUpdateStagePoint(CinematicStagePoint(
+        id: widget.point.id,
+        label: newLabel,
+        x: widget.point.x,
+        y: widget.point.y,
+        description: newDescription,
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: ValueKey('cinematic-stage-point-inspector-${widget.point.id}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Point de scène',
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: colors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              PokeMapIconButton(
+                key: const ValueKey('cinematic-stage-point-delete-btn'),
+                tooltip: 'Supprimer le point de scène',
+                icon: const Icon(CupertinoIcons.trash),
+                onPressed: () => widget.onRemoveStagePoint(widget.point.id),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // ID (Read-only)
+          Text(
+            'ID: ${widget.point.id}',
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 10),
+          // Label Field
+          Text(
+            'Nom (Label)',
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 4),
+          TextFormField(
+            key: const ValueKey('cinematic-stage-point-label-input'),
+            controller: _labelController,
+            onChanged: (_) => _onChanged(),
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Description Field
+          Text(
+            'Description',
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 4),
+          TextFormField(
+            key: const ValueKey('cinematic-stage-point-description-input'),
+            controller: _descriptionController,
+            onChanged: (_) => _onChanged(),
+            maxLines: 3,
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Coordinates info
+          Text(
+            'Position: (${widget.point.x.toStringAsFixed(1)}, ${widget.point.y.toStringAsFixed(1)})',
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InspectorPlaceholder extends StatelessWidget {
   const _InspectorPlaceholder({
     required this.entry,
@@ -3920,6 +4281,12 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.onAddMovementTarget,
     this.actorSpritePreviewPlan,
     this.tilesets,
+    this.selectedStagePointId,
+    this.onSelectStagePointId,
+    this.onUpdateStagePoint,
+    this.onRemoveStagePoint,
+    this.mapWidth,
+    this.mapHeight,
   });
 
   final CinematicsLibraryEntry entry;
@@ -3948,11 +4315,28 @@ class _InspectorPlaceholder extends StatelessWidget {
   final VoidCallback onAddMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
+  final String? selectedStagePointId;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<String>? onRemoveStagePoint;
+  final int? mapWidth;
+  final int? mapHeight;
 
   @override
   Widget build(BuildContext context) {
     final selected = selectedStep;
     final selectedIndex = selectedStepIndex;
+    CinematicStagePoint? selectedPoint;
+    final points = asset.stageContext?.stagePoints;
+    if (points != null && selectedStagePointId != null) {
+      for (final p in points) {
+        if (p.id == selectedStagePointId) {
+          selectedPoint = p;
+          break;
+        }
+      }
+    }
+
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-inspector-placeholder'),
       expandChild: true,
@@ -3966,18 +4350,25 @@ class _InspectorPlaceholder extends StatelessWidget {
               subtitle: 'Bloc sélectionné',
             ),
             const SizedBox(height: 10),
-            _StageContextEditor(
-              entry: entry,
-              asset: asset,
-              stageMaps: stageMaps,
-              groups: groups,
-              characters: characters,
-              stageMapSourceCatalog: stageMapSourceCatalog,
-              startExpanded: startExpanded,
-              onUpdateStageMap: onUpdateStageMap,
-              onUpdateStageContext: onUpdateStageContext,
-              onRenameRequiredActor: onRenameRequiredActor,
-              onRemoveRequiredActor: onRemoveRequiredActor,
+            if (selectedPoint != null)
+              _SelectedStagePointInspector(
+                point: selectedPoint,
+                onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
+                onRemoveStagePoint: onRemoveStagePoint ?? (_) {},
+              )
+            else ...[
+              _StageContextEditor(
+                entry: entry,
+                asset: asset,
+                stageMaps: stageMaps,
+                groups: groups,
+                characters: characters,
+                stageMapSourceCatalog: stageMapSourceCatalog,
+                startExpanded: startExpanded,
+                onUpdateStageMap: onUpdateStageMap,
+                onUpdateStageContext: onUpdateStageContext,
+                onRenameRequiredActor: onRenameRequiredActor,
+                onRemoveRequiredActor: onRemoveRequiredActor,
               onUpsertActorBinding: onUpsertActorBinding,
               onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
               onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
@@ -4001,6 +4392,7 @@ class _InspectorPlaceholder extends StatelessWidget {
                 onUpdateActorMove: onUpdateActorMove,
                 onRemoveAuthoringStep: onRemoveAuthoringStep,
               ),
+            ],
             const SizedBox(height: 12),
             const _SectionTitle(
               title: 'Métadonnées',
@@ -4068,6 +4460,8 @@ class _StageContextEditor extends StatelessWidget {
     required this.onAddMovementTarget,
     this.actorSpritePreviewPlan,
     this.tilesets,
+    this.mapWidth,
+    this.mapHeight,
   });
 
   final CinematicsLibraryEntry entry;
@@ -4089,6 +4483,8 @@ class _StageContextEditor extends StatelessWidget {
   final VoidCallback onAddMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
+  final int? mapWidth;
+  final int? mapHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -4099,6 +4495,8 @@ class _StageContextEditor extends StatelessWidget {
       maps: stageMaps,
       characters: characters,
       stageMapSourceCatalog: stageMapSourceCatalog,
+      mapWidth: mapWidth,
+      mapHeight: mapHeight,
     );
     return PokeMapCard(
       key: const ValueKey('cinematic-builder-stage-context-editor'),
@@ -6616,96 +7014,102 @@ class _RedesignedRadioCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
 
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        MouseRegion(
-          cursor: disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: selected ? colors.brandPrimarySoft.withValues(alpha: 0.3) : colors.controlSurface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: selected ? colors.brandPrimaryBorder : colors.borderSubtle,
-                width: selected ? 1.5 : 1.0,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+    return MouseRegion(
+      cursor: disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? colors.brandPrimarySoft.withValues(alpha: 0.3)
+              : colors.controlSurface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? colors.brandPrimaryBorder : colors.borderSubtle,
+            width: selected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Icon(
-                        selected
-                            ? CupertinoIcons.largecircle_fill_circle
-                            : CupertinoIcons.circle,
-                        size: 16,
-                        color: selected
-                            ? colors.brandPrimary
-                            : (disabled ? colors.textDisabled : colors.textMuted),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Icon(
+                          selected
+                              ? CupertinoIcons.largecircle_fill_circle
+                              : CupertinoIcons.circle,
+                          size: 16,
+                          color: selected
+                              ? colors.brandPrimary
+                              : (disabled ? colors.textDisabled : colors.textMuted),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              color: disabled ? colors.textDisabled : colors.textPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            subtext,
-                            style: TextStyle(
-                              color: disabled ? colors.textDisabled : colors.textMuted,
-                              fontSize: 10,
-                            ),
-                          ),
-                          if (warning != null) ...[
-                            const SizedBox(height: 4),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              warning!,
+                              title,
                               style: TextStyle(
-                                color: colors.warning,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
+                                color: disabled ? colors.textDisabled : colors.textPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtext,
+                              style: TextStyle(
+                                color: disabled ? colors.textDisabled : colors.textMuted,
+                                fontSize: 10,
+                              ),
+                            ),
+                            if (warning != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                warning!,
+                                style: TextStyle(
+                                  color: colors.warning,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-                if (child != null) ...[
-                  const SizedBox(height: 10),
-                  child!,
-                ],
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: 0.01,
+                    child: PokeMapButton(
+                      key: ValueKey(keyValue),
+                      onPressed: disabled ? null : onPressed,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                ),
               ],
             ),
-          ),
+            if (child != null) ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: child!,
+              ),
+            ],
+          ],
         ),
-        Positioned.fill(
-          child: Opacity(
-            opacity: 0.01,
-            child: PokeMapButton(
-              key: ValueKey(keyValue),
-              onPressed: disabled ? null : onPressed,
-              child: const SizedBox.expand(),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

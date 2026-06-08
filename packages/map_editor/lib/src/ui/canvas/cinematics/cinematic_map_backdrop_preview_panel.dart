@@ -13,6 +13,7 @@ import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_map_backdrop_tile_renderer.dart';
 import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_visual_primitives_painter.dart';
+import 'cinematic_stage_point_preview_overlay.dart';
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   const CinematicMapBackdropPreviewPanel({
@@ -31,6 +32,13 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.onFramingResetView,
     this.onFramingDetailsChanged,
     this.onFramingGridChanged,
+    this.stagePoints = const [],
+    this.selectedStagePointId,
+    this.addStagePointMode = false,
+    this.onSelectStagePointId,
+    this.onUpdateStagePoint,
+    this.onAddStagePointAtTile,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -47,6 +55,13 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final VoidCallback? onFramingResetView;
   final ValueChanged<bool>? onFramingDetailsChanged;
   final ValueChanged<bool>? onFramingGridChanged;
+  final List<CinematicStagePoint> stagePoints;
+  final String? selectedStagePointId;
+  final bool addStagePointMode;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<Offset>? onAddStagePointAtTile;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +96,13 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   onFramingResetView: onFramingResetView,
                   onFramingDetailsChanged: onFramingDetailsChanged,
                   onFramingGridChanged: onFramingGridChanged,
+                  stagePoints: stagePoints,
+                  selectedStagePointId: selectedStagePointId,
+                  addStagePointMode: addStagePointMode,
+                  onSelectStagePointId: onSelectStagePointId,
+                  onUpdateStagePoint: onUpdateStagePoint,
+                  onAddStagePointAtTile: onAddStagePointAtTile,
+                  onAddStagePointModeChanged: onAddStagePointModeChanged,
                 )
               : _BackdropFallback(model: model, compact: compact),
         ),
@@ -218,6 +240,13 @@ class _BackdropMapFrame extends StatelessWidget {
     this.onFramingResetView,
     this.onFramingDetailsChanged,
     this.onFramingGridChanged,
+    required this.stagePoints,
+    required this.selectedStagePointId,
+    required this.addStagePointMode,
+    required this.onSelectStagePointId,
+    required this.onUpdateStagePoint,
+    required this.onAddStagePointAtTile,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -234,6 +263,13 @@ class _BackdropMapFrame extends StatelessWidget {
   final VoidCallback? onFramingResetView;
   final ValueChanged<bool>? onFramingDetailsChanged;
   final ValueChanged<bool>? onFramingGridChanged;
+  final List<CinematicStagePoint> stagePoints;
+  final String? selectedStagePointId;
+  final bool addStagePointMode;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<Offset>? onAddStagePointAtTile;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -278,6 +314,13 @@ class _BackdropMapFrame extends StatelessWidget {
                           onFramingResetView: onFramingResetView,
                           onFramingDetailsChanged: onFramingDetailsChanged,
                           onFramingGridChanged: onFramingGridChanged,
+                          stagePoints: stagePoints,
+                          selectedStagePointId: selectedStagePointId,
+                          addStagePointMode: addStagePointMode,
+                          onSelectStagePointId: onSelectStagePointId,
+                          onUpdateStagePoint: onUpdateStagePoint,
+                          onAddStagePointAtTile: onAddStagePointAtTile,
+                          onAddStagePointModeChanged: onAddStagePointModeChanged,
                         )
                       : bitmapPlan != null && bitmapPlan.hasBitmapInstructions
                           ? _BackdropBitmapMap(
@@ -295,6 +338,13 @@ class _BackdropMapFrame extends StatelessWidget {
                               onFramingResetView: onFramingResetView,
                               onFramingDetailsChanged: onFramingDetailsChanged,
                               onFramingGridChanged: onFramingGridChanged,
+                              stagePoints: stagePoints,
+                              selectedStagePointId: selectedStagePointId,
+                              addStagePointMode: addStagePointMode,
+                              onSelectStagePointId: onSelectStagePointId,
+                              onUpdateStagePoint: onUpdateStagePoint,
+                              onAddStagePointAtTile: onAddStagePointAtTile,
+                              onAddStagePointModeChanged: onAddStagePointModeChanged,
                             )
                           : spatialPrimitives.isEmpty
                               ? DecoratedBox(
@@ -346,6 +396,13 @@ class _BackdropBitmapMap extends StatelessWidget {
     this.onFramingResetView,
     this.onFramingDetailsChanged,
     this.onFramingGridChanged,
+    required this.stagePoints,
+    required this.selectedStagePointId,
+    required this.addStagePointMode,
+    required this.onSelectStagePointId,
+    required this.onUpdateStagePoint,
+    required this.onAddStagePointAtTile,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -361,6 +418,13 @@ class _BackdropBitmapMap extends StatelessWidget {
   final VoidCallback? onFramingResetView;
   final ValueChanged<bool>? onFramingDetailsChanged;
   final ValueChanged<bool>? onFramingGridChanged;
+  final List<CinematicStagePoint> stagePoints;
+  final String? selectedStagePointId;
+  final bool addStagePointMode;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<Offset>? onAddStagePointAtTile;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -445,63 +509,94 @@ class _BackdropBitmapMap extends StatelessWidget {
                     state: framingState,
                     focus: focus,
                   );
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanUpdate: isSceneMode && onFramingPanChanged != null
-                        ? (details) {
-                            onFramingPanChanged!(
-                              framing.panTiles +
-                                  _dragDeltaToPanTiles(
-                                    details.delta,
-                                    framing.transform.frame,
-                                    plan.mapWidth,
-                                    plan.mapHeight,
-                                  ),
-                            );
+                  return MouseRegion(
+                    cursor: addStagePointMode
+                        ? SystemMouseCursors.precise
+                        : SystemMouseCursors.basic,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (details) {
+                        if (addStagePointMode && onAddStagePointAtTile != null) {
+                          final localOffset = details.localPosition;
+                          if (framing.transform.frame.contains(localOffset)) {
+                            final tileCoord = framing.transform.previewToTile(localOffset);
+                            if (framing.transform.isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
+                              final snappedX = tileCoord.dx.floor() + 0.5;
+                              final snappedY = tileCoord.dy.floor() + 0.5;
+                              onAddStagePointAtTile!(Offset(snappedX, snappedY));
+                            }
                           }
-                        : null,
-                    child: RepaintBoundary(
-                      key: const ValueKey(
-                        'cinematic-builder-map-backdrop-bitmap-viewport',
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: ClipRect(
-                          child: Stack(
-                            clipBehavior: Clip.hardEdge,
-                            children: [
-                              Positioned.fromRect(
-                                rect: framing.transform.frame,
-                                child: SizedBox(
-                                  key: const ValueKey(
-                                    'cinematic-builder-map-backdrop-map-frame',
-                                  ),
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      CustomPaint(
-                                        painter:
-                                            CinematicMapBackdropTileRenderPainter(
-                                          plan: plan,
-                                          palette: palette,
-                                          paintGrid: !isSceneMode ||
-                                              framingState.showGrid,
+                        } else {
+                          onSelectStagePointId?.call(null);
+                        }
+                      },
+                      onPanUpdate: isSceneMode && onFramingPanChanged != null
+                          ? (details) {
+                              onFramingPanChanged!(
+                                framing.panTiles +
+                                    _dragDeltaToPanTiles(
+                                      details.delta,
+                                      framing.transform.frame,
+                                      plan.mapWidth,
+                                      plan.mapHeight,
+                                    ),
+                              );
+                            }
+                          : null,
+                      child: RepaintBoundary(
+                        key: const ValueKey(
+                          'cinematic-builder-map-backdrop-bitmap-viewport',
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: ClipRect(
+                            child: Stack(
+                              clipBehavior: Clip.hardEdge,
+                              children: [
+                                Positioned.fromRect(
+                                  rect: framing.transform.frame,
+                                  child: SizedBox(
+                                    key: const ValueKey(
+                                      'cinematic-builder-map-backdrop-map-frame',
+                                    ),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        CustomPaint(
+                                          painter:
+                                              CinematicMapBackdropTileRenderPainter(
+                                            plan: plan,
+                                            palette: palette,
+                                            paintGrid: !isSceneMode ||
+                                                framingState.showGrid,
+                                          ),
+                                          child: const SizedBox.expand(),
                                         ),
-                                        child: const SizedBox.expand(),
-                                      ),
-                                      if (actorDisplayPreviewModel != null)
-                                        CinematicActorDisplayPreviewOverlay(
-                                          model: actorDisplayPreviewModel!,
-                                          spritePreviewPlan: actorSpritePreviewPlan,
-                                          tilesets: plan.tilesets,
-                                          mapWidth: plan.mapWidth,
-                                          mapHeight: plan.mapHeight,
+                                        if (actorDisplayPreviewModel != null)
+                                          CinematicActorDisplayPreviewOverlay(
+                                            model: actorDisplayPreviewModel!,
+                                            spritePreviewPlan: actorSpritePreviewPlan,
+                                            tilesets: plan.tilesets,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                            compact: compact,
+                                          ),
+                                        CinematicStagePointPreviewOverlay(
+                                          stagePoints: stagePoints,
+                                          selectedStagePointId: selectedStagePointId,
+                                          onSelectStagePointId: onSelectStagePointId ?? (_) {},
+                                          onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
+                                          transform: CinematicMapBackdropViewportTransform.fill(
+                                            viewportSize: framing.transform.frame.size,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                          ),
                                           compact: compact,
                                         ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
                               if (isSceneMode)
                                 Positioned(
                                   left: 8,
@@ -515,7 +610,8 @@ class _BackdropBitmapMap extends StatelessWidget {
                         ),
                       ),
                     ),
-                  );
+                  ),
+                );
                 },
               ),
             ),
@@ -541,6 +637,13 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     this.onFramingResetView,
     this.onFramingDetailsChanged,
     this.onFramingGridChanged,
+    required this.stagePoints,
+    required this.selectedStagePointId,
+    required this.addStagePointMode,
+    required this.onSelectStagePointId,
+    required this.onUpdateStagePoint,
+    required this.onAddStagePointAtTile,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -556,6 +659,13 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final VoidCallback? onFramingResetView;
   final ValueChanged<bool>? onFramingDetailsChanged;
   final ValueChanged<bool>? onFramingGridChanged;
+  final List<CinematicStagePoint> stagePoints;
+  final String? selectedStagePointId;
+  final bool addStagePointMode;
+  final ValueChanged<String?>? onSelectStagePointId;
+  final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
+  final ValueChanged<Offset>? onAddStagePointAtTile;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -648,86 +758,121 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                     state: framingState,
                     focus: focus,
                   );
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onPanUpdate: isSceneMode && onFramingPanChanged != null
-                        ? (details) {
-                            onFramingPanChanged!(
-                              framing.panTiles +
-                                  _dragDeltaToPanTiles(
-                                    details.delta,
-                                    framing.transform.frame,
-                                    plan.mapWidth,
-                                    plan.mapHeight,
-                                  ),
-                            );
+                  final transform = CinematicMapBackdropViewportTransform.fill(
+                    viewportSize: framing.transform.frame.size,
+                    mapWidth: plan.mapWidth,
+                    mapHeight: plan.mapHeight,
+                  );
+                  return MouseRegion(
+                    cursor: addStagePointMode
+                        ? SystemMouseCursors.precise
+                        : SystemMouseCursors.basic,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTapUp: (details) {
+                        if (addStagePointMode && onAddStagePointAtTile != null) {
+                          final localOffset = details.localPosition;
+                          if (framing.transform.frame.contains(localOffset)) {
+                            final tileCoord = framing.transform.previewToTile(localOffset);
+                            if (framing.transform.isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
+                              final snappedX = tileCoord.dx.floor() + 0.5;
+                              final snappedY = tileCoord.dy.floor() + 0.5;
+                              onAddStagePointAtTile!(Offset(snappedX, snappedY));
+                            }
                           }
-                        : null,
-                    child: RepaintBoundary(
-                      key: const ValueKey(
-                        'cinematic-builder-map-backdrop-bitmap-viewport',
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: ClipRect(
-                          child: Stack(
-                            clipBehavior: Clip.hardEdge,
-                            children: [
-                              Positioned.fromRect(
-                                rect: framing.transform.frame,
-                                child: SizedBox(
-                                  key: const ValueKey(
-                                    'cinematic-builder-map-backdrop-map-frame',
-                                  ),
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      CustomPaint(
-                                        painter:
-                                            CinematicMapBackdropLayerRenderPainter(
-                                          plan: plan,
-                                          palette: palette,
-                                          passes: backgroundPasses,
-                                          paintGrid: false,
-                                          paintBorder: false,
+                        } else {
+                          onSelectStagePointId?.call(null);
+                        }
+                      },
+                      onPanUpdate: isSceneMode && onFramingPanChanged != null
+                          ? (details) {
+                              onFramingPanChanged!(
+                                framing.panTiles +
+                                    _dragDeltaToPanTiles(
+                                      details.delta,
+                                      framing.transform.frame,
+                                      plan.mapWidth,
+                                      plan.mapHeight,
+                                    ),
+                              );
+                            }
+                          : null,
+                      child: RepaintBoundary(
+                        key: const ValueKey(
+                          'cinematic-builder-map-backdrop-bitmap-viewport',
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: ClipRect(
+                            child: Stack(
+                              clipBehavior: Clip.hardEdge,
+                              children: [
+                                Positioned.fromRect(
+                                  rect: framing.transform.frame,
+                                  child: SizedBox(
+                                    key: const ValueKey(
+                                      'cinematic-builder-map-backdrop-map-frame',
+                                    ),
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        CustomPaint(
+                                          painter:
+                                              CinematicMapBackdropLayerRenderPainter(
+                                            plan: plan,
+                                            palette: palette,
+                                            passes: backgroundPasses,
+                                            paintGrid: false,
+                                            paintBorder: false,
+                                          ),
+                                          child: const SizedBox.expand(),
                                         ),
-                                        child: const SizedBox.expand(),
-                                      ),
-                                      if (actorDisplayPreviewModel != null)
-                                        CinematicActorDisplayPreviewOverlay(
-                                          model: actorDisplayPreviewModel!,
-                                          spritePreviewPlan: actorSpritePreviewPlan,
-                                          tilesets: plan.tilesets,
-                                          mapWidth: plan.mapWidth,
-                                          mapHeight: plan.mapHeight,
+                                        if (actorDisplayPreviewModel != null)
+                                          CinematicActorDisplayPreviewOverlay(
+                                            model: actorDisplayPreviewModel!,
+                                            spritePreviewPlan: actorSpritePreviewPlan,
+                                            tilesets: plan.tilesets,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                            compact: compact,
+                                          ),
+                                        CinematicStagePointPreviewOverlay(
+                                          stagePoints: stagePoints,
+                                          selectedStagePointId: selectedStagePointId,
+                                          onSelectStagePointId: onSelectStagePointId ?? (_) {},
+                                          onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
+                                          transform: transform,
                                           compact: compact,
                                         ),
-                                      CustomPaint(
-                                        painter:
-                                            CinematicMapBackdropLayerRenderPainter(
-                                          plan: plan,
-                                          palette: palette,
-                                          passes: foregroundPasses,
-                                          paintBackground: false,
-                                          paintGrid: !isSceneMode ||
-                                              framingState.showGrid,
-                                          paintBorder: true,
+                                        IgnorePointer(
+                                          child: CustomPaint(
+                                            painter:
+                                                CinematicMapBackdropLayerRenderPainter(
+                                              plan: plan,
+                                              palette: palette,
+                                              passes: foregroundPasses,
+                                              paintBackground: false,
+                                              paintGrid: !isSceneMode ||
+                                                  framingState.showGrid,
+                                              paintBorder: true,
+                                            ),
+                                            child: const SizedBox.expand(),
+                                          ),
                                         ),
-                                        child: const SizedBox.expand(),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                              if (isSceneMode)
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: _BackdropPanBadge(
-                                    panTiles: framing.panTiles,
+                                if (isSceneMode)
+                                  Positioned(
+                                    left: 8,
+                                    bottom: 8,
+                                    child: _BackdropPanBadge(
+                                      panTiles: framing.panTiles,
+                                    ),
                                   ),
-                                ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -755,6 +900,8 @@ class _BackdropFramingControls extends StatelessWidget {
     this.onResetView,
     this.onDetailsChanged,
     this.onGridChanged,
+    this.addStagePointMode = false,
+    this.onAddStagePointModeChanged,
   });
 
   final CinematicBackdropPreviewFramingState state;
@@ -767,6 +914,8 @@ class _BackdropFramingControls extends StatelessWidget {
   final VoidCallback? onResetView;
   final ValueChanged<bool>? onDetailsChanged;
   final ValueChanged<bool>? onGridChanged;
+  final bool addStagePointMode;
+  final ValueChanged<bool>? onAddStagePointModeChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -815,6 +964,26 @@ class _BackdropFramingControls extends StatelessWidget {
                     },
             ),
           ],
+        ),
+        PokeMapIconButton(
+          key: const ValueKey(
+            'cinematic-builder-map-backdrop-add-stage-point-toggle',
+          ),
+          tooltip:
+              addStagePointMode ? 'Annuler l’ajout' : 'Ajouter un point de scène',
+          size: buttonSize,
+          variant: PokeMapIconButtonVariant.soft,
+          isSelected: addStagePointMode,
+          onPressed: (model.isAvailable &&
+                  hasBitmapInstructions &&
+                  onAddStagePointModeChanged != null)
+              ? () => onAddStagePointModeChanged!(!addStagePointMode)
+              : null,
+          icon: Icon(
+            addStagePointMode
+                ? CupertinoIcons.location_solid
+                : CupertinoIcons.location,
+          ),
         ),
         PokeMapIconButton(
           key: const ValueKey('cinematic-builder-map-backdrop-zoom-out'),
@@ -1406,6 +1575,20 @@ class _BackdropFallback extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
             ),
+            if (model.status == CinematicMapBackdropPreviewStatus.missingStageMap ||
+                model.status == CinematicMapBackdropPreviewStatus.stageMapUnknown ||
+                model.status == CinematicMapBackdropPreviewStatus.mapDataUnavailable) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Choisis une map de scène avant de placer des points.',
+                textAlign: TextAlign.center,
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.brandPrimary,
+                      fontSize: compact ? 9 : 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
             if (!compact) ...[
               const SizedBox(height: 12),
               const PokeMapBadge(

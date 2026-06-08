@@ -262,6 +262,8 @@ Do not invent measurements, memory guarantees, coverage percentages, or test tot
 
 Reports under `reports/` are tracked engineering artifacts. Modify them only when the task asks for a report, audit, review, lot closure, or roadmap/status evidence.
 
+You HAVE to read codex_rules.md and follow it strictly to create your reports. Every reports should include all the code creted. 
+
 ---
 
 ## 11. Flame / Runtime Documentation

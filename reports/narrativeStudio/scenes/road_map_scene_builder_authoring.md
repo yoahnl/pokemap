@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0
+NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0
 ```
 
 ## Principes
@@ -154,6 +154,20 @@ Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinema
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
+
+## Mise a jour V1-102
+
+Statut : `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0` est DONE.
+
+Demande : Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur. Zero modification to `MapData`, no new `mapEntity` / `mapEvent` creations, no Flame/runtime playback changes, and respect PokeMap design system widgets/tokens.
+
+Decision : Création du composant `CinematicStagePointPreviewOverlay` positionné dans le frame de preview du décor de fond. Conversion géométrique écran-carte correcte (correctif du décalage lié au cadrage/pan/zoom). Alignement du comportement du drag and drop en éliminant la zone de tolérance de geste de Flutter (touch slop) via la capture des coordonnées initiales globales de touch-down. Gestion de l'inspecteur latéral pour l'édition de nom et la suppression.
+
+Preuve : Test de non-régression visual gate `captures V1-102...` passant à 100% vert, générant le snapshot de référence dans narrativeStudio/scenes/screenshots. Tous les tests widgets dédiés verts.
+
+Limites : Pas de liaison au placement initial d'acteur ou aux targets actorMove. Pas de playback visuel ni d'interaction runtime map/Flame.
+
+Prochain lot exact recommande : `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`.
 
 ## Mise a jour V1-101
 
