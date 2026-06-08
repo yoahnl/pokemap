@@ -606,7 +606,6 @@ class _CinematicsLibraryWorkspaceState
   void _ensureActorTilesets(CinematicAsset asset) {
     final resolver = widget.onResolveBackdropTilesetPath;
     if (resolver == null) {
-      print('[CinematicsDebug] onResolveBackdropTilesetPath is null');
       return;
     }
 
@@ -643,13 +642,9 @@ class _CinematicsLibraryWorkspaceState
       }
     }
 
-    print('[CinematicsDebug] requiredTilesetIds: $requiredTilesetIds');
-
     final missingTilesetIds = requiredTilesetIds.where((id) {
       return !_resolvedActorTilesets.containsKey(id) && !_loadingActorTilesetIds.contains(id);
     }).toList();
-
-    print('[CinematicsDebug] missingTilesetIds: $missingTilesetIds');
 
     if (missingTilesetIds.isEmpty) {
       return;
@@ -664,18 +659,16 @@ class _CinematicsLibraryWorkspaceState
         try {
           final tileset = _tilesetById(widget.project, id);
           final path = resolver(id);
-          print('[CinematicsDebug] resolving tileset: id=$id, tileset=$tileset, path=$path');
           final asset = await _backdropLayerPlanLoader.registry.resolve(
             tileset: tileset,
             absolutePath: path,
             tileWidth: widget.project.settings.tileWidth,
             tileHeight: widget.project.settings.tileHeight,
           );
-          print('[CinematicsDebug] successfully resolved tileset: id=$id, asset.isAvailable=${asset.isAvailable}');
           newResolved[id] = asset;
           changed = true;
-        } catch (e, stack) {
-          print('[CinematicsDebug] Error resolving tileset id: $id, error: $e, stack: $stack');
+        } catch (_) {
+          // Ignore error and continue
         } finally {
           _loadingActorTilesetIds.remove(id);
         }

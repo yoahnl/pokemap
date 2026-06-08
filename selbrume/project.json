@@ -16241,7 +16241,7 @@
       "animations": [
         {
           "state": "idle",
-          "direction": "south",
+          "direction": "north",
           "frames": [
             {
               "source": {
@@ -16256,7 +16256,7 @@
         },
         {
           "state": "walk",
-          "direction": "south",
+          "direction": "north",
           "frames": [
             {
               "source": {
@@ -16298,11 +16298,11 @@
         },
         {
           "state": "idle",
-          "direction": "north",
+          "direction": "south",
           "frames": [
             {
               "source": {
-                "x": 1,
+                "x": 0,
                 "y": 0,
                 "width": 1,
                 "height": 1
@@ -16313,7 +16313,7 @@
         },
         {
           "state": "walk",
-          "direction": "north",
+          "direction": "south",
           "frames": [
             {
               "source": {

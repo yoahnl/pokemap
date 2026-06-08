@@ -18,11 +18,13 @@ class CinematicActorSpritePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final src = spriteRef.sourceTileRect;
+    final frameW = spriteRef.frameWidthTiles * tileWidth;
+    final frameH = spriteRef.frameHeightTiles * tileHeight;
     final srcRect = Rect.fromLTWH(
-      src.x * tileWidth.toDouble(),
-      src.y * tileHeight.toDouble(),
-      src.width * tileWidth.toDouble(),
-      src.height * tileHeight.toDouble(),
+      src.x * frameW.toDouble(),
+      src.y * frameH.toDouble(),
+      frameW.toDouble(),
+      frameH.toDouble(),
     );
 
     final destRect = Offset.zero & size;
