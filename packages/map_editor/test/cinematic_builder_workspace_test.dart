@@ -779,8 +779,8 @@ void main() {
     expect(plan.hasBitmapInstructions, isTrue);
     expect(plan.instructions.map((instruction) => instruction.renderPass), [
       CinematicMapBackdropRenderPass.terrain,
-      CinematicMapBackdropRenderPass.tileBackground,
       CinematicMapBackdropRenderPass.path,
+      CinematicMapBackdropRenderPass.tileBackground,
       CinematicMapBackdropRenderPass.surface,
       CinematicMapBackdropRenderPass.placedBackground,
       CinematicMapBackdropRenderPass.tileForeground,
@@ -814,6 +814,72 @@ void main() {
     expect(manifest.toJson(), beforeManifest);
     expect(mapData.toJson(), beforeMapData);
   });
+
+  testWidgets(
+      'reproduces real cinematic backdrop depth divergence from Map Editor ordering',
+      (tester) async {
+    final tilesetImage = await _makeExtendedBackdropTilesetImage();
+    final manifest = _extendedBackdropProject();
+    const mapData = MapData(
+      id: 'test_map',
+      name: 'Test Map',
+      size: GridSize(width: 2, height: 2),
+      layers: [
+        MapLayer.tile(
+          id: 'layer_roof',
+          name: 'Roof layer',
+          tilesetId: 'neutral_tiles',
+          tiles: [1, 0, 0, 0],
+        ),
+        MapLayer.tile(
+          id: 'layer_wall',
+          name: 'Wall layer',
+          tilesetId: 'neutral_tiles',
+          tiles: [2, 0, 0, 0],
+        ),
+        MapLayer.path(
+          id: 'layer_water',
+          name: 'Water path',
+          presetId: 'neutral_path',
+          cells: [true, false, false, false],
+        ),
+        MapLayer.tile(
+          id: 'layer_ponton',
+          name: 'Ponton layer',
+          tilesetId: 'neutral_tiles',
+          tiles: [3, 0, 0, 0],
+        ),
+      ],
+    );
+
+    final plan = buildCinematicMapBackdropLayerRenderPlan(
+      mapData: mapData,
+      manifest: manifest,
+      tilesets: {
+        'neutral_tiles': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'neutral_tiles',
+          image: tilesetImage,
+          tileWidth: 8,
+          tileHeight: 8,
+        ),
+      },
+    );
+
+    final pathWaterIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_water');
+    final tilePontonIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_ponton');
+    final tileWallIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_wall');
+    final tileRoofIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_roof');
+
+    expect(pathWaterIdx, isNot(-1));
+    expect(tilePontonIdx, isNot(-1));
+    expect(tileWallIdx, isNot(-1));
+    expect(tileRoofIdx, isNot(-1));
+
+    expect(pathWaterIdx, lessThan(tilePontonIdx), reason: 'Water path must paint under ponton tiles');
+    expect(tilePontonIdx, lessThan(tileWallIdx), reason: 'Lower layer index (wall) must paint on top of higher layer index (ponton)');
+    expect(tileWallIdx, lessThan(tileRoofIdx), reason: 'Roof layer (index 0) must paint on top of wall layer (index 1)');
+  });
+
 
   testWidgets(
       'uses Path Studio center pattern when a path layer references its base preset',
@@ -10698,6 +10764,63 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_96_cinematic_backdrop_depth_z_order_parity_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-96-bis real Map Editor ordering fix visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_96_BIS_CAPTURE_REAL_MAP_EDITOR_ORDERING',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_96_bis_cinematic_backdrop_real_map_editor_ordering_fix_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

@@ -193,17 +193,48 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
   );
 
   instructions.sort((a, b) {
-    final passCompare = a.renderPass.order.compareTo(b.renderPass.order);
-    if (passCompare != 0) {
-      return passCompare;
+    int getGroup(CinematicMapBackdropRenderPass pass) {
+      switch (pass) {
+        case CinematicMapBackdropRenderPass.terrain:
+          return 0;
+        case CinematicMapBackdropRenderPass.path:
+          return 1;
+        case CinematicMapBackdropRenderPass.tileBackground:
+          return 2;
+        case CinematicMapBackdropRenderPass.surface:
+          return 3;
+        case CinematicMapBackdropRenderPass.placedBackground:
+          return 4;
+        case CinematicMapBackdropRenderPass.tileForeground:
+        case CinematicMapBackdropRenderPass.placedForeground:
+          return 5;
+      }
     }
+
+    final groupA = getGroup(a.renderPass);
+    final groupB = getGroup(b.renderPass);
+    final groupCompare = groupA.compareTo(groupB);
+    if (groupCompare != 0) {
+      return groupCompare;
+    }
+
+    final layerCompare = b.layerIndex.compareTo(a.layerIndex);
+    if (layerCompare != 0) {
+      return layerCompare;
+    }
+
+    if (groupA == 5) {
+      final subPassA = a.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
+      final subPassB = b.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
+      final subPassCompare = subPassA.compareTo(subPassB);
+      if (subPassCompare != 0) {
+        return subPassCompare;
+      }
+    }
+
     final yCompare = a.elementBottomY.compareTo(b.elementBottomY);
     if (yCompare != 0) {
       return yCompare;
-    }
-    final layerCompare = a.layerIndex.compareTo(b.layerIndex);
-    if (layerCompare != 0) {
-      return layerCompare;
     }
     final xCompare = a.elementX.compareTo(b.elementX);
     if (xCompare != 0) {
@@ -211,6 +242,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
     }
     return a.zOrder.compareTo(b.zOrder);
   });
+
 
   if (instructions.isEmpty && diagnostics.isEmpty) {
     diagnostics.add(
