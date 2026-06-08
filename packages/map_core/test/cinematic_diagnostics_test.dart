@@ -1244,6 +1244,96 @@ void main() {
         hasLength(1),
       );
     });
+
+    test('diagnoses duplicate stage point ids', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
+              CinematicStagePoint(id: 'point_a', label: 'Point A Duplicate', x: 2, y: 2),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+
+      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointDuplicateId).single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.referenceId, 'point_a');
+    });
+
+    test('enforces non-empty label in CinematicStagePoint constructor', () {
+      expect(
+        () => CinematicStagePoint(id: 'point_a', label: ' ', x: 1, y: 1),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('diagnoses invalid stage point coordinates', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: double.nan, y: 1),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+
+      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointInvalidCoordinate).single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
+      expect(diagnostic.referenceId, 'point_a');
+    });
+
+    test('diagnoses stage point without stage map', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+
+      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointWithoutStageMap).single;
+      expect(diagnostic.severity, CinematicDiagnosticSeverity.warning);
+    });
+
+    test('diagnoses stage point out of map bounds when map dimensions are available', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro',
+          mapId: 'map_stage',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 25.5, y: 10),
+              CinematicStagePoint(id: 'point_b', label: 'Point B', x: 10, y: -1),
+              CinematicStagePoint(id: 'point_c', label: 'Point C', x: 10, y: 15),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+        mapWidth: 20,
+        mapHeight: 15,
+      );
+
+      final outOfMapDiagnostics = report.byCode(CinematicDiagnosticCode.stagePointOutOfMap);
+      expect(outOfMapDiagnostics, hasLength(3));
+      expect(outOfMapDiagnostics[0].referenceId, 'point_a');
+      expect(outOfMapDiagnostics[1].referenceId, 'point_b');
+      expect(outOfMapDiagnostics[2].referenceId, 'point_c');
+    });
   });
 }
 
@@ -1338,3 +1428,4 @@ ProjectCharacterEntry _character({
     ],
   );
 }
+

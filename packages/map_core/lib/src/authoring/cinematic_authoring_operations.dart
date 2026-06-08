@@ -667,6 +667,130 @@ CinematicStageContextAuthoringResult removeCinematicMovementTargetBinding(
   );
 }
 
+CinematicStageContextAuthoringResult addCinematicStagePoint(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicStagePoint point,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final id = point.id.trim();
+  final label = point.label.trim();
+  if (id.isEmpty) {
+    throw ArgumentError('Stage point ID must not be empty.');
+  }
+  if (label.isEmpty) {
+    throw ArgumentError('Stage point label must not be empty.');
+  }
+  if (!point.x.isFinite || !point.y.isFinite) {
+    throw ArgumentError('Stage point coordinates must be finite.');
+  }
+  if (context.stagePoints.any((p) => p.id == id)) {
+    throw ArgumentError('Duplicate stage point ID: $id');
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: [...context.stagePoints, point],
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult updateCinematicStagePoint(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicStagePoint point,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final id = point.id.trim();
+  final label = point.label.trim();
+  if (id.isEmpty) {
+    throw ArgumentError('Stage point ID must not be empty.');
+  }
+  if (label.isEmpty) {
+    throw ArgumentError('Stage point label must not be empty.');
+  }
+  if (!point.x.isFinite || !point.y.isFinite) {
+    throw ArgumentError('Stage point coordinates must be finite.');
+  }
+  final updatedPoints = <CinematicStagePoint>[];
+  var found = false;
+  for (final p in context.stagePoints) {
+    if (p.id == id) {
+      updatedPoints.add(point);
+      found = true;
+    } else {
+      updatedPoints.add(p);
+    }
+  }
+  if (!found) {
+    throw ArgumentError('Stage point ID "$id" not found in cinematic.');
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: updatedPoints,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicStageContextAuthoringResult removeCinematicStagePoint(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stagePointId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+  final id = stagePointId.trim();
+  if (id.isEmpty) {
+    throw ArgumentError('Stage point ID must not be empty.');
+  }
+  final updatedPoints = context.stagePoints.where((p) => p.id != id).toList();
+  if (updatedPoints.length == context.stagePoints.length) {
+    throw ArgumentError('Stage point ID "$id" not found in cinematic.');
+  }
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: updatedPoints,
+  );
+  _validateStageContextForAuthoring(cinematic, updatedContext);
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
 CinematicRequiredActorResult addCinematicRequiredActor(
   ProjectManifest project, {
   required String cinematicId,
@@ -2070,6 +2194,22 @@ void _validateStageContextForAuthoring(
         'sourceId',
         'Map-aware movement target bindings require a source id.',
       );
+    }
+  }
+
+  final seenPointIds = <String>{};
+  for (final point in stageContext.stagePoints) {
+    if (point.id.trim().isEmpty) {
+      throw ArgumentError('Stage point ID must not be empty.');
+    }
+    if (!seenPointIds.add(point.id)) {
+      throw ArgumentError('Duplicate stage point ID: ${point.id}');
+    }
+    if (point.label.trim().isEmpty) {
+      throw ArgumentError('Stage point label must not be empty.');
+    }
+    if (!point.x.isFinite || !point.y.isFinite) {
+      throw ArgumentError('Stage point coordinates must be finite.');
     }
   }
 }

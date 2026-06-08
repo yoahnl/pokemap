@@ -1946,6 +1946,142 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    test('adds a stage point through pure authoring operation', () {
+      final project = _project(cinematics: [_cinematic(id: 'cinematic_intro')]);
+      final point = CinematicStagePoint(
+        id: 'point_a',
+        label: 'Point A',
+        x: 10.5,
+        y: 20.0,
+      );
+
+      final result = addCinematicStagePoint(
+        project,
+        cinematicId: 'cinematic_intro',
+        point: point,
+      );
+
+      expect(project.cinematics.single.stageContext?.stagePoints, isNull);
+      expect(result.cinematic.stageContext?.stagePoints, [point]);
+      expect(result.updatedProject.cinematics.single.stageContext?.stagePoints, [point]);
+    });
+
+    test('updates a stage point through pure authoring operation', () {
+      final initialPoint = CinematicStagePoint(
+        id: 'point_a',
+        label: 'Point A',
+        x: 10.5,
+        y: 20.0,
+      );
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro',
+            stageContext: CinematicStageContext(
+              stagePoints: [initialPoint],
+            ),
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+      final updatedPoint = CinematicStagePoint(
+        id: 'point_a',
+        label: 'Updated A',
+        x: 15.0,
+        y: 25.5,
+        description: 'New desc',
+      );
+
+      final result = updateCinematicStagePoint(
+        project,
+        cinematicId: 'cinematic_intro',
+        point: updatedPoint,
+      );
+
+      expect(project.cinematics.single.stageContext?.stagePoints, [initialPoint]);
+      expect(result.cinematic.stageContext?.stagePoints, [updatedPoint]);
+    });
+
+    test('removes a stage point through pure authoring operation', () {
+      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
+      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro',
+            stageContext: CinematicStageContext(
+              stagePoints: [pointA, pointB],
+            ),
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      final result = removeCinematicStagePoint(
+        project,
+        cinematicId: 'cinematic_intro',
+        stagePointId: 'point_a',
+      );
+
+      expect(project.cinematics.single.stageContext?.stagePoints, [pointA, pointB]);
+      expect(result.cinematic.stageContext?.stagePoints, [pointB]);
+    });
+
+    test('authoring operations reject duplicate ids, empty labels, non-finite coordinates', () {
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro',
+            stageContext: CinematicStageContext(
+              stagePoints: [
+                CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
+              ],
+            ),
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      expect(
+        () => addCinematicStagePoint(
+          project,
+          cinematicId: 'cinematic_intro',
+          point: CinematicStagePoint(id: 'point_a', label: 'Other', x: 2, y: 2),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => addCinematicStagePoint(
+          project,
+          cinematicId: 'cinematic_intro',
+          point: CinematicStagePoint(id: ' ', label: 'Valid', x: 2, y: 2),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => addCinematicStagePoint(
+          project,
+          cinematicId: 'cinematic_intro',
+          point: CinematicStagePoint(id: 'point_b', label: ' ', x: 2, y: 2),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => addCinematicStagePoint(
+          project,
+          cinematicId: 'cinematic_intro',
+          point: CinematicStagePoint(id: 'point_b', label: 'Valid', x: double.nan, y: 2),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
   });
 }
 

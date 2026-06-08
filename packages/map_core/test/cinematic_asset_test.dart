@@ -483,5 +483,72 @@ void main() {
       expect(source, isNot(contains('map_runtime')));
       expect(source, isNot(contains('map_editor')));
     });
+
+    test('serializes cinematic stage points in stage context', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_stage_points_test',
+        title: 'Stage points test',
+        requiredActors: const [],
+        movementTargets: const [],
+        stageContext: CinematicStageContext(
+          stagePoints: [
+            CinematicStagePoint(
+              id: 'point_a',
+              label: 'Point A',
+              x: 10.5,
+              y: 20.0,
+              description: 'First test point',
+            ),
+            CinematicStagePoint(
+              id: 'point_b',
+              label: 'Point B',
+              x: 15.0,
+              y: 30.5,
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(steps: const []),
+      );
+
+      final json = jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final decoded = CinematicAsset.fromJson(json);
+
+      expect(decoded.stageContext?.stagePoints, hasLength(2));
+      final pA = decoded.stageContext!.stagePoints[0];
+      expect(pA.id, 'point_a');
+      expect(pA.label, 'Point A');
+      expect(pA.x, 10.5);
+      expect(pA.y, 20.0);
+      expect(pA.description, 'First test point');
+
+      final pB = decoded.stageContext!.stagePoints[1];
+      expect(pB.id, 'point_b');
+      expect(pB.label, 'Point B');
+      expect(pB.x, 15.0);
+      expect(pB.y, 30.5);
+      expect(pB.description, isNull);
+    });
+
+    test('deserializes old cinematic stage context without stage points', () {
+      final decoded = CinematicStageContext.fromJson(const {
+        'backdropMode': 'none',
+        'actorBindings': <Object>[],
+        'initialPlacements': <Object>[],
+        'movementTargetBindings': <Object>[],
+      });
+      expect(decoded.stagePoints, isEmpty);
+    });
+
+    test('preserves stage point order across json roundtrip', () {
+      final context = CinematicStageContext(
+        stagePoints: [
+          CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
+          CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2),
+        ],
+      );
+      final json = jsonDecode(jsonEncode(context.toJson())) as Map<String, dynamic>;
+      final decoded = CinematicStageContext.fromJson(json);
+      expect(decoded.stagePoints.map((p) => p.id).toList(), ['point_a', 'point_b']);
+    });
   });
 }

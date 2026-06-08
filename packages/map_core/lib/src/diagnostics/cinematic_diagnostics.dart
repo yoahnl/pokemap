@@ -51,6 +51,12 @@ enum CinematicDiagnosticCode {
   characterAssetMissingPreviewData,
   cinematicLegacyBridge,
   cinematicScenarioBridgeNotCanonical,
+  stagePointDuplicateId,
+  stagePointEmptyId,
+  stagePointEmptyLabel,
+  stagePointInvalidCoordinate,
+  stagePointOutOfMap,
+  stagePointWithoutStageMap,
 }
 
 enum CinematicDiagnosticTarget {
@@ -146,10 +152,19 @@ final class CinematicDiagnosticsReport {
   }
 }
 
-CinematicDiagnosticsReport diagnoseCinematicAsset(CinematicAsset cinematic) {
+CinematicDiagnosticsReport diagnoseCinematicAsset(
+  CinematicAsset cinematic, {
+  int? mapWidth,
+  int? mapHeight,
+}) {
   final diagnostics = <CinematicDiagnostic>[];
   _diagnoseCinematicShape(cinematic, diagnostics);
-  _diagnoseStageContext(cinematic, diagnostics);
+  _diagnoseStageContext(
+    cinematic,
+    diagnostics,
+    mapWidth: mapWidth,
+    mapHeight: mapHeight,
+  );
   _diagnoseTimeline(cinematic, diagnostics);
   _diagnoseLegacyBridge(cinematic, diagnostics);
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
@@ -319,8 +334,10 @@ void _diagnoseCinematicShape(
 
 void _diagnoseStageContext(
   CinematicAsset cinematic,
-  List<CinematicDiagnostic> diagnostics,
-) {
+  List<CinematicDiagnostic> diagnostics, {
+  int? mapWidth,
+  int? mapHeight,
+}) {
   final stageContext = cinematic.stageContext;
   if (stageContext == null) {
     return;
@@ -601,6 +618,108 @@ void _diagnoseStageContext(
           suggestedFixLabel: 'Choisir une entité ou un event de map.',
         ),
       );
+    }
+  }
+
+  if (stageContext.stagePoints.isNotEmpty) {
+    if (cinematic.mapId == null) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.stagePointWithoutStageMap,
+          severity: CinematicDiagnosticSeverity.warning,
+          message:
+              'Des Stage Points sont présents mais aucune map stage n’est définie.',
+          cinematicId: cinematic.id,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Choisir une map stage ou retirer les points.',
+        ),
+      );
+    }
+
+    final seenPointIds = <String>{};
+    for (final point in stageContext.stagePoints) {
+      final id = point.id.trim();
+      final label = point.label.trim();
+      if (id.isEmpty) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.stagePointEmptyId,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Un Stage Point a un id vide.',
+            cinematicId: cinematic.id,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Définir un id stable.',
+          ),
+        );
+      } else if (!seenPointIds.add(id)) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.stagePointDuplicateId,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'Plusieurs Stage Points utilisent le même id : "$id".',
+            cinematicId: cinematic.id,
+            referenceId: id,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel:
+                'Renommer le Stage Point pour avoir un id unique.',
+          ),
+        );
+      }
+
+      if (label.isEmpty) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.stagePointEmptyLabel,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Le Stage Point "$id" a un label vide.',
+            cinematicId: cinematic.id,
+            referenceId: id,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Renseigner un label lisible.',
+          ),
+        );
+      }
+
+      if (!point.x.isFinite ||
+          point.x.isNaN ||
+          !point.y.isFinite ||
+          point.y.isNaN) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.stagePointInvalidCoordinate,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'Le Stage Point "$id" a des coordonnées non finies.',
+            cinematicId: cinematic.id,
+            referenceId: id,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel:
+                'Corriger les coordonnées pour qu’elles soient finies.',
+          ),
+        );
+      }
+
+      if (mapWidth != null && mapHeight != null) {
+        if (point.x < 0 ||
+            point.x >= mapWidth ||
+            point.y < 0 ||
+            point.y >= mapHeight) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode.stagePointOutOfMap,
+              severity: CinematicDiagnosticSeverity.error,
+              message:
+                  'Le Stage Point "$id" (${point.x}, ${point.y}) est en dehors des limites de la map ($mapWidth × $mapHeight).',
+              cinematicId: cinematic.id,
+              referenceId: id,
+              target: CinematicDiagnosticTarget.stageContext,
+              suggestedFixLabel:
+                  'Repositionner le Stage Point dans les limites de la map.',
+            ),
+          );
+        }
+      }
     }
   }
 }

@@ -202,6 +202,7 @@ final class CinematicStageContext {
         const <CinematicActorInitialPlacement>[],
     List<CinematicMovementTargetBinding> movementTargetBindings =
         const <CinematicMovementTargetBinding>[],
+    List<CinematicStagePoint> stagePoints = const <CinematicStagePoint>[],
   })  : actorBindings = List<CinematicActorBinding>.unmodifiable(actorBindings),
         actorAppearanceBindings =
             List<CinematicActorAppearanceBinding>.unmodifiable(
@@ -213,7 +214,8 @@ final class CinematicStageContext {
         movementTargetBindings =
             List<CinematicMovementTargetBinding>.unmodifiable(
           movementTargetBindings,
-        );
+        ),
+        stagePoints = List<CinematicStagePoint>.unmodifiable(stagePoints);
 
   factory CinematicStageContext.fromJson(Map<String, dynamic> json) {
     return CinematicStageContext(
@@ -242,6 +244,11 @@ final class CinematicStageContext {
         'movementTargetBindings',
         CinematicMovementTargetBinding.fromJson,
       ),
+      stagePoints: _readObjectList(
+        json,
+        'stagePoints',
+        CinematicStagePoint.fromJson,
+      ),
     );
   }
 
@@ -250,6 +257,7 @@ final class CinematicStageContext {
   final List<CinematicActorAppearanceBinding> actorAppearanceBindings;
   final List<CinematicActorInitialPlacement> initialPlacements;
   final List<CinematicMovementTargetBinding> movementTargetBindings;
+  final List<CinematicStagePoint> stagePoints;
 
   Map<String, dynamic> toJson() => {
         'backdropMode': backdropMode.name,
@@ -261,6 +269,8 @@ final class CinematicStageContext {
             initialPlacements.map((placement) => placement.toJson()).toList(),
         'movementTargetBindings':
             movementTargetBindings.map((binding) => binding.toJson()).toList(),
+        'stagePoints':
+            stagePoints.map((point) => point.toJson()).toList(),
       };
 
   @override
@@ -274,7 +284,8 @@ final class CinematicStageContext {
             actorAppearanceBindings,
           ) &&
           _listEquals(other.initialPlacements, initialPlacements) &&
-          _listEquals(other.movementTargetBindings, movementTargetBindings);
+          _listEquals(other.movementTargetBindings, movementTargetBindings) &&
+          _listEquals(other.stagePoints, stagePoints);
 
   @override
   int get hashCode => Object.hash(
@@ -283,6 +294,7 @@ final class CinematicStageContext {
         Object.hashAll(actorAppearanceBindings),
         Object.hashAll(initialPlacements),
         Object.hashAll(movementTargetBindings),
+        Object.hashAll(stagePoints),
       );
 }
 
@@ -464,6 +476,56 @@ final class CinematicMovementTargetBinding {
 
   @override
   int get hashCode => Object.hash(targetId, kind, sourceId);
+}
+
+@immutable
+final class CinematicStagePoint {
+  CinematicStagePoint({
+    required String id,
+    required String label,
+    required this.x,
+    required this.y,
+    String? description,
+  })  : id = _requireTrimmed(id, 'CinematicStagePoint.id'),
+        label = _requireTrimmed(label, 'CinematicStagePoint.label'),
+        description = _trimOptional(description);
+
+  factory CinematicStagePoint.fromJson(Map<String, dynamic> json) {
+    return CinematicStagePoint(
+      id: _readRequiredString(json, 'id'),
+      label: _readRequiredString(json, 'label'),
+      x: _readRequiredDouble(json, 'x'),
+      y: _readRequiredDouble(json, 'y'),
+      description: _readOptionalString(json, 'description'),
+    );
+  }
+
+  final String id;
+  final String label;
+  final double x;
+  final double y;
+  final String? description;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'id': id,
+        'label': label,
+        'x': x,
+        'y': y,
+        'description': description,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicStagePoint &&
+          other.id == id &&
+          other.label == label &&
+          other.x == x &&
+          other.y == y &&
+          other.description == description;
+
+  @override
+  int get hashCode => Object.hash(id, label, x, y, description);
 }
 
 @immutable
@@ -746,6 +808,14 @@ String _readRequiredString(Map<String, dynamic> json, String key) {
     throw ArgumentError.value(value, key, 'must be a non-empty string');
   }
   return value;
+}
+
+double _readRequiredDouble(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is! num) {
+    throw ArgumentError.value(value, key, 'must be a double');
+  }
+  return value.toDouble();
 }
 
 String? _readOptionalString(Map<String, dynamic> json, String key) {

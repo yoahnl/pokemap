@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract
+NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0
 ```
 
 ## Principes
@@ -155,6 +155,34 @@ Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
 
+## Mise a jour V1-101
+
+Statut : `NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0` est DONE.
+
+Demande : Implémenter le modèle core des points de scène (`CinematicStagePoint`) sous le `stageContext` des cinématiques, la désérialisation/sérialisation JSON rétrocompatible, les opérations pures d'édition (add, update, remove), et le moteur de diagnostic avec ses 6 codes de validation (duplicate, empty ID, empty label, invalid coordinate, out of map bounds, missing map context). Pas de Flame, pas d'UI, pas de modification hors de `map_core`.
+
+Decision : Ajout de la structure immutable `CinematicStagePoint` à `CinematicStageContext`. Coordonnées `x` et `y` typées en `double` sans restriction de finiteness au constructeur ou en désérialisation JSON (pour ne pas perturber la détection de diagnostics de format cassé), mais validées par diagnostics et authoring. diagnostics optionnels named `mapWidth`/`mapHeight` pour garder la rétrocompatibilité des signatures existantes.
+
+Preuve : `dart test` et `dart analyze` propres dans `map_core`. Tests ajoutés couvrant la compatibilité JSON descendante (ancien JSON sans `stagePoints`), la préservation de l'ordre, les doublons, et les limites physiques optionnelles.
+
+Limites : Modèle core et diagnostics pures uniquement. Pas de placement sur Canvas, pas de rendu visuel, pas de liaison au timeline actorMove/initialPlacement.
+
+Prochain lot exact recommande : `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0`.
+
+## Mise a jour V1-100
+
+Statut : `NS-SCENES-V1-100 — Cinematic Spatial Authoring / Stage Points Prep Contract V0` est DONE.
+
+Demande : Cadrer l'édition spatiale des cinématiques directement dans la preview sans repasser par le Map Editor, définir le modèle de stockage local et décorrélé de la map de fond, la transformation géométrique bidirectionnelle écran-carte avec pan/zoom, les modèles d'interactions d'auteur (Option C), les liens avec la timeline (initialPlacements et targets), préparer les chemins manuels sans pathfinding ni collision au runtime, lister les diagnostics et la stratégie de tests.
+
+Decision : Cadrage documentaire complet. Modèle CinematicStagePoint autonome stocké sous stageContext.stagePoints. Formules d'inversion géométrique avec pan/zoom et snapping à la tuile. Interaction via barre d'outils locale (mode outil). Diagnostics statiques complets (8 nouveaux codes) et tests unitaires/widget prévus pour V1-101+.
+
+Preuve : Rapport de contrat ns_scenes_v1_100_cinematic_spatial_authoring_stage_points_prep_contract_v0.md rédigé, Evidence Pack complet et roadmaps ajustées. Aucun code packages/ modifié (anti-scope respecté).
+
+Limites : Lot documentaire de cadrage théorique uniquement. Aucun code produit, modèle core, UI ou test créé.
+
+Prochain lot exact recommande : `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0`.
+
 ## Mise a jour V1-99 bis
 
 Statut : `NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0` est DONE.
@@ -167,7 +195,7 @@ Preuve : Tous les tests unitaires et widget dans `cinematic_actor_sprite_preview
 
 Limites : preview statique de la première frame idle de l'acteur.
 
-Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0`.
 
 ## Mise a jour V1-99
 
@@ -181,7 +209,7 @@ Preuve : 17 tests unitaires de rendu validés dans `cinematic_actor_sprite_previ
 
 Limites : Rendu purement statique et sans playback temporel interactif ni interpolation.
 
-Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0`.
 
 ## Mise a jour V1-98
 
