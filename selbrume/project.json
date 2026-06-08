@@ -11016,6 +11016,1641 @@
         }
       ],
       "sortOrder": 8
+    },
+    {
+      "id": "animated-water-borde",
+      "name": "animated water borde",
+      "surfaceKind": "path",
+      "categoryId": null,
+      "tilesetId": "water_edge",
+      "variants": [
+        {
+          "variant": "cornerNE",
+          "frames": [
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 2,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 5,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 8,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 11,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 14,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 17,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 20,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 23,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 26,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 29,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 32,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 35,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 38,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 41,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 44,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 47,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 50,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 53,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 56,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 59,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 62,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 65,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 68,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 71,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 74,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 77,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 80,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 83,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 86,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 89,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 92,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 95,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "cornerNW",
+          "frames": [
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 3,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 6,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 9,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 12,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 15,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 18,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 21,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 24,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 27,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 30,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 33,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 36,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 39,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 42,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 45,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 48,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 51,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 54,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 57,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 60,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 63,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 66,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 69,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 72,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 75,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 78,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 81,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 84,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 87,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 90,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 93,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeEast",
+          "frames": [
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 0,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 3,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 6,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 9,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 12,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 15,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 18,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 21,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 24,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 27,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 30,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 33,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 36,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 39,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 42,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 45,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 48,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 51,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 54,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 57,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 60,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 63,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 66,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 69,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 72,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 75,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 78,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 81,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 84,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 87,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 90,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 93,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeSouth",
+          "frames": [
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 1,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 4,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 7,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 10,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 13,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 16,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 19,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 22,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 25,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 28,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 31,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 34,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 37,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 40,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 43,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 46,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 49,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 52,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 55,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 58,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 61,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 64,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 67,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 70,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 73,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 76,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 79,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 82,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 85,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 88,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 91,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 94,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeWest",
+          "frames": [
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 2,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 5,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 8,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 11,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 14,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 17,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 20,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 23,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 26,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 29,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 32,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 35,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 38,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 41,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 44,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 47,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 50,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 53,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 56,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 59,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 62,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 65,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 68,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 71,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 74,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 77,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 80,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 83,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 86,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 89,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 92,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "water_edge",
+              "source": {
+                "x": 95,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        }
+      ],
+      "sortOrder": 0
     }
   ],
   "pathPatternPresets": [
@@ -12336,6 +13971,36 @@
         ]
       },
       "sortOrder": 1
+    },
+    {
+      "id": "animated-water-borde-pattern",
+      "name": "animated water borde",
+      "basePathPresetId": "animated-water-borde",
+      "centerPattern": {
+        "size": {
+          "width": 1,
+          "height": 1
+        },
+        "cells": [
+          {
+            "localX": 0,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "water_edge",
+                "source": {
+                  "x": 1,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              }
+            ]
+          }
+        ]
+      },
+      "sortOrder": 0
     }
   ],
   "environmentPresets": [
