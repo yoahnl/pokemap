@@ -262,7 +262,16 @@ Do not invent measurements, memory guarantees, coverage percentages, or test tot
 
 Reports under `reports/` are tracked engineering artifacts. Modify them only when the task asks for a report, audit, review, lot closure, or roadmap/status evidence.
 
-You HAVE to read codex_rules.md and follow it strictly to create your reports. Every reports should include all the code creted. 
+Quand un prompt demande un rapport, un Evidence Pack, une review, un audit ou une clôture de lot, l'agent doit lire le fichier de règles Codex du repo avant d'écrire le rapport.
+Fichier attendu : `codex_rule.md`.
+Le rapport doit respecter ces règles, notamment :
+- inclure l'audit initial et le verdict des sub-agents/passes ;
+- lister tous les fichiers modifiés et donner le contenu complet des fichiers créés ;
+- inclure les diffs/zones précises modifiées ;
+- documenter les commandes lancées, les résultats exacts de tests et d'analyses ;
+- fournir l'état git initial et final ;
+- effectuer une auto-critique finale et identifier les risques.
+
 
 ---
 

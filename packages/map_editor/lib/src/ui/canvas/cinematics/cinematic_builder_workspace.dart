@@ -357,7 +357,23 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       type: MaterialType.transparency,
       child: PokeMapPageSurface(
         key: const ValueKey('cinematic-builder-workspace'),
-        child: Column(
+        // Wrap the workspace in a global Focus key event listener so pressing ESC anywhere
+        // in the builder workspace will cancel the Stage Point placement mode, provided
+        // we are not focused on a text input.
+        child: Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.escape &&
+                _addStagePointMode) {
+              setState(() {
+                _addStagePointMode = false;
+              });
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _BuilderHeader(
@@ -576,6 +592,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
             ),
           ],
         ),
+        ),
       ),
     );
   }
@@ -750,10 +767,17 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
             id: widget.asset.id,
             title: widget.asset.title,
             description: widget.asset.description,
+            storylineId: widget.asset.storylineId,
+            chapterId: widget.asset.chapterId,
             mapId: widget.asset.mapId,
+            tags: widget.asset.tags,
             requiredActors: widget.asset.requiredActors,
+            movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+            notes: widget.asset.notes,
+            metadata: widget.asset.metadata,
+            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );
@@ -782,10 +806,17 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
             id: widget.asset.id,
             title: widget.asset.title,
             description: widget.asset.description,
+            storylineId: widget.asset.storylineId,
+            chapterId: widget.asset.chapterId,
             mapId: widget.asset.mapId,
+            tags: widget.asset.tags,
             requiredActors: widget.asset.requiredActors,
+            movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+            notes: widget.asset.notes,
+            metadata: widget.asset.metadata,
+            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );
@@ -814,10 +845,17 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
             id: widget.asset.id,
             title: widget.asset.title,
             description: widget.asset.description,
+            storylineId: widget.asset.storylineId,
+            chapterId: widget.asset.chapterId,
             mapId: widget.asset.mapId,
+            tags: widget.asset.tags,
             requiredActors: widget.asset.requiredActors,
+            movementTargets: widget.asset.movementTargets,
             timeline: widget.asset.timeline,
             stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+            notes: widget.asset.notes,
+            metadata: widget.asset.metadata,
+            legacyBridge: widget.asset.legacyBridge,
           ),
         ],
       );
@@ -4377,6 +4415,8 @@ class _InspectorPlaceholder extends StatelessWidget {
               onAddMovementTarget: onAddMovementTarget,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
               tilesets: tilesets,
+              selectedStagePointId: selectedStagePointId,
+              onSelectStagePointId: onSelectStagePointId,
             ),
             const SizedBox(height: 12),
             if (selected == null || selectedIndex == null)
@@ -4462,6 +4502,8 @@ class _StageContextEditor extends StatelessWidget {
     this.tilesets,
     this.mapWidth,
     this.mapHeight,
+    this.selectedStagePointId,
+    this.onSelectStagePointId,
   });
 
   final CinematicsLibraryEntry entry;
@@ -4485,6 +4527,8 @@ class _StageContextEditor extends StatelessWidget {
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final int? mapWidth;
   final int? mapHeight;
+  final String? selectedStagePointId;
+  final ValueChanged<String?>? onSelectStagePointId;
 
   @override
   Widget build(BuildContext context) {
@@ -4519,6 +4563,12 @@ class _StageContextEditor extends StatelessWidget {
             asset: asset,
             stageContext: stageContext,
             onUpdateStageContext: onUpdateStageContext,
+          ),
+          const SizedBox(height: 10),
+          _StagePointsSection(
+            stageContext: stageContext,
+            selectedStagePointId: selectedStagePointId,
+            onSelectStagePointId: onSelectStagePointId ?? (_) {},
           ),
           const SizedBox(height: 10),
           _StagePreviewReadinessSection(readiness: readiness),
@@ -10181,4 +10231,82 @@ String _libraryDiagnosticSeverityLabel(
     CinematicsLibraryDiagnosticSeverity.warning => 'Attention',
     CinematicsLibraryDiagnosticSeverity.info => 'Info',
   };
+}
+
+class _StagePointsSection extends StatelessWidget {
+  const _StagePointsSection({
+    required this.stageContext,
+    required this.selectedStagePointId,
+    required this.onSelectStagePointId,
+  });
+
+  final CinematicStageContext stageContext;
+  final String? selectedStagePointId;
+  final ValueChanged<String?> onSelectStagePointId;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final points = stageContext.stagePoints;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Points de scène',
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: colors.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 4),
+        if (points.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colors.controlSurface.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: colors.borderSubtle),
+            ),
+            child: Text(
+              'Aucun point de scène.\nClique sur « Ajouter un point » puis sur la carte pour en poser un.',
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 10,
+                height: 1.4,
+              ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: points.map((point) {
+              final isSelected = point.id == selectedStagePointId;
+              return PokeMapButton(
+                key: ValueKey('stage-point-chip-${point.id}'),
+                size: PokeMapButtonSize.small,
+                variant: isSelected
+                    ? PokeMapButtonVariant.primary
+                    : PokeMapButtonVariant.secondary,
+                onPressed: () => onSelectStagePointId(isSelected ? null : point.id),
+                leading: Icon(
+                  CupertinoIcons.location_solid,
+                  size: 12,
+                  color: isSelected ? colors.textInverse : colors.brandPrimary,
+                ),
+                child: Text(
+                  point.label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+      ],
+    );
+  }
 }

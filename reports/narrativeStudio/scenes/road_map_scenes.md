@@ -161,6 +161,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-100 — Cinematic Spatial Authoring / Stage Points Prep Contract V0 | DONE | Cadrage spatial de la preview du Cinematic Builder : modèle Stage Point décorrélé de MapData/mapEntities/mapEvents, transformation click->tile avec pan/zoom, modèle UX (Option C), intégration avec placements/cibles/timeline et waypoints futurs. |
 | NS-SCENES-V1-101 — Cinematic Stage Point Core Model V0 | DONE | Modèle core de Stage Point cinématique (`CinematicStagePoint`) stocké dans `CinematicStageContext.stagePoints`, sérialisation JSON backward-compatible avec ordre et description facultative, opérations pures add/update/remove, et 6 codes de diagnostics statiques (duplicate, empty ID/label, coordonnées invalides, out-of-map, point sans map). |
 | NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0 | DONE | Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur. |
+| NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment | DONE | Rendre évidente et documentée la pose de points dans la preview cinématique, avec bouton texte clair, active mode banner overlay, empty states, Escape key deactivation et sidebar chip point list section. |
 
 ## Prochain lot recommande
 
@@ -175,6 +176,18 @@ Ordre apres V1-102 :
 4. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
 5. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
 6. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-102 bis
+
+Statut : `NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment` est DONE.
+
+Demande : Rendre le placement des Stage Points évident et accessible (remplacer l'icône de toolbar par un bouton texte, ajouter une bannière d'aide en mode placement, un message d'empty state dans le canvas et la sidebar, la touche Échap pour annuler, et afficher la liste des points dans l'inspecteur).
+
+Decision : Modification de `_BackdropFramingControls` pour afficher un bouton texte. Ajout des widgets d'overlays de messages `_AddStagePointInstructionOverlay` et `_EmptyStagePointsHelperOverlay` se superposant directement dans le stack du canvas sans modifier la géométrie du viewport. Écoute globale de la touche Échap dans un widget `Focus` parent de `CinematicBuilderWorkspace`. Création d'une puce interactive de liste de points de scène (`_StagePointsSection`) dans le panneau latéral.
+
+Preuve : Tous les 198 tests de `cinematic_builder_workspace_test.dart` sont 100% verts. Screenshot visual gate généré à `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_102_bis_stage_point_placement_ux_discoverability.png`.
+
+Limites : Pas de playback visuel ni de liaison directe à actorMove/initialPlacement.
 
 ## Mise a jour V1-102
 

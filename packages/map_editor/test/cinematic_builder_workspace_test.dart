@@ -11287,12 +11287,163 @@ void main() {
     );
 
     // Tap on Point 1 to select it so the inspector shows it
-    await tester.tap(find.text('Point 1'));
+    await tester.tap(find.text('Point 1').last);
     await tester.pumpAndSettle();
 
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_102_cinematic_preview_point_placement_ui_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('V1-102-bis — Stage Point Placement UX Discoverability and ESC cancellation', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largePathStudioWaterBackdropFixture();
+    final project = _project(cinematics: [fixture.asset]);
+
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: fixture.asset,
+      stageMap: project.maps.single,
+      mapData: fixture.mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 260,
+      ),
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      fixture.asset.id,
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // 1. Verify that when no stage points exist, the empty state helper message is displayed
+    expect(find.text('Aucun point de scène. Clique sur « Ajouter un point », puis clique sur la carte.'), findsOneWidget);
+
+    // 2. Verify that the "Ajouter un point" text button is visible and active
+    final addPointBtn = find.byKey(const ValueKey('cinematic-builder-map-backdrop-add-stage-point-toggle'));
+    expect(addPointBtn, findsOneWidget);
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
+
+    // 3. Click the "Ajouter un point" button to enter placement mode
+    await tester.tap(addPointBtn);
+    await tester.pumpAndSettle();
+
+    // 4. Verify that the button text changes to "Annuler l’ajout" and active placement banner is displayed
+    expect(find.descendant(of: addPointBtn, matching: find.text('Annuler l’ajout')), findsOneWidget);
+    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsOneWidget);
+
+    // 5. Test Escape key deactivates the mode
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
+    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsNothing);
+
+    // 6. Enter mode again, and verify that clicking on the map canvas places a point
+    await tester.tap(addPointBtn);
+    await tester.pumpAndSettle();
+
+    final viewport = find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'));
+    final viewportCenter = tester.getCenter(viewport);
+    await tester.tapAt(viewportCenter);
+    await tester.pumpAndSettle();
+
+    // 7. Verify point was created and mode exited automatically (generated ID is '1', so label is 'Point 1')
+    expect(find.text('Point 1'), findsNWidgets(2));
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
+    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsNothing);
+
+    // 8. Verify inspector panel displays the selected point inputs
+    expect(find.byKey(const ValueKey('cinematic-stage-point-label-input')), findsOneWidget);
+
+    // 9. Verify that typing in a TextField and pressing Escape does NOT exit the mode or break the input (it should retain text)
+    final labelInput = find.byKey(const ValueKey('cinematic-stage-point-label-input'));
+    await tester.enterText(labelInput, 'Updated Point');
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+
+    expect(find.widgetWithText(TextFormField, 'Updated Point'), findsOneWidget);
+  });
+
+  testWidgets(
+      'captures V1-102-bis stage point placement ux discoverability visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_102_BIS_CAPTURE_STAGE_POINT_UX_DISCOVERABILITY',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithPoints = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: fixture.asset.requiredActors,
+      movementTargets: fixture.asset.movementTargets,
+      stageContext: CinematicStageContext(
+        backdropMode: fixture.asset.stageContext?.backdropMode ?? CinematicStageBackdropMode.projectMap,
+        actorBindings: fixture.asset.stageContext?.actorBindings ?? const [],
+        actorAppearanceBindings: fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
+        initialPlacements: fixture.asset.stageContext?.initialPlacements ?? const [],
+        movementTargetBindings: fixture.asset.stageContext?.movementTargetBindings ?? const [],
+        stagePoints: [
+          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+        ],
+      ),
+      timeline: fixture.asset.timeline,
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    final project = _project(cinematics: [assetWithPoints]);
+
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: assetWithPoints,
+      stageMap: project.maps.single,
+      mapData: fixture.mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 260,
+      ),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, assetWithPoints.id),
+      asset: assetWithPoints,
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // Tap on Point 1 to select it so the inspector shows it
+    await tester.tap(find.text('Point 1').last);
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_102_bis_stage_point_placement_ux_discoverability.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

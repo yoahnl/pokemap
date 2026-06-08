@@ -155,6 +155,18 @@ Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
 
+## Mise a jour V1-102 bis
+
+Statut : `NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment` est DONE.
+
+Demande : Rendre le placement des Stage Points évident et accessible (remplacer l'icône de toolbar par un bouton texte, ajouter une bannière d'aide en mode placement, un message d'empty state dans le canvas et la sidebar, la touche Échap pour annuler, et afficher la liste des points dans l'inspecteur).
+
+Decision : Modification de `_BackdropFramingControls` pour afficher un bouton texte. Ajout des widgets d'overlays de messages `_AddStagePointInstructionOverlay` et `_EmptyStagePointsHelperOverlay` se superposant directement dans le stack du canvas sans modifier la géométrie du viewport. Écoute globale de la touche Échap dans un widget `Focus` parent de `CinematicBuilderWorkspace`. Création d'une puce interactive de liste de points de scène (`_StagePointsSection`) dans le panneau latéral.
+
+Preuve : Tous les 198 tests de `cinematic_builder_workspace_test.dart` sont 100% verts. Screenshot visual gate généré à `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_102_bis_stage_point_placement_ux_discoverability.png`.
+
+Limites : Pas de playback visuel ni de liaison directe à actorMove/initialPlacement.
+
 ## Mise a jour V1-102
 
 Statut : `NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0` est DONE.

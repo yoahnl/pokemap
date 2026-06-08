@@ -461,6 +461,8 @@ class _BackdropBitmapMap extends StatelessWidget {
           onResetView: onFramingResetView,
           onDetailsChanged: onFramingDetailsChanged,
           onGridChanged: onFramingGridChanged,
+          addStagePointMode: addStagePointMode,
+          onAddStagePointModeChanged: onAddStagePointModeChanged,
         ),
         if (isSceneMode && framingState.showDetails) ...[
           SizedBox(height: compact ? 5 : 6),
@@ -597,21 +599,37 @@ class _BackdropBitmapMap extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                              if (isSceneMode)
-                                Positioned(
-                                  left: 8,
-                                  bottom: 8,
-                                  child: _BackdropPanBadge(
-                                    panTiles: framing.panTiles,
+                                if (isSceneMode)
+                                  Positioned(
+                                    left: 8,
+                                    bottom: 8,
+                                    child: _BackdropPanBadge(
+                                      panTiles: framing.panTiles,
+                                    ),
                                   ),
-                                ),
-                            ],
+                                if (addStagePointMode)
+                                  Positioned(
+                                    left: 8,
+                                    right: 8,
+                                    top: 8,
+                                    child: _AddStagePointInstructionOverlay(
+                                      onCancel: () => onAddStagePointModeChanged?.call(false),
+                                    ),
+                                  ),
+                                if (stagePoints.isEmpty && !addStagePointMode)
+                                  const Positioned(
+                                    left: 8,
+                                    right: 8,
+                                    top: 8,
+                                    child: _EmptyStagePointsHelperOverlay(),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
+                  );
                 },
               ),
             ),
@@ -710,6 +728,8 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
           onResetView: onFramingResetView,
           onDetailsChanged: onFramingDetailsChanged,
           onGridChanged: onFramingGridChanged,
+          addStagePointMode: addStagePointMode,
+          onAddStagePointModeChanged: onAddStagePointModeChanged,
         ),
         if (isSceneMode && framingState.showDetails) ...[
           SizedBox(height: compact ? 5 : 6),
@@ -871,6 +891,22 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                       panTiles: framing.panTiles,
                                     ),
                                   ),
+                                if (addStagePointMode)
+                                  Positioned(
+                                    left: 8,
+                                    right: 8,
+                                    top: 8,
+                                    child: _AddStagePointInstructionOverlay(
+                                      onCancel: () => onAddStagePointModeChanged?.call(false),
+                                    ),
+                                  ),
+                                if (stagePoints.isEmpty && !addStagePointMode)
+                                  const Positioned(
+                                    left: 8,
+                                    right: 8,
+                                    top: 8,
+                                    child: _EmptyStagePointsHelperOverlay(),
+                                  ),
                               ],
                             ),
                           ),
@@ -965,24 +1001,31 @@ class _BackdropFramingControls extends StatelessWidget {
             ),
           ],
         ),
-        PokeMapIconButton(
+        PokeMapButton(
           key: const ValueKey(
             'cinematic-builder-map-backdrop-add-stage-point-toggle',
           ),
-          tooltip:
-              addStagePointMode ? 'Annuler l’ajout' : 'Ajouter un point de scène',
-          size: buttonSize,
-          variant: PokeMapIconButtonVariant.soft,
-          isSelected: addStagePointMode,
+          size: compact ? PokeMapButtonSize.small : PokeMapButtonSize.medium,
+          variant: addStagePointMode
+              ? PokeMapButtonVariant.primary
+              : PokeMapButtonVariant.secondary,
           onPressed: (model.isAvailable &&
                   hasBitmapInstructions &&
                   onAddStagePointModeChanged != null)
               ? () => onAddStagePointModeChanged!(!addStagePointMode)
               : null,
-          icon: Icon(
+          leading: Icon(
             addStagePointMode
                 ? CupertinoIcons.location_solid
                 : CupertinoIcons.location,
+            size: compact ? 12 : 14,
+          ),
+          child: Text(
+            addStagePointMode ? 'Annuler l’ajout' : 'Ajouter un point',
+            style: TextStyle(
+              fontSize: compact ? 11 : 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         PokeMapIconButton(
@@ -1975,4 +2018,92 @@ IconData _iconForStatus(CinematicMapBackdropPreviewStatus status) {
     CinematicMapBackdropPreviewStatus.tilesetUnavailable =>
       CupertinoIcons.exclamationmark_triangle,
   };
+}
+
+class _AddStagePointInstructionOverlay extends StatelessWidget {
+  const _AddStagePointInstructionOverlay({
+    required this.onCancel,
+  });
+
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: colors.brandPrimarySoft.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colors.brandPrimaryBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            CupertinoIcons.info_circle,
+            color: colors.brandPrimary,
+            size: 14,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: const ValueKey('cinematic-builder-cancel-stage-point-placement-btn'),
+            size: PokeMapButtonSize.small,
+            variant: PokeMapButtonVariant.secondary,
+            onPressed: onCancel,
+            child: const Text('Annuler'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyStagePointsHelperOverlay extends StatelessWidget {
+  const _EmptyStagePointsHelperOverlay({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return IgnorePointer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: colors.controlSurface,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: colors.borderSubtle),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              CupertinoIcons.location,
+              color: colors.brandPrimary,
+              size: 14,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Aucun point de scène. Clique sur « Ajouter un point », puis clique sur la carte.',
+                style: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
