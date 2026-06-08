@@ -154,15 +154,30 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-95 bis — Cinematic Backdrop Preview Canvas UX Polish V0 | DONE | A la demande de Karim, la preview backdrop cinematic devient plus canvas-first : chrome secondaire replie en Vue scene, pan local drag + clamp + reset/recentrage non persistants, grille masquee par defaut avec toggle local, timeline/transports/inspector preserves, eau Path Studio et placeholders acteurs conserves, Visual Gate 1663x926, sans runtime, Flame, playback, sprites acteurs finaux ni mutation projet/map. |
 | NS-SCENES-V1-96 — Cinematic Backdrop Depth / Z-Order Parity Polish V0 | DONE | A la demande de Karim, correctif Y-sorting/depth sorting deterministe pour le decor backdrop et l'overlay des acteurs placeholders : tri par visual bottom Y (pos.y + height), layerIndex comme tie-breaker, elementX et zOrder d'origine. Heuristiques foreground completes basées sur la couche (foreground/fg/roof/etc.), propriétés du placement (renderInForeground/above/foreground) et tags projet de l'element. Tri Y-sorting des acteurs statiques de l'overlay. Visual Gate, tests complets editor/library/core et analyse cibles verts, sans runtime, Flame ni playback. |
 | NS-SCENES-V1-96-bis — Cinematic Backdrop Real Map Editor Ordering Investigation / Fix V0 | DONE | Enquête et alignement de la preview de décor sur l'ordre exact du Map Editor (Terrain -> Path -> TileBackground -> Surface -> PlacedBackground -> Foreground, boucle de calques inversée length - 1 down to 0). Tri intra-calque/intra-passe uniquement en tie-breaker. Support complet du rendu cell-by-cell des MapPlacedElement multi-tuiles. Visual Gate actualisée, tests complets verts sans runtime ni Flame. |
-| NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | TODO | Cadrer le futur resolver de sprites actor display statique apres preview backdrop lisible et triee V1-96 : sources Character Library/player/mapEntity, frames idle, fallbacks, diagnostics, cache et anti-scope runtime. |
+| NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | DONE | Cadrage documentaire et design-first du futur resolver de sprites d'acteurs statiques. Définition des sources (player settings, npc/trainer mapEntity, cinematicOnly) et de la méthode de résolution de la première frame de l'animation idle. Analyse de la réutilisation de `CinematicTilesetAssetRegistry` pour le chargement d'image asynchrone hors build/paint. Identification des diagnostics et planification des tests V1-98 et Visual Gate V1-99. Aucun code produit modifié, pas de runtime, pas de Flame, pas de playback. |
+| NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0 | TODO | Implémenter le resolver purement logique et ses tests unitaires de parité associés sans rendu visuel. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`
+`NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0`
 
-Raison : V1-96-bis apporte la parité de profondeur (Z-Order et boucle de calques inversée) entre le décor et l'overlay des acteurs. Le prochain verrou logique est donc de cadrer le futur resolver de sprites statiques des acteurs (V1-97), tout en conservant les placeholders V1-92 tant que le contrat n'est pas valide.
+Raison : V1-97 a posé le contrat documentaire d'architecture et de diagnostic pour la résolution des sprites. Le prochain verrou logique est d'implémenter le resolver purement logique et ses tests unitaires dans la V1-98, puis le rendu visuel dans la V1-99.
 
-Ordre apres V1-96-bis : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract`, puis seulement un renderer sprite statique si le contrat V1-97 est valide. Le polish timeline scroll/visibility reste un backlog futur.
+Ordre apres V1-97 : `NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0`, puis `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0` pour le rendu final avec fallback placeholders.
+
+## Mise a jour V1-97
+
+Statut : `NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract` est DONE.
+
+Demande : Karim a demandé d'auditer et cadrer la résolution asynchrone des sprites d'acteurs statiques depuis le ProjectManifest (Character Library, settings.defaultPlayerCharacterId, npc/trainer mapEntity) sans modifier de code produit ni importer de runtime Flame/gameplay.
+
+Decision : Option C (Resolver séparé) et Option A (Réutilisation de CinematicTilesetAssetRegistry) retenues. Les métadonnées symboliques de map_core suffisent à guider la recherche de tilesets. La frame 0 d'une animation idle déterminée par direction sera découpée et mise en cache. Si indisponible, le fallback pastille V1-92 est conservé.
+
+Preuve : Rapport de contrat V1-97 rédigé, diagnostics et tests unitaires V1-98 planifiés, checks anti-scope passés propres.
+
+Limites : Lot documentaire de design-first uniquement. Aucun code produit modifié.
+
+Prochain lot exact recommande : `NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0`.
 
 ## Mise a jour V1-96 bis
 
