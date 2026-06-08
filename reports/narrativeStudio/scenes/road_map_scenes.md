@@ -157,14 +157,29 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-97 — Cinematic Actor Display Preview Sprite Resolver Prep Contract | DONE | Cadrage documentaire et design-first du futur resolver de sprites d'acteurs statiques. Définition des sources (player settings, npc/trainer mapEntity, cinematicOnly) et de la méthode de résolution de la première frame de l'animation idle. Analyse de la réutilisation de `CinematicTilesetAssetRegistry` pour le chargement d'image asynchrone hors build/paint. Identification des diagnostics et planification des tests V1-98 et Visual Gate V1-99. Aucun code produit modifie, pas de runtime, pas de Flame, pas de playback. |
 | NS-SCENES-V1-98 — Cinematic Actor Display Preview Sprite Resolver V0 | DONE | Implémentation purement logique et synchrone du résolveur de sprites statiques avec tests unitaires de parité complets sans rendu visuel. |
 | NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0 | DONE | Intégrer les sprites acteurs résolus au rendu de la preview du Cinematic Builder avec fallbacks et gestion de profondeur. |
+| NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0 | DONE | Prouver la fidélité visuelle du rendu avec un vrai sprite de personnage (Timi) et des tests robustes de non-platitude et hors-limites. |
 
 ## Prochain lot recommande
 
 `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`
 
-Raison : V1-99 a implémenté l'affichage visuel des sprites d'acteurs statiques. Le prochain verrou logique est de cadrer le playback temporel et le scrubber interactif local pour la future V1-100.
+Raison : V1-99-bis a consolidé la fidélité visuelle de l'affichage du sprite d'acteur. Le prochain verrou logique est de cadrer le playback temporel et le scrubber interactif local pour la future V1-100.
 
-Ordre apres V1-99 : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract` pour le design-first du playback temporel.
+Ordre apres V1-99-bis : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract` pour le design-first du playback temporel.
+
+## Mise a jour V1-99 bis
+
+Statut : `NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0` est DONE.
+
+Demande : Prouver le rendu avec un vrai sprite non plat dans le test de capture et les tests de rendu, interdire le hardcode Selbrume dans `lib/`, vérifier les dimensions du modèle strictement (32x32 tileset / 64x64px frame), et valider les hors-limites avec diagnostic/fallback sans crash.
+
+Decision : Utilisation de `actor_sprite_test_sheet.png` (copie neutre de Timi) dans `test/fixtures/cinematics/`. Rendu configuré en 32x32px par tuile / 64x64px par frame (Timi south-idle). Le test de non-platitude échantillonne les pixels pour confirmer qu'il y a plus de 2 couleurs distinctes (23 couleurs uniques). Validation `sourceRect` hors atlas implémentée côté overlay et renderer avec messages diagnostics explicites (via `debugPrint`) et fallbacks propres.
+
+Preuve : Tous les tests unitaires et widget dans `cinematic_actor_sprite_preview_renderer_test.dart` (21 tests) et `cinematic_builder_workspace_test.dart` passent avec succès. Nouvelle Visual Gate produite montrant le sprite complet de Timi bien aligné et dimensionné.
+
+Limites : preview statique de la première frame idle de l'acteur.
+
+Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
 
 ## Mise a jour V1-99
 
@@ -178,7 +193,7 @@ Preuve : Tests unitaires de rendu écrits dans `cinematic_actor_sprite_preview_r
 
 Limites : Rendu purement statique de la première frame de l'idle, sans playback interactif ni interpolation de mouvement.
 
-Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0`.
 
 ## Mise a jour V1-98
 

@@ -6165,6 +6165,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               spriteRef: spriteRef,
                               tileWidth: resolvedAsset.tileWidth,
                               tileHeight: resolvedAsset.tileHeight,
+                              outOfBoundsColor: colors.error,
                             ),
                           ),
                         )

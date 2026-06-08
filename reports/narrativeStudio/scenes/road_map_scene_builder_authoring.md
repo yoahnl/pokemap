@@ -137,6 +137,7 @@ NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract
 | NS-SCENES-V1-97 | Cinematic Actor Display Preview Sprite Resolver Prep Contract | doc-only / architecture-review | Cadrer le futur resolver de sprites statiques apres preview backdrop lisible et triee V1-96 : sources Character Library/player/mapEntity, frames idle, fallback, diagnostics, cache et anti-scope runtime. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Rapport V1-97, evidence pack, roadmaps. | DONE : contrat sprite resolver editor-only, diagnostic et tests futures. | Charger trop tot des sprites dans core ; confondre sprite statique et animation runtime ; masquer les placeholders incomplets. | DONE : contrat pret pour afficher des acteurs reconnaissables sans lancer la cinematique. | V1-96-bis. |
 | NS-SCENES-V1-98 | Cinematic Actor Display Preview Sprite Resolver V0 | editor / pure-resolver | Implémenter le resolver purement logique et ses tests unitaires de parité associés sans rendu visuel. | Pas de renderer sprite actif, playback, runtime/Flame, actorMove interpolation, pathfinding/collision, mutation Character Library, generation image IA ou donnees Selbrume. | Resolver, tests unitaires, rapports, roadmaps. | DONE : resolver et 9 tests unitaires. | Coupler le resolver à la couche UI ; importer map_runtime ; casser les fallbacks de placeholders. | DONE : resolver logique capable d'associer un acteur à ses coordonnées d'atlas et son tileset. | V1-97. |
 | NS-SCENES-V1-99 | Cinematic Actor Display Preview Sprite Renderer V0 | editor / preview-sandbox | Intégrer les sprites acteurs résolus par V1-98 au rendu de la preview du Cinematic Builder avec fallbacks et gestion de profondeur. | Pas de lecture de fichier synchrone dans le paint, interpolation de mouvement runtime, playback interactif ou données Selbrume. | Preview rendering canvas, actor rendering pass, fallback visuals, rapports, Visual Gate. | DONE : rendu des sprites résolus. | Casser le z-order / Y-sort des calques ; charger l'image pendant le paint ; ignorer les diagnostics de fallback. | DONE : sprites résolus dessinés à leur place respective avec la bonne hauteur et le fallback placeholder respecté. | V1-98. |
+| NS-SCENES-V1-99-bis | Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0 | editor / preview-sandbox-polish | Prouver la fidélité visuelle du rendu avec un vrai sprite de personnage (Timi) et des tests robustes de non-platitude et hors-limites. | Pas de runtime, pas de Flame, pas de playback, pas de modification de code produit dans map_core/map_runtime. | Test non-platitude, test out of bounds color injection, test diagnostic warnings, golden file screenshot updated. | DONE : rendu des sprites avec assets réels. | Ne pas utiliser constructeur avec injection de couleur ; hardcoder les couleurs literals ou la palette Selbrume dans lib/ ; ignorer la dimension 32x32/64x64px. | DONE : Timi visible, tests non-platitude et hors-limites verts, injection correcte de la couleur d'erreur via constructeurs. | V1-99. |
 
 ## Mise a jour V1-94
 
@@ -153,6 +154,20 @@ Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinema
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
+
+## Mise a jour V1-99 bis
+
+Statut : `NS-SCENES-V1-99-bis — Cinematic Actor Sprite Real Asset Fidelity / Visual Gate Polish V0` est DONE.
+
+Demande : Prouver le rendu avec un vrai sprite non plat dans le test de capture et les tests de rendu, interdire le hardcode Selbrume dans `lib/`, vérifier les dimensions du modèle strictement (32x32 tileset / 64x64px frame), et valider les hors-limites avec diagnostic/fallback sans crash.
+
+Decision : Utilisation de `actor_sprite_test_sheet.png` (copie neutre de Timi) dans `test/fixtures/cinematics/`. Rendu configuré en 32x32px par tuile / 64x64px par frame (Timi south-idle). Le test de non-platitude échantillonne les pixels pour confirmer qu'il y a plus de 2 couleurs distinctes (23 couleurs uniques). Validation `sourceRect` hors atlas implémentée côté overlay et renderer avec messages diagnostics explicites (via `debugPrint`) et fallbacks propres.
+
+Preuve : Tous les tests unitaires et widget dans `cinematic_actor_sprite_preview_renderer_test.dart` (21 tests) et `cinematic_builder_workspace_test.dart` passent avec succès. Nouvelle Visual Gate produite montrant le sprite complet de Timi bien aligné et dimensionné.
+
+Limites : preview statique de la première frame idle de l'acteur.
+
+Prochain lot exact recommande : `NS-SCENES-V1-100 — Cinematic Preview Playback Prep Contract`.
 
 ## Mise a jour V1-99
 

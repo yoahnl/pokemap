@@ -132,10 +132,31 @@ class _ActorDisplayPlaceholder extends StatelessWidget {
         tilesetId != null &&
         tilesets![tilesetId]?.isAvailable == true;
 
-    final isSpriteReady =
+    var isSpriteReady =
         spriteActor?.status == CinematicActorSpriteStatus.spriteReady &&
             spriteRef != null &&
             hasSpriteImage;
+
+    if (isSpriteReady) {
+      final asset = tilesets![tilesetId]!;
+      final image = asset.image!;
+      final src = spriteRef.sourceTileRect;
+      final frameW = spriteRef.frameWidthTiles * asset.tileWidth;
+      final frameH = spriteRef.frameHeightTiles * asset.tileHeight;
+      final px = src.x * frameW;
+      final py = src.y * frameH;
+      if (px < 0 ||
+          py < 0 ||
+          px + frameW > image.width ||
+          py + frameH > image.height) {
+        isSpriteReady = false;
+        debugPrint(
+          'WARNING: Actor "${actor.label}" (id: ${actor.actorId}) has a sprite source rect out of bounds. '
+          'Source rect: x=$px, y=$py, width=$frameW, height=$frameH. '
+          'Tileset image size: ${image.width}x${image.height}.',
+        );
+      }
+    }
 
     if (isSpriteReady) {
       spriteWidthOnScreen =
@@ -250,6 +271,7 @@ class _ActorDisplayMarker extends StatelessWidget {
                     spriteRef: spriteActor!.spriteRef!,
                     tileWidth: tilesets![spriteActor!.spriteRef!.tilesetId]!.tileWidth,
                     tileHeight: tilesets![spriteActor!.spriteRef!.tilesetId]!.tileHeight,
+                    outOfBoundsColor: colors.error,
                   ),
                 ),
               ),

@@ -11001,6 +11001,229 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets(
+      'captures V1-99-bis cinematic actor sprite real asset fidelity visual gate polish v0 when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_99_BIS_CAPTURE_REAL_ACTOR_SPRITE_FIDELITY',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    ui.Image? actorImage;
+    await tester.runAsync(() async {
+      final file = File('test/fixtures/cinematics/actor_sprite_test_sheet.png');
+      final bytes = file.readAsBytesSync();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      actorImage = frame.image;
+    });
+
+    // Create a new layer plan with the real actor sprite tileset
+    final newLayerPlan = CinematicMapBackdropLayerRenderPlan(
+      mapWidth: fixture.layerPlan.mapWidth,
+      mapHeight: fixture.layerPlan.mapHeight,
+      tileWidth: fixture.layerPlan.tileWidth,
+      tileHeight: fixture.layerPlan.tileHeight,
+      tilesets: {
+        ...fixture.layerPlan.tilesets,
+        'real_actor_tileset': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'real_actor_tileset',
+          image: actorImage!,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+      },
+      instructions: fixture.layerPlan.instructions,
+      diagnostics: fixture.layerPlan.diagnostics,
+    );
+
+    final professorActor = CinematicActorDisplayPreviewActor(
+      actorId: 'actor_professor',
+      label: 'Professor',
+      role: null,
+      bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+      bindingKind: CinematicActorBindingKind.cinematicOnly,
+      bindingSourceId: null,
+      bindingSourceLabel: null,
+      position: const CinematicActorPreviewPosition(
+        status: CinematicActorPreviewPositionStatus.resolved,
+        sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
+        x: 6,
+        y: 7,
+      ),
+      appearance: const CinematicActorPreviewAppearance(
+        status: CinematicActorPreviewAppearanceStatus.spriteReady,
+        characterId: 'char_professor',
+        tilesetId: 'real_actor_tileset',
+      ),
+      direction: CinematicActorPreviewDirection.south,
+      directionSource: CinematicActorPreviewDirectionSource.actorFace,
+      renderHint: CinematicActorPreviewRenderHint.sprite,
+      diagnostics: const [],
+    );
+
+    final fallbackActor = CinematicActorDisplayPreviewActor(
+      actorId: 'actor_unresolved',
+      label: 'Missing actor',
+      role: null,
+      bindingStatus: CinematicActorDisplayBindingStatus.unbound,
+      bindingKind: CinematicActorBindingKind.unbound,
+      bindingSourceId: null,
+      bindingSourceLabel: null,
+      position: const CinematicActorPreviewPosition(
+        status: CinematicActorPreviewPositionStatus.resolved,
+        sourceKind: CinematicActorPreviewPositionSourceKind.mapEntity,
+        x: 9,
+        y: 7,
+      ),
+      appearance: const CinematicActorPreviewAppearance(
+        status: CinematicActorPreviewAppearanceStatus.missingCharacter,
+        characterId: 'char_missing',
+        tilesetId: 'real_actor_tileset',
+      ),
+      direction: CinematicActorPreviewDirection.north,
+      directionSource: CinematicActorPreviewDirectionSource.fallback,
+      renderHint: CinematicActorPreviewRenderHint.sprite,
+      diagnostics: const [],
+    );
+
+    final actorDisplayModel = CinematicActorDisplayPreviewModel(
+      status: CinematicActorDisplayPreviewStatus.ready,
+      summary: '2 actor(s)',
+      actors: [professorActor, fallbackActor],
+      diagnostics: const [],
+    );
+
+    final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      actors: [
+        CinematicActorSpritePreviewActor(
+          actorId: 'actor_professor',
+          actorLabel: 'Professor',
+          bindingKind: CinematicActorBindingKind.cinematicOnly,
+          position: const GridPos(x: 6, y: 7),
+          direction: CinematicActorPreviewDirection.south,
+          status: CinematicActorSpriteStatus.spriteReady,
+          spriteRef: const CinematicActorSpriteRef(
+            characterId: 'char_professor',
+            tilesetId: 'real_actor_tileset',
+            sourceTileRect: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+            frameWidthTiles: 2,
+            frameHeightTiles: 2,
+            direction: CinematicActorPreviewDirection.south,
+          ),
+          placeholderFallback: false,
+          depthHint: const CinematicActorSpriteDepthHint(
+            tileX: 6,
+            tileY: 7,
+            anchorTileX: 7.0,
+            anchorTileY: 9.0,
+            visualBottom: 9.0,
+            footprintWidthTiles: 2,
+            footprintHeightTiles: 2,
+            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+          ),
+          diagnostics: const [],
+        ),
+        CinematicActorSpritePreviewActor(
+          actorId: 'actor_unresolved',
+          actorLabel: 'Missing actor',
+          bindingKind: CinematicActorBindingKind.unbound,
+          position: const GridPos(x: 9, y: 7),
+          direction: CinematicActorPreviewDirection.north,
+          status: CinematicActorSpriteStatus.missingCharacter,
+          placeholderFallback: true,
+          depthHint: const CinematicActorSpriteDepthHint(
+            tileX: 9,
+            tileY: 7,
+            anchorTileX: 9.5,
+            anchorTileY: 9.0,
+            visualBottom: 9.0,
+            footprintWidthTiles: 1,
+            footprintHeightTiles: 2,
+            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+          ),
+          diagnostics: const [],
+        ),
+      ],
+      diagnostics: const [],
+    );
+
+    final updatedManifest = fixture.project.copyWith(
+      characters: [
+        ...fixture.project.characters,
+        ProjectCharacterEntry(
+          id: 'char_professor',
+          name: 'Professor',
+          tilesetId: 'real_actor_tileset',
+          frameWidth: 2,
+          frameHeight: 2,
+          animations: [
+            CharacterAnimation(
+              state: CharacterAnimationState.idle,
+              direction: EntityFacing.south,
+              frames: [
+                CharacterAnimationFrame(
+                  source: const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                  durationMs: 150,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(updatedManifest, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: newLayerPlan,
+      actorDisplayPreviewModel: actorDisplayModel,
+      actorSpritePreviewPlan: actorSpritePreviewPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-map-backdrop-zoom-in')),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'),
+      ),
+      const Offset(-120, -80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vue scène'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_99_bis_cinematic_actor_display_sprite_renderer_v1.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
