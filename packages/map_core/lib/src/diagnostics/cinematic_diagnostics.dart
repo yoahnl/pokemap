@@ -57,6 +57,9 @@ enum CinematicDiagnosticCode {
   stagePointInvalidCoordinate,
   stagePointOutOfMap,
   stagePointWithoutStageMap,
+  actorInitialPlacementStagePointMissing,
+  actorInitialPlacementStagePointWithoutStageMap,
+  actorInitialPlacementStagePointOutOfMap,
 }
 
 enum CinematicDiagnosticTarget {
@@ -552,6 +555,67 @@ void _diagnoseStageContext(
           suggestedFixLabel: 'Binder cet acteur à une entité de map.',
         ),
       );
+    }
+    if (placement.kind == CinematicActorInitialPlacementKind.stagePoint) {
+      final pointId = placement.stagePointId?.trim();
+      CinematicStagePoint? point;
+      if (pointId != null && pointId.isNotEmpty) {
+        for (final p in stageContext.stagePoints) {
+          if (p.id == pointId) {
+            point = p;
+            break;
+          }
+        }
+      }
+      if (point == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.actorInitialPlacementStagePointMissing,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'Le placement initial de l’acteur "${placement.actorId}" référence un Stage Point inexistant "$pointId".',
+            cinematicId: cinematic.id,
+            referenceId: placement.actorId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Choisir un Stage Point existant ou le recréer.',
+          ),
+        );
+      } else {
+        if (cinematic.mapId == null) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode
+                  .actorInitialPlacementStagePointWithoutStageMap,
+              severity: CinematicDiagnosticSeverity.warning,
+              message:
+                  'Le placement initial de l’acteur "${placement.actorId}" référence un Stage Point alors qu’aucune map stage n’est définie.',
+              cinematicId: cinematic.id,
+              referenceId: placement.actorId,
+              target: CinematicDiagnosticTarget.stageContext,
+              suggestedFixLabel: 'Définir une map stage pour la cinématique.',
+            ),
+          );
+        } else if (mapWidth != null && mapHeight != null) {
+          if (point.x < 0 ||
+              point.x >= mapWidth ||
+              point.y < 0 ||
+              point.y >= mapHeight) {
+            diagnostics.add(
+              CinematicDiagnostic(
+                code: CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap,
+                severity: CinematicDiagnosticSeverity.error,
+                message:
+                    'Le placement initial de l’acteur "${placement.actorId}" référence un Stage Point en dehors des limites de la map ($mapWidth × $mapHeight).',
+                cinematicId: cinematic.id,
+                referenceId: placement.actorId,
+                target: CinematicDiagnosticTarget.stageContext,
+                suggestedFixLabel:
+                    'Repositionner le Stage Point dans les limites de la map.',
+              ),
+            );
+          }
+        }
+      }
     }
   }
 

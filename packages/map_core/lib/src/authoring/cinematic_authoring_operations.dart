@@ -369,6 +369,7 @@ CinematicStageContextAuthoringResult upsertCinematicActorBinding(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   _validateStageContextForAuthoring(cinematic, updatedContext);
   final result = updateCinematicAsset(
@@ -409,6 +410,7 @@ CinematicStageContextAuthoringResult removeCinematicActorBinding(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   final result = updateCinematicAsset(
     project,
@@ -449,6 +451,7 @@ CinematicStageContextAuthoringResult upsertCinematicActorAppearanceBinding(
     actorAppearanceBindings: bindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   _validateStageContextForAuthoring(cinematic, updatedContext);
   final result = updateCinematicAsset(
@@ -489,6 +492,7 @@ CinematicStageContextAuthoringResult removeCinematicActorAppearanceBinding(
     actorAppearanceBindings: bindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   final result = updateCinematicAsset(
     project,
@@ -530,6 +534,7 @@ CinematicStageContextAuthoringResult upsertCinematicActorInitialPlacement(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: placements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   _validateStageContextForAuthoring(cinematic, updatedContext);
   final result = updateCinematicAsset(
@@ -570,6 +575,7 @@ CinematicStageContextAuthoringResult removeCinematicActorInitialPlacement(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: placements,
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
   final result = updateCinematicAsset(
     project,
@@ -616,6 +622,7 @@ CinematicStageContextAuthoringResult upsertCinematicMovementTargetBinding(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: bindings,
+    stagePoints: context.stagePoints,
   );
   _validateStageContextForAuthoring(cinematic, updatedContext);
   final result = updateCinematicAsset(
@@ -656,6 +663,7 @@ CinematicStageContextAuthoringResult removeCinematicMovementTargetBinding(
     actorAppearanceBindings: context.actorAppearanceBindings,
     initialPlacements: context.initialPlacements,
     movementTargetBindings: bindings,
+    stagePoints: context.stagePoints,
   );
   final result = updateCinematicAsset(
     project,
@@ -2085,6 +2093,7 @@ CinematicStageContext? _stageContextWithoutActor(
         .where((placement) => placement.actorId != actorId)
         .toList(growable: false),
     movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
   );
 }
 
@@ -2182,6 +2191,15 @@ void _validateStageContextForAuthoring(
     if (placement.kind ==
         CinematicActorInitialPlacementKind.fromMovementTarget) {
       _requireMovementTarget(cinematic, placement.targetId ?? '');
+    }
+    if (placement.kind == CinematicActorInitialPlacementKind.stagePoint) {
+      if ((placement.stagePointId ?? '').trim().isEmpty) {
+        throw ArgumentError.value(
+          placement.stagePointId,
+          'stagePointId',
+          'Stage point initial placement requires a stage point id.',
+        );
+      }
     }
   }
 

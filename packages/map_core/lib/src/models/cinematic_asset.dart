@@ -37,6 +37,7 @@ enum CinematicActorInitialPlacementKind {
   unset,
   fromMapEntity,
   fromMovementTarget,
+  stagePoint,
 }
 
 enum CinematicMovementTargetBindingKind {
@@ -392,11 +393,13 @@ final class CinematicActorInitialPlacement {
     required String actorId,
     required this.kind,
     String? targetId,
+    String? stagePointId,
   })  : actorId = _requireTrimmed(
           actorId,
           'CinematicActorInitialPlacement.actorId',
         ),
-        targetId = _trimOptional(targetId);
+        targetId = _trimOptional(targetId),
+        stagePointId = _trimOptional(stagePointId);
 
   factory CinematicActorInitialPlacement.fromJson(Map<String, dynamic> json) {
     return CinematicActorInitialPlacement(
@@ -407,18 +410,37 @@ final class CinematicActorInitialPlacement {
         'kind',
       ),
       targetId: _readOptionalString(json, 'targetId'),
+      stagePointId: _readOptionalString(json, 'stagePointId'),
     );
   }
 
   final String actorId;
   final CinematicActorInitialPlacementKind kind;
   final String? targetId;
+  final String? stagePointId;
 
   Map<String, dynamic> toJson() => _withoutNulls({
         'actorId': actorId,
         'kind': kind.name,
         'targetId': targetId,
+        'stagePointId': stagePointId,
       });
+
+  CinematicActorInitialPlacement copyWith({
+    String? actorId,
+    CinematicActorInitialPlacementKind? kind,
+    String? targetId,
+    String? stagePointId,
+    bool clearTargetId = false,
+    bool clearStagePointId = false,
+  }) {
+    return CinematicActorInitialPlacement(
+      actorId: actorId ?? this.actorId,
+      kind: kind ?? this.kind,
+      targetId: clearTargetId ? null : (targetId ?? this.targetId),
+      stagePointId: clearStagePointId ? null : (stagePointId ?? this.stagePointId),
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -426,10 +448,11 @@ final class CinematicActorInitialPlacement {
       other is CinematicActorInitialPlacement &&
           other.actorId == actorId &&
           other.kind == kind &&
-          other.targetId == targetId;
+          other.targetId == targetId &&
+          other.stagePointId == stagePointId;
 
   @override
-  int get hashCode => Object.hash(actorId, kind, targetId);
+  int get hashCode => Object.hash(actorId, kind, targetId, stagePointId);
 }
 
 @immutable

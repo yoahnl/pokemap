@@ -1334,6 +1334,121 @@ void main() {
       expect(outOfMapDiagnostics[1].referenceId, 'point_b');
       expect(outOfMapDiagnostics[2].referenceId, 'point_c');
     });
+
+    test('diagnoses stage point initial placement issues', () {
+      // 1. Valid case
+      final validReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_valid',
+          title: 'Valid',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+        mapWidth: 10,
+        mapHeight: 10,
+      );
+      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointMissing), isEmpty);
+      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointWithoutStageMap), isEmpty);
+      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap), isEmpty);
+
+      // 2. Missing stage point reference
+      final missingReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_missing',
+          title: 'Missing',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: const [],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+      final missingDiag = missingReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointMissing).single;
+      expect(missingDiag.severity, CinematicDiagnosticSeverity.error);
+      expect(missingDiag.referenceId, 'actor_professor');
+
+      // 3. Stage point initial placement without stage map
+      final noMapReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_no_map',
+          title: 'No Map',
+          mapId: null,
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+      final noMapDiag = noMapReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointWithoutStageMap).single;
+      expect(noMapDiag.severity, CinematicDiagnosticSeverity.warning);
+      expect(noMapDiag.referenceId, 'actor_professor');
+
+      // 4. Stage point initial placement out of map bounds
+      final outOfBoundsReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_out_of_bounds',
+          title: 'Out of Bounds',
+          mapId: 'map_lab',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 15, y: 5),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+        mapWidth: 10,
+        mapHeight: 10,
+      );
+      final outOfBoundsDiag = outOfBoundsReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap).single;
+      expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
+      expect(outOfBoundsDiag.referenceId, 'actor_professor');
+    });
   });
 }
 

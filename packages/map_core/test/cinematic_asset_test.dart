@@ -550,5 +550,44 @@ void main() {
       final decoded = CinematicStageContext.fromJson(json);
       expect(decoded.stagePoints.map((p) => p.id).toList(), ['point_a', 'point_b']);
     });
+
+    test('actor initial placement can reference a cinematic stage point', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_stage_point_placement_test',
+        title: 'Stage point placement test',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        stageContext: CinematicStageContext(
+          stagePoints: [
+            CinematicStagePoint(
+              id: 'point_a',
+              label: 'Point A',
+              x: 10.5,
+              y: 20.0,
+            ),
+          ],
+          initialPlacements: [
+            CinematicActorInitialPlacement(
+              actorId: 'actor_professor',
+              kind: CinematicActorInitialPlacementKind.stagePoint,
+              stagePointId: 'point_a',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(steps: const []),
+      );
+
+      final json = jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final decoded = CinematicAsset.fromJson(json);
+
+      expect(decoded.stageContext?.initialPlacements, hasLength(1));
+      final placement = decoded.stageContext!.initialPlacements.single;
+      expect(placement.actorId, 'actor_professor');
+      expect(placement.kind, CinematicActorInitialPlacementKind.stagePoint);
+      expect(placement.stagePointId, 'point_a');
+      expect(jsonEncode(placement.toJson()), isNot(contains('x')));
+      expect(jsonEncode(placement.toJson()), isNot(contains('y')));
+    });
   });
 }

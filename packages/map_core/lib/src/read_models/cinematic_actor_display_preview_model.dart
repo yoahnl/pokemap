@@ -37,6 +37,7 @@ enum CinematicActorPreviewPositionSourceKind {
   mapEntity,
   mapEvent,
   movementTarget,
+  stagePoint,
 }
 
 enum CinematicActorPreviewAppearanceStatus {
@@ -102,6 +103,7 @@ enum CinematicActorDisplayPreviewDiagnosticCode {
   actorDisplayOrphanAppearance,
   actorDisplayOrphanPlacement,
   actorDisplayOrphanMovementTargetBinding,
+  actorDisplayMissingStagePoint,
 }
 
 @immutable
@@ -359,6 +361,7 @@ CinematicActorDisplayPreviewModel buildCinematicActorDisplayPreviewModel({
       placement: placements[actorId],
       movementTargetIds: movementTargets,
       movementTargetBindings: movementTargetBindings,
+      stagePoints: context.stagePoints,
       mapData: canUseMapData ? mapData : null,
       diagnostics: actorDiagnostics,
     );
@@ -550,6 +553,7 @@ CinematicActorPreviewPosition _resolvePosition({
   required CinematicActorInitialPlacement? placement,
   required Set<String> movementTargetIds,
   required Map<String, CinematicMovementTargetBinding> movementTargetBindings,
+  required List<CinematicStagePoint> stagePoints,
   required MapData? mapData,
   required List<CinematicActorDisplayPreviewDiagnostic> diagnostics,
 }) {
@@ -622,7 +626,93 @@ CinematicActorPreviewPosition _resolvePosition({
         mapData: mapData,
         diagnostics: diagnostics,
       ),
+    CinematicActorInitialPlacementKind.stagePoint => _positionFromStagePoint(
+        actorId: actorId,
+        stagePointId: placement.stagePointId,
+        stagePoints: stagePoints,
+        mapData: mapData,
+        diagnostics: diagnostics,
+      ),
   };
+}
+
+CinematicActorPreviewPosition _positionFromStagePoint({
+  required String actorId,
+  required String? stagePointId,
+  required List<CinematicStagePoint> stagePoints,
+  required MapData? mapData,
+  required List<CinematicActorDisplayPreviewDiagnostic> diagnostics,
+}) {
+  final normalizedPointId = stagePointId?.trim();
+  if (normalizedPointId == null || normalizedPointId.isEmpty) {
+    diagnostics.add(
+      CinematicActorDisplayPreviewDiagnostic(
+        code: CinematicActorDisplayPreviewDiagnosticCode
+            .actorDisplayMissingInitialPlacement,
+        severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+        message: 'Le placement initial de l’acteur n’a pas de Stage Point valide.',
+        actorId: actorId,
+      ),
+    );
+    return const CinematicActorPreviewPosition(
+      status: CinematicActorPreviewPositionStatus.missingSource,
+      sourceKind: CinematicActorPreviewPositionSourceKind.stagePoint,
+    );
+  }
+
+  CinematicStagePoint? point;
+  for (final p in stagePoints) {
+    if (p.id == normalizedPointId) {
+      point = p;
+      break;
+    }
+  }
+
+  if (point == null) {
+    diagnostics.add(
+      CinematicActorDisplayPreviewDiagnostic(
+        code: CinematicActorDisplayPreviewDiagnosticCode
+            .actorDisplayMissingStagePoint,
+        severity: CinematicActorDisplayPreviewDiagnosticSeverity.error,
+        message: 'Le Stage Point de placement initial "$normalizedPointId" est introuvable.',
+        actorId: actorId,
+        sourceId: normalizedPointId,
+      ),
+    );
+    return CinematicActorPreviewPosition(
+      status: CinematicActorPreviewPositionStatus.missingSource,
+      sourceKind: CinematicActorPreviewPositionSourceKind.stagePoint,
+      sourceId: normalizedPointId,
+    );
+  }
+
+  final x = point.x.round();
+  final y = point.y.round();
+  final status = (mapData == null || _pointInBounds(x: x, y: y, mapData: mapData))
+      ? CinematicActorPreviewPositionStatus.resolved
+      : CinematicActorPreviewPositionStatus.outOfMapBounds;
+
+  if (status == CinematicActorPreviewPositionStatus.outOfMapBounds) {
+    diagnostics.add(
+      CinematicActorDisplayPreviewDiagnostic(
+        code: CinematicActorDisplayPreviewDiagnosticCode
+            .actorDisplayOutOfMapBounds,
+        severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+        message: 'Position du Stage Point "$normalizedPointId" hors limites de map.',
+        actorId: actorId,
+        sourceId: normalizedPointId,
+      ),
+    );
+  }
+
+  return CinematicActorPreviewPosition(
+    status: status,
+    sourceKind: CinematicActorPreviewPositionSourceKind.stagePoint,
+    x: x,
+    y: y,
+    sourceId: point.id,
+    sourceLabel: point.label,
+  );
 }
 
 CinematicActorPreviewPosition _positionFromMapEntity({

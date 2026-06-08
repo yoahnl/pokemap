@@ -163,20 +163,33 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-102 — Cinematic Preview Point Placement UI V0 | DONE | Visualiser, créer (snappé au centre), sélectionner, déplacer par drag-and-drop (avec contraintes physiques aux limites de la map), renommer et supprimer des Stage Points cinématiques dans la preview et l'inspecteur. |
 | NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment | DONE | Rendre évidente et documentée la pose de points dans la preview cinématique, avec bouton texte clair, active mode banner overlay, empty states, Escape key deactivation et sidebar chip point list section. |
 | NS-SCENES-V1-102-ter — Stage Point Placement Evidence Pack Final Closure | DONE | Clôture documentaire propre et vérifiable de V1-102 + V1-102-bis, avec rapport final conforme, Evidence Pack complet et preuves de Visual Gate par shasum. |
+| NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0 | DONE | Permettre d’utiliser un Stage Point existant comme position initiale d’un acteur cinématique. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`
+`NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
 
-Raison : Maintenant que les points de scène peuvent être placés et configurés visuellement sur la carte preview, le prochain lot logique est de permettre de lier les positions initiales des acteurs à ces points de scène au lieu d'utiliser des coordonnées brutes.
+Raison : Maintenant que les positions initiales des acteurs peuvent être configurées pour pointer vers des Stage Points, l'étape logique suivante est de permettre aux instructions de mouvement (`actorMove`) de la timeline d'utiliser également ces Stage Points comme cibles au lieu de coordonnées brutes.
 
 Ordre apres V1-102 :
-1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0`
+1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
 2. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
 3. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
 4. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
 5. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
 6. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-103
+
+Statut : `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` est DONE.
+
+Demande : Permettre d'utiliser un Stage Point existant comme position initiale d'un acteur cinématique. L'acteur requis doit pouvoir faire référence à un `stagePointId` plutôt que de dupliquer des coordonnées géométriques (compatibilité JSON conservée). Fournir un picker no-code dans l'inspecteur latéral avec coordonnées secondaires et labels clairs. Mettre à jour dynamiquement le rendu statique et les diagnostics si le point de scène est déplacé ou supprimé.
+
+Decision : Ajout du type de placement `CinematicActorInitialPlacementKind.stagePoint` avec `stagePointId` facultatif dans `CinematicActorInitialPlacement`. Résolution dynamique des coordonnées logiques de l'acteur via le read model `CinematicActorDisplayPreviewModel` en parcourant les points de scène actifs de la cinématique. Ajout d'une option de placement par radio dans la barre d'outils d'inspecteur de l'éditeur qui se déplie sur un sélecteur no-code (`_StagePointDropdownPopup`). Implémentation des diagnostics statiques et dynamiques (`actorInitialPlacementStagePointMissing`, `actorInitialPlacementStagePointWithoutStageMap`, `actorInitialPlacementStagePointOutOfMap`).
+
+Preuve : Tous les tests unitaires et widget (y compris `cinematic_builder_workspace_test.dart`) passent sans aucune régression. Génération de la Visual Gate avec le sprite de Timi placé sur un point de scène sous : `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_103_cinematic_actor_initial_placement_from_stage_points_v0.png`.
+
+Limites : Pas de playback visuel ni de liaison directe à actorMove/cibles de mouvement.
 
 ## Mise a jour V1-102 ter
 

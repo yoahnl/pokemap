@@ -4136,11 +4136,13 @@ class _SelectedStagePointInspector extends StatefulWidget {
     required this.point,
     required this.onUpdateStagePoint,
     required this.onRemoveStagePoint,
+    this.onDeselect,
   });
 
   final CinematicStagePoint point;
   final ValueChanged<CinematicStagePoint> onUpdateStagePoint;
   final ValueChanged<String> onRemoveStagePoint;
+  final VoidCallback? onDeselect;
 
   @override
   State<_SelectedStagePointInspector> createState() => _SelectedStagePointInspectorState();
@@ -4214,6 +4216,15 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
                       ),
                 ),
               ),
+              if (widget.onDeselect != null) ...[
+                PokeMapIconButton(
+                  key: const ValueKey('cinematic-stage-point-deselect-btn'),
+                  tooltip: 'Désélectionner le point',
+                  icon: const Icon(CupertinoIcons.xmark_circle),
+                  onPressed: widget.onDeselect,
+                ),
+                const SizedBox(width: 4),
+              ],
               PokeMapIconButton(
                 key: const ValueKey('cinematic-stage-point-delete-btn'),
                 tooltip: 'Supprimer le point de scène',
@@ -4393,6 +4404,7 @@ class _InspectorPlaceholder extends StatelessWidget {
                 point: selectedPoint,
                 onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
                 onRemoveStagePoint: onRemoveStagePoint ?? (_) {},
+                onDeselect: () => onSelectStagePointId?.call(null),
               )
             else ...[
               _StageContextEditor(
@@ -4588,6 +4600,7 @@ class _StageContextEditor extends StatelessWidget {
             onAddMovementTarget: onAddMovementTarget,
             actorSpritePreviewPlan: actorSpritePreviewPlan,
             tilesets: tilesets,
+            selectedStagePointId: selectedStagePointId,
           ),
           const SizedBox(height: 10),
           _StageMovementTargetBindingsSection(
@@ -5414,6 +5427,7 @@ class _StageActorBindingsSection extends StatelessWidget {
     required this.onAddMovementTarget,
     this.actorSpritePreviewPlan,
     this.tilesets,
+    this.selectedStagePointId,
   });
 
   final CinematicAsset asset;
@@ -5430,6 +5444,7 @@ class _StageActorBindingsSection extends StatelessWidget {
   final VoidCallback onAddMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
+  final String? selectedStagePointId;
 
   @override
   Widget build(BuildContext context) {
@@ -5452,6 +5467,7 @@ class _StageActorBindingsSection extends StatelessWidget {
         else
           for (final actor in asset.requiredActors) ...[
             _StageActorBindingRow(
+              key: ValueKey('cinematic-builder-actor-row-${actor.actorId}'),
               actor: actor,
               asset: asset,
               stageContext: stageContext,
@@ -5468,6 +5484,7 @@ class _StageActorBindingsSection extends StatelessWidget {
               onAddMovementTarget: onAddMovementTarget,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
               tilesets: tilesets,
+              selectedStagePointId: selectedStagePointId,
             ),
             const SizedBox(height: 8),
           ],
@@ -5524,6 +5541,7 @@ class _StageOrphanAppearanceBindingNotice extends StatelessWidget {
 
 class _StageActorBindingRow extends StatefulWidget {
   const _StageActorBindingRow({
+    super.key,
     required this.actor,
     required this.asset,
     required this.stageContext,
@@ -5540,6 +5558,7 @@ class _StageActorBindingRow extends StatefulWidget {
     required this.onAddMovementTarget,
     this.actorSpritePreviewPlan,
     this.tilesets,
+    this.selectedStagePointId,
   });
 
   final CinematicActorRef actor;
@@ -5558,6 +5577,7 @@ class _StageActorBindingRow extends StatefulWidget {
   final VoidCallback onAddMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
+  final String? selectedStagePointId;
 
   @override
   State<_StageActorBindingRow> createState() => _StageActorBindingRowState();
@@ -5566,6 +5586,7 @@ class _StageActorBindingRow extends StatefulWidget {
 class _StageActorBindingRowState extends State<_StageActorBindingRow> {
   final _entityDropdownKey = GlobalKey();
   final _targetDropdownKey = GlobalKey();
+  final _stagePointDropdownKey = GlobalKey();
   late final TextEditingController _labelController;
   bool _isExpanded = false;
   bool _isRenaming = false;
@@ -5679,6 +5700,18 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             return 'Repère : $targetLabel';
           }
           return 'Repère de scène';
+        case CinematicActorInitialPlacementKind.stagePoint:
+          String? pointLabel;
+          for (final p in stageContext.stagePoints) {
+            if (p.id == placement.stagePointId) {
+              pointLabel = p.label;
+              break;
+            }
+          }
+          if (pointLabel != null) {
+            return 'Point de scène : $pointLabel';
+          }
+          return 'Point de scène';
       }
     }();
 
@@ -6083,6 +6116,84 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                   ),
                                 ),
                               ),
+                            ],
+                          )
+                        : null,
+                  ),
+                  _RedesignedRadioCard(
+                    keyValue: 'cinematic-builder-initial-placement-${actor.actorId}-stagePoint',
+                    title: 'Depuis point de scène',
+                    subtext: widget.stageContext.stagePoints.isEmpty
+                        ? 'Aucun point de scène disponible. Crée d’abord un point dans la preview avec Ajouter un point.'
+                        : 'Placer l’acteur sur un point de scène (Stage Point) existant',
+                    selected: placement?.kind == CinematicActorInitialPlacementKind.stagePoint,
+                    disabled: widget.stageContext.stagePoints.isEmpty,
+                    onPressed: () {
+                      // V1-103: Select the first stage point by default when
+                      // switching to stagePoint placement. The user can change
+                      // via the "Changer" button. No auto-popup — simpler UX.
+                      final pointId = placement?.stagePointId ??
+                          (widget.stageContext.stagePoints.isNotEmpty
+                              ? widget.stageContext.stagePoints.first.id
+                              : '');
+                      widget.onUpsertActorInitialPlacement(
+                        CinematicActorInitialPlacement(
+                          actorId: actor.actorId,
+                          kind: CinematicActorInitialPlacementKind.stagePoint,
+                          stagePointId: pointId,
+                        ),
+                      );
+                    },
+                    child: placement?.kind == CinematicActorInitialPlacementKind.stagePoint
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _SubSelectorBox(
+                                key: _stagePointDropdownKey,
+                                label: 'Point',
+                                value: () {
+                                  String? pointLabel;
+                                  for (final p in widget.stageContext.stagePoints) {
+                                    if (p.id == placement!.stagePointId) {
+                                      pointLabel = p.label;
+                                      break;
+                                    }
+                                  }
+                                  return pointLabel ?? 'Choisir un point';
+                                }(),
+                                onChangerPressed: () => _showStagePointDropdown(
+                                  context,
+                                  _stagePointDropdownKey,
+                                  widget.stageContext.stagePoints,
+                                  placement?.stagePointId,
+                                ),
+                              ),
+                              if (widget.selectedStagePointId != null &&
+                                  widget.stageContext.stagePoints.any((p) => p.id == widget.selectedStagePointId)) ...[
+                                const SizedBox(height: 8),
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      widget.onUpsertActorInitialPlacement(
+                                        CinematicActorInitialPlacement(
+                                          actorId: actor.actorId,
+                                          kind: CinematicActorInitialPlacementKind.stagePoint,
+                                          stagePointId: widget.selectedStagePointId,
+                                        ),
+                                      );
+                                    },
+                                    child: Text(
+                                      'Utiliser le point sélectionné',
+                                      style: TextStyle(
+                                        color: colors.brandPrimary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ],
                           )
                         : null,
@@ -6923,6 +7034,91 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
     Overlay.of(context).insert(entry);
   }
 
+  void _showStagePointDropdown(
+    BuildContext context,
+    GlobalKey dropdownKey,
+    List<CinematicStagePoint> points,
+    String? selectedPointId,
+  ) {
+    final box = dropdownKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
+    final position = box.localToGlobal(Offset.zero);
+    final size = box.size;
+    final colors = context.pokeMapColors;
+
+    late OverlayEntry entry;
+
+    void dismiss() {
+      if (entry.mounted) {
+        entry.remove();
+      }
+    }
+
+    entry = OverlayEntry(
+      builder: (ctx) {
+        final overlayBox =
+            Overlay.of(ctx).context.findRenderObject() as RenderBox;
+        final maxH = overlayBox.size.height;
+        final maxW = overlayBox.size.width;
+
+        var left = position.dx;
+        var top = position.dy + size.height + 4;
+
+        const menuWidth = 280.0;
+        if (left + menuWidth > maxW - 8) {
+          left = maxW - menuWidth - 8;
+        }
+        if (left < 8) left = 8;
+
+        final estimatedHeight =
+            (points.length * 44.0 + 8.0).clamp(100.0, 320.0);
+        if (top + estimatedHeight > maxH - 8) {
+          top = position.dy - estimatedHeight - 4;
+        }
+        if (top < 8) top = 8;
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (_) => dismiss(),
+              ),
+            ),
+            Positioned(
+              left: left,
+              top: top,
+              child: Material(
+                color: Colors.transparent,
+                child: _StagePointDropdownPopup(
+                  keyPrefix:
+                      'cinematic-builder-initial-placement-${widget.actor.actorId}',
+                  points: points,
+                  selectedPointId: selectedPointId,
+                  colors: colors,
+                  width: menuWidth,
+                  height: estimatedHeight,
+                  onPointSelected: (point) {
+                    dismiss();
+                    widget.onUpsertActorInitialPlacement(
+                      CinematicActorInitialPlacement(
+                        actorId: widget.actor.actorId,
+                        kind: CinematicActorInitialPlacementKind.stagePoint,
+                        stagePointId: point.id,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(entry);
+  }
+
   void _showCharacterDropdown(
     BuildContext context,
     BuildContext dropdownContext,
@@ -7206,6 +7402,7 @@ class _SubSelectorBox extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   value,
+                  key: const ValueKey('cinematic-builder-subselector-value'),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,
                   style: TextStyle(
@@ -7321,6 +7518,112 @@ class _TargetDropdownPopup extends StatelessWidget {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+                  ],
+                ),
+              ),
+              if (isSelected)
+                Icon(
+                  CupertinoIcons.checkmark,
+                  size: 12,
+                  color: colors.brandPrimary,
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StagePointDropdownPopup extends StatelessWidget {
+  const _StagePointDropdownPopup({
+    required this.keyPrefix,
+    required this.points,
+    required this.selectedPointId,
+    required this.colors,
+    required this.width,
+    required this.height,
+    required this.onPointSelected,
+  });
+
+  final String keyPrefix;
+  final List<CinematicStagePoint> points;
+  final String? selectedPointId;
+  final PokeMapColorTokens colors;
+  final double width;
+  final double height;
+  final ValueChanged<CinematicStagePoint> onPointSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colors.surfaceRaised,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.borderStrong),
+        boxShadow: [
+          BoxShadow(
+            color: colors.borderStrong.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ListView(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          children: [
+            for (final point in points) _buildItem(point),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildItem(CinematicStagePoint point) {
+    final isSelected = selectedPointId == point.id;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        key: ValueKey('$keyPrefix-point-${point.id}'),
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onPointSelected(point),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          color: isSelected ? colors.surfaceSelected : colors.surfaceSelected.withValues(alpha: 0),
+          child: Row(
+            children: [
+              Icon(
+                CupertinoIcons.location_solid,
+                size: 14,
+                color: isSelected ? colors.brandPrimary : colors.textMuted,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      point.label,
+                      style: TextStyle(
+                        color: isSelected
+                            ? colors.brandPrimary
+                            : colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w800 : FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      'x: ${point.x.toStringAsFixed(2)}, y: ${point.y.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
                   ],
                 ),
               ),

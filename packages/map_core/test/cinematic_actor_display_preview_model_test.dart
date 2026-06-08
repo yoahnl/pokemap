@@ -757,6 +757,84 @@ void main() {
         }
       }
     });
+
+    test('resolves actor position from stage point', () {
+      final model = buildCinematicActorDisplayPreviewModel(
+        cinematic: _cinematic(
+          requiredActors: [_actor('actor_professor')],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(
+                id: 'point_a',
+                label: 'Point A',
+                x: 4.2,
+                y: 6.8,
+              ),
+            ],
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+        ),
+        project: _project(),
+        stageMap: _stageMap(),
+        mapData: _mapData(),
+      );
+
+      final actor = model.actorById('actor_professor')!;
+      expect(actor.position.status, CinematicActorPreviewPositionStatus.resolved);
+      expect(actor.position.x, 4); // 4.2 rounded
+      expect(actor.position.y, 7); // 6.8 rounded
+      expect(actor.position.sourceId, 'point_a');
+      expect(actor.position.sourceLabel, 'Point A');
+      expect(actor.position.sourceKind, CinematicActorPreviewPositionSourceKind.stagePoint);
+    });
+
+    test('actor display reports missing stage point and does not invent coordinates', () {
+      final model = buildCinematicActorDisplayPreviewModel(
+        cinematic: _cinematic(
+          requiredActors: [_actor('actor_professor')],
+          stageContext: CinematicStageContext(
+            stagePoints: const [],
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_professor',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'point_a',
+              ),
+            ],
+          ),
+        ),
+        project: _project(),
+        stageMap: _stageMap(),
+        mapData: _mapData(),
+      );
+
+      final actor = model.actorById('actor_professor')!;
+      expect(actor.position.status, CinematicActorPreviewPositionStatus.missingSource);
+      expect(actor.position.x, isNull);
+      expect(actor.position.y, isNull);
+      expect(
+        actor.diagnostics.map((d) => d.code),
+        contains(CinematicActorDisplayPreviewDiagnosticCode.actorDisplayMissingStagePoint),
+      );
+    });
   });
 }
 

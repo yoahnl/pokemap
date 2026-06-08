@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0
+NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0
 ```
 
 ## Principes
@@ -154,6 +154,20 @@ Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinema
 Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
 
 Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
+
+## Mise a jour V1-103
+
+Statut : `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` est DONE.
+
+Demande : Permettre d'utiliser un Stage Point existant comme position initiale d'un acteur cinématique. L'acteur requis doit pouvoir faire référence à un `stagePointId` plutôt que de dupliquer des coordonnées géométriques (compatibilité JSON conservée). Fournir un picker no-code dans l'inspecteur latéral avec coordonnées secondaires et labels clairs. Mettre à jour dynamiquement le rendu statique et les diagnostics si le point de scène est déplacé ou supprimé.
+
+Decision : Ajout du type de placement `CinematicActorInitialPlacementKind.stagePoint` avec `stagePointId` facultatif dans `CinematicActorInitialPlacement`. Résolution dynamique des coordonnées logiques de l'acteur via le read model `CinematicActorDisplayPreviewModel` en parcourant les points de scène actifs de la cinématique. Ajout d'une option de placement par radio dans la barre d'outils d'inspecteur de l'éditeur qui se déplie sur un sélecteur no-code (`_StagePointDropdownPopup`). Implémentation des diagnostics statiques et dynamiques (`actorInitialPlacementStagePointMissing`, `actorInitialPlacementStagePointWithoutStageMap`, `actorInitialPlacementStagePointOutOfMap`).
+
+Preuve : Tous les tests unitaires et widget (y compris `cinematic_builder_workspace_test.dart`) passent sans aucune régression. Génération de la Visual Gate avec le sprite de Timi placé sur un point de scène sous : `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_103_cinematic_actor_initial_placement_from_stage_points_v0.png`.
+
+Limites : Pas de playback visuel ni de liaison directe à actorMove/cibles de mouvement.
+
+Prochain lot exact recommande : `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`.
 
 ## Mise a jour V1-102 ter
 

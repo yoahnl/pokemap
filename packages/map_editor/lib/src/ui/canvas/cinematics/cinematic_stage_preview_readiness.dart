@@ -387,6 +387,24 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
         'une entrée de scène pointe vers une cible absente',
       );
     }
+    if (placement.kind == CinematicActorInitialPlacementKind.stagePoint) {
+      final pointId = placement.stagePointId;
+      if (pointId == null || pointId.trim().isEmpty) {
+        return _item(
+          'Positions initiales',
+          CinematicStagePreviewReadinessItemKind.incomplete,
+          '${_actorDisplayLabel(actor)} attend une sélection de Stage Point',
+        );
+      }
+      final hasPoint = context.stagePoints.any((p) => p.id == pointId);
+      if (!hasPoint) {
+        return _item(
+          'Positions initiales',
+          CinematicStagePreviewReadinessItemKind.blocking,
+          '${_actorDisplayLabel(actor)} pointe vers un Stage Point inexistant',
+        );
+      }
+    }
     if (placement.kind == CinematicActorInitialPlacementKind.fromMapEntity) {
       final binding = _actorBindingFor(context, actor.actorId);
       if (binding?.kind != CinematicActorBindingKind.mapEntity ||
@@ -800,6 +818,12 @@ String _humanStageDiagnosticMessage(
       'Cette entrée de scène pointe vers une cible absente.',
     'actorInitialPlacementRequiresBinding' =>
       'Lie l’acteur avant d’utiliser son entité de map comme entrée.',
+    'actorInitialPlacementStagePointMissing' =>
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point inexistant.',
+    'actorInitialPlacementStagePointWithoutStageMap' =>
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point alors qu’aucune map stage n’est définie.',
+    'actorInitialPlacementStagePointOutOfMap' =>
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point en dehors des limites de la map.',
     'movementTargetBindingUnknownTarget' =>
       'Cette cible de mouvement n’existe plus.',
     'movementTargetBindingRequiresStageMap' =>
@@ -868,4 +892,7 @@ const _stageDiagnosticCodes = <String>{
   'stagePointInvalidCoordinate',
   'stagePointOutOfMap',
   'stagePointWithoutStageMap',
+  'actorInitialPlacementStagePointMissing',
+  'actorInitialPlacementStagePointWithoutStageMap',
+  'actorInitialPlacementStagePointOutOfMap',
 };
