@@ -166,6 +166,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0 | DONE | Permettre d’utiliser un Stage Point existant comme position initiale d’un acteur cinématique. |
 | NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure | DONE | Clôture documentaire, vérification de la vérité visuelle (apparence non définie, placeholder de l'acteur Timi sur Point 1, diagnostic de timeline) et validation des tests et de l'analyse statique sans modification du code produit. |
 | NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0 | DONE | Permettre à une instruction cinématique `actorMove` d’utiliser un Stage Point existant comme cible de déplacement. |
+| NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure | DONE | Clôture documentaire, vérification de la vérité visuelle et validation des tests et de l'analyse statique sans modification du code produit. |
 
 ## Prochain lot recommande
 
@@ -177,10 +178,19 @@ Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
 2. `NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure` (DONE)
 3. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` (DONE)
-4. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
-5. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
-6. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
-7. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+4. `NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure` (DONE)
+5. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
+6. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
+7. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
+8. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-104 bis
+
+Statut : `NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure` est DONE.
+
+Demande : Clôturer V1-104 proprement sans modifier le code produit.
+
+Decision : Signature et vérification de la Visual Gate (SHA-256 Checksum : `a01124aec87923eb30257a889b4ac1348da0694cf8024dc345dcf6367cdeebcd`). Exécution et rapports de tests unitaires et widget (100% verts). Analyse statique détaillée. Justification alternative du build (tests widget complets + compilation Xcode validée).
 
 ## Mise a jour V1-104
 

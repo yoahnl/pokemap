@@ -49,7 +49,7 @@ La Visual Gate a été générée via le test de golden file sous :
 Preuves du fichier généré :
 - **Taille** : 304K
 - **Format** : PNG image data, 1663 x 926, 8-bit/color RGBA
-- **SHA-256 Checksum** : `ffbd6fe9f0ffdf231656f0acffb2007dbae69529449827e43838bf5896087049`
+- **SHA-256 Checksum** : `a01124aec87923eb30257a889b4ac1348da0694cf8024dc345dcf6367cdeebcd` (régénéré localement ; d'origine `ffbd6fe9f0ffdf231656f0acffb2007dbae69529449827e43838bf5896087049`)
 
 *Note sur les diagnostics de la Visual Gate* : Contrairement à V1-103 où l'actorMove `target_center` générait un avertissement de cible non résolue (binding manquant), la liaison de la cible `Centre scène` au point valide `Point 2` fait disparaître ce diagnostic spécifique de la liste.
 

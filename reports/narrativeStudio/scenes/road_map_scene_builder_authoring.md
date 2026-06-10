@@ -155,6 +155,15 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-103 | Cinematic Actor Initial Placement from Stage Points V0 | core / editor | Utiliser un Stage Point comme position initiale pour acteur cinématique. Picker no-code, résolution dynamique des coordonnées. | Pas de playback, pas de liaison target mouvement. | `CinematicActorInitialPlacementKind.stagePoint`. | DONE : Tests verts, Visual Gate avec sprite de Timi sur point de scène. | Découplage de la géométrie fixe. | DONE : placement dynamique et diagnostiqué. | V1-102-ter. |
 | NS-SCENES-V1-103-bis | Actor Initial Placement Stage Point Evidence Closure | review / doc | Clôture documentaire du pack de preuves de V1-103. | Aucun code produit modifié. | Rapport final. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-103. |
 | NS-SCENES-V1-104 | Cinematic ActorMove Target from Stage Points V0 | core / editor | Utiliser un Stage Point comme cible de déplacement pour `actorMove`. Transition propre entre types de cibles. | Pas d'interpolation interactive, pas de tracé graphique. | `CinematicMovementTargetBindingKind`. | DONE : Tests 100% verts, diagnostic target. | Gestion des valeurs zombies. | DONE : target authorable par point de scène, validé. | V1-103-bis. |
+| NS-SCENES-V1-104-bis | ActorMove Stage Point Target Evidence / Quality Gate Closure | review / doc | Clôture documentaire et Evidence Pack pour V1-104. | Aucun code produit modifié. | Rapport final, Evidence Pack. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-104. |
+
+## Mise a jour V1-104 bis
+
+Statut : `NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure` est DONE.
+
+Demande : Clôturer proprement et documenter le pack de preuves de V1-104 sans modifier le code produit.
+
+Decision : Rédaction du rapport final de clôture bis et de l'Evidence Pack. Exécution des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum de la Visual Gate (1663x926, aucun diagnostic).
 
 ## Mise a jour V1-104
 
