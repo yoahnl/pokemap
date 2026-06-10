@@ -14802,8 +14802,8 @@
           },
           {
             "actorId": "actor_4",
-            "kind": "fromMovementTarget",
-            "targetId": "target"
+            "kind": "stagePoint",
+            "stagePointId": "stage_point_1"
           }
         ],
         "movementTargetBindings": [
@@ -14816,8 +14816,8 @@
           {
             "id": "stage_point_1",
             "label": "Point 1",
-            "x": 17.5,
-            "y": 24.5
+            "x": 11.5,
+            "y": 23.5
           }
         ]
       },
@@ -14827,7 +14827,7 @@
             "id": "step_wait",
             "kind": "wait",
             "label": "Attente",
-            "durationMs": 1000,
+            "durationMs": 700,
             "metadata": {
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
@@ -14853,7 +14853,7 @@
             "id": "step_actor_move_2",
             "kind": "actorMove",
             "label": "Déplacement Acteur",
-            "durationMs": 700,
+            "durationMs": 200,
             "actorId": "actor",
             "targetId": "target",
             "metadata": {
