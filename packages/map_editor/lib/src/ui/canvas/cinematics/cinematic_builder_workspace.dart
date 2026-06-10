@@ -353,6 +353,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     final selectedStepIndex = selectedStep == null
         ? null
         : widget.asset.timeline.steps.indexOf(selectedStep);
+    final readiness = buildCinematicStagePreviewReadiness(
+      asset: widget.asset,
+      entry: widget.entry,
+      maps: widget.stageMaps,
+      characters: widget.characters,
+      stageMapSourceCatalog: widget.stageMapSourceCatalog,
+      mapWidth: widget.backdropPreviewModel?.mapWidth,
+      mapHeight: widget.backdropPreviewModel?.mapHeight,
+    );
+
     return Material(
       type: MaterialType.transparency,
       child: PokeMapPageSurface(
@@ -374,224 +384,230 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
             return KeyEventResult.ignored;
           },
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _BuilderHeader(
-              entry: widget.entry,
-              onBackToLibrary: widget.onBackToLibrary,
-            ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: 250,
-                    child: _BlockPalette(
-                      entry: widget.entry,
-                      asset: widget.asset,
-                      onAddBasicBlock: _addBasicBlock,
-                      onAddRequiredActor: _addRequiredActor,
-                      onAddMovementTarget: _addMovementTarget,
-                      onUpdateMovementTarget: _updateMovementTarget,
-                      onRemoveMovementTarget: _removeMovementTarget,
-                      onAddActorFacing: _addActorFacing,
-                      onAddActorMove: _addActorMove,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final timelineHeight = _builderTimelineHeight(
-                          constraints.maxHeight,
-                          hasBackdrop: widget.backdropPreviewModel != null,
-                        );
-                        final previewHeight = math.max(
-                          0.0,
-                          constraints.maxHeight -
-                              _builderTimelineGap -
-                              timelineHeight,
-                        );
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            SizedBox(
-                              height: previewHeight,
-                              child: _PreviewSandbox(
-                                entry: widget.entry,
-                                asset: widget.asset,
-                                backdropPreviewModel:
-                                    widget.backdropPreviewModel,
-                                backdropTileRenderPlan:
-                                    widget.backdropTileRenderPlan,
-                                backdropLayerRenderPlan:
-                                    widget.backdropLayerRenderPlan,
-                                actorDisplayPreviewModel:
-                                    widget.actorDisplayPreviewModel,
-                                actorSpritePreviewPlan:
-                                    widget.actorSpritePreviewPlan,
-                                backdropFramingState: _backdropFramingState,
-                                stagePoints: widget.asset.stageContext?.stagePoints ?? const [],
-                                selectedStagePointId: _selectedStagePointId,
-                                addStagePointMode: _addStagePointMode,
-                                onSelectStagePointId: (id) {
-                                  setState(() {
-                                    _selectedStagePointId = id;
-                                  });
-                                },
-                                onUpdateStagePoint: _updateStagePoint,
-                                onAddStagePointAtTile: _addStagePointAtTile,
-                                onAddStagePointModeChanged: (val) {
-                                  setState(() {
-                                    _addStagePointMode = val;
-                                  });
-                                },
-                                onBackdropFramingModeChanged: (mode) {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      mode: mode,
-                                      panTiles: Offset.zero,
-                                    );
-                                  });
-                                },
-                                onBackdropFramingZoomChanged: (zoom) {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      zoom: zoom,
-                                    );
-                                  });
-                                },
-                                onBackdropFramingPanChanged: (panTiles) {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      panTiles: panTiles,
-                                    );
-                                  });
-                                },
-                                onBackdropFramingResetView: () {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      zoom: CinematicBackdropPreviewFramingState
-                                          .minZoom,
-                                      panTiles: Offset.zero,
-                                    );
-                                  });
-                                },
-                                onBackdropFramingDetailsChanged: (showDetails) {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      showDetails: showDetails,
-                                    );
-                                  });
-                                },
-                                onBackdropFramingGridChanged: (showGrid) {
-                                  setState(() {
-                                    _backdropFramingState =
-                                        _backdropFramingState.copyWith(
-                                      showGrid: showGrid,
-                                    );
-                                  });
-                                },
-                                selectedStep: selectedStep,
-                                selectedStepIndex: selectedStepIndex,
-                                timelineProbeTimeMs: _timelineProbeTimeMs,
-                              ),
-                            ),
-                            const SizedBox(height: _builderTimelineGap),
-                            SizedBox(
-                              height: timelineHeight,
-                              child: _TimelinePlaceholder(
-                                entry: widget.entry,
-                                asset: widget.asset,
-                                selectedStepId: _selectedStepId,
-                                timelineProbeTimeMs: _timelineProbeTimeMs,
-                                timelineProbeSnapHint: _timelineProbeSnapHint,
-                                onStepSelected: (step) {
-                                  setState(() {
-                                    _selectedStepId = step.id;
-                                    _timelineProbeTimeMs = null;
-                                    _timelineProbeSnapHint = null;
-                                  });
-                                },
-                                onTimelineProbeChanged: (probe) {
-                                  setState(() {
-                                    _timelineProbeTimeMs = probe.timeMs;
-                                    _timelineProbeSnapHint = probe.snapHint;
-                                  });
-                                },
-                                onTimelineProbeCleared: () {
-                                  setState(() {
-                                    _timelineProbeTimeMs = null;
-                                    _timelineProbeSnapHint = null;
-                                  });
-                                },
-                                onStepDurationResized:
-                                    _resizeTimelineStepDuration,
-                                onAddDraftStep: _addDraftStep,
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 300,
-                    child: _InspectorPlaceholder(
-                      entry: widget.entry,
-                      asset: widget.asset,
-                      stageMaps: widget.stageMaps,
-                      groups: widget.groups,
-                      characters: widget.characters,
-                      stageMapSourceCatalog: widget.stageMapSourceCatalog,
-                      selectedStep: selectedStep,
-                      selectedStepIndex: selectedStepIndex,
-                      startExpanded: widget.startExpanded,
-                      onUpdateStageMap: _updateStageMap,
-                      onUpdateStageContext: _updateStageContext,
-                      onRenameRequiredActor: _renameRequiredActor,
-                      onRemoveRequiredActor: _removeRequiredActor,
-                      onUpsertActorBinding: _upsertActorBinding,
-                      onUpsertActorAppearanceBinding:
-                          _upsertActorAppearanceBinding,
-                      onRemoveActorAppearanceBinding:
-                          _removeActorAppearanceBinding,
-                      onUpsertActorInitialPlacement:
-                          _upsertActorInitialPlacement,
-                      onUpsertMovementTargetBinding:
-                          _upsertMovementTargetBinding,
-                      onRemoveDraftStep: _removeDraftStep,
-                      onUpdateBasicBlock: _updateBasicBlock,
-                      onUpdateActorFacing: _updateActorFacing,
-                      onUpdateActorMove: _updateActorMove,
-                      onRemoveAuthoringStep: _removeAuthoringStep,
-                      onAddMovementTarget: _addMovementTarget,
-                      actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
-                      tilesets: widget.tilesets,
-                      selectedStagePointId: _selectedStagePointId,
-                      onSelectStagePointId: (id) {
-                        setState(() {
-                          _selectedStagePointId = id;
-                        });
-                      },
-                      onUpdateStagePoint: _updateStagePoint,
-                      onRemoveStagePoint: _removeStagePoint,
-                      mapWidth: widget.backdropPreviewModel?.mapWidth,
-                      mapHeight: widget.backdropPreviewModel?.mapHeight,
-                    ),
-                  ),
-                ],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _BuilderHeader(
+                entry: widget.entry,
+                onBackToLibrary: widget.onBackToLibrary,
+                readiness: readiness,
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 250,
+                      child: _BlockPalette(
+                        entry: widget.entry,
+                        asset: widget.asset,
+                        onAddBasicBlock: _addBasicBlock,
+                        onAddRequiredActor: _addRequiredActor,
+                        onAddMovementTarget: _addMovementTarget,
+                        onUpdateMovementTarget: _updateMovementTarget,
+                        onRemoveMovementTarget: _removeMovementTarget,
+                        onAddActorFacing: _addActorFacing,
+                        onAddActorMove: _addActorMove,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final timelineHeight = _builderTimelineHeight(
+                            constraints.maxHeight,
+                            hasBackdrop: widget.backdropPreviewModel != null,
+                          );
+                          final previewHeight = math.max(
+                            0.0,
+                            constraints.maxHeight -
+                                _builderTimelineGap -
+                                timelineHeight,
+                          );
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SizedBox(
+                                height: previewHeight,
+                                child: _PreviewSandbox(
+                                  entry: widget.entry,
+                                  asset: widget.asset,
+                                  backdropPreviewModel:
+                                      widget.backdropPreviewModel,
+                                  backdropTileRenderPlan:
+                                      widget.backdropTileRenderPlan,
+                                  backdropLayerRenderPlan:
+                                      widget.backdropLayerRenderPlan,
+                                  actorDisplayPreviewModel:
+                                      widget.actorDisplayPreviewModel,
+                                  actorSpritePreviewPlan:
+                                      widget.actorSpritePreviewPlan,
+                                  backdropFramingState: _backdropFramingState,
+                                  stagePoints: widget.asset.stageContext?.stagePoints ?? const [],
+                                  selectedStagePointId: _selectedStagePointId,
+                                  addStagePointMode: _addStagePointMode,
+                                  onSelectStagePointId: (id) {
+                                    setState(() {
+                                      _selectedStagePointId = id;
+                                    });
+                                  },
+                                  onUpdateStagePoint: _updateStagePoint,
+                                  onAddStagePointAtTile: _addStagePointAtTile,
+                                  onAddStagePointModeChanged: (val) {
+                                    setState(() {
+                                      _addStagePointMode = val;
+                                    });
+                                  },
+                                  onBackdropFramingModeChanged: (mode) {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        mode: mode,
+                                        panTiles: Offset.zero,
+                                      );
+                                    });
+                                  },
+                                  onBackdropFramingZoomChanged: (zoom) {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        zoom: zoom,
+                                      );
+                                    });
+                                  },
+                                  onBackdropFramingPanChanged: (panTiles) {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        panTiles: panTiles,
+                                      );
+                                    });
+                                  },
+                                  onBackdropFramingResetView: () {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        zoom: CinematicBackdropPreviewFramingState
+                                            .minZoom,
+                                        panTiles: Offset.zero,
+                                      );
+                                    });
+                                  },
+                                  onBackdropFramingDetailsChanged: (showDetails) {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        showDetails: showDetails,
+                                      );
+                                    });
+                                  },
+                                  onBackdropFramingGridChanged: (showGrid) {
+                                    setState(() {
+                                      _backdropFramingState =
+                                          _backdropFramingState.copyWith(
+                                        showGrid: showGrid,
+                                      );
+                                    });
+                                  },
+                                  selectedStep: selectedStep,
+                                  selectedStepIndex: selectedStepIndex,
+                                  timelineProbeTimeMs: _timelineProbeTimeMs,
+                                  readiness: readiness,
+                                ),
+                              ),
+                              const SizedBox(height: _builderTimelineGap),
+                              SizedBox(
+                                height: timelineHeight,
+                                child: _TimelinePlaceholder(
+                                  entry: widget.entry,
+                                  asset: widget.asset,
+                                  selectedStepId: _selectedStepId,
+                                  timelineProbeTimeMs: _timelineProbeTimeMs,
+                                  timelineProbeSnapHint: _timelineProbeSnapHint,
+                                  onStepSelected: (step) {
+                                    setState(() {
+                                      _selectedStepId = step.id;
+                                      _timelineProbeTimeMs = null;
+                                      _timelineProbeSnapHint = null;
+                                    });
+                                  },
+                                  onTimelineProbeChanged: (probe) {
+                                    setState(() {
+                                      _timelineProbeTimeMs = probe.timeMs;
+                                      _timelineProbeSnapHint = probe.snapHint;
+                                    });
+                                  },
+                                  onTimelineProbeCleared: () {
+                                    setState(() {
+                                      _timelineProbeTimeMs = null;
+                                      _timelineProbeSnapHint = null;
+                                    });
+                                  },
+                                  onStepDurationResized:
+                                      _resizeTimelineStepDuration,
+                                  onAddDraftStep: _addDraftStep,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 300,
+                      child: _InspectorPlaceholder(
+                        entry: widget.entry,
+                        asset: widget.asset,
+                        stageMaps: widget.stageMaps,
+                        groups: widget.groups,
+                        characters: widget.characters,
+                        stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                        selectedStep: selectedStep,
+                        selectedStepIndex: selectedStepIndex,
+                        startExpanded: widget.startExpanded,
+                        onUpdateStageMap: _updateStageMap,
+                        onUpdateStageContext: _updateStageContext,
+                        onRenameRequiredActor: _renameRequiredActor,
+                        onRemoveRequiredActor: _removeRequiredActor,
+                        onUpsertActorBinding: _upsertActorBinding,
+                        onUpsertActorAppearanceBinding:
+                            _upsertActorAppearanceBinding,
+                        onRemoveActorAppearanceBinding:
+                            _removeActorAppearanceBinding,
+                        onUpsertActorInitialPlacement:
+                            _upsertActorInitialPlacement,
+                        onUpsertMovementTargetBinding:
+                            _upsertMovementTargetBinding,
+                        onRemoveDraftStep: _removeDraftStep,
+                        onUpdateBasicBlock: _updateBasicBlock,
+                        onUpdateActorFacing: _updateActorFacing,
+                        onUpdateActorMove: _updateActorMove,
+                        onRemoveAuthoringStep: _removeAuthoringStep,
+                        onAddRequiredActor: _addRequiredActor,
+                        onUpdateMovementTarget: _updateMovementTarget,
+                        onRemoveMovementTarget: _removeMovementTarget,
+                        onAddMovementTarget: _addMovementTarget,
+                        actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
+                        tilesets: widget.tilesets,
+                        selectedStagePointId: _selectedStagePointId,
+                        onSelectStagePointId: (id) {
+                          setState(() {
+                            _selectedStagePointId = id;
+                          });
+                        },
+                        onUpdateStagePoint: _updateStagePoint,
+                        onRemoveStagePoint: _removeStagePoint,
+                        mapWidth: widget.backdropPreviewModel?.mapWidth,
+                        mapHeight: widget.backdropPreviewModel?.mapHeight,
+                        readiness: readiness,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -736,10 +752,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     final id = _generateUniqueStagePointId(existing);
     final count = existing.length + 1;
     int labelIndex = count;
-    while (existing.any((p) => p.label == 'Point $labelIndex')) {
+    while (existing.any((p) => p.label == 'Repère $labelIndex')) {
       labelIndex++;
     }
-    final label = 'Point $labelIndex';
+    final label = 'Repère $labelIndex';
 
     final newPoint = CinematicStagePoint(
       id: id,
@@ -1085,10 +1101,12 @@ class _BuilderHeader extends StatelessWidget {
   const _BuilderHeader({
     required this.entry,
     required this.onBackToLibrary,
+    required this.readiness,
   });
 
   final CinematicsLibraryEntry entry;
   final VoidCallback onBackToLibrary;
+  final CinematicStagePreviewReadiness readiness;
 
   @override
   Widget build(BuildContext context) {
@@ -1130,19 +1148,16 @@ class _BuilderHeader extends StatelessWidget {
         ),
       ],
     );
+    final itemsToComplete = readiness.items.where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok).length + readiness.diagnostics.length;
     final badges = Wrap(
       spacing: 6,
       runSpacing: 6,
       children: [
-        const PokeMapBadge(
-          label: 'Authoring V0 borné',
-          variant: PokeMapBadgeVariant.info,
-        ),
         PokeMapBadge(
-          label: entry.diagnostics.isEmpty
-              ? 'Aucun diagnostic'
-              : '${entry.diagnostics.length} diagnostic(s)',
-          variant: entry.diagnostics.isEmpty
+          label: readiness.kind == CinematicStagePreviewReadinessKind.ready
+              ? 'Scène prête'
+              : '$itemsToComplete élément(s) à compléter',
+          variant: readiness.kind == CinematicStagePreviewReadinessKind.ready
               ? PokeMapBadgeVariant.success
               : PokeMapBadgeVariant.warning,
         ),
@@ -1303,6 +1318,7 @@ class _BlockPalette extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(12),
@@ -1324,16 +1340,14 @@ class _BlockPalette extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _RequiredActorsCard(
-                    asset: asset,
-                    onAddRequiredActor: onAddRequiredActor,
-                  ),
-                  const SizedBox(height: 8),
-                  _MovementTargetsCard(
-                    asset: asset,
-                    onAddMovementTarget: onAddMovementTarget,
-                    onUpdateMovementTarget: onUpdateMovementTarget,
-                    onRemoveMovementTarget: onRemoveMovementTarget,
+                  Text(
+                    'MISE EN SCÈNE',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   for (final block in _paletteBlocks) ...[
@@ -1343,6 +1357,17 @@ class _BlockPalette extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                   ],
+                  const SizedBox(height: 8),
+                  Text(
+                    'ACTEUR',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   _ActorFacingPaletteTile(
                     asset: asset,
                     onAddActorFacing: onAddActorFacing,
@@ -1351,6 +1376,16 @@ class _BlockPalette extends StatelessWidget {
                   _ActorMovePaletteTile(
                     asset: asset,
                     onAddActorMove: onAddActorMove,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'BLOCS VERROUILLÉS',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   for (final block in _lockedPaletteBlocks) ...[
@@ -1495,10 +1530,10 @@ class _MovementTargetsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _StrongText('Cibles de déplacement'),
+          const _StrongText('Destinations'),
           const SizedBox(height: 4),
           if (asset.movementTargets.isEmpty)
-            const _MutedText('Aucune cible authoring')
+            const _MutedText('Aucune destination')
           else
             Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1520,7 +1555,7 @@ class _MovementTargetsCard extends StatelessWidget {
             ),
           const SizedBox(height: 8),
           _InlineControlAction(
-            label: 'Cible',
+            label: 'Destination',
             button: PokeMapButton(
               key: const ValueKey(
                 'cinematic-builder-add-movement-target-button',
@@ -1634,7 +1669,7 @@ class _MovementTargetEditorRowState extends State<_MovementTargetEditorRow> {
               '${widget.target.targetId}',
             ),
             controller: _labelController,
-            placeholder: 'Label cible',
+            placeholder: 'Nom de la destination',
           ),
           const SizedBox(height: 6),
           _MovementTargetTextField(
@@ -1686,7 +1721,7 @@ class _MovementTargetEditorRowState extends State<_MovementTargetEditorRow> {
           if (isUsed) ...[
             const SizedBox(height: 6),
             const _MutedText(
-              'Cette cible est utilisée par un bloc Déplacement acteur.',
+              'Cette destination est utilisée par un bloc Déplacer un acteur.',
             ),
           ],
           if (_feedback != null) ...[
@@ -1701,7 +1736,7 @@ class _MovementTargetEditorRowState extends State<_MovementTargetEditorRow> {
   Future<void> _save() async {
     final label = _labelController.text.trim();
     if (label.isEmpty) {
-      setState(() => _feedback = 'Label cible obligatoire');
+      setState(() => _feedback = 'Nom de destination obligatoire');
       return;
     }
     final description = _descriptionController.text.trim();
@@ -1719,7 +1754,7 @@ class _MovementTargetEditorRowState extends State<_MovementTargetEditorRow> {
     }
     setState(() {
       _isSaving = false;
-      _feedback = saved ? null : 'Cible introuvable';
+      _feedback = saved ? null : 'Destination introuvable';
     });
   }
 
@@ -1808,7 +1843,7 @@ class _ActorFacingPaletteTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _StrongText('Orientation acteur'),
+                const _StrongText('Orienter un acteur'),
                 const SizedBox(height: 2),
                 _MutedText(description),
               ],
@@ -1845,8 +1880,8 @@ class _ActorMovePaletteTile extends StatelessWidget {
     final description = !hasActors
         ? 'Ajoutez d’abord un acteur'
         : !hasTargets
-            ? 'Ajoutez d’abord une cible'
-            : 'Acteur + cible + durée.';
+            ? 'Ajoutez d’abord une destination'
+            : 'Acteur + destination + durée.';
     return PokeMapCard(
       child: Row(
         children: [
@@ -1861,7 +1896,7 @@ class _ActorMovePaletteTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const _StrongText('Déplacement acteur'),
+                const _StrongText('Déplacer un acteur'),
                 const SizedBox(height: 2),
                 _MutedText(description),
               ],
@@ -1966,6 +2001,7 @@ class _PreviewSandbox extends StatelessWidget {
     this.onUpdateStagePoint,
     this.onAddStagePointAtTile,
     this.onAddStagePointModeChanged,
+    required this.readiness,
   });
 
   final CinematicsLibraryEntry entry;
@@ -1993,6 +2029,7 @@ class _PreviewSandbox extends StatelessWidget {
   final ValueChanged<CinematicStagePoint>? onUpdateStagePoint;
   final ValueChanged<Offset>? onAddStagePointAtTile;
   final ValueChanged<bool>? onAddStagePointModeChanged;
+  final CinematicStagePreviewReadiness readiness;
 
   @override
   Widget build(BuildContext context) {
@@ -2028,6 +2065,7 @@ class _PreviewSandbox extends StatelessWidget {
               onUpdateStagePoint: onUpdateStagePoint,
               onAddStagePointAtTile: onAddStagePointAtTile,
               onAddStagePointModeChanged: onAddStagePointModeChanged,
+              readiness: readiness,
             );
           }
           final ultraCompact = constraints.maxHeight < 205;
@@ -2086,11 +2124,11 @@ class _PreviewSandbox extends StatelessWidget {
                   if (!compact && timelineProbeTimeMs != null) ...[
                     const SizedBox(height: 10),
                     _MutedText(
-                      'Repère temporel : '
+                      'Marqueur temps : '
                       '${_shortTimeLabel(timelineProbeTimeMs!)}',
                     ),
                     const SizedBox(height: 5),
-                    const _MutedText('Repère local : inspection uniquement.'),
+                    const _MutedText('Marqueur local : inspection uniquement.'),
                   ],
                   if (!compact &&
                       selectedStep != null &&
@@ -2619,9 +2657,9 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                 children: [
                   const Expanded(
                     child: _SectionTitle(
-                      title: 'Timeline par pistes',
+                      title: 'Déroulé',
                       subtitle:
-                          'Projection temporelle dérivée du déroulé linéaire',
+                          'Timeline cinématique',
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2649,7 +2687,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                           alignment: WrapAlignment.end,
                           children: [
                             _HeaderAction(
-                              label: 'Effacer le repère',
+                              label: 'Effacer le marqueur',
                               button: PokeMapButton(
                                 key: const ValueKey(
                                   'cinematic-builder-clear-time-probe-button',
@@ -2664,7 +2702,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                               ),
                             ),
                             _HeaderAction(
-                              label: 'Aide repère',
+                              label: 'Aide timeline',
                               button: PokeMapButton(
                                 key: const ValueKey(
                                   'cinematic-builder-probe-help-button',
@@ -2955,10 +2993,10 @@ class _TimelineProbeHelpPanel extends StatelessWidget {
           children: [
             _TimelineProbeHelpLine('Sélection : bloc inspecté.'),
             SizedBox(height: 5),
-            _TimelineProbeHelpLine('Repère : position temporelle locale.'),
+            _TimelineProbeHelpLine('Marqueur : position temporelle locale.'),
             SizedBox(height: 5),
             _TimelineProbeHelpLine(
-              'Alignement : repère calé sur une borne utile.',
+              'Alignement : marqueur calé sur une borne utile.',
             ),
             SizedBox(height: 5),
             _TimelineProbeHelpLine('Preview : lecture réelle à venir.'),
@@ -4119,7 +4157,7 @@ class _EmptyTimelineState extends StatelessWidget {
       children: [
         _SectionTitle(
           title: 'Timeline vide',
-          subtitle: 'Timeline par pistes',
+          subtitle: 'Déroulé',
         ),
         SizedBox(height: 10),
         _BodyText('Cette cinématique ne contient encore aucun bloc.'),
@@ -4208,7 +4246,7 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
             children: [
               Expanded(
                 child: Text(
-                  'Point de scène',
+                  'Repère de scène',
                   style: DefaultTextStyle.of(context).style.copyWith(
                         color: colors.textPrimary,
                         fontSize: 14,
@@ -4219,7 +4257,7 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
               if (widget.onDeselect != null) ...[
                 PokeMapIconButton(
                   key: const ValueKey('cinematic-stage-point-deselect-btn'),
-                  tooltip: 'Désélectionner le point',
+                  tooltip: 'Désélectionner le repère',
                   icon: const Icon(CupertinoIcons.xmark_circle),
                   onPressed: widget.onDeselect,
                 ),
@@ -4227,21 +4265,40 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
               ],
               PokeMapIconButton(
                 key: const ValueKey('cinematic-stage-point-delete-btn'),
-                tooltip: 'Supprimer le point de scène',
+                tooltip: 'Supprimer le repère de scène',
                 icon: const Icon(CupertinoIcons.trash),
                 onPressed: () => widget.onRemoveStagePoint(widget.point.id),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          // ID (Read-only)
-          Text(
-            'ID: ${widget.point.id}',
-            style: DefaultTextStyle.of(context).style.copyWith(
-                  color: colors.textMuted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              title: Text(
+                'Détails techniques',
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      color: colors.textMuted,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              expandedAlignment: Alignment.topLeft,
+              shape: const Border(),
+              collapsedShape: const Border(),
+              children: [
+                Text(
+                  'ID : ${widget.point.id}',
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: colors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
+              ],
+            ),
           ),
           const SizedBox(height: 10),
           // Label Field
@@ -4289,7 +4346,7 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
           const SizedBox(height: 10),
           // Coordinates info
           Text(
-            'Position: (${widget.point.x.toStringAsFixed(1)}, ${widget.point.y.toStringAsFixed(1)})',
+            'Position : Colonne ${widget.point.x.toInt()} · Ligne ${widget.point.y.toInt()}',
             style: DefaultTextStyle.of(context).style.copyWith(
                   color: colors.textMuted,
                   fontSize: 11,
@@ -4302,7 +4359,7 @@ class _SelectedStagePointInspectorState extends State<_SelectedStagePointInspect
   }
 }
 
-class _InspectorPlaceholder extends StatelessWidget {
+class _InspectorPlaceholder extends StatefulWidget {
   const _InspectorPlaceholder({
     required this.entry,
     required this.asset,
@@ -4328,6 +4385,10 @@ class _InspectorPlaceholder extends StatelessWidget {
     required this.onUpdateActorMove,
     required this.onRemoveAuthoringStep,
     required this.onAddMovementTarget,
+    required this.onAddRequiredActor,
+    required this.onUpdateMovementTarget,
+    required this.onRemoveMovementTarget,
+    required this.readiness,
     this.actorSpritePreviewPlan,
     this.tilesets,
     this.selectedStagePointId,
@@ -4361,7 +4422,10 @@ class _InspectorPlaceholder extends StatelessWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
-  final VoidCallback onAddMovementTarget;
+  final _AddMovementTargetCallback onAddMovementTarget;
+  final _AddRequiredActorCallback onAddRequiredActor;
+  final _UpdateMovementTargetCallback onUpdateMovementTarget;
+  final _RemoveMovementTargetCallback onRemoveMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final String? selectedStagePointId;
@@ -4370,122 +4434,280 @@ class _InspectorPlaceholder extends StatelessWidget {
   final ValueChanged<String>? onRemoveStagePoint;
   final int? mapWidth;
   final int? mapHeight;
+  final CinematicStagePreviewReadiness readiness;
+
+  @override
+  State<_InspectorPlaceholder> createState() => _InspectorPlaceholderState();
+}
+
+class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
+  int _tabIndex = 0; // 0 = Scène, 1 = Action
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.selectedStep != null) {
+      _tabIndex = 1;
+    } else {
+      _tabIndex = 0;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _InspectorPlaceholder oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If a step is newly selected or selected step changes, auto-select the "Action" tab
+    if (widget.selectedStep != null && oldWidget.selectedStep == null) {
+      _tabIndex = 1;
+    } else if (widget.selectedStep != null && widget.selectedStep?.id != oldWidget.selectedStep?.id) {
+      _tabIndex = 1;
+    } else if (widget.selectedStep == null && oldWidget.selectedStep != null) {
+      _tabIndex = 0;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final selected = selectedStep;
-    final selectedIndex = selectedStepIndex;
+    final selected = widget.selectedStep;
+    final selectedIndex = widget.selectedStepIndex;
     CinematicStagePoint? selectedPoint;
-    final points = asset.stageContext?.stagePoints;
-    if (points != null && selectedStagePointId != null) {
+    final points = widget.asset.stageContext?.stagePoints;
+    if (points != null && widget.selectedStagePointId != null) {
       for (final p in points) {
-        if (p.id == selectedStagePointId) {
+        if (p.id == widget.selectedStagePointId) {
           selectedPoint = p;
           break;
         }
       }
     }
 
+    if (selectedPoint != null) {
+      return PokeMapPanel(
+        key: const ValueKey('cinematic-builder-inspector-placeholder'),
+        expandChild: true,
+        padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SectionTitle(
+                title: 'Inspecteur',
+                subtitle: 'Repère sélectionné',
+              ),
+              const SizedBox(height: 10),
+              _SelectedStagePointInspector(
+                point: selectedPoint,
+                onUpdateStagePoint: widget.onUpdateStagePoint ?? (_) {},
+                onRemoveStagePoint: widget.onRemoveStagePoint ?? (_) {},
+                onDeselect: () => widget.onSelectStagePointId?.call(null),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (selected == null || selectedIndex == null) {
+      return PokeMapPanel(
+        key: const ValueKey('cinematic-builder-inspector-placeholder'),
+        expandChild: true,
+        padding: const EdgeInsets.all(12),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _StageContextEditor(
+                entry: widget.entry,
+                asset: widget.asset,
+                stageMaps: widget.stageMaps,
+                groups: widget.groups,
+                characters: widget.characters,
+                stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                startExpanded: widget.startExpanded,
+                onUpdateStageMap: widget.onUpdateStageMap,
+                onUpdateStageContext: widget.onUpdateStageContext,
+                onRenameRequiredActor: widget.onRenameRequiredActor,
+                onRemoveRequiredActor: widget.onRemoveRequiredActor,
+                onUpsertActorBinding: widget.onUpsertActorBinding,
+                onUpsertActorAppearanceBinding: widget.onUpsertActorAppearanceBinding,
+                onRemoveActorAppearanceBinding: widget.onRemoveActorAppearanceBinding,
+                onUpsertActorInitialPlacement: widget.onUpsertActorInitialPlacement,
+                onUpsertMovementTargetBinding: widget.onUpsertMovementTargetBinding,
+                onAddMovementTarget: widget.onAddMovementTarget,
+                onAddRequiredActor: widget.onAddRequiredActor,
+                onUpdateMovementTarget: widget.onUpdateMovementTarget,
+                onRemoveMovementTarget: widget.onRemoveMovementTarget,
+                actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
+                tilesets: widget.tilesets,
+                selectedStagePointId: widget.selectedStagePointId,
+                onSelectStagePointId: widget.onSelectStagePointId,
+                mapWidth: widget.mapWidth,
+                mapHeight: widget.mapHeight,
+              ),
+              const SizedBox(height: 12),
+              const _SectionTitle(
+                title: 'Métadonnées',
+                subtitle: 'Lecture seule',
+              ),
+              const SizedBox(height: 8),
+              _KeyValue(label: 'Titre', value: widget.entry.title),
+              _KeyValue(label: 'Id', value: widget.entry.id),
+              _KeyValue(
+                label: 'Description',
+                value: widget.entry.description?.isEmpty ?? true
+                    ? 'Aucune description'
+                    : widget.entry.description!,
+              ),
+              _KeyValue(label: 'Map', value: widget.entry.mapId ?? 'Aucune map'),
+              _KeyValue(
+                label: 'Acteurs',
+                value: widget.entry.requiredActors.isEmpty
+                    ? 'Aucun acteur requis'
+                    : widget.entry.requiredActors
+                        .map((actor) => actor.displayLabel)
+                        .join(', '),
+              ),
+              _KeyValue(
+                label: 'Timeline',
+                value: '${widget.entry.timeline.stepCount} step(s)',
+              ),
+              _KeyValue(label: 'Durée', value: _durationLabel(widget.entry.timeline)),
+              _KeyValue(
+                label: 'Usages',
+                value: widget.entry.usages.isEmpty
+                    ? 'Aucun usage'
+                    : widget.entry.usages.map((usage) => usage.sceneTitle).join(', '),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return PokeMapPanel(
       key: const ValueKey('cinematic-builder-inspector-placeholder'),
       expandChild: true,
       padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _SectionTitle(
-              title: 'Inspecteur',
-              subtitle: 'Bloc sélectionné',
-            ),
-            const SizedBox(height: 10),
-            if (selectedPoint != null)
-              _SelectedStagePointInspector(
-                point: selectedPoint,
-                onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
-                onRemoveStagePoint: onRemoveStagePoint ?? (_) {},
-                onDeselect: () => onSelectStagePointId?.call(null),
-              )
-            else ...[
-              _StageContextEditor(
-                entry: entry,
-                asset: asset,
-                stageMaps: stageMaps,
-                groups: groups,
-                characters: characters,
-                stageMapSourceCatalog: stageMapSourceCatalog,
-                startExpanded: startExpanded,
-                onUpdateStageMap: onUpdateStageMap,
-                onUpdateStageContext: onUpdateStageContext,
-                onRenameRequiredActor: onRenameRequiredActor,
-                onRemoveRequiredActor: onRemoveRequiredActor,
-              onUpsertActorBinding: onUpsertActorBinding,
-              onUpsertActorAppearanceBinding: onUpsertActorAppearanceBinding,
-              onRemoveActorAppearanceBinding: onRemoveActorAppearanceBinding,
-              onUpsertActorInitialPlacement: onUpsertActorInitialPlacement,
-              onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
-              onAddMovementTarget: onAddMovementTarget,
-              actorSpritePreviewPlan: actorSpritePreviewPlan,
-              tilesets: tilesets,
-              selectedStagePointId: selectedStagePointId,
-              onSelectStagePointId: onSelectStagePointId,
-            ),
-            const SizedBox(height: 12),
-            if (selected == null || selectedIndex == null)
-              const _EmptySelectionCard()
-            else
-              _SelectedStepInspector(
-                asset: asset,
-                step: selected,
-                index: selectedIndex,
-                onRemoveDraftStep: onRemoveDraftStep,
-                onUpdateBasicBlock: onUpdateBasicBlock,
-                onUpdateActorFacing: onUpdateActorFacing,
-                onUpdateActorMove: onUpdateActorMove,
-                onRemoveAuthoringStep: onRemoveAuthoringStep,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const _SectionTitle(
+            title: 'Inspecteur',
+            subtitle: 'Configuration de la scène et des actions',
+          ),
+          const SizedBox(height: 10),
+          PokeMapSegmentedTabs(
+            tabs: [
+              PokeMapSegmentedTab(
+                key: const ValueKey('cinematic-builder-inspector-tab-scene'),
+                label: 'Scène',
+                icon: CupertinoIcons.slider_horizontal_3,
+                selected: _tabIndex == 0,
+                onTap: () {
+                  setState(() {
+                    _tabIndex = 0;
+                  });
+                },
+              ),
+              PokeMapSegmentedTab(
+                key: const ValueKey('cinematic-builder-inspector-tab-action'),
+                label: 'Action',
+                icon: CupertinoIcons.play_circle,
+                selected: _tabIndex == 1,
+                onTap: () {
+                  setState(() {
+                    _tabIndex = 1;
+                  });
+                },
               ),
             ],
-            const SizedBox(height: 12),
-            const _SectionTitle(
-              title: 'Métadonnées',
-              subtitle: 'Lecture seule',
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (_tabIndex == 0)
+                    _StageContextEditor(
+                      entry: widget.entry,
+                      asset: widget.asset,
+                      stageMaps: widget.stageMaps,
+                      groups: widget.groups,
+                      characters: widget.characters,
+                      stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                      startExpanded: widget.startExpanded,
+                      onUpdateStageMap: widget.onUpdateStageMap,
+                      onUpdateStageContext: widget.onUpdateStageContext,
+                      onRenameRequiredActor: widget.onRenameRequiredActor,
+                      onRemoveRequiredActor: widget.onRemoveRequiredActor,
+                      onUpsertActorBinding: widget.onUpsertActorBinding,
+                      onUpsertActorAppearanceBinding: widget.onUpsertActorAppearanceBinding,
+                      onRemoveActorAppearanceBinding: widget.onRemoveActorAppearanceBinding,
+                      onUpsertActorInitialPlacement: widget.onUpsertActorInitialPlacement,
+                      onUpsertMovementTargetBinding: widget.onUpsertMovementTargetBinding,
+                      onAddMovementTarget: widget.onAddMovementTarget,
+                      onAddRequiredActor: widget.onAddRequiredActor,
+                      onUpdateMovementTarget: widget.onUpdateMovementTarget,
+                      onRemoveMovementTarget: widget.onRemoveMovementTarget,
+                      actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
+                      tilesets: widget.tilesets,
+                      selectedStagePointId: widget.selectedStagePointId,
+                      onSelectStagePointId: widget.onSelectStagePointId,
+                      mapWidth: widget.mapWidth,
+                      mapHeight: widget.mapHeight,
+                    )
+                  else ...[
+                    _SelectedStepInspector(
+                      asset: widget.asset,
+                      step: selected,
+                      index: selectedIndex,
+                      onRemoveDraftStep: widget.onRemoveDraftStep,
+                      onUpdateBasicBlock: widget.onUpdateBasicBlock,
+                      onUpdateActorFacing: widget.onUpdateActorFacing,
+                      onUpdateActorMove: widget.onUpdateActorMove,
+                      onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  const _SectionTitle(
+                    title: 'Métadonnées',
+                    subtitle: 'Lecture seule',
+                  ),
+                  const SizedBox(height: 8),
+                  _KeyValue(label: 'Titre', value: widget.entry.title),
+                  _KeyValue(label: 'Id', value: widget.entry.id),
+                  _KeyValue(
+                    label: 'Description',
+                    value: widget.entry.description?.isEmpty ?? true
+                        ? 'Aucune description'
+                        : widget.entry.description!,
+                  ),
+                  _KeyValue(label: 'Map', value: widget.entry.mapId ?? 'Aucune map'),
+                  _KeyValue(
+                    label: 'Acteurs',
+                    value: widget.entry.requiredActors.isEmpty
+                        ? 'Aucun acteur requis'
+                        : widget.entry.requiredActors
+                            .map((actor) => actor.displayLabel)
+                            .join(', '),
+                  ),
+                  _KeyValue(
+                    label: 'Timeline',
+                    value: '${widget.entry.timeline.stepCount} step(s)',
+                  ),
+                  _KeyValue(label: 'Durée', value: _durationLabel(widget.entry.timeline)),
+                  _KeyValue(
+                    label: 'Usages',
+                    value: widget.entry.usages.isEmpty
+                    ? 'Aucun usage'
+                    : widget.entry.usages.map((usage) => usage.sceneTitle).join(', '),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
-            _KeyValue(label: 'Titre', value: entry.title),
-            _KeyValue(label: 'Id', value: entry.id),
-            _KeyValue(
-              label: 'Description',
-              value: entry.description?.isEmpty ?? true
-                  ? 'Aucune description'
-                  : entry.description!,
-            ),
-            _KeyValue(label: 'Map', value: entry.mapId ?? 'Aucune map'),
-            _KeyValue(
-              label: 'Acteurs',
-              value: entry.requiredActors.isEmpty
-                  ? 'Aucun acteur requis'
-                  : entry.requiredActors
-                      .map((actor) => actor.displayLabel)
-                      .join(', '),
-            ),
-            _KeyValue(
-              label: 'Timeline',
-              value: '${entry.timeline.stepCount} step(s)',
-            ),
-            _KeyValue(label: 'Durée', value: _durationLabel(entry.timeline)),
-            _KeyValue(
-              label: 'Usages',
-              value: entry.usages.isEmpty
-                  ? 'Aucun usage'
-                  : entry.usages.map((usage) => usage.sceneTitle).join(', '),
-            ),
-            const SizedBox(height: 8),
-            _DiagnosticsSummary(
-              entry: entry,
-              selectedStepId: selected?.id,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -4510,6 +4732,9 @@ class _StageContextEditor extends StatelessWidget {
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
     required this.onAddMovementTarget,
+    required this.onAddRequiredActor,
+    required this.onUpdateMovementTarget,
+    required this.onRemoveMovementTarget,
     this.actorSpritePreviewPlan,
     this.tilesets,
     this.mapWidth,
@@ -4534,7 +4759,10 @@ class _StageContextEditor extends StatelessWidget {
   final _RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
   final _UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
-  final VoidCallback onAddMovementTarget;
+  final _AddMovementTargetCallback onAddMovementTarget;
+  final _AddRequiredActorCallback onAddRequiredActor;
+  final _UpdateMovementTargetCallback onUpdateMovementTarget;
+  final _RemoveMovementTargetCallback onRemoveMovementTarget;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final int? mapWidth;
@@ -4544,6 +4772,7 @@ class _StageContextEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
     final stageContext = asset.stageContext ?? CinematicStageContext();
     final readiness = buildCinematicStagePreviewReadiness(
       asset: asset,
@@ -4563,7 +4792,17 @@ class _StageContextEditor extends StatelessWidget {
             title: 'Contexte de scène',
             subtitle: 'Prépare la future preview, sans la lancer.',
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+          Text(
+            'DÉCOR',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
           _StageMapSection(
             asset: asset,
             stageMaps: stageMaps,
@@ -4576,15 +4815,38 @@ class _StageContextEditor extends StatelessWidget {
             stageContext: stageContext,
             onUpdateStageContext: onUpdateStageContext,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          Text(
+            'REPÈRES',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
           _StagePointsSection(
             stageContext: stageContext,
             selectedStagePointId: selectedStagePointId,
             onSelectStagePointId: onSelectStagePointId ?? (_) {},
           ),
-          const SizedBox(height: 10),
-          _StagePreviewReadinessSection(readiness: readiness),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          Text(
+            'ACTEURS',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _RequiredActorsCard(
+            asset: asset,
+            onAddRequiredActor: onAddRequiredActor,
+          ),
+          const SizedBox(height: 8),
           _StageActorBindingsSection(
             asset: asset,
             stageContext: stageContext,
@@ -4602,19 +4864,60 @@ class _StageContextEditor extends StatelessWidget {
             tilesets: tilesets,
             selectedStagePointId: selectedStagePointId,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 16),
+          Text(
+            'DESTINATIONS',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _MovementTargetsCard(
+            asset: asset,
+            onAddMovementTarget: onAddMovementTarget,
+            onUpdateMovementTarget: onUpdateMovementTarget,
+            onRemoveMovementTarget: onRemoveMovementTarget,
+          ),
+          const SizedBox(height: 8),
           _StageMovementTargetBindingsSection(
             asset: asset,
             stageContext: stageContext,
             stageMapSourceCatalog: stageMapSourceCatalog,
             onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
           ),
-          const SizedBox(height: 10),
-          _StageDiagnosticsSection(readiness: readiness),
+          const SizedBox(height: 16),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              title: Text(
+                'État de la scène',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              expandedAlignment: Alignment.topLeft,
+              shape: const Border(),
+              collapsedShape: const Border(),
+              children: [
+                _StagePreviewReadinessSection(readiness: readiness),
+                const SizedBox(height: 10),
+                _StageDiagnosticsSection(readiness: readiness),
+              ],
+            ),
+          ),
           const SizedBox(height: 6),
           const _MutedText('Scène non jouée.'),
           const SizedBox(height: 4),
           const _MutedText('Lecture read-only dans ce lot.'),
+          const SizedBox(height: 16),
+          const _EmptySelectionCard(),
         ],
       ),
     );
@@ -5676,7 +5979,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
 
     final roleStr = switch (selectedKind) {
       CinematicActorBindingKind.player => 'Joueur',
-      CinematicActorBindingKind.mapEntity => selectedSource != null ? 'PNJ : ${selectedSource.label}' : 'PNJ de la carte',
+      CinematicActorBindingKind.mapEntity => selectedSource != null ? 'Personnage ou objet : ${selectedSource.label}' : 'Personnage ou objet de la map',
       CinematicActorBindingKind.cinematicOnly => 'Personnage de cinématique',
       CinematicActorBindingKind.unbound || null => 'Ne pas l\'afficher',
     };
@@ -5697,9 +6000,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             }
           }
           if (targetLabel != null) {
-            return 'Repère : $targetLabel';
+            return 'Destination : $targetLabel';
           }
-          return 'Repère de scène';
+          return 'Destination';
         case CinematicActorInitialPlacementKind.stagePoint:
           String? pointLabel;
           for (final p in stageContext.stagePoints) {
@@ -5709,9 +6012,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             }
           }
           if (pointLabel != null) {
-            return 'Point de scène : $pointLabel';
+            return 'Repère de scène : $pointLabel';
           }
-          return 'Point de scène';
+          return 'Repère de scène';
       }
     }();
 
@@ -5720,7 +6023,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         case CinematicActorBindingKind.player:
           return 'Joueur';
         case CinematicActorBindingKind.mapEntity:
-          return selectedSource != null ? 'PNJ : ${selectedSource.label}' : 'Depuis le PNJ';
+          return selectedSource != null ? 'Personnage ou objet : ${selectedSource.label}' : 'Depuis personnage/objet';
         case CinematicActorBindingKind.cinematicOnly:
           final appearanceBinding = _actorAppearanceBindingFor(stageContext, actor.actorId);
           final character = _characterById(widget.characters, appearanceBinding?.characterId);
@@ -5936,8 +6239,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
 
                   _RedesignedRadioCard(
                     keyValue: 'cinematic-builder-actor-binding-${actor.actorId}-mapEntity',
-                    title: 'Un PNJ de la carte',
-                    subtext: 'Utilise une entité déjà placée sur la carte',
+                    title: 'Un personnage ou objet de la map',
+                    subtext: 'Utilise un personnage ou un objet déjà placé sur la carte',
                     selected: selectedKind == CinematicActorBindingKind.mapEntity,
                     disabled: !canPickMapEntity,
                     warning: mapEntityDisabledReason,
@@ -5964,8 +6267,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     child: selectedKind == CinematicActorBindingKind.mapEntity
                         ? _SubSelectorBox(
                             key: _entityDropdownKey,
-                            label: 'Entité',
-                            value: selectedSource?.label ?? 'Choisir une entité',
+                            label: 'Personnage ou objet',
+                            value: selectedSource?.label ?? 'Choisir un personnage ou un objet',
                             onChangerPressed: () => _showEntityDropdown(
                               context,
                               _entityDropdownKey,
@@ -6016,7 +6319,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     width: 0,
                     height: 0,
                     child: Text(
-                      'Positions initiales',
+                      'Départs de scène',
                       style: TextStyle(fontSize: 0),
                     ),
                   ),
@@ -6038,7 +6341,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                   _RedesignedRadioCard(
                     keyValue: 'cinematic-builder-initial-placement-${actor.actorId}-fromMapEntity',
                     title: 'À la position de sa source',
-                    subtext: 'Placer l’acteur aux coordonnées du PNJ lié sur la carte',
+                    subtext: 'Placer l’acteur aux coordonnées du personnage ou objet lié sur la carte',
                     selected: placement?.kind == CinematicActorInitialPlacementKind.fromMapEntity,
                     disabled: !supportsMapEntityPlacement,
                     onPressed: () => widget.onUpsertActorInitialPlacement(
@@ -6051,8 +6354,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
 
                   _RedesignedRadioCard(
                     keyValue: 'cinematic-builder-initial-placement-${actor.actorId}-fromMovementTarget',
-                    title: 'Sur un repère de scène',
-                    subtext: 'Placer l’acteur sur un repère/cible de déplacement existant sur la carte',
+                    title: 'Sur une destination',
+                    subtext: 'Placer l’acteur sur une destination de déplacement existante sur la carte',
                     selected: placement?.kind == CinematicActorInitialPlacementKind.fromMovementTarget,
                     disabled: !hasTargets,
                     onPressed: () {
@@ -6083,7 +6386,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                             children: [
                               _SubSelectorBox(
                                 key: _targetDropdownKey,
-                                label: 'Repère',
+                                label: 'Destination',
                                 value: () {
                                   String? targetLabel;
                                   for (final t in widget.asset.movementTargets) {
@@ -6092,7 +6395,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                       break;
                                     }
                                   }
-                                  return targetLabel ?? 'Choisir un repère';
+                                  return targetLabel ?? 'Choisir une destination';
                                 }(),
                                 onChangerPressed: () => _showTargetDropdown(
                                   context,
@@ -6107,7 +6410,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                 child: GestureDetector(
                                   onTap: widget.onAddMovementTarget,
                                   child: Text(
-                                    '+ Créer un repère',
+                                    '+ Créer une destination',
                                     style: TextStyle(
                                       color: colors.brandPrimary,
                                       fontSize: 11,
@@ -6122,10 +6425,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                   ),
                   _RedesignedRadioCard(
                     keyValue: 'cinematic-builder-initial-placement-${actor.actorId}-stagePoint',
-                    title: 'Depuis point de scène',
+                    title: 'Depuis repère de scène',
                     subtext: widget.stageContext.stagePoints.isEmpty
-                        ? 'Aucun point de scène disponible. Crée d’abord un point dans la preview avec Ajouter un point.'
-                        : 'Placer l’acteur sur un point de scène (Stage Point) existant',
+                        ? 'Aucun repère de scène disponible. Créez d’abord un repère dans l’aperçu avec Ajouter un repère.'
+                        : 'Placer l’acteur sur un repère de scène existant',
                     selected: placement?.kind == CinematicActorInitialPlacementKind.stagePoint,
                     disabled: widget.stageContext.stagePoints.isEmpty,
                     onPressed: () {
@@ -6150,7 +6453,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                             children: [
                               _SubSelectorBox(
                                 key: _stagePointDropdownKey,
-                                label: 'Point',
+                                label: 'Repère',
                                 value: () {
                                   String? pointLabel;
                                   for (final p in widget.stageContext.stagePoints) {
@@ -6159,7 +6462,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                       break;
                                     }
                                   }
-                                  return pointLabel ?? 'Choisir un point';
+                                  return pointLabel ?? 'Choisir un repère';
                                 }(),
                                 onChangerPressed: () => _showStagePointDropdown(
                                   context,
@@ -6184,7 +6487,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                       );
                                     },
                                     child: Text(
-                                      'Utiliser le point sélectionné',
+                                      'Utiliser le repère sélectionné',
                                       style: TextStyle(
                                         color: colors.brandPrimary,
                                         fontSize: 11,
@@ -7810,12 +8113,12 @@ class _StageMovementTargetBindingsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const _SectionTitle(
-          title: 'Cibles de mouvement',
+          title: 'Destinations',
           subtitle: 'Résolution',
         ),
         const SizedBox(height: 8),
         if (asset.movementTargets.isEmpty)
-          const _MutedText('Aucune cible de mouvement.')
+          const _MutedText('Aucune destination.')
         else
           for (final target in asset.movementTargets) ...[
             _StageMovementTargetBindingRow(
@@ -7894,7 +8197,7 @@ class _StageMovementTargetBindingRowState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _KeyValue(label: 'Cible', value: target.label),
+        _KeyValue(label: 'Destination', value: target.label),
         Wrap(
           spacing: 6,
           runSpacing: 6,
@@ -7902,11 +8205,11 @@ class _StageMovementTargetBindingRowState
             _StageChoice(
               keyValue:
                   'cinematic-builder-target-binding-${target.targetId}-abstractPoint',
-              label: 'Point abstrait',
+              label: 'Position libre',
               icon: CupertinoIcons.scope,
               selected: selectedKind ==
                   CinematicMovementTargetBindingKind.abstractPoint,
-              tooltip: 'Associer à un point de coordonnées X/Y libres sur la carte',
+              tooltip: 'Associer à des coordonnées X/Y libres sur la carte',
               onPressed: () => widget.onUpsertMovementTargetBinding(
                 CinematicMovementTargetBinding(
                   targetId: target.targetId,
@@ -7917,11 +8220,11 @@ class _StageMovementTargetBindingRowState
             _StageChoice(
               keyValue:
                   'cinematic-builder-target-binding-${target.targetId}-stagePoint',
-              label: 'Point de scène',
+              label: 'Repère de scène',
               icon: CupertinoIcons.pin,
               selected:
                   selectedKind == CinematicMovementTargetBindingKind.stagePoint,
-              tooltip: 'Associer à un point de scène de la preview',
+              tooltip: 'Associer à un repère de scène',
               onPressed: () {
                 final pointId = binding?.sourceId ??
                     (stageContext.stagePoints.isNotEmpty
@@ -7943,12 +8246,12 @@ class _StageMovementTargetBindingRowState
             _StageChoice(
               keyValue:
                   'cinematic-builder-target-binding-${target.targetId}-mapEntity',
-              label: 'Entité de map',
+              label: 'Personnage ou objet',
               icon: CupertinoIcons.location,
               selected:
                   selectedKind == CinematicMovementTargetBindingKind.mapEntity,
               disabled: !canPickEntity,
-              tooltip: 'Associer à la position d’un PNJ sur la carte',
+              tooltip: 'Associer à la position d’un personnage ou objet sur la carte',
               onPressed: () {
                 setState(() {
                   _expandedSourceKind =
@@ -7959,12 +8262,12 @@ class _StageMovementTargetBindingRowState
             _StageChoice(
               keyValue:
                   'cinematic-builder-target-binding-${target.targetId}-mapEvent',
-              label: 'Event de map',
+              label: 'Déclencheur de map',
               icon: CupertinoIcons.flag,
               selected:
                   selectedKind == CinematicMovementTargetBindingKind.mapEvent,
               disabled: !canPickEvent,
-              tooltip: 'Associer à la position d’un événement sur la carte',
+              tooltip: 'Associer à la position d’un déclencheur sur la carte',
               onPressed: () {
                 setState(() {
                   _expandedSourceKind =
@@ -7988,12 +8291,12 @@ class _StageMovementTargetBindingRowState
             }
             if (point != null) {
               return _MutedText(
-                'Point cible : ${point.label} · '
-                'x: ${point.x.toStringAsFixed(2)}, y: ${point.y.toStringAsFixed(2)}',
+                'Repère cible : ${point.label} · '
+                'Colonne ${point.x.toInt()} · Ligne ${point.y.toInt()}',
               );
             } else {
               return const _MutedText(
-                'Point cible : [Point de scène manquant]',
+                'Repère cible : [Repère de scène manquant]',
               );
             }
           }(),
@@ -8001,14 +8304,14 @@ class _StageMovementTargetBindingRowState
         if (selectedEntity != null) ...[
           const SizedBox(height: 4),
           _MutedText(
-            'Entité cible : ${selectedEntity.label} · '
+            'Personnage ou objet cible : ${selectedEntity.label} · '
             '${selectedEntity.kindLabel} · ${selectedEntity.positionSummary}',
           ),
         ],
         if (selectedEvent != null) ...[
           const SizedBox(height: 4),
           _MutedText(
-            'Event cible : ${selectedEvent.label} · '
+            'Déclencheur cible : ${selectedEvent.label} · '
             '${selectedEvent.kindLabel} · ${selectedEvent.positionSummary}',
           ),
         ],
@@ -8109,7 +8412,7 @@ class _StageMapEntitySourcePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StageSourcePickerShell(
-      title: 'Sources entités',
+      title: 'Sources personnages/objets',
       children: [
         for (final source in sources)
           _StageSourceOption(
@@ -8248,7 +8551,7 @@ class _StageMapEventSourcePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _StageSourcePickerShell(
-      title: 'Sources events',
+      title: 'Sources déclencheurs',
       children: [
         for (final source in sources)
           _StageSourceOption(
@@ -8284,16 +8587,16 @@ class _StagePointSourcePicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (sources.isEmpty) {
-      return const _MutedText('Aucun Point de scène disponible.');
+      return const _MutedText('Aucun repère de scène disponible.');
     }
     return _StageSourcePickerShell(
-      title: 'Sources points de scène',
+      title: 'Sources repères de scène',
       children: [
         for (final source in sources)
           _StageSourceOption(
             keyValue: '$keyPrefix-source-${source.id}',
             label: source.label,
-            detail: 'x: ${source.x.toStringAsFixed(2)}, y: ${source.y.toStringAsFixed(2)}',
+            detail: 'Colonne ${source.x.toInt()} · Ligne ${source.y.toInt()}',
             icon: CupertinoIcons.pin,
             selected: selectedSourceId == source.id,
             onPressed: () => onSourceSelected(source),
@@ -8602,9 +8905,9 @@ class _SelectedStepInspector extends StatelessWidget {
               : _actorDisplayLabelForId(asset, step.actorId!),
         ),
         _KeyValue(
-          label: 'Cible',
+          label: 'Destination',
           value: step.targetId == null
-              ? 'Aucune cible'
+              ? 'Aucune destination'
               : _movementTargetLabelForId(asset, step.targetId!),
         ),
         _KeyValue(
@@ -9278,7 +9581,7 @@ class _ActorMoveControls extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const _SectionTitle(
-          title: 'Cible',
+          title: 'Destination',
           subtitle: 'Picker label + id stable',
         ),
         Wrap(
@@ -9581,7 +9884,7 @@ class _PaletteBlock {
 
 const _paletteBlocks = [
   _PaletteBlock(
-    label: 'Attente',
+    label: 'Attendre',
     icon: CupertinoIcons.timer,
     description: 'Durée par preset.',
     blockKind: CinematicTimelineBasicBlockKind.wait,
@@ -10017,7 +10320,7 @@ List<String> _timelineHoverDetailLabels(
   }
   if (block.targetId != null && !isCinematicTimelineActorMoveStep(step)) {
     details.add(
-      'Cible : ${_movementTargetLabelForId(asset, block.targetId!)}',
+      'Destination : ${_movementTargetLabelForId(asset, block.targetId!)}',
     );
   }
 
@@ -10128,7 +10431,7 @@ String _actorMoveSummary(CinematicAsset asset, CinematicTimelineStep step) {
       ? 'Acteur'
       : _actorDisplayLabelForId(asset, step.actorId!);
   final target = step.targetId == null
-      ? 'cible non définie'
+      ? 'destination non définie'
       : _movementTargetLabelForId(asset, step.targetId!);
   final movementMode = cinematicTimelineActorMovementModeOf(step);
   final duration = step.durationMs == null
@@ -10274,8 +10577,8 @@ String? _mapEntityActorDisabledReason(
   }
   if (sources.isEmpty) {
     return catalog!.entities.isEmpty
-        ? 'La map de scène ne contient aucune entité.'
-        : 'Aucune entité PNJ bindable acteur sur cette map.';
+        ? 'La map de scène ne contient aucun personnage ou objet.'
+        : 'Aucun personnage ou objet de la map bindable acteur sur cette map.';
   }
   return null;
 }
@@ -10290,7 +10593,7 @@ String? _mapEntityTargetDisabledReason(
     return catalogReason;
   }
   if (sources.isEmpty) {
-    return 'La map de scène ne contient aucune entité cible.';
+    return 'La map de scène ne contient aucun personnage ou objet.';
   }
   return null;
 }
@@ -10305,7 +10608,7 @@ String? _mapEventTargetDisabledReason(
     return catalogReason;
   }
   if (sources.isEmpty) {
-    return 'La map de scène ne contient aucun event cible.';
+    return 'La map de scène ne contient aucun déclencheur.';
   }
   return null;
 }
@@ -10315,10 +10618,10 @@ String? _sourceCatalogDisabledReason(
   CinematicStageMapSourceCatalog? catalog,
 ) {
   if (asset.mapId == null) {
-    return 'Choisis d’abord une map de scène.';
+    return 'Choisissez d’abord une map de scène.';
   }
   if (catalog == null) {
-    return 'Catalogue des entités/events de la map en cours de chargement.';
+    return 'Catalogue des personnages/déclencheurs de la map en cours de chargement.';
   }
   if (catalog.stageMapId != asset.mapId) {
     return 'Catalogue de sources aligné sur une autre map.';
@@ -10326,7 +10629,7 @@ String? _sourceCatalogDisabledReason(
   return switch (catalog.status) {
     CinematicStageMapSourceCatalogStatus.available => null,
     CinematicStageMapSourceCatalogStatus.missingStageMap =>
-      'Choisis d’abord une map de scène.',
+      'Choisissez d’abord une map de scène.',
     CinematicStageMapSourceCatalogStatus.mapDataUnavailable =>
       'MapData de la map de scène indisponible.',
     CinematicStageMapSourceCatalogStatus.mapIdMismatch =>

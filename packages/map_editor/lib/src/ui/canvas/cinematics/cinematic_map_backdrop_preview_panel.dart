@@ -14,12 +14,14 @@ import 'cinematic_map_backdrop_tile_renderer.dart';
 import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_visual_primitives_painter.dart';
 import 'cinematic_stage_point_preview_overlay.dart';
+import 'cinematic_stage_preview_readiness.dart';
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   const CinematicMapBackdropPreviewPanel({
     super.key,
     required this.model,
     required this.compact,
+    required this.readiness,
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
@@ -43,6 +45,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
 
   final CinematicMapBackdropPreviewModel model;
   final bool compact;
+  final CinematicStagePreviewReadiness readiness;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
@@ -76,6 +79,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
             model: model,
             actorDisplayPreviewModel: actorDisplayPreviewModel,
             compact: compact,
+            readiness: readiness,
           ),
           SizedBox(height: compact ? 8 : 12),
         ],
@@ -123,11 +127,13 @@ class _BackdropHeader extends StatelessWidget {
     required this.model,
     required this.actorDisplayPreviewModel,
     required this.compact,
+    required this.readiness,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool compact;
+  final CinematicStagePreviewReadiness readiness;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +148,7 @@ class _BackdropHeader extends StatelessWidget {
           fontSize: compact ? 10 : 11,
           fontWeight: FontWeight.w700,
         );
+    final itemsToComplete = readiness.items.where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok).length + readiness.diagnostics.length;
     final hasActorDisplayEntries =
         _hasActorDisplayEntries(actorDisplayPreviewModel);
     return Row(
@@ -180,8 +187,12 @@ class _BackdropHeader extends StatelessWidget {
                       style: metaStyle,
                     ),
                   PokeMapBadge(
-                    label: _statusLabel(model.status),
-                    variant: _statusBadgeVariant(model.status),
+                    label: readiness.kind == CinematicStagePreviewReadinessKind.ready
+                        ? 'Scène prête'
+                        : '$itemsToComplete élément(s) à compléter',
+                    variant: readiness.kind == CinematicStagePreviewReadinessKind.ready
+                        ? PokeMapBadgeVariant.success
+                        : PokeMapBadgeVariant.warning,
                   ),
                   if (!hasActorDisplayEntries) ...[
                     const PokeMapBadge(
@@ -1021,7 +1032,7 @@ class _BackdropFramingControls extends StatelessWidget {
             size: compact ? 12 : 14,
           ),
           child: Text(
-            addStagePointMode ? 'Annuler l’ajout' : 'Ajouter un point',
+            addStagePointMode ? 'Annuler l’ajout' : 'Ajouter un repère',
             style: TextStyle(
               fontSize: compact ? 11 : 12,
               fontWeight: FontWeight.bold,
@@ -2047,7 +2058,7 @@ class _AddStagePointInstructionOverlay extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.',
+              'Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.',
               style: TextStyle(
                 color: colors.textPrimary,
                 fontSize: 10,
@@ -2093,7 +2104,7 @@ class _EmptyStagePointsHelperOverlay extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Aucun point de scène. Clique sur « Ajouter un point », puis clique sur la carte.',
+                'Aucun repère de scène. Cliquez sur « Ajouter un repère », puis cliquez sur la carte.',
                 style: TextStyle(
                   color: colors.textMuted,
                   fontSize: 10,

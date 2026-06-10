@@ -1000,7 +1000,7 @@ void main() {
     expect(find.text('Tiles réelles affichées'), findsWidgets);
     expect(find.text('2 tuile(s) bitmap'), findsOneWidget);
     expect(find.text('Fallback structurel'), findsNothing);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Sans acteurs'), findsWidgets);
     expect(find.text('Sans lecture'), findsWidgets);
     expect(tester.takeException(), isNull);

@@ -108,8 +108,8 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   if (stageContext == null) {
     return CinematicStagePreviewReadiness(
       kind: CinematicStagePreviewReadinessKind.sandboxOnly,
-      statusLabel: 'Sandbox uniquement',
-      libraryStatusLabel: 'sandbox uniquement',
+      statusLabel: 'Aperçu uniquement',
+      libraryStatusLabel: 'aperçu uniquement',
       summary:
           'Ajoute un contexte de scène pour préparer une future preview. La preview réelle arrivera plus tard.',
       items: items,
@@ -119,11 +119,11 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   if (hasBlocking) {
     return CinematicStagePreviewReadiness(
       kind: CinematicStagePreviewReadinessKind.blocked,
-      statusLabel: 'À corriger avant preview',
+      statusLabel: 'À corriger',
       libraryStatusLabel: actorAppearances.kind ==
               CinematicStagePreviewReadinessItemKind.blocking
           ? 'apparence à corriger'
-          : 'à corriger avant preview',
+          : 'à corriger',
       summary:
           'Corrige les éléments bloquants avant une future preview. La preview réelle arrivera plus tard.',
       items: items,
@@ -133,11 +133,11 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   if (hasIncomplete || diagnostics.isNotEmpty) {
     return CinematicStagePreviewReadiness(
       kind: CinematicStagePreviewReadinessKind.incomplete,
-      statusLabel: 'Contexte incomplet',
+      statusLabel: 'Incomplet',
       libraryStatusLabel: actorAppearances.kind ==
               CinematicStagePreviewReadinessItemKind.incomplete
           ? 'apparence à compléter'
-          : 'contexte incomplet',
+          : 'incomplet',
       summary:
           'Complète les éléments de préparation avant une future preview. La preview réelle arrivera plus tard.',
       items: items,
@@ -146,8 +146,8 @@ CinematicStagePreviewReadiness buildCinematicStagePreviewReadiness({
   }
   return CinematicStagePreviewReadiness(
     kind: CinematicStagePreviewReadinessKind.ready,
-    statusLabel: 'Prêt pour future preview',
-    libraryStatusLabel: 'prêt pour future preview',
+    statusLabel: 'Prêt',
+    libraryStatusLabel: 'prêt',
     summary:
         'Le contexte est prêt pour une future preview. La preview réelle arrivera plus tard.',
     items: items,
@@ -258,7 +258,7 @@ CinematicStagePreviewReadinessItem _mapItem(
     return _item(
       'Map de scène',
       CinematicStagePreviewReadinessItemKind.incomplete,
-      'Choisis une map de scène',
+      'Choisissez une map de scène',
     );
   }
   final map = _stageMapForId(maps, mapId);
@@ -289,7 +289,7 @@ CinematicStagePreviewReadinessItem _backdropItem(
           ? _item(
               'Décor',
               CinematicStagePreviewReadinessItemKind.blocking,
-              'choisis une map avant d’utiliser un décor de map',
+              'choisissez une map avant d’utiliser un décor de map',
             )
           : _item(
               'Décor',
@@ -328,7 +328,7 @@ CinematicStagePreviewReadinessItem _actorBindingsItem(
       return _item(
         'Acteurs liés',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${_actorDisplayLabel(actor)} est non lié',
+        '${_actorDisplayLabel(actor)} n’est pas lié',
       );
     }
     if (binding.kind == CinematicActorBindingKind.mapEntity &&
@@ -336,7 +336,7 @@ CinematicStagePreviewReadinessItem _actorBindingsItem(
       return _item(
         'Acteurs liés',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${_actorDisplayLabel(actor)} doit choisir une entité de map',
+        '${_actorDisplayLabel(actor)} doit être lié à un personnage de la map',
       );
     }
     if (binding.kind == CinematicActorBindingKind.mapEntity &&
@@ -345,14 +345,14 @@ CinematicStagePreviewReadinessItem _actorBindingsItem(
       return _item(
         'Acteurs liés',
         CinematicStagePreviewReadinessItemKind.blocking,
-        '${_actorDisplayLabel(actor)} pointe vers une entité absente ou non PNJ',
+        '${_actorDisplayLabel(actor)} pointe vers un personnage ou objet absent de la map',
       );
     }
   }
   return _item(
     'Acteurs liés',
     CinematicStagePreviewReadinessItemKind.ok,
-    'acteurs prêts pour une future preview',
+    'acteurs prêts',
   );
 }
 
@@ -363,7 +363,7 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
 ) {
   if (asset.requiredActors.isEmpty) {
     return _item(
-      'Positions initiales',
+      'Départs de scène',
       CinematicStagePreviewReadinessItemKind.ok,
       'aucun acteur à placer',
     );
@@ -373,35 +373,35 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
     if (placement == null ||
         placement.kind == CinematicActorInitialPlacementKind.unset) {
       return _item(
-        'Positions initiales',
+        'Départs de scène',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${_actorDisplayLabel(actor)} n’a pas d’entrée de scène',
+        '${_actorDisplayLabel(actor)} n’a pas de position de départ de scène',
       );
     }
     if (placement.kind ==
             CinematicActorInitialPlacementKind.fromMovementTarget &&
-        !_hasMovementTarget(asset, placement.targetId)) {
+         !_hasMovementTarget(asset, placement.targetId)) {
       return _item(
-        'Positions initiales',
+        'Départs de scène',
         CinematicStagePreviewReadinessItemKind.blocking,
-        'une entrée de scène pointe vers une cible absente',
+        'un départ de scène pointe vers une destination absente',
       );
     }
     if (placement.kind == CinematicActorInitialPlacementKind.stagePoint) {
       final pointId = placement.stagePointId;
       if (pointId == null || pointId.trim().isEmpty) {
         return _item(
-          'Positions initiales',
+          'Départs de scène',
           CinematicStagePreviewReadinessItemKind.incomplete,
-          '${_actorDisplayLabel(actor)} attend une sélection de Stage Point',
+          '${_actorDisplayLabel(actor)} attend la sélection d’un repère de scène',
         );
       }
       final hasPoint = context.stagePoints.any((p) => p.id == pointId);
       if (!hasPoint) {
         return _item(
-          'Positions initiales',
+          'Départs de scène',
           CinematicStagePreviewReadinessItemKind.blocking,
-          '${_actorDisplayLabel(actor)} pointe vers un Stage Point inexistant',
+          '${_actorDisplayLabel(actor)} pointe vers un repère de scène inexistant',
         );
       }
     }
@@ -410,24 +410,24 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
       if (binding?.kind != CinematicActorBindingKind.mapEntity ||
           binding?.mapEntityId == null) {
         return _item(
-          'Positions initiales',
+          'Départs de scène',
           CinematicStagePreviewReadinessItemKind.incomplete,
-          '${_actorDisplayLabel(actor)} doit être lié à une entité de map',
+          '${_actorDisplayLabel(actor)} doit être lié à un personnage ou objet de la map',
         );
       }
       if (!_hasMapEntitySource(stageMapSourceCatalog, binding!.mapEntityId)) {
         return _item(
-          'Positions initiales',
+          'Départs de scène',
           CinematicStagePreviewReadinessItemKind.blocking,
-          '${_actorDisplayLabel(actor)} pointe vers une entité de map absente',
+          '${_actorDisplayLabel(actor)} pointe vers un personnage ou objet absent de la map',
         );
       }
     }
   }
   return _item(
-    'Positions initiales',
+    'Départs de scène',
     CinematicStagePreviewReadinessItemKind.ok,
-    'entrées de scène définies',
+    'départs de scène définis',
   );
 }
 
@@ -438,18 +438,18 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
 ) {
   if (asset.movementTargets.isEmpty) {
     return _item(
-      'Cibles de mouvement',
+      'Destinations',
       CinematicStagePreviewReadinessItemKind.ok,
-      'aucune cible de mouvement',
+      'aucune destination',
     );
   }
   for (final target in asset.movementTargets) {
     final binding = _movementTargetBindingFor(context, target.targetId);
     if (binding == null) {
       return _item(
-        'Cibles de mouvement',
+        'Destinations',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${target.label} n’a pas encore de source',
+        '${target.label} n’a pas encore de source définie',
       );
     }
     if (binding.kind == CinematicMovementTargetBindingKind.abstractPoint) {
@@ -457,9 +457,9 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
     }
     if (binding.sourceId == null) {
       return _item(
-        'Cibles de mouvement',
+        'Destinations',
         CinematicStagePreviewReadinessItemKind.incomplete,
-        '${target.label} attend une source map-aware',
+        '${target.label} attend une liaison avec la map',
       );
     }
     final hasSource = switch (binding.kind) {
@@ -474,16 +474,16 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
     };
     if (!hasSource) {
       return _item(
-        'Cibles de mouvement',
+        'Destinations',
         CinematicStagePreviewReadinessItemKind.blocking,
-        '${target.label} pointe vers une source map absente',
+        '${target.label} pointe vers un élément absent de la map',
       );
     }
   }
   return _item(
-    'Cibles de mouvement',
+    'Destinations',
     CinematicStagePreviewReadinessItemKind.ok,
-    '${asset.movementTargets.first.label} reste un point abstrait',
+    '${asset.movementTargets.first.label} reste une position libre',
   );
 }
 
@@ -502,16 +502,16 @@ CinematicStagePreviewReadinessItem _mapAwareSourcesItem(
   );
   if (!hasMapAwareActor && !hasMapAwareTarget) {
     return _item(
-      'Sources map-aware',
+      'Sources de la map',
       CinematicStagePreviewReadinessItemKind.ok,
-      'aucune source map-aware requise',
+      'aucune source de la map requise',
     );
   }
   final catalogStatus =
       _sourceCatalogReadinessMessage(asset, stageMapSourceCatalog);
   if (catalogStatus != null) {
     return _item(
-      'Sources map-aware',
+      'Sources de la map',
       CinematicStagePreviewReadinessItemKind.blocking,
       catalogStatus,
     );
@@ -529,15 +529,15 @@ CinematicStagePreviewReadinessItem _mapAwareSourcesItem(
       );
   if (hasMissingSource) {
     return _item(
-      'Sources map-aware',
+      'Sources de la map',
       CinematicStagePreviewReadinessItemKind.incomplete,
-      'Choisis une entité ou un event depuis la map de scène.',
+      'Choisissez un personnage, objet ou déclencheur depuis la map de scène.',
     );
   }
   return _item(
-    'Sources map-aware',
+    'Sources de la map',
     CinematicStagePreviewReadinessItemKind.ok,
-    'sources map-aware renseignées',
+    'sources de la map renseignées',
   );
 }
 
@@ -710,22 +710,22 @@ String? _sourceCatalogReadinessMessage(
   CinematicStageMapSourceCatalog? catalog,
 ) {
   if (asset.mapId == null) {
-    return 'Choisis une map de scène avant les sources map-aware.';
+    return 'Choisissez d’abord une map de scène.';
   }
   if (catalog == null) {
-    return 'Le catalogue des entités/events de la map est en cours de chargement.';
+    return 'Le catalogue des éléments de la map est en cours de chargement.';
   }
   if (catalog.stageMapId != asset.mapId) {
-    return 'Le catalogue des sources ne correspond pas à la map de scène.';
+    return 'Le catalogue des éléments ne correspond pas à la map de scène.';
   }
   return switch (catalog.status) {
     CinematicStageMapSourceCatalogStatus.available => null,
     CinematicStageMapSourceCatalogStatus.missingStageMap =>
-      'Choisis une map de scène avant les sources map-aware.',
+      'Choisissez d’abord une map de scène.',
     CinematicStageMapSourceCatalogStatus.mapDataUnavailable =>
-      'La MapData de la map de scène est indisponible.',
+      'Les données de la map de scène sont indisponibles.',
     CinematicStageMapSourceCatalogStatus.mapIdMismatch =>
-      'La MapData chargée ne correspond pas à la map de scène.',
+      'Les données chargées ne correspondent pas à la map de scène.',
   };
 }
 
@@ -780,15 +780,15 @@ String _humanStageDiagnosticMessage(
   final actorLabel = _actorLabelFor(asset, diagnostic.sourceId);
   final targetLabel = _targetLabelFor(asset, diagnostic.sourceId);
   return switch (diagnostic.code) {
-    'stagePointDuplicateId' => 'Un point de scène possède un identifiant en doublon.',
-    'stagePointEmptyId' => 'Un point de scène possède un identifiant vide.',
-    'stagePointEmptyLabel' => 'Le nom du point de scène ne doit pas être vide.',
-    'stagePointInvalidCoordinate' => 'Les coordonnées du point de scène doivent être des nombres valides.',
-    'stagePointOutOfMap' => 'Le point de scène est en dehors des limites de la carte.',
-    'stagePointWithoutStageMap' => 'Des points de scène sont placés mais aucune map n’est sélectionnée.',
+    'stagePointDuplicateId' => 'Un repère de scène possède un identifiant en doublon.',
+    'stagePointEmptyId' => 'Un repère de scène possède un identifiant vide.',
+    'stagePointEmptyLabel' => 'Le nom du repère de scène ne doit pas être vide.',
+    'stagePointInvalidCoordinate' => 'Les coordonnées du repère de scène doivent être des nombres valides.',
+    'stagePointOutOfMap' => 'Le repère de scène est en dehors des limites de la carte.',
+    'stagePointWithoutStageMap' => 'Des repères de scène sont placés mais aucune map n’est sélectionnée.',
     'stageMapUnknown' => 'La map de scène n’existe plus dans le projet.',
     'stageBackdropRequiresMap' =>
-      'Choisis une map avant d’utiliser un décor de map.',
+      'Choisissez une map avant d’utiliser un décor de map.',
     'actorBindingUnknownActor' =>
       'Un binding vise un acteur qui n’existe plus.',
     'actorBindingMissing' =>
@@ -796,9 +796,9 @@ String _humanStageDiagnosticMessage(
     'actorBindingDuplicatePlayer' =>
       'Un seul acteur peut représenter le joueur.',
     'actorBindingRequiresStageMap' =>
-      'Choisis une map avant de lier un acteur à une entité.',
+      'Choisissez une map avant de lier un acteur à un personnage ou objet.',
     'actorBindingMapEntityMissingSource' =>
-      'Choisis une entité depuis les sources de la map.',
+      'Choisissez un personnage ou objet depuis les sources de la map.',
     'actorAppearanceBindingUnknownActor' =>
       'Une apparence vise un acteur qui n’existe plus.',
     'actorAppearanceBindingUnknownCharacter' =>
@@ -806,7 +806,7 @@ String _humanStageDiagnosticMessage(
     'actorAppearanceBindingRequiresCinematicOnly' =>
       'Lie d’abord cet acteur en Cinématique uniquement pour choisir un personnage.',
     'cinematicOnlyCharacterMissing' =>
-      'Choisis un personnage Character Library pour ${actorLabel ?? 'cet acteur'}.',
+      'Choisissez un personnage Character Library pour ${actorLabel ?? 'cet acteur'}.',
     'characterLibraryUnavailable' =>
       'La Character Library ne contient aucun personnage disponible.',
     'characterAssetMissingSprite' =>
@@ -814,35 +814,35 @@ String _humanStageDiagnosticMessage(
     'characterAssetMissingPreviewData' =>
       'Le personnage choisi a des données de preview à compléter.',
     'actorInitialPlacementUnknownActor' =>
-      'Une entrée de scène vise un acteur absent.',
+      'Un départ de scène vise un acteur absent.',
     'actorInitialPlacementMissing' =>
-      'Définis une entrée de scène pour ${actorLabel ?? 'cet acteur'}.',
+      'Définissez un départ de scène pour ${actorLabel ?? 'cet acteur'}.',
     'actorInitialPlacementTargetUnknown' =>
-      'Cette entrée de scène pointe vers une cible absente.',
+      'Ce départ de scène pointe vers une destination absente.',
     'actorInitialPlacementRequiresBinding' =>
-      'Lie l’acteur avant d’utiliser son entité de map comme entrée.',
+      'Lie l’acteur avant d’utiliser son personnage ou objet de map comme départ.',
     'actorInitialPlacementStagePointMissing' =>
-      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point inexistant.',
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un repère de scène inexistant.',
     'actorInitialPlacementStagePointWithoutStageMap' =>
-      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point alors qu’aucune map stage n’est définie.',
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un repère de scène alors qu’aucune map stage n’est définie.',
     'actorInitialPlacementStagePointOutOfMap' =>
-      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un Stage Point en dehors des limites de la map.',
+      'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un repère de scène en dehors des limites de la map.',
     'movementTargetBindingUnknownTarget' =>
-      'Cette cible de mouvement n’existe plus.',
+      'Cette destination n’existe plus.',
     'movementTargetBindingRequiresStageMap' =>
-      'Choisis une map avant de lier une cible à une entité ou un event.',
+      'Choisissez une map avant de lier une destination à un personnage, objet ou déclencheur.',
     'movementTargetBindingMissingSource' => targetLabel == null
-        ? 'Choisis une entité ou un event depuis les sources de la map.'
-        : '$targetLabel attend une sélection d’entité ou d’event.',
+        ? 'Choisissez un personnage, objet ou déclencheur depuis les sources de la map.'
+        : '$targetLabel attend la sélection d’un personnage, objet ou déclencheur.',
     'movementTargetBindingStagePointMissing' => targetLabel == null
-        ? 'La cible de mouvement référence un Stage Point inexistant.'
-        : 'La cible "$targetLabel" référence un Stage Point inexistant.',
+        ? 'La destination référence un repère de scène inexistant.'
+        : 'La destination "$targetLabel" référence un repère de scène inexistant.',
     'movementTargetBindingStagePointWithoutStageMap' => targetLabel == null
-        ? 'La cible de mouvement référence un Stage Point alors qu’aucune map stage n’est définie.'
-        : 'La cible "$targetLabel" référence un Stage Point alors qu’aucune map stage n’est définie.',
+        ? 'La destination référence un repère de scène alors qu’aucune map stage n’est définie.'
+        : 'La destination "$targetLabel" référence un repère de scène alors qu’aucune map stage n’est définie.',
     'movementTargetBindingStagePointOutOfMap' => targetLabel == null
-        ? 'La cible de mouvement référence un Stage Point en dehors des limites de la map.'
-        : 'La cible "$targetLabel" référence un Stage Point en dehors des limites de la map.',
+        ? 'La destination référence un repère de scène en dehors des limites de la map.'
+        : 'La destination "$targetLabel" référence un repère de scène en dehors des limites de la map.',
     _ => diagnostic.message,
   };
 }

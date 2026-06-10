@@ -42,19 +42,19 @@ void main() {
 
     for (final label in <String>[
       'Caméra',
-      'Déplacement acteur',
+      'Déplacer un acteur',
       'Dialogue',
       'FX',
       'Son',
       'Fondu',
-      'Attente',
+      'Attendre',
     ]) {
       expect(find.text(label), findsWidgets);
     }
 
     expect(find.text('Aperçu sandbox'), findsOneWidget);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
-    expect(find.text('Projection temporelle dérivée du déroulé linéaire'),
+    expect(find.text('Déroulé'), findsOneWidget);
+    expect(find.text('Timeline cinématique'),
         findsOneWidget);
     expect(find.text('2 step(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsWidgets);
@@ -159,23 +159,28 @@ void main() {
     final project = _project(cinematics: [_stageContextCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Préparation preview'), findsOneWidget);
-    expect(find.text('Contexte incomplet'), findsWidgets);
+    expect(find.text('Incomplet'), findsWidgets);
     expect(find.textContaining('La preview réelle arrivera plus tard.'),
         findsWidgets);
     for (final label in <String>[
       'Map de scène',
       'Décor',
       'Acteurs liés',
-      'Positions initiales',
-      'Cibles de mouvement',
-      'Sources map-aware',
+      'Départs de scène',
+      'Destinations',
+      'Sources de la map',
     ]) {
       expect(find.textContaining(label), findsWidgets);
     }
     expect(find.textContaining('À compléter'), findsWidgets);
     expect(
-      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.text('Lecture en cours'), findsNothing);
@@ -222,7 +227,7 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
       findsOneWidget,
     );
-    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('12 x 10 tuiles'), findsOneWidget);
     expect(
@@ -332,7 +337,7 @@ void main() {
       backdropTileRenderPlan: tileRenderPlan,
     );
 
-    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Décor disponible'), findsOneWidget);
     expect(find.text('Décor seul'), findsWidgets);
     expect(find.text('Sans acteurs'), findsWidgets);
     expect(find.text('Sans lecture'), findsWidgets);
@@ -954,7 +959,7 @@ void main() {
     final sceneFrameRect = tester.getRect(frameFinder);
     expect(sceneFrameRect.width, greaterThan(viewportRect.width));
     expect(sceneFrameRect.height, greaterThan(viewportRect.height));
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
   });
 
   testWidgets(
@@ -1166,7 +1171,7 @@ void main() {
     );
     expect(find.text('Carte entière'), findsOneWidget);
     expect(find.text('Vue scène'), findsOneWidget);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     for (final key in const [
       'cinematic-builder-transport-reset-button',
       'cinematic-builder-transport-play-button',
@@ -1754,7 +1759,7 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
       findsOneWidget,
     );
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
   });
 
   testWidgets('keeps duration editor working with extended backdrop',
@@ -2342,8 +2347,13 @@ void main() {
     final project = _project(cinematics: [_stageSandboxOnlyCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_sandbox');
 
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Préparation preview'), findsOneWidget);
-    expect(find.text('Sandbox uniquement'), findsWidgets);
+    expect(find.text('Aperçu uniquement'), findsWidgets);
     expect(
       find.textContaining('Ajoute un contexte de scène'),
       findsWidgets,
@@ -2358,8 +2368,13 @@ void main() {
     final project = _project(cinematics: [_stageUnknownMapCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Préparation preview'), findsOneWidget);
-    expect(find.text('À corriger avant preview'), findsWidgets);
+    expect(find.text('À corriger'), findsWidgets);
     expect(
       find.textContaining('La map de scène n’existe plus dans le projet.'),
       findsWidgets,
@@ -2376,16 +2391,21 @@ void main() {
     final project = _project(cinematics: [_stageReadyCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_ready');
 
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Préparation preview'), findsOneWidget);
-    expect(find.text('Prêt pour future preview'), findsWidgets);
+    expect(find.text('Prêt'), findsWidgets);
     expect(find.textContaining('Map de scène — OK : Lab map'), findsWidgets);
     expect(
         find.textContaining('Décor — OK : décor depuis la map'), findsWidgets);
     expect(find.textContaining('Acteurs liés — OK'), findsWidgets);
-    expect(find.textContaining('Positions initiales — OK'), findsWidgets);
-    expect(find.textContaining('Cibles de mouvement — OK'), findsWidgets);
+    expect(find.textContaining('Départs de scène — OK'), findsWidgets);
+    expect(find.textContaining('Destinations — OK'), findsWidgets);
     expect(
-      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.textContaining('La preview réelle arrivera plus tard.'),
@@ -2421,7 +2441,11 @@ void main() {
     expect(updated.stageContext?.backdropMode,
         CinematicStageBackdropMode.projectMap);
     expect(find.text('Aucune map'), findsWidgets);
-    expect(find.text('Choisis une map avant d’utiliser un décor de map.'),
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+    expect(find.text('Choisissez une map avant d’utiliser un décor de map.'),
         findsWidgets);
   });
 
@@ -3578,7 +3602,7 @@ void main() {
     );
     await tester.ensureVisible(button);
     expect(tester.widget<PokeMapButton>(button).onPressed, isNull);
-    expect(find.text('Choisis d’abord une map de scène.'), findsWidgets);
+    expect(find.text('Choisissez d’abord une map de scène.'), findsWidgets);
   });
 
   testWidgets(
@@ -3602,7 +3626,7 @@ void main() {
     expect(tester.widget<PokeMapButton>(actorMapEntity).onPressed, isNull);
     expect(
       find.text(
-        'Catalogue des entités/events de la map en cours de chargement.',
+        'Catalogue des personnages/déclencheurs de la map en cours de chargement.',
       ),
       findsWidgets,
     );
@@ -3614,7 +3638,7 @@ void main() {
     expect(tester.widget<PokeMapButton>(targetMapEvent).onPressed, isNull);
     expect(
       find.text(
-        'Catalogue des entités/events de la map en cours de chargement.',
+        'Catalogue des personnages/déclencheurs de la map en cours de chargement.',
       ),
       findsWidgets,
     );
@@ -3625,7 +3649,7 @@ void main() {
     final project = _project(cinematics: [_stageContextCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
-    expect(find.text('Positions initiales'), findsOneWidget);
+    expect(find.text('Départs de scène'), findsOneWidget);
     expect(
       find.byKey(
         const ValueKey(
@@ -3748,7 +3772,7 @@ void main() {
     final project = _project(cinematics: [_stageContextCinematic()]);
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
-    expect(find.text('Cibles de mouvement'), findsWidgets);
+    expect(find.text('Destinations'), findsWidgets);
     expect(find.text('Centre scène'), findsWidgets);
     expect(
       find.byKey(
@@ -3954,9 +3978,14 @@ void main() {
     );
     await _pumpBuilderHarness(tester, project, 'cinematic_stage_context');
 
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Diagnostics stage'), findsOneWidget);
     expect(
-      find.text('Choisis une map avant d’utiliser un décor de map.'),
+      find.text('Choisissez une map avant d’utiliser un décor de map.'),
       findsWidgets,
     );
     expect(find.text('stageBackdropRequiresMap'), findsOneWidget);
@@ -4302,8 +4331,8 @@ void main() {
       asset: _asset(project, 'cinematic_time_layout'),
     );
 
-    expect(find.text('Timeline par pistes'), findsOneWidget);
-    expect(find.text('Projection temporelle dérivée du déroulé linéaire'),
+    expect(find.text('Déroulé'), findsOneWidget);
+    expect(find.text('Timeline cinématique'),
         findsOneWidget);
     expect(find.text('Layout temporel dérivé'), findsOneWidget);
     expect(find.text('0 ms'), findsOneWidget);
@@ -4552,9 +4581,9 @@ void main() {
 
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Repère : 750 ms'), findsOneWidget);
-    expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur temps : 750 ms'), findsOneWidget);
     expect(
-      find.text('Repère local : inspection uniquement.'),
+      find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
     );
     expect(find.text('Sélection : 500 ms'), findsNothing);
@@ -4614,9 +4643,9 @@ void main() {
 
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
-    expect(find.text('Repère temporel : 500 ms'), findsOneWidget);
+    expect(find.text('Marqueur temps : 500 ms'), findsOneWidget);
     expect(
-      find.text('Repère local : inspection uniquement.'),
+      find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
     );
     expect(find.text('Sélection : 500 ms'), findsNothing);
@@ -4793,6 +4822,12 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+
+    final sceneTab = find.byKey(
+      const ValueKey('cinematic-builder-inspector-tab-scene'),
+    );
+    await tester.tap(sceneTab);
+    await tester.pumpAndSettle();
 
     final labelField = find.byKey(
       const ValueKey('cinematic-builder-movement-target-label-target_center'),
@@ -5670,9 +5705,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
-    expect(find.text('Repère local : inspection uniquement.'), findsOneWidget);
-    expect(find.text('Effacer le repère'), findsOneWidget);
-    expect(find.text('Aide repère'), findsOneWidget);
+    expect(find.text('Marqueur local : inspection uniquement.'), findsOneWidget);
+    expect(find.text('Effacer le marqueur'), findsOneWidget);
+    expect(find.text('Aide timeline'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
       findsOneWidget,
@@ -5695,9 +5730,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Sélection : bloc inspecté.'), findsOneWidget);
-    expect(find.text('Repère : position temporelle locale.'), findsOneWidget);
+    expect(find.text('Marqueur : position temporelle locale.'), findsOneWidget);
     expect(
-      find.text('Alignement : repère calé sur une borne utile.'),
+      find.text('Alignement : marqueur calé sur une borne utile.'),
       findsOneWidget,
     );
     expect(find.text('Preview : lecture réelle à venir.'), findsOneWidget);
@@ -5773,7 +5808,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Aide repère'), findsNothing);
+    expect(find.text('Aide timeline'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsNothing,
@@ -5829,7 +5864,7 @@ void main() {
 
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
-    expect(find.text('Aide repère'), findsNothing);
+    expect(find.text('Aide timeline'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsNothing,
@@ -6003,9 +6038,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Repère : 800 ms · début bloc'), findsOneWidget);
-    expect(find.text('Repère temporel : 800 ms'), findsOneWidget);
+    expect(find.text('Marqueur temps : 800 ms'), findsOneWidget);
     expect(
-      find.text('Repère local : inspection uniquement.'),
+      find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
     );
     final probeCursorRect = tester.getRect(
@@ -7237,6 +7272,12 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
     );
 
+    final sceneTab = find.byKey(
+      const ValueKey('cinematic-builder-inspector-tab-scene'),
+    );
+    await tester.tap(sceneTab);
+    await tester.pumpAndSettle();
+
     final labelField = find.byKey(
       const ValueKey('cinematic-builder-movement-target-label-target_center'),
     );
@@ -7291,6 +7332,12 @@ void main() {
     final faceCursorBefore = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
     );
+
+    final sceneTab = find.byKey(
+      const ValueKey('cinematic-builder-inspector-tab-scene'),
+    );
+    await tester.tap(sceneTab);
+    await tester.pumpAndSettle();
 
     final labelField = find.byKey(
       const ValueKey('cinematic-builder-movement-target-label-target_center'),
@@ -7414,7 +7461,7 @@ void main() {
       asset: _asset(project, 'cinematic_rich'),
     );
 
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.byKey(const ValueKey('cinematic-builder-lane-camera')),
         findsOneWidget);
     expect(
@@ -7535,10 +7582,10 @@ void main() {
     expect(find.text('Professor'), findsWidgets);
     expect(find.text('Rival'), findsWidgets);
     expect(find.text('Aucun step'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('9 piste(s)'), findsOneWidget);
-    expect(find.text('Déplacement acteur'), findsOneWidget);
-    expect(find.text('Ajoutez d’abord une cible'), findsOneWidget);
+    expect(find.text('Déplacer un acteur'), findsOneWidget);
+    expect(find.text('Ajoutez d’abord une destination'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-palette-actorMove-button')),
       findsOneWidget,
@@ -8148,20 +8195,20 @@ void main() {
     );
     expect(actorMoveButton, findsOneWidget);
     expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNull);
-    expect(find.text('Ajoutez d’abord une cible'), findsOneWidget);
+    expect(find.text('Ajoutez d’abord une destination'), findsOneWidget);
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-add-movement-target-button'),
-      ),
+    final targetBtn = find.byKey(
+      const ValueKey('cinematic-builder-add-movement-target-button'),
     );
+    await tester.ensureVisible(targetBtn);
+    await tester.tap(targetBtn);
     await tester.pumpAndSettle();
 
     expect(latestProject.cinematics.single.movementTargets.single.targetId,
         'target');
     expect(
         latestProject.cinematics.single.movementTargets.single.label, 'Cible');
-    expect(find.text('Cibles de déplacement'), findsOneWidget);
+    expect(find.text('Destinations'), findsWidgets);
     expect(find.text('Cible'), findsWidgets);
     expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNotNull);
   });
@@ -8346,13 +8393,19 @@ void main() {
       findsOneWidget,
     );
 
+    final sceneTab = find.byKey(
+      const ValueKey('cinematic-builder-inspector-tab-scene'),
+    );
+    await tester.tap(sceneTab);
+    await tester.pumpAndSettle();
+
     final usedDeleteButton = find.byKey(
       const ValueKey('cinematic-builder-delete-movement-target-target_center'),
     );
     await tester.ensureVisible(usedDeleteButton);
     expect(tester.widget<PokeMapButton>(usedDeleteButton).onPressed, isNull);
     expect(
-      find.text('Cette cible est utilisée par un bloc Déplacement acteur.'),
+      find.text('Cette destination est utilisée par un bloc Déplacer un acteur.'),
       findsOneWidget,
     );
 
@@ -8385,18 +8438,25 @@ void main() {
       latestProject.cinematics.single.timeline.steps.last.label,
       'Déplacement Professor',
     );
+    final actionTab = find.byKey(
+      const ValueKey('cinematic-builder-inspector-tab-action'),
+    );
+    await tester.tap(actionTab);
+    await tester.pumpAndSettle();
     expect(
       find.text('Professor marche vers Centre du plateau en 1000 ms.'),
       findsOneWidget,
     );
     expect(find.text('Professor → Centre du plateau'), findsWidgets);
+    await tester.tap(sceneTab);
+    await tester.pumpAndSettle();
 
     await tester.enterText(labelField, '   ');
     await tester.ensureVisible(saveTargetButton);
     await tester.pumpAndSettle();
     await tester.tap(saveTargetButton);
     await tester.pumpAndSettle();
-    expect(find.text('Label cible obligatoire'), findsOneWidget);
+    expect(find.text('Nom de destination obligatoire'), findsOneWidget);
     expect(
       latestProject.cinematics.single.movementTargets
           .singleWhere((target) => target.targetId == 'target_center')
@@ -9191,9 +9251,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Repère : 750 ms'), findsOneWidget);
-    expect(find.text('Repère temporel : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur temps : 750 ms'), findsOneWidget);
     expect(
-      find.text('Repère local : inspection uniquement.'),
+      find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
     );
     expect(
@@ -9315,10 +9375,10 @@ void main() {
 
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
     expect(
-      find.text('Repère local : inspection uniquement.'),
+      find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
     );
-    expect(find.text('Effacer le repère'), findsOneWidget);
+    expect(find.text('Effacer le marqueur'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
       findsOneWidget,
@@ -9393,15 +9453,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
-    expect(find.text('Aide repère'), findsOneWidget);
+    expect(find.text('Aide timeline'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsOneWidget,
     );
     expect(find.text('Sélection : bloc inspecté.'), findsOneWidget);
-    expect(find.text('Repère : position temporelle locale.'), findsOneWidget);
+    expect(find.text('Marqueur : position temporelle locale.'), findsOneWidget);
     expect(
-      find.text('Alignement : repère calé sur une borne utile.'),
+      find.text('Alignement : marqueur calé sur une borne utile.'),
       findsOneWidget,
     );
     expect(find.text('Preview : lecture réelle à venir.'), findsOneWidget);
@@ -9689,10 +9749,9 @@ void main() {
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('Décor depuis la map'), findsWidgets);
     expect(find.text('Acteurs'), findsWidgets);
-    expect(find.text('Positions initiales'), findsWidgets);
-    expect(find.text('Cibles de mouvement'), findsWidgets);
-    expect(find.text('Diagnostics stage'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Destinations'), findsWidgets);
+    expect(find.text('État de la scène'), findsWidgets);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-timeline-keyboard-focus')),
       findsOneWidget,
@@ -9737,28 +9796,33 @@ void main() {
 
     expect(find.text('Aperçu sandbox'), findsOneWidget);
     expect(find.text('Contexte de scène'), findsOneWidget);
+
+    final stateTile = find.text('État de la scène');
+    await tester.ensureVisible(stateTile);
+    await tester.tap(stateTile);
+    await tester.pumpAndSettle();
+
     expect(find.text('Préparation preview'), findsOneWidget);
-    expect(find.text('Contexte incomplet'), findsWidgets);
+    expect(find.text('Incomplet'), findsWidgets);
     expect(find.textContaining('La preview réelle arrivera plus tard.'),
         findsWidgets);
     expect(find.textContaining('Map de scène — OK'), findsWidgets);
     expect(find.textContaining('Décor — OK'), findsWidgets);
     expect(find.textContaining('Acteurs liés — À compléter'), findsWidgets);
     expect(
-        find.textContaining('Positions initiales — À compléter'), findsWidgets);
+        find.textContaining('Départs de scène — À compléter'), findsWidgets);
     expect(
-        find.textContaining('Cibles de mouvement — À compléter'), findsWidgets);
+        find.textContaining('Destinations — À compléter'), findsWidgets);
     expect(
-      find.textContaining('Sources map-aware — OK : aucune source map-aware'),
+      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.text('Lab map'), findsWidgets);
     expect(find.text('Décor depuis la map'), findsWidgets);
     expect(find.text('Acteurs'), findsWidgets);
     expect(find.text('Binding'), findsWidgets);
-    expect(find.text('Positions initiales'), findsWidgets);
-    expect(find.text('Cibles de mouvement'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Destinations'), findsWidgets);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Scène non jouée.'), findsWidgets);
     expect(find.text('Lecture en cours'), findsNothing);
     for (final key in <String>[
@@ -9921,7 +9985,7 @@ void main() {
     expect(find.text('Rival'), findsWidgets);
     expect(find.text('Garde'), findsWidgets);
     expect(find.text('characters/rival · 32×32'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(tester.takeException(), isNull);
 
@@ -10030,7 +10094,7 @@ void main() {
       find.textContaining('Apparences acteurs — À corriger'),
       findsWidgets,
     );
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     for (final key in <String>[
       'cinematic-builder-transport-reset-button',
@@ -10094,9 +10158,9 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-preview')),
       findsOneWidget,
     );
-    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Décor disponible'), findsOneWidget);
     expect(find.text('Décor seul'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(tester.takeException(), isNull);
 
@@ -10154,7 +10218,7 @@ void main() {
     );
     expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(tester.takeException(), isNull);
 
@@ -10213,7 +10277,7 @@ void main() {
     expect(find.text('Fallback structurel'), findsOneWidget);
     expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Lab map'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
       findsOneWidget,
@@ -10311,12 +10375,12 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap')),
       findsOneWidget,
     );
-    expect(find.text('Carte du projet (statique)'), findsOneWidget);
+    expect(find.text('Décor disponible'), findsOneWidget);
     expect(find.text('Tiles réelles affichées'), findsWidgets);
     expect(find.text('Décor seul'), findsWidgets);
     expect(find.text('Sans acteurs'), findsWidgets);
     expect(find.text('Sans lecture'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(find.text('Professor Oak'), findsNothing);
     expect(find.text('Collision'), findsNothing);
@@ -10457,7 +10521,7 @@ void main() {
     );
     expect(find.text('Tiles réelles affichées'), findsWidgets);
     expect(find.text('7 couche(s) bitmap'), findsWidgets);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(find.text('Neutral event'), findsNothing);
     expect(tester.takeException(), isNull);
@@ -10520,7 +10584,7 @@ void main() {
     expect(find.text('Carte entière'), findsOneWidget);
     expect(find.text('Vue scène'), findsOneWidget);
     expect(find.text('Zoom 1.25×'), findsOneWidget);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Lecture en cours'), findsNothing);
     expect(tester.takeException(), isNull);
 
@@ -10586,7 +10650,7 @@ void main() {
       findsNothing,
     );
     expect(find.textContaining('Pan'), findsOneWidget);
-    expect(find.text('Timeline par pistes'), findsOneWidget);
+    expect(find.text('Déroulé'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
       findsOneWidget,
@@ -11328,27 +11392,27 @@ void main() {
     );
 
     // 1. Verify that when no stage points exist, the empty state helper message is displayed
-    expect(find.text('Aucun point de scène. Clique sur « Ajouter un point », puis clique sur la carte.'), findsOneWidget);
+    expect(find.text('Aucun repère de scène. Cliquez sur « Ajouter un repère », puis cliquez sur la carte.'), findsOneWidget);
 
-    // 2. Verify that the "Ajouter un point" text button is visible and active
+    // 2. Verify that the "Ajouter un repère" text button is visible and active
     final addPointBtn = find.byKey(const ValueKey('cinematic-builder-map-backdrop-add-stage-point-toggle'));
     expect(addPointBtn, findsOneWidget);
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
 
-    // 3. Click the "Ajouter un point" button to enter placement mode
+    // 3. Click the "Ajouter un repère" button to enter placement mode
     await tester.tap(addPointBtn);
     await tester.pumpAndSettle();
 
     // 4. Verify that the button text changes to "Annuler l’ajout" and active placement banner is displayed
     expect(find.descendant(of: addPointBtn, matching: find.text('Annuler l’ajout')), findsOneWidget);
-    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsOneWidget);
+    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsOneWidget);
 
     // 5. Test Escape key deactivates the mode
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
-    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsNothing);
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
+    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsNothing);
 
     // 6. Enter mode again, and verify that clicking on the map canvas places a point
     await tester.tap(addPointBtn);
@@ -11359,10 +11423,10 @@ void main() {
     await tester.tapAt(viewportCenter);
     await tester.pumpAndSettle();
 
-    // 7. Verify point was created and mode exited automatically (generated ID is '1', so label is 'Point 1')
-    expect(find.text('Point 1'), findsNWidgets(2));
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un point')), findsOneWidget);
-    expect(find.text('Mode placement actif — Clique sur la carte pour poser un point. Échap pour annuler.'), findsNothing);
+    // 7. Verify point was created and mode exited automatically (generated ID is '1', so label is 'Repère 1')
+    expect(find.text('Repère 1'), findsNWidgets(2));
+    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
+    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsNothing);
 
     // 8. Verify inspector panel displays the selected point inputs
     expect(find.byKey(const ValueKey('cinematic-stage-point-label-input')), findsOneWidget);
