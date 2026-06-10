@@ -192,6 +192,8 @@ Demande : Clôturer V1-104 proprement sans modifier le code produit.
 
 Decision : Signature et vérification de la Visual Gate (SHA-256 Checksum : `a01124aec87923eb30257a889b4ac1348da0694cf8024dc345dcf6367cdeebcd`). Exécution et rapports de tests unitaires et widget (100% verts). Analyse statique détaillée. Justification alternative du build (tests widget complets + compilation Xcode validée).
 
+Note : V1-104-bis est maintenu comme closure evidence de V1-104. Un scope repair a isolé les changements macOS/Xcode hors NS-SCENES. Le correctif macOS est suivi séparément par BUILD-MACOS-01.
+
 ## Mise a jour V1-104
 
 Statut : `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` est DONE.

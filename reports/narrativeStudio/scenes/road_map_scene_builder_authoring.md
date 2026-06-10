@@ -165,6 +165,8 @@ Demande : Clôturer proprement et documenter le pack de preuves de V1-104 sans m
 
 Decision : Rédaction du rapport final de clôture bis et de l'Evidence Pack. Exécution des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum de la Visual Gate (1663x926, aucun diagnostic).
 
+Note : V1-104-bis est maintenu comme closure evidence de V1-104. Un scope repair a isolé les changements macOS/Xcode hors NS-SCENES. Le correctif macOS est suivi séparément par BUILD-MACOS-01.
+
 ## Mise a jour V1-104
 
 Statut : `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` est DONE.

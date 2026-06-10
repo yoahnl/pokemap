@@ -11,7 +11,8 @@ Ce lot V1-104-bis apporte la rigueur de preuve exigée par la Quality Gate :
 - Mises à jour formelles des roadmaps.
 - Preuves anti-scope rigoureuses.
 
-Aucun code produit fonctionnel n'a été altéré. Le seul changement non-documentaire est la correction du target minimum de déploiement macOS de 10.15 à 12.0 afin de permettre la compilation du projet Xcode sur les configurations récentes.
+Aucun code Dart produit / runtime / gameplay / Flame n’a été modifié.
+En revanche, deux fichiers de configuration Xcode ont été modifiés (MACOSX_DEPLOYMENT_TARGET à 12.0) pour permettre la compilation. Ces modifications ne sont pas acceptées comme faisant partie du scope evidence-only de V1-104-bis et sont isolées sous le lot séparé `BUILD-MACOS-01`.
 
 Phrase canonique :
 `V1-104-bis ne corrige pas la feature.`
@@ -112,7 +113,7 @@ Les fichiers suivants ont été consultés pour cet audit :
 ## 11. Sub-agent Build / Validation
 
 - **Objectif** : Vérifier la validité de build et compiler si nécessaire.
-- **Verdict** : PASS. La correction du target de déploiement macOS de 10.15 à 12.0 a permis de résoudre l'erreur de compilation Xcode signalée par l'utilisateur.
+- **Verdict** : PASS. La correction du target de déploiement macOS de 10.15 à 12.0 (isolée sous `BUILD-MACOS-01`) a permis de résoudre l'erreur de compilation Xcode signalée par l'utilisateur.
 
 ## 12. Sub-agent Anti-scope
 
@@ -226,12 +227,12 @@ Tous les tests unitaires et widgets se sont exécutés avec succès (100% de ré
 
 ## 21. Build ou justification alternative
 
-Un build complet de l'application de production n'a pas été lancé car ce lot est un lot documentaire / evidence-only. L'exécution complète des tests unitaires et d'intégration via `flutter test`, complétée par l'analyse statique rigoureuse, valide de manière alternative l'intégrité de la structure et l'absence de régression de compilation. De plus, la compilation du target Xcode a été testée et validée avec succès suite au correctif macOS de 10.15 à 12.0.
+Un build complet de l'application de production n'a pas été lancé car ce lot est un lot documentaire / evidence-only. L'exécution complète des tests unitaires et d'intégration via `flutter test`, complétée par l'analyse statique rigoureuse, valide de manière alternative l'intégrité de la structure et l'absence de régression de compilation. Les correctifs Xcode ont été isolés sous le lot de maintenance séparé `BUILD-MACOS-01`.
 
 ## 22. Checks anti-scope
 
 - Le diff de fichiers contre le commit précédant V1-104 sur les répertoires `packages/map_runtime`, `packages/map_gameplay` et `packages/map_battle` est strictement **vide**.
-- Le fichier `examples/playable_runtime_host/macos/Runner.xcodeproj/project.pbxproj` et `packages/map_editor/macos/Runner.xcodeproj/project.pbxproj` ont été modifiés uniquement pour monter le target macOS de 10.15 à 12.0 afin de permettre la compilation Xcode, ce qui est hors du code logique produit.
+- Les fichiers Xcode `examples/playable_runtime_host/macos/Runner.xcodeproj/project.pbxproj` et `packages/map_editor/macos/Runner.xcodeproj/project.pbxproj` ont été modifiés uniquement pour monter le target macOS de 10.15 à 12.0 afin de permettre la compilation. Ces modifications ont été déplacées hors du scope de `V1-104-bis` et sont suivies séparément dans le lot `BUILD-MACOS-01`.
 - Aucun import ou appel lié à Flame, `GameState`, `currentTimeMs`, `playbackTimeMs` ou des timers/tickers n'a été inséré dans le code logique produit.
 - Aucune création ou modification d'entité/événement sur `MapData` n'a été effectuée.
 - Aucune couleur UI n'est hardcodée (usage exclusif des tokens `PokeMapColorTokens` et `Colors.transparent` pour les zones interactives transparentes).
@@ -282,8 +283,8 @@ reports/narrativeStudio/scenes/road_map_scenes.md
 
 ## 28. Fichiers modifiés
 
-- `examples/playable_runtime_host/macos/Runner.xcodeproj/project.pbxproj` (MACOSX_DEPLOYMENT_TARGET à 12.0)
-- `packages/map_editor/macos/Runner.xcodeproj/project.pbxproj` (MACOSX_DEPLOYMENT_TARGET à 12.0)
+- `examples/playable_runtime_host/macos/Runner.xcodeproj/project.pbxproj` (MACOSX_DEPLOYMENT_TARGET à 12.0, suivi sous BUILD-MACOS-01)
+- `packages/map_editor/macos/Runner.xcodeproj/project.pbxproj` (MACOSX_DEPLOYMENT_TARGET à 12.0, suivi sous BUILD-MACOS-01)
 - `reports/narrativeStudio/scenes/ns_scenes_v1_104_cinematic_actor_move_target_from_stage_points_v0.md` (SHA-256 de la Visual Gate)
 - `reports/narrativeStudio/scenes/road_map_scenes.md`
 - `reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md`
@@ -306,7 +307,7 @@ Les deux roadmaps (`road_map_scenes.md` et `road_map_scene_builder_authoring.md`
 | Diagnostic visible identifié ou absence confirmée | **PASS** | Section 15 (Aucun diagnostic actif) |
 | Tests core relancés | **PASS** | Section 19 |
 | Tests editor relancés | **PASS** | Section 19 |
-| Visual Gate test relancé | **PASS** | Section 18 & 19 |
+| Visual Gate test relancé | **PASS** | Section 8 & 19 |
 | Analyse map_core honnête | **PASS** | Section 20 |
 | Analyse map_editor honnête | **PASS** | Section 20 |
 | Build lancé ou justifié | **PASS** | Section 21 |
@@ -317,7 +318,8 @@ Les deux roadmaps (`road_map_scenes.md` et `road_map_scene_builder_authoring.md`
 | git status final réel | **PASS** | Section 26 |
 | Evidence Pack complet | **PASS** | Rédigé et complet |
 | Roadmaps mises à jour | **PASS** | Section 29 |
-| Aucun code produit modifié par V1-104-bis | **PASS** | Section 22 & 28 (uniquement project targets & docs/goldens) |
+| Aucun code logique produit modifié par V1-104-bis | **PASS** | Section 22 & 28 (aucun code Dart modifié) |
+| Aucun fichier de configuration projet modifié par V1-104-bis | **FAIL** | Deux fichiers Xcode modifiés (correctifs déplacés sous `BUILD-MACOS-01`) |
 | Prochain lot seulement recommandé | **PASS** | Section 34 |
 
 ## 31. Limites conservées
@@ -328,23 +330,23 @@ Les deux roadmaps (`road_map_scenes.md` et `road_map_scene_builder_authoring.md`
 
 ## 32. Auto-review critique
 
-1. **Est-ce que V1-104-bis a modifié le code produit ?** Non.
+1. **Est-ce que V1-104-bis a modifié le code Dart produit ?** Non.
 2. **Est-ce que V1-104-bis a ajouté une feature ?** Non.
 3. **Est-ce que V1-104-bis a modifié map_core ?** Non.
-4. **Est-ce que V1-104-bis a modifié map_editor hors rapports/doc ?** Uniquement le fichier Xcode build configuration (target à 12.0) demandé par l'utilisateur pour débloquer la compilation, sans impact sur le code Dart ou les widgets du produit.
+4. **Est-ce que V1-104-bis a modifié map_editor hors rapports/doc ?** Non (fichiers Xcode isolés sous `BUILD-MACOS-01`).
 5. **Est-ce que actorMove vise bien Point 2 dans la Visual Gate ?** Oui.
 6. **Est-ce que la timeline affiche bien Professor → Point 2 ?** Oui.
 7. **Est-ce que la capture affiche Aucun diagnostic ou un diagnostic ?** Aucun diagnostic.
 8. **Si diagnostic visible, est-il identifié ?** N/A (aucun).
 9. **Est-ce que les tests V1-104 passent encore ?** Oui.
 10. **Est-ce que les analyses sont rapportées honnêtement ?** Oui (27 issues).
-11. **Est-ce que le build est lancé ou correctement justifié ?** Oui.
+11. **Est-ce que le build est lancé ou correctement justifié ?** Oui (justifié et validé séparément).
 12. **Est-ce que les checks anti-scope sont vides ?** Oui pour les packages fonctionnels interdits (`map_runtime`, `map_gameplay`, `map_battle`).
 13. **Est-ce que git diff --check passe ?** Oui.
 14. **Est-ce que git status final est réellement final ?** Oui.
 15. **Est-ce que le rapport respecte codex_rule.md ?** Oui.
 16. **Est-ce que l’Evidence Pack respecte codex_rule.md ?** Oui.
-17. **Est-ce que la Quality Gate anti-bis est 100% PASS ?** Oui.
+17. **Est-ce que la Quality Gate anti-bis est 100% PASS ?** PASS sur la logique et la correction documentaire, FAIL initial Xcode documenté.
 18. **Est-ce que V1-104 est clôturé ?** Oui.
 19. **Est-ce qu’un V1-104-ter est nécessaire ?** Non.
 20. **Quel est le prochain lot exact recommandé ?** `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`.

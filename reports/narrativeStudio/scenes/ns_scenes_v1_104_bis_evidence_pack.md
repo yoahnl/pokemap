@@ -14,12 +14,6 @@ ace9a000 feat: implement cinematic stage points placement overlay UI (V1-102) an
 d0c4d3f2 feat(narrativeStudio): resolve NS-SCENES-V1-99-bis visual polish and fidelity
 2ecd9f5f fix(cinematic): fix centering and coordinate mappings for actor sprite preview renderer, resolve rival south/north animation inversion
 c920f5ef feat(map_editor): add cinematic actor sprite preview, refine UI, and update project files
-343bb31a doc(cinematics): document cinematic actor display preview sprite resolver contract (V1-97)
-de216dc0 feat(cinematics): implement cinematic backdrop real map editor ordering fix (V1-96-bis)
-89f172b7 feat(cinematics): implement cinematic backdrop depth / Z-order parity polish V0
-0d95818f update selbrume
-0ccc4c33 update selbrume
-b3477664 feat(map_editor): refine cinematic backdrop preview and update scene reports
 ```
 
 ## 2. Audit Initial & Architecture
@@ -40,7 +34,7 @@ b3477664 feat(map_editor): refine cinematic backdrop preview and update scene re
 - **Sub-agent Evidence Pack** : **PASS**. Toutes les traces techniques d'exécution sont présentes.
 - **Sub-agent Visual Gate Truth** : **PASS**. La vérité visuelle est explicitée sans placeholders ni masquage de diagnostics.
 - **Sub-agent Tests** : **PASS**. Les 2458 tests de `map_core` et tests de `map_editor` passent.
-- **Sub-agent Build / Validation** : **PASS**. Résolution réussie du target de déploiement macOS.
+- **Sub-agent Build / Validation** : **PASS**. Résolution réussie du target de déploiement macOS (isolé sous `BUILD-MACOS-01`).
 - **Sub-agent Anti-scope** : **PASS**. Zéro code interdit ou structure runtime.
 - **Sub-agent Critique finale** : **PASS**. Intégrité globale assurée.
 
@@ -146,7 +140,7 @@ warning • A value for optional parameter 'mapHeight' isn't ever given. Try rem
 
 ## 11. Justification build
 
-Un build complet de production desktop/web n'a pas été lancé, s'agissant d'un lot evidence-only sans modification de logique produit. L'exécution de la suite entière de tests unitaires et widget assure l'absence de régression, ce qui est validé par la compilation Xcode suite au correctif macOS.
+Un build complet de production desktop/web n'a pas été lancé, s'agissant d'un lot evidence-only sans modification de logique produit. L'exécution de la suite entière de tests unitaires et widget assure l'absence de régression. Les correctifs Xcode ont été isolés sous le lot de maintenance séparé `BUILD-MACOS-01`.
 
 ## 12. Checks anti-scope
 
@@ -239,7 +233,8 @@ Réf: `reports/narrativeStudio/scenes/ns_scenes_v1_104_bis_evidence_pack.md` (ce
 | git status final réel | **PASS** | Section 16 |
 | Evidence Pack complet | **PASS** | Ce fichier |
 | Roadmaps mises à jour | **PASS** | Section 18 |
-| Aucun code produit modifié par V1-104-bis | **PASS** | Reste à 100% pur |
+| Aucun code logique produit modifié par V1-104-bis | **PASS** | Section 12 (aucun code Dart modifié) |
+| Aucun fichier de configuration projet modifié par V1-104-bis | **FAIL** | Deux fichiers Xcode modifiés (correctifs déplacés sous `BUILD-MACOS-01`) |
 | Prochain lot seulement recommandé | **PASS** | Section 22 |
 
 ## 20. Auto-critique finale
