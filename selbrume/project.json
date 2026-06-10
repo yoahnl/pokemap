@@ -542,6 +542,18 @@
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
+    },
+    {
+      "id": "beach_wave",
+      "name": "beach_wave",
+      "relativePath": "assets/tilesets/beach_wave.jpg",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "ground",
+      "sortOrder": 11,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
     }
   ],
   "elementCategories": [
@@ -12651,6 +12663,536 @@
         }
       ],
       "sortOrder": 0
+    },
+    {
+      "id": "beach-wave",
+      "name": "beach wave",
+      "surfaceKind": "path",
+      "categoryId": null,
+      "tilesetId": "beach_wave",
+      "variants": [
+        {
+          "variant": "cornerNE",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 2,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 5,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 8,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 11,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 14,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 17,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "cornerSE",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 2,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 5,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 8,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 11,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 14,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 17,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "cornerSW",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 0,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 3,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 6,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 9,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 12,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 15,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "cornerNW",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 0,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 3,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 6,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 9,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 12,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 15,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeNorth",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 1,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 4,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 7,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 10,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 13,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 16,
+                "y": 3,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeEast",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 0,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 3,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 6,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 9,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 12,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 15,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeSouth",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 1,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 4,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 7,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 10,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 13,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 16,
+                "y": 1,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        },
+        {
+          "variant": "teeWest",
+          "frames": [
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 2,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 5,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 8,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 11,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 14,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            },
+            {
+              "tilesetId": "beach_wave",
+              "source": {
+                "x": 17,
+                "y": 2,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 100
+            }
+          ]
+        }
+      ],
+      "sortOrder": 0
     }
   ],
   "pathPatternPresets": [
@@ -14001,6 +14543,86 @@
         ]
       },
       "sortOrder": 0
+    },
+    {
+      "id": "beach-wave-pattern",
+      "name": "beach wave",
+      "basePathPresetId": "beach-wave",
+      "centerPattern": {
+        "size": {
+          "width": 1,
+          "height": 1
+        },
+        "cells": [
+          {
+            "localX": 0,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 1,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 4,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 7,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 10,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 13,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "beach_wave",
+                "source": {
+                  "x": 16,
+                  "y": 2,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              }
+            ]
+          }
+        ]
+      },
+      "sortOrder": 2
     }
   ],
   "environmentPresets": [
@@ -14827,7 +15449,7 @@
             "id": "step_wait",
             "kind": "wait",
             "label": "Attente",
-            "durationMs": 700,
+            "durationMs": 300,
             "metadata": {
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
