@@ -44,6 +44,7 @@ enum CinematicMovementTargetBindingKind {
   abstractPoint,
   mapEntity,
   mapEvent,
+  stagePoint,
 }
 
 @immutable

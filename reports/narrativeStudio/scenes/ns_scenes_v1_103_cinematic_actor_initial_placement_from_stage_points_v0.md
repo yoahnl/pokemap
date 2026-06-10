@@ -44,7 +44,7 @@ Ce lot permet d'utiliser un `CinematicStagePoint` existant comme position initia
 La Visual Gate de non-régression visuelle a été générée avec succès via test golden file sous :
 `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_103_cinematic_actor_initial_placement_from_stage_points_v0.png`
 
-Elle affiche le sprite réel du professeur Timi positionné sur le Point de Scène sélectionné, ainsi que l'inspecteur latéral configuré sur l'option "Point de scène" avec le bouton sous-sélecteur actif.
+Elle affiche le tag d'identification de l'acteur `Professor` positionné sur le Point de Scène `Point 1` sélectionné (dont l'apparence est "Non défini" dans l'inspecteur), ainsi que l'inspecteur latéral configuré sur l'option "Point de scène" avec le bouton sous-sélecteur actif, et affiche un diagnostic actif (notamment sur l'instruction actorMove cible non liée dans la timeline).
 
 ## Limites
 - Pas de playback interactif ou d'interpolation de mouvement lors des timelines d'instructions `actorMove` (non-goal, prévu pour le lot V1-104).

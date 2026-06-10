@@ -623,6 +623,7 @@ CinematicActorPreviewPosition _resolvePosition({
         targetId: placement.targetId,
         movementTargetIds: movementTargetIds,
         movementTargetBindings: movementTargetBindings,
+        stagePoints: stagePoints,
         mapData: mapData,
         diagnostics: diagnostics,
       ),
@@ -754,6 +755,7 @@ CinematicActorPreviewPosition _positionFromMovementTarget({
   required String? targetId,
   required Set<String> movementTargetIds,
   required Map<String, CinematicMovementTargetBinding> movementTargetBindings,
+  required List<CinematicStagePoint> stagePoints,
   required MapData? mapData,
   required List<CinematicActorDisplayPreviewDiagnostic> diagnostics,
 }) {
@@ -811,7 +813,44 @@ CinematicActorPreviewPosition _positionFromMovementTarget({
     );
   }
   final sourceId = binding.sourceId?.trim();
-  if (sourceId == null || sourceId.isEmpty || mapData == null) {
+  if (sourceId == null || sourceId.isEmpty) {
+    diagnostics.add(
+      CinematicActorDisplayPreviewDiagnostic(
+        code: CinematicActorDisplayPreviewDiagnosticCode
+            .actorDisplayMissingMovementTarget,
+        severity: CinematicActorDisplayPreviewDiagnosticSeverity.error,
+        message: 'La cible de placement n a pas de source de map valide.',
+        actorId: actorId,
+        sourceId: normalizedTargetId,
+      ),
+    );
+    return CinematicActorPreviewPosition(
+      status: CinematicActorPreviewPositionStatus.missingSource,
+      sourceKind: CinematicActorPreviewPositionSourceKind.movementTarget,
+      sourceId: normalizedTargetId,
+    );
+  }
+  if (binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
+    // V1-104: target is resolved from a CinematicStagePoint.
+    // We delegate the resolution to the helper function _positionFromStagePoint,
+    // which correctly handles coordinate rounding, bounds checking, and logging.
+    final pos = _positionFromStagePoint(
+      actorId: actorId,
+      stagePointId: sourceId,
+      stagePoints: stagePoints,
+      mapData: mapData,
+      diagnostics: diagnostics,
+    );
+    // Convert source kind to movementTarget to respect the path trace
+    return CinematicActorPreviewPosition(
+      status: pos.status,
+      sourceKind: CinematicActorPreviewPositionSourceKind.movementTarget,
+      sourceId: normalizedTargetId,
+      x: pos.x,
+      y: pos.y,
+    );
+  }
+  if (mapData == null) {
     diagnostics.add(
       CinematicActorDisplayPreviewDiagnostic(
         code: CinematicActorDisplayPreviewDiagnosticCode
@@ -849,6 +888,8 @@ CinematicActorPreviewPosition _positionFromMovementTarget({
         diagnostics: diagnostics,
         targetId: normalizedTargetId,
       ),
+    CinematicMovementTargetBindingKind.stagePoint =>
+      throw StateError('stagePoint kind handled explicitly above'),
   };
 }
 

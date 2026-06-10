@@ -131,6 +131,101 @@ void main() {
       expect(laneStep.badges, contains('Course'));
       expect(laneStep.badges, contains('Direct'));
     });
+
+    test('actorMove target can resolve from a cinematic stage point', () {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_actor_move_stage_point',
+        title: 'Actor move stage point lane test',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_move_point',
+            label: 'Move Target',
+          ),
+        ],
+        stageContext: CinematicStageContext(
+          stagePoints: [
+            CinematicStagePoint(
+              id: 'point_2',
+              label: 'Point 2',
+              x: 10,
+              y: 15,
+            ),
+          ],
+          movementTargetBindings: [
+            CinematicMovementTargetBinding(
+              targetId: 'target_move_point',
+              kind: CinematicMovementTargetBindingKind.stagePoint,
+              sourceId: 'point_2',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_move_sp',
+              kind: CinematicTimelineStepKind.actorMove,
+              label: 'Move to point 2',
+              actorId: 'actor_professor',
+              targetId: 'target_move_point',
+              durationMs: 1500,
+            ),
+          ],
+        ),
+      );
+
+      final readModel = buildCinematicTimelineLaneReadModel(cinematic);
+      final actorLane = readModel.laneById('actor:actor_professor')!;
+      final laneStep = actorLane.steps.single;
+
+      expect(laneStep.targetLabel, 'Point 2');
+    });
+
+    test('actorMove target shows missing label when stage point is missing', () {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_actor_move_stage_point_missing',
+        title: 'Actor move stage point missing lane test',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_move_point',
+            label: 'Move Target',
+          ),
+        ],
+        stageContext: CinematicStageContext(
+          stagePoints: [], // No stage points
+          movementTargetBindings: [
+            CinematicMovementTargetBinding(
+              targetId: 'target_move_point',
+              kind: CinematicMovementTargetBindingKind.stagePoint,
+              sourceId: 'point_2', // Missing
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_move_sp',
+              kind: CinematicTimelineStepKind.actorMove,
+              label: 'Move to point 2',
+              actorId: 'actor_professor',
+              targetId: 'target_move_point',
+              durationMs: 1500,
+            ),
+          ],
+        ),
+      );
+
+      final readModel = buildCinematicTimelineLaneReadModel(cinematic);
+      final actorLane = readModel.laneById('actor:actor_professor')!;
+      final laneStep = actorLane.steps.single;
+
+      expect(laneStep.targetLabel, '[Point de scène manquant]');
+    });
   });
 }
 

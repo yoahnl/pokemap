@@ -2236,7 +2236,8 @@ bool _movementTargetBindingRequiresSource(
   CinematicMovementTargetBinding binding,
 ) {
   return binding.kind == CinematicMovementTargetBindingKind.mapEntity ||
-      binding.kind == CinematicMovementTargetBindingKind.mapEvent;
+      binding.kind == CinematicMovementTargetBindingKind.mapEvent ||
+      binding.kind == CinematicMovementTargetBindingKind.stagePoint;
 }
 
 List<String> _sceneIdsReferencingCinematic(

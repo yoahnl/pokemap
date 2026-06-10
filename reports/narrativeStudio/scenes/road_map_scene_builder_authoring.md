@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0
+NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract
 ```
 
 ## Principes
@@ -147,13 +147,38 @@ Demande : Karim a demande de rendre la preview cinematic plus proche du Map Edit
 
 Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans remplacer brutalement `CinematicMapBackdropTileRenderPlan`. La Library charge ce plan via un loader editor-only et le Builder le compose avec l'Actor Display V1-92 au milieu des passes.
 
-Scope realise : rendu terrain/path/surface/TileLayer split/placed elements/generated placements, diagnostics par famille, fallback partiel, preservation timeline, duration editor, resize handle, mouse probe, pickers map-aware, Character Library et transports disabled.
+| NS-SCENES-V1-100 | Cinematic Spatial Authoring / Stage Points Prep Contract V0 | doc-only / planning | Cadrer l'édition spatiale des cinématiques, le modèle de stockage local décorrélé, les transformations géométriques écran-carte, les interactions (Option C), liens timeline (initialPlacements/targets) et diagnostics. | Lot documentaire de cadrage théorique uniquement. Aucun code produit, modèle core, UI ou test créé. | Rapport V1-100, Evidence Pack, roadmaps. | DONE : `git diff --check`. | Coder trop tôt ; lier prématurément au runtime. | DONE : Rapport de contrat V1-100 rédigé, diagnostics et tests prévus. | V1-99-bis. |
+| NS-SCENES-V1-101 | Cinematic Stage Point Core Model V0 | core / model | Implémenter le modèle core des points de scène, la désérialisation JSON rétrocompatible, les opérations pures d'édition et le moteur de diagnostic avec 6 codes de validation. | Pas de Flame, pas d'UI, pas de modification hors de `map_core`. | `map_core`, `cinematic_stage_point.dart`. | DONE : `dart test` et `dart analyze` propres. | Alourdir le modèle avant l'UI. | DONE : Modèle stable, diagnostics prêts pour l'UI, compatibilité ascendante respectée. | V1-100. |
+| NS-SCENES-V1-102 | Cinematic Preview Point Placement UI V0 | editor / ui | Visualiser, créer, sélectionner, déplacer par drag-and-drop, renommer et supprimer des Stage Points cinématiques dans la preview. | Pas de liaison placement acteur/target mouvement, pas de playback interactif. | `CinematicStagePointPreviewOverlay`. | DONE : Visual gate propre, tests widgets verts. | Gestion complexe des coordonnées écran/carte. | DONE : UI de placement fonctionnelle et alignée sur le design system. | V1-101. |
+| NS-SCENES-V1-102-bis | Stage Point Placement UX Discoverability | editor / ux | Améliorer la découverte : bouton texte, bannières d'aide, empty states, touche Échap, puce de liste dans l'inspecteur. | Pas de playback ou liaisons logiques. | `CinematicBuilderWorkspace`. | DONE : 100% tests verts, Visual Gate mise à jour. | UX trop verbeuse. | DONE : Placement rendu intuitif pour l'auteur. | V1-102. |
+| NS-SCENES-V1-102-ter | Stage Point Placement Evidence Pack Final Closure | review / doc | Clôture documentaire et Evidence Pack pour V1-102. | Aucun code produit modifié. | Rapport final. | DONE : `git diff --check`. | -- | DONE : Documentation et preuves complètes. | V1-102-bis. |
+| NS-SCENES-V1-103 | Cinematic Actor Initial Placement from Stage Points V0 | core / editor | Utiliser un Stage Point comme position initiale pour acteur cinématique. Picker no-code, résolution dynamique des coordonnées. | Pas de playback, pas de liaison target mouvement. | `CinematicActorInitialPlacementKind.stagePoint`. | DONE : Tests verts, Visual Gate avec sprite de Timi sur point de scène. | Découplage de la géométrie fixe. | DONE : placement dynamique et diagnostiqué. | V1-102-ter. |
+| NS-SCENES-V1-103-bis | Actor Initial Placement Stage Point Evidence Closure | review / doc | Clôture documentaire du pack de preuves de V1-103. | Aucun code produit modifié. | Rapport final. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-103. |
+| NS-SCENES-V1-104 | Cinematic ActorMove Target from Stage Points V0 | core / editor | Utiliser un Stage Point comme cible de déplacement pour `actorMove`. Transition propre entre types de cibles. | Pas d'interpolation interactive, pas de tracé graphique. | `CinematicMovementTargetBindingKind`. | DONE : Tests 100% verts, diagnostic target. | Gestion des valeurs zombies. | DONE : target authorable par point de scène, validé. | V1-103-bis. |
 
-Preuve : tests cibles Builder/Library verts, Visual Gate `ns_scenes_v1_94_cinematic_extended_map_backdrop_visual_gate_v0.png`, analyse ciblee editor verte, `dart test` complet `map_core` vert, rapport et evidence pack V1-94.
+## Mise a jour V1-104
 
-Limites : V1-94 ne lance toujours pas la cinematique. Aucun runtime, aucun Flame, aucun playback, aucun MapCanvas complet, aucun sprite acteur final.
+Statut : `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` est DONE.
 
-Prochain lot exact recommande : `NS-SCENES-V1-99 — Cinematic Actor Display Preview Sprite Renderer V0`.
+Demande : Permettre à une instruction cinématique `actorMove` d’utiliser un Stage Point existant comme cible de déplacement. Rendre la transition entre types de cibles propre (sans valeur zombie `sourceId`). Afficher l'option "Point de scène" et le picker dans l'inspecteur de cible de mouvement de la sidebar.
+
+Decision : Ajout du cas `stagePoint` dans l'enum `CinematicMovementTargetBindingKind`. Résolution des coordonnées du target binding à partir du Stage Point correspondant. Implémentation des diagnostics statiques et de readiness map-aware (`movementTargetBindingStagePointMissing`, `movementTargetBindingStagePointWithoutStageMap`, `movementTargetBindingStagePointOutOfMap`). Ajout d'une option par bouton dans l'inspecteur latéral pour sélectionner le type "Point de scène" et affichage d'un sélecteur no-code (`_StagePointSourcePicker`). Validation des transitions propres (suppression des valeurs zombies `sourceId`).
+
+Preuve : Tous les tests unitaires et widget (y compris `cinematic_builder_workspace_test.dart` et `cinematic_authoring_operations_test.dart` avec les nouveaux tests de transitions directes) passent avec succès (100% verts). Génération de la Visual Gate avec le diagnostic sur le target résolu et absent de la liste, sauvegardée sous : `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_104_cinematic_actor_move_target_from_stage_points_v0.png`.
+
+Limites : Pas d'interpolation de mouvement interactif, pas de tracé graphique de chemins.
+
+Prochain lot exact recommande : `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`.
+
+## Mise a jour V1-103 bis
+
+Statut : `NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure` est DONE.
+
+Demande : Clôturer proprement et documenter le pack de preuves de V1-103 sans modifier le code produit.
+
+Decision : Rédaction du rapport final de clôture bis et de l'Evidence Pack. Exécution à blanc des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum et par inspection de la vérité visuelle de la Visual Gate (1663x926, diagnostics actifs, apparence non définie).
+
+Preuve : Rapports finaux et Evidence Pack complets sans modification de code produit.
 
 ## Mise a jour V1-103
 

@@ -11540,6 +11540,114 @@ void main() {
     expect(tester.widget<Text>(subselectorValue).data, 'Point 1');
   });
 
+  testWidgets('V1-104 — Cinematic ActorMove Target from Stage Points V0', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithPoints = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      ],
+      movementTargets: [
+        CinematicMovementTargetRef(
+          targetId: 'target_center',
+          label: 'Centre scène',
+        ),
+      ],
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        actorAppearanceBindings: const [],
+        initialPlacements: const [],
+        movementTargetBindings: const [],
+        stagePoints: [
+          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+        ],
+      ),
+      timeline: fixture.asset.timeline,
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    final project = _project(cinematics: [assetWithPoints]);
+
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: assetWithPoints,
+      stageMap: project.maps.single,
+      mapData: fixture.mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 260,
+      ),
+    );
+
+    ProjectManifest? updatedManifest;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      assetWithPoints.id,
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (manifest) {
+        updatedManifest = manifest;
+      },
+    );
+
+    // 1. Open the "Cibles de mouvement" panel by selecting "Centre scène" in the sidebar
+    final targetRow = find.descendant(
+      of: find.byKey(const ValueKey('cinematic-builder-stage-movement-targets-section')),
+      matching: find.text('Centre scène'),
+    );
+    expect(targetRow, findsOneWidget);
+    await tester.ensureVisible(targetRow);
+    await tester.pumpAndSettle();
+
+    // 2. Click the "Point de scène" button choice
+    final choiceStagePoint = find.byKey(const ValueKey(
+        'cinematic-builder-target-binding-target_center-stagePoint'));
+    expect(choiceStagePoint, findsOneWidget);
+    await tester.ensureVisible(choiceStagePoint);
+    await tester.tap(choiceStagePoint);
+    await tester.pumpAndSettle();
+
+    // 3. Verify that the StagePointSourcePicker renders with two options: Point 1 and Point 2
+    final point1Option = find.byKey(const ValueKey(
+        'cinematic-builder-target-binding-target_center-stagePoint-source-stage_point_1'));
+    final point2Option = find.byKey(const ValueKey(
+        'cinematic-builder-target-binding-target_center-stagePoint-source-stage_point_2'));
+    expect(point1Option, findsOneWidget);
+    expect(point2Option, findsOneWidget);
+
+    // 4. Tap on "Point 2"
+    await tester.tap(point2Option);
+    await tester.pumpAndSettle();
+
+    // 5. Verify the updated manifest has the correct binding in the stage context
+    expect(updatedManifest, isNotNull);
+    final updatedAsset = updatedManifest!.cinematics.single;
+    final binding = updatedAsset.stageContext?.movementTargetBindings.single;
+    expect(binding, isNotNull);
+    expect(binding!.targetId, 'target_center');
+    expect(binding.kind, CinematicMovementTargetBindingKind.stagePoint);
+    expect(binding.sourceId, 'stage_point_2');
+  });
+
   testWidgets(
       'captures V1-103 actor initial placement from stage point visual gate',
       (tester) async {
@@ -11749,6 +11857,239 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/scenes/screenshots/'
       'ns_scenes_v1_103_cinematic_actor_initial_placement_from_stage_points_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures V1-104 actorMove target from stage point visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_104_CAPTURE_ACTOR_MOVE_TARGET_STAGE_POINT',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithPoints = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      ],
+      movementTargets: [
+        CinematicMovementTargetRef(
+          targetId: 'target_center',
+          label: 'Centre scène',
+        ),
+      ],
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        actorAppearanceBindings: [
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_professor',
+            characterId: 'char_professor',
+          ),
+        ],
+        initialPlacements: [
+          CinematicActorInitialPlacement(
+            actorId: 'actor_professor',
+            kind: CinematicActorInitialPlacementKind.stagePoint,
+            stagePointId: 'stage_point_1',
+          ),
+        ],
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_center',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'stage_point_2',
+          ),
+        ],
+        stagePoints: [
+          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+        ],
+      ),
+      timeline: fixture.asset.timeline,
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    final updatedManifest = fixture.project.copyWith(
+      cinematics: [assetWithPoints],
+      characters: [
+        ...fixture.project.characters,
+        ProjectCharacterEntry(
+          id: 'char_professor',
+          name: 'Professor',
+          tilesetId: 'real_actor_tileset',
+          frameWidth: 2,
+          frameHeight: 2,
+          animations: [
+            CharacterAnimation(
+              state: CharacterAnimationState.idle,
+              direction: EntityFacing.south,
+              frames: [
+                CharacterAnimationFrame(
+                  source: const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                  durationMs: 150,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final professorActor = CinematicActorDisplayPreviewActor(
+      actorId: 'actor_professor',
+      label: 'Professor',
+      role: null,
+      bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+      bindingKind: CinematicActorBindingKind.cinematicOnly,
+      bindingSourceId: null,
+      bindingSourceLabel: null,
+      position: const CinematicActorPreviewPosition(
+        status: CinematicActorPreviewPositionStatus.resolved,
+        sourceKind: CinematicActorPreviewPositionSourceKind.stagePoint,
+        sourceId: 'stage_point_1',
+        sourceLabel: 'Point 1',
+        x: 3,
+        y: 4,
+      ),
+      appearance: const CinematicActorPreviewAppearance(
+        status: CinematicActorPreviewAppearanceStatus.spriteReady,
+        characterId: 'char_professor',
+        tilesetId: 'real_actor_tileset',
+      ),
+      direction: CinematicActorPreviewDirection.south,
+      directionSource: CinematicActorPreviewDirectionSource.actorFace,
+      renderHint: CinematicActorPreviewRenderHint.sprite,
+      diagnostics: const [],
+    );
+
+    final actorDisplayModel = CinematicActorDisplayPreviewModel(
+      status: CinematicActorDisplayPreviewStatus.ready,
+      summary: '1 actor(s)',
+      actors: [professorActor],
+      diagnostics: const [],
+    );
+
+    final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      actors: [
+        CinematicActorSpritePreviewActor(
+          actorId: 'actor_professor',
+          actorLabel: 'Professor',
+          bindingKind: CinematicActorBindingKind.cinematicOnly,
+          position: const GridPos(x: 3, y: 4),
+          direction: CinematicActorPreviewDirection.south,
+          status: CinematicActorSpriteStatus.spriteReady,
+          spriteRef: const CinematicActorSpriteRef(
+            characterId: 'char_professor',
+            tilesetId: 'real_actor_tileset',
+            sourceTileRect: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+            frameWidthTiles: 2,
+            frameHeightTiles: 2,
+            direction: CinematicActorPreviewDirection.south,
+          ),
+          placeholderFallback: false,
+          depthHint: const CinematicActorSpriteDepthHint(
+            tileX: 3,
+            tileY: 4,
+            anchorTileX: 4.0,
+            anchorTileY: 6.0,
+            visualBottom: 6.0,
+            footprintWidthTiles: 2,
+            footprintHeightTiles: 2,
+            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+          ),
+          diagnostics: const [],
+        ),
+      ],
+      diagnostics: const [],
+    );
+
+    final backdropModel = buildCinematicMapBackdropPreviewModel(
+      asset: assetWithPoints,
+      stageMap: updatedManifest.maps.single,
+      mapData: fixture.mapData,
+      viewportSize: const CinematicMapBackdropViewportSize(
+        width: 920,
+        height: 260,
+      ),
+    );
+
+    ui.Image? actorImage;
+    await tester.runAsync(() async {
+      final file = File('test/fixtures/cinematics/actor_sprite_test_sheet.png');
+      final bytes = file.readAsBytesSync();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      actorImage = frame.image;
+    });
+
+    final backdropLayerPlan = CinematicMapBackdropLayerRenderPlan(
+      mapWidth: fixture.layerPlan.mapWidth,
+      mapHeight: fixture.layerPlan.mapHeight,
+      tileWidth: fixture.layerPlan.tileWidth,
+      tileHeight: fixture.layerPlan.tileHeight,
+      tilesets: {
+        ...fixture.layerPlan.tilesets,
+        'real_actor_tileset': CinematicResolvedTilesetAsset.available(
+          tilesetId: 'real_actor_tileset',
+          image: actorImage!,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+      },
+      instructions: fixture.layerPlan.instructions,
+      diagnostics: fixture.layerPlan.diagnostics,
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(updatedManifest, assetWithPoints.id),
+      asset: assetWithPoints,
+      backdropPreviewModel: backdropModel,
+      backdropLayerRenderPlan: backdropLayerPlan,
+      actorDisplayPreviewModel: actorDisplayModel,
+      actorSpritePreviewPlan: actorSpritePreviewPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // Click the target Centre scène row to select it so the inspector shows it
+    final targetRow = find.descendant(
+      of: find.byKey(const ValueKey('cinematic-builder-stage-movement-targets-section')),
+      matching: find.text('Centre scène'),
+    );
+    await tester.ensureVisible(targetRow);
+    await tester.tap(targetRow);
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_104_cinematic_actor_move_target_from_stage_points_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(

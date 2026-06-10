@@ -7916,6 +7916,32 @@ class _StageMovementTargetBindingRowState
             ),
             _StageChoice(
               keyValue:
+                  'cinematic-builder-target-binding-${target.targetId}-stagePoint',
+              label: 'Point de scène',
+              icon: CupertinoIcons.pin,
+              selected:
+                  selectedKind == CinematicMovementTargetBindingKind.stagePoint,
+              tooltip: 'Associer à un point de scène de la preview',
+              onPressed: () {
+                final pointId = binding?.sourceId ??
+                    (stageContext.stagePoints.isNotEmpty
+                        ? stageContext.stagePoints.first.id
+                        : null);
+                widget.onUpsertMovementTargetBinding(
+                  CinematicMovementTargetBinding(
+                    targetId: target.targetId,
+                    kind: CinematicMovementTargetBindingKind.stagePoint,
+                    sourceId: pointId,
+                  ),
+                );
+                setState(() {
+                  _expandedSourceKind =
+                      CinematicMovementTargetBindingKind.stagePoint;
+                });
+              },
+            ),
+            _StageChoice(
+              keyValue:
                   'cinematic-builder-target-binding-${target.targetId}-mapEntity',
               label: 'Entité de map',
               icon: CupertinoIcons.location,
@@ -7948,6 +7974,30 @@ class _StageMovementTargetBindingRowState
             ),
           ],
         ),
+        if (selectedKind == CinematicMovementTargetBindingKind.stagePoint &&
+            binding?.sourceId != null) ...[
+          const SizedBox(height: 4),
+          () {
+            final sourceId = binding!.sourceId!;
+            CinematicStagePoint? point;
+            for (final p in stageContext.stagePoints) {
+              if (p.id == sourceId) {
+                point = p;
+                break;
+              }
+            }
+            if (point != null) {
+              return _MutedText(
+                'Point cible : ${point.label} · '
+                'x: ${point.x.toStringAsFixed(2)}, y: ${point.y.toStringAsFixed(2)}',
+              );
+            } else {
+              return const _MutedText(
+                'Point cible : [Point de scène manquant]',
+              );
+            }
+          }(),
+        ],
         if (selectedEntity != null) ...[
           const SizedBox(height: 4),
           _MutedText(
@@ -7966,6 +8016,24 @@ class _StageMovementTargetBindingRowState
           const SizedBox(height: 4),
         if (entityReason != null) _MutedText(entityReason),
         if (eventReason != null) _MutedText(eventReason),
+        if (_expandedSourceKind == CinematicMovementTargetBindingKind.stagePoint ||
+            selectedKind == CinematicMovementTargetBindingKind.stagePoint) ...[
+          const SizedBox(height: 6),
+          _StagePointSourcePicker(
+            keyPrefix: 'cinematic-builder-target-binding-${target.targetId}-stagePoint',
+            sources: stageContext.stagePoints,
+            selectedSourceId: selectedKind == CinematicMovementTargetBindingKind.stagePoint
+                ? binding?.sourceId
+                : null,
+            onSourceSelected: (source) => widget.onUpsertMovementTargetBinding(
+              CinematicMovementTargetBinding(
+                targetId: target.targetId,
+                kind: CinematicMovementTargetBindingKind.stagePoint,
+                sourceId: source.id,
+              ),
+            ),
+          ),
+        ],
         if (canPickEntity &&
             (_expandedSourceKind ==
                     CinematicMovementTargetBindingKind.mapEntity ||
@@ -8188,6 +8256,45 @@ class _StageMapEventSourcePicker extends StatelessWidget {
             label: source.label,
             detail: '${source.kindLabel} · ${source.positionSummary}',
             icon: CupertinoIcons.flag,
+            selected: selectedSourceId == source.id,
+            onPressed: () => onSourceSelected(source),
+          ),
+      ],
+    );
+  }
+}
+
+typedef _SelectStagePointSource = Future<void> Function(
+  CinematicStagePoint source,
+);
+
+class _StagePointSourcePicker extends StatelessWidget {
+  const _StagePointSourcePicker({
+    required this.keyPrefix,
+    required this.sources,
+    required this.selectedSourceId,
+    required this.onSourceSelected,
+  });
+
+  final String keyPrefix;
+  final List<CinematicStagePoint> sources;
+  final String? selectedSourceId;
+  final _SelectStagePointSource onSourceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (sources.isEmpty) {
+      return const _MutedText('Aucun Point de scène disponible.');
+    }
+    return _StageSourcePickerShell(
+      title: 'Sources points de scène',
+      children: [
+        for (final source in sources)
+          _StageSourceOption(
+            keyValue: '$keyPrefix-source-${source.id}',
+            label: source.label,
+            detail: 'x: ${source.x.toStringAsFixed(2)}, y: ${source.y.toStringAsFixed(2)}',
+            icon: CupertinoIcons.pin,
             selected: selectedSourceId == source.id,
             onPressed: () => onSourceSelected(source),
           ),

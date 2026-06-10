@@ -1,0 +1,4168 @@
+------ Project Tree ------
+|-- main.dart
+|-- src
+    |-- in_game_menu.dart
+    |-- runtime_battle_command_overlay_visibility.dart
+    |-- runtime_demo_party_seed.dart
+    |-- runtime_gamepad_bridge.dart
+    |-- runtime_gamepad_presence.dart
+    |-- runtime_ios_controller_bridge.dart
+    |-- runtime_ios_project_picker.dart
+    |-- runtime_launch_options.dart
+    |-- runtime_launch_save.dart
+    |-- runtime_party_builder.dart
+    |-- runtime_pokedex_loader.dart
+    |-- runtime_project_picker.dart
+    |-- runtime_projects_directory.dart
+    |-- runtime_touch_controls.dart
+    |-- runtime_touch_controls_visibility.dart
+    |-- runtime_touch_input_driver.dart
+
+
+------ File Contents ------
+
+
+------ Content of: ./main.dart ------
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
+import 'package:flame/game.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:gamepads/gamepads.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+import 'src/in_game_menu.dart';
+import 'src/runtime_demo_party_seed.dart';
+import 'src/runtime_gamepad_bridge.dart';
+import 'src/runtime_gamepad_presence.dart';
+import 'src/runtime_ios_project_picker.dart';
+import 'src/runtime_battle_command_overlay_visibility.dart';
+import 'src/runtime_launch_save.dart';
+import 'src/runtime_launch_options.dart';
+import 'src/runtime_party_builder.dart';
+import 'src/runtime_pokedex_loader.dart';
+import 'src/runtime_project_picker.dart';
+import 'src/runtime_projects_directory.dart';
+import 'src/runtime_touch_controls.dart';
+import 'src/runtime_touch_controls_visibility.dart';
+
+void _runtimeHostLog(String message) {
+  debugPrint('[runtime_host] $message');
+}
+
+// Point d'entrée minimal du host runtime.
+// On garde un MaterialApp très simple, puis toute la navigation se fait
+// depuis la page de chargement et le menu in-game.
+void main() {
+  runApp(const MaterialApp(
+    title: 'Playable Runtime Host',
+    home: _ProjectLoaderPage(),
+  ));
+}
+
+// Cette page joue deux rôles très ciblés :
+// 1. charger un projet et une map runtime ;
+// 2. exposer les surfaces minimales de debug/save/menu utiles aux phases 9-10.
+class _ProjectLoaderPage extends StatefulWidget {
+  const _ProjectLoaderPage();
+
+  @override
+  State<_ProjectLoaderPage> createState() => _ProjectLoaderPageState();
+}
+
+class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
+  String _projectFilePath = '';
+  List<ProjectMapEntry> _availableMaps = const [];
+  String? _selectedMapId;
+  PlayableMapGame? _game;
+  String? _error;
+  bool _loading = false;
+  bool _showCollisionOverlay = false;
+  bool _showNpcCollisionDebugOverlay = false;
+  bool _showFpsOverlay = false;
+  bool _showRuntimeDebugPanel = true;
+  bool _touchControlsHiddenByUser = false;
+  bool _hasConnectedGamepad = false;
+  bool _surfingEnabled = false;
+  bool _seedDemoPokemon = true;
+  List<RuntimePartyBuilderPokemonOption> _partyBuilderOptions = const [];
+  List<RuntimeDemoPartyPokemonSeed> _manualPartyMembers = const [];
+  String? _partyBuilderError;
+  bool _saveLoadBusy = false;
+  String? _saveLoadStatus;
+  String? _saveLoadError;
+  Timer? _runtimeInfoTicker;
+  Timer? _gamepadPresenceTimer;
+  StreamSubscription<NormalizedGamepadEvent>? _runtimeGamepadSubscription;
+  final RuntimeGamepadPresence _runtimeGamepadPresence =
+      RuntimeGamepadPresence();
+
+  static const _prefsFileName = '.playable_runtime_host_prefs.json';
+
+  @override
+  void initState() {
+    super.initState();
+    _bindGamepadInputsIfNeeded();
+    _startGamepadPresenceRefreshIfNeeded();
+    _restoreLastSession();
+  }
+
+  @override
+  void dispose() {
+    // Le ticker d'overlay est strictement local au host et doit toujours être
+    // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
+    _runtimeInfoTicker?.cancel();
+    _gamepadPresenceTimer?.cancel();
+    _runtimeGamepadSubscription?.cancel();
+    super.dispose();
+  }
+
+  bool get _supportsTouchControls =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
+
+  bool get _prefersBattleFlutterCommandOverlay => true;
+
+  void _syncBattleCommandOverlayPreference() {
+    _game?.setBattleFlutterCommandOverlayPreferred(
+      _prefersBattleFlutterCommandOverlay,
+    );
+  }
+
+  void _bindGamepadInputsIfNeeded() {
+    if (kIsWeb || _runtimeGamepadSubscription != null) {
+      return;
+    }
+    final bridge = RuntimeGamepadBridge();
+    _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen(
+      (event) {
+        final game = _game;
+        if (!_hasConnectedGamepad && mounted) {
+          setState(() => _hasConnectedGamepad = true);
+          _syncBattleCommandOverlayPreference();
+        }
+        if (game == null) {
+          return;
+        }
+        final runtimeEvents = event.button != null
+            ? bridge.handleButton(
+                gamepadId: event.gamepadId,
+                button: event.button!,
+                value: event.value,
+              )
+            : bridge.handleAxis(
+                gamepadId: event.gamepadId,
+                axis: event.axis!,
+                value: event.value,
+              );
+        for (final runtimeEvent in runtimeEvents) {
+          game.handleRuntimeInputEvent(runtimeEvent);
+        }
+      },
+      onError: (_) {},
+    );
+  }
+
+  void _startGamepadPresenceRefreshIfNeeded() {
+    if (!_supportsTouchControls || _gamepadPresenceTimer != null) {
+      return;
+    }
+    _refreshConnectedGamepadState();
+    _gamepadPresenceTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refreshConnectedGamepadState(),
+    );
+  }
+
+  Future<void> _refreshConnectedGamepadState() async {
+    if (!_supportsTouchControls || !mounted) {
+      return;
+    }
+    try {
+      final hasConnectedGamepad =
+          await _runtimeGamepadPresence.hasConnectedGamepads();
+      if (!mounted || _hasConnectedGamepad == hasConnectedGamepad) {
+        return;
+      }
+      setState(() => _hasConnectedGamepad = hasConnectedGamepad);
+      _syncBattleCommandOverlayPreference();
+    } catch (_) {
+      // Best-effort seulement : une erreur de détection de manette ne doit
+      // jamais bloquer le host ni le runtime.
+    }
+  }
+
+  // Les préférences locales du host ne font pas partie de la save gameplay.
+  // Elles servent seulement à rouvrir rapidement le dernier projet dans l'outil
+  // d'hébergement runtime.
+  String _prefsFilePath() {
+    final home = Platform.environment['HOME'];
+    if (home == null || home.isEmpty) {
+      return _prefsFileName;
+    }
+    return '$home/$_prefsFileName';
+  }
+
+  // La restauration des préférences est volontairement best-effort :
+  // on veut retrouver vite le dernier projet, sans jamais bloquer le chargement
+  // si le fichier local est absent ou invalide.
+  Future<void> _restoreLastSession() async {
+    try {
+      final file = File(_prefsFilePath());
+      if (!await file.exists()) {
+        return;
+      }
+      final raw = await file.readAsString();
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        return;
+      }
+      final savedProjectPath = (decoded['projectFilePath'] as String?)?.trim();
+      final savedMapId = (decoded['mapId'] as String?)?.trim();
+      if (savedProjectPath == null || savedProjectPath.isEmpty) {
+        return;
+      }
+      if (!await File(savedProjectPath).exists()) {
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _projectFilePath = savedProjectPath;
+        _selectedMapId = savedMapId != null && savedMapId.isNotEmpty
+            ? savedMapId
+            : _selectedMapId;
+      });
+      await _loadProjectMapsFromManifest(
+        savedProjectPath,
+        preferredMapId: savedMapId,
+      );
+      await _loadPartyBuilderOptions(savedProjectPath);
+    } catch (_) {
+      // Restauration best-effort: on ignore silencieusement les prefs invalides.
+    }
+  }
+
+  // On persiste seulement le chemin du projet et la map choisie, pas l'état
+  // gameplay. La vraie sauvegarde gameplay reste dans le pipeline phase 9.
+  Future<void> _persistLastSession() async {
+    try {
+      final file = File(_prefsFilePath());
+      final payload = <String, dynamic>{
+        'projectFilePath': _projectFilePath,
+        'mapId': _selectedMapId,
+      };
+      await file.writeAsString(jsonEncode(payload));
+    } catch (_) {
+      // Persistance best-effort: ne bloque jamais le flux utilisateur.
+    }
+  }
+
+  // Cette lecture du manifest sert uniquement à alimenter le host :
+  // on récupère la liste des maps disponibles sans toucher au save system.
+  Future<void> _loadProjectMapsFromManifest(
+    String projectFilePath, {
+    String? preferredMapId,
+  }) async {
+    _runtimeHostLog('manifest read start projectFilePath=$projectFilePath');
+    try {
+      final raw = await File(projectFilePath).readAsString();
+      _runtimeHostLog('manifest read ok bytes=${raw.length}');
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        _runtimeHostLog(
+          'manifest read ignored rootType=${decoded.runtimeType}',
+        );
+        if (!mounted) return;
+        setState(() {
+          _availableMaps = const [];
+        });
+        return;
+      }
+      final manifest = ProjectManifest.fromJson(decoded);
+      _runtimeHostLog(
+        'manifest parsed maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
+      );
+      final maps = List<ProjectMapEntry>.of(manifest.maps)
+        ..sort((a, b) {
+          final byOrder = a.sortOrder.compareTo(b.sortOrder);
+          if (byOrder != 0) return byOrder;
+          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+        });
+      String? nextSelected = _selectedMapId;
+      final preferred = preferredMapId?.trim();
+      if (preferred != null &&
+          preferred.isNotEmpty &&
+          maps.any((m) => m.id == preferred)) {
+        nextSelected = preferred;
+      } else if (nextSelected == null ||
+          nextSelected.isEmpty ||
+          !maps.any((m) => m.id == nextSelected)) {
+        nextSelected = maps.isEmpty ? null : maps.first.id;
+      }
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = maps;
+        _selectedMapId = nextSelected;
+      });
+      _runtimeHostLog(
+        'manifest maps ready selectedMapId=$nextSelected availableMapIds=${maps.map((m) => m.id).join(',')}',
+      );
+    } catch (e, stackTrace) {
+      _runtimeHostLog(
+        'manifest read failed projectFilePath=$projectFilePath error=$e',
+      );
+      debugPrintStack(
+        label: '[runtime_host] manifest read stack',
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      setState(() {
+        _availableMaps = const [];
+      });
+    }
+  }
+
+  Future<void> _loadPartyBuilderOptions(String projectFilePath) async {
+    try {
+      final options = await loadRuntimeHostPartyBuilderOptions(
+        projectFilePath: projectFilePath,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _partyBuilderOptions = options;
+        _partyBuilderError = null;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _partyBuilderOptions = const [];
+        _partyBuilderError = 'Pokemon indisponibles: $e';
+      });
+    }
+  }
+
+  void _addManualPartyMember(RuntimeDemoPartyPokemonSeed member) {
+    if (_manualPartyMembers.length >= kRuntimeDemoMaxPartySize) {
+      return;
+    }
+    setState(() {
+      _manualPartyMembers = <RuntimeDemoPartyPokemonSeed>[
+        ..._manualPartyMembers,
+        member,
+      ];
+    });
+  }
+
+  void _removeManualPartyMember(int index) {
+    if (index < 0 || index >= _manualPartyMembers.length) {
+      return;
+    }
+    final nextMembers = List<RuntimeDemoPartyPokemonSeed>.of(
+      _manualPartyMembers,
+    )..removeAt(index);
+    setState(() => _manualPartyMembers = List.unmodifiable(nextMembers));
+  }
+
+  RuntimeDemoPartySeed? _buildManualPartySeed() {
+    if (_manualPartyMembers.isEmpty) {
+      return null;
+    }
+    return RuntimeDemoPartySeed(
+      members: List<RuntimeDemoPartyPokemonSeed>.unmodifiable(
+        _manualPartyMembers.take(kRuntimeDemoMaxPartySize),
+      ),
+    );
+  }
+
+  // Le ticker force un refresh léger de l'overlay runtime pour afficher
+  // les informations de debug et de save qui évoluent pendant la session.
+  void _startRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = Timer.periodic(
+      const Duration(milliseconds: 250),
+      (_) {
+        if (!mounted || _game == null) {
+          return;
+        }
+        setState(() {});
+      },
+    );
+  }
+
+  void _stopRuntimeInfoTicker() {
+    _runtimeInfoTicker?.cancel();
+    _runtimeInfoTicker = null;
+  }
+
+  Future<String> _ensureProjectCopiedToDocuments(String projectJsonPath) async {
+    final docsDir = await _getProjectsDirectory();
+    return importRuntimeProjectToRuntimeProjectsDirectory(
+      projectJsonPath: projectJsonPath,
+      projectsDirectory: docsDir,
+    );
+  }
+
+  Future<Directory> _getProjectsDirectory() async {
+    if (kIsWeb) {
+      return Directory('');
+    }
+    return ensureRuntimeProjectsDirectory(
+      getDocumentsDirectory: getApplicationDocumentsDirectory,
+    );
+  }
+
+  Future<void> _pickProjectFile() async {
+    _runtimeHostLog('project picker start');
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final result = !kIsWeb && Platform.isIOS
+          ? await pickRuntimeProjectDirectoryOnIos()
+          : await pickRuntimeProjectDirectory(
+              pickDirectoryPath: () {
+                return getDirectoryPath(
+                  confirmButtonText: 'Choisir',
+                  initialDirectory: Platform.environment['HOME'],
+                );
+              },
+              importProjectJsonPath: _ensureProjectCopiedToDocuments,
+            );
+      if (!mounted) {
+        _runtimeHostLog('project picker result ignored: widget unmounted');
+        return;
+      }
+      if (result.didCancel) {
+        _runtimeHostLog('project picker cancelled');
+        return;
+      }
+      if (!result.didSelectProject) {
+        _runtimeHostLog('project picker failed message=${result.errorMessage}');
+        setState(() => _error = result.errorMessage);
+        return;
+      }
+      final projectJsonPath = result.projectJsonPath!;
+      _runtimeHostLog(
+          'project picker selected projectJsonPath=$projectJsonPath');
+      setState(() {
+        _projectFilePath = projectJsonPath;
+        _error = null;
+        _partyBuilderOptions = const [];
+        _manualPartyMembers = const [];
+        _partyBuilderError = null;
+      });
+      await _loadProjectMapsFromManifest(projectJsonPath);
+      await _loadPartyBuilderOptions(projectJsonPath);
+      await _persistLastSession();
+      _runtimeHostLog(
+          'project picker completed projectJsonPath=$_projectFilePath');
+    } catch (e, stackTrace) {
+      _runtimeHostLog('project picker exception error=$e');
+      debugPrintStack(
+        label: '[runtime_host] project picker stack',
+        stackTrace: stackTrace,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() => _error = 'Erreur projet: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  // Ce chargement construit uniquement le bundle runtime et l'instance de jeu.
+  // Il ne modifie pas la structure métier des saves.
+  Future<void> _load() async {
+    final projectFilePath = _projectFilePath;
+    final mapId = (_selectedMapId ?? '').trim();
+
+    if (projectFilePath.isEmpty) {
+      _runtimeHostLog('map load blocked: empty projectFilePath');
+      setState(() => _error = 'Sélectionnez un dossier projet valide.');
+      return;
+    }
+    if (mapId.isEmpty) {
+      _runtimeHostLog(
+          'map load blocked: empty mapId projectFilePath=$projectFilePath');
+      setState(() => _error = 'Saisissez un identifiant de map.');
+      return;
+    }
+
+    _runtimeHostLog(
+      'map load start projectFilePath=$projectFilePath mapId=$mapId',
+    );
+    setState(() {
+      _loading = true;
+      _error = null;
+      _game = null;
+    });
+
+    try {
+      _runtimeHostLog('bundle load start mapId=$mapId');
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: mapId,
+      );
+      _runtimeHostLog(
+        'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
+      );
+      // Phase A privilégie un vrai état joueur versionné quand le projet en
+      // fournit un. Le seed de démo historique reste un fallback pratique pour
+      // les projets génériques qui n'ont pas encore de save de lancement.
+      _runtimeHostLog('launch save load start');
+      final launchSaveData = await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      );
+      _runtimeHostLog(
+        'launch save load ${launchSaveData == null ? 'missing: will use fallback if available' : 'ok'}',
+      );
+      final manualPartySeed = _buildManualPartySeed();
+      _runtimeHostLog(
+        'party seed source=${manualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon',
+      );
+      final launchDemoSeed = manualPartySeed == null
+          ? await buildRuntimeHostLaunchDemoPartySeed(
+              seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
+              projectFilePath: projectFilePath,
+            )
+          : null;
+      if (!mounted) return;
+      final launchSaveOverride = manualPartySeed == null
+          ? null
+          : buildRuntimeHostLaunchDemoSaveData(
+              mapId: mapId,
+              seed: manualPartySeed,
+            );
+      final nextGame = PlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: launchSaveOverride ??
+            launchSaveData ??
+            (launchDemoSeed == null
+                ? null
+                : buildRuntimeHostLaunchDemoSaveData(
+                    mapId: mapId,
+                    seed: launchDemoSeed,
+                  )),
+      );
+      _runtimeHostLog('game instance created mapId=$mapId');
+      setState(() {
+        _game = nextGame;
+        _saveLoadStatus = null;
+        _saveLoadError = null;
+      });
+      nextGame.setCollisionOverlayVisible(_showCollisionOverlay);
+      nextGame
+          .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
+      nextGame.setFpsOverlayVisible(_showFpsOverlay);
+      nextGame.setSurfingEnabled(_surfingEnabled);
+      nextGame.setBattleFlutterCommandOverlayPreferred(
+        _prefersBattleFlutterCommandOverlay,
+      );
+      _startRuntimeInfoTicker();
+      await _persistLastSession();
+      _runtimeHostLog('map load completed mapId=$mapId');
+    } catch (e, stackTrace) {
+      _runtimeHostLog('map load failed mapId=$mapId error=$e');
+      debugPrintStack(
+        label: '[runtime_host] map load stack',
+        stackTrace: stackTrace,
+      );
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+      _runtimeHostLog('map load finished loading=false mapId=$mapId');
+    }
+  }
+
+  // Retour au chargeur de projet.
+  // On ne détruit pas de données persistées, on ferme juste la session runtime.
+  void _reset() => setState(() {
+        _stopRuntimeInfoTicker();
+        _game = null;
+        _error = null;
+        _saveLoadStatus = null;
+        _saveLoadError = null;
+      });
+
+  // Les boutons historiques du host réutilisent désormais le même flux que
+  // l'écran "Sauvegarde" du menu in-game, pour garder une seule source de
+  // vérité côté runtime.
+  Future<void> _saveGame() async {
+    await _performSaveRequest();
+  }
+
+  Future<void> _loadGame() async {
+    await _performLoadRequest();
+  }
+
+  // Ce helper centralise la sauvegarde gameplay existante.
+  // Il renvoie un résultat structuré pour que le menu in-game et l'overlay
+  // historique affichent exactement le même statut utilisateur.
+  Future<InGameMenuActionResult> _performSaveRequest() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return const InGameMenuActionResult(
+        error: 'Sauvegarde indisponible',
+      );
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final saved = await game.saveGame();
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
+      final info = game.saveLoadInfo;
+      final status = saved
+          ? 'Sauvegarde OK · ${info.mapId} (${info.playerX}, ${info.playerY})'
+          : 'Sauvegarde impossible';
+      setState(() {
+        _saveLoadStatus = status;
+      });
+      return InGameMenuActionResult(status: status);
+    } catch (e) {
+      if (!mounted) {
+        return const InGameMenuActionResult();
+      }
+      final error = 'Erreur sauvegarde: $e';
+      setState(() {
+        _saveLoadError = error;
+      });
+      return InGameMenuActionResult(error: error);
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
+
+  // Même principe pour le chargement :
+  // on garde un seul chemin d'exécution pour l'overlay runtime et le menu.
+  Future<InGameMenuActionResult> _performLoadRequest() async {
+    final game = _game;
+    if (game == null || _saveLoadBusy) {
+      return const InGameMenuActionResult(
+        error: 'Chargement indisponible',
+      );
+    }
+    setState(() {
+      _saveLoadBusy = true;
+      _saveLoadError = null;
+      _saveLoadStatus = null;
+    });
+    try {
+      final loaded = await game.loadGame();
+      if (!mounted) return const InGameMenuActionResult();
+      if (!loaded) {
+        const error = 'Aucune sauvegarde trouvée ou chargement impossible';
+        setState(() {
+          _saveLoadError = error;
+        });
+        return const InGameMenuActionResult(error: error);
+      }
+      final info = game.saveLoadInfo;
+      final status =
+          'Chargement OK · ${info.mapId} (${info.playerX}, ${info.playerY})';
+      setState(() {
+        _surfingEnabled = info.movementMode == MovementMode.surf.name;
+        _saveLoadStatus = status;
+      });
+      return InGameMenuActionResult(status: status);
+    } catch (e) {
+      if (!mounted) return const InGameMenuActionResult();
+      final error = 'Erreur chargement: $e';
+      setState(() {
+        _saveLoadError = error;
+      });
+      return InGameMenuActionResult(error: error);
+    } finally {
+      if (mounted) {
+        setState(() => _saveLoadBusy = false);
+      }
+    }
+  }
+
+  // Le menu phase 10 vit dans le host runtime existant, sans nouveau framework.
+  // On pousse simplement une route Flutter classique au-dessus du GameWidget.
+  Future<void> _openInGameMenu() async {
+    final game = _game;
+    if (game == null) {
+      return;
+    }
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) {
+          return InGameMenuPage(
+            gameStateSnapshotBuilder: () => game.gameStateSnapshot,
+            pokedexLoader: () => loadRuntimePokedexEntries(
+              projectFilePath: _projectFilePath,
+            ),
+            onSaveRequested: _performSaveRequest,
+            onLoadRequested: _performLoadRequest,
+            onCloseRequested: () => Navigator.of(context).pop(),
+          );
+        },
+      ),
+    );
+  }
+
+  bool _handleBattleCommandOverlayEntrySelected(
+    PlayableMapGame game,
+    BattleCommandOverlaySnapshot snapshot,
+    int index,
+  ) {
+    return switch (snapshot.mode) {
+      BattleCommandOverlayMode.root => game.selectBattleRootEntry(index),
+      BattleCommandOverlayMode.fight ||
+      BattleCommandOverlayMode.continueOnly =>
+        game.selectBattleChoiceEntry(
+          index,
+        ),
+      BattleCommandOverlayMode.bag => game.selectBattleBagEntry(index),
+      BattleCommandOverlayMode.pokemon => game.selectBattlePartyEntry(index),
+      BattleCommandOverlayMode.bagMedicineTarget =>
+        game.selectBattleMedicineTargetEntry(index),
+    };
+  }
+
+  Widget _buildBattleCommandOverlay(
+    PlayableMapGame game,
+    BattleCommandOverlaySnapshot snapshot,
+  ) {
+    return Positioned.fill(
+      child: BattleMobileCommandOverlay(
+        snapshot: snapshot,
+        onEntrySelected: (index) {
+          _handleBattleCommandOverlayEntrySelected(game, snapshot, index);
+        },
+        onBack: snapshot.canGoBack
+            ? () {
+                game.backFromBattleOverlay();
+              }
+            : null,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Deux états d'interface seulement :
+    // 1. soit une session runtime est active et on affiche le jeu ;
+    // 2. soit on reste sur le chargeur de projet.
+    final game = _game;
+    if (game != null) {
+      final info = game.saveLoadInfo;
+      final touchControlsVisibility = resolveRuntimeTouchControlsVisibility(
+        supportsTouchControls: _supportsTouchControls,
+        userHidden: _touchControlsHiddenByUser,
+        hasConnectedGamepad: _hasConnectedGamepad,
+        isBattleActive: game.isBattleUiActive,
+      );
+      return Scaffold(
+        appBar: AppBar(
+          title: Text((_selectedMapId ?? '').trim()),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _reset,
+          ),
+          actions: [
+            if (touchControlsVisibility.showToggleButton)
+              IconButton(
+                key: const Key('runtime-touch-controls-toggle-button'),
+                tooltip: touchControlsVisibility.toggleTooltip,
+                icon: Icon(
+                  touchControlsVisibility.userHidden
+                      ? Icons.touch_app_outlined
+                      : Icons.touch_app,
+                ),
+                onPressed: () {
+                  setState(
+                    () => _touchControlsHiddenByUser =
+                        !_touchControlsHiddenByUser,
+                  );
+                },
+              ),
+            IconButton(
+              key: const Key('runtime-debug-panel-toggle-button'),
+              tooltip: _showRuntimeDebugPanel
+                  ? 'Masquer le panneau debug'
+                  : 'Afficher le panneau debug',
+              icon: Icon(
+                _showRuntimeDebugPanel
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: () {
+                setState(
+                    () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel);
+              },
+            ),
+            // Le menu in-game est volontairement minimal :
+            // un seul bouton ouvre les écrans lecture seule de la phase 10.
+            IconButton(
+              key: const Key('runtime-menu-button'),
+              icon: const Icon(Icons.menu),
+              onPressed: _openInGameMenu,
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            GameWidget(game: game),
+            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+              valueListenable: game.battleCommandOverlayListenable,
+              builder: (context, snapshot, child) {
+                final showFlutterOverlay =
+                    shouldShowRuntimeBattleCommandOverlay(
+                  supportsTouchControls: _supportsTouchControls,
+                  hasConnectedGamepad: _hasConnectedGamepad,
+                  isBattleActive: game.isBattleUiActive,
+                  hasSnapshot: snapshot != null,
+                );
+                if (!showFlutterOverlay || snapshot == null) {
+                  return const SizedBox.shrink();
+                }
+                return _buildBattleCommandOverlay(game, snapshot);
+              },
+            ),
+            if (touchControlsVisibility.showControls)
+              Positioned.fill(
+                child: RuntimeTouchControls(
+                  dispatch: game.handleRuntimeInputEvent,
+                ),
+              ),
+            if (_showRuntimeDebugPanel)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Card(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Collisions',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showCollisionOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showCollisionOverlay = v);
+                                      game.setCollisionOverlayVisible(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'FPS',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showFpsOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showFpsOverlay = v);
+                                      game.setFpsOverlayVisible(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Surf',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _surfingEnabled,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _surfingEnabled = v);
+                                      game.setSurfingEnabled(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'NPC hitbox',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showNpcCollisionDebugOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(
+                                        () => _showNpcCollisionDebugOverlay = v,
+                                      );
+                                      game.setNpcCollisionDebugOverlayVisible(
+                                          v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Map: ${info.mapId}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Pos: (${info.playerX}, ${info.playerY})  Face: ${info.facing}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Mode: ${info.movementMode}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'FPS: ${game.currentFps.toStringAsFixed(1)}',
+                          style:
+                              const TextStyle(color: Colors.lightGreenAccent),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FilledButton.tonal(
+                              onPressed: _saveLoadBusy ? null : _saveGame,
+                              child: const Text('Sauvegarder'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: _saveLoadBusy ? null : _loadGame,
+                              child: const Text('Charger'),
+                            ),
+                          ],
+                        ),
+                        if (_saveLoadStatus != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadStatus!,
+                            style: const TextStyle(color: Colors.greenAccent),
+                          ),
+                        ],
+                        if (_saveLoadError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadError!,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Playable Runtime Host')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Projet', style: Theme.of(context).textTheme.titleSmall),
+            const SizedBox(height: 8),
+            _ProjectFileField(
+              path: _projectFilePath,
+              onPick: _loading ? null : _pickProjectFile,
+            ),
+            const SizedBox(height: 20),
+            if (_availableMaps.isEmpty)
+              const TextField(
+                enabled: false,
+                decoration: InputDecoration(
+                  labelText: 'Map',
+                  hintText: 'Chargez un projet valide pour lister les maps',
+                  border: OutlineInputBorder(),
+                ),
+              )
+            else
+              DropdownButtonFormField<String>(
+                initialValue: _selectedMapId,
+                decoration: const InputDecoration(
+                  labelText: 'Map',
+                  border: OutlineInputBorder(),
+                ),
+                items: _availableMaps
+                    .map(
+                      (entry) => DropdownMenuItem<String>(
+                        value: entry.id,
+                        child: Text('${entry.name} (${entry.id})'),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: _loading
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() => _selectedMapId = value);
+                        _persistLastSession();
+                      },
+              ),
+            const SizedBox(height: 16),
+            RuntimeDemoSeedToggle(
+              value: _seedDemoPokemon,
+              onChanged: _loading
+                  ? null
+                  : (value) => setState(() => _seedDemoPokemon = value),
+            ),
+            const SizedBox(height: 16),
+            RuntimePartyBuilderPanel(
+              options: _partyBuilderOptions,
+              members: _manualPartyMembers,
+              enabled: !_loading,
+              onAdd: _addManualPartyMember,
+              onRemove: _removeManualPartyMember,
+            ),
+            if (_partyBuilderError != null) ...[
+              const SizedBox(height: 8),
+              _ErrorBanner(message: _partyBuilderError!),
+            ],
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: _loading ? null : _load,
+              child: Text(_loading ? 'Chargement…' : 'Lancer'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              _ErrorBanner(message: _error!),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectFileField extends StatelessWidget {
+  const _ProjectFileField({required this.path, required this.onPick});
+
+  final String path;
+  final VoidCallback? onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                path.isEmpty ? 'Aucun projet sélectionné' : path,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: path.isEmpty ? Theme.of(context).hintColor : null,
+                    ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonal(
+              onPressed: onPick,
+              child: const Text('Parcourir…'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.errorContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+      ),
+    );
+  }
+}
+
+
+
+------ Content of: ./src/in_game_menu.dart ------
+
+import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
+
+import 'runtime_pokedex_loader.dart';
+
+// Sections minimales couvertes par la phase 10.
+// On reste volontairement sur les écrans lecture seule demandés, plus la
+// surface de sauvegarde déjà existante dans le host runtime.
+enum InGameMenuSection {
+  pokedex,
+  party,
+  bag,
+  trainer,
+  save,
+}
+
+// Résultat standardisé d'une action de save/load déclenchée depuis le menu.
+// Cela permet d'afficher un feedback homogène sans recréer un système d'état.
+class InGameMenuActionResult {
+  const InGameMenuActionResult({
+    this.status,
+    this.error,
+  });
+
+  final String? status;
+  final String? error;
+}
+
+// Menu principal in-game de la phase 10.
+// Il reçoit des callbacks et des snapshots déjà prêts pour rester branché sur
+// l'existant sans introduire une nouvelle architecture UI.
+class InGameMenuPage extends StatefulWidget {
+  const InGameMenuPage({
+    super.key,
+    required this.gameStateSnapshotBuilder,
+    required this.pokedexLoader,
+    required this.onSaveRequested,
+    required this.onLoadRequested,
+    required this.onCloseRequested,
+  });
+
+  final GameState Function() gameStateSnapshotBuilder;
+  final Future<List<RuntimePokedexEntry>> Function() pokedexLoader;
+  final Future<InGameMenuActionResult> Function() onSaveRequested;
+  final Future<InGameMenuActionResult> Function() onLoadRequested;
+  final VoidCallback onCloseRequested;
+
+  @override
+  State<InGameMenuPage> createState() => _InGameMenuPageState();
+}
+
+// L'état local du menu reste très petit :
+// section sélectionnée, entrée Pokédex sélectionnée et état de save/load.
+class _InGameMenuPageState extends State<InGameMenuPage> {
+  late final Future<List<RuntimePokedexEntry>> _pokedexEntriesFuture =
+      widget.pokedexLoader();
+  InGameMenuSection _selectedSection = InGameMenuSection.pokedex;
+  String? _selectedSpeciesId;
+  bool _saveBusy = false;
+  String? _saveStatus;
+  String? _saveError;
+
+  @override
+  Widget build(BuildContext context) {
+    // On relit le snapshot de GameState à chaque build pour que les écrans
+    // lecture seule restent synchronisés avec le runtime après un chargement.
+    final gameState = widget.gameStateSnapshotBuilder();
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Menu'),
+        leading: IconButton(
+          key: const Key('in-game-menu-close-button'),
+          icon: const Icon(Icons.close),
+          onPressed: widget.onCloseRequested,
+        ),
+      ),
+      body: Row(
+        children: [
+          SizedBox(
+            width: 220,
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: ListView(
+                children: [
+                  _MenuTile(
+                    key: const Key('menu-pokedex-tile'),
+                    label: 'Pokédex',
+                    icon: Icons.menu_book,
+                    selected: _selectedSection == InGameMenuSection.pokedex,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.pokedex,
+                    ),
+                  ),
+                  _MenuTile(
+                    key: const Key('menu-party-tile'),
+                    label: 'Équipe',
+                    icon: Icons.pets,
+                    selected: _selectedSection == InGameMenuSection.party,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.party,
+                    ),
+                  ),
+                  _MenuTile(
+                    key: const Key('menu-bag-tile'),
+                    label: 'Sac',
+                    icon: Icons.backpack,
+                    selected: _selectedSection == InGameMenuSection.bag,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.bag,
+                    ),
+                  ),
+                  _MenuTile(
+                    key: const Key('menu-trainer-tile'),
+                    label: 'Dresseur',
+                    icon: Icons.badge,
+                    selected: _selectedSection == InGameMenuSection.trainer,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.trainer,
+                    ),
+                  ),
+                  _MenuTile(
+                    key: const Key('menu-save-tile'),
+                    label: 'Sauvegarde',
+                    icon: Icons.save,
+                    selected: _selectedSection == InGameMenuSection.save,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.save,
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  _MenuTile(
+                    key: const Key('menu-close-tile'),
+                    label: 'Fermer',
+                    icon: Icons.close,
+                    selected: false,
+                    onTap: widget.onCloseRequested,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: switch (_selectedSection) {
+                InGameMenuSection.pokedex => _buildPokedexSection(context),
+                InGameMenuSection.party => _buildPartySection(
+                    context,
+                    gameState,
+                  ),
+                InGameMenuSection.bag => _BagSection(gameState: gameState),
+                InGameMenuSection.trainer =>
+                  _TrainerSection(gameState: gameState),
+                InGameMenuSection.save => _buildSaveSection(context),
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Le Pokédex in-game reste volontairement sobre :
+  // une liste légère d'espèces locales et une fiche simple lecture seule.
+  Widget _buildPokedexSection(BuildContext context) {
+    return FutureBuilder<List<RuntimePokedexEntry>>(
+      future: _pokedexEntriesFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return _SectionMessageCard(
+            title: 'Pokédex',
+            message: 'Erreur de chargement Pokédex: ${snapshot.error}',
+          );
+        }
+
+        final entries = snapshot.data ?? const <RuntimePokedexEntry>[];
+        if (entries.isEmpty) {
+          return const _SectionMessageCard(
+            title: 'Pokédex',
+            message: 'Aucune espèce locale trouvée dans le projet.',
+          );
+        }
+
+        final selectedEntry = _resolveSelectedEntry(entries);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Card(
+                child: ListView.builder(
+                  key: const Key('in-game-pokedex-list'),
+                  itemCount: entries.length,
+                  itemBuilder: (context, index) {
+                    final entry = entries[index];
+                    final isSelected = entry.id == selectedEntry.id;
+                    return ListTile(
+                      key: Key('pokedex-entry-${entry.id}'),
+                      selected: isSelected,
+                      title: Text(entry.primaryName),
+                      subtitle: Text('#${entry.nationalDex} · ${entry.id}'),
+                      trailing: entry.types.isEmpty
+                          ? null
+                          : Text(entry.types.join(' / ')),
+                      onTap: () => setState(
+                        () => _selectedSpeciesId = entry.id,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: _PokedexDetail(entry: selectedEntry),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Si rien n'est encore sélectionné, on prend la première espèce disponible.
+  // Cela évite d'introduire un état de navigation plus lourd que nécessaire.
+  RuntimePokedexEntry _resolveSelectedEntry(List<RuntimePokedexEntry> entries) {
+    final selectedId = _selectedSpeciesId;
+    if (selectedId == null) {
+      final first = entries.first;
+      _selectedSpeciesId = first.id;
+      return first;
+    }
+    return entries.firstWhere(
+      (entry) => entry.id == selectedId,
+      orElse: () {
+        final first = entries.first;
+        _selectedSpeciesId = first.id;
+        return first;
+      },
+    );
+  }
+
+  // L'équipe réutilise le snapshot runtime et enrichit l'affichage avec les
+  // noms du Pokédex quand ils sont déjà disponibles.
+  Widget _buildPartySection(BuildContext context, GameState gameState) {
+    return FutureBuilder<List<RuntimePokedexEntry>>(
+      future: _pokedexEntriesFuture,
+      builder: (context, snapshot) {
+        final speciesNamesById = {
+          for (final entry in snapshot.data ?? const <RuntimePokedexEntry>[])
+            entry.id: entry.primaryName,
+        };
+        return _PartySection(
+          gameState: gameState,
+          speciesNamesById: speciesNamesById,
+        );
+      },
+    );
+  }
+
+  // La section sauvegarde réutilise les callbacks runtime existants.
+  // On ne crée pas de second système de save pour la phase 10.
+  Widget _buildSaveSection(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Sauvegarde',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Cette vue réutilise exactement les flux de sauvegarde et de chargement déjà branchés au runtime.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                FilledButton.tonal(
+                  key: const Key('in-game-menu-save-button'),
+                  onPressed: _saveBusy ? null : _runSave,
+                  child: const Text('Sauvegarder'),
+                ),
+                FilledButton(
+                  key: const Key('in-game-menu-load-button'),
+                  onPressed: _saveBusy ? null : _runLoad,
+                  child: const Text('Charger'),
+                ),
+              ],
+            ),
+            if (_saveStatus != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _saveStatus!,
+                key: const Key('in-game-menu-save-status'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ],
+            if (_saveError != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _saveError!,
+                key: const Key('in-game-menu-save-error'),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Déclenchement simple de la sauvegarde avec feedback visuel local.
+  Future<void> _runSave() async {
+    setState(() {
+      _saveBusy = true;
+      _saveStatus = null;
+      _saveError = null;
+    });
+    final result = await widget.onSaveRequested();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _saveBusy = false;
+      _saveStatus = result.status;
+      _saveError = result.error;
+    });
+  }
+
+  // Même logique pour le chargement :
+  // on relaie simplement le résultat du pipeline runtime existant.
+  Future<void> _runLoad() async {
+    setState(() {
+      _saveBusy = true;
+      _saveStatus = null;
+      _saveError = null;
+    });
+    final result = await widget.onLoadRequested();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _saveBusy = false;
+      _saveStatus = result.status;
+      _saveError = result.error;
+    });
+  }
+}
+
+// Tuile de navigation latérale.
+// Elle encapsule juste le rendu répétitif des entrées du menu.
+class _MenuTile extends StatelessWidget {
+  const _MenuTile({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      selected: selected,
+      leading: Icon(icon),
+      title: Text(label),
+      onTap: onTap,
+    );
+  }
+}
+
+// Fiche lecture seule d'une espèce côté menu in-game.
+// On garde seulement les informations les plus utiles au joueur à ce stade.
+class _PokedexDetail extends StatelessWidget {
+  const _PokedexDetail({required this.entry});
+
+  final RuntimePokedexEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: Key('pokedex-detail-${entry.id}'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          entry.primaryName,
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 8),
+        Text('ID : ${entry.id}'),
+        Text('Numéro : #${entry.nationalDex}'),
+        Text(
+            'Types : ${entry.types.isEmpty ? 'Aucun' : entry.types.join(' / ')}'),
+        Text(
+          'Statut projet : ${entry.isEnabledInProject ? 'Activée' : 'Désactivée'}',
+        ),
+        const SizedBox(height: 16),
+        Text(
+          entry.flavorText ?? 'Aucun texte Pokédex disponible.',
+          key: const Key('pokedex-detail-flavor-text'),
+        ),
+      ],
+    );
+  }
+}
+
+// Écran Sac lecture seule.
+// Les items sont simplement regroupés par catégorie à partir du GameState.
+class _BagSection extends StatelessWidget {
+  const _BagSection({required this.gameState});
+
+  final GameState gameState;
+
+  @override
+  Widget build(BuildContext context) {
+    if (gameState.bag.entries.isEmpty) {
+      return const _SectionMessageCard(
+        title: 'Sac',
+        message: 'Le sac est vide.',
+      );
+    }
+
+    final entriesByCategory = <String, List<BagEntry>>{};
+    for (final entry in gameState.bag.entries) {
+      entriesByCategory.putIfAbsent(entry.categoryId, () => <BagEntry>[]).add(
+            entry,
+          );
+    }
+    final sortedCategories = entriesByCategory.keys.toList()..sort();
+
+    return ListView(
+      key: const Key('in-game-bag-section'),
+      children: [
+        Text(
+          'Sac',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        for (final category in sortedCategories) ...[
+          Text(
+            category,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: Column(
+              children: entriesByCategory[category]!
+                  .map(
+                    (entry) => ListTile(
+                      key: Key('bag-entry-${entry.itemId}'),
+                      title: Text(entry.itemId),
+                      trailing: Text('x${entry.quantity}'),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+}
+
+// Écran Équipe lecture seule.
+// On expose l'ordre d'équipe et les infos persistées déjà présentes en save.
+class _PartySection extends StatelessWidget {
+  const _PartySection({
+    required this.gameState,
+    required this.speciesNamesById,
+  });
+
+  final GameState gameState;
+  final Map<String, String> speciesNamesById;
+
+  @override
+  Widget build(BuildContext context) {
+    final members = gameState.party.members;
+    if (members.isEmpty) {
+      return const _SectionMessageCard(
+        title: 'Équipe',
+        message: "L'équipe du joueur est vide.",
+      );
+    }
+
+    return ListView(
+      key: const Key('in-game-party-section'),
+      children: [
+        Text(
+          'Équipe',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        for (var index = 0; index < members.length; index++) ...[
+          _PartyPokemonCard(
+            key: Key('party-entry-$index'),
+            pokemon: members[index],
+            slotIndex: index,
+            speciesName: speciesNamesById[members[index].speciesId],
+          ),
+          if (index < members.length - 1) const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+}
+
+class _PartyPokemonCard extends StatelessWidget {
+  const _PartyPokemonCard({
+    super.key,
+    required this.pokemon,
+    required this.slotIndex,
+    required this.speciesName,
+  });
+
+  final PlayerPokemon pokemon;
+  final int slotIndex;
+  final String? speciesName;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = speciesName?.trim().isNotEmpty == true
+        ? speciesName!.trim()
+        : pokemon.speciesId;
+    final statusLabel = pokemon.statusId.isEmpty ? 'Aucun' : pokemon.statusId;
+    final heldItemLabel =
+        pokemon.heldItemId.isEmpty ? 'Aucun' : pokemon.heldItemId;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                child: Text('${slotIndex + 1}'),
+              ),
+              title: Text(
+                displayName,
+                key: Key('party-entry-name-$slotIndex'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              subtitle: Text('Niv. ${pokemon.level} · ${pokemon.speciesId}'),
+              trailing: Chip(
+                key: Key('party-entry-state-$slotIndex'),
+                label: Text(pokemon.isFainted ? 'KO' : 'Actif'),
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PokemonInfoChip(
+                    label: 'PV actuels', value: '${pokemon.currentHp}'),
+                _PokemonInfoChip(label: 'Talent', value: pokemon.abilityId),
+                _PokemonInfoChip(label: 'Nature', value: pokemon.natureId),
+                _PokemonInfoChip(label: 'Statut', value: statusLabel),
+                _PokemonInfoChip(label: 'Objet', value: heldItemLabel),
+                if (pokemon.isShiny)
+                  const _PokemonInfoChip(label: 'Shiny', value: 'Oui'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Attaques',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            if (pokemon.knownMoveIds.isEmpty)
+              const Text('Aucune attaque connue.')
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: pokemon.knownMoveIds
+                    .map(
+                      (moveId) => Chip(
+                        key: Key('party-move-$moveId-$slotIndex'),
+                        label: Text(moveId),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PokemonInfoChip extends StatelessWidget {
+  const _PokemonInfoChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(label: Text('$label : $value'));
+  }
+}
+
+// Écran Dresseur lecture seule.
+// Il expose uniquement le profil minimal déjà persistant depuis la phase 9.
+class _TrainerSection extends StatelessWidget {
+  const _TrainerSection({required this.gameState});
+
+  final GameState gameState;
+
+  @override
+  Widget build(BuildContext context) {
+    final profile = gameState.trainerProfile;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          key: const Key('in-game-trainer-section'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dresseur',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 12),
+            Text('Nom : ${profile.name}', key: const Key('trainer-name')),
+            Text('Argent : ${profile.money}', key: const Key('trainer-money')),
+            Text(
+              'Temps de jeu : ${_formatPlaytime(profile.playtimeSeconds)}',
+              key: const Key('trainer-playtime'),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Badges',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            if (profile.badgeIds.isEmpty)
+              const Text('Aucun badge')
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: profile.badgeIds
+                    .map(
+                      (badgeId) => Chip(
+                        key: Key('trainer-badge-$badgeId'),
+                        label: Text(badgeId),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Carte d'état simple réutilisée pour les écrans vides ou en erreur.
+class _SectionMessageCard extends StatelessWidget {
+  const _SectionMessageCard({
+    required this.title,
+    required this.message,
+  });
+
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 12),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Format de temps de jeu minimal, lisible et stable pour l'écran Dresseur.
+String _formatPlaytime(int totalSeconds) {
+  final hours = totalSeconds ~/ 3600;
+  final minutes = (totalSeconds % 3600) ~/ 60;
+  final seconds = totalSeconds % 60;
+  final parts = <String>[
+    hours.toString().padLeft(2, '0'),
+    minutes.toString().padLeft(2, '0'),
+    seconds.toString().padLeft(2, '0'),
+  ];
+  return parts.join(':');
+}
+
+
+
+------ Content of: ./src/runtime_battle_command_overlay_visibility.dart ------
+
+bool shouldShowRuntimeBattleCommandOverlay({
+  required bool supportsTouchControls,
+  required bool hasConnectedGamepad,
+  required bool isBattleActive,
+  required bool hasSnapshot,
+}) {
+  // La chrome battle visible passe désormais par Flutter partout :
+  // - mobile tactile ;
+  // - desktop ;
+  // - manette ou non.
+  //
+  // Les paramètres hardware restent conservés pour limiter le churn des call
+  // sites/tests du host, mais ils ne gouvernent plus l'affichage battle.
+  return isBattleActive && hasSnapshot;
+}
+
+
+
+------ Content of: ./src/runtime_demo_party_seed.dart ------
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+const kRuntimeDemoSeedLevel = 25;
+const kRuntimeDemoSeedCurrentHp = 60;
+const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
+const kRuntimeDemoMaxPartySize = 6;
+const _runtimeDemoSeedBagEntries = <BagEntry>[
+  BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+  BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+  BagEntry(itemId: 'super-potion', categoryId: 'medicine', quantity: 6),
+  BagEntry(itemId: 'hyper-potion', categoryId: 'medicine', quantity: 6),
+];
+const _preferredRuntimeDemoSpeciesIds = <String>[
+  'ditto',
+  'squirtle',
+  'carapuce',
+  'mew',
+  'dratini'
+];
+const _avoidRuntimeDemoSpeciesIds = <String>{
+  'abra',
+};
+
+class RuntimeDemoPartySeed {
+  const RuntimeDemoPartySeed({
+    required this.members,
+  });
+
+  final List<RuntimeDemoPartyPokemonSeed> members;
+}
+
+class RuntimeDemoPartyPokemonSeed {
+  const RuntimeDemoPartyPokemonSeed({
+    required this.speciesId,
+    required this.abilityId,
+    required this.gender,
+    required this.level,
+    required this.currentHp,
+    required this.knownMoveIds,
+  });
+
+  final String speciesId;
+  final String abilityId;
+  final String? gender;
+  final int level;
+  final int currentHp;
+  final List<String> knownMoveIds;
+}
+
+class RuntimePartyBuilderPokemonOption {
+  const RuntimePartyBuilderPokemonOption({
+    required this.speciesId,
+    required this.displayName,
+    required this.abilityId,
+    required this.gender,
+    required this.availableMoveIds,
+    required this.suggestedMoveIds,
+    required this.moveDiagnostics,
+  });
+
+  final String speciesId;
+  final String displayName;
+  final String abilityId;
+  final String? gender;
+  final List<String> availableMoveIds;
+  final List<String> suggestedMoveIds;
+  final Map<String, RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
+
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredMoveDiagnostics {
+    final diagnostics = moveDiagnostics.values
+        .where((diagnostic) => !diagnostic.bridgeable)
+        .toList(growable: false);
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(diagnostics);
+  }
+
+  List<String> get filteredMoveIds {
+    return List<String>.unmodifiable(
+      filteredMoveDiagnostics.map((diagnostic) => diagnostic.moveId),
+    );
+  }
+
+  String get label {
+    if (displayName.trim().isEmpty || displayName == speciesId) {
+      return speciesId;
+    }
+    return '$displayName ($speciesId)';
+  }
+}
+
+SaveData buildRuntimeHostLaunchDemoSaveData({
+  required String mapId,
+  required RuntimeDemoPartySeed seed,
+}) {
+  return SaveData(
+    saveId: kRuntimeDemoSeedSaveId,
+    currentMapId: mapId,
+    party: PlayerParty(
+      members: seed.members
+          .map(
+            (member) => PlayerPokemon(
+              speciesId: member.speciesId,
+              natureId: 'hardy',
+              abilityId: member.abilityId,
+              gender: member.gender,
+              level: member.level,
+              knownMoveIds: member.knownMoveIds,
+              currentHp: member.currentHp,
+            ),
+          )
+          .toList(growable: false),
+    ),
+    trainerProfile: const TrainerProfile(name: 'Demo'),
+    bag: const Bag(entries: _runtimeDemoSeedBagEntries),
+  );
+}
+
+Future<List<RuntimePartyBuilderPokemonOption>>
+    loadRuntimeHostPartyBuilderOptions({
+  required String projectFilePath,
+  int suggestedLevel = kRuntimeDemoSeedLevel,
+}) async {
+  final projectFile = File(projectFilePath);
+  final projectJson =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  final projectRootUri = projectFile.parent.uri;
+  final pokemonConfig = _readPokemonConfig(projectJson);
+  final speciesJsonEntries = await _readSpeciesEntries(
+    projectRootUri: projectRootUri,
+    speciesDir: pokemonConfig.speciesDir,
+  );
+  final moveCatalog = await _tryReadMoveCatalog(
+    projectRootUri.resolve(pokemonConfig.movesCatalogPath),
+  );
+
+  final options = <RuntimePartyBuilderPokemonOption>[];
+  for (final speciesEntry in speciesJsonEntries) {
+    final option = await _tryBuildPartyBuilderOption(
+      projectRootUri: projectRootUri,
+      pokemonConfig: pokemonConfig,
+      speciesEntry: speciesEntry,
+      suggestedLevel: suggestedLevel,
+      moveCatalog: moveCatalog,
+    );
+    if (option != null) {
+      options.add(option);
+    }
+  }
+
+  options.sort((left, right) {
+    final byName = left.displayName
+        .toLowerCase()
+        .compareTo(right.displayName.toLowerCase());
+    if (byName != 0) {
+      return byName;
+    }
+    return left.speciesId.compareTo(right.speciesId);
+  });
+  return List<RuntimePartyBuilderPokemonOption>.unmodifiable(options);
+}
+
+Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
+  required bool seedDemoPokemon,
+  required String projectFilePath,
+}) async {
+  if (!seedDemoPokemon) {
+    return null;
+  }
+
+  final projectFile = File(projectFilePath);
+  final projectJson =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  final projectRootUri = projectFile.parent.uri;
+  final pokemonConfig = _readPokemonConfig(projectJson);
+  final speciesJsonEntries = await _readSpeciesEntries(
+    projectRootUri: projectRootUri,
+    speciesDir: pokemonConfig.speciesDir,
+  );
+  if (speciesJsonEntries.isEmpty) {
+    throw StateError(
+      'Impossible de preparer un Pokemon de demo: aucune espece locale disponible.',
+    );
+  }
+
+  final orderedSpecies = _orderDemoSpeciesEntries(speciesJsonEntries);
+  final moveCatalog = await _tryReadMoveCatalog(
+    projectRootUri.resolve(pokemonConfig.movesCatalogPath),
+  );
+  final members = <RuntimeDemoPartyPokemonSeed>[];
+  final selectedSpeciesIds = <String>{};
+  for (final speciesEntry in orderedSpecies) {
+    if (!selectedSpeciesIds.add(speciesEntry.id)) {
+      continue;
+    }
+    final member = await _tryBuildPartySeedMember(
+      projectRootUri: projectRootUri,
+      pokemonConfig: pokemonConfig,
+      speciesEntry: speciesEntry,
+      moveCatalog: moveCatalog,
+    );
+    if (member == null) {
+      continue;
+    }
+    members.add(member);
+    if (members.length >= 2) {
+      break;
+    }
+  }
+
+  if (members.isEmpty) {
+    throw StateError(
+      'Impossible de preparer un Pokemon de demo utilisable: aucune attaque locale exploitable.',
+    );
+  }
+
+  return RuntimeDemoPartySeed(
+    members: List<RuntimeDemoPartyPokemonSeed>.unmodifiable(members),
+  );
+}
+
+List<_RuntimeHostSpeciesJsonEntry> _orderDemoSpeciesEntries(
+  List<_RuntimeHostSpeciesJsonEntry> entries,
+) {
+  final ordered = List<_RuntimeHostSpeciesJsonEntry>.from(entries);
+  ordered.sort((left, right) {
+    final leftRank = _runtimeDemoSpeciesRank(left);
+    final rightRank = _runtimeDemoSpeciesRank(right);
+    if (leftRank != rightRank) {
+      return leftRank.compareTo(rightRank);
+    }
+    return left.id.compareTo(right.id);
+  });
+  return List<_RuntimeHostSpeciesJsonEntry>.unmodifiable(ordered);
+}
+
+int _runtimeDemoSpeciesRank(_RuntimeHostSpeciesJsonEntry entry) {
+  final normalizedId = entry.id.toLowerCase();
+  final preferredIndex = _preferredRuntimeDemoSpeciesIds.indexOf(normalizedId);
+  if (entry.isEnabledInProject && preferredIndex >= 0) {
+    return preferredIndex;
+  }
+  if (entry.isEnabledInProject &&
+      !_avoidRuntimeDemoSpeciesIds.contains(normalizedId)) {
+    return 100;
+  }
+  if (entry.isEnabledInProject) {
+    return 200;
+  }
+  if (!_avoidRuntimeDemoSpeciesIds.contains(normalizedId)) {
+    return 300;
+  }
+  return 400;
+}
+
+class _RuntimeHostPokemonConfig {
+  const _RuntimeHostPokemonConfig({
+    required this.speciesDir,
+    required this.learnsetsDir,
+    required this.movesCatalogPath,
+  });
+
+  final String speciesDir;
+  final String learnsetsDir;
+  final String movesCatalogPath;
+}
+
+class _RuntimeHostSpeciesJsonEntry {
+  const _RuntimeHostSpeciesJsonEntry({
+    required this.id,
+    required this.isEnabledInProject,
+    required this.json,
+  });
+
+  final String id;
+  final bool isEnabledInProject;
+  final Map<String, dynamic> json;
+}
+
+_RuntimeHostPokemonConfig _readPokemonConfig(Map<String, dynamic> projectJson) {
+  final pokemon = projectJson['pokemon'];
+  if (pokemon is! Map<String, dynamic>) {
+    return const _RuntimeHostPokemonConfig(
+      speciesDir: 'data/pokemon/species',
+      learnsetsDir: 'data/pokemon/learnsets',
+      movesCatalogPath: 'data/pokemon/catalogs/moves.json',
+    );
+  }
+
+  final speciesDir =
+      (pokemon['speciesDir'] as String?)?.trim() ?? 'data/pokemon/species';
+  final learnsetsDir =
+      (pokemon['learnsetsDir'] as String?)?.trim() ?? 'data/pokemon/learnsets';
+  final catalogFiles = pokemon['catalogFiles'];
+  final movesCatalogPath =
+      (catalogFiles is Map ? catalogFiles['moves'] as String? : null)?.trim();
+
+  return _RuntimeHostPokemonConfig(
+    speciesDir: speciesDir,
+    learnsetsDir: learnsetsDir,
+    movesCatalogPath: movesCatalogPath == null || movesCatalogPath.isEmpty
+        ? 'data/pokemon/catalogs/moves.json'
+        : movesCatalogPath,
+  );
+}
+
+Future<List<_RuntimeHostSpeciesJsonEntry>> _readSpeciesEntries({
+  required Uri projectRootUri,
+  required String speciesDir,
+}) async {
+  final speciesDirectory = Directory.fromUri(
+    projectRootUri.resolve('$speciesDir/'),
+  );
+  if (!await speciesDirectory.exists()) {
+    throw StateError(
+      'Impossible de preparer un Pokemon de demo: dossier species introuvable.',
+    );
+  }
+
+  final entries = <_RuntimeHostSpeciesJsonEntry>[];
+  await for (final entity in speciesDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) {
+      continue;
+    }
+    final json = await _tryReadJsonMap(entity.uri);
+    if (json == null) {
+      continue;
+    }
+    final declaredId = (json['id'] as String?)?.trim();
+    if (declaredId == null || declaredId.isEmpty) {
+      continue;
+    }
+    final classification = (json['classification'] as Map<String, dynamic>?) ??
+        const <String, dynamic>{};
+    entries.add(
+      _RuntimeHostSpeciesJsonEntry(
+        id: declaredId,
+        isEnabledInProject:
+            (classification['isEnabledInProject'] as bool?) ?? true,
+        json: json,
+      ),
+    );
+  }
+  entries.sort((left, right) => left.id.compareTo(right.id));
+  return List<_RuntimeHostSpeciesJsonEntry>.unmodifiable(entries);
+}
+
+Future<Map<String, dynamic>> _readJsonMap(Uri fileUri) async {
+  final file = File.fromUri(fileUri);
+  final decoded = jsonDecode(await file.readAsString());
+  if (decoded is! Map<String, dynamic>) {
+    throw StateError('JSON project Pokemon invalide.');
+  }
+  return decoded;
+}
+
+Future<Map<String, dynamic>?> _tryReadJsonMap(Uri fileUri) async {
+  try {
+    return await _readJsonMap(fileUri);
+  } on FormatException {
+    return null;
+  } on FileSystemException {
+    return null;
+  } on StateError {
+    return null;
+  }
+}
+
+Future<RuntimeDemoPartyPokemonSeed?> _tryBuildPartySeedMember({
+  required Uri projectRootUri,
+  required _RuntimeHostPokemonConfig pokemonConfig,
+  required _RuntimeHostSpeciesJsonEntry speciesEntry,
+  required Map<String, PokemonMove>? moveCatalog,
+}) async {
+  final speciesJson = speciesEntry.json;
+  final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
+  final learnsetJson = await _tryReadJsonMap(
+    projectRootUri.resolve('${pokemonConfig.learnsetsDir}/$learnsetId.json'),
+  );
+  if (learnsetJson == null) {
+    return null;
+  }
+
+  final knownMoveIds = _deriveSuggestedMoveIds(
+    learnsetJson,
+    level: kRuntimeDemoSeedLevel,
+    moveCatalog: moveCatalog,
+  );
+  if (knownMoveIds.isEmpty) {
+    return null;
+  }
+
+  return RuntimeDemoPartyPokemonSeed(
+    speciesId: speciesEntry.id,
+    abilityId: _readPrimaryAbilityId(speciesJson) ?? 'unknown',
+    gender: _resolveSeedGender(speciesJson, speciesEntry.id),
+    level: kRuntimeDemoSeedLevel,
+    currentHp: kRuntimeDemoSeedCurrentHp,
+    knownMoveIds: knownMoveIds,
+  );
+}
+
+Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
+  required Uri projectRootUri,
+  required _RuntimeHostPokemonConfig pokemonConfig,
+  required _RuntimeHostSpeciesJsonEntry speciesEntry,
+  required int suggestedLevel,
+  required Map<String, PokemonMove>? moveCatalog,
+}) async {
+  final speciesJson = speciesEntry.json;
+  final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
+  final learnsetJson = await _tryReadJsonMap(
+    projectRootUri.resolve('${pokemonConfig.learnsetsDir}/$learnsetId.json'),
+  );
+  if (learnsetJson == null) {
+    return null;
+  }
+
+  final allMoveIds = _deriveAvailableMoveIds(
+    learnsetJson,
+    maxLevel: 100,
+  );
+  final moveDiagnostics = _inspectBattleBridgeMoves(
+    allMoveIds,
+    moveCatalog: moveCatalog,
+  );
+  final availableMoveIds = List<String>.unmodifiable(
+    allMoveIds.where(
+      (moveId) => moveDiagnostics[moveId]?.bridgeable ?? moveCatalog == null,
+    ),
+  );
+  if (availableMoveIds.isEmpty) {
+    return null;
+  }
+
+  final suggestedMoveIds = _deriveSuggestedMoveIds(
+    learnsetJson,
+    level: suggestedLevel.clamp(1, 100).toInt(),
+    moveCatalog: moveCatalog,
+  );
+
+  return RuntimePartyBuilderPokemonOption(
+    speciesId: speciesEntry.id,
+    displayName: _readSpeciesDisplayName(speciesJson, speciesEntry.id),
+    abilityId: _readPrimaryAbilityId(speciesJson) ?? 'unknown',
+    gender: _resolveSeedGender(speciesJson, speciesEntry.id),
+    availableMoveIds: availableMoveIds,
+    suggestedMoveIds: suggestedMoveIds.isEmpty
+        ? List<String>.unmodifiable(availableMoveIds.take(4))
+        : suggestedMoveIds,
+    moveDiagnostics: moveDiagnostics,
+  );
+}
+
+String _readLearnsetId(
+  Map<String, dynamic> speciesJson,
+  String fallbackSpeciesId,
+) {
+  final refs = speciesJson['refs'];
+  if (refs is Map<String, dynamic>) {
+    final learnset = (refs['learnset'] as String?)?.trim();
+    if (learnset != null && learnset.isNotEmpty) {
+      return learnset;
+    }
+  }
+  final legacy = (speciesJson['learnsetRef'] as String?)?.trim();
+  if (legacy != null && legacy.isNotEmpty) {
+    return legacy;
+  }
+  return fallbackSpeciesId;
+}
+
+String _readSpeciesDisplayName(
+  Map<String, dynamic> speciesJson,
+  String fallbackSpeciesId,
+) {
+  final names = speciesJson['names'];
+  if (names is Map) {
+    for (final locale in const <String>['fr', 'en']) {
+      final value = names[locale];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    for (final value in names.values) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+  }
+
+  final name = speciesJson['name'];
+  if (name is String && name.trim().isNotEmpty) {
+    return name.trim();
+  }
+
+  return fallbackSpeciesId;
+}
+
+String? _readPrimaryAbilityId(Map<String, dynamic> speciesJson) {
+  final abilities = speciesJson['abilities'];
+  if (abilities is! Map<String, dynamic>) {
+    return null;
+  }
+  final primary = (abilities['primary'] as String?)?.trim();
+  if (primary == null || primary.isEmpty) {
+    return null;
+  }
+  return primary;
+}
+
+String? _resolveSeedGender(
+  Map<String, dynamic> speciesJson,
+  String speciesId,
+) {
+  final breeding = speciesJson['breeding'];
+  final genderRatio =
+      (breeding is Map<String, dynamic> ? breeding['genderRatio'] : null);
+  if (genderRatio is! Map<String, dynamic>) {
+    return null;
+  }
+  final maleRatio = (genderRatio['male'] as num?)?.toDouble() ?? 0.0;
+  final femaleRatio = (genderRatio['female'] as num?)?.toDouble() ?? 0.0;
+  final total = maleRatio + femaleRatio;
+  if (total <= 0) {
+    return 'genderless';
+  }
+  if (maleRatio > 0 && femaleRatio <= 0) {
+    return 'male';
+  }
+  if (femaleRatio > 0 && maleRatio <= 0) {
+    return 'female';
+  }
+  return _stableUnitInterval('demo-seed|$speciesId') < (maleRatio / total)
+      ? 'male'
+      : 'female';
+}
+
+double _stableUnitInterval(String seed) {
+  var hash = 0;
+  for (final codeUnit in seed.codeUnits) {
+    hash = ((hash * 31) + codeUnit) & 0x7fffffff;
+  }
+  return (hash % 10000) / 10000.0;
+}
+
+List<String> _deriveKnownMoveIds(
+  Map<String, dynamic> learnsetJson, {
+  required int level,
+}) {
+  final ordered = <String>[
+    ..._readStringList(learnsetJson['startingMoves']),
+    ..._readStringList(learnsetJson['relearnMoves']),
+    ..._readLevelUpMoveIds(learnsetJson['levelUp'], level: level),
+  ];
+
+  final unique = _uniqueMoveIds(ordered);
+
+  if (unique.length <= 4) {
+    return List<String>.unmodifiable(unique);
+  }
+  return List<String>.unmodifiable(unique.sublist(unique.length - 4));
+}
+
+List<String> _deriveSuggestedMoveIds(
+  Map<String, dynamic> learnsetJson, {
+  required int level,
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return _deriveKnownMoveIds(learnsetJson, level: level);
+  }
+
+  final bridgeableMoveIds = _filterBattleBridgeableMoveIds(
+    _deriveAvailableMoveIds(learnsetJson, maxLevel: level),
+    moveCatalog: moveCatalog,
+  );
+  if (bridgeableMoveIds.length <= 4) {
+    return List<String>.unmodifiable(bridgeableMoveIds);
+  }
+  return List<String>.unmodifiable(
+    bridgeableMoveIds.sublist(bridgeableMoveIds.length - 4),
+  );
+}
+
+Future<Map<String, PokemonMove>?> _tryReadMoveCatalog(Uri fileUri) async {
+  final json = await _tryReadJsonMap(fileUri);
+  if (json == null) {
+    return null;
+  }
+  final rawEntries = json['entries'];
+  if (rawEntries is! List) {
+    return null;
+  }
+
+  final entries = <String, PokemonMove>{};
+  for (final rawEntry in rawEntries.whereType<Map>()) {
+    try {
+      final move = PokemonMove.fromJson(rawEntry.cast<String, dynamic>());
+      entries[move.id] = move;
+    } catch (_) {
+      continue;
+    }
+  }
+
+  if (entries.isEmpty) {
+    return null;
+  }
+  return Map<String, PokemonMove>.unmodifiable(entries);
+}
+
+List<String> _filterBattleBridgeableMoveIds(
+  List<String> moveIds, {
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return List<String>.unmodifiable(moveIds);
+  }
+
+  final diagnostics = _inspectBattleBridgeMoves(
+    moveIds,
+    moveCatalog: moveCatalog,
+  );
+  final bridgeableMoveIds = moveIds
+      .where((moveId) => diagnostics[moveId]?.bridgeable ?? false)
+      .toList(growable: false);
+  return List<String>.unmodifiable(bridgeableMoveIds);
+}
+
+Map<String, RuntimeBattleMoveBridgeDiagnostics> _inspectBattleBridgeMoves(
+  List<String> moveIds, {
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return const <String, RuntimeBattleMoveBridgeDiagnostics>{};
+  }
+
+  const bridge = RuntimeBattleMoveBridge();
+  final diagnostics = <String, RuntimeBattleMoveBridgeDiagnostics>{};
+  for (final moveId in moveIds) {
+    final move = moveCatalog[moveId];
+    if (move == null) {
+      continue;
+    }
+    diagnostics[moveId] = bridge.inspectMove(
+      move: move,
+      combatantLabel: 'Le Pokémon de test',
+    );
+  }
+  return Map<String, RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+    diagnostics,
+  );
+}
+
+List<String> _deriveAvailableMoveIds(
+  Map<String, dynamic> learnsetJson, {
+  required int maxLevel,
+}) {
+  return List<String>.unmodifiable(
+    _uniqueMoveIds(<String>[
+      ..._readStringList(learnsetJson['startingMoves']),
+      ..._readStringList(learnsetJson['relearnMoves']),
+      ..._readLevelUpMoveIds(learnsetJson['levelUp'], level: maxLevel),
+    ]),
+  );
+}
+
+List<String> _uniqueMoveIds(Iterable<String> ordered) {
+  final unique = <String>[];
+  final seen = <String>{};
+  for (final moveId in ordered) {
+    final trimmed = moveId.trim();
+    if (trimmed.isEmpty || !seen.add(trimmed)) {
+      continue;
+    }
+    unique.add(trimmed);
+  }
+  return unique;
+}
+
+List<String> _readStringList(Object? raw) {
+  if (raw is! List) {
+    return const <String>[];
+  }
+  return raw.whereType<String>().toList(growable: false);
+}
+
+List<String> _readLevelUpMoveIds(
+  Object? raw, {
+  required int level,
+}) {
+  if (raw is! List) {
+    return const <String>[];
+  }
+  final moveIds = <String>[];
+  for (final entry in raw.whereType<Map>()) {
+    final levelUpEntry = entry.cast<String, dynamic>();
+    final requiredLevel = (levelUpEntry['level'] as num?)?.toInt() ?? 0;
+    final moveId = (levelUpEntry['moveId'] as String?)?.trim() ?? '';
+    if (requiredLevel <= level && moveId.isNotEmpty) {
+      moveIds.add(moveId);
+    }
+  }
+  return List<String>.unmodifiable(moveIds);
+}
+
+
+
+------ Content of: ./src/runtime_gamepad_bridge.dart ------
+
+import 'dart:ui';
+
+import 'package:gamepads/gamepads.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+import 'runtime_touch_input_driver.dart';
+
+const double kRuntimeGamepadPressedThreshold = 0.5;
+
+final class RuntimeGamepadBridge {
+  RuntimeGamepadBridge({double stickDeadZone = kRuntimeTouchDeadZone})
+      : _stickDeadZone = stickDeadZone;
+
+  final double _stickDeadZone;
+  final Map<String, _RuntimeGamepadStickState> _stickStateByGamepadId =
+      <String, _RuntimeGamepadStickState>{};
+
+  List<RuntimeInputEvent> handleButton({
+    required String gamepadId,
+    required GamepadButton button,
+    required double value,
+  }) {
+    final control = switch (button) {
+      GamepadButton.a => RuntimeInputControl.primary,
+      GamepadButton.b => RuntimeInputControl.secondary,
+      GamepadButton.back => RuntimeInputControl.secondary,
+      GamepadButton.dpadUp => RuntimeInputControl.up,
+      GamepadButton.dpadDown => RuntimeInputControl.down,
+      GamepadButton.dpadLeft => RuntimeInputControl.left,
+      GamepadButton.dpadRight => RuntimeInputControl.right,
+      _ => null,
+    };
+    if (control == null) {
+      return const <RuntimeInputEvent>[];
+    }
+    final isPressed = value >= kRuntimeGamepadPressedThreshold;
+    return <RuntimeInputEvent>[
+      isPressed
+          ? RuntimeInputEvent.press(control)
+          : RuntimeInputEvent.release(control),
+    ];
+  }
+
+  List<RuntimeInputEvent> handleAxis({
+    required String gamepadId,
+    required GamepadAxis axis,
+    required double value,
+  }) {
+    if (axis != GamepadAxis.leftStickX && axis != GamepadAxis.leftStickY) {
+      return const <RuntimeInputEvent>[];
+    }
+    final state = _stickStateByGamepadId.putIfAbsent(
+      gamepadId,
+      () => _RuntimeGamepadStickState(
+        driver: RuntimeTouchInputDriver(deadZone: _stickDeadZone),
+      ),
+    );
+    if (axis == GamepadAxis.leftStickX) {
+      state.x = value;
+    } else {
+      state.y = value;
+    }
+    return state.driver.updateVector(
+      Offset(state.x, -state.y),
+    );
+  }
+}
+
+final class _RuntimeGamepadStickState {
+  _RuntimeGamepadStickState({required this.driver});
+
+  final RuntimeTouchInputDriver driver;
+  double x = 0;
+  double y = 0;
+}
+
+
+
+------ Content of: ./src/runtime_gamepad_presence.dart ------
+
+import 'dart:async';
+
+import 'package:gamepads/gamepads.dart';
+
+typedef RuntimeConnectedGamepadCount = Future<int> Function();
+
+Future<int> _defaultConnectedGamepadCount() async {
+  final controllers = await Gamepads.list();
+  try {
+    return controllers.length;
+  } finally {
+    for (final controller in controllers) {
+      unawaited(controller.dispose());
+    }
+  }
+}
+
+final class RuntimeGamepadPresence {
+  RuntimeGamepadPresence({
+    RuntimeConnectedGamepadCount? connectedGamepadCount,
+  }) : connectedGamepadCount =
+           connectedGamepadCount ?? _defaultConnectedGamepadCount;
+
+  final RuntimeConnectedGamepadCount connectedGamepadCount;
+
+  Future<bool> hasConnectedGamepads() async {
+    return (await connectedGamepadCount()) > 0;
+  }
+}
+
+
+
+------ Content of: ./src/runtime_ios_controller_bridge.dart ------
+
+import 'dart:async';
+
+import 'package:flutter/services.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+const EventChannel _runtimeIosControllerChannel =
+    EventChannel('playable_runtime_host/game_controller');
+
+RuntimeInputEvent? runtimeInputEventFromIosControllerMessage(Object? message) {
+  if (message is! Map) {
+    return null;
+  }
+  final controlName = message['control']?.toString().trim();
+  final phaseName = message['phase']?.toString().trim();
+  if (controlName == null ||
+      controlName.isEmpty ||
+      phaseName == null ||
+      phaseName.isEmpty) {
+    return null;
+  }
+
+  final control = switch (controlName) {
+    'up' => RuntimeInputControl.up,
+    'down' => RuntimeInputControl.down,
+    'left' => RuntimeInputControl.left,
+    'right' => RuntimeInputControl.right,
+    'primary' => RuntimeInputControl.primary,
+    'secondary' => RuntimeInputControl.secondary,
+    _ => null,
+  };
+  if (control == null) {
+    return null;
+  }
+
+  return switch (phaseName) {
+    'press' => RuntimeInputEvent.press(control),
+    'release' => RuntimeInputEvent.release(control),
+    _ => null,
+  };
+}
+
+StreamSubscription<Object?> listenToRuntimeIosControllerEvents({
+  required bool Function(RuntimeInputEvent event) dispatch,
+  Stream<Object?>? eventStream,
+  EventChannel channel = _runtimeIosControllerChannel,
+}) {
+  final stream = eventStream ?? channel.receiveBroadcastStream();
+  return stream.listen((message) {
+    final event = runtimeInputEventFromIosControllerMessage(message);
+    if (event == null) {
+      return;
+    }
+    dispatch(event);
+  });
+}
+
+
+
+------ Content of: ./src/runtime_ios_project_picker.dart ------
+
+import 'package:flutter/services.dart';
+
+import 'runtime_project_picker.dart';
+
+const MethodChannel _runtimeIosProjectPickerChannel =
+    MethodChannel('playable_runtime_host/project_picker');
+
+Future<RuntimeProjectPickResult> pickRuntimeProjectDirectoryOnIos({
+  MethodChannel channel = _runtimeIosProjectPickerChannel,
+}) async {
+  try {
+    final projectJsonPath =
+        await channel.invokeMethod<String>('pickProjectDirectory');
+    if (projectJsonPath == null || projectJsonPath.trim().isEmpty) {
+      return const RuntimeProjectPickResult.cancelled();
+    }
+    return RuntimeProjectPickResult.selected(projectJsonPath.trim());
+  } on PlatformException catch (error) {
+    if (error.code == 'invalid_selection') {
+      return RuntimeProjectPickResult.invalidSelection(
+        error.message ?? 'Le dossier sélectionné ne contient pas de project.json.',
+      );
+    }
+    if (error.code == 'cancelled') {
+      return const RuntimeProjectPickResult.cancelled();
+    }
+    return RuntimeProjectPickResult.invalidSelection(
+      error.message ?? 'Impossible d’importer le projet iOS sélectionné.',
+    );
+  }
+}
+
+
+
+------ Content of: ./src/runtime_launch_options.dart ------
+
+import 'package:flutter/material.dart';
+
+class RuntimeDemoSeedToggle extends StatelessWidget {
+  const RuntimeDemoSeedToggle({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      key: const Key('seed-demo-pokemon-switch'),
+      contentPadding: EdgeInsets.zero,
+      title: const Text('Démarrer avec un Pokémon de démo'),
+      subtitle: const Text(
+        'Ajoute un Pokémon jouable dans l’équipe initiale.',
+      ),
+      value: value,
+      onChanged: onChanged,
+    );
+  }
+}
+
+
+
+------ Content of: ./src/runtime_launch_save.dart ------
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:map_core/map_core.dart';
+
+void _runtimeHostSaveLog(String message) {
+  debugPrint('[runtime_host_save] $message');
+}
+
+/// Nom fixe du fichier de save versionné qu'un projet peut exposer pour le
+/// host runtime.
+///
+/// Phase A veut une vérité produit réellement lançable :
+/// - un simple `project.json` sélectionnable dans le host ;
+/// - éventuellement une vraie save de lancement adjacente ;
+/// - et aucune dépendance à une fixture temporaire ou à un seed "magique".
+///
+/// Si ce fichier est présent à côté du `project.json`, le host le traite comme
+/// la meilleure source de vérité pour l'état joueur initial.
+const kRuntimeHostLaunchSaveFileName = 'runtime_host_launch_save.json';
+
+/// Charge la save versionnée de lancement d'un projet runtime, si elle existe.
+///
+/// Politique volontairement stricte :
+/// - absence du fichier => `null`, le host peut alors retomber sur son seed
+///   de démo historique ;
+/// - fichier présent mais invalide => erreur explicite ;
+/// - aucune fallback silencieuse vers une autre save si ce seam produit est
+///   cassé, parce qu'on veut que le golden slice reste honnête.
+Future<SaveData?> loadRuntimeHostLaunchSaveData({
+  required String projectFilePath,
+}) async {
+  final projectFile = File(projectFilePath);
+  final launchSaveFile = File.fromUri(
+    projectFile.parent.uri.resolve(kRuntimeHostLaunchSaveFileName),
+  );
+  _runtimeHostSaveLog('launch save lookup path=${launchSaveFile.path}');
+  if (!await launchSaveFile.exists()) {
+    _runtimeHostSaveLog('launch save missing path=${launchSaveFile.path}');
+    return null;
+  }
+
+  _runtimeHostSaveLog('launch save read start path=${launchSaveFile.path}');
+  final decoded = jsonDecode(await launchSaveFile.readAsString());
+  if (decoded is! Map<String, dynamic>) {
+    _runtimeHostSaveLog('launch save invalid rootType=${decoded.runtimeType}');
+    throw StateError(
+      'Le fichier $kRuntimeHostLaunchSaveFileName doit contenir un objet JSON.',
+    );
+  }
+
+  try {
+    final saveData = SaveData.fromJson(decoded).normalized();
+    _runtimeHostSaveLog(
+      'launch save parsed mapId=${saveData.currentMapId} party=${saveData.party.members.length}',
+    );
+    return saveData;
+  } catch (error) {
+    _runtimeHostSaveLog('launch save parse failed error=$error');
+    throw StateError(
+      'Le fichier $kRuntimeHostLaunchSaveFileName est invalide: $error',
+    );
+  }
+}
+
+
+
+------ Content of: ./src/runtime_party_builder.dart ------
+
+import 'package:flutter/material.dart';
+
+import 'runtime_demo_party_seed.dart';
+
+class RuntimePartyBuilderPanel extends StatefulWidget {
+  const RuntimePartyBuilderPanel({
+    super.key,
+    required this.options,
+    required this.members,
+    required this.enabled,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  final List<RuntimePartyBuilderPokemonOption> options;
+  final List<RuntimeDemoPartyPokemonSeed> members;
+  final bool enabled;
+  final ValueChanged<RuntimeDemoPartyPokemonSeed> onAdd;
+  final ValueChanged<int> onRemove;
+
+  @override
+  State<RuntimePartyBuilderPanel> createState() =>
+      _RuntimePartyBuilderPanelState();
+}
+
+class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
+  final TextEditingController _levelController =
+      TextEditingController(text: '$kRuntimeDemoSeedLevel');
+  TextEditingController? _speciesTextController;
+  RuntimePartyBuilderPokemonOption? _selectedOption;
+  List<String?> _selectedMoveIds = List<String?>.filled(4, null);
+  String? _error;
+
+  @override
+  void didUpdateWidget(RuntimePartyBuilderPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final selectedOption = _selectedOption;
+    if (selectedOption == null) {
+      return;
+    }
+    final stillAvailable = widget.options.any(
+      (option) => option.speciesId == selectedOption.speciesId,
+    );
+    if (!stillAvailable) {
+      _selectedOption = null;
+      _selectedMoveIds = List<String?>.filled(4, null);
+      _speciesTextController?.clear();
+      _error = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _levelController.dispose();
+    super.dispose();
+  }
+
+  int? get _parsedLevel {
+    final parsed = int.tryParse(_levelController.text.trim());
+    if (parsed == null || parsed < 1 || parsed > 100) {
+      return null;
+    }
+    return parsed;
+  }
+
+  bool get _isFull => widget.members.length >= kRuntimeDemoMaxPartySize;
+
+  bool get _canAdd {
+    return widget.enabled &&
+        !_isFull &&
+        _selectedOption != null &&
+        _parsedLevel != null &&
+        _normalizedSelectedMoveIds().isNotEmpty;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.dividerColor),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Equipe de test combat',
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+                Text(
+                  _isFull
+                      ? 'Equipe pleine (6/6)'
+                      : '${widget.members.length}/$kRuntimeDemoMaxPartySize',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: _isFull ? theme.colorScheme.error : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildSpeciesAutocomplete(),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final useTwoColumns = constraints.maxWidth >= 560;
+                final children = <Widget>[
+                  _buildLevelField(),
+                  ...List<Widget>.generate(4, _buildMoveDropdown),
+                ];
+                if (!useTwoColumns) {
+                  return Column(
+                    children: _withSpacing(children, vertical: 12),
+                  );
+                }
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: children
+                      .map(
+                        (child) => SizedBox(
+                          width: (constraints.maxWidth - 12) / 2,
+                          child: child,
+                        ),
+                      )
+                      .toList(growable: false),
+                );
+              },
+            ),
+            if (_selectedOption?.filteredMoveDiagnostics.isNotEmpty ??
+                false) ...[
+              const SizedBox(height: 12),
+              _buildFilteredMoveDiagnostics(_selectedOption!),
+            ],
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              key: const Key('runtime-party-builder-add-button'),
+              onPressed: _canAdd ? _addSelectedPokemon : null,
+              icon: const Icon(Icons.add),
+              label: const Text('Ajouter a l equipe'),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            const SizedBox(height: 16),
+            _buildCurrentPartyList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilteredMoveDiagnostics(
+    RuntimePartyBuilderPokemonOption option,
+  ) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.24),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.visibility_off_outlined,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Moves filtres',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: option.filteredMoveDiagnostics.map((diagnostic) {
+                return Tooltip(
+                  message: diagnostic.userFacingTooltip,
+                  child: Chip(
+                    visualDensity: VisualDensity.compact,
+                    avatar: Icon(
+                      Icons.block,
+                      size: 16,
+                      color: theme.colorScheme.error,
+                    ),
+                    label: Text(
+                      '${diagnostic.moveId} - ${diagnostic.userFacingReason}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }).toList(growable: false),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpeciesAutocomplete() {
+    return Autocomplete<RuntimePartyBuilderPokemonOption>(
+      displayStringForOption: (option) => option.label,
+      optionsBuilder: (textEditingValue) {
+        final query = textEditingValue.text.trim().toLowerCase();
+        final options = query.isEmpty
+            ? widget.options
+            : widget.options.where((option) {
+                return option.label.toLowerCase().contains(query) ||
+                    option.speciesId.toLowerCase().contains(query);
+              });
+        return options.take(24);
+      },
+      onSelected: _selectOption,
+      fieldViewBuilder: (
+        context,
+        textEditingController,
+        focusNode,
+        onFieldSubmitted,
+      ) {
+        _speciesTextController = textEditingController;
+        return TextField(
+          key: const Key('runtime-party-builder-species-field'),
+          controller: textEditingController,
+          focusNode: focusNode,
+          enabled: widget.enabled && widget.options.isNotEmpty,
+          decoration: InputDecoration(
+            labelText: 'Pokemon',
+            hintText: widget.options.isEmpty
+                ? 'Aucune espece disponible'
+                : 'Nom ou identifiant',
+            border: const OutlineInputBorder(),
+            suffixIcon: _selectedOption == null
+                ? null
+                : IconButton(
+                    tooltip: 'Retirer la selection',
+                    onPressed: widget.enabled ? _clearSelectedPokemon : null,
+                    icon: const Icon(Icons.close),
+                  ),
+          ),
+          onChanged: _handleSpeciesTextChanged,
+          onSubmitted: (_) => onFieldSubmitted(),
+        );
+      },
+    );
+  }
+
+  Widget _buildLevelField() {
+    return TextField(
+      key: const Key('runtime-party-builder-level-field'),
+      controller: _levelController,
+      enabled: widget.enabled,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Niveau',
+        border: OutlineInputBorder(),
+      ),
+      onChanged: (_) => setState(() => _error = null),
+    );
+  }
+
+  Widget _buildMoveDropdown(int index) {
+    final option = _selectedOption;
+    final availableMoveIds = option?.availableMoveIds ?? const <String>[];
+    final selectedValue = _selectedMoveIds[index];
+    final normalizedValue =
+        availableMoveIds.contains(selectedValue) ? selectedValue : null;
+
+    return DropdownButtonFormField<String>(
+      key: ValueKey<String>(
+        'runtime-party-builder-move-$index-${option?.speciesId ?? 'none'}'
+        '-${normalizedValue ?? 'none'}',
+      ),
+      initialValue: normalizedValue,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: 'Move ${index + 1}',
+        border: const OutlineInputBorder(),
+      ),
+      items: availableMoveIds
+          .map(
+            (moveId) => DropdownMenuItem<String>(
+              value: moveId,
+              child: Text(
+                moveId,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(growable: false),
+      onChanged: widget.enabled && option != null
+          ? (moveId) {
+              setState(() {
+                _selectedMoveIds[index] = moveId;
+                _error = null;
+              });
+            }
+          : null,
+    );
+  }
+
+  Widget _buildCurrentPartyList() {
+    if (widget.members.isEmpty) {
+      return Text(
+        'Equipe vide',
+        style: Theme.of(context).textTheme.bodyMedium,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: List<Widget>.generate(widget.members.length, (index) {
+        final member = widget.members[index];
+        return Padding(
+          padding: EdgeInsets.only(top: index == 0 ? 0 : 8),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: ListTile(
+              dense: true,
+              title: Text('${member.speciesId} Nv.${member.level}'),
+              subtitle: Text(
+                member.knownMoveIds.join(', '),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: IconButton(
+                tooltip: 'Retirer',
+                onPressed: widget.enabled ? () => widget.onRemove(index) : null,
+                icon: const Icon(Icons.delete_outline),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  void _handleSpeciesTextChanged(String value) {
+    final option = _findExactOption(value);
+    if (option != null) {
+      _selectOption(option);
+      return;
+    }
+    if (_selectedOption != null) {
+      setState(() {
+        _selectedOption = null;
+        _selectedMoveIds = List<String?>.filled(4, null);
+        _error = null;
+      });
+    }
+  }
+
+  RuntimePartyBuilderPokemonOption? _findExactOption(String value) {
+    final normalizedValue = value.trim().toLowerCase();
+    if (normalizedValue.isEmpty) {
+      return null;
+    }
+    for (final option in widget.options) {
+      if (option.label.toLowerCase() == normalizedValue ||
+          option.speciesId.toLowerCase() == normalizedValue ||
+          option.displayName.toLowerCase() == normalizedValue) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  void _selectOption(RuntimePartyBuilderPokemonOption option) {
+    setState(() {
+      _selectedOption = option;
+      _selectedMoveIds = _defaultMoveSelection(option);
+      _error = null;
+    });
+  }
+
+  List<String?> _defaultMoveSelection(RuntimePartyBuilderPokemonOption option) {
+    final selected = <String?>[
+      ...option.suggestedMoveIds
+          .where(option.availableMoveIds.contains)
+          .take(4),
+    ];
+    if (selected.isEmpty) {
+      selected.addAll(option.availableMoveIds.take(4));
+    }
+    while (selected.length < 4) {
+      selected.add(null);
+    }
+    return selected.take(4).toList(growable: false);
+  }
+
+  List<String> _normalizedSelectedMoveIds() {
+    final moves = <String>[];
+    final seen = <String>{};
+    for (final moveId in _selectedMoveIds) {
+      final normalized = moveId?.trim();
+      if (normalized == null || normalized.isEmpty || !seen.add(normalized)) {
+        continue;
+      }
+      moves.add(normalized);
+    }
+    return moves;
+  }
+
+  void _addSelectedPokemon() {
+    final option = _selectedOption;
+    if (_isFull) {
+      setState(() => _error = 'Equipe limitee a 6 Pokemon.');
+      return;
+    }
+    if (option == null) {
+      setState(() => _error = 'Selectionnez un Pokemon.');
+      return;
+    }
+    final level = _parsedLevel;
+    if (level == null) {
+      setState(() => _error = 'Le niveau doit etre entre 1 et 100.');
+      return;
+    }
+    final moveIds = _normalizedSelectedMoveIds();
+    if (moveIds.isEmpty) {
+      setState(() => _error = 'Selectionnez au moins une attaque.');
+      return;
+    }
+
+    widget.onAdd(
+      RuntimeDemoPartyPokemonSeed(
+        speciesId: option.speciesId,
+        abilityId: option.abilityId,
+        gender: option.gender,
+        level: level,
+        currentHp: _currentHpForLevel(level),
+        knownMoveIds: moveIds,
+      ),
+    );
+    setState(() => _error = null);
+  }
+
+  int _currentHpForLevel(int level) {
+    final scaled = level * 4;
+    return scaled < kRuntimeDemoSeedCurrentHp
+        ? kRuntimeDemoSeedCurrentHp
+        : scaled;
+  }
+
+  void _clearSelectedPokemon() {
+    setState(() {
+      _selectedOption = null;
+      _selectedMoveIds = List<String?>.filled(4, null);
+      _speciesTextController?.clear();
+      _error = null;
+    });
+  }
+}
+
+List<Widget> _withSpacing(List<Widget> children, {required double vertical}) {
+  if (children.isEmpty) {
+    return const <Widget>[];
+  }
+  return <Widget>[
+    for (var i = 0; i < children.length; i++) ...[
+      if (i > 0) SizedBox(height: vertical),
+      children[i],
+    ],
+  ];
+}
+
+
+
+------ Content of: ./src/runtime_pokedex_loader.dart ------
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_core/map_core.dart';
+
+// Projection ultra légère d'une espèce pour l'écran Pokédex in-game.
+// On ne charge que ce qu'il faut pour la liste et la fiche simple phase 10.
+class RuntimePokedexEntry {
+  const RuntimePokedexEntry({
+    required this.id,
+    required this.nationalDex,
+    required this.primaryName,
+    required this.types,
+    required this.isEnabledInProject,
+    this.flavorText,
+  });
+
+  final String id;
+  final int nationalDex;
+  final String primaryName;
+  final List<String> types;
+  final bool isEnabledInProject;
+  final String? flavorText;
+}
+
+// Le host runtime ne dépend pas du package editor.
+// On relit donc les JSON espèces du projet directement depuis le manifest pour
+// construire une petite vue lecture seule adaptée à la phase 10.
+// Le contrat de lecture ici doit suivre le schéma réellement consolidé du repo,
+// pas un ancien shape supposé du côté editor.
+Future<List<RuntimePokedexEntry>> loadRuntimePokedexEntries({
+  required String projectFilePath,
+}) async {
+  final projectFile = File(projectFilePath);
+  final projectJson =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  final manifest = ProjectManifest.fromJson(projectJson);
+  if (!manifest.pokemon.enabled) {
+    return const <RuntimePokedexEntry>[];
+  }
+
+  final projectRootUri = projectFile.parent.uri;
+  final speciesDirectoryUri = projectRootUri.resolve(
+    '${manifest.pokemon.speciesDir}/',
+  );
+  final speciesDirectory = Directory.fromUri(speciesDirectoryUri);
+  if (!await speciesDirectory.exists()) {
+    return const <RuntimePokedexEntry>[];
+  }
+
+  final entries = <RuntimePokedexEntry>[];
+  await for (final entity in speciesDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) {
+      continue;
+    }
+    final speciesJson =
+        jsonDecode(await entity.readAsString()) as Map<String, dynamic>;
+    entries.add(_parseRuntimePokedexEntry(speciesJson));
+  }
+
+  entries.sort((left, right) {
+    final dexCompare = left.nationalDex.compareTo(right.nationalDex);
+    if (dexCompare != 0) {
+      return dexCompare;
+    }
+    return left.id.compareTo(right.id);
+  });
+
+  return List<RuntimePokedexEntry>.unmodifiable(entries);
+}
+
+// Cette normalisation garde la logique simple :
+// on lit l'id, le dex, le nom principal, les types et quelques métadonnées
+// visibles, sans essayer de reconstruire toute la fiche Pokédex de l'éditeur.
+// Les types viennent du shape actuel `typing.types`.
+// On garde leur ordre source et on retire seulement les valeurs vides pour ne
+// pas propager de bruit dans l'UI runtime.
+RuntimePokedexEntry _parseRuntimePokedexEntry(Map<String, dynamic> json) {
+  final id = (json['id'] as String?)?.trim() ?? '';
+  final nationalDex = (json['nationalDex'] as num?)?.toInt() ?? 0;
+  final names = _readStringMap(json['names']);
+  final types = _readTypes(json['typing']);
+  final classification = (json['classification'] as Map<String, dynamic>?) ??
+      const <String, dynamic>{};
+  final dexContent = (json['dexContent'] as Map<String, dynamic>?) ??
+      const <String, dynamic>{};
+
+  return RuntimePokedexEntry(
+    id: id,
+    nationalDex: nationalDex,
+    primaryName: _pickPrimaryName(names) ?? id,
+    types: List<String>.unmodifiable(types),
+    isEnabledInProject: (classification['isEnabledInProject'] as bool?) ?? true,
+    flavorText: _readTrimmedString(dexContent['flavorText']),
+  );
+}
+
+// Le loader runtime reste volontairement minimal et indépendant de `map_editor`.
+// Il lit donc directement le bloc `typing` tel qu'il est stocké dans les JSON
+// espèces du projet, avec le shape consolidé `typing.types`.
+// Le mini-fix ne conserve pas de fallback `primary/secondary`, parce que
+// l'audit du repo n'a trouvé que le schéma consolidé `types` côté species.
+List<String> _readTypes(Object? rawTyping) {
+  final typing = rawTyping as Map<String, dynamic>?;
+  final rawTypes = typing?['types'];
+  if (rawTypes is! List) {
+    return const <String>[];
+  }
+
+  final normalized = <String>[];
+  for (final rawType in rawTypes) {
+    final type = _readTrimmedString(rawType);
+    if (type == null) {
+      continue;
+    }
+    normalized.add(type);
+  }
+  return List<String>.unmodifiable(normalized);
+}
+
+// Les names du JSON peuvent contenir des clés ou valeurs vides.
+// On les nettoie ici pour éviter de propager des chaînes inutilisables à l'UI.
+Map<String, String> _readStringMap(Object? raw) {
+  if (raw is! Map) {
+    return const <String, String>{};
+  }
+  final normalized = <String, String>{};
+  for (final entry in raw.entries) {
+    final key = _readTrimmedString(entry.key);
+    final value = _readTrimmedString(entry.value);
+    if (key == null || value == null) {
+      continue;
+    }
+    normalized[key] = value;
+  }
+  return normalized;
+}
+
+// On garde une priorité de lecture simple et explicite pour l'écran in-game.
+// Si le projet fournit `en`, on l'affiche d'abord ; sinon `fr` ; sinon le
+// premier nom exploitable restant.
+String? _pickPrimaryName(Map<String, String> names) {
+  for (final preferredKey in const <String>['en', 'fr']) {
+    final value = names[preferredKey];
+    if (value != null && value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  for (final value in names.values) {
+    if (value.trim().isNotEmpty) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+// Helper commun de trim pour éviter de répéter la même hygiène de lecture
+// à chaque champ texte issu du JSON.
+String? _readTrimmedString(Object? raw) {
+  final value = raw as String?;
+  if (value == null) {
+    return null;
+  }
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
+}
+
+
+
+------ Content of: ./src/runtime_project_picker.dart ------
+
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+enum RuntimeProjectPickOutcome {
+  selected,
+  cancelled,
+  invalidSelection,
+}
+
+class RuntimeProjectPickResult {
+  const RuntimeProjectPickResult._({
+    required this.outcome,
+    this.projectJsonPath,
+    this.errorMessage,
+  });
+
+  const RuntimeProjectPickResult.selected(String projectJsonPath)
+      : this._(
+          outcome: RuntimeProjectPickOutcome.selected,
+          projectJsonPath: projectJsonPath,
+        );
+
+  const RuntimeProjectPickResult.cancelled()
+      : this._(outcome: RuntimeProjectPickOutcome.cancelled);
+
+  const RuntimeProjectPickResult.invalidSelection(String errorMessage)
+      : this._(
+          outcome: RuntimeProjectPickOutcome.invalidSelection,
+          errorMessage: errorMessage,
+        );
+
+  final RuntimeProjectPickOutcome outcome;
+  final String? projectJsonPath;
+  final String? errorMessage;
+
+  bool get didSelectProject => outcome == RuntimeProjectPickOutcome.selected;
+  bool get didCancel => outcome == RuntimeProjectPickOutcome.cancelled;
+}
+
+typedef RuntimeProjectDirectoryPicker = Future<String?> Function();
+typedef RuntimeProjectImporter = Future<String> Function(String projectJsonPath);
+typedef RuntimeProjectExists = Future<bool> Function(String path);
+
+/// Sélectionne un dossier projet via le picker natif, puis valide qu'il expose
+/// bien un `project.json`.
+///
+/// Frontière volontaire:
+/// - on demande un dossier projet complet, pas un fichier isolé, pour garder
+///   `maps/` et assets cohérents sur iOS;
+/// - l'import/copie dans le sandbox applicatif reste injectable pour être
+///   testable et pour conserver la persistance locale existante du host;
+/// - on ne retombe pas automatiquement sur un scan de Documents quand
+///   l'utilisateur annule, afin d'éviter un faux message d'erreur.
+Future<RuntimeProjectPickResult> pickRuntimeProjectDirectory({
+  required RuntimeProjectDirectoryPicker pickDirectoryPath,
+  required RuntimeProjectImporter importProjectJsonPath,
+  RuntimeProjectExists projectFileExists = _projectFileExists,
+}) async {
+  final selectedDirectoryPath = await pickDirectoryPath();
+  if (selectedDirectoryPath == null || selectedDirectoryPath.trim().isEmpty) {
+    return const RuntimeProjectPickResult.cancelled();
+  }
+
+  final normalizedDirectoryPath = selectedDirectoryPath.trim();
+  final projectJsonPath = p.join(normalizedDirectoryPath, 'project.json');
+  if (!await projectFileExists(projectJsonPath)) {
+    return const RuntimeProjectPickResult.invalidSelection(
+      'Le dossier sélectionné ne contient pas de project.json.',
+    );
+  }
+
+  final importedProjectJsonPath = await importProjectJsonPath(projectJsonPath);
+  return RuntimeProjectPickResult.selected(importedProjectJsonPath);
+}
+
+Future<bool> _projectFileExists(String path) async {
+  return File(path).exists();
+}
+
+
+
+------ Content of: ./src/runtime_projects_directory.dart ------
+
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
+
+Future<Directory> ensureRuntimeProjectsDirectory({
+  required Future<Directory> Function() getDocumentsDirectory,
+}) async {
+  final documentsDirectory = await getDocumentsDirectory();
+  final projectsDirectory = Directory(
+    p.join(documentsDirectory.path, 'playable_projects'),
+  );
+  if (!await projectsDirectory.exists()) {
+    await projectsDirectory.create(recursive: true);
+  }
+  return projectsDirectory;
+}
+
+Future<String> importRuntimeProjectToRuntimeProjectsDirectory({
+  required String projectJsonPath,
+  required Directory projectsDirectory,
+}) async {
+  final projectDir = Directory(p.dirname(projectJsonPath));
+  final projectName = p.basename(projectDir.path);
+  final targetDir = Directory(p.join(projectsDirectory.path, projectName));
+  final sourcePath = p.normalize(p.absolute(projectDir.path));
+  final targetPath = p.normalize(p.absolute(targetDir.path));
+
+  if (sourcePath != targetPath && await targetDir.exists()) {
+    await targetDir.delete(recursive: true);
+  }
+  if (sourcePath != targetPath) {
+    await _copyDirectory(projectDir, targetDir);
+  }
+
+  final mapsDir = Directory(p.join(targetDir.path, 'maps'));
+  if (!await mapsDir.exists()) {
+    throw Exception(
+      'Le dossier maps/ est manquant après copie. '
+      'Source: ${projectDir.path}, Cible: ${targetDir.path}',
+    );
+  }
+
+  return p.join(targetDir.path, 'project.json');
+}
+
+Future<void> _copyDirectory(Directory source, Directory target) async {
+  if (!await target.exists()) {
+    await target.create(recursive: true);
+  }
+  await for (final entity in source.list(recursive: true)) {
+    final relativePath = p.relative(entity.path, from: source.path);
+    final newPath = p.join(target.path, relativePath);
+    if (entity is File) {
+      final newFile = File(newPath);
+      await newFile.parent.create(recursive: true);
+      await entity.copy(newPath);
+    } else if (entity is Directory) {
+      final newDir = Directory(newPath);
+      await newDir.create(recursive: true);
+    }
+  }
+}
+
+
+
+------ Content of: ./src/runtime_touch_controls.dart ------
+
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:flutter_joystick/flutter_joystick.dart';
+import 'package:map_runtime/map_runtime.dart';
+
+import 'runtime_touch_input_driver.dart';
+
+class RuntimeTouchControls extends StatefulWidget {
+  const RuntimeTouchControls({
+    super.key,
+    required this.dispatch,
+  });
+
+  final ValueChanged<RuntimeInputEvent> dispatch;
+
+  @override
+  State<RuntimeTouchControls> createState() => _RuntimeTouchControlsState();
+}
+
+class _RuntimeTouchControlsState extends State<RuntimeTouchControls> {
+  final RuntimeTouchInputDriver _driver = RuntimeTouchInputDriver();
+
+  void _dispatchAll(Iterable<RuntimeInputEvent> events) {
+    for (final event in events) {
+      widget.dispatch(event);
+    }
+  }
+
+  void _dispatchButton(RuntimeInputControl control, bool isPress) {
+    widget.dispatch(
+      isPress
+          ? RuntimeInputEvent.press(control)
+          : RuntimeInputEvent.release(control),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      ignoring: false,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final size = constraints.biggest;
+          final isPortrait = size.height >= size.width;
+          final joystickSize = isPortrait
+              ? size.width.clamp(0, 520) * 0.28
+              : size.height.clamp(0, 720) * 0.24;
+          final actionButtonSize = isPortrait
+              ? size.width.clamp(0, 520) * 0.17
+              : size.height.clamp(0, 720) * 0.14;
+          final safeBottom = MediaQuery.paddingOf(context).bottom;
+          final safeLeft = MediaQuery.paddingOf(context).left;
+          final safeRight = MediaQuery.paddingOf(context).right;
+          final bottomPadding =
+              (isPortrait ? 18.0 : 14.0) + safeBottom;
+          final horizontalPadding = isPortrait ? 18.0 : 22.0;
+
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                left: horizontalPadding + safeLeft,
+                bottom: bottomPadding,
+                child: SizedBox(
+                  key: const Key('runtime-touch-joystick'),
+                  width: joystickSize.clamp(112.0, 156.0),
+                  height: joystickSize.clamp(112.0, 156.0),
+                  child: _buildJoystick(),
+                ),
+              ),
+              Positioned(
+                right: horizontalPadding + safeRight,
+                bottom: bottomPadding,
+                child: _RuntimeTouchActionCluster(
+                  isPortrait: isPortrait,
+                  buttonSize: actionButtonSize.clamp(68.0, 90.0),
+                  onPrimaryChanged: (isPress) => _dispatchButton(
+                    RuntimeInputControl.primary,
+                    isPress,
+                  ),
+                  onSecondaryChanged: (isPress) => _dispatchButton(
+                    RuntimeInputControl.secondary,
+                    isPress,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildJoystick() {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.18),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.16),
+          width: 1.5,
+        ),
+      ),
+      child: Joystick(
+        includeInitialAnimation: false,
+        mode: JoystickMode.horizontalAndVertical,
+        period: const Duration(milliseconds: 60),
+        base: JoystickBase(
+          size: 140,
+          decoration: JoystickBaseDecoration(
+            drawArrows: false,
+            outerCircleColor: Colors.white.withValues(alpha: 0.12),
+            middleCircleColor: Colors.white.withValues(alpha: 0.10),
+            innerCircleColor: Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        stick: const _RuntimeJoystickStick(),
+        listener: (details) {
+          _dispatchAll(_driver.updateVector(Offset(details.x, details.y)));
+        },
+        onStickDragEnd: () {
+          _dispatchAll(_driver.release());
+        },
+      ),
+    );
+  }
+}
+
+class _RuntimeTouchActionCluster extends StatelessWidget {
+  const _RuntimeTouchActionCluster({
+    required this.isPortrait,
+    required this.buttonSize,
+    required this.onPrimaryChanged,
+    required this.onSecondaryChanged,
+  });
+
+  final bool isPortrait;
+  final double buttonSize;
+  final ValueChanged<bool> onPrimaryChanged;
+  final ValueChanged<bool> onSecondaryChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = isPortrait ? 14.0 : 12.0;
+    final secondaryButton = _RuntimeTouchButton(
+      key: const Key('runtime-touch-secondary-button'),
+      label: 'B',
+      size: buttonSize,
+      color: const Color(0xFF51607C),
+      onChanged: onSecondaryChanged,
+    );
+    final primaryButton = _RuntimeTouchButton(
+      key: const Key('runtime-touch-primary-button'),
+      label: 'A',
+      size: buttonSize,
+      color: const Color(0xFF6F55C6),
+      onChanged: onPrimaryChanged,
+    );
+
+    if (isPortrait) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          secondaryButton,
+          SizedBox(height: spacing),
+          primaryButton,
+        ],
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        secondaryButton,
+        SizedBox(width: spacing),
+        primaryButton,
+      ],
+    );
+  }
+}
+
+class _RuntimeTouchButton extends StatefulWidget {
+  const _RuntimeTouchButton({
+    super.key,
+    required this.label,
+    required this.size,
+    required this.color,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double size;
+  final Color color;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  State<_RuntimeTouchButton> createState() => _RuntimeTouchButtonState();
+}
+
+class _RuntimeTouchButtonState extends State<_RuntimeTouchButton> {
+  bool _pressed = false;
+
+  void _setPressed(bool pressed) {
+    if (_pressed == pressed) {
+      return;
+    }
+    setState(() => _pressed = pressed);
+    widget.onChanged(pressed);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = widget.size;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _setPressed(true),
+      onTapUp: (_) => _setPressed(false),
+      onTapCancel: () => _setPressed(false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 90),
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: widget.color.withValues(alpha: _pressed ? 0.96 : 0.84),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: _pressed ? 0.95 : 0.75),
+            width: 2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: _pressed ? 0.20 : 0.12),
+              blurRadius: _pressed ? 6 : 10,
+              offset: Offset(0, _pressed ? 2 : 4),
+            ),
+          ],
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          widget.label,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: math.max(24, size * 0.34),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RuntimeJoystickStick extends StatelessWidget {
+  const _RuntimeJoystickStick();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.9),
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.15),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.16),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+------ Content of: ./src/runtime_touch_controls_visibility.dart ------
+
+enum RuntimeTouchControlsBlockReason {
+  unavailablePlatform,
+  userHidden,
+  battleActive,
+  gamepadConnected,
+}
+
+final class RuntimeTouchControlsVisibility {
+  const RuntimeTouchControlsVisibility({
+    required this.showToggleButton,
+    required this.showControls,
+    required this.userHidden,
+    required this.blockReason,
+    required this.toggleTooltip,
+  });
+
+  final bool showToggleButton;
+  final bool showControls;
+  final bool userHidden;
+  final RuntimeTouchControlsBlockReason? blockReason;
+  final String toggleTooltip;
+}
+
+RuntimeTouchControlsVisibility resolveRuntimeTouchControlsVisibility({
+  required bool supportsTouchControls,
+  required bool userHidden,
+  required bool hasConnectedGamepad,
+  required bool isBattleActive,
+}) {
+  if (!supportsTouchControls) {
+    return const RuntimeTouchControlsVisibility(
+      showToggleButton: false,
+      showControls: false,
+      userHidden: false,
+      blockReason: RuntimeTouchControlsBlockReason.unavailablePlatform,
+      toggleTooltip: 'Contrôles tactiles indisponibles',
+    );
+  }
+
+  if (hasConnectedGamepad) {
+    return RuntimeTouchControlsVisibility(
+      showToggleButton: true,
+      showControls: false,
+      userHidden: userHidden,
+      blockReason: RuntimeTouchControlsBlockReason.gamepadConnected,
+      toggleTooltip: userHidden
+          ? 'Manette connectée · les contrôles tactiles restent masqués'
+          : 'Manette connectée · les contrôles tactiles sont masqués',
+    );
+  }
+
+  if (isBattleActive) {
+    return RuntimeTouchControlsVisibility(
+      showToggleButton: true,
+      showControls: false,
+      userHidden: userHidden,
+      blockReason: RuntimeTouchControlsBlockReason.battleActive,
+      toggleTooltip: userHidden
+          ? 'Combat en cours · les contrôles tactiles restent masqués'
+          : 'Combat en cours · les contrôles tactiles sont masqués',
+    );
+  }
+
+  if (userHidden) {
+    return const RuntimeTouchControlsVisibility(
+      showToggleButton: true,
+      showControls: false,
+      userHidden: true,
+      blockReason: RuntimeTouchControlsBlockReason.userHidden,
+      toggleTooltip: 'Afficher les contrôles tactiles',
+    );
+  }
+
+  return const RuntimeTouchControlsVisibility(
+    showToggleButton: true,
+    showControls: true,
+    userHidden: false,
+    blockReason: null,
+    toggleTooltip: 'Masquer les contrôles tactiles',
+  );
+}
+
+
+
+------ Content of: ./src/runtime_touch_input_driver.dart ------
+
+import 'dart:ui';
+
+import 'package:map_runtime/map_runtime.dart';
+
+const double kRuntimeTouchDeadZone = 0.35;
+
+RuntimeInputControl? runtimeInputControlFromTouchVector(
+  Offset vector, {
+  double deadZone = kRuntimeTouchDeadZone,
+}) {
+  if (vector.distance <= deadZone) {
+    return null;
+  }
+  if (vector.dx.abs() >= vector.dy.abs()) {
+    return vector.dx >= 0
+        ? RuntimeInputControl.right
+        : RuntimeInputControl.left;
+  }
+  return vector.dy <= 0 ? RuntimeInputControl.up : RuntimeInputControl.down;
+}
+
+final class RuntimeTouchInputDriver {
+  RuntimeTouchInputDriver({this.deadZone = kRuntimeTouchDeadZone});
+
+  final double deadZone;
+  RuntimeInputControl? _activeControl;
+
+  List<RuntimeInputEvent> updateVector(Offset vector) {
+    final nextControl =
+        runtimeInputControlFromTouchVector(vector, deadZone: deadZone);
+    if (nextControl == _activeControl) {
+      return const <RuntimeInputEvent>[];
+    }
+
+    final events = <RuntimeInputEvent>[];
+    final previousControl = _activeControl;
+    if (previousControl != null) {
+      events.add(RuntimeInputEvent.release(previousControl));
+    }
+    if (nextControl != null) {
+      events.add(RuntimeInputEvent.press(nextControl));
+    }
+    _activeControl = nextControl;
+    return events;
+  }
+
+  List<RuntimeInputEvent> release() => updateVector(Offset.zero);
+}
+
+

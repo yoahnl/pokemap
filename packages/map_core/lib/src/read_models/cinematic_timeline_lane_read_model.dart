@@ -98,10 +98,40 @@ CinematicTimelineLaneReadModel buildCinematicTimelineLaneReadModel(
     for (final actor in cinematic.requiredActors)
       actor.actorId: actor.label ?? actor.actorId,
   };
-  final targetLabels = <String, String>{
-    for (final target in cinematic.movementTargets)
-      target.targetId: target.label,
-  };
+  final targetLabels = <String, String>{};
+  for (final target in cinematic.movementTargets) {
+    var label = target.label;
+    final stageContext = cinematic.stageContext;
+    if (stageContext != null) {
+      CinematicMovementTargetBinding? binding;
+      for (final b in stageContext.movementTargetBindings) {
+        if (b.targetId == target.targetId) {
+          binding = b;
+          break;
+        }
+      }
+      if (binding != null) {
+        if (binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
+          final sourceId = binding.sourceId;
+          CinematicStagePoint? point;
+          if (sourceId != null) {
+            for (final p in stageContext.stagePoints) {
+              if (p.id == sourceId) {
+                point = p;
+                break;
+              }
+            }
+          }
+          if (point != null) {
+            label = point.label;
+          } else {
+            label = '[Point de scène manquant]';
+          }
+        }
+      }
+    }
+    targetLabels[target.targetId] = label;
+  }
   final lanes = <String, _LaneDraft>{};
 
   _addLane(

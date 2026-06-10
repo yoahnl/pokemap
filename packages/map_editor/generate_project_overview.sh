@@ -28,7 +28,6 @@ should_exclude() {
     [[ "$path" == *"/assets/"* ]] && return 0
     [[ "$path" == *"/public/"* ]] && return 0
     [[ "$path" == *"/style/"* ]] && return 0
-    [[ "$path" == *"/test/"* ]] && return 0
     [[ "$path" == *"/packages/map_runtime/"* ]] && return 0 # ignore example directory
     [[ "$path" == *"/packages/map_gameplay/test/"* ]] && return 0
     [[ "$path" == *"/packages/map_editor/test/"* ]] && return 0
@@ -50,11 +49,11 @@ should_exclude() {
     [[ "$base" == *.db-journal ]] && return 0
     [[ "$base" == *.md ]] && return 0
     [[ "$base" == *.env ]] && return 0
-    [[ "$base" == *.yaml ]] && return 0
     [[ "$base" == ".env.example" ]] && return 0
     [[ "$base" == *.freezed.dart ]] && return 0
     [[ "$base" == *.g.dart ]] && return 0
     [[ "$base" == *_test.dart ]] && return 0
+    [[ "$base" == "battle_sdk_rmxp_animation_catalog.dart" ]] && return 0
 
     return 1
 }
@@ -70,6 +69,8 @@ should_include_file() {
     [[ "$base" == "GEMINI.md" ]] && return 0
     [[ "$base" == "melos.yaml" ]] && return 0
     [[ "$base" == "dart_test.yaml" ]] && return 0
+    [[ "$base" == "battle_sdk_rmxp_animation_catalog.dart" ]] && return 0
+
 
     [[ "$file" == *.dart ]] && return 0
     [[ "$file" == *.yaml ]] && return 0
@@ -110,6 +111,11 @@ generate_tree() {
     done
 }
 
+count_lines() {
+    local file="$1"
+    wc -l < "$file" | tr -d ' '
+}
+
 copy_file_contents() {
     local root="$1"
 
@@ -118,7 +124,17 @@ copy_file_contents() {
         should_include_file "$file" || continue
 
         echo -e "\n------ Content of: ./${file#./} ------\n" >> "$OUTPUT_FILE"
-        cat "$file" >> "$OUTPUT_FILE"
+
+        local lines
+        lines=$(count_lines "$file")
+
+        if [ "$lines" -le 5000 ]; then
+            cat "$file" >> "$OUTPUT_FILE"
+        else
+            head -n 5000 "$file" >> "$OUTPUT_FILE"
+            echo "... [File truncated. Total lines: $lines]" >> "$OUTPUT_FILE"
+        fi
+
         echo -e "\n" >> "$OUTPUT_FILE"
     done < <(find "$root" -type f | sort)
 }

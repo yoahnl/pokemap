@@ -164,20 +164,45 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-102-bis — Stage Point Placement UX Discoverability / Evidence Pack Repair / Codex Rules Alignment | DONE | Rendre évidente et documentée la pose de points dans la preview cinématique, avec bouton texte clair, active mode banner overlay, empty states, Escape key deactivation et sidebar chip point list section. |
 | NS-SCENES-V1-102-ter — Stage Point Placement Evidence Pack Final Closure | DONE | Clôture documentaire propre et vérifiable de V1-102 + V1-102-bis, avec rapport final conforme, Evidence Pack complet et preuves de Visual Gate par shasum. |
 | NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0 | DONE | Permettre d’utiliser un Stage Point existant comme position initiale d’un acteur cinématique. |
+| NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure | DONE | Clôture documentaire, vérification de la vérité visuelle (apparence non définie, placeholder de l'acteur Timi sur Point 1, diagnostic de timeline) et validation des tests et de l'analyse statique sans modification du code produit. |
+| NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0 | DONE | Permettre à une instruction cinématique `actorMove` d’utiliser un Stage Point existant comme cible de déplacement. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
+`NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
 
-Raison : Maintenant que les positions initiales des acteurs peuvent être configurées pour pointer vers des Stage Points, l'étape logique suivante est de permettre aux instructions de mouvement (`actorMove`) de la timeline d'utiliser également ces Stage Points comme cibles au lieu de coordonnées brutes.
+Raison : Maintenant que les cibles de mouvement (`actorMove`) peuvent être branchées sur des Stage Points, nous devons définir la structure et le contrat d'authoring des chemins de déplacement manuels composés de plusieurs waypoints.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
-2. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0`
-3. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
-4. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
-5. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
-6. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+2. `NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure` (DONE)
+3. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` (DONE)
+4. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
+5. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
+6. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
+7. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-104
+
+Statut : `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` est DONE.
+
+Demande : Permettre à une instruction cinématique `actorMove` d’utiliser un Stage Point existant comme cible de déplacement. Rendre la transition entre types de cibles propre (sans valeur zombie `sourceId`). Afficher l'option "Point de scène" et le picker dans l'inspecteur de cible de mouvement de la sidebar.
+
+Decision : Ajout du cas `stagePoint` dans l'enum `CinematicMovementTargetBindingKind`. Résolution des coordonnées du target binding à partir du Stage Point correspondant. Implémentation des diagnostics statiques et de readiness map-aware (`movementTargetBindingStagePointMissing`, `movementTargetBindingStagePointWithoutStageMap`, `movementTargetBindingStagePointOutOfMap`). Ajout d'une option par bouton dans l'inspecteur latéral pour sélectionner le type "Point de scène" et affichage d'un sélecteur no-code (`_StagePointSourcePicker`). Validation des transitions propres (suppression des valeurs zombies `sourceId`).
+
+Preuve : Tous les tests unitaires et widget (y compris `cinematic_builder_workspace_test.dart` et `cinematic_authoring_operations_test.dart` avec les nouveaux tests de transitions directes) passent avec succès (100% verts). Génération de la Visual Gate avec le diagnostic sur le target résolu et absent de la liste, sauvegardée sous : `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_104_cinematic_actor_move_target_from_stage_points_v0.png`.
+
+Limites : Pas d'interpolation de mouvement interactif, pas de tracé graphique de chemins.
+
+## Mise a jour V1-103 bis
+
+Statut : `NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure` est DONE.
+
+Demande : Clôturer proprement et documenter le pack de preuves de V1-103 sans modifier le code produit.
+
+Decision : Rédaction du rapport final de clôture bis et de l'Evidence Pack. Exécution à blanc des tests unitaires et widget (100% verts) et de l'analyse statique. Vérification par shasum et par inspection de la vérité visuelle de la Visual Gate (1663x926, diagnostics actifs, apparence non définie).
+
+Preuve : Rapports finaux et Evidence Pack complets sans modification de code produit.
 
 ## Mise a jour V1-103
 

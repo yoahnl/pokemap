@@ -1449,6 +1449,121 @@ void main() {
       expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
       expect(outOfBoundsDiag.referenceId, 'actor_professor');
     });
+
+    test('diagnoses movement target binding stage point issues', () {
+      // 1. Valid case
+      final validReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_valid',
+          title: 'Valid',
+          mapId: 'map_lab',
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5),
+            ],
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.stagePoint,
+                sourceId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+        mapWidth: 10,
+        mapHeight: 10,
+      );
+      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointMissing), isEmpty);
+      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointWithoutStageMap), isEmpty);
+      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap), isEmpty);
+
+      // 2. Missing stage point reference
+      final missingReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_missing',
+          title: 'Missing',
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: const [],
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.stagePoint,
+                sourceId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+      final missingDiag = missingReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointMissing).single;
+      expect(missingDiag.severity, CinematicDiagnosticSeverity.error);
+      expect(missingDiag.referenceId, 'target_center');
+
+      // 3. Stage point movement target binding without stage map
+      final noMapReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_no_map',
+          title: 'No Map',
+          mapId: null,
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5),
+            ],
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.stagePoint,
+                sourceId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+      );
+      final noMapDiag = noMapReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointWithoutStageMap).single;
+      expect(noMapDiag.severity, CinematicDiagnosticSeverity.warning);
+      expect(noMapDiag.referenceId, 'target_center');
+
+      // 4. Stage point movement target binding out of map bounds
+      final outOfBoundsReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_out_of_bounds',
+          title: 'Out of Bounds',
+          mapId: 'map_lab',
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 15, y: 5),
+            ],
+            movementTargetBindings: [
+              CinematicMovementTargetBinding(
+                targetId: 'target_center',
+                kind: CinematicMovementTargetBindingKind.stagePoint,
+                sourceId: 'point_a',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(),
+        ),
+        mapWidth: 10,
+        mapHeight: 10,
+      );
+      final outOfBoundsDiag = outOfBoundsReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap).single;
+      expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
+      expect(outOfBoundsDiag.referenceId, 'target_center');
+    });
   });
 }
 

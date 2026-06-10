@@ -1008,6 +1008,159 @@ void main() {
       );
     });
 
+    test('transitions target bindings and prevents zombie sourceId values', () {
+      final project = _project(
+        cinematics: [
+          CinematicAsset(
+            id: 'cinematic_intro',
+            title: 'Intro cinematic',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            movementTargets: [
+              CinematicMovementTargetRef(
+                targetId: 'target_center',
+                label: 'Centre scene',
+              ),
+            ],
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      // 1. Set to stagePoint target binding
+      final step1 = upsertCinematicMovementTargetBinding(
+        project,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'point_1',
+        ),
+      );
+      expect(
+        step1.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.stagePoint,
+      );
+      expect(
+        step1.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'point_1',
+      );
+
+      // 2. Transition stagePoint -> abstractPoint (directly)
+      final step2 = upsertCinematicMovementTargetBinding(
+        step1.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.abstractPoint,
+        ),
+      );
+      expect(
+        step2.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.abstractPoint,
+      );
+      expect(
+        step2.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        isNull,
+      );
+
+      // 3. Transition back to stagePoint to prepare next test
+      final step3 = upsertCinematicMovementTargetBinding(
+        step2.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'point_2',
+        ),
+      );
+      expect(
+        step3.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.stagePoint,
+      );
+      expect(
+        step3.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'point_2',
+      );
+
+      // 4. Transition stagePoint -> mapEntity (directly)
+      final step4 = upsertCinematicMovementTargetBinding(
+        step3.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.mapEntity,
+          sourceId: 'entity_pnj',
+        ),
+      );
+      expect(
+        step4.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.mapEntity,
+      );
+      expect(
+        step4.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'entity_pnj',
+      );
+
+      // 5. Transition back to stagePoint
+      final step5 = upsertCinematicMovementTargetBinding(
+        step4.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'point_3',
+        ),
+      );
+      expect(
+        step5.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.stagePoint,
+      );
+      expect(
+        step5.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'point_3',
+      );
+
+      // 6. Transition stagePoint -> mapEvent (directly)
+      final step6 = upsertCinematicMovementTargetBinding(
+        step5.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.mapEvent,
+          sourceId: 'event_trigger',
+        ),
+      );
+      expect(
+        step6.cinematic.stageContext?.movementTargetBindings.single.kind,
+        CinematicMovementTargetBindingKind.mapEvent,
+      );
+      expect(
+        step6.cinematic.stageContext?.movementTargetBindings.single.sourceId,
+        'event_trigger',
+      );
+
+      // 7. Transition back to stagePoint
+      final step7 = upsertCinematicMovementTargetBinding(
+        step6.updatedProject,
+        cinematicId: 'cinematic_intro',
+        binding: CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'point_4',
+        ),
+      );
+
+      // 8. Clear/reset the stagePoint target binding (removing it)
+      final step8 = removeCinematicMovementTargetBinding(
+        step7.updatedProject,
+        cinematicId: 'cinematic_intro',
+        targetId: 'target_center',
+      );
+      expect(step8.cinematic.stageContext?.movementTargetBindings, isEmpty);
+    });
+
     test('addCinematicTimelineDraftStep inserts a marker draft after selection',
         () {
       final cinematic = _cinematic(id: 'cinematic_intro');

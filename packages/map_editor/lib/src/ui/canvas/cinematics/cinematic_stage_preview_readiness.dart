@@ -468,6 +468,9 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
         _hasMapEntitySource(stageMapSourceCatalog, binding.sourceId),
       CinematicMovementTargetBindingKind.mapEvent =>
         _hasMapEventSource(stageMapSourceCatalog, binding.sourceId),
+      CinematicMovementTargetBindingKind.stagePoint =>
+        context.stagePoints
+                .any((p) => p.id == binding.sourceId),
     };
     if (!hasSource) {
       return _item(
@@ -831,6 +834,15 @@ String _humanStageDiagnosticMessage(
     'movementTargetBindingMissingSource' => targetLabel == null
         ? 'Choisis une entité ou un event depuis les sources de la map.'
         : '$targetLabel attend une sélection d’entité ou d’event.',
+    'movementTargetBindingStagePointMissing' => targetLabel == null
+        ? 'La cible de mouvement référence un Stage Point inexistant.'
+        : 'La cible "$targetLabel" référence un Stage Point inexistant.',
+    'movementTargetBindingStagePointWithoutStageMap' => targetLabel == null
+        ? 'La cible de mouvement référence un Stage Point alors qu’aucune map stage n’est définie.'
+        : 'La cible "$targetLabel" référence un Stage Point alors qu’aucune map stage n’est définie.',
+    'movementTargetBindingStagePointOutOfMap' => targetLabel == null
+        ? 'La cible de mouvement référence un Stage Point en dehors des limites de la map.'
+        : 'La cible "$targetLabel" référence un Stage Point en dehors des limites de la map.',
     _ => diagnostic.message,
   };
 }
@@ -886,6 +898,9 @@ const _stageDiagnosticCodes = <String>{
   'movementTargetBindingUnknownTarget',
   'movementTargetBindingRequiresStageMap',
   'movementTargetBindingMissingSource',
+  'movementTargetBindingStagePointMissing',
+  'movementTargetBindingStagePointWithoutStageMap',
+  'movementTargetBindingStagePointOutOfMap',
   'stagePointDuplicateId',
   'stagePointEmptyId',
   'stagePointEmptyLabel',

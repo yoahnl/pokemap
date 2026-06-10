@@ -14811,6 +14811,14 @@
             "targetId": "target",
             "kind": "abstractPoint"
           }
+        ],
+        "stagePoints": [
+          {
+            "id": "stage_point_1",
+            "label": "Point 1",
+            "x": 17.5,
+            "y": 24.5
+          }
         ]
       },
       "timeline": {
@@ -14996,8 +15004,8 @@
           },
           {
             "nodeId": "node_end",
-            "x": 790.8046875,
-            "y": -87.60546875
+            "x": 861.3610789900432,
+            "y": -68.3576360566116
           },
           {
             "nodeId": "node_end_2",
@@ -15011,8 +15019,8 @@
           },
           {
             "nodeId": "node_yarn_dialogue",
-            "x": 574.40625,
-            "y": 42.3203125
+            "x": 544.1997332406877,
+            "y": 1.260315041796988
           },
           {
             "nodeId": "node_yarn_dialogue_2",

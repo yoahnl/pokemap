@@ -60,6 +60,9 @@ enum CinematicDiagnosticCode {
   actorInitialPlacementStagePointMissing,
   actorInitialPlacementStagePointWithoutStageMap,
   actorInitialPlacementStagePointOutOfMap,
+  movementTargetBindingStagePointMissing,
+  movementTargetBindingStagePointWithoutStageMap,
+  movementTargetBindingStagePointOutOfMap,
 }
 
 enum CinematicDiagnosticTarget {
@@ -682,6 +685,68 @@ void _diagnoseStageContext(
           suggestedFixLabel: 'Choisir une entité ou un event de map.',
         ),
       );
+    }
+    if (binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
+      final pointId = binding.sourceId?.trim();
+      CinematicStagePoint? point;
+      if (pointId != null && pointId.isNotEmpty) {
+        for (final p in stageContext.stagePoints) {
+          if (p.id == pointId) {
+            point = p;
+            break;
+          }
+        }
+      }
+      if (point == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.movementTargetBindingStagePointMissing,
+            severity: CinematicDiagnosticSeverity.error,
+            message:
+                'La cible de mouvement "${binding.targetId}" référence un Stage Point inexistant "$pointId".',
+            cinematicId: cinematic.id,
+            referenceId: binding.targetId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Choisir un Stage Point existant ou le recréer.',
+          ),
+        );
+      } else {
+        if (cinematic.mapId == null) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode
+                  .movementTargetBindingStagePointWithoutStageMap,
+              severity: CinematicDiagnosticSeverity.warning,
+              message:
+                  'La cible de mouvement "${binding.targetId}" référence un Stage Point alors qu’aucune map stage n’est définie.',
+              cinematicId: cinematic.id,
+              referenceId: binding.targetId,
+              target: CinematicDiagnosticTarget.stageContext,
+              suggestedFixLabel: 'Définir une map stage pour la cinématique.',
+            ),
+          );
+        } else if (mapWidth != null && mapHeight != null) {
+          if (point.x < 0 ||
+              point.x >= mapWidth ||
+              point.y < 0 ||
+              point.y >= mapHeight) {
+            diagnostics.add(
+              CinematicDiagnostic(
+                code: CinematicDiagnosticCode
+                    .movementTargetBindingStagePointOutOfMap,
+                severity: CinematicDiagnosticSeverity.error,
+                message:
+                    'La cible de mouvement "${binding.targetId}" référence un Stage Point en dehors des limites de la map ($mapWidth × $mapHeight).',
+                cinematicId: cinematic.id,
+                referenceId: binding.targetId,
+                target: CinematicDiagnosticTarget.stageContext,
+                suggestedFixLabel:
+                    'Repositionner le Stage Point dans les limites de la map.',
+              ),
+            );
+          }
+        }
+      }
     }
   }
 
