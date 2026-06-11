@@ -316,12 +316,13 @@ class _CinematicsLibraryWorkspaceState
       final backdropLayerRenderPlan = _buildBackdropLayerRenderPlan(
         builderAsset,
       );
-      final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan = actorDisplayPreviewModel == null
-          ? null
-          : buildCinematicActorSpritePreviewPlan(
-              actorDisplayModel: actorDisplayPreviewModel,
-              project: widget.project,
-            );
+      final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan =
+          actorDisplayPreviewModel == null
+              ? null
+              : buildCinematicActorSpritePreviewPlan(
+                  actorDisplayModel: actorDisplayPreviewModel,
+                  project: widget.project,
+                );
       final combinedTilesets = <String, CinematicResolvedTilesetAsset>{
         ...?backdropLayerRenderPlan?.tilesets,
         ...?backdropTileRenderPlan?.tilesets,
@@ -454,10 +455,12 @@ class _CinematicsLibraryWorkspaceState
       if (widget.onBuildBackdropTileRenderPlan == null &&
           _stageMapSnapshotMapId == mapId &&
           _loadingBackdropTileRenderPlanMapId != mapId) {
-        if (_backdropLayerRenderPlanMapId != mapId || _backdropLayerRenderPlan == null) {
+        if (_backdropLayerRenderPlanMapId != mapId ||
+            _backdropLayerRenderPlan == null) {
           needsTilesetReload = true;
         } else {
-          final actorDisplayPreviewModel = _buildActorDisplayPreviewModel(asset);
+          final actorDisplayPreviewModel =
+              _buildActorDisplayPreviewModel(asset);
           if (actorDisplayPreviewModel != null) {
             final actorSpritePreviewPlan = buildCinematicActorSpritePreviewPlan(
               actorDisplayModel: actorDisplayPreviewModel,
@@ -466,7 +469,8 @@ class _CinematicsLibraryWorkspaceState
             for (final actor in actorSpritePreviewPlan.actors) {
               final tilesetId = actor.spriteRef?.tilesetId;
               if (tilesetId != null && tilesetId.isNotEmpty) {
-                if (!_backdropLayerRenderPlan!.tilesets.containsKey(tilesetId)) {
+                if (!_backdropLayerRenderPlan!.tilesets
+                    .containsKey(tilesetId)) {
                   needsTilesetReload = true;
                   break;
                 }
@@ -594,7 +598,8 @@ class _CinematicsLibraryWorkspaceState
     );
   }
 
-  ProjectTilesetEntry? _tilesetById(ProjectManifest manifest, String tilesetId) {
+  ProjectTilesetEntry? _tilesetById(
+      ProjectManifest manifest, String tilesetId) {
     for (final tileset in manifest.tilesets) {
       if (tileset.id.trim() == tilesetId) {
         return tileset;
@@ -629,7 +634,8 @@ class _CinematicsLibraryWorkspaceState
     }
 
     // 2. Scan default player character settings as fallback
-    final defaultPlayerCharId = widget.project.settings.defaultPlayerCharacterId?.trim();
+    final defaultPlayerCharId =
+        widget.project.settings.defaultPlayerCharacterId?.trim();
     if (defaultPlayerCharId != null && defaultPlayerCharId.isNotEmpty) {
       for (final character in widget.project.characters) {
         if (character.id.trim() == defaultPlayerCharId) {
@@ -643,7 +649,8 @@ class _CinematicsLibraryWorkspaceState
     }
 
     final missingTilesetIds = requiredTilesetIds.where((id) {
-      return !_resolvedActorTilesets.containsKey(id) && !_loadingActorTilesetIds.contains(id);
+      return !_resolvedActorTilesets.containsKey(id) &&
+          !_loadingActorTilesetIds.contains(id);
     }).toList();
 
     if (missingTilesetIds.isEmpty) {
@@ -653,7 +660,8 @@ class _CinematicsLibraryWorkspaceState
     _loadingActorTilesetIds.addAll(missingTilesetIds);
 
     unawaited(() async {
-      final newResolved = Map<String, CinematicResolvedTilesetAsset>.from(_resolvedActorTilesets);
+      final newResolved = Map<String, CinematicResolvedTilesetAsset>.from(
+          _resolvedActorTilesets);
       bool changed = false;
       for (final id in missingTilesetIds) {
         try {
@@ -1114,15 +1122,15 @@ class _CinematicsLibraryWorkspaceState
                     ],
                   const SizedBox(height: 12),
                   _SectionTitle(
-                    title: 'Diagnostics',
+                    title: 'Problèmes',
                     subtitle: entry.diagnostics.isEmpty
-                        ? 'Aucun diagnostic'
+                        ? 'Aucun problème'
                         : '${entry.diagnostics.length} diagnostic(s)',
                   ),
                   const SizedBox(height: 10),
                   if (entry.diagnostics.isEmpty)
                     const PokeMapBadge(
-                      label: 'Aucun diagnostic',
+                      label: 'Aucun problème',
                       variant: PokeMapBadgeVariant.success,
                     )
                   else
@@ -1267,7 +1275,7 @@ class _MetricsStrip extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           child: PokeMapMetricCard(
-            title: 'Diagnostics',
+            title: 'Problèmes',
             value: '${readModel.metrics.diagnosticCount}',
             icon: CupertinoIcons.exclamationmark_triangle,
             tone: readModel.metrics.diagnosticCount == 0
@@ -1615,10 +1623,10 @@ class _TimelineSummaryPanel extends StatelessWidget {
         children: [
           const _SectionTitle(
             title: 'Résumé timeline',
-            subtitle: 'Read-only V0',
+            subtitle: 'Déroulé',
           ),
           const SizedBox(height: 8),
-          _KeyValue(label: 'Steps', value: '${timeline.stepCount} step(s)'),
+          _KeyValue(label: 'Actions', value: '${timeline.stepCount} action(s)'),
           _KeyValue(
             label: 'Durée',
             value: timeline.estimatedDurationMs == null
@@ -1630,9 +1638,9 @@ class _TimelineSummaryPanel extends StatelessWidget {
             value: timeline.stepKindLabels.join(', '),
           ),
           _KeyValue(
-            label: 'Actors utilisés',
+            label: 'Acteurs utilisés',
             value: timeline.actorIds.isEmpty
-                ? 'Aucun actorId dans les steps'
+                ? 'Aucun acteur dans les actions'
                 : timeline.actorIds.join(', '),
           ),
           if (timeline.previewLabels.isNotEmpty) ...[

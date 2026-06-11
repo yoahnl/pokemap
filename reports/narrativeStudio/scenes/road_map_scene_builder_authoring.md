@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract
+NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract
 ```
 
 ## Principes
@@ -156,6 +156,19 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-103-bis | Actor Initial Placement Stage Point Evidence Closure | review / doc | Clôture documentaire du pack de preuves de V1-103. | Aucun code produit modifié. | Rapport final. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-103. |
 | NS-SCENES-V1-104 | Cinematic ActorMove Target from Stage Points V0 | core / editor | Utiliser un Stage Point comme cible de déplacement pour `actorMove`. Transition propre entre types de cibles. | Pas d'interpolation interactive, pas de tracé graphique. | `CinematicMovementTargetBindingKind`. | DONE : Tests 100% verts, diagnostic target. | Gestion des valeurs zombies. | DONE : target authorable par point de scène, validé. | V1-103-bis. |
 | NS-SCENES-V1-104-bis | ActorMove Stage Point Target Evidence / Quality Gate Closure | review / doc | Clôture documentaire et Evidence Pack pour V1-104. | Aucun code produit modifié. | Rapport final, Evidence Pack. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-104. |
+| NS-SCENES-V1-105 | Cinematic Builder UX Simplification / Destination Vocabulary V0 | editor / ux | Simplifier le vocabulaire visible du Cinematic Builder et de la Library : `Repère`, `Destination`, `Destination du déplacement`, `Position libre`, `Personnage ou objet de la map`, `Déclencheur de map`, `Marqueur temps`, `Aucun problème`. | Pas de modèle core, pas de runtime, pas de playback, pas de Manual Path authoring. | Builder/Library cinematics, tests widget, rapport, Evidence Pack, Visual Gate. | DONE : tests Builder/Library/overlay verts, analyse ciblée en sortie 0, Visual Gate 1663x926. | Laisser survivre des libellés techniques visibles ; renommer des identifiants internes par erreur. | DONE : vocabulaire no-code aligné, anciens libellés visibles absents, identifiants internes préservés. | V1-104-bis. |
+
+## Mise a jour V1-105
+
+Statut : `NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0` est DONE.
+
+Demande : Karim a demandé de traiter la simplification UX/vocabulaire avant de continuer vers les chemins manuels.
+
+Decision : V1-105 est réattribué au vocabulaire no-code du Cinematic Builder. L'ancien lot `Cinematic Manual Path Authoring Prep Contract` devient V1-106, puis le core model Manual Path devient V1-107, l'UI de dessin V1-108 et le prep playback V1-109.
+
+Preuve : Tests Builder/Library/overlay verts, analyse ciblée `flutter analyze --no-fatal-infos` en sortie 0, Visual Gate `ns_scenes_v1_105_cinematic_builder_ux_simplification_destination_vocabulary_v0.png`.
+
+Limites : Aucun contrat Manual Path, aucune mutation core/runtime, aucun branchement gameplay.
 
 ## Mise a jour V1-104 bis
 
@@ -179,7 +192,7 @@ Preuve : Tous les tests unitaires et widget (y compris `cinematic_builder_worksp
 
 Limites : Pas d'interpolation de mouvement interactif, pas de tracé graphique de chemins.
 
-Prochain lot exact recommande : `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`.
+Prochain lot exact recommande : `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract`.
 
 ## Mise a jour V1-103 bis
 

@@ -54,8 +54,7 @@ void main() {
 
     expect(find.text('Aperçu sandbox'), findsOneWidget);
     expect(find.text('Déroulé'), findsOneWidget);
-    expect(find.text('Timeline cinématique'),
-        findsOneWidget);
+    expect(find.text('Timeline cinématique'), findsOneWidget);
     expect(find.text('2 step(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsWidgets);
     expect(find.text('8 piste(s)'), findsOneWidget);
@@ -80,6 +79,57 @@ void main() {
 
     expect(find.text('Ajouter un bloc'), findsNothing);
     expect(project.toJson(), before);
+  });
+
+  testWidgets('uses simplified no-code destination vocabulary in builder',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _extendedBackdropFixture();
+    final beforeProject = fixture.project.toJson();
+    final beforeMapData = fixture.mapData.toJson();
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ajouter au déroulé'), findsOneWidget);
+    expect(find.text('Ajouter un repère'), findsWidgets);
+    expect(find.text('Destination'), findsWidgets);
+    expect(find.text('Repère de scène'), findsWidgets);
+    expect(find.text('Position libre'), findsWidgets);
+    expect(find.textContaining('Personnage ou objet de la map'), findsWidgets);
+    expect(find.textContaining('Déclencheur de map'), findsWidgets);
+    expect(find.textContaining('Repère'), findsWidgets);
+    expect(find.text('Timeline cinématique'), findsOneWidget);
+
+    for (final forbidden in <String>[
+      'Ajouter un point',
+      'Point abstrait',
+      'Point de scène',
+      'Cibles de déplacement',
+      'Id: target',
+      'Vue simple',
+    ]) {
+      expect(find.text(forbidden), findsNothing);
+    }
+    expect(find.textContaining('sourceId'), findsNothing);
+    expect(find.textContaining('targetId'), findsNothing);
+    expect(find.textContaining('binding'), findsNothing);
+    expect(find.textContaining('payload'), findsNothing);
+    expect(fixture.project.toJson(), beforeProject);
+    expect(fixture.mapData.toJson(), beforeMapData);
   });
 
   testWidgets('edits cinematic stage map and backdrop from builder',
@@ -180,7 +230,8 @@ void main() {
     }
     expect(find.textContaining('À compléter'), findsWidgets);
     expect(
-      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
+      find.textContaining(
+          'Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.text('Lecture en cours'), findsNothing);
@@ -871,21 +922,29 @@ void main() {
       },
     );
 
-    final pathWaterIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_water');
-    final tilePontonIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_ponton');
-    final tileWallIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_wall');
-    final tileRoofIdx = plan.instructions.indexWhere((i) => i.layerId == 'layer_roof');
+    final pathWaterIdx =
+        plan.instructions.indexWhere((i) => i.layerId == 'layer_water');
+    final tilePontonIdx =
+        plan.instructions.indexWhere((i) => i.layerId == 'layer_ponton');
+    final tileWallIdx =
+        plan.instructions.indexWhere((i) => i.layerId == 'layer_wall');
+    final tileRoofIdx =
+        plan.instructions.indexWhere((i) => i.layerId == 'layer_roof');
 
     expect(pathWaterIdx, isNot(-1));
     expect(tilePontonIdx, isNot(-1));
     expect(tileWallIdx, isNot(-1));
     expect(tileRoofIdx, isNot(-1));
 
-    expect(pathWaterIdx, lessThan(tilePontonIdx), reason: 'Water path must paint under ponton tiles');
-    expect(tilePontonIdx, lessThan(tileWallIdx), reason: 'Lower layer index (wall) must paint on top of higher layer index (ponton)');
-    expect(tileWallIdx, lessThan(tileRoofIdx), reason: 'Roof layer (index 0) must paint on top of wall layer (index 1)');
+    expect(pathWaterIdx, lessThan(tilePontonIdx),
+        reason: 'Water path must paint under ponton tiles');
+    expect(tilePontonIdx, lessThan(tileWallIdx),
+        reason:
+            'Lower layer index (wall) must paint on top of higher layer index (ponton)');
+    expect(tileWallIdx, lessThan(tileRoofIdx),
+        reason:
+            'Roof layer (index 0) must paint on top of wall layer (index 1)');
   });
-
 
   testWidgets(
       'uses Path Studio center pattern when a path layer references its base preset',
@@ -2405,7 +2464,8 @@ void main() {
     expect(find.textContaining('Départs de scène — OK'), findsWidgets);
     expect(find.textContaining('Destinations — OK'), findsWidgets);
     expect(
-      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
+      find.textContaining(
+          'Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.textContaining('La preview réelle arrivera plus tard.'),
@@ -4332,8 +4392,7 @@ void main() {
     );
 
     expect(find.text('Déroulé'), findsOneWidget);
-    expect(find.text('Timeline cinématique'),
-        findsOneWidget);
+    expect(find.text('Timeline cinématique'), findsOneWidget);
     expect(find.text('Layout temporel dérivé'), findsOneWidget);
     expect(find.text('0 ms'), findsOneWidget);
     expect(find.text('500 ms'), findsWidgets);
@@ -4523,7 +4582,7 @@ void main() {
     );
     expect(selectedMoveCard.selected, isTrue);
     expect(find.text('Sélection : 1.1 s'), findsNothing);
-    expect(find.textContaining('Repère :'), findsOneWidget);
+    expect(find.textContaining('Marqueur :'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
       findsNothing,
@@ -4580,7 +4639,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur : 750 ms'), findsOneWidget);
     expect(find.text('Marqueur temps : 750 ms'), findsOneWidget);
     expect(
       find.text('Marqueur local : inspection uniquement.'),
@@ -4642,7 +4701,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Marqueur temps : 500 ms'), findsOneWidget);
     expect(
       find.text('Marqueur local : inspection uniquement.'),
@@ -4698,7 +4757,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Sélection : 500 ms'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
@@ -4715,7 +4774,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsNothing);
     expect(find.text('Sélection : 500 ms'), findsOneWidget);
     expect(find.textContaining('2. Professor turns'), findsOneWidget);
     expect(
@@ -4764,7 +4823,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsOneWidget,
@@ -4774,7 +4833,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsNothing);
     expect(find.text('Sélection : 500 ms'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
@@ -4821,7 +4880,7 @@ void main() {
     );
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     final sceneTab = find.byKey(
       const ValueKey('cinematic-builder-inspector-tab-scene'),
@@ -4839,7 +4898,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Sélection : 500 ms'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
@@ -4890,7 +4949,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsOneWidget,
@@ -4911,7 +4970,7 @@ void main() {
           .durationMs,
       700,
     );
-    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsNothing,
@@ -4961,7 +5020,7 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Repère :'), findsWidgets);
+    expect(find.textContaining('Marqueur :'), findsWidgets);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsOneWidget,
@@ -5010,7 +5069,7 @@ void main() {
     expect(afterFaceBlock.laneId, beforeFaceBlock.laneId);
     expect(afterMoveBlock.startMs, greaterThan(beforeMoveBlock.startMs));
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.textContaining('Repère :'), findsNothing);
+    expect(find.textContaining('Marqueur :'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsNothing,
@@ -5704,8 +5763,9 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
-    expect(find.text('Marqueur local : inspection uniquement.'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
+    expect(
+        find.text('Marqueur local : inspection uniquement.'), findsOneWidget);
     expect(find.text('Effacer le marqueur'), findsOneWidget);
     expect(find.text('Aide timeline'), findsOneWidget);
     expect(
@@ -5741,7 +5801,7 @@ void main() {
     expect(find.text('scrub'), findsNothing);
     _expectTimelineStepSelected(tester, 'step_face');
     expect(find.text('Professor turns'), findsWidgets);
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-keyboard-help-button')),
@@ -5758,7 +5818,7 @@ void main() {
     );
     expect(find.text('Bloc précédent / suivant'), findsOneWidget);
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
@@ -5774,7 +5834,7 @@ void main() {
       findsOneWidget,
     );
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
@@ -5857,13 +5917,13 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
       findsOneWidget,
     );
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 500 ms · début bloc'), findsNothing);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsNothing);
     expect(find.text('Aide timeline'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
@@ -5904,7 +5964,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsOneWidget,
@@ -5915,7 +5975,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Repère :'), findsNothing);
+    expect(find.textContaining('Marqueur :'), findsNothing);
     expect(find.textContaining('Sélection :'), findsNothing);
     expect(find.text('Aucun bloc sélectionné'), findsOneWidget);
     expect(
@@ -5934,7 +5994,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsOneWidget,
@@ -5971,7 +6031,7 @@ void main() {
     await tester.tapAt(Offset(tick0Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 0 ms · début timeline'), findsOneWidget);
+    expect(find.text('Marqueur : 0 ms · début timeline'), findsOneWidget);
     var probeCursorRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
@@ -5995,7 +6055,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 3 s · fin timeline'), findsOneWidget);
+    expect(find.text('Marqueur : 3 s · fin timeline'), findsOneWidget);
     probeCursorRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
@@ -6037,7 +6097,7 @@ void main() {
     await tester.tapAt(Offset(faceEndX - 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 800 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 800 ms · début bloc'), findsOneWidget);
     expect(find.text('Marqueur temps : 800 ms'), findsOneWidget);
     expect(
       find.text('Marqueur local : inspection uniquement.'),
@@ -6084,7 +6144,7 @@ void main() {
     await tester.tapAt(Offset(sharedBoundaryX, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 800 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 800 ms · début bloc'), findsOneWidget);
     expect(projectChangeCount, 0);
     expect(project.toJson(), before);
     expect(find.text('Lecture en cours'), findsNothing);
@@ -6123,15 +6183,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     await gesture.moveTo(Offset(axisRect.right + 240, axisRect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 3 s · fin timeline'), findsOneWidget);
+    expect(find.text('Marqueur : 3 s · fin timeline'), findsOneWidget);
 
     await gesture.moveTo(Offset(tick0Rect.left - 240, axisRect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 0 ms · début timeline'), findsOneWidget);
+    expect(find.text('Marqueur : 0 ms · début timeline'), findsOneWidget);
 
     await gesture.up();
     await tester.pumpAndSettle();
@@ -6185,7 +6245,7 @@ void main() {
     );
     await tester.tapAt(probePoint);
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur : 750 ms'), findsOneWidget);
 
     final moveRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
@@ -6194,7 +6254,7 @@ void main() {
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_move');
-    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Marqueur : 750 ms'), findsNothing);
     expect(find.text('Sélection : 1.1 s'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
@@ -6207,12 +6267,12 @@ void main() {
 
     await tester.tapAt(probePoint);
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur : 750 ms'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_fade');
-    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Marqueur : 750 ms'), findsNothing);
     expect(find.text('Sélection : 2.1 s'), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.home);
@@ -6220,12 +6280,12 @@ void main() {
     _expectTimelineStepSelected(tester, 'step_camera');
     await tester.tapAt(probePoint);
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur : 750 ms'), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pumpAndSettle();
 
     _expectTimelineStepSelected(tester, 'step_face');
-    expect(find.text('Repère : 750 ms'), findsNothing);
+    expect(find.text('Marqueur : 750 ms'), findsNothing);
     expect(find.text('Sélection : 500 ms'), findsOneWidget);
     expect(projectChangeCount, 0);
     expect(project.toJson(), before);
@@ -6266,7 +6326,7 @@ void main() {
     await tester.tapAt(Offset(probeX, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 2.5 s'), findsOneWidget);
+    expect(find.text('Marqueur : 2.5 s'), findsOneWidget);
     final probeCursorRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
@@ -6309,7 +6369,7 @@ void main() {
     await tester.tapAt(Offset(targetX + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 3 s · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 3 s · début bloc'), findsOneWidget);
     final probeCursorRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
     );
@@ -6464,7 +6524,7 @@ void main() {
     );
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     final moveRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-block-step_move')),
@@ -6480,7 +6540,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Survol : Professor → Centre scène'), findsOneWidget);
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
     final helpButton =
         find.byKey(const ValueKey('cinematic-builder-keyboard-help-button'));
@@ -6507,7 +6567,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Repère :'), findsNothing);
+    expect(find.textContaining('Marqueur :'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
       findsNothing,
@@ -8405,7 +8465,8 @@ void main() {
     await tester.ensureVisible(usedDeleteButton);
     expect(tester.widget<PokeMapButton>(usedDeleteButton).onPressed, isNull);
     expect(
-      find.text('Cette destination est utilisée par un bloc Déplacer un acteur.'),
+      find.text(
+          'Cette destination est utilisée par un bloc Déplacer un acteur.'),
       findsOneWidget,
     );
 
@@ -9250,7 +9311,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 750 ms'), findsOneWidget);
+    expect(find.text('Marqueur : 750 ms'), findsOneWidget);
     expect(find.text('Marqueur temps : 750 ms'), findsOneWidget);
     expect(
       find.text('Marqueur local : inspection uniquement.'),
@@ -9316,7 +9377,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Professor turns'), findsWidgets);
     expect(
       find.byKey(const ValueKey('cinematic-builder-transport-controls')),
@@ -9373,7 +9434,7 @@ void main() {
     await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(
       find.text('Marqueur local : inspection uniquement.'),
       findsOneWidget,
@@ -9452,7 +9513,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Repère : 500 ms · début bloc'), findsOneWidget);
+    expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
     expect(find.text('Aide timeline'), findsOneWidget);
     expect(
       find.byKey(const ValueKey('cinematic-builder-probe-help-panel')),
@@ -9809,12 +9870,11 @@ void main() {
     expect(find.textContaining('Map de scène — OK'), findsWidgets);
     expect(find.textContaining('Décor — OK'), findsWidgets);
     expect(find.textContaining('Acteurs liés — À compléter'), findsWidgets);
+    expect(find.textContaining('Départs de scène — À compléter'), findsWidgets);
+    expect(find.textContaining('Destinations — À compléter'), findsWidgets);
     expect(
-        find.textContaining('Départs de scène — À compléter'), findsWidgets);
-    expect(
-        find.textContaining('Destinations — À compléter'), findsWidgets);
-    expect(
-      find.textContaining('Sources de la map — OK : aucune source de la map requise'),
+      find.textContaining(
+          'Sources de la map — OK : aucune source de la map requise'),
       findsWidgets,
     );
     expect(find.text('Lab map'), findsWidgets);
@@ -10672,6 +10732,132 @@ void main() {
   });
 
   testWidgets(
+      'captures V1-105 cinematic builder ux simplification destination vocabulary visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_105_CAPTURE_CINEMATIC_BUILDER_UX_SIMPLIFICATION',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final asset = _stageContextCinematic(
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        initialPlacements: [
+          CinematicActorInitialPlacement(
+            actorId: 'actor_professor',
+            kind: CinematicActorInitialPlacementKind.stagePoint,
+            stagePointId: 'stage_point_1',
+          ),
+        ],
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_center',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'stage_point_2',
+          ),
+        ],
+        stagePoints: [
+          CinematicStagePoint(
+            id: 'stage_point_1',
+            label: 'Repère 1',
+            x: 1.5,
+            y: 1.5,
+          ),
+          CinematicStagePoint(
+            id: 'stage_point_2',
+            label: 'Repère 2',
+            x: 2.5,
+            y: 2.5,
+          ),
+        ],
+      ),
+    );
+    final project = _extendedBackdropProject(cinematics: [asset]);
+    final fixture = await _extendedBackdropFixture(
+      asset: asset,
+      project: project,
+    );
+    final actorDisplayPreviewModel = buildCinematicActorDisplayPreviewModel(
+      cinematic: fixture.asset,
+      project: fixture.project,
+      stageMap: fixture.project.maps.single,
+      mapData: fixture.mapData,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+    );
+
+    await _pumpBuilder(
+      tester,
+      _entry(fixture.project, fixture.asset.id),
+      asset: fixture.asset,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: fixture.mapData),
+      backdropPreviewModel: fixture.backdropModel,
+      backdropLayerRenderPlan: fixture.layerPlan,
+      actorDisplayPreviewModel: actorDisplayPreviewModel,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-scene-mode'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ajouter au déroulé'), findsOneWidget);
+    expect(find.text('Ajouter un repère'), findsWidgets);
+    expect(find.text('Réglages'), findsWidgets);
+    expect(find.text('Préparer la scène'), findsWidgets);
+    expect(find.text('Destination'), findsWidgets);
+    expect(find.text('Repère de scène'), findsWidgets);
+    expect(find.text('Position libre'), findsWidgets);
+    expect(find.textContaining('Personnage ou objet de la map'), findsWidgets);
+    expect(find.textContaining('Déclencheur de map'), findsWidgets);
+    expect(find.text('Timeline cinématique'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-stage-points-overlay')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-actor-display-overlay')),
+      findsOneWidget,
+    );
+    for (final forbidden in <String>[
+      'Ajouter un point',
+      'Point abstrait',
+      'Point de scène',
+      'Cibles de déplacement',
+      'Id: target',
+      'Vue simple',
+    ]) {
+      expect(find.text(forbidden), findsNothing);
+    }
+    expect(find.textContaining('sourceId'), findsNothing);
+    expect(find.textContaining('targetId'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_105_cinematic_builder_ux_simplification_destination_vocabulary_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
       'orders cinematic backdrop placed elements by visual depth around the actor overlay',
       (tester) async {
     final tilesetImage = await _makeExtendedBackdropTilesetImage();
@@ -10717,7 +10903,8 @@ void main() {
 
     // Verifies sorting by visual depth (bottom Y): C (2), A (3), B (4)
     final bgInstructions = plan.instructions
-        .where((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedBackground)
+        .where((inst) =>
+            inst.renderPass == CinematicMapBackdropRenderPass.placedBackground)
         .toList();
     expect(bgInstructions, hasLength(3));
     expect(bgInstructions[0].sourceId, 'tree_C');
@@ -10725,7 +10912,8 @@ void main() {
     expect(bgInstructions[2].sourceId, 'tree_B');
 
     final fgInstructions = plan.instructions
-        .where((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedForeground)
+        .where((inst) =>
+            inst.renderPass == CinematicMapBackdropRenderPass.placedForeground)
         .toList();
     expect(fgInstructions, hasLength(3));
     expect(fgInstructions[0].sourceId, 'tree_C');
@@ -10741,13 +10929,13 @@ void main() {
       'keeps placed foreground above actor placeholders when marked as foreground',
       (tester) async {
     final tilesetImage = await _makeExtendedBackdropTilesetImage();
-    
+
     // Test with layer name marked as foreground
     final manifest = _extendedBackdropProject();
     final mapData = _stageMapDataWithExtendedBackdrop().copyWith(
       layers: [
         const MapLayer.object(
-          id: 'foreground_layer_objects', 
+          id: 'foreground_layer_objects',
           name: 'Foreground Object Layer',
         ),
       ],
@@ -10779,7 +10967,10 @@ void main() {
         .where((inst) => inst.sourceId == 'tree_foreground')
         .toList();
     expect(fgInstructions, hasLength(2));
-    expect(fgInstructions.every((inst) => inst.renderPass == CinematicMapBackdropRenderPass.placedForeground), isTrue);
+    expect(
+        fgInstructions.every((inst) =>
+            inst.renderPass == CinematicMapBackdropRenderPass.placedForeground),
+        isTrue);
   });
 
   testWidgets(
@@ -10992,7 +11183,8 @@ void main() {
             visualBottom: 9.0,
             footprintWidthTiles: 1,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -11012,7 +11204,8 @@ void main() {
             visualBottom: 9.0,
             footprintWidthTiles: 1,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -11190,7 +11383,8 @@ void main() {
             visualBottom: 9.0,
             footprintWidthTiles: 2,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -11210,7 +11404,8 @@ void main() {
             visualBottom: 9.0,
             footprintWidthTiles: 1,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -11233,7 +11428,8 @@ void main() {
               direction: EntityFacing.south,
               frames: [
                 CharacterAnimationFrame(
-                  source: const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                  source:
+                      const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
                   durationMs: 150,
                 ),
               ],
@@ -11313,14 +11509,20 @@ void main() {
       requiredActors: fixture.asset.requiredActors,
       movementTargets: fixture.asset.movementTargets,
       stageContext: CinematicStageContext(
-        backdropMode: fixture.asset.stageContext?.backdropMode ?? CinematicStageBackdropMode.projectMap,
+        backdropMode: fixture.asset.stageContext?.backdropMode ??
+            CinematicStageBackdropMode.projectMap,
         actorBindings: fixture.asset.stageContext?.actorBindings ?? const [],
-        actorAppearanceBindings: fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
-        initialPlacements: fixture.asset.stageContext?.initialPlacements ?? const [],
-        movementTargetBindings: fixture.asset.stageContext?.movementTargetBindings ?? const [],
+        actorAppearanceBindings:
+            fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
+        initialPlacements:
+            fixture.asset.stageContext?.initialPlacements ?? const [],
+        movementTargetBindings:
+            fixture.asset.stageContext?.movementTargetBindings ?? const [],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -11367,7 +11569,9 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
-  testWidgets('V1-102-bis — Stage Point Placement UX Discoverability and ESC cancellation', (tester) async {
+  testWidgets(
+      'V1-102-bis — Stage Point Placement UX Discoverability and ESC cancellation',
+      (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final fixture = await _largePathStudioWaterBackdropFixture();
     final project = _project(cinematics: [fixture.asset]);
@@ -11392,47 +11596,75 @@ void main() {
     );
 
     // 1. Verify that when no stage points exist, the empty state helper message is displayed
-    expect(find.text('Aucun repère de scène. Cliquez sur « Ajouter un repère », puis cliquez sur la carte.'), findsOneWidget);
+    expect(
+        find.text(
+            'Aucun repère de scène. Cliquez sur « Ajouter un repère », puis cliquez sur la carte.'),
+        findsOneWidget);
 
     // 2. Verify that the "Ajouter un repère" text button is visible and active
-    final addPointBtn = find.byKey(const ValueKey('cinematic-builder-map-backdrop-add-stage-point-toggle'));
+    final addPointBtn = find.byKey(const ValueKey(
+        'cinematic-builder-map-backdrop-add-stage-point-toggle'));
     expect(addPointBtn, findsOneWidget);
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
+    expect(
+        find.descendant(
+            of: addPointBtn, matching: find.text('Ajouter un repère')),
+        findsOneWidget);
 
     // 3. Click the "Ajouter un repère" button to enter placement mode
     await tester.tap(addPointBtn);
     await tester.pumpAndSettle();
 
     // 4. Verify that the button text changes to "Annuler l’ajout" and active placement banner is displayed
-    expect(find.descendant(of: addPointBtn, matching: find.text('Annuler l’ajout')), findsOneWidget);
-    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsOneWidget);
+    expect(
+        find.descendant(
+            of: addPointBtn, matching: find.text('Annuler l’ajout')),
+        findsOneWidget);
+    expect(
+        find.text(
+            'Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'),
+        findsOneWidget);
 
     // 5. Test Escape key deactivates the mode
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
 
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
-    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsNothing);
+    expect(
+        find.descendant(
+            of: addPointBtn, matching: find.text('Ajouter un repère')),
+        findsOneWidget);
+    expect(
+        find.text(
+            'Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'),
+        findsNothing);
 
     // 6. Enter mode again, and verify that clicking on the map canvas places a point
     await tester.tap(addPointBtn);
     await tester.pumpAndSettle();
 
-    final viewport = find.byKey(const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'));
+    final viewport = find.byKey(
+        const ValueKey('cinematic-builder-map-backdrop-bitmap-viewport'));
     final viewportCenter = tester.getCenter(viewport);
     await tester.tapAt(viewportCenter);
     await tester.pumpAndSettle();
 
     // 7. Verify point was created and mode exited automatically (generated ID is '1', so label is 'Repère 1')
     expect(find.text('Repère 1'), findsNWidgets(2));
-    expect(find.descendant(of: addPointBtn, matching: find.text('Ajouter un repère')), findsOneWidget);
-    expect(find.text('Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'), findsNothing);
+    expect(
+        find.descendant(
+            of: addPointBtn, matching: find.text('Ajouter un repère')),
+        findsOneWidget);
+    expect(
+        find.text(
+            'Mode placement actif — Cliquez sur la carte pour poser un repère. Échap pour annuler.'),
+        findsNothing);
 
     // 8. Verify inspector panel displays the selected point inputs
-    expect(find.byKey(const ValueKey('cinematic-stage-point-label-input')), findsOneWidget);
+    expect(find.byKey(const ValueKey('cinematic-stage-point-label-input')),
+        findsOneWidget);
 
     // 9. Verify that typing in a TextField and pressing Escape does NOT exit the mode or break the input (it should retain text)
-    final labelInput = find.byKey(const ValueKey('cinematic-stage-point-label-input'));
+    final labelInput =
+        find.byKey(const ValueKey('cinematic-stage-point-label-input'));
     await tester.enterText(labelInput, 'Updated Point');
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
@@ -11464,14 +11696,20 @@ void main() {
       requiredActors: fixture.asset.requiredActors,
       movementTargets: fixture.asset.movementTargets,
       stageContext: CinematicStageContext(
-        backdropMode: fixture.asset.stageContext?.backdropMode ?? CinematicStageBackdropMode.projectMap,
+        backdropMode: fixture.asset.stageContext?.backdropMode ??
+            CinematicStageBackdropMode.projectMap,
         actorBindings: fixture.asset.stageContext?.actorBindings ?? const [],
-        actorAppearanceBindings: fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
-        initialPlacements: fixture.asset.stageContext?.initialPlacements ?? const [],
-        movementTargetBindings: fixture.asset.stageContext?.movementTargetBindings ?? const [],
+        actorAppearanceBindings:
+            fixture.asset.stageContext?.actorAppearanceBindings ?? const [],
+        initialPlacements:
+            fixture.asset.stageContext?.initialPlacements ?? const [],
+        movementTargetBindings:
+            fixture.asset.stageContext?.movementTargetBindings ?? const [],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -11518,7 +11756,8 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
-  testWidgets('V1-103 — Cinematic Actor Initial Placement from Stage Points V0', (tester) async {
+  testWidgets('V1-103 — Cinematic Actor Initial Placement from Stage Points V0',
+      (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final fixture = await _largePathStudioWaterBackdropFixture();
 
@@ -11546,8 +11785,10 @@ void main() {
         initialPlacements: const [],
         movementTargetBindings: const [],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -11578,14 +11819,15 @@ void main() {
     );
 
     // 1. Select the required actor Professor to open its sidebar inspector
-    final actorRow = find.byWidgetPredicate((w) =>
-        w is Text && w.data == 'Professor' && w.style?.fontSize == 14.0);
+    final actorRow = find.byWidgetPredicate(
+        (w) => w is Text && w.data == 'Professor' && w.style?.fontSize == 14.0);
     expect(actorRow, findsOneWidget);
     await tester.ensureVisible(actorRow);
     await tester.pumpAndSettle();
 
     // 2. Verify we see the initial placement choice block in the inspector
-    final radioStagePoint = find.byKey(const ValueKey('cinematic-builder-initial-placement-actor_professor-stagePoint'));
+    final radioStagePoint = find.byKey(const ValueKey(
+        'cinematic-builder-initial-placement-actor_professor-stagePoint'));
     expect(radioStagePoint, findsOneWidget);
     await tester.ensureVisible(radioStagePoint);
 
@@ -11597,14 +11839,17 @@ void main() {
     //    This proves the onUpsertActorInitialPlacement callback was called
     //    with stagePoint kind + stage_point_1 id, and the UI re-rendered.
     final subselectorValue = find.descendant(
-      of: find.byKey(const ValueKey('cinematic-builder-actor-row-actor_professor')),
-      matching: find.byKey(const ValueKey('cinematic-builder-subselector-value')),
+      of: find
+          .byKey(const ValueKey('cinematic-builder-actor-row-actor_professor')),
+      matching:
+          find.byKey(const ValueKey('cinematic-builder-subselector-value')),
     );
     expect(subselectorValue, findsOneWidget);
     expect(tester.widget<Text>(subselectorValue).data, 'Point 1');
   });
 
-  testWidgets('V1-104 — Cinematic ActorMove Target from Stage Points V0', (tester) async {
+  testWidgets('V1-104 — Cinematic ActorMove Target from Stage Points V0',
+      (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     final fixture = await _largePathStudioWaterBackdropFixture();
 
@@ -11637,8 +11882,10 @@ void main() {
         initialPlacements: const [],
         movementTargetBindings: const [],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -11675,14 +11922,15 @@ void main() {
 
     // 1. Open the "Cibles de mouvement" panel by selecting "Centre scène" in the sidebar
     final targetRow = find.descendant(
-      of: find.byKey(const ValueKey('cinematic-builder-stage-movement-targets-section')),
+      of: find.byKey(
+          const ValueKey('cinematic-builder-stage-movement-targets-section')),
       matching: find.text('Centre scène'),
     );
     expect(targetRow, findsOneWidget);
     await tester.ensureVisible(targetRow);
     await tester.pumpAndSettle();
 
-    // 2. Click the "Point de scène" button choice
+    // 2. Click the "Repère de scène" button choice
     final choiceStagePoint = find.byKey(const ValueKey(
         'cinematic-builder-target-binding-target_center-stagePoint'));
     expect(choiceStagePoint, findsOneWidget);
@@ -11762,8 +12010,10 @@ void main() {
         ],
         movementTargetBindings: const [],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -11788,7 +12038,8 @@ void main() {
               direction: EntityFacing.south,
               frames: [
                 CharacterAnimationFrame(
-                  source: const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                  source:
+                      const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
                   durationMs: 150,
                 ),
               ],
@@ -11858,7 +12109,8 @@ void main() {
             visualBottom: 6.0,
             footprintWidthTiles: 2,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -11915,8 +12167,8 @@ void main() {
     );
 
     // Click the actor Professor row to select it so the inspector shows it
-    final actorRow = find.byWidgetPredicate((w) =>
-        w is Text && w.data == 'Professor' && w.style?.fontSize == 14.0);
+    final actorRow = find.byWidgetPredicate(
+        (w) => w is Text && w.data == 'Professor' && w.style?.fontSize == 14.0);
     await tester.ensureVisible(actorRow);
     await tester.pumpAndSettle();
 
@@ -11933,8 +12185,7 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
-  testWidgets(
-      'captures V1-104 actorMove target from stage point visual gate',
+  testWidgets('captures V1-104 actorMove target from stage point visual gate',
       (tester) async {
     if (!const bool.fromEnvironment(
       'NS_SCENES_V1_104_CAPTURE_ACTOR_MOVE_TARGET_STAGE_POINT',
@@ -11992,8 +12243,10 @@ void main() {
           ),
         ],
         stagePoints: [
-          CinematicStagePoint(id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
         ],
       ),
       timeline: fixture.asset.timeline,
@@ -12018,7 +12271,8 @@ void main() {
               direction: EntityFacing.south,
               frames: [
                 CharacterAnimationFrame(
-                  source: const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+                  source:
+                      const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
                   durationMs: 150,
                 ),
               ],
@@ -12088,7 +12342,8 @@ void main() {
             visualBottom: 6.0,
             footprintWidthTiles: 2,
             footprintHeightTiles: 2,
-            preferredRendererHint: CinematicActorSpriteRendererHint.hybridRecommended,
+            preferredRendererHint:
+                CinematicActorSpriteRendererHint.hybridRecommended,
           ),
           diagnostics: const [],
         ),
@@ -12146,7 +12401,8 @@ void main() {
 
     // Click the target Centre scène row to select it so the inspector shows it
     final targetRow = find.descendant(
-      of: find.byKey(const ValueKey('cinematic-builder-stage-movement-targets-section')),
+      of: find.byKey(
+          const ValueKey('cinematic-builder-stage-movement-targets-section')),
       matching: find.text('Centre scène'),
     );
     await tester.ensureVisible(targetRow);

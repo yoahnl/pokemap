@@ -26,7 +26,8 @@ void main() {
 
       // Center of first tile (0.5, 0.5)
       final centerPreview = transform.tileToPreview(0.5, 0.5);
-      expect(centerPreview, const Offset(50 + 10, 50 + 10)); // cell width = 20, cell height = 20
+      expect(centerPreview,
+          const Offset(50 + 10, 50 + 10)); // cell width = 20, cell height = 20
 
       // Map bottom-right
       final brPreview = transform.tileToPreview(20, 15);
@@ -55,15 +56,18 @@ void main() {
       final cellWidth = 800 / 40; // 20
       final cellHeight = 600 / 30; // 20
 
-      expect(transform.tileToPreview(10, 10), Offset(10 * cellWidth, 10 * cellHeight));
-      expect(transform.previewToTile(const Offset(200, 200)), const Offset(10, 10));
+      expect(transform.tileToPreview(10, 10),
+          Offset(10 * cellWidth, 10 * cellHeight));
+      expect(transform.previewToTile(const Offset(200, 200)),
+          const Offset(10, 10));
     });
   });
 
   group('CinematicStagePointPreviewOverlay Widget', () {
     testWidgets('renders stage points with custom labels', (tester) async {
       final points = [
-        CinematicStagePoint(id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
+        CinematicStagePoint(
+            id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
         CinematicStagePoint(id: 'point_2', label: 'End Point', x: 8.5, y: 10.5),
       ];
 
@@ -74,8 +78,6 @@ void main() {
       );
 
       String? selectedId;
-      var updateCalled = false;
-
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -86,7 +88,7 @@ void main() {
                     stagePoints: points,
                     selectedStagePointId: selectedId,
                     onSelectStagePointId: (id) => selectedId = id,
-                    onUpdateStagePoint: (_) => updateCalled = true,
+                    onUpdateStagePoint: (_) {},
                     transform: transform,
                     compact: false,
                   ),
@@ -99,13 +101,16 @@ void main() {
 
       expect(find.text('Start Point'), findsOneWidget);
       expect(find.text('End Point'), findsOneWidget);
-      expect(find.byKey(const ValueKey('cinematic-stage-point-marker-point_1')), findsOneWidget);
-      expect(find.byKey(const ValueKey('cinematic-stage-point-marker-point_2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('cinematic-stage-point-marker-point_1')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('cinematic-stage-point-marker-point_2')),
+          findsOneWidget);
     });
 
     testWidgets('triggers select callback on tap', (tester) async {
       final points = [
-        CinematicStagePoint(id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
+        CinematicStagePoint(
+            id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
       ];
 
       final transform = CinematicMapBackdropViewportTransform(
@@ -143,9 +148,11 @@ void main() {
       expect(selectedId, equals('point_1'));
     });
 
-    testWidgets('dragging triggers local update and snaps/commits on end', (tester) async {
+    testWidgets('dragging triggers local update and snaps/commits on end',
+        (tester) async {
       final points = [
-        CinematicStagePoint(id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
+        CinematicStagePoint(
+            id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
       ];
 
       final transform = CinematicMapBackdropViewportTransform(

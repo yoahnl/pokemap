@@ -167,22 +167,36 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure | DONE | Clôture documentaire, vérification de la vérité visuelle (apparence non définie, placeholder de l'acteur Timi sur Point 1, diagnostic de timeline) et validation des tests et de l'analyse statique sans modification du code produit. |
 | NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0 | DONE | Permettre à une instruction cinématique `actorMove` d’utiliser un Stage Point existant comme cible de déplacement. |
 | NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure | DONE | Clôture documentaire, vérification de la vérité visuelle et validation des tests et de l'analyse statique sans modification du code produit. |
+| NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0 | DONE | Simplification UX demandée par Karim après audit visuel : vocabulaire no-code `Repère` / `Destination`, suppression des anciens libellés visibles Stage Point/target techniques, Library et Builder alignés, Visual Gate 1663x926. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
+`NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract`
 
-Raison : Maintenant que les cibles de mouvement (`actorMove`) peuvent être branchées sur des Stage Points, nous devons définir la structure et le contrat d'authoring des chemins de déplacement manuels composés de plusieurs waypoints.
+Raison : V1-105 a volontairement été réattribué au nettoyage UX/vocabulaire demandé après audit du Builder. Maintenant que les repères et destinations sont nommés clairement, nous pouvons définir la structure et le contrat d'authoring des chemins de déplacement manuels composés de plusieurs waypoints.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
 2. `NS-SCENES-V1-103-bis — Actor Initial Placement Stage Point Evidence / Visual Truth Closure` (DONE)
 3. `NS-SCENES-V1-104 — Cinematic ActorMove Target from Stage Points V0` (DONE)
 4. `NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure` (DONE)
-5. `NS-SCENES-V1-105 — Cinematic Manual Path Authoring Prep Contract`
-6. `NS-SCENES-V1-106 — Cinematic Manual Path Core Model V0`
-7. `NS-SCENES-V1-107 — Cinematic Manual Path Drawing UI V0`
-8. `NS-SCENES-V1-108 — Cinematic Preview Playback Prep Contract`
+5. `NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0` (DONE)
+6. `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract`
+7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0`
+8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0`
+9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-105
+
+Statut : `NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0` est DONE.
+
+Demande : Karim a demandé un lot UX de simplification avant le futur Manual Path : remplacer le vocabulaire technique visible par des termes no-code plus clairs, en particulier `Repère` pour les Stage Points et `Destination` pour les cibles de déplacement.
+
+Decision : Le lot V1-105 anciennement prévu pour Manual Path est volontairement décalé à V1-106. V1-105 ferme maintenant l'alignement vocabulaire Builder/Library : `Ajouter un repère`, `Repère de scène`, `Position libre`, `Personnage ou objet de la map`, `Déclencheur de map`, `Destination`, `Destination du déplacement`, `Marqueur temps`, `Aucun problème` / `Tout est prêt`.
+
+Preuve : Tests Builder, Library et overlay stage points verts, analyse ciblée `map_editor` en sortie 0 avec infos non fatales seulement, Visual Gate générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_105_cinematic_builder_ux_simplification_destination_vocabulary_v0.png`.
+
+Limites : Pas de modèle core, pas de runtime, pas de playback, pas de Manual Path authoring démarré.
 
 ## Mise a jour V1-104 bis
 

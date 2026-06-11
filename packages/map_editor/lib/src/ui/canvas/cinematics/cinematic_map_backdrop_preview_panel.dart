@@ -148,7 +148,10 @@ class _BackdropHeader extends StatelessWidget {
           fontSize: compact ? 10 : 11,
           fontWeight: FontWeight.w700,
         );
-    final itemsToComplete = readiness.items.where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok).length + readiness.diagnostics.length;
+    final itemsToComplete = readiness.items
+            .where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok)
+            .length +
+        readiness.diagnostics.length;
     final hasActorDisplayEntries =
         _hasActorDisplayEntries(actorDisplayPreviewModel);
     return Row(
@@ -187,10 +190,12 @@ class _BackdropHeader extends StatelessWidget {
                       style: metaStyle,
                     ),
                   PokeMapBadge(
-                    label: readiness.kind == CinematicStagePreviewReadinessKind.ready
+                    label: readiness.kind ==
+                            CinematicStagePreviewReadinessKind.ready
                         ? 'Scène prête'
                         : '$itemsToComplete élément(s) à compléter',
-                    variant: readiness.kind == CinematicStagePreviewReadinessKind.ready
+                    variant: readiness.kind ==
+                            CinematicStagePreviewReadinessKind.ready
                         ? PokeMapBadgeVariant.success
                         : PokeMapBadgeVariant.warning,
                   ),
@@ -331,7 +336,8 @@ class _BackdropMapFrame extends StatelessWidget {
                           onSelectStagePointId: onSelectStagePointId,
                           onUpdateStagePoint: onUpdateStagePoint,
                           onAddStagePointAtTile: onAddStagePointAtTile,
-                          onAddStagePointModeChanged: onAddStagePointModeChanged,
+                          onAddStagePointModeChanged:
+                              onAddStagePointModeChanged,
                         )
                       : bitmapPlan != null && bitmapPlan.hasBitmapInstructions
                           ? _BackdropBitmapMap(
@@ -355,7 +361,8 @@ class _BackdropMapFrame extends StatelessWidget {
                               onSelectStagePointId: onSelectStagePointId,
                               onUpdateStagePoint: onUpdateStagePoint,
                               onAddStagePointAtTile: onAddStagePointAtTile,
-                              onAddStagePointModeChanged: onAddStagePointModeChanged,
+                              onAddStagePointModeChanged:
+                                  onAddStagePointModeChanged,
                             )
                           : spatialPrimitives.isEmpty
                               ? DecoratedBox(
@@ -529,14 +536,18 @@ class _BackdropBitmapMap extends StatelessWidget {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTapUp: (details) {
-                        if (addStagePointMode && onAddStagePointAtTile != null) {
+                        if (addStagePointMode &&
+                            onAddStagePointAtTile != null) {
                           final localOffset = details.localPosition;
                           if (framing.transform.frame.contains(localOffset)) {
-                            final tileCoord = framing.transform.previewToTile(localOffset);
-                            if (framing.transform.isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
+                            final tileCoord =
+                                framing.transform.previewToTile(localOffset);
+                            if (framing.transform
+                                .isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
                               final snappedX = tileCoord.dx.floor() + 0.5;
                               final snappedY = tileCoord.dy.floor() + 0.5;
-                              onAddStagePointAtTile!(Offset(snappedX, snappedY));
+                              onAddStagePointAtTile!(
+                                  Offset(snappedX, snappedY));
                             }
                           }
                         } else {
@@ -588,7 +599,8 @@ class _BackdropBitmapMap extends StatelessWidget {
                                         if (actorDisplayPreviewModel != null)
                                           CinematicActorDisplayPreviewOverlay(
                                             model: actorDisplayPreviewModel!,
-                                            spritePreviewPlan: actorSpritePreviewPlan,
+                                            spritePreviewPlan:
+                                                actorSpritePreviewPlan,
                                             tilesets: plan.tilesets,
                                             mapWidth: plan.mapWidth,
                                             mapHeight: plan.mapHeight,
@@ -596,11 +608,17 @@ class _BackdropBitmapMap extends StatelessWidget {
                                           ),
                                         CinematicStagePointPreviewOverlay(
                                           stagePoints: stagePoints,
-                                          selectedStagePointId: selectedStagePointId,
-                                          onSelectStagePointId: onSelectStagePointId ?? (_) {},
-                                          onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
-                                          transform: CinematicMapBackdropViewportTransform.fill(
-                                            viewportSize: framing.transform.frame.size,
+                                          selectedStagePointId:
+                                              selectedStagePointId,
+                                          onSelectStagePointId:
+                                              onSelectStagePointId ?? (_) {},
+                                          onUpdateStagePoint:
+                                              onUpdateStagePoint ?? (_) {},
+                                          transform:
+                                              CinematicMapBackdropViewportTransform
+                                                  .fill(
+                                            viewportSize:
+                                                framing.transform.frame.size,
                                             mapWidth: plan.mapWidth,
                                             mapHeight: plan.mapHeight,
                                           ),
@@ -624,7 +642,8 @@ class _BackdropBitmapMap extends StatelessWidget {
                                     right: 8,
                                     top: 8,
                                     child: _AddStagePointInstructionOverlay(
-                                      onCancel: () => onAddStagePointModeChanged?.call(false),
+                                      onCancel: () => onAddStagePointModeChanged
+                                          ?.call(false),
                                     ),
                                   ),
                                 if (stagePoints.isEmpty && !addStagePointMode)
@@ -801,14 +820,18 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTapUp: (details) {
-                        if (addStagePointMode && onAddStagePointAtTile != null) {
+                        if (addStagePointMode &&
+                            onAddStagePointAtTile != null) {
                           final localOffset = details.localPosition;
                           if (framing.transform.frame.contains(localOffset)) {
-                            final tileCoord = framing.transform.previewToTile(localOffset);
-                            if (framing.transform.isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
+                            final tileCoord =
+                                framing.transform.previewToTile(localOffset);
+                            if (framing.transform
+                                .isTileInsideMap(tileCoord.dx, tileCoord.dy)) {
                               final snappedX = tileCoord.dx.floor() + 0.5;
                               final snappedY = tileCoord.dy.floor() + 0.5;
-                              onAddStagePointAtTile!(Offset(snappedX, snappedY));
+                              onAddStagePointAtTile!(
+                                  Offset(snappedX, snappedY));
                             }
                           }
                         } else {
@@ -861,7 +884,8 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                         if (actorDisplayPreviewModel != null)
                                           CinematicActorDisplayPreviewOverlay(
                                             model: actorDisplayPreviewModel!,
-                                            spritePreviewPlan: actorSpritePreviewPlan,
+                                            spritePreviewPlan:
+                                                actorSpritePreviewPlan,
                                             tilesets: plan.tilesets,
                                             mapWidth: plan.mapWidth,
                                             mapHeight: plan.mapHeight,
@@ -869,9 +893,12 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                           ),
                                         CinematicStagePointPreviewOverlay(
                                           stagePoints: stagePoints,
-                                          selectedStagePointId: selectedStagePointId,
-                                          onSelectStagePointId: onSelectStagePointId ?? (_) {},
-                                          onUpdateStagePoint: onUpdateStagePoint ?? (_) {},
+                                          selectedStagePointId:
+                                              selectedStagePointId,
+                                          onSelectStagePointId:
+                                              onSelectStagePointId ?? (_) {},
+                                          onUpdateStagePoint:
+                                              onUpdateStagePoint ?? (_) {},
                                           transform: transform,
                                           compact: compact,
                                         ),
@@ -908,7 +935,8 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                     right: 8,
                                     top: 8,
                                     child: _AddStagePointInstructionOverlay(
-                                      onCancel: () => onAddStagePointModeChanged?.call(false),
+                                      onCancel: () => onAddStagePointModeChanged
+                                          ?.call(false),
                                     ),
                                   ),
                                 if (stagePoints.isEmpty && !addStagePointMode)
@@ -1629,9 +1657,12 @@ class _BackdropFallback extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                   ),
             ),
-            if (model.status == CinematicMapBackdropPreviewStatus.missingStageMap ||
-                model.status == CinematicMapBackdropPreviewStatus.stageMapUnknown ||
-                model.status == CinematicMapBackdropPreviewStatus.mapDataUnavailable) ...[
+            if (model.status ==
+                    CinematicMapBackdropPreviewStatus.missingStageMap ||
+                model.status ==
+                    CinematicMapBackdropPreviewStatus.stageMapUnknown ||
+                model.status ==
+                    CinematicMapBackdropPreviewStatus.mapDataUnavailable) ...[
               const SizedBox(height: 12),
               Text(
                 'Choisis une map de scène avant de placer des points.',
@@ -1806,20 +1837,6 @@ int _maxPrimitiveY(List<CinematicMapBackdropVisualPrimitive> primitives) {
   return maxY;
 }
 
-String _statusLabel(CinematicMapBackdropPreviewStatus status) {
-  return switch (status) {
-    CinematicMapBackdropPreviewStatus.available => 'Décor disponible',
-    CinematicMapBackdropPreviewStatus.backdropDisabled => 'Décor désactivé',
-    CinematicMapBackdropPreviewStatus.missingStageMap => 'Map manquante',
-    CinematicMapBackdropPreviewStatus.stageMapUnknown => 'Map inconnue',
-    CinematicMapBackdropPreviewStatus.mapDataUnavailable =>
-      'Données map absentes',
-    CinematicMapBackdropPreviewStatus.mapDataMismatch => 'Map non alignée',
-    CinematicMapBackdropPreviewStatus.tilesetUnavailable =>
-      'Tileset indisponible',
-  };
-}
-
 String _fallbackTitle(CinematicMapBackdropPreviewStatus status) {
   return switch (status) {
     CinematicMapBackdropPreviewStatus.backdropDisabled => 'Décor désactivé',
@@ -1965,22 +1982,6 @@ PokeMapTone _toneForActorDiagnostic(
   };
 }
 
-PokeMapBadgeVariant _statusBadgeVariant(
-  CinematicMapBackdropPreviewStatus status,
-) {
-  return switch (status) {
-    CinematicMapBackdropPreviewStatus.available => PokeMapBadgeVariant.success,
-    CinematicMapBackdropPreviewStatus.backdropDisabled ||
-    CinematicMapBackdropPreviewStatus.mapDataUnavailable ||
-    CinematicMapBackdropPreviewStatus.tilesetUnavailable =>
-      PokeMapBadgeVariant.warning,
-    CinematicMapBackdropPreviewStatus.missingStageMap ||
-    CinematicMapBackdropPreviewStatus.stageMapUnknown ||
-    CinematicMapBackdropPreviewStatus.mapDataMismatch =>
-      PokeMapBadgeVariant.error,
-  };
-}
-
 PokeMapTone _toneForDiagnostic(
   CinematicMapBackdropPreviewDiagnosticSeverity severity,
 ) {
@@ -2068,7 +2069,8 @@ class _AddStagePointInstructionOverlay extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           PokeMapButton(
-            key: const ValueKey('cinematic-builder-cancel-stage-point-placement-btn'),
+            key: const ValueKey(
+                'cinematic-builder-cancel-stage-point-placement-btn'),
             size: PokeMapButtonSize.small,
             variant: PokeMapButtonVariant.secondary,
             onPressed: onCancel,
@@ -2081,7 +2083,7 @@ class _AddStagePointInstructionOverlay extends StatelessWidget {
 }
 
 class _EmptyStagePointsHelperOverlay extends StatelessWidget {
-  const _EmptyStagePointsHelperOverlay({super.key});
+  const _EmptyStagePointsHelperOverlay();
 
   @override
   Widget build(BuildContext context) {

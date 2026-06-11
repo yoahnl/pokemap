@@ -1,10 +1,8 @@
-import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
-import '../../design_system/design_system.dart';
 import 'cinematic_map_backdrop_viewport_transform.dart';
 
 class CinematicStagePointPreviewOverlay extends StatefulWidget {
@@ -65,7 +63,8 @@ class _CinematicStagePointPreviewOverlayState
     final tileY = isDragging ? _draggingTilePosition!.dy : point.y;
 
     final cellWidth = widget.transform.frame.width / widget.transform.mapWidth;
-    final cellHeight = widget.transform.frame.height / widget.transform.mapHeight;
+    final cellHeight =
+        widget.transform.frame.height / widget.transform.mapHeight;
 
     // Center of the tile bottom or center?
     // Stage points are snapped to floor(x) + 0.5, floor(y) + 0.5.
@@ -78,7 +77,8 @@ class _CinematicStagePointPreviewOverlayState
 
     final brandColor = colors.brandPrimary;
     final strokeColor = isSelected ? brandColor : colors.controlBorder;
-    final backgroundColor = isSelected ? brandColor.withOpacity(0.15) : colors.controlSurface;
+    final backgroundColor =
+        isSelected ? brandColor.withOpacity(0.15) : colors.controlSurface;
 
     return Positioned(
       left: anchor.dx - width / 2,
@@ -97,7 +97,8 @@ class _CinematicStagePointPreviewOverlayState
           widget.onSelectStagePointId(point.id);
           setState(() {
             _draggingPointId = point.id;
-            _startDragGlobalPosition = _mouseDownGlobalPosition ?? details.globalPosition;
+            _startDragGlobalPosition =
+                _mouseDownGlobalPosition ?? details.globalPosition;
             _startDragTilePosition = Offset(point.x, point.y);
             _draggingTilePosition = Offset(point.x, point.y);
           });
@@ -108,8 +109,12 @@ class _CinematicStagePointPreviewOverlayState
               _startDragTilePosition == null) {
             return;
           }
-          final totalDeltaX = (details.globalPosition.dx - _startDragGlobalPosition!.dx) / cellWidth;
-          final totalDeltaY = (details.globalPosition.dy - _startDragGlobalPosition!.dy) / cellHeight;
+          final totalDeltaX =
+              (details.globalPosition.dx - _startDragGlobalPosition!.dx) /
+                  cellWidth;
+          final totalDeltaY =
+              (details.globalPosition.dy - _startDragGlobalPosition!.dy) /
+                  cellHeight;
           setState(() {
             final newTileX = (_startDragTilePosition!.dx + totalDeltaX)
                 .clamp(0.0, widget.transform.mapWidth.toDouble());
@@ -143,7 +148,6 @@ class _CinematicStagePointPreviewOverlayState
           });
         },
         onPanCancel: () {
-          print('DEBUG DRAG: onPanCancel');
           setState(() {
             _draggingPointId = null;
             _draggingTilePosition = null;

@@ -88,8 +88,8 @@ void main() {
     expect(find.text('Map stage'), findsOneWidget);
     expect(find.text('Lab map'), findsOneWidget);
     expect(find.text('Preview'), findsOneWidget);
-    expect(find.text('sandbox uniquement'), findsOneWidget);
-    expect(find.text('2 step(s)'), findsWidgets);
+    expect(find.text('sandbox uniquement'), findsNothing);
+    expect(find.text('2 action(s)'), findsWidgets);
     expect(find.text('750 ms estimé(s)'), findsOneWidget);
     expect(find.text('actor_professor'), findsWidgets);
     expect(find.text('Canonical scene'), findsOneWidget);
@@ -184,7 +184,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Preview'), findsOneWidget);
-    expect(find.text('contexte incomplet'), findsOneWidget);
+    expect(find.text('contexte incomplet'), findsNothing);
   });
 
   testWidgets('shows preview summary for actor appearance drift',
@@ -780,7 +780,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('cinematics-library-workspace')),
         findsOneWidget);
-    expect(find.text('3 step(s)'), findsWidgets);
+    expect(find.text('3 action(s)'), findsWidgets);
   });
 
   testWidgets('adds a basic block from builder and refreshes library summary',
@@ -812,7 +812,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('cinematics-library-workspace')),
         findsOneWidget);
-    expect(find.text('3 step(s)'), findsWidgets);
+    expect(find.text('3 action(s)'), findsWidgets);
     expect(find.text('1750 ms estimé(s)'), findsWidgets);
   });
 
@@ -846,7 +846,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('cinematics-library-workspace')),
         findsOneWidget);
-    expect(find.text('3 step(s)'), findsWidgets);
+    expect(find.text('3 action(s)'), findsWidgets);
     expect(find.textContaining('actorFace'), findsWidgets);
     expect(find.textContaining('actor_professor'), findsWidgets);
   });
