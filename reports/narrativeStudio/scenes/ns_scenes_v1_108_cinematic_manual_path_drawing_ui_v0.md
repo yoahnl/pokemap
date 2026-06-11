@@ -1,184 +1,297 @@
 # NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0
 
-## Résumé exécutif
+## Verdict V1-108-ter
 
-Le lot **NS-SCENES-V1-108** expose dans le Cinematic Builder les trajets manuels ajoutés côté `map_core` par V1-107 / V1-107-bis.
+`NS-SCENES-V1-108-ter : DONE — clôture preuve/Visual Gate uniquement.`
 
-L'implémentation présente dans le worktree provient majoritairement du passage Gemini, puis a été corrigée à la demande de Karim après revue Codex. Les corrections post-review traitent les points bloquants suivants :
+V1-108 est considéré **DONE uniquement parce que la Visual Gate V1-108-ter a été régénérée, inspectée visuellement et validée**. Cette passe ne démarre pas V1-109.
 
-- la Destination finale n'est plus proposée comme Point de passage ;
-- le passage en mode Manuel réutilise un `CinematicManualPath` déjà owned par l'`actorMove` au lieu d'échouer silencieusement ;
-- le retour en Direct passe par `clearActorMoveManualPath` et nettoie le chemin owned ;
-- l'overlay du trajet manuel est peint au-dessus du foreground dans le rendu layer bitmap ;
-- le `Colors.white` ajouté dans l'inspecteur a été remplacé par le token `colors.textInverse`.
+Les anciens rapports/addendums `V1-108-bis` sont conservés comme notes de correction historiques. La source principale de clôture est maintenant ce rapport et `ns_scenes_v1_108_evidence_pack.md`.
 
-Ce lot reste strictement **editor-only / authoring-only**. Aucun runtime, Flame, playback, interpolation, pathfinding, collision, save/load runtime ou GameState n'a été ajouté.
+## Audit Initial
 
-## Scope confirmé
+Règles lues avant mise à jour du rapport :
+
+- `AGENTS.md` via les instructions repo actives.
+- `agent_rules.md`.
+- `codex_rule.md`.
+- `codex_rules.md` : absent, sortie observée `codex_rules.md MISSING`.
+
+État initial rappelé par la session avant cette clôture :
+
+```text
+/Users/karim/Project/pokemonProject
+main
+ M selbrume/project.json
+ selbrume/project.json | 39 +++++++++++++++++++++++++++++++++++----
+ 1 file changed, 35 insertions(+), 4 deletions(-)
+selbrume/project.json
+```
+
+Pendant la clôture, aucun `git add`, `git commit`, `git reset`, `git restore`, `git checkout`, `git stash` ou autre commande Git d'écriture n'a été lancé.
+
+## Scope Réel
 
 Inclus :
 
-- section **Trajet** dans l'inspecteur d'un bloc `actorMove` ;
-- bascule Direct / Manuel ;
-- création / réutilisation / nettoyage d'un `CinematicManualPath` owned par l'étape sélectionnée ;
-- ajout, retrait et réordonnancement V0 de Points de passage basés sur des Repères existants ;
-- overlay authoring-only dans la preview pour le trajet sélectionné ;
-- tests widget couvrant le flux utilisateur et les régressions post-review.
+- régénération de `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png` ;
+- correction test-only du scénario de capture pour montrer deux points de passage et recadrer l'inspecteur sur `Trajet` ;
+- relance des tests demandés ;
+- analyse ciblée demandée ;
+- alignement des deux roadmaps vers `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` ;
+- mise à jour des rapports.
 
 Exclus :
 
-- playback runtime ;
-- déplacement réel d'acteur ;
-- interpolation temporelle ;
+- runtime ;
+- Flame ;
+- playback ;
+- interpolation ;
 - pathfinding ;
 - collision ;
-- modification `map_runtime`, `map_gameplay`, `map_battle` ou host runtime ;
-- démarrage du lot V1-109.
+- nouvelle feature audio ;
+- nouveau système multi-acteurs ;
+- V1-109 ;
+- `manualPathId` côté `actorMove` ;
+- waypoints libres ;
+- coordonnées libres.
 
-## Audit initial
+## Visual Gate
 
-### Contrats existants
+Capture régénérée :
 
-- `CinematicManualPath.ownerActorMoveStepId` est la source de vérité du lien vers un `actorMove`.
-- Le mode `manual` existe dans `CinematicTimelineActorPathMode`.
-- Les opérations core disponibles sont utilisées depuis l'UI :
-  - `addCinematicManualPathForActorMove`
-  - `addCinematicManualPathWaypoint`
-  - `removeCinematicManualPathWaypointAt`
-  - `reorderCinematicManualPathWaypoint`
-  - `setActorMovePathMode`
-  - `clearActorMoveManualPath`
-- Le vocabulaire utilisateur reste : Destination finale séparée du Trajet, Points de passage intermédiaires uniquement.
+```text
+reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+```
 
-### Risques identifiés en revue
+Commande de génération :
 
-- Le picker de Points de passage listait aussi la Destination finale, ce qui violait le prompt.
-- Un état `direct + manualPath owned existant` pouvait bloquer la bascule en Manuel, car l'UI tentait de créer un second path.
-- L'overlay layer bitmap était positionné avant le foreground, donc potentiellement masqué.
-- Un hardcode `Colors.white` avait été introduit dans l'UI produit.
-- Les rapports précédents affirmaient des validations non relancées dans ce tour.
+```bash
+cd packages/map_editor
+flutter test --update-goldens --reporter=compact --dart-define=NS_SCENES_V1_108_CAPTURE_MANUAL_PATH_DRAWING_UI=true test/cinematic_builder_workspace_test.dart --plain-name "captures V1-108 cinematic manual path drawing ui visual gate when requested"
+```
 
-## Fichiers modifiés
+Sortie :
 
-### `packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart`
+```text
+00:03 +1: All tests passed!
+```
 
-Zones :
+Inspection visuelle Codex :
 
-- callbacks de mise à jour d'asset cinématique ;
-- `_toggleActorMovePathMode` ;
-- `_ActorMoveControls` ;
-- helper `_destinationStagePointId` ;
-- badge numérique de waypoint ;
-- picker `PopupMenuButton<CinematicStagePoint>`.
+- Cinematic Builder ouvert.
+- Bloc `Déplacer un acteur` / actorMove sélectionné.
+- Inspecteur `Action` visible.
+- Section `Trajet` visible.
+- Mode `Manuel` visible et sélectionné.
+- Liste de points de passage visible avec `Point 3` et `Point 4`.
+- Ligne de trajet visible dans la preview.
+- Badges numérotés visibles dans la preview et dans la liste.
+- Timeline `Déroulé` visible.
+- Aucun ID technique n'est utilisé comme workflow principal ; les contrôles visibles restent no-code (`Trajet`, `Manuel`, `Repère`, `Destination`, `Point`).
 
-Raisons :
+Preuves fichier demandées :
 
-- réutiliser un path owned existant avant de créer un nouveau path ;
-- supprimer le chemin owned quand l'auteur repasse en Direct ;
-- filtrer la Destination finale du picker de Points de passage ;
-- respecter les tokens du design system.
+```bash
+ls -lh reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+file reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+shasum -a 256 reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+```
 
-Impact :
+Sorties exactes :
 
-- le modèle reste cohérent avec V1-107 ;
-- les Points de passage ne dupliquent plus la Destination ;
-- les erreurs core ne sont plus avalées dans le cas courant `direct + path existant`.
+```text
+-rw-r--r--@ 1 karim  staff   259K Jun 12 00:49 reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png: PNG image data, 1663 x 926, 8-bit/color RGBA, non-interlaced
+f016199226ef426bdb8a28554d0221f130b06471af7f3246113b0853230dd1fe  reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+```
 
-### `packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_map_backdrop_preview_panel.dart`
+## Fichiers Modifiés Pendant V1-108-ter
 
-Zones :
-
-- insertion de `CinematicManualPathPreviewOverlay` dans les stacks de preview bitmap/layer bitmap.
-
-Raison :
-
-- dans le rendu layer bitmap, l'overlay est maintenant peint après le painter foreground.
-
-Impact :
-
-- la ligne authoring-only du trajet manuel reste visible au-dessus de la composition de décor.
-
-### `packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_manual_path_preview_overlay.dart`
-
-Statut :
-
-- fichier créé par le passage V1-108 existant dans le worktree ;
-- conservé comme composant overlay editor-only.
-
-Rôle :
-
-- résoudre départ, Points de passage et Destination ;
-- dessiner une ligne pointillée non interactive ;
-- afficher les badges numérotés des Points de passage.
-
-### `packages/map_editor/test/cinematic_builder_workspace_test.dart`
-
-Zones :
-
-- test `V1-108 — Cinematic Manual Path Drawing UI V0` ;
-- nouveau test `V1-108 — manual mode reuses an existing path owned by a direct actorMove`.
-
-Raisons :
-
-- prouver que la Destination n'est plus proposée dans le picker ;
-- prouver qu'un path owned existant est réutilisé sans doublon ;
-- conserver la couverture du flux V1-108 : Manuel, ajout, réordonnancement, retrait.
-
-### Autres fichiers déjà modifiés par V1-108 dans le worktree
-
-Ces fichiers étaient déjà modifiés avant la correction Codex et restent dans le scope V1-108 :
-
-- `packages/map_editor/lib/src/ui/canvas/cinematics/cinematics_library_workspace.dart`
-- `packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart`
-- `reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md`
+- `packages/map_editor/test/cinematic_builder_workspace_test.dart`
+  - zone capture Visual Gate V1-108 : ajout de `Point 4` dans la fixture de capture ;
+  - ajout de `Point 4` comme second point de passage ;
+  - `ensureVisible(find.text('Trajet'))` avant screenshot pour cadrer l'inspecteur sur la section demandée.
+- `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png`
+  - PNG régénéré.
 - `reports/narrativeStudio/scenes/road_map_scenes.md`
+  - preuve V1-108 mise à jour avec checksum frais et prochaine étape V1-109.
+- `reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md`
+  - V1-109 remis en `TODO / prochain lot`, pas DONE.
+- `reports/narrativeStudio/scenes/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.md`
+  - rapport principal régénéré.
+- `reports/narrativeStudio/scenes/ns_scenes_v1_108_evidence_pack.md`
+  - Evidence Pack régénéré.
 
-Ils n'ont pas été réanalysés comme changements Codex principaux, mais ils restent listés dans le `git diff --name-only`.
+Snippet test-only ajouté pour la capture :
 
-## Tests et validations
+```dart
+CinematicStagePoint(
+    id: 'stage_point_4', label: 'Point 4', x: 31.5, y: 24.5),
+```
 
-Commandes relancées après correction :
+Snippet de cadrage de capture :
+
+```dart
+await tester.tap(find.descendant(
+  of: find.byWidgetPredicate((w) => w is PopupMenuItem),
+  matching: find.text('Point 4'),
+));
+await tester.pumpAndSettle();
+await tester.ensureVisible(find.text('Trajet'));
+await tester.pumpAndSettle();
+```
+
+## Tests Relancés
+
+### Ciblé V1-108
 
 ```bash
 cd packages/map_editor
 flutter test --reporter=compact test/cinematic_builder_workspace_test.dart --name "V1-108"
-flutter test --reporter=compact test/cinematic_builder_workspace_test.dart
-flutter analyze --no-fatal-infos lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart lib/src/ui/canvas/cinematics/cinematic_map_backdrop_preview_panel.dart lib/src/ui/canvas/cinematics/cinematic_manual_path_preview_overlay.dart test/cinematic_builder_workspace_test.dart
 ```
 
-Résultats :
+Sortie utile exacte :
 
-- `--name "V1-108"` : 3 tests passés, `All tests passed!`
-- fichier complet `cinematic_builder_workspace_test.dart` : 207 tests passés, `All tests passed!`
-- analyse ciblée : exit 0 ; 37 infos `prefer_const_*`, aucune erreur bloquante.
+```text
+00:03 +3: All tests passed!
+```
 
-Validation Git :
+### Builder Complet
+
+```bash
+cd packages/map_editor
+flutter test --reporter=compact test/cinematic_builder_workspace_test.dart
+```
+
+Sortie utile exacte :
+
+```text
+00:25 +207: All tests passed!
+```
+
+### Library + Overlay Points
+
+```bash
+cd packages/map_editor
+flutter test --reporter=compact test/cinematics_library_workspace_test.dart test/cinematic_stage_point_preview_overlay_test.dart
+```
+
+Sortie utile exacte :
+
+```text
+00:06 +26: All tests passed!
+```
+
+## Analyse Ciblée
+
+```bash
+cd packages/map_editor
+flutter analyze --no-fatal-infos \
+  lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart \
+  lib/src/ui/canvas/cinematics/cinematic_map_backdrop_preview_panel.dart \
+  lib/src/ui/canvas/cinematics/cinematic_manual_path_preview_overlay.dart \
+  lib/src/ui/canvas/cinematics/cinematics_library_workspace.dart \
+  lib/src/ui/canvas/narrative_workspace_canvas.dart \
+  test/cinematic_builder_workspace_test.dart
+```
+
+Sortie :
+
+```text
+Analyzing 6 items...
+37 issues found. (ran in 10.1s)
+```
+
+Résultat : sortie 0 grâce à `--no-fatal-infos`. Les 37 issues sont des infos `prefer_const_constructors` / `prefer_const_literals_to_create_immutables`, non bloquantes et déjà présentes dans la zone analysée.
+
+## Git / Anti-Scope
 
 ```bash
 git diff --check
 ```
 
-Résultat : sortie vide, exit 0.
+Sortie : vide, exit 0.
 
-## Verdict des passes
+```bash
+git diff --stat
+```
 
-- **Audit / Architecture** : valide. Les corrections utilisent les opérations core existantes et ne créent pas de nouvelle source de vérité.
-- **Implémentation** : valide avec réserve. La correction est ciblée, mais le diff V1-108 global reste large car il contient le travail Gemini préexistant.
-- **Tests** : valide pour le fichier builder. Les régressions identifiées sont couvertes.
-- **Build / Validation** : partiel et honnête. Analyse ciblée passée ; suite complète `map_editor` non relancée dans ce tour.
-- **Critique finale** : réserve maintenue sur le Visual Gate : la capture existante n'a pas été régénérée pendant cette correction.
+Sortie observée avant insertion finale de ce rapport :
 
-## Limites connues
+```text
+ .../test/cinematic_builder_workspace_test.dart     |  47 +++++++++++++--------
+ .../scenes/road_map_scene_builder_authoring.md     |   6 +--
+ reports/narrativeStudio/scenes/road_map_scenes.md  |   4 +-
+ ..._v1_108_cinematic_manual_path_drawing_ui_v0.png | Bin 261252 -> 264918 bytes
+ 4 files changed, 35 insertions(+), 22 deletions(-)
+```
 
-- Le screenshot `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png` existe dans le worktree, mais il n'a pas été régénéré dans cette passe Codex.
-- Les rapports et roadmaps V1-108 sont encore non commités.
-- La suite complète `packages/map_editor` n'a pas été relancée ; seul le fichier `cinematic_builder_workspace_test.dart` a été exécuté intégralement.
-- Les infos `prefer_const_*` restent présentes et non bloquantes dans les fichiers analysés.
+```bash
+git diff --name-only
+```
 
-## Prochaine étape recommandée
+Sortie observée avant insertion finale de ce rapport :
 
-Avant de clôturer définitivement V1-108 :
+```text
+packages/map_editor/test/cinematic_builder_workspace_test.dart
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md
+reports/narrativeStudio/scenes/road_map_scenes.md
+reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+```
 
-1. relancer ou vérifier le Visual Gate avec la capture attendue ;
-2. décider si les rapports `V1-108-bis` doivent être conservés comme addendum ou fusionnés dans le rapport principal ;
-3. relancer une validation plus large si Karim veut une clôture complète du package `map_editor`.
+```bash
+git status --short --untracked-files=all
+```
+
+Sortie observée avant insertion finale de ce rapport :
+
+```text
+ M packages/map_editor/test/cinematic_builder_workspace_test.dart
+ M reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md
+ M reports/narrativeStudio/scenes/road_map_scenes.md
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png
+```
+
+```bash
+git diff --name-only -- packages/map_runtime packages/map_gameplay packages/map_battle examples/playable_runtime_host
+```
+
+Sortie : vide.
+
+```bash
+git diff --name-only -- examples/playable_runtime_host/macos/Runner.xcodeproj/project.pbxproj packages/map_editor/macos/Runner.xcodeproj/project.pbxproj
+```
+
+Sortie : vide.
+
+## Verdict Des Passes
+
+- Audit règles : valide, `codex_rule.md` et `agent_rules.md` lus ; `codex_rules.md` absent documenté.
+- Passe Visual Gate : valide après correction test-only du cadrage et des repères de capture.
+- Passe tests : valide sur les trois commandes demandées.
+- Passe analyse : valide en sortie 0, avec infos non fatales.
+- Passe anti-scope : valide, aucune modification runtime/gameplay/battle/host/Xcode observée.
+- Sub-agents : aucun sub-agent lancé ; la clôture était séquentielle et bornée.
+
+## Limites Honnêtes
+
+- La suite complète `flutter test` du package `map_editor` n'a pas été demandée ni relancée ; seules les suites listées par le prompt ont été exécutées.
+- L'analyse globale du package `map_editor` n'a pas été relancée ; seule l'analyse ciblée demandée est prouvée.
+- La capture est une Visual Gate de harness widget, pas une preuve de playback runtime.
+- Les infos `prefer_const_*` restent présentes et non bloquantes.
+- Le sous-titre de l'entrée de test reste secondaire ; le workflow principal visible est no-code.
+
+## Auto-Critique Finale
+
+La première régénération montrait seulement un point de passage et la seconde cachait encore le titre `Trajet`. La correction finale a volontairement touché uniquement la fixture/capture du test pour rendre la preuve visuelle lisible : deux repères distincts, ligne visible, section `Trajet` et mode `Manuel` à l'écran. Aucun code runtime ou système de playback n'a été ajouté.
+
+## Prochain Lot
+
+La suite reste :
+
+```text
+NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract
+```
+
+V1-109 est uniquement pointé par les roadmaps ; il n'est pas démarré dans cette clôture.

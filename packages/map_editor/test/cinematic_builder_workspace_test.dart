@@ -10750,11 +10750,11 @@ void main() {
             stagePointId: 'stage_point_1',
           ),
         ],
-        movementTargetBindings: [
-          CinematicMovementTargetBinding(
-            targetId: 'target_center',
-            kind: CinematicMovementTargetBindingKind.stagePoint,
-            sourceId: 'stage_point_2',
+      movementTargetBindings: [
+        CinematicMovementTargetBinding(
+          targetId: 'target_center',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'stage_point_2',
           ),
         ],
         stagePoints: [
@@ -12463,15 +12463,15 @@ void main() {
             sourceId: 'stage_point_2',
           ),
         ],
-        stagePoints: [
-          CinematicStagePoint(
-              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
-          CinematicStagePoint(
-              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
-          CinematicStagePoint(
-              id: 'stage_point_3', label: 'Point 3', x: 5.5, y: 6.5),
-        ],
-      ),
+      stagePoints: [
+        CinematicStagePoint(
+            id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+        CinematicStagePoint(
+            id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+        CinematicStagePoint(
+            id: 'stage_point_3', label: 'Point 3', x: 5.5, y: 6.5),
+      ],
+    ),
       timeline: CinematicTimeline(
         steps: [
           CinematicTimelineStep(
@@ -12798,11 +12798,13 @@ void main() {
         ],
         stagePoints: [
           CinematicStagePoint(
-              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+              id: 'stage_point_1', label: 'Point 1', x: 8.5, y: 9.5),
           CinematicStagePoint(
-              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+              id: 'stage_point_2', label: 'Point 2', x: 40.5, y: 35.5),
           CinematicStagePoint(
-              id: 'stage_point_3', label: 'Point 3', x: 5.5, y: 6.5),
+              id: 'stage_point_3', label: 'Point 3', x: 18.5, y: 18.5),
+          CinematicStagePoint(
+              id: 'stage_point_4', label: 'Point 4', x: 31.5, y: 24.5),
         ],
       ),
       timeline: CinematicTimeline(
@@ -12881,6 +12883,17 @@ void main() {
       of: find.byWidgetPredicate((w) => w is PopupMenuItem),
       matching: find.text('Point 3'),
     ));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(pickerFinder);
+    await tester.tap(pickerFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byWidgetPredicate((w) => w is PopupMenuItem),
+      matching: find.text('Point 4'),
+    ));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Trajet'));
     await tester.pumpAndSettle();
 
     final screenshotFile = File(
