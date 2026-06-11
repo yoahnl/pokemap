@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract
+NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0
 ```
 
 ## Principes
@@ -157,6 +157,19 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-104 | Cinematic ActorMove Target from Stage Points V0 | core / editor | Utiliser un Stage Point comme cible de déplacement pour `actorMove`. Transition propre entre types de cibles. | Pas d'interpolation interactive, pas de tracé graphique. | `CinematicMovementTargetBindingKind`. | DONE : Tests 100% verts, diagnostic target. | Gestion des valeurs zombies. | DONE : target authorable par point de scène, validé. | V1-103-bis. |
 | NS-SCENES-V1-104-bis | ActorMove Stage Point Target Evidence / Quality Gate Closure | review / doc | Clôture documentaire et Evidence Pack pour V1-104. | Aucun code produit modifié. | Rapport final, Evidence Pack. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-104. |
 | NS-SCENES-V1-105 | Cinematic Builder UX Simplification / Destination Vocabulary V0 | editor / ux | Simplifier le vocabulaire visible du Cinematic Builder et de la Library : `Repère`, `Destination`, `Destination du déplacement`, `Position libre`, `Personnage ou objet de la map`, `Déclencheur de map`, `Marqueur temps`, `Aucun problème`. | Pas de modèle core, pas de runtime, pas de playback, pas de Manual Path authoring. | Builder/Library cinematics, tests widget, rapport, Evidence Pack, Visual Gate. | DONE : tests Builder/Library/overlay verts, analyse ciblée en sortie 0, Visual Gate 1663x926. | Laisser survivre des libellés techniques visibles ; renommer des identifiants internes par erreur. | DONE : vocabulaire no-code aligné, anciens libellés visibles absents, identifiants internes préservés. | V1-104-bis. |
+| NS-SCENES-V1-106 | Cinematic Manual Path Authoring Prep Contract | doc-only / architecture-review | Cadrer le futur modèle et l’UX des trajets manuels cinématiques composés de points de passage, en continuité avec Repères, Destination et actorMove, sans code produit ni runtime. | Pas de modèle core, pas d'opération Dart, pas d'UI, pas de runtime, pas de Visual Gate. | Rapport V1-106, Evidence Pack, roadmaps. | DONE : `git diff --check`. | Sur-designer la réutilisation de chemins ; confondre Destination finale et points de passage ; rouvrir playback. | DONE : Option C+D retenue, V1-107 cadré, anti-scope confirmé. | V1-105. |
+
+## Mise a jour V1-106
+
+Statut : `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract` est DONE documentaire.
+
+Demande : Cadrer le futur système de trajets manuels cinématiques sans modifier de code produit.
+
+Decision : Recommander `CinematicManualPath` dans `CinematicStageContext.manualPaths`, V0 composé de Repères de scène ordonnés et owned par actorMove. La Destination finale reste dans actorMove/movementTargetBinding ; le Chemin manuel ne contient que des points de passage intermédiaires. `pathMode` pourra évoluer de `direct` vers `manual` en V1-107.
+
+Preuve : Rapport et Evidence Pack créés, roadmaps mises à jour, aucun package modifié, aucun runtime/playback/Flame/Xcode/Visual Gate.
+
+Limites : V1-107 non démarré ; pas de modèle Dart ni de diagnostics codés.
 
 ## Mise a jour V1-105
 
