@@ -8331,11 +8331,9 @@ void main() {
     expect(find.text('Professor'), findsWidgets);
     expect(find.text('Centre scène'), findsWidgets);
     expect(find.text('Mode mouvement'), findsOneWidget);
-    expect(find.text('Chemin direct verrouillé'), findsOneWidget);
-    expect(
-      find.text('Le chemin direct est un contrat authoring V0.'),
-      findsOneWidget,
-    );
+    expect(find.text('Trajet'), findsWidgets);
+    expect(find.text('Direct'), findsWidgets);
+    expect(find.text('Manuel'), findsWidgets);
 
     await tester.ensureVisible(
       find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
@@ -8443,15 +8441,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Professor → Centre scène'), findsWidgets);
-    expect(find.text('Chemin direct verrouillé'), findsOneWidget);
-    expect(
-      find.text('Le chemin direct est un contrat authoring V0.'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('Intention visuelle, sans vitesse runtime.'),
-      findsOneWidget,
-    );
+    expect(find.text('Trajet'), findsWidgets);
+    expect(find.text('Direct'), findsWidgets);
+    expect(find.text('Manuel'), findsWidgets);
 
     final sceneTab = find.byKey(
       const ValueKey('cinematic-builder-inspector-tab-scene'),
@@ -12421,6 +12413,488 @@ void main() {
 
     expect(screenshotFile.existsSync(), isTrue);
   });
+
+  testWidgets('V1-108 — Cinematic Manual Path Drawing UI V0', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithMove = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      ],
+      movementTargets: [
+        CinematicMovementTargetRef(
+          targetId: 'target_center',
+          label: 'Centre scène',
+        ),
+      ],
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        actorAppearanceBindings: [
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_professor',
+            characterId: 'char_professor',
+          ),
+        ],
+        initialPlacements: [
+          CinematicActorInitialPlacement(
+            actorId: 'actor_professor',
+            kind: CinematicActorInitialPlacementKind.stagePoint,
+            stagePointId: 'stage_point_1',
+          ),
+        ],
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_center',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'stage_point_2',
+          ),
+        ],
+        stagePoints: [
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_3', label: 'Point 3', x: 5.5, y: 6.5),
+        ],
+      ),
+      timeline: CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'step_move',
+            kind: CinematicTimelineStepKind.actorMove,
+            label: 'Move Professor',
+            actorId: 'actor_professor',
+            targetId: 'target_center',
+            durationMs: 1000,
+            metadata: const {
+              cinematicTimelineDraftMetadataKindKey:
+                  cinematicTimelineBasicBlockMetadataKindValue,
+              cinematicTimelineDraftMetadataSourceKey:
+                  cinematicTimelineDraftMetadataSourceValue,
+              cinematicTimelineAuthoringBlockMetadataKey:
+                  cinematicTimelineActorMoveBlockMetadataValue,
+              cinematicTimelineActorMovementModeMetadataKey: 'walk',
+              cinematicTimelineActorPathModeMetadataKey: 'direct',
+            },
+          ),
+        ],
+      ),
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    late ProjectManifest latestProject;
+    final project = fixture.project.copyWith(
+      cinematics: [assetWithMove],
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      assetWithMove.id,
+      onProjectChanged: (p) => latestProject = p,
+      backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+        asset: assetWithMove,
+        stageMap: project.maps.single,
+        mapData: fixture.mapData,
+      ),
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // Click on the actorMove step card to inspect it
+    final moveCard =
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_move'));
+    await tester.ensureVisible(moveCard);
+    await tester.tap(moveCard);
+    await tester.pumpAndSettle();
+
+    // Select the Action tab to see step details in inspector
+    final actionTab =
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-action'));
+    await tester.tap(actionTab);
+    await tester.pumpAndSettle();
+
+    // Verify Direct is selected by default in tabs
+    expect(
+      find.byKey(
+          const ValueKey('cinematic-builder-actor-move-path-mode-direct')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+          const ValueKey('cinematic-builder-actor-move-path-mode-manual')),
+      findsOneWidget,
+    );
+
+    // Select "Manuel" path mode tab
+    await tester.tap(
+      find.byKey(
+          const ValueKey('cinematic-builder-actor-move-path-mode-manual')),
+    );
+    await tester.pumpAndSettle();
+
+    // Verify there are no waypoints message
+    expect(find.text('Aucun point de passage'), findsOneWidget);
+
+    // Verify the add waypoint button and popup menu exists
+    final addWaypointBtn =
+        find.byKey(const ValueKey('cinematic-builder-add-waypoint-button'));
+    expect(addWaypointBtn, findsOneWidget);
+
+    // Open dropdown menu
+    final pickerFinder =
+        find.byKey(const ValueKey('cinematic-builder-add-waypoint-picker'));
+    await tester.ensureVisible(pickerFinder);
+    await tester.tap(pickerFinder);
+    await tester.pumpAndSettle();
+
+    final popupItems = find.byWidgetPredicate((w) => w is PopupMenuItem);
+    expect(
+      find.descendant(of: popupItems, matching: find.text('Point 2')),
+      findsNothing,
+    );
+
+    // Select Point 3 from the dropdown menu items
+    await tester.tap(find.descendant(
+      of: popupItems,
+      matching: find.text('Point 3'),
+    ));
+    await tester.pumpAndSettle();
+
+    // Verify Point 3 is now added to the waypoints list
+    expect(find.text('Point 3'), findsWidgets);
+
+    // Add another waypoint: Point 1
+    await tester.ensureVisible(pickerFinder);
+    await tester.tap(pickerFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byWidgetPredicate((w) => w is PopupMenuItem),
+      matching: find.text('Point 1'),
+    ));
+    await tester.pumpAndSettle();
+
+    // Reorder: Move Point 1 (index 1) up to index 0
+    final upBtn = find
+        .byKey(const ValueKey('cinematic-builder-manual-path-waypoint-up-1'));
+    await tester.ensureVisible(upBtn);
+    await tester.tap(upBtn);
+    await tester.pumpAndSettle();
+
+    // Remove the first waypoint (which is now Point 1)
+    final removeBtn = find.byKey(
+        const ValueKey('cinematic-builder-manual-path-waypoint-remove-0'));
+    await tester.ensureVisible(removeBtn);
+    await tester.tap(removeBtn);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-manual-path-waypoint-up-1')),
+      findsNothing,
+    );
+    expect(find.text('Point 3'), findsWidgets);
+
+    final finalPaths =
+        latestProject.cinematics.single.stageContext?.manualPaths ?? [];
+    expect(finalPaths.length, 1);
+    expect(finalPaths.single.waypointStagePointIds, ['stage_point_3']);
+  });
+
+  testWidgets(
+      'V1-108 — manual mode reuses an existing path owned by a direct actorMove',
+      (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+
+    final asset = CinematicAsset(
+      id: 'cinematic_manual_path_existing',
+      title: 'Manual path existing',
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      ],
+      movementTargets: [
+        CinematicMovementTargetRef(
+          targetId: 'target_center',
+          label: 'Centre scène',
+        ),
+      ],
+      stageContext: CinematicStageContext(
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_center',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'stage_point_2',
+          ),
+        ],
+        stagePoints: [
+          CinematicStagePoint(
+            id: 'stage_point_1',
+            label: 'Point 1',
+            x: 2.5,
+            y: 3.5,
+          ),
+          CinematicStagePoint(
+            id: 'stage_point_2',
+            label: 'Point 2',
+            x: 8.5,
+            y: 10.5,
+          ),
+          CinematicStagePoint(
+            id: 'stage_point_3',
+            label: 'Point 3',
+            x: 5.5,
+            y: 6.5,
+          ),
+        ],
+        manualPaths: [
+          CinematicManualPath(
+            id: 'path_existing',
+            label: 'Trajet existant',
+            ownerActorMoveStepId: 'step_move',
+            waypointStagePointIds: const ['stage_point_3'],
+          ),
+        ],
+      ),
+      timeline: CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'step_move',
+            kind: CinematicTimelineStepKind.actorMove,
+            actorId: 'actor_professor',
+            targetId: 'target_center',
+            durationMs: 1000,
+            metadata: const {
+              cinematicTimelineDraftMetadataKindKey:
+                  cinematicTimelineBasicBlockMetadataKindValue,
+              cinematicTimelineDraftMetadataSourceKey:
+                  cinematicTimelineDraftMetadataSourceValue,
+              cinematicTimelineAuthoringBlockMetadataKey:
+                  cinematicTimelineActorMoveBlockMetadataValue,
+              cinematicTimelineActorMovementModeMetadataKey: 'walk',
+              cinematicTimelineActorPathModeMetadataKey: 'direct',
+            },
+          ),
+        ],
+      ),
+    );
+    final project = ProjectManifest(
+      name: 'Manual path existing test',
+      maps: const [],
+      tilesets: const [],
+      cinematics: [asset],
+    );
+    late ProjectManifest latestProject;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      onProjectChanged: (p) => latestProject = p,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    final moveCard =
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_move'));
+    await tester.ensureVisible(moveCard);
+    await tester.tap(moveCard);
+    await tester.pumpAndSettle();
+
+    final actionTab =
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-action'));
+    await tester.tap(actionTab);
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(
+          const ValueKey('cinematic-builder-actor-move-path-mode-manual')),
+    );
+    await tester.pumpAndSettle();
+
+    final updatedAsset = latestProject.cinematics.single;
+    expect(updatedAsset.stageContext?.manualPaths, hasLength(1));
+    expect(
+      updatedAsset.stageContext?.manualPaths.single.id,
+      'path_existing',
+    );
+    expect(
+      cinematicTimelineActorPathModeOf(updatedAsset.timeline.steps.single),
+      CinematicTimelineActorPathMode.manual,
+    );
+  });
+
+  testWidgets(
+      'captures V1-108 cinematic manual path drawing ui visual gate when requested',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+      'NS_SCENES_V1_108_CAPTURE_MANUAL_PATH_DRAWING_UI',
+    )) {
+      return;
+    }
+
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    await _loadScreenshotFonts();
+    final fixture = await _largePathStudioWaterBackdropFixture();
+
+    final assetWithMove = CinematicAsset(
+      id: fixture.asset.id,
+      title: fixture.asset.title,
+      description: fixture.asset.description,
+      storylineId: fixture.asset.storylineId,
+      chapterId: fixture.asset.chapterId,
+      mapId: fixture.asset.mapId,
+      tags: fixture.asset.tags,
+      requiredActors: [
+        CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      ],
+      movementTargets: [
+        CinematicMovementTargetRef(
+          targetId: 'target_center',
+          label: 'Centre scène',
+        ),
+      ],
+      stageContext: CinematicStageContext(
+        backdropMode: CinematicStageBackdropMode.projectMap,
+        actorBindings: [
+          CinematicActorBinding(
+            actorId: 'actor_professor',
+            kind: CinematicActorBindingKind.cinematicOnly,
+          ),
+        ],
+        actorAppearanceBindings: [
+          CinematicActorAppearanceBinding(
+            actorId: 'actor_professor',
+            characterId: 'char_professor',
+          ),
+        ],
+        initialPlacements: [
+          CinematicActorInitialPlacement(
+            actorId: 'actor_professor',
+            kind: CinematicActorInitialPlacementKind.stagePoint,
+            stagePointId: 'stage_point_1',
+          ),
+        ],
+        movementTargetBindings: [
+          CinematicMovementTargetBinding(
+            targetId: 'target_center',
+            kind: CinematicMovementTargetBindingKind.stagePoint,
+            sourceId: 'stage_point_2',
+          ),
+        ],
+        stagePoints: [
+          CinematicStagePoint(
+              id: 'stage_point_1', label: 'Point 1', x: 2.5, y: 3.5),
+          CinematicStagePoint(
+              id: 'stage_point_2', label: 'Point 2', x: 8.5, y: 10.5),
+          CinematicStagePoint(
+              id: 'stage_point_3', label: 'Point 3', x: 5.5, y: 6.5),
+        ],
+      ),
+      timeline: CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'step_move',
+            kind: CinematicTimelineStepKind.actorMove,
+            label: 'Move Professor',
+            actorId: 'actor_professor',
+            targetId: 'target_center',
+            durationMs: 1000,
+            metadata: const {
+              cinematicTimelineDraftMetadataKindKey:
+                  cinematicTimelineBasicBlockMetadataKindValue,
+              cinematicTimelineDraftMetadataSourceKey:
+                  cinematicTimelineDraftMetadataSourceValue,
+              cinematicTimelineAuthoringBlockMetadataKey:
+                  cinematicTimelineActorMoveBlockMetadataValue,
+              cinematicTimelineActorMovementModeMetadataKey: 'walk',
+              cinematicTimelineActorPathModeMetadataKey: 'direct',
+            },
+          ),
+        ],
+      ),
+      notes: fixture.asset.notes,
+      metadata: fixture.asset.metadata,
+      legacyBridge: fixture.asset.legacyBridge,
+    );
+
+    final project = fixture.project.copyWith(
+      cinematics: [assetWithMove],
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      assetWithMove.id,
+      backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+        asset: assetWithMove,
+        stageMap: project.maps.single,
+        mapData: fixture.mapData,
+      ),
+      backdropLayerRenderPlan: fixture.layerPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    // Click on the actorMove step card to inspect it
+    final moveCard =
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_move'));
+    await tester.ensureVisible(moveCard);
+    await tester.tap(moveCard);
+    await tester.pumpAndSettle();
+
+    // Select the Action tab to see step details in inspector
+    final actionTab =
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-action'));
+    await tester.tap(actionTab);
+    await tester.pumpAndSettle();
+
+    // Select "Manuel" path mode tab
+    await tester.tap(
+      find.byKey(
+          const ValueKey('cinematic-builder-actor-move-path-mode-manual')),
+    );
+    await tester.pumpAndSettle();
+
+    // Open dropdown menu
+    final pickerFinder =
+        find.byKey(const ValueKey('cinematic-builder-add-waypoint-picker'));
+    await tester.ensureVisible(pickerFinder);
+    await tester.tap(pickerFinder);
+    await tester.pumpAndSettle();
+
+    // Select Point 3 from the dropdown menu items
+    await tester.tap(find.descendant(
+      of: find.byWidgetPredicate((w) => w is PopupMenuItem),
+      matching: find.text('Point 3'),
+    ));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/scenes/screenshots/'
+      'ns_scenes_v1_108_cinematic_manual_path_drawing_ui_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('cinematic-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -12711,6 +13185,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onRemoveActorAppearanceBinding: _removeActorAppearanceBinding,
               onUpsertActorInitialPlacement: _upsertActorInitialPlacement,
               onUpsertMovementTargetBinding: _upsertMovementTargetBinding,
+              onUpdateCinematicAsset: _updateCinematicAsset,
             ),
           ),
         ),
@@ -12897,6 +13372,22 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       stageContext: stageContext,
     );
     setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return true;
+  }
+
+  Future<bool> _updateCinematicAsset({
+    required String cinematicId,
+    required CinematicAsset cinematic,
+  }) async {
+    final updatedCinematics = List<CinematicAsset>.from(_project.cinematics);
+    final idx = updatedCinematics.indexWhere((c) => c.id == cinematicId);
+    if (idx != -1) {
+      updatedCinematics[idx] = cinematic;
+    }
+    setState(() {
+      _project = _project.copyWith(cinematics: updatedCinematics);
+    });
     widget.onProjectChanged?.call(_project);
     return true;
   }

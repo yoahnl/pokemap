@@ -203,6 +203,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
+    this.onUpdateCinematicAsset,
     this.onLoadStageMapSnapshot,
     this.onBuildBackdropTileRenderPlan,
     this.onResolveBackdropTilesetPath,
@@ -238,6 +239,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final RemoveActorAppearanceBindingCallback onRemoveActorAppearanceBinding;
   final UpsertActorInitialPlacementCallback onUpsertActorInitialPlacement;
   final UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
+  final UpdateCinematicAssetCallback? onUpdateCinematicAsset;
   final LoadStageMapSnapshotCallback? onLoadStageMapSnapshot;
   final BuildCinematicBackdropTileRenderPlanCallback?
       onBuildBackdropTileRenderPlan;
@@ -342,6 +344,7 @@ class _CinematicsLibraryWorkspaceState
         actorSpritePreviewPlan: actorSpritePreviewPlan,
         tilesets: combinedTilesets,
         startExpanded: widget.startExpanded,
+        onUpdateCinematicAsset: widget.onUpdateCinematicAsset,
         onBackToLibrary: _closeBuilder,
         onAddDraftStep: widget.onAddTimelineDraft,
         onRemoveDraftStep: widget.onRemoveTimelineDraft,

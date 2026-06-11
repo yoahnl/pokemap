@@ -15,11 +15,13 @@ import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_visual_primitives_painter.dart';
 import 'cinematic_stage_point_preview_overlay.dart';
 import 'cinematic_stage_preview_readiness.dart';
+import 'cinematic_manual_path_preview_overlay.dart';
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   const CinematicMapBackdropPreviewPanel({
     super.key,
     required this.model,
+    this.asset,
     required this.compact,
     required this.readiness,
     this.tileRenderPlan,
@@ -44,6 +46,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicAsset? asset;
   final bool compact;
   final CinematicStagePreviewReadiness readiness;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
@@ -87,6 +90,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
           child: model.isAvailable
               ? _BackdropMapFrame(
                   model: model,
+                  asset: asset,
                   compact: compact,
                   tileRenderPlan: tileRenderPlan,
                   layerRenderPlan: layerRenderPlan,
@@ -243,6 +247,7 @@ class _BackdropHeader extends StatelessWidget {
 class _BackdropMapFrame extends StatelessWidget {
   const _BackdropMapFrame({
     required this.model,
+    this.asset,
     required this.compact,
     this.tileRenderPlan,
     this.layerRenderPlan,
@@ -266,6 +271,7 @@ class _BackdropMapFrame extends StatelessWidget {
   });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicAsset? asset;
   final bool compact;
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
@@ -318,6 +324,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           layerBitmapPlan.hasBitmapInstructions
                       ? _BackdropLayerBitmapMap(
                           model: model,
+                          asset: asset,
                           plan: layerBitmapPlan,
                           compact: effectiveCompact,
                           actorDisplayPreviewModel: actorDisplayPreviewModel,
@@ -342,6 +349,7 @@ class _BackdropMapFrame extends StatelessWidget {
                       : bitmapPlan != null && bitmapPlan.hasBitmapInstructions
                           ? _BackdropBitmapMap(
                               model: model,
+                              asset: asset,
                               plan: bitmapPlan,
                               compact: effectiveCompact,
                               actorDisplayPreviewModel:
@@ -402,6 +410,7 @@ class _BackdropMapFrame extends StatelessWidget {
 class _BackdropBitmapMap extends StatelessWidget {
   const _BackdropBitmapMap({
     required this.model,
+    this.asset,
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
@@ -424,6 +433,7 @@ class _BackdropBitmapMap extends StatelessWidget {
   });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicAsset? asset;
   final CinematicMapBackdropTileRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
@@ -624,6 +634,24 @@ class _BackdropBitmapMap extends StatelessWidget {
                                           ),
                                           compact: compact,
                                         ),
+                                        if (selectedStep != null &&
+                                            asset != null)
+                                          CinematicManualPathPreviewOverlay(
+                                            asset: asset!,
+                                            selectedStep: selectedStep!,
+                                            actorDisplayPreviewModel:
+                                                actorDisplayPreviewModel,
+                                            visualPrimitives:
+                                                model.visualPrimitives,
+                                            transform:
+                                                CinematicMapBackdropViewportTransform
+                                                    .fill(
+                                              viewportSize:
+                                                  framing.transform.frame.size,
+                                              mapWidth: plan.mapWidth,
+                                              mapHeight: plan.mapHeight,
+                                            ),
+                                          ),
                                       ],
                                     ),
                                   ),
@@ -673,6 +701,7 @@ class _BackdropBitmapMap extends StatelessWidget {
 class _BackdropLayerBitmapMap extends StatelessWidget {
   const _BackdropLayerBitmapMap({
     required this.model,
+    this.asset,
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
@@ -695,6 +724,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   });
 
   final CinematicMapBackdropPreviewModel model;
+  final CinematicAsset? asset;
   final CinematicMapBackdropLayerRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
@@ -917,6 +947,17 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                             child: const SizedBox.expand(),
                                           ),
                                         ),
+                                        if (selectedStep != null &&
+                                            asset != null)
+                                          CinematicManualPathPreviewOverlay(
+                                            asset: asset!,
+                                            selectedStep: selectedStep!,
+                                            actorDisplayPreviewModel:
+                                                actorDisplayPreviewModel,
+                                            visualPrimitives:
+                                                model.visualPrimitives,
+                                            transform: transform,
+                                          ),
                                       ],
                                     ),
                                   ),

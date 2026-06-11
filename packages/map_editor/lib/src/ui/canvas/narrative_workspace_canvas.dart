@@ -1118,6 +1118,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onUpdateStageMap: _updateCinematicStageMap,
       onUpdateStageContext: _updateCinematicStageContext,
+      onUpdateCinematicAsset: _updateCinematicAsset,
       onUpsertActorBinding: _upsertCinematicActorBinding,
       onUpsertActorAppearanceBinding: _upsertCinematicActorAppearanceBinding,
       onRemoveActorAppearanceBinding: _removeCinematicActorAppearanceBinding,
@@ -1662,6 +1663,29 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,
         statusMessage: 'Cinematic stage context updated',
+      );
+      return true;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<bool> _updateCinematicAsset({
+    required String cinematicId,
+    required CinematicAsset cinematic,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicAsset(
+        project,
+        cinematic,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic asset updated',
       );
       return true;
     } on ArgumentError {

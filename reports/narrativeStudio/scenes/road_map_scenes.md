@@ -170,12 +170,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0 | DONE | Simplification UX demandée par Karim après audit visuel : vocabulaire no-code `Repère` / `Destination`, suppression des anciens libellés visibles Stage Point/target techniques, Library et Builder alignés, Visual Gate 1663x926. |
 | NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract | DONE | Cadrer le futur modèle et l’UX des trajets manuels cinématiques composés de points de passage, en continuité avec Repères, Destination et actorMove, sans code produit ni runtime. |
 | NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0 | DONE | Ajouter le modèle core authoring-only des chemins manuels cinématiques stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. |
+| NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0 | DONE | Dessiner le trajet de déplacement manuel dans la preview (dashed lines) et éditer/ordonner les points de passage, avec Visual Gate, sans runtime/Flame/playback. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0`
+`NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
 
-Raison : V1-107 a implémenté le modèle core des chemins manuels, les opérations pures et les diagnostics. La suite logique est de réaliser l'interface utilisateur pour dessiner ces chemins manuels de manière interactive et les lier aux actorMove dans l'éditeur.
+Raison : V1-108 a implémenté le tracé visuel des chemins manuels et l'édition des points de passage. La suite logique est de concevoir le contrat de lecture/playback temporel de ces cinématiques dans l'éditeur.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -185,8 +186,20 @@ Ordre apres V1-102 :
 5. `NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0` (DONE)
 6. `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract` (DONE)
 7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` (DONE)
-8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0`
+8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0` (DONE)
 9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-108
+
+Statut : `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0` est DONE.
+
+Demande : Permettre le dessin visuel des chemins manuels (dashed lines, badges numérotés) dans l'éditeur, avec configuration des points de passage intermédiaires (ajout, suppression, réordonnement) et Visual Gate.
+
+Decision : Implémentation du CustomPainter `CinematicManualPathPreviewOverlay` pour projeter et dessiner le trajet à l'écran. Intégration de l'éditeur latéral dans `_ActorMoveControls`. Résolution nullable propre (`cast<CinematicManualPath?>().firstWhere`) pour éviter les plantages avec les objets sentinelles.
+
+Preuve : 206 tests verts dans `cinematic_builder_workspace_test.dart`. Analyse statique sans erreur. Visual Gate générée (checksum `e62ea3da701bee6afa31b9023dd2f5d7ad0b439b8e4ce8b151549900549a35d2`).
+
+Limites : Pas de playback visuel, pas de Flame, pas de runtime.
 
 ## Mise a jour V1-107
 

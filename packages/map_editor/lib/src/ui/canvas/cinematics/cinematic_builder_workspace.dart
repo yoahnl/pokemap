@@ -121,6 +121,32 @@ typedef UpdateCinematicStageContextCallback = Future<bool> Function({
   required CinematicStageContext stageContext,
 });
 
+typedef UpdateCinematicAssetCallback = Future<bool> Function({
+  required String cinematicId,
+  required CinematicAsset cinematic,
+});
+
+typedef _ToggleActorMovePathModeCallback = Future<void> Function(
+  CinematicTimelineStep step,
+  CinematicTimelineActorPathMode mode,
+);
+
+typedef _AddManualPathWaypointCallback = Future<void> Function(
+  CinematicManualPath path,
+  String stagePointId,
+);
+
+typedef _RemoveManualPathWaypointCallback = Future<void> Function(
+  CinematicManualPath path,
+  int index,
+);
+
+typedef _ReorderManualPathWaypointCallback = Future<void> Function(
+  CinematicManualPath path,
+  int fromIndex,
+  int toIndex,
+);
+
 typedef UpsertCinematicActorBindingCallback = Future<bool> Function({
   required String cinematicId,
   required CinematicActorBinding binding,
@@ -275,6 +301,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onRemoveActorAppearanceBinding,
     required this.onUpsertActorInitialPlacement,
     required this.onUpsertMovementTargetBinding,
+    this.onUpdateCinematicAsset,
   });
 
   final CinematicsLibraryEntry entry;
@@ -317,6 +344,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
       onUpsertActorInitialPlacement;
   final UpsertCinematicMovementTargetBindingCallback
       onUpsertMovementTargetBinding;
+  final UpdateCinematicAssetCallback? onUpdateCinematicAsset;
 
   @override
   State<CinematicBuilderWorkspace> createState() =>
@@ -593,6 +621,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                         onUpdateMovementTarget: _updateMovementTarget,
                         onRemoveMovementTarget: _removeMovementTarget,
                         onAddMovementTarget: _addMovementTarget,
+                        onToggleActorMovePathMode: _toggleActorMovePathMode,
+                        onAddManualPathWaypoint: _addManualPathWaypoint,
+                        onRemoveManualPathWaypoint: _removeManualPathWaypoint,
+                        onReorderManualPathWaypoint: _reorderManualPathWaypoint,
                         actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
                         tilesets: widget.tilesets,
                         selectedStagePointId: _selectedStagePointId,
@@ -726,6 +758,141 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       cinematicId: widget.asset.id,
       stageContext: stageContext,
     );
+  }
+
+  ProjectManifest _createDummyProject() {
+    return ProjectManifest(
+      name: 'dummy',
+      maps: [],
+      tilesets: [],
+      cinematics: [
+        CinematicAsset(
+          id: widget.asset.id,
+          title: widget.asset.title,
+          description: widget.asset.description,
+          storylineId: widget.asset.storylineId,
+          chapterId: widget.asset.chapterId,
+          mapId: widget.asset.mapId,
+          tags: widget.asset.tags,
+          requiredActors: widget.asset.requiredActors,
+          movementTargets: widget.asset.movementTargets,
+          timeline: widget.asset.timeline,
+          stageContext: widget.asset.stageContext ?? CinematicStageContext(),
+          notes: widget.asset.notes,
+          metadata: widget.asset.metadata,
+          legacyBridge: widget.asset.legacyBridge,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _updateCinematic(CinematicAsset updatedCinematic) async {
+    if (widget.onUpdateCinematicAsset != null) {
+      await widget.onUpdateCinematicAsset!(
+        cinematicId: widget.asset.id,
+        cinematic: updatedCinematic,
+      );
+    } else {
+      if (updatedCinematic.stageContext != null) {
+        await _updateStageContext(updatedCinematic.stageContext!);
+      }
+    }
+  }
+
+  Future<void> _toggleActorMovePathMode(
+    CinematicTimelineStep step,
+    CinematicTimelineActorPathMode mode,
+  ) async {
+    try {
+      final dummyProject = _createDummyProject();
+      if (mode == CinematicTimelineActorPathMode.manual) {
+        final context = widget.asset.stageContext ?? CinematicStageContext();
+        final ownedPaths = context.manualPaths
+            .where((path) => path.ownerActorMoveStepId == step.id)
+            .toList(growable: false);
+        if (ownedPaths.isEmpty) {
+          final result = addCinematicManualPathForActorMove(
+            dummyProject,
+            cinematicId: widget.asset.id,
+            actorMoveStepId: step.id,
+          );
+          await _updateCinematic(result.cinematic);
+        } else {
+          final result = setActorMovePathMode(
+            dummyProject,
+            cinematicId: widget.asset.id,
+            stepId: step.id,
+            pathMode: CinematicTimelineActorPathMode.manual,
+          );
+          await _updateCinematic(result.cinematic);
+        }
+      } else {
+        final result = clearActorMoveManualPath(
+          dummyProject,
+          cinematicId: widget.asset.id,
+          stepId: step.id,
+        );
+        await _updateCinematic(result.cinematic);
+      }
+    } catch (e) {
+      debugPrint('Error toggling path mode: $e');
+    }
+  }
+
+  Future<void> _addManualPathWaypoint(
+    CinematicManualPath path,
+    String stagePointId,
+  ) async {
+    try {
+      final dummyProject = _createDummyProject();
+      final result = addCinematicManualPathWaypoint(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        manualPathId: path.id,
+        stagePointId: stagePointId,
+      );
+      await _updateCinematic(result.cinematic);
+    } catch (e) {
+      debugPrint('Error adding manual path waypoint: $e');
+    }
+  }
+
+  Future<void> _removeManualPathWaypoint(
+    CinematicManualPath path,
+    int index,
+  ) async {
+    try {
+      final dummyProject = _createDummyProject();
+      final result = removeCinematicManualPathWaypointAt(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        manualPathId: path.id,
+        index: index,
+      );
+      await _updateCinematic(result.cinematic);
+    } catch (e) {
+      debugPrint('Error removing manual path waypoint: $e');
+    }
+  }
+
+  Future<void> _reorderManualPathWaypoint(
+    CinematicManualPath path,
+    int fromIndex,
+    int toIndex,
+  ) async {
+    try {
+      final dummyProject = _createDummyProject();
+      final result = reorderCinematicManualPathWaypoint(
+        dummyProject,
+        cinematicId: widget.asset.id,
+        manualPathId: path.id,
+        fromIndex: fromIndex,
+        toIndex: toIndex,
+      );
+      await _updateCinematic(result.cinematic);
+    } catch (e) {
+      debugPrint('Error reordering manual path waypoint: $e');
+    }
   }
 
   String _generateUniqueStagePointId(List<CinematicStagePoint> existingPoints) {
@@ -2086,6 +2253,7 @@ class _PreviewSandbox extends StatelessWidget {
           if (backdropPreviewModel != null) {
             return CinematicMapBackdropPreviewPanel(
               model: backdropPreviewModel,
+              asset: asset,
               compact: compact,
               tileRenderPlan: backdropTileRenderPlan,
               layerRenderPlan: backdropLayerRenderPlan,
@@ -4563,6 +4731,10 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.onAddRequiredActor,
     required this.onUpdateMovementTarget,
     required this.onRemoveMovementTarget,
+    required this.onToggleActorMovePathMode,
+    required this.onAddManualPathWaypoint,
+    required this.onRemoveManualPathWaypoint,
+    required this.onReorderManualPathWaypoint,
     required this.readiness,
     this.actorSpritePreviewPlan,
     this.tilesets,
@@ -4601,6 +4773,10 @@ class _InspectorPlaceholder extends StatefulWidget {
   final _AddRequiredActorCallback onAddRequiredActor;
   final _UpdateMovementTargetCallback onUpdateMovementTarget;
   final _RemoveMovementTargetCallback onRemoveMovementTarget;
+  final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
+  final _AddManualPathWaypointCallback onAddManualPathWaypoint;
+  final _RemoveManualPathWaypointCallback onRemoveManualPathWaypoint;
+  final _ReorderManualPathWaypointCallback onReorderManualPathWaypoint;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final String? selectedStagePointId;
@@ -4700,6 +4876,13 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                         onUpdateActorFacing: widget.onUpdateActorFacing,
                         onUpdateActorMove: widget.onUpdateActorMove,
                         onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
+                        onToggleActorMovePathMode:
+                            widget.onToggleActorMovePathMode,
+                        onAddManualPathWaypoint: widget.onAddManualPathWaypoint,
+                        onRemoveManualPathWaypoint:
+                            widget.onRemoveManualPathWaypoint,
+                        onReorderManualPathWaypoint:
+                            widget.onReorderManualPathWaypoint,
                       ),
                   ],
                 ),
@@ -4775,6 +4958,13 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       onUpdateActorFacing: widget.onUpdateActorFacing,
                       onUpdateActorMove: widget.onUpdateActorMove,
                       onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
+                      onToggleActorMovePathMode:
+                          widget.onToggleActorMovePathMode,
+                      onAddManualPathWaypoint: widget.onAddManualPathWaypoint,
+                      onRemoveManualPathWaypoint:
+                          widget.onRemoveManualPathWaypoint,
+                      onReorderManualPathWaypoint:
+                          widget.onReorderManualPathWaypoint,
                     )
                   else
                     const _EmptySelectionCard(),
@@ -9160,6 +9350,10 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
     required this.onRemoveAuthoringStep,
+    required this.onToggleActorMovePathMode,
+    required this.onAddManualPathWaypoint,
+    required this.onRemoveManualPathWaypoint,
+    required this.onReorderManualPathWaypoint,
   });
 
   final CinematicAsset asset;
@@ -9170,6 +9364,10 @@ class _SelectedStepInspector extends StatelessWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
+  final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
+  final _AddManualPathWaypointCallback onAddManualPathWaypoint;
+  final _RemoveManualPathWaypointCallback onRemoveManualPathWaypoint;
+  final _ReorderManualPathWaypointCallback onReorderManualPathWaypoint;
 
   @override
   Widget build(BuildContext context) {
@@ -9246,6 +9444,10 @@ class _SelectedStepInspector extends StatelessWidget {
             asset: asset,
             step: step,
             onUpdateActorMove: onUpdateActorMove,
+            onToggleActorMovePathMode: onToggleActorMovePathMode,
+            onAddManualPathWaypoint: onAddManualPathWaypoint,
+            onRemoveManualPathWaypoint: onRemoveManualPathWaypoint,
+            onReorderManualPathWaypoint: onReorderManualPathWaypoint,
           ),
           const SizedBox(height: 8),
         ],
@@ -9800,27 +10002,272 @@ class _ActorMoveControls extends StatelessWidget {
     required this.asset,
     required this.step,
     required this.onUpdateActorMove,
+    required this.onToggleActorMovePathMode,
+    required this.onAddManualPathWaypoint,
+    required this.onRemoveManualPathWaypoint,
+    required this.onReorderManualPathWaypoint,
   });
 
   final CinematicAsset asset;
   final CinematicTimelineStep step;
   final _UpdateActorMoveCallback onUpdateActorMove;
+  final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
+  final _AddManualPathWaypointCallback onAddManualPathWaypoint;
+  final _RemoveManualPathWaypointCallback onRemoveManualPathWaypoint;
+  final _ReorderManualPathWaypointCallback onReorderManualPathWaypoint;
+
+  Widget _buildNumberBadge(int number, PokeMapColorTokens colors) {
+    return Container(
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        color: colors.brandPrimary,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          '$number',
+          style: TextStyle(
+            color: colors.textInverse,
+            fontSize: 9,
+            fontWeight: FontWeight.w900,
+            height: 1,
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final currentMovementMode = cinematicTimelineActorMovementModeOf(step);
+    final pathMode = cinematicTimelineActorPathModeOf(step) ??
+        CinematicTimelineActorPathMode.direct;
+    final colors = context.pokeMapColors;
+
+    final manualPaths = asset.stageContext?.manualPaths ?? const [];
+    final manualPath = manualPaths.cast<CinematicManualPath?>().firstWhere(
+          (p) => p?.ownerActorMoveStepId == step.id,
+          orElse: () => null,
+        );
+
+    final destinationStagePointId = _destinationStagePointId(asset, step);
+    final availablePoints = [
+      for (final point
+          in asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+        if (point.id != destinationStagePointId) point,
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        const _KeyValue(
-          label: 'Chemin direct verrouillé',
-          value: 'Le chemin direct est un contrat authoring V0.',
+        const _SectionTitle(
+          title: 'Trajet',
+          subtitle: 'Type de trajectoire cinématique',
         ),
-        const _KeyValue(
-          label: 'Intention',
-          value: 'Intention visuelle, sans vitesse runtime.',
+        const SizedBox(height: 6),
+        PokeMapSegmentedTabs(
+          key: const ValueKey('cinematic-builder-actor-move-path-mode-tabs'),
+          tabs: [
+            PokeMapSegmentedTab(
+              key: const ValueKey(
+                'cinematic-builder-actor-move-path-mode-direct',
+              ),
+              label: 'Direct',
+              icon: CupertinoIcons.arrow_up_right,
+              selected: pathMode == CinematicTimelineActorPathMode.direct,
+              onTap: () => onToggleActorMovePathMode(
+                step,
+                CinematicTimelineActorPathMode.direct,
+              ),
+            ),
+            PokeMapSegmentedTab(
+              key: const ValueKey(
+                'cinematic-builder-actor-move-path-mode-manual',
+              ),
+              label: 'Manuel',
+              icon: CupertinoIcons.arrow_branch,
+              selected: pathMode == CinematicTimelineActorPathMode.manual,
+              onTap: () => onToggleActorMovePathMode(
+                step,
+                CinematicTimelineActorPathMode.manual,
+              ),
+            ),
+          ],
         ),
+        if (pathMode == CinematicTimelineActorPathMode.direct) ...[
+          const SizedBox(height: 6),
+          const _KeyValue(
+            label: 'Trajectoire',
+            value: 'Ce déplacement va directement vers sa destination.',
+          ),
+        ] else ...[
+          const SizedBox(height: 6),
+          if (manualPath == null ||
+              manualPath.id.isEmpty ||
+              manualPath.waypointStagePointIds.isEmpty) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.surfaceSubtle,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: colors.controlBorder),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Aucun point de passage',
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Ajoutez un repère au trajet ou repassez en trajet direct.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            for (int i = 0;
+                i < manualPath.waypointStagePointIds.length;
+                i++) ...[
+              () {
+                final spId = manualPath.waypointStagePointIds[i];
+                final sp = asset.stageContext?.stagePoints
+                    .cast<CinematicStagePoint?>()
+                    .firstWhere(
+                      (p) => p?.id == spId,
+                      orElse: () => null,
+                    );
+                final label = sp?.label ?? 'Repère inconnu ($spId)';
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Row(
+                    children: [
+                      _buildNumberBadge(i + 1, colors),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      PokeMapIconButton(
+                        key: ValueKey(
+                          'cinematic-builder-manual-path-waypoint-up-$i',
+                        ),
+                        tooltip: 'Monter',
+                        icon: const Icon(CupertinoIcons.arrow_up, size: 12),
+                        size: 24,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: i > 0
+                            ? () => onReorderManualPathWaypoint(
+                                  manualPath,
+                                  i,
+                                  i - 1,
+                                )
+                            : null,
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        key: ValueKey(
+                          'cinematic-builder-manual-path-waypoint-down-$i',
+                        ),
+                        tooltip: 'Descendre',
+                        icon: const Icon(CupertinoIcons.arrow_down, size: 12),
+                        size: 24,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed:
+                            i < manualPath.waypointStagePointIds.length - 1
+                                ? () => onReorderManualPathWaypoint(
+                                      manualPath,
+                                      i,
+                                      i + 1,
+                                    )
+                                : null,
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        key: ValueKey(
+                          'cinematic-builder-manual-path-waypoint-remove-$i',
+                        ),
+                        tooltip: 'Retirer du trajet',
+                        icon: Icon(
+                          CupertinoIcons.trash,
+                          size: 12,
+                          color: colors.error,
+                        ),
+                        size: 24,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: () => onRemoveManualPathWaypoint(
+                          manualPath,
+                          i,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }(),
+            ],
+          ],
+          const SizedBox(height: 6),
+          if (availablePoints.isEmpty) ...[
+            Text(
+              'Aucun repère disponible.\nPosez d\'abord un repère dans l\'aperçu de scène.',
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 10,
+              ),
+            ),
+          ] else ...[
+            PopupMenuButton<CinematicStagePoint>(
+              key: const ValueKey('cinematic-builder-add-waypoint-picker'),
+              tooltip: 'Ajouter un repère de passage',
+              onSelected: (sp) {
+                if (manualPath != null && manualPath.id.isNotEmpty) {
+                  onAddManualPathWaypoint(manualPath, sp.id);
+                }
+              },
+              itemBuilder: (context) => [
+                for (final sp in availablePoints)
+                  PopupMenuItem(
+                    value: sp,
+                    child: Text(sp.label),
+                  ),
+              ],
+              child: IgnorePointer(
+                child: PokeMapButton(
+                  key: const ValueKey('cinematic-builder-add-waypoint-button'),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.add, size: 12),
+                  onPressed: () {},
+                  child: const Text('Ajouter un repère'),
+                ),
+              ),
+            ),
+          ],
+        ],
         const SizedBox(height: 8),
         const _KeyValue(label: 'Mode mouvement', value: 'Marche ou course'),
         Wrap(
@@ -9915,6 +10362,24 @@ class _ActorMoveControls extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  String? _destinationStagePointId(
+    CinematicAsset asset,
+    CinematicTimelineStep step,
+  ) {
+    final targetId = step.targetId;
+    final stageContext = asset.stageContext;
+    if (targetId == null || stageContext == null) {
+      return null;
+    }
+    for (final binding in stageContext.movementTargetBindings) {
+      if (binding.targetId == targetId &&
+          binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
+        return binding.sourceId;
+      }
+    }
+    return null;
   }
 }
 
@@ -11077,6 +11542,7 @@ String _actorMovementModeLabel(CinematicTimelineActorMovementMode mode) {
 String _actorPathModeLabel(CinematicTimelineActorPathMode mode) {
   return switch (mode) {
     CinematicTimelineActorPathMode.direct => 'Direct',
+    CinematicTimelineActorPathMode.manual => 'Manuel',
   };
 }
 
