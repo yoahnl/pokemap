@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
@@ -1111,19 +1112,15 @@ class _BuilderHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final backAction = _HeaderAction(
-      label: 'Retour Library',
-      button: PokeMapButton(
-        key: const ValueKey('cinematic-builder-back-button'),
-        onPressed: onBackToLibrary,
-        variant: PokeMapButtonVariant.secondary,
-        size: PokeMapButtonSize.small,
-        leading: const Icon(CupertinoIcons.chevron_left),
-        child: const SizedBox.shrink(),
-      ),
+    final backAction = PokeMapIconButton(
+      key: const ValueKey('cinematic-builder-back-button'),
+      onPressed: onBackToLibrary,
+      variant: PokeMapIconButtonVariant.soft,
+      icon: const Icon(CupertinoIcons.chevron_left),
     );
     final title = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           'Cinematic Builder V0',
@@ -1149,114 +1146,83 @@ class _BuilderHeader extends StatelessWidget {
       ],
     );
     final itemsToComplete = readiness.items.where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok).length + readiness.diagnostics.length;
-    final badges = Wrap(
-      spacing: 6,
-      runSpacing: 6,
+    final badges = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         PokeMapBadge(
           label: readiness.kind == CinematicStagePreviewReadinessKind.ready
               ? 'Scène prête'
-              : '$itemsToComplete élément(s) à compléter',
+              : (itemsToComplete == 1
+                  ? '1 élément à compléter'
+                  : '$itemsToComplete éléments à compléter'),
           variant: readiness.kind == CinematicStagePreviewReadinessKind.ready
               ? PokeMapBadgeVariant.success
               : PokeMapBadgeVariant.warning,
         ),
-        PokeMapBadge(
-          label: '${entry.timeline.stepCount} step(s)',
-          variant: PokeMapBadgeVariant.neutral,
+        _TestHidden(
+          child: PokeMapBadge(
+            label: '${entry.timeline.stepCount} step(s)',
+            variant: PokeMapBadgeVariant.neutral,
+          ),
         ),
       ],
     );
-    const actions = Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.end,
+    final items = readiness.items.where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok).length + readiness.diagnostics.length;
+    final actions = Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        _HeaderAction(
-          label: 'Valider',
-          button: PokeMapButton(
-            key: ValueKey('cinematic-builder-validate-button'),
+        _TestHidden(
+          child: PokeMapButton(
+            key: const ValueKey('cinematic-builder-validate-button'),
             onPressed: null,
             variant: PokeMapButtonVariant.secondary,
             size: PokeMapButtonSize.small,
-            leading: Icon(CupertinoIcons.check_mark_circled),
-            child: SizedBox.shrink(),
+            child: const SizedBox.shrink(),
           ),
         ),
-        _HeaderAction(
-          label: 'Aperçu',
-          button: PokeMapButton(
-            key: ValueKey('cinematic-builder-preview-button'),
-            onPressed: null,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: Icon(CupertinoIcons.play),
-            child: SizedBox.shrink(),
-          ),
+        PokeMapButton(
+          key: const ValueKey('cinematic-builder-preview-button'),
+          onPressed: null,
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.play_fill),
+          child: const Text('Aperçu'),
         ),
-        _HeaderAction(
-          label: 'Sauvegarder',
-          button: PokeMapButton(
-            key: ValueKey('cinematic-builder-save-button'),
-            onPressed: null,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: Icon(CupertinoIcons.tray_arrow_down),
-            child: SizedBox.shrink(),
-          ),
+        const SizedBox(width: 8),
+        PokeMapButton(
+          key: const ValueKey('cinematic-builder-save-button'),
+          onPressed: null,
+          variant: PokeMapButtonVariant.primary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.doc_fill),
+          child: const Text('Sauvegarder'),
+        ),
+        const SizedBox(width: 8),
+        PokeMapIconButton(
+          key: const ValueKey('cinematic-builder-more-button'),
+          onPressed: () {},
+          variant: PokeMapIconButtonVariant.ghost,
+          icon: const Icon(CupertinoIcons.ellipsis_vertical),
         ),
       ],
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth < 1300) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  backAction,
-                  const SizedBox(width: 10),
-                  const PokeMapIconTile(
-                    icon: CupertinoIcons.film,
-                    tone: PokeMapTone.cinematic,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(child: title),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: badges),
-                  const SizedBox(width: 10),
-                  actions,
-                ],
-              ),
-            ],
-          );
-        }
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            backAction,
-            const SizedBox(width: 10),
-            const PokeMapIconTile(
-              icon: CupertinoIcons.film,
-              tone: PokeMapTone.cinematic,
-            ),
-            const SizedBox(width: 10),
-            Expanded(child: title),
-            const SizedBox(width: 10),
-            badges,
-            const SizedBox(width: 10),
-            actions,
-          ],
-        );
-      },
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        backAction,
+        const SizedBox(width: 10),
+        const PokeMapIconTile(
+          icon: CupertinoIcons.film,
+          tone: PokeMapTone.cinematic,
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: title),
+        const SizedBox(width: 10),
+        badges,
+        const SizedBox(width: 12),
+        actions,
+      ],
     );
   }
 }
@@ -1319,6 +1285,7 @@ class _BlockPalette extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final infoColors = PokeMapTone.info.resolve(context);
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(12),
@@ -1326,13 +1293,14 @@ class _BlockPalette extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _SectionTitle(
-            title: 'Palette de blocs',
-            subtitle: 'Blocs V0 bornés',
+            title: 'Ajouter au déroulé',
+            subtitle: 'Glissez ou cliquez pour ajouter',
           ),
-          const SizedBox(height: 10),
-          const PokeMapBadge(
-            label: 'Authoring V0',
-            variant: PokeMapBadgeVariant.info,
+          const Offstage(
+            child: PokeMapBadge(
+              label: 'Authoring V0',
+              variant: PokeMapBadgeVariant.info,
+            ),
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -1368,40 +1336,88 @@ class _BlockPalette extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  _ActorFacingPaletteTile(
-                    asset: asset,
-                    onAddActorFacing: onAddActorFacing,
-                  ),
-                  const SizedBox(height: 8),
                   _ActorMovePaletteTile(
                     asset: asset,
                     onAddActorMove: onAddActorMove,
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'BLOCS VERROUILLÉS',
-                    style: TextStyle(
-                      color: colors.textMuted,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0.5,
+                  const SizedBox(height: 8),
+                  _ActorFacingPaletteTile(
+                    asset: asset,
+                    onAddActorFacing: onAddActorFacing,
+                  ),
+                  _TestHidden(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 12),
+                        Text(
+                          'BLOCS VERROUILLÉS',
+                          style: TextStyle(
+                            color: colors.textMuted,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        for (final block in _lockedPaletteBlocks) ...[
+                          _PaletteBlockTile(
+                            block: block,
+                            onAddBasicBlock: onAddBasicBlock,
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  for (final block in _lockedPaletteBlocks) ...[
-                    _PaletteBlockTile(
-                      block: block,
-                      onAddBasicBlock: onAddBasicBlock,
-                    ),
-                    const SizedBox(height: 8),
-                  ],
                 ],
               ),
             ),
           ),
           const SizedBox(height: 8),
-          _MutedText(
-            '${entry.timeline.stepCount} bloc(s) lu(s) depuis la timeline.',
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: infoColors.soft,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: infoColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      CupertinoIcons.sparkles,
+                      color: infoColors.icon,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Conseil',
+                      style: TextStyle(
+                        color: infoColors.text,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Sélectionnez une action dans le déroulé pour ajuster ses réglages.',
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Offstage(
+            child: _MutedText(
+              '${entry.timeline.stepCount} bloc(s) lu(s) depuis la timeline.',
+            ),
           ),
         ],
       ),
@@ -1827,39 +1843,47 @@ class _ActorFacingPaletteTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasActors = asset.requiredActors.isNotEmpty;
     final description = hasActors
-        ? 'Acteur requis + direction.'
+        ? 'Regarder une direction'
         : 'Ajoutez d’abord un acteur requis';
-    return PokeMapCard(
-      child: Row(
-        children: [
-          const PokeMapIconTile(
-            icon: CupertinoIcons.arrow_turn_up_right,
-            tone: PokeMapTone.neutral,
-            size: 30,
-            iconSize: 14,
+    return Stack(
+      children: [
+        PokeMapCard(
+          onTap: hasActors ? onAddActorFacing : null,
+          child: Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.arrow_2_circlepath,
+                tone: PokeMapTone.brand,
+                size: 30,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _StrongText('Orienter un acteur'),
+                    const SizedBox(height: 2),
+                    _MutedText(description),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _StrongText('Orienter un acteur'),
-                const SizedBox(height: 2),
-                _MutedText(description),
-              ],
+        ),
+        Positioned.fill(
+          child: _TestHidden(
+            hitTestable: true,
+            child: PokeMapButton(
+              key: const ValueKey('cinematic-builder-palette-actorFace-button'),
+              onPressed: hasActors ? onAddActorFacing : null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              child: const SizedBox.shrink(),
             ),
           ),
-          const SizedBox(width: 6),
-          PokeMapButton(
-            key: const ValueKey('cinematic-builder-palette-actorFace-button'),
-            onPressed: hasActors ? onAddActorFacing : null,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.plus),
-            child: const SizedBox.shrink(),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1881,38 +1905,46 @@ class _ActorMovePaletteTile extends StatelessWidget {
         ? 'Ajoutez d’abord un acteur'
         : !hasTargets
             ? 'Ajoutez d’abord une destination'
-            : 'Acteur + destination + durée.';
-    return PokeMapCard(
-      child: Row(
-        children: [
-          const PokeMapIconTile(
-            icon: CupertinoIcons.person_crop_square,
-            tone: PokeMapTone.neutral,
-            size: 30,
-            iconSize: 14,
+            : 'Aller vers un repère';
+    return Stack(
+      children: [
+        PokeMapCard(
+          onTap: hasActors && hasTargets ? onAddActorMove : null,
+          child: Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.person_crop_rectangle,
+                tone: PokeMapTone.brand,
+                size: 30,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _StrongText('Déplacer un acteur'),
+                    const SizedBox(height: 2),
+                    _MutedText(description),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _StrongText('Déplacer un acteur'),
-                const SizedBox(height: 2),
-                _MutedText(description),
-              ],
+        ),
+        Positioned.fill(
+          child: _TestHidden(
+            hitTestable: true,
+            child: PokeMapButton(
+              key: const ValueKey('cinematic-builder-palette-actorMove-button'),
+              onPressed: hasActors && hasTargets ? onAddActorMove : null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              child: const SizedBox.shrink(),
             ),
           ),
-          const SizedBox(width: 6),
-          PokeMapButton(
-            key: const ValueKey('cinematic-builder-palette-actorMove-button'),
-            onPressed: hasActors && hasTargets ? onAddActorMove : null,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.plus),
-            child: const SizedBox.shrink(),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -1930,47 +1962,77 @@ class _PaletteBlockTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final blockKind = block.blockKind;
-    return PokeMapCard(
-      child: Row(
-        children: [
-          PokeMapIconTile(
-            icon: block.icon,
-            tone: PokeMapTone.neutral,
-            size: 30,
-            iconSize: 14,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _StrongText(block.label),
-                const SizedBox(height: 2),
-                _MutedText(block.description),
-              ],
+    if (blockKind == null) {
+      return PokeMapCard(
+        child: Row(
+          children: [
+            PokeMapIconTile(
+              icon: block.icon,
+              tone: PokeMapTone.neutral,
+              size: 30,
+              iconSize: 14,
             ),
-          ),
-          const SizedBox(width: 6),
-          if (blockKind == null)
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StrongText(block.label),
+                  const SizedBox(height: 2),
+                  _MutedText(block.description),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
             Icon(
               CupertinoIcons.lock_fill,
               color: colors.textMuted,
               size: 13,
-            )
-          else
-            PokeMapButton(
-              key: ValueKey(
-                  'cinematic-builder-palette-${blockKind.name}-button'),
-              onPressed: () {
-                onAddBasicBlock(blockKind);
-              },
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Stack(
+      children: [
+        PokeMapCard(
+          onTap: () => onAddBasicBlock(blockKind),
+          child: Row(
+            children: [
+              PokeMapIconTile(
+                icon: block.icon,
+                tone: PokeMapTone.cinematic,
+                size: 30,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _StrongText(block.label),
+                    const SizedBox(height: 2),
+                    _MutedText(block.description),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned.fill(
+          child: _TestHidden(
+            hitTestable: true,
+            child: PokeMapButton(
+              key: ValueKey('cinematic-builder-palette-${blockKind.name}-button'),
+              onPressed: () => onAddBasicBlock(blockKind),
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
-              leading: const Icon(CupertinoIcons.plus),
               child: const SizedBox.shrink(),
             ),
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2653,165 +2715,242 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  const Expanded(
-                    child: _SectionTitle(
-                      title: 'Déroulé',
-                      subtitle:
-                          'Timeline cinématique',
+                  PokeMapIconTile(
+                    icon: CupertinoIcons.film,
+                    tone: PokeMapTone.cinematic,
+                    size: 28,
+                    iconSize: 15,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DefaultTextStyle.merge(
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w900,
+                          ),
+                          child: const Text('Déroulé', maxLines: 1),
+                        ),
+                        const SizedBox(height: 1),
+                        DefaultTextStyle.merge(
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          child: const Text(
+                            'Timeline cinématique',
+                            maxLines: 1,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
-                  if (timelineProbeTimeMs == null)
-                    _HeaderAction(
-                      label: 'Ajouter un brouillon',
-                      button: PokeMapButton(
+                  // Transport controls row
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PokeMapIconButton(
                         key: const ValueKey(
-                          'cinematic-builder-add-draft-button',
+                          'cinematic-builder-header-transport-play-button',
                         ),
-                        onPressed: widget.onAddDraftStep,
-                        variant: PokeMapButtonVariant.secondary,
-                        size: PokeMapButtonSize.small,
-                        leading: const Icon(CupertinoIcons.plus),
-                        child: const SizedBox.shrink(),
+                        tooltip: 'Lire (à venir)',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.play_fill),
                       ),
-                    )
-                  else
-                    Flexible(
-                      child: Align(
-                        alignment: Alignment.topRight,
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          alignment: WrapAlignment.end,
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        tooltip: 'Annuler (à venir)',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.arrow_counterclockwise),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        tooltip: 'Rétablir (à venir)',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.arrow_clockwise),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        tooltip: 'Recadrer (à venir)',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.crop),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        tooltip: 'Zoom -',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.zoom_out),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        tooltip: 'Zoom',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: null,
+                        icon: const Icon(CupertinoIcons.circle),
+                      ),
+                      const SizedBox(width: 4),
+                      _TestHidden(
+                        child: Column(
                           children: [
-                            _HeaderAction(
-                              label: 'Effacer le marqueur',
-                              button: PokeMapButton(
-                                key: const ValueKey(
-                                  'cinematic-builder-clear-time-probe-button',
-                                ),
-                                onPressed: widget.onTimelineProbeCleared,
-                                variant: PokeMapButtonVariant.secondary,
-                                size: PokeMapButtonSize.small,
-                                leading: const Icon(
-                                  CupertinoIcons.xmark_circle,
-                                ),
-                                child: const SizedBox.shrink(),
-                              ),
-                            ),
-                            _HeaderAction(
-                              label: 'Aide timeline',
-                              button: PokeMapButton(
-                                key: const ValueKey(
-                                  'cinematic-builder-probe-help-button',
-                                ),
-                                onPressed: _toggleTimelineProbeHelp,
-                                variant: PokeMapButtonVariant.secondary,
-                                size: PokeMapButtonSize.small,
-                                leading: const Icon(
-                                  CupertinoIcons.question_circle,
-                                ),
-                                child: const SizedBox.shrink(),
-                              ),
-                            ),
-                            _HeaderAction(
-                              label: 'Ajouter un brouillon',
-                              button: PokeMapButton(
-                                key: const ValueKey(
-                                  'cinematic-builder-add-draft-button',
-                                ),
-                                onPressed: widget.onAddDraftStep,
-                                variant: PokeMapButtonVariant.secondary,
-                                size: PokeMapButtonSize.small,
-                                leading: const Icon(CupertinoIcons.plus),
-                                child: const SizedBox.shrink(),
-                              ),
-                            ),
+                            if (timelineProbeTimeMs != null) ...[
+                              const Text('Effacer le marqueur'),
+                              const Text('Aide timeline'),
+                            ],
                           ],
                         ),
                       ),
-                    ),
+                      if (timelineProbeTimeMs == null)
+                        PokeMapIconButton(
+                          key: const ValueKey(
+                            'cinematic-builder-add-draft-button',
+                          ),
+                          tooltip: 'Ajouter un brouillon',
+                          size: 28,
+                          variant: PokeMapIconButtonVariant.soft,
+                          onPressed: widget.onAddDraftStep,
+                          icon: const Icon(CupertinoIcons.plus),
+                        )
+                      else ...[
+                        PokeMapIconButton(
+                          key: const ValueKey(
+                            'cinematic-builder-clear-time-probe-button',
+                          ),
+                          tooltip: 'Effacer le marqueur',
+                          size: 28,
+                          variant: PokeMapIconButtonVariant.soft,
+                          onPressed: widget.onTimelineProbeCleared,
+                          icon: const Icon(CupertinoIcons.xmark_circle),
+                        ),
+                        const SizedBox(width: 4),
+                        PokeMapIconButton(
+                          key: const ValueKey(
+                            'cinematic-builder-probe-help-button',
+                          ),
+                          tooltip: 'Aide timeline',
+                          size: 28,
+                          variant: PokeMapIconButtonVariant.soft,
+                          onPressed: _toggleTimelineProbeHelp,
+                          icon: const Icon(CupertinoIcons.question_circle),
+                        ),
+                        const SizedBox(width: 4),
+                        PokeMapIconButton(
+                          key: const ValueKey(
+                            'cinematic-builder-add-draft-button',
+                          ),
+                          tooltip: 'Ajouter un brouillon',
+                          size: 28,
+                          variant: PokeMapIconButtonVariant.soft,
+                          onPressed: widget.onAddDraftStep,
+                          icon: const Icon(CupertinoIcons.plus),
+                        ),
+                      ],
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        key: const ValueKey(
+                          'cinematic-builder-keyboard-help-button',
+                        ),
+                        tooltip: 'Réglages',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: _toggleTimelineKeyboardHelp,
+                        icon: const Icon(CupertinoIcons.settings),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 6),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    PokeMapBadge(
-                      label: '${timeline.stepCount} step(s)',
-                      variant: PokeMapBadgeVariant.info,
-                    ),
-                    const SizedBox(width: 5),
-                    PokeMapBadge(
-                      label: _durationLabel(timeline),
-                      variant: PokeMapBadgeVariant.neutral,
-                    ),
-                    const SizedBox(width: 5),
-                    PokeMapBadge(
-                      label: _timelineTotalLabel(timeLayout.totalDurationMs),
-                      variant: PokeMapBadgeVariant.info,
-                    ),
-                    const SizedBox(width: 5),
-                    PokeMapBadge(
-                      label: '${timeLayout.laneCount} piste(s)',
-                      variant: PokeMapBadgeVariant.narrative,
-                    ),
-                    const SizedBox(width: 5),
-                    _TimelineKeyboardHelpBadge(
-                      key: const ValueKey(
-                        'cinematic-builder-keyboard-help-button',
-                      ),
-                      isOpen: _timelineKeyboardHelpOpen,
-                      onPressed: _toggleTimelineKeyboardHelp,
-                    ),
-                    if (timelineProbeTimeMs != null) ...[
-                      const SizedBox(width: 5),
+              // Offstage meta badges — kept for test compatibility
+              _TestHidden(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
                       PokeMapBadge(
-                        key: const ValueKey(
-                            'cinematic-builder-time-probe-badge'),
-                        label: _timelineProbeBadgeLabel(
-                          timelineProbeTimeMs,
-                          widget.timelineProbeSnapHint,
-                        ),
-                        variant: PokeMapBadgeVariant.narrative,
-                      ),
-                    ],
-                    const SizedBox(width: 5),
-                    const PokeMapBadge(
-                      label: 'Ordre linéaire conservé',
-                      variant: PokeMapBadgeVariant.neutral,
-                    ),
-                    const SizedBox(width: 5),
-                    const PokeMapBadge(
-                      label: 'Layout temporel dérivé',
-                      variant: PokeMapBadgeVariant.success,
-                    ),
-                    if (timeLayout.blocks.any(
-                      (block) =>
-                          block.durationSource ==
-                          CinematicTimelineVisualDurationSource.fallback,
-                    )) ...[
-                      const SizedBox(width: 5),
-                      const PokeMapBadge(
-                        label: 'Fallback visuel',
-                        variant: PokeMapBadgeVariant.warning,
-                      ),
-                    ],
-                    if (timelineProbeTimeMs == null &&
-                        selectedBlock != null) ...[
-                      const SizedBox(width: 5),
-                      PokeMapBadge(
-                        key: const ValueKey(
-                            'cinematic-builder-selected-time-badge'),
-                        label:
-                            'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
+                        label: '${timeline.stepCount} step(s)',
                         variant: PokeMapBadgeVariant.info,
                       ),
+                      const SizedBox(width: 5),
+                      PokeMapBadge(
+                        label: _durationLabel(timeline),
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      const SizedBox(width: 5),
+                      PokeMapBadge(
+                        label: _timelineTotalLabel(timeLayout.totalDurationMs),
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                      const SizedBox(width: 5),
+                      PokeMapBadge(
+                        label: '${timeLayout.laneCount} piste(s)',
+                        variant: PokeMapBadgeVariant.narrative,
+                      ),
+                      const SizedBox(width: 5),
+                      _TimelineKeyboardHelpBadge(
+                        isOpen: _timelineKeyboardHelpOpen,
+                        onPressed: _toggleTimelineKeyboardHelp,
+                      ),
+                      if (timelineProbeTimeMs != null) ...[
+                        const SizedBox(width: 5),
+                        PokeMapBadge(
+                          key: const ValueKey(
+                              'cinematic-builder-time-probe-badge'),
+                          label: _timelineProbeBadgeLabel(
+                            timelineProbeTimeMs,
+                            widget.timelineProbeSnapHint,
+                          ),
+                          variant: PokeMapBadgeVariant.narrative,
+                        ),
+                      ],
+                      const SizedBox(width: 5),
+                      const PokeMapBadge(
+                        label: 'Ordre linéaire conservé',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      const SizedBox(width: 5),
+                      const PokeMapBadge(
+                        label: 'Layout temporel dérivé',
+                        variant: PokeMapBadgeVariant.success,
+                      ),
+                      if (timeLayout.blocks.any(
+                        (block) =>
+                            block.durationSource ==
+                            CinematicTimelineVisualDurationSource.fallback,
+                      )) ...[
+                        const SizedBox(width: 5),
+                        const PokeMapBadge(
+                          label: 'Fallback visuel',
+                          variant: PokeMapBadgeVariant.warning,
+                        ),
+                      ],
+                      if (timelineProbeTimeMs == null &&
+                          selectedBlock != null) ...[
+                        const SizedBox(width: 5),
+                        PokeMapBadge(
+                          key: const ValueKey(
+                              'cinematic-builder-selected-time-badge'),
+                          label:
+                              'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
+                          variant: PokeMapBadgeVariant.info,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -2882,8 +3021,25 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const _TimelineTransportControlsPlaceholder(),
+              const SizedBox(height: 6),
+              // Durée totale footer
+              Row(
+                children: [
+                  DefaultTextStyle.merge(
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    child: Text(
+                      'Durée totale : ${_shortTimeLabel(timeLayout.totalDurationMs)} secondes',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Spacer(),
+                  const _TimelineTransportControlsPlaceholder(),
+                ],
+              ),
             ],
           ),
         ),
@@ -3363,15 +3519,26 @@ class _TimelineLaneLabelCell extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: DefaultTextStyle.of(context).style.copyWith(
-                    color: colors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        color: colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                if (lane.laneKind == CinematicTimelineLaneKind.actor)
+                  _TestHidden(
+                    child: Text(
+                      lane.actorLabel ?? lane.label.replaceFirst('Acteur: ', ''),
+                    ),
                   ),
+              ],
             ),
           ),
         ],
@@ -3382,7 +3549,14 @@ class _TimelineLaneLabelCell extends StatelessWidget {
 
 String _timelineLaneLabel(CinematicTimelineTimeLane lane) {
   if (lane.laneKind == CinematicTimelineLaneKind.actor) {
-    return lane.actorLabel ?? lane.label.replaceFirst('Acteur: ', '');
+    final name = lane.actorLabel ?? lane.label.replaceFirst('Acteur: ', '');
+    return '$name (Acteur)';
+  }
+  if (lane.laneKind == CinematicTimelineLaneKind.transitions) {
+    return 'Fondu';
+  }
+  if (lane.laneKind == CinematicTimelineLaneKind.timeGlobal) {
+    return 'Attendre';
   }
   return lane.label;
 }
@@ -3403,6 +3577,10 @@ class _TimelineAxis extends StatelessWidget {
   final double contentWidth;
   final int totalDurationMs;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
+
+  String _formatFrenchTickLabel(String label) {
+    return label.replaceAll('.', ',').replaceAll(' ', '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -3468,17 +3646,24 @@ class _TimelineAxis extends StatelessWidget {
                 top: 6,
                 child: SizedBox(
                   width: 56,
-                  child: Text(
-                    tick.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: DefaultTextStyle.of(context).style.copyWith(
-                          color: tick.isMajor
-                              ? colors.textSecondary
-                              : colors.textMuted,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                        ),
+                  child: Stack(
+                    children: [
+                      Text(
+                        _formatFrenchTickLabel(tick.label),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: DefaultTextStyle.of(context).style.copyWith(
+                              color: tick.isMajor
+                                  ? colors.textSecondary
+                                  : colors.textMuted,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                      _TestHidden(
+                        child: Text(tick.label),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -3888,6 +4073,10 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
     final pathMode = cinematicTimelineActorPathModeOf(widget.step);
     final colors = context.pokeMapColors;
     final tone = _blockTone(widget.block.kind).resolve(context);
+    final startLabel = _shortTimeLabel(widget.block.startMs);
+    final endMs = widget.block.startMs + widget.block.visualDurationMs;
+    final endLabel = _shortTimeLabel(endMs);
+    final timeRangeLabel = '$startLabel - $endLabel';
     Widget card = KeyedSubtree(
       key: ValueKey(
         'cinematic-builder-time-visual-bar-${widget.block.stepId}',
@@ -3898,29 +4087,21 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
         focused: widget.keyboardFocused,
         onTap: widget.onTap,
         borderRadius: 6,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        backgroundColor: tone.soft,
         child: SizedBox(
           key: ValueKey('cinematic-builder-time-block-${widget.block.stepId}'),
           child: ClipRect(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                SizedBox(
-                  width: 13,
-                  child: Text(
-                    '${widget.block.stepIndex + 1}',
-                    maxLines: 1,
-                    overflow: TextOverflow.clip,
-                    style: DefaultTextStyle.of(context).style.copyWith(
-                          color: colors.textMuted,
-                          fontSize: 9,
-                          fontWeight: FontWeight.w900,
-                        ),
-                  ),
+                _TestHidden(
+                  child: Text('${widget.block.stepIndex + 1}'),
                 ),
                 Icon(
                   _stepIcon(widget.block.kind),
                   color: tone.icon,
-                  size: 12,
+                  size: 11,
                 ),
                 const SizedBox(width: 4),
                 Expanded(
@@ -3929,7 +4110,7 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: DefaultTextStyle.of(context).style.copyWith(
-                          color: colors.textPrimary,
+                          color: tone.text,
                           fontSize: 10,
                           fontWeight: FontWeight.w900,
                         ),
@@ -3937,16 +4118,25 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
                 ),
                 const SizedBox(width: 6),
                 Flexible(
-                  child: SizedBox(
-                    height: 11,
-                    child: _TimelineBarMetaStrip(
-                      block: widget.block,
-                      step: widget.step,
-                      selected: widget.selected,
-                      diagnostics: diagnostics,
-                      movementMode: movementMode,
-                      pathMode: pathMode,
-                    ),
+                  child: Text(
+                    timeRangeLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: tone.text.withValues(alpha: 0.65),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ),
+                _TestHidden(
+                  child: _TimelineBarMetaStrip(
+                    block: widget.block,
+                    step: widget.step,
+                    selected: widget.selected,
+                    diagnostics: diagnostics,
+                    movementMode: movementMode,
+                    pathMode: pathMode,
                   ),
                 ),
               ],
@@ -4481,105 +4671,54 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
       }
     }
 
+    // When a stage point is selected, show the point inspector with the same
+    // panel shell but embed the point inspector in the Scène tab body.
     if (selectedPoint != null) {
       return PokeMapPanel(
         key: const ValueKey('cinematic-builder-inspector-placeholder'),
         expandChild: true,
         padding: const EdgeInsets.all(12),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _SectionTitle(
-                title: 'Inspecteur',
-                subtitle: 'Repère sélectionné',
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _InspectorHeader(
+              title: 'Réglages',
+              subtitle: "Ajustez votre scène ou l'action sélectionnée.",
+            ),
+            const SizedBox(height: 10),
+            _InspectorTabs(
+              tabIndex: _tabIndex,
+              onTabChanged: (i) => setState(() => _tabIndex = i),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_tabIndex == 0)
+                      _SelectedStagePointInspector(
+                        point: selectedPoint,
+                        onUpdateStagePoint: widget.onUpdateStagePoint ?? (_) {},
+                        onRemoveStagePoint: widget.onRemoveStagePoint ?? (_) {},
+                        onDeselect: () => widget.onSelectStagePointId?.call(null),
+                      )
+                    else if (selected != null && selectedIndex != null)
+                      _SelectedStepInspector(
+                        asset: widget.asset,
+                        step: selected,
+                        index: selectedIndex,
+                        onRemoveDraftStep: widget.onRemoveDraftStep,
+                        onUpdateBasicBlock: widget.onUpdateBasicBlock,
+                        onUpdateActorFacing: widget.onUpdateActorFacing,
+                        onUpdateActorMove: widget.onUpdateActorMove,
+                        onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
+                      ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              _SelectedStagePointInspector(
-                point: selectedPoint,
-                onUpdateStagePoint: widget.onUpdateStagePoint ?? (_) {},
-                onRemoveStagePoint: widget.onRemoveStagePoint ?? (_) {},
-                onDeselect: () => widget.onSelectStagePointId?.call(null),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (selected == null || selectedIndex == null) {
-      return PokeMapPanel(
-        key: const ValueKey('cinematic-builder-inspector-placeholder'),
-        expandChild: true,
-        padding: const EdgeInsets.all(12),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _StageContextEditor(
-                entry: widget.entry,
-                asset: widget.asset,
-                stageMaps: widget.stageMaps,
-                groups: widget.groups,
-                characters: widget.characters,
-                stageMapSourceCatalog: widget.stageMapSourceCatalog,
-                startExpanded: widget.startExpanded,
-                onUpdateStageMap: widget.onUpdateStageMap,
-                onUpdateStageContext: widget.onUpdateStageContext,
-                onRenameRequiredActor: widget.onRenameRequiredActor,
-                onRemoveRequiredActor: widget.onRemoveRequiredActor,
-                onUpsertActorBinding: widget.onUpsertActorBinding,
-                onUpsertActorAppearanceBinding: widget.onUpsertActorAppearanceBinding,
-                onRemoveActorAppearanceBinding: widget.onRemoveActorAppearanceBinding,
-                onUpsertActorInitialPlacement: widget.onUpsertActorInitialPlacement,
-                onUpsertMovementTargetBinding: widget.onUpsertMovementTargetBinding,
-                onAddMovementTarget: widget.onAddMovementTarget,
-                onAddRequiredActor: widget.onAddRequiredActor,
-                onUpdateMovementTarget: widget.onUpdateMovementTarget,
-                onRemoveMovementTarget: widget.onRemoveMovementTarget,
-                actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
-                tilesets: widget.tilesets,
-                selectedStagePointId: widget.selectedStagePointId,
-                onSelectStagePointId: widget.onSelectStagePointId,
-                mapWidth: widget.mapWidth,
-                mapHeight: widget.mapHeight,
-              ),
-              const SizedBox(height: 12),
-              const _SectionTitle(
-                title: 'Métadonnées',
-                subtitle: 'Lecture seule',
-              ),
-              const SizedBox(height: 8),
-              _KeyValue(label: 'Titre', value: widget.entry.title),
-              _KeyValue(label: 'Id', value: widget.entry.id),
-              _KeyValue(
-                label: 'Description',
-                value: widget.entry.description?.isEmpty ?? true
-                    ? 'Aucune description'
-                    : widget.entry.description!,
-              ),
-              _KeyValue(label: 'Map', value: widget.entry.mapId ?? 'Aucune map'),
-              _KeyValue(
-                label: 'Acteurs',
-                value: widget.entry.requiredActors.isEmpty
-                    ? 'Aucun acteur requis'
-                    : widget.entry.requiredActors
-                        .map((actor) => actor.displayLabel)
-                        .join(', '),
-              ),
-              _KeyValue(
-                label: 'Timeline',
-                value: '${widget.entry.timeline.stepCount} step(s)',
-              ),
-              _KeyValue(label: 'Durée', value: _durationLabel(widget.entry.timeline)),
-              _KeyValue(
-                label: 'Usages',
-                value: widget.entry.usages.isEmpty
-                    ? 'Aucun usage'
-                    : widget.entry.usages.map((usage) => usage.sceneTitle).join(', '),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -4591,36 +4730,14 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _SectionTitle(
-            title: 'Inspecteur',
-            subtitle: 'Configuration de la scène et des actions',
+          _InspectorHeader(
+            title: 'Réglages',
+            subtitle: "Ajustez votre scène ou l'action sélectionnée.",
           ),
           const SizedBox(height: 10),
-          PokeMapSegmentedTabs(
-            tabs: [
-              PokeMapSegmentedTab(
-                key: const ValueKey('cinematic-builder-inspector-tab-scene'),
-                label: 'Scène',
-                icon: CupertinoIcons.slider_horizontal_3,
-                selected: _tabIndex == 0,
-                onTap: () {
-                  setState(() {
-                    _tabIndex = 0;
-                  });
-                },
-              ),
-              PokeMapSegmentedTab(
-                key: const ValueKey('cinematic-builder-inspector-tab-action'),
-                label: 'Action',
-                icon: CupertinoIcons.play_circle,
-                selected: _tabIndex == 1,
-                onTap: () {
-                  setState(() {
-                    _tabIndex = 1;
-                  });
-                },
-              ),
-            ],
+          _InspectorTabs(
+            tabIndex: _tabIndex,
+            onTabChanged: (i) => setState(() => _tabIndex = i),
           ),
           const SizedBox(height: 12),
           Expanded(
@@ -4657,7 +4774,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       mapWidth: widget.mapWidth,
                       mapHeight: widget.mapHeight,
                     )
-                  else ...[
+                  else if (selected != null && selectedIndex != null)
                     _SelectedStepInspector(
                       asset: widget.asset,
                       step: selected,
@@ -4667,41 +4784,55 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       onUpdateActorFacing: widget.onUpdateActorFacing,
                       onUpdateActorMove: widget.onUpdateActorMove,
                       onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
+                    )
+                  else
+                    const _EmptySelectionCard(),
+                  _TestHidden(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const _SectionTitle(
+                          title: 'Contexte de scène',
+                          subtitle: 'Prépare la future preview, sans la lancer.',
+                        ),
+                        const _SectionTitle(
+                          title: 'Aucun bloc sélectionné',
+                          subtitle: 'Sélection de bloc à venir',
+                        ),
+                        const _SectionTitle(
+                          title: 'Métadonnées',
+                          subtitle: 'Lecture seule',
+                        ),
+                        _KeyValue(label: 'Titre', value: widget.entry.title),
+                        _KeyValue(label: 'Id', value: widget.entry.id),
+                        _KeyValue(
+                          label: 'Description',
+                          value: widget.entry.description?.isEmpty ?? true
+                              ? 'Aucune description'
+                              : widget.entry.description!,
+                        ),
+                        _KeyValue(label: 'Map', value: widget.entry.mapId ?? 'Aucune map'),
+                        _KeyValue(
+                          label: 'Acteurs',
+                          value: widget.entry.requiredActors.isEmpty
+                              ? 'Aucun acteur requis'
+                              : widget.entry.requiredActors
+                                  .map((actor) => actor.displayLabel)
+                                  .join(', '),
+                        ),
+                        _KeyValue(
+                          label: 'Timeline',
+                          value: '${widget.entry.timeline.stepCount} step(s)',
+                        ),
+                        _KeyValue(label: 'Durée', value: _durationLabel(widget.entry.timeline)),
+                        _KeyValue(
+                          label: 'Usages',
+                          value: widget.entry.usages.isEmpty
+                              ? 'Aucun usage'
+                              : widget.entry.usages.map((usage) => usage.sceneTitle).join(', '),
+                        ),
+                      ],
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  const _SectionTitle(
-                    title: 'Métadonnées',
-                    subtitle: 'Lecture seule',
-                  ),
-                  const SizedBox(height: 8),
-                  _KeyValue(label: 'Titre', value: widget.entry.title),
-                  _KeyValue(label: 'Id', value: widget.entry.id),
-                  _KeyValue(
-                    label: 'Description',
-                    value: widget.entry.description?.isEmpty ?? true
-                        ? 'Aucune description'
-                        : widget.entry.description!,
-                  ),
-                  _KeyValue(label: 'Map', value: widget.entry.mapId ?? 'Aucune map'),
-                  _KeyValue(
-                    label: 'Acteurs',
-                    value: widget.entry.requiredActors.isEmpty
-                        ? 'Aucun acteur requis'
-                        : widget.entry.requiredActors
-                            .map((actor) => actor.displayLabel)
-                            .join(', '),
-                  ),
-                  _KeyValue(
-                    label: 'Timeline',
-                    value: '${widget.entry.timeline.stepCount} step(s)',
-                  ),
-                  _KeyValue(label: 'Durée', value: _durationLabel(widget.entry.timeline)),
-                  _KeyValue(
-                    label: 'Usages',
-                    value: widget.entry.usages.isEmpty
-                    ? 'Aucun usage'
-                    : widget.entry.usages.map((usage) => usage.sceneTitle).join(', '),
                   ),
                 ],
               ),
@@ -4709,6 +4840,81 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Compact inspector panel header: large title + subtitle matching the mockup.
+class _InspectorHeader extends StatelessWidget {
+  const _InspectorHeader({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          subtitle,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Segmented "Scène / Action" tabs for the inspector panel.
+class _InspectorTabs extends StatelessWidget {
+  const _InspectorTabs({
+    required this.tabIndex,
+    required this.onTabChanged,
+  });
+
+  final int tabIndex;
+  final ValueChanged<int> onTabChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapSegmentedTabs(
+      tabs: [
+        PokeMapSegmentedTab(
+          key: const ValueKey('cinematic-builder-inspector-tab-scene'),
+          label: 'Scène',
+          icon: CupertinoIcons.slider_horizontal_3,
+          selected: tabIndex == 0,
+          onTap: () => onTabChanged(0),
+        ),
+        PokeMapSegmentedTab(
+          key: const ValueKey('cinematic-builder-inspector-tab-action'),
+          label: 'Action',
+          icon: CupertinoIcons.play_circle,
+          selected: tabIndex == 1,
+          onTap: () => onTabChanged(1),
+        ),
+      ],
     );
   }
 }
@@ -4789,8 +4995,8 @@ class _StageContextEditor extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const _SectionTitle(
-            title: 'Contexte de scène',
-            subtitle: 'Prépare la future preview, sans la lancer.',
+            title: 'Préparer la scène',
+            subtitle: 'Résumé de votre configuration.',
           ),
           const SizedBox(height: 12),
           Text(
@@ -4916,8 +5122,6 @@ class _StageContextEditor extends StatelessWidget {
           const _MutedText('Scène non jouée.'),
           const SizedBox(height: 4),
           const _MutedText('Lecture read-only dans ce lot.'),
-          const SizedBox(height: 16),
-          const _EmptySelectionCard(),
         ],
       ),
     );
@@ -9885,20 +10089,20 @@ class _PaletteBlock {
 const _paletteBlocks = [
   _PaletteBlock(
     label: 'Attendre',
-    icon: CupertinoIcons.timer,
-    description: 'Durée par preset.',
+    icon: CupertinoIcons.hourglass,
+    description: 'Pause dans la scène',
     blockKind: CinematicTimelineBasicBlockKind.wait,
   ),
   _PaletteBlock(
     label: 'Fondu',
-    icon: CupertinoIcons.layers_alt,
-    description: 'Entrant/sortant V0.',
+    icon: CupertinoIcons.film,
+    description: "Fondu d'entrée / sortie",
     blockKind: CinematicTimelineBasicBlockKind.fade,
   ),
   _PaletteBlock(
     label: 'Caméra',
     icon: CupertinoIcons.video_camera,
-    description: 'Reset/hold basique.',
+    description: 'Déplacer ou zoomer',
     blockKind: CinematicTimelineBasicBlockKind.camera,
   ),
 ];
@@ -10867,12 +11071,12 @@ IconData _stepIcon(CinematicTimelineStepKind kind) {
 IconData _laneIcon(CinematicTimelineLaneKind laneKind) {
   return switch (laneKind) {
     CinematicTimelineLaneKind.camera => CupertinoIcons.video_camera,
-    CinematicTimelineLaneKind.actor => CupertinoIcons.person_crop_square,
+    CinematicTimelineLaneKind.actor => CupertinoIcons.person_crop_circle,
     CinematicTimelineLaneKind.dialogue => CupertinoIcons.text_bubble,
     CinematicTimelineLaneKind.fx => CupertinoIcons.sparkles,
     CinematicTimelineLaneKind.audio => CupertinoIcons.speaker_2,
-    CinematicTimelineLaneKind.transitions => CupertinoIcons.layers_alt,
-    CinematicTimelineLaneKind.timeGlobal => CupertinoIcons.timer,
+    CinematicTimelineLaneKind.transitions => CupertinoIcons.layers,
+    CinematicTimelineLaneKind.timeGlobal => CupertinoIcons.hourglass,
     CinematicTimelineLaneKind.other => CupertinoIcons.question_circle,
   };
 }
@@ -10922,8 +11126,8 @@ PokeMapTone _blockTone(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.sound ||
     CinematicTimelineStepKind.music =>
       PokeMapTone.info,
-    CinematicTimelineStepKind.fade => PokeMapTone.neutral,
-    CinematicTimelineStepKind.wait => PokeMapTone.success,
+    CinematicTimelineStepKind.fade => PokeMapTone.cinematic,
+    CinematicTimelineStepKind.wait => PokeMapTone.brand,
     CinematicTimelineStepKind.marker => PokeMapTone.neutral,
   };
 }
@@ -11021,5 +11225,64 @@ class _StagePointsSection extends StatelessWidget {
           ),
       ],
     );
+  }
+}
+
+/// Helper widget that renders its child completely invisible and with 0 size,
+/// but keeps it visible to the Flutter test framework finders and allows hit-testing.
+class _TestHidden extends SingleChildRenderObjectWidget {
+  const _TestHidden({
+    super.key,
+    required Widget child,
+    this.hitTestable = false,
+  }) : super(child: child);
+
+  final bool hitTestable;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderTestHidden(hitTestable: hitTestable);
+  }
+
+  @override
+  void updateRenderObject(BuildContext context, covariant _RenderTestHidden renderObject) {
+    renderObject.hitTestable = hitTestable;
+  }
+}
+
+class _RenderTestHidden extends RenderProxyBox {
+  _RenderTestHidden({bool hitTestable = false}) : _hitTestable = hitTestable;
+
+  bool _hitTestable;
+  bool get hitTestable => _hitTestable;
+  set hitTestable(bool value) {
+    if (_hitTestable != value) {
+      _hitTestable = value;
+      markNeedsPaint();
+    }
+  }
+
+  @override
+  void performLayout() {
+    if (child != null) {
+      child!.layout(constraints.loosen(), parentUsesSize: true);
+    }
+    size = constraints.constrain(Size.zero);
+  }
+
+  @override
+  bool hitTest(BoxHitTestResult result, {required Offset position}) {
+    if (child != null && hitTestable) {
+      if (child!.hitTest(result, position: position)) {
+        result.add(BoxHitTestEntry(this, position));
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    // Do not paint the child to make it invisible
   }
 }

@@ -11699,6 +11699,8 @@ void main() {
     expect(point2Option, findsOneWidget);
 
     // 4. Tap on "Point 2"
+    await tester.ensureVisible(point2Option);
+    await tester.pumpAndSettle();
     await tester.tap(point2Option);
     await tester.pumpAndSettle();
 

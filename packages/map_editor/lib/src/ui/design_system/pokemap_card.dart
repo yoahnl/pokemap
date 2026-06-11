@@ -15,6 +15,7 @@ class PokeMapCard extends StatefulWidget {
     this.focused = false,
     this.selected = false,
     this.onTap,
+    this.backgroundColor,
   });
 
   /// Main content within the card.
@@ -33,6 +34,10 @@ class PokeMapCard extends StatefulWidget {
   /// Optional card tap callback. If provided, renders hover cursors and background transitions.
   final VoidCallback? onTap;
 
+  /// Optional explicit background color override.
+  /// When provided, overrides the automatic theme-based surface color.
+  final Color? backgroundColor;
+
   @override
   State<PokeMapCard> createState() => _PokeMapCardState();
 }
@@ -45,7 +50,7 @@ class _PokeMapCardState extends State<PokeMapCard> {
     final colors = context.pokeMapColors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final baseBg = isDark ? colors.cardSurface : colors.surfaceBase;
+    final baseBg = widget.backgroundColor ?? (isDark ? colors.cardSurface : colors.surfaceBase);
     final bg = (widget.onTap != null && _isHovered) ? colors.cardHover : baseBg;
 
     final border = Border.all(
