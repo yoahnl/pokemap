@@ -15438,8 +15438,39 @@
           {
             "id": "stage_point_1",
             "label": "Point 1",
-            "x": 11.5,
+            "x": 14.5,
+            "y": 25.5
+          },
+          {
+            "id": "stage_point_2",
+            "label": "Repère 2",
+            "x": 20.5,
             "y": 23.5
+          },
+          {
+            "id": "stage_point_3",
+            "label": "Repère 3",
+            "x": 24.5,
+            "y": 22.5
+          },
+          {
+            "id": "stage_point_4",
+            "label": "Repère 4",
+            "x": 28.5,
+            "y": 20.5
+          }
+        ],
+        "manualPaths": [
+          {
+            "id": "path",
+            "label": "Chemin de déplacement",
+            "ownerActorMoveStepId": "step_actor_move_2",
+            "waypointStagePointIds": [
+              "stage_point_1",
+              "stage_point_2",
+              "stage_point_3",
+              "stage_point_4"
+            ]
           }
         ]
       },
@@ -15474,16 +15505,16 @@
           {
             "id": "step_actor_move_2",
             "kind": "actorMove",
-            "label": "Déplacement Acteur",
+            "label": "Déplacement Jean",
             "durationMs": 200,
-            "actorId": "actor",
+            "actorId": "actor_4",
             "targetId": "target",
             "metadata": {
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
               "authoring.block": "actorMove",
               "actor.movementMode": "walk",
-              "actor.pathMode": "direct"
+              "actor.pathMode": "manual"
             }
           },
           {
