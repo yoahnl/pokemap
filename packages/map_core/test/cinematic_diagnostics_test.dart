@@ -1564,6 +1564,374 @@ void main() {
       expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
       expect(outOfBoundsDiag.referenceId, 'target_center');
     });
+
+    group('manual path diagnostics', () {
+      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5);
+      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 15, y: 5);
+
+      CinematicAsset createBaseCinematic({
+        required String id,
+        String? mapId = 'map_lab',
+        List<CinematicStagePoint> stagePoints = const [],
+        List<CinematicManualPath> manualPaths = const [],
+        List<CinematicTimelineStep> steps = const [],
+      }) {
+        return CinematicAsset(
+          id: id,
+          title: 'Cinematic',
+          mapId: mapId,
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            actorBindings: [
+              CinematicActorBinding(
+                actorId: 'actor_professor',
+                kind: CinematicActorBindingKind.cinematicOnly,
+              ),
+            ],
+            stagePoints: stagePoints,
+            manualPaths: manualPaths,
+          ),
+          timeline: CinematicTimeline(steps: steps),
+        );
+      }
+
+      CinematicTimelineStep createActorMoveStep({
+        required String id,
+        required String pathMode,
+      }) {
+        return CinematicTimelineStep(
+          id: id,
+          kind: CinematicTimelineStepKind.actorMove,
+          actorId: 'actor_professor',
+          targetId: 'target_center',
+          durationMs: 1000,
+          metadata: {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: pathMode,
+          },
+        );
+      }
+
+      test('valid manual path has no manual-path diagnostics', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'My Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final manualPathDiags = report.diagnostics.where((d) => {
+          CinematicDiagnosticCode.manualPathEmpty,
+          CinematicDiagnosticCode.manualPathStagePointMissing,
+          CinematicDiagnosticCode.manualPathStagePointDuplicate,
+          CinematicDiagnosticCode.manualPathWithoutStageMap,
+          CinematicDiagnosticCode.manualPathStagePointOutOfMap,
+          CinematicDiagnosticCode.actorMoveManualPathMissing,
+          CinematicDiagnosticCode.actorMoveManualPathAmbiguous,
+          CinematicDiagnosticCode.actorMoveManualPathUnused,
+          CinematicDiagnosticCode.manualPathOrphaned,
+          CinematicDiagnosticCode.manualPathDuplicateId,
+          CinematicDiagnosticCode.manualPathEmptyId,
+          CinematicDiagnosticCode.manualPathEmptyLabel,
+        }.contains(d.code)).toList();
+        expect(manualPathDiags, isEmpty);
+      });
+
+      test('diagnoses manualPathEmptyId and manualPathDuplicateId', () {
+        final path1 = CinematicManualPath(
+          id: 'dup_id',
+          label: 'Path 1',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+        final path2 = CinematicManualPath(
+          id: 'dup_id',
+          label: 'Path 2',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path1, path2],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final dupDiags = report.byCode(CinematicDiagnosticCode.manualPathDuplicateId);
+        expect(dupDiags, hasLength(1));
+        expect(dupDiags.single.severity, CinematicDiagnosticSeverity.error);
+        expect(dupDiags.single.referenceId, 'dup_id');
+      });
+
+      test('diagnoses manualPathEmptyLabel', () {
+        expect(
+          () => CinematicManualPath(
+            id: 'path_1',
+            label: '  ',
+            ownerActorMoveStepId: 'step_move',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('diagnoses manualPathEmpty (warning if unused, error if used)', () {
+        final path1 = CinematicManualPath(
+          id: 'path_unused',
+          label: 'Unused Empty Path',
+          ownerActorMoveStepId: 'step_other',
+        );
+        final path2 = CinematicManualPath(
+          id: 'path_used',
+          label: 'Used Empty Path',
+          ownerActorMoveStepId: 'step_move',
+        );
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path1, path2],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final unusedDiag = report.diagnostics.firstWhere(
+          (d) => d.code == CinematicDiagnosticCode.manualPathEmpty && d.referenceId == 'path_unused',
+        );
+        expect(unusedDiag.severity, CinematicDiagnosticSeverity.warning);
+
+        final usedDiag = report.diagnostics.firstWhere(
+          (d) => d.code == CinematicDiagnosticCode.manualPathEmpty && d.referenceId == 'path_used',
+        );
+        expect(usedDiag.severity, CinematicDiagnosticSeverity.error);
+      });
+
+      test('diagnoses manualPathStagePointMissing', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['missing_point'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointMissing).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.error);
+        expect(diag.referenceId, 'missing_point');
+      });
+
+      test('diagnoses manualPathStagePointDuplicate', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a', 'point_a'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointDuplicate).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.warning);
+        expect(diag.referenceId, 'point_a');
+      });
+
+      test('diagnoses manualPathWithoutStageMap', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            mapId: null,
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [step],
+          ),
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.manualPathWithoutStageMap).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.warning);
+        expect(diag.referenceId, 'path_1');
+      });
+
+      test('diagnoses manualPathStagePointOutOfMap', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_b'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA, pointB],
+            manualPaths: [path],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointOutOfMap).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.error);
+        expect(diag.referenceId, 'point_b');
+      });
+
+      test('diagnoses manualPathOrphaned', () {
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'missing_step_id',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.manualPathOrphaned).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.warning);
+        expect(diag.referenceId, 'path_1');
+      });
+
+      test('diagnoses actorMoveManualPathMissing', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathMissing).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.error);
+        expect(diag.stepId, 'step_move');
+      });
+
+      test('diagnoses actorMoveManualPathAmbiguous', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'manual');
+        final path1 = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path 1',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+        final path2 = CinematicManualPath(
+          id: 'path_2',
+          label: 'Path 2',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path1, path2],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathAmbiguous).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.error);
+        expect(diag.stepId, 'step_move');
+      });
+
+      test('diagnoses actorMoveManualPathUnused', () {
+        final step = createActorMoveStep(id: 'step_move', pathMode: 'direct');
+        final path = CinematicManualPath(
+          id: 'path_1',
+          label: 'Path',
+          ownerActorMoveStepId: 'step_move',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        final report = diagnoseCinematicAsset(
+          createBaseCinematic(
+            id: 'c1',
+            stagePoints: [pointA],
+            manualPaths: [path],
+            steps: [step],
+          ),
+          mapWidth: 10,
+          mapHeight: 10,
+        );
+
+        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathUnused).single;
+        expect(diag.severity, CinematicDiagnosticSeverity.warning);
+        expect(diag.stepId, 'step_move');
+      });
+    });
   });
 }
 

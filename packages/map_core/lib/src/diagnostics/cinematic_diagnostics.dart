@@ -63,6 +63,18 @@ enum CinematicDiagnosticCode {
   movementTargetBindingStagePointMissing,
   movementTargetBindingStagePointWithoutStageMap,
   movementTargetBindingStagePointOutOfMap,
+  manualPathEmpty,
+  manualPathStagePointMissing,
+  manualPathStagePointDuplicate,
+  manualPathWithoutStageMap,
+  manualPathStagePointOutOfMap,
+  actorMoveManualPathMissing,
+  actorMoveManualPathAmbiguous,
+  actorMoveManualPathUnused,
+  manualPathOrphaned,
+  manualPathDuplicateId,
+  manualPathEmptyId,
+  manualPathEmptyLabel,
 }
 
 enum CinematicDiagnosticTarget {
@@ -850,6 +862,178 @@ void _diagnoseStageContext(
         }
       }
     }
+    _diagnoseManualPaths(
+      cinematic,
+      stageContext,
+      diagnostics,
+      mapWidth: mapWidth,
+      mapHeight: mapHeight,
+    );
+  }
+}
+
+void _diagnoseManualPaths(
+  CinematicAsset cinematic,
+  CinematicStageContext stageContext,
+  List<CinematicDiagnostic> diagnostics, {
+  int? mapWidth,
+  int? mapHeight,
+}) {
+  final seenPathIds = <String>{};
+  final timelineSteps = cinematic.timeline.steps;
+  final stagePointsById = {
+    for (final p in stageContext.stagePoints) p.id: p,
+  };
+
+  for (final path in stageContext.manualPaths) {
+    final pathId = path.id.trim();
+    final label = path.label.trim();
+
+    if (pathId.isEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathEmptyId,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'Le trajet manuel doit avoir un id stable.',
+          cinematicId: cinematic.id,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Définir un id de trajet manuel.',
+        ),
+      );
+    } else if (!seenPathIds.add(pathId)) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathDuplicateId,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'Plusieurs trajets manuels utilisent le même id : "$pathId".',
+          cinematicId: cinematic.id,
+          referenceId: pathId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Renommer le trajet manuel pour avoir un id unique.',
+        ),
+      );
+    }
+
+    if (label.isEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathEmptyLabel,
+          severity: CinematicDiagnosticSeverity.warning,
+          message: 'Le trajet manuel a un label vide.',
+          cinematicId: cinematic.id,
+          referenceId: pathId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Renseigner un label lisible pour le trajet manuel.',
+        ),
+      );
+    }
+
+    final ownerStepId = path.ownerActorMoveStepId;
+    final ownerStep = timelineSteps.cast<CinematicTimelineStep?>().firstWhere(
+          (s) => s?.id == ownerStepId,
+          orElse: () => null,
+        );
+
+    final isOwnedByActorMove = ownerStep != null && isCinematicTimelineActorMoveStep(ownerStep);
+    final isUsedByActorMoveManual = isOwnedByActorMove &&
+        cinematicTimelineActorPathModeOf(ownerStep) == CinematicTimelineActorPathMode.manual;
+
+    if (path.waypointStagePointIds.isEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathEmpty,
+          severity: isUsedByActorMoveManual
+              ? CinematicDiagnosticSeverity.error
+              : CinematicDiagnosticSeverity.warning,
+          message: 'Le trajet manuel ne contient aucun point de passage.',
+          cinematicId: cinematic.id,
+          referenceId: pathId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Ajouter au moins un repère de passage.',
+        ),
+      );
+    }
+
+    if (cinematic.mapId == null && path.waypointStagePointIds.isNotEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathWithoutStageMap,
+          severity: CinematicDiagnosticSeverity.warning,
+          message: 'Le trajet manuel a besoin d’une map de scène pour être vérifié visuellement.',
+          cinematicId: cinematic.id,
+          referenceId: pathId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Définir une map stage pour la cinématique.',
+        ),
+      );
+    }
+
+    final seenWaypoints = <String>{};
+    var duplicateReported = false;
+    for (final wpId in path.waypointStagePointIds) {
+      final point = stagePointsById[wpId];
+      if (point == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.manualPathStagePointMissing,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Le trajet manuel utilise un repère qui n’existe plus.',
+            cinematicId: cinematic.id,
+            referenceId: wpId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Retirer ou remplacer le repère manquant.',
+          ),
+        );
+      } else {
+        if (mapWidth != null && mapHeight != null) {
+          if (point.x < 0 ||
+              point.x >= mapWidth ||
+              point.y < 0 ||
+              point.y >= mapHeight) {
+            diagnostics.add(
+              CinematicDiagnostic(
+                code: CinematicDiagnosticCode.manualPathStagePointOutOfMap,
+                severity: CinematicDiagnosticSeverity.error,
+                message: 'Un repère du trajet manuel est en dehors de la map.',
+                cinematicId: cinematic.id,
+                referenceId: wpId,
+                target: CinematicDiagnosticTarget.stageContext,
+                suggestedFixLabel: 'Repositionner le repère dans les limites de la map.',
+              ),
+            );
+          }
+        }
+      }
+
+      if (!seenWaypoints.add(wpId) && !duplicateReported) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.manualPathStagePointDuplicate,
+            severity: CinematicDiagnosticSeverity.warning,
+            message: 'Le même repère apparaît plusieurs fois dans le trajet manuel.',
+            cinematicId: cinematic.id,
+            referenceId: wpId,
+            target: CinematicDiagnosticTarget.stageContext,
+            suggestedFixLabel: 'Éviter les boucles ou doublons inutiles.',
+          ),
+        );
+        duplicateReported = true;
+      }
+    }
+
+    if (ownerStep == null) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.manualPathOrphaned,
+          severity: CinematicDiagnosticSeverity.warning,
+          message: 'Ce chemin manuel n’est plus lié à un déplacement.',
+          cinematicId: cinematic.id,
+          referenceId: pathId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel: 'Associer ce chemin à un déplacement existant ou le supprimer.',
+        ),
+      );
+    }
   }
 }
 
@@ -1178,22 +1362,71 @@ void _diagnoseActorMoveStep(
     );
   }
 
-  if (cinematicTimelineActorPathModeOf(step) !=
-      CinematicTimelineActorPathMode.direct) {
-    final pathMode =
+  final pathMode = cinematicTimelineActorPathModeOf(step);
+  if (pathMode == null) {
+    final rawPathMode =
         step.metadata[cinematicTimelineActorPathModeMetadataKey]?.trim();
     diagnostics.add(
       CinematicDiagnostic(
         code: CinematicDiagnosticCode.cinematicActorMoveUnsupportedPathMode,
         severity: CinematicDiagnosticSeverity.error,
-        message: 'Le seul chemin supporté en V0 est direct.',
+        message: 'Le mode de trajet choisi n’est pas valide.',
         cinematicId: cinematic.id,
         stepId: step.id,
-        referenceId: pathMode,
+        referenceId: rawPathMode,
         target: CinematicDiagnosticTarget.step,
-        suggestedFixLabel: 'Revenir au pathMode direct.',
+        suggestedFixLabel: 'Choisir le mode direct ou manuel.',
       ),
     );
+  } else {
+    final stageContext = cinematic.stageContext;
+    if (stageContext != null) {
+      final matchingPaths = stageContext.manualPaths
+          .where((p) => p.ownerActorMoveStepId == step.id)
+          .toList();
+
+      if (pathMode == CinematicTimelineActorPathMode.manual) {
+        if (matchingPaths.isEmpty) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode.actorMoveManualPathMissing,
+              severity: CinematicDiagnosticSeverity.error,
+              message: 'Ce déplacement est en trajet manuel, mais aucun chemin n’est défini.',
+              cinematicId: cinematic.id,
+              stepId: step.id,
+              target: CinematicDiagnosticTarget.step,
+              suggestedFixLabel: 'Créer un chemin manuel pour ce déplacement.',
+            ),
+          );
+        } else if (matchingPaths.length > 1) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode.actorMoveManualPathAmbiguous,
+              severity: CinematicDiagnosticSeverity.error,
+              message: 'Plusieurs chemins manuels sont liés au même déplacement.',
+              cinematicId: cinematic.id,
+              stepId: step.id,
+              target: CinematicDiagnosticTarget.step,
+              suggestedFixLabel: 'Garder un unique chemin manuel pour ce déplacement.',
+            ),
+          );
+        }
+      } else if (pathMode == CinematicTimelineActorPathMode.direct) {
+        if (matchingPaths.isNotEmpty) {
+          diagnostics.add(
+            CinematicDiagnostic(
+              code: CinematicDiagnosticCode.actorMoveManualPathUnused,
+              severity: CinematicDiagnosticSeverity.warning,
+              message: 'Ce déplacement est en trajet direct, mais un chemin manuel y est toujours associé.',
+              cinematicId: cinematic.id,
+              stepId: step.id,
+              target: CinematicDiagnosticTarget.step,
+              suggestedFixLabel: 'Nettoyer ou repasser en trajet manuel.',
+            ),
+          );
+        }
+      }
+    }
   }
 }
 

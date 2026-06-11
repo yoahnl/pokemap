@@ -372,6 +372,7 @@ String _movementModeLabel(CinematicTimelineActorMovementMode mode) {
 String _pathModeLabel(CinematicTimelineActorPathMode mode) {
   return switch (mode) {
     CinematicTimelineActorPathMode.direct => 'Direct',
+    CinematicTimelineActorPathMode.manual => 'Manuel',
   };
 }
 

@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0
+NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0
 ```
 
 ## Principes
@@ -158,6 +158,19 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-104-bis | ActorMove Stage Point Target Evidence / Quality Gate Closure | review / doc | Clôture documentaire et Evidence Pack pour V1-104. | Aucun code produit modifié. | Rapport final, Evidence Pack. | DONE : `git diff --check`. | -- | DONE : Evidence Pack validé. | V1-104. |
 | NS-SCENES-V1-105 | Cinematic Builder UX Simplification / Destination Vocabulary V0 | editor / ux | Simplifier le vocabulaire visible du Cinematic Builder et de la Library : `Repère`, `Destination`, `Destination du déplacement`, `Position libre`, `Personnage ou objet de la map`, `Déclencheur de map`, `Marqueur temps`, `Aucun problème`. | Pas de modèle core, pas de runtime, pas de playback, pas de Manual Path authoring. | Builder/Library cinematics, tests widget, rapport, Evidence Pack, Visual Gate. | DONE : tests Builder/Library/overlay verts, analyse ciblée en sortie 0, Visual Gate 1663x926. | Laisser survivre des libellés techniques visibles ; renommer des identifiants internes par erreur. | DONE : vocabulaire no-code aligné, anciens libellés visibles absents, identifiants internes préservés. | V1-104-bis. |
 | NS-SCENES-V1-106 | Cinematic Manual Path Authoring Prep Contract | doc-only / architecture-review | Cadrer le futur modèle et l’UX des trajets manuels cinématiques composés de points de passage, en continuité avec Repères, Destination et actorMove, sans code produit ni runtime. | Pas de modèle core, pas d'opération Dart, pas d'UI, pas de runtime, pas de Visual Gate. | Rapport V1-106, Evidence Pack, roadmaps. | DONE : `git diff --check`. | Sur-designer la réutilisation de chemins ; confondre Destination finale et points de passage ; rouvrir playback. | DONE : Option C+D retenue, V1-107 cadré, anti-scope confirmé. | V1-105. |
+| NS-SCENES-V1-107 | Cinematic Manual Path Core Model V0 | core / model | Ajouter le modèle core authoring-only des chemins manuels cinématiques, stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. | Pas de Flame, pas d'UI, pas de modification hors de `map_core`, pas de playback runtime. | `map_core`, `cinematic_asset.dart`, `cinematic_authoring_operations.dart`, `cinematic_diagnostics.dart`. | DONE : `dart test` et `dart analyze` propres. | Divergence de step IDs (écartée par l'audit), double source (écartée par l'ownership). | DONE : modèle stable, diagnostics complets, opérations d'authoring validées par tests unitaires. | V1-106 |
+
+## Mise a jour V1-107
+
+Statut : `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` est DONE.
+
+Demande : Implémenter le modèle core authoring-only des chemins manuels cinématiques, stocké dans `CinematicStageContext.manualPaths`, avec sérialisation backward-compatible, opérations pures d'édition et diagnostics, sans UI ni runtime.
+
+Decision : L'ownership est stocké côté chemin via `ownerActorMoveStepId` en se basant sur le step ID stable existant. Le mode de trajet `manual` a été ajouté. Les opérations pures d'authoring (CRUD sur les chemins et points de passage) et 12 diagnostics statiques dédiés ont été implémentés et testés.
+
+Preuve : Tous les tests unitaires et d'intégration de `map_core` compilent et passent (2484 tests au total). `dart analyze` retourne zéro erreur.
+
+Limites : Pas d'UI de dessin, pas de preview graphique, pas de runtime.
 
 ## Mise a jour V1-106
 

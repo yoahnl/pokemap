@@ -170,6 +170,7 @@ enum CinematicTimelineActorMovementMode {
 
 enum CinematicTimelineActorPathMode {
   direct,
+  manual,
 }
 
 const cinematicTimelineDraftMetadataKindKey = 'authoring.kind';
@@ -1556,16 +1557,19 @@ CinematicTimelineActorFacingDirection? cinematicTimelineActorFacingDirectionOf(
 }
 
 bool isCinematicTimelineActorMoveStep(CinematicTimelineStep step) {
-  return step.kind == CinematicTimelineStepKind.actorMove &&
-      step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
-          cinematicTimelineDraftMetadataSourceValue &&
-      step.metadata[cinematicTimelineDraftMetadataKindKey] ==
-          cinematicTimelineBasicBlockMetadataKindValue &&
-      step.metadata[cinematicTimelineAuthoringBlockMetadataKey] ==
-          cinematicTimelineActorMoveBlockMetadataValue &&
-      cinematicTimelineActorMovementModeOf(step) != null &&
-      cinematicTimelineActorPathModeOf(step) ==
-          CinematicTimelineActorPathMode.direct;
+  if (step.kind != CinematicTimelineStepKind.actorMove ||
+      step.metadata[cinematicTimelineDraftMetadataSourceKey] !=
+          cinematicTimelineDraftMetadataSourceValue ||
+      step.metadata[cinematicTimelineDraftMetadataKindKey] !=
+          cinematicTimelineBasicBlockMetadataKindValue ||
+      step.metadata[cinematicTimelineAuthoringBlockMetadataKey] !=
+          cinematicTimelineActorMoveBlockMetadataValue ||
+      cinematicTimelineActorMovementModeOf(step) == null) {
+    return false;
+  }
+  final pathMode = cinematicTimelineActorPathModeOf(step);
+  return pathMode == CinematicTimelineActorPathMode.direct ||
+      pathMode == CinematicTimelineActorPathMode.manual;
 }
 
 CinematicTimelineActorMovementMode? cinematicTimelineActorMovementModeOf(
@@ -1585,8 +1589,516 @@ CinematicTimelineActorPathMode? cinematicTimelineActorPathModeOf(
   final mode = step.metadata[cinematicTimelineActorPathModeMetadataKey];
   return switch (mode) {
     'direct' => CinematicTimelineActorPathMode.direct,
+    'manual' => CinematicTimelineActorPathMode.manual,
     _ => null,
   };
+}
+
+/// Ajoute un chemin manuel owned par un bloc actorMove existant et bascule le step en mode manual.
+/// Protège la frontière de V1-107 en restant purement d'authoring (sans playback ni interpolation).
+CinematicStageContextAuthoringResult addCinematicManualPathForActorMove(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorMoveStepId,
+  String? label,
+  String? description,
+  List<String> waypointStagePointIds = const <String>[],
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final steps = cinematic.timeline.steps;
+  final stepIndex = steps.indexWhere((s) => s.id == actorMoveStepId);
+  if (stepIndex == -1) {
+    throw ArgumentError('Step ID "$actorMoveStepId" not found in cinematic.');
+  }
+  final step = steps[stepIndex];
+  if (!isCinematicTimelineActorMoveStep(step)) {
+    throw ArgumentError('Step "$actorMoveStepId" is not an actorMove step.');
+  }
+
+  if (context.manualPaths.any((p) => p.ownerActorMoveStepId == actorMoveStepId)) {
+    throw ArgumentError('A manual path already exists for step "$actorMoveStepId".');
+  }
+
+  final existingPointIds = context.stagePoints.map((p) => p.id).toSet();
+  for (final wpId in waypointStagePointIds) {
+    if (!existingPointIds.contains(wpId)) {
+      throw ArgumentError('Stage Point ID "$wpId" not found in stagePoints.');
+    }
+  }
+
+  final existingPathIds = context.manualPaths.map((p) => p.id).toSet();
+  const base = 'path';
+  var pathId = base;
+  var pathIndex = 2;
+  while (existingPathIds.contains(pathId)) {
+    pathId = '${base}_$pathIndex';
+    pathIndex++;
+  }
+
+  final resolvedLabel = label ?? 'Chemin de déplacement';
+  final newPath = CinematicManualPath(
+    id: pathId,
+    label: resolvedLabel,
+    description: description,
+    ownerActorMoveStepId: actorMoveStepId,
+    waypointStagePointIds: waypointStagePointIds,
+  );
+
+  final updatedStepMetadata = Map<String, String>.from(step.metadata)
+    ..[cinematicTimelineActorPathModeMetadataKey] =
+        CinematicTimelineActorPathMode.manual.name;
+
+  final updatedStep = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: step.label,
+    durationMs: step.durationMs,
+    actorId: step.actorId,
+    targetId: step.targetId,
+    dialogueText: step.dialogueText,
+    assetRef: step.assetRef,
+    metadata: updatedStepMetadata,
+  );
+
+  final updatedSteps = List<CinematicTimelineStep>.from(steps);
+  updatedSteps[stepIndex] = updatedStep;
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: [...context.manualPaths, newPath],
+  );
+
+  final updatedCinematic = _copyCinematicWithStageContext(
+    _copyCinematicWithTimeline(
+      cinematic,
+      CinematicTimeline(steps: updatedSteps),
+    ),
+    updatedContext,
+  );
+
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Met à jour les métadonnées ou les repères intermédiaires d'un chemin manuel existant.
+/// Limité à l'authoring pur.
+CinematicStageContextAuthoringResult updateCinematicManualPath(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String manualPathId,
+  String? label,
+  String? description,
+  List<String>? waypointStagePointIds,
+  bool clearDescription = false,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final pathIndex = context.manualPaths.indexWhere((p) => p.id == manualPathId);
+  if (pathIndex == -1) {
+    throw ArgumentError('Manual path ID "$manualPathId" not found.');
+  }
+  final existingPath = context.manualPaths[pathIndex];
+
+  if (label != null && label.trim().isEmpty) {
+    throw ArgumentError('Manual path label must not be empty.');
+  }
+
+  if (waypointStagePointIds != null) {
+    final existingPointIds = context.stagePoints.map((p) => p.id).toSet();
+    for (final wpId in waypointStagePointIds) {
+      if (!existingPointIds.contains(wpId)) {
+        throw ArgumentError('Stage Point ID "$wpId" not found in stagePoints.');
+      }
+    }
+  }
+
+  final updatedPath = existingPath.copyWith(
+    label: label,
+    description: description,
+    waypointStagePointIds: waypointStagePointIds,
+    clearDescription: clearDescription,
+  );
+
+  final updatedPaths = List<CinematicManualPath>.from(context.manualPaths);
+  updatedPaths[pathIndex] = updatedPath;
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Supprime un chemin manuel existant du contexte.
+/// Si le bloc owner était en mode manual, il est automatiquement repassé en mode direct.
+CinematicStageContextAuthoringResult removeCinematicManualPath(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String manualPathId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final path = context.manualPaths.firstWhere(
+    (p) => p.id == manualPathId,
+    orElse: () => throw ArgumentError('Manual path ID "$manualPathId" not found.'),
+  );
+
+  var updatedCinematic = cinematic;
+  final ownerStepId = path.ownerActorMoveStepId;
+  final steps = cinematic.timeline.steps;
+  final stepIndex = steps.indexWhere((s) => s.id == ownerStepId);
+  if (stepIndex != -1) {
+    final step = steps[stepIndex];
+    if (isCinematicTimelineActorMoveStep(step)) {
+      final updatedStepMetadata = Map<String, String>.from(step.metadata)
+        ..[cinematicTimelineActorPathModeMetadataKey] =
+            CinematicTimelineActorPathMode.direct.name;
+      final updatedStep = CinematicTimelineStep(
+        id: step.id,
+        kind: step.kind,
+        label: step.label,
+        durationMs: step.durationMs,
+        actorId: step.actorId,
+        targetId: step.targetId,
+        dialogueText: step.dialogueText,
+        assetRef: step.assetRef,
+        metadata: updatedStepMetadata,
+      );
+      final updatedSteps = List<CinematicTimelineStep>.from(steps);
+      updatedSteps[stepIndex] = updatedStep;
+      updatedCinematic = _copyCinematicWithTimeline(
+        cinematic,
+        CinematicTimeline(steps: updatedSteps),
+      );
+    }
+  }
+
+  final updatedPaths =
+      context.manualPaths.where((p) => p.id != manualPathId).toList();
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(updatedCinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Ajoute un repère de passage (Waypoint) à la fin d'un chemin manuel.
+CinematicStageContextAuthoringResult addCinematicManualPathWaypoint(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String manualPathId,
+  required String stagePointId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final pathIndex = context.manualPaths.indexWhere((p) => p.id == manualPathId);
+  if (pathIndex == -1) {
+    throw ArgumentError('Manual path ID "$manualPathId" not found.');
+  }
+  final existingPath = context.manualPaths[pathIndex];
+
+  final hasPoint = context.stagePoints.any((p) => p.id == stagePointId);
+  if (!hasPoint) {
+    throw ArgumentError('Stage Point ID "$stagePointId" not found in stagePoints.');
+  }
+
+  final updatedPath = existingPath.copyWith(
+    waypointStagePointIds: [
+      ...existingPath.waypointStagePointIds,
+      stagePointId,
+    ],
+  );
+
+  final updatedPaths = List<CinematicManualPath>.from(context.manualPaths);
+  updatedPaths[pathIndex] = updatedPath;
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Retire un repère de passage d'un chemin manuel à un index donné.
+CinematicStageContextAuthoringResult removeCinematicManualPathWaypointAt(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String manualPathId,
+  required int index,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final pathIndex = context.manualPaths.indexWhere((p) => p.id == manualPathId);
+  if (pathIndex == -1) {
+    throw ArgumentError('Manual path ID "$manualPathId" not found.');
+  }
+  final existingPath = context.manualPaths[pathIndex];
+
+  if (index < 0 || index >= existingPath.waypointStagePointIds.length) {
+    throw ArgumentError('Index $index out of bounds for manual path waypoints.');
+  }
+
+  final updatedWaypoints =
+      List<String>.from(existingPath.waypointStagePointIds)..removeAt(index);
+  final updatedPath = existingPath.copyWith(
+    waypointStagePointIds: updatedWaypoints,
+  );
+
+  final updatedPaths = List<CinematicManualPath>.from(context.manualPaths);
+  updatedPaths[pathIndex] = updatedPath;
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Réordonne la liste des repères intermédiaires (waypoints) d'un chemin manuel.
+CinematicStageContextAuthoringResult reorderCinematicManualPathWaypoint(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String manualPathId,
+  required int fromIndex,
+  required int toIndex,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final pathIndex = context.manualPaths.indexWhere((p) => p.id == manualPathId);
+  if (pathIndex == -1) {
+    throw ArgumentError('Manual path ID "$manualPathId" not found.');
+  }
+  final existingPath = context.manualPaths[pathIndex];
+
+  final len = existingPath.waypointStagePointIds.length;
+  if (fromIndex < 0 || fromIndex >= len || toIndex < 0 || toIndex >= len) {
+    throw ArgumentError(
+      'Reorder indices out of bounds (fromIndex: $fromIndex, toIndex: $toIndex, length: $len).',
+    );
+  }
+
+  final updatedWaypoints =
+      List<String>.from(existingPath.waypointStagePointIds);
+  final pointId = updatedWaypoints.removeAt(fromIndex);
+  updatedWaypoints.insert(toIndex, pointId);
+
+  final updatedPath = existingPath.copyWith(
+    waypointStagePointIds: updatedWaypoints,
+  );
+
+  final updatedPaths = List<CinematicManualPath>.from(context.manualPaths);
+  updatedPaths[pathIndex] = updatedPath;
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final result = updateCinematicAsset(
+    project,
+    _copyCinematicWithStageContext(cinematic, updatedContext),
+  );
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
+}
+
+/// Bascule le mode de déplacement d'un actorMove (direct / manual).
+CinematicTimelineStepUpdateResult setActorMovePathMode(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+  required CinematicTimelineActorPathMode pathMode,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final steps = cinematic.timeline.steps;
+  final index = steps.indexWhere((s) => s.id == stepId);
+  if (index == -1) {
+    throw ArgumentError('Step ID "$stepId" not found.');
+  }
+  final step = steps[index];
+  if (!isCinematicTimelineActorMoveStep(step)) {
+    throw ArgumentError('Step "$stepId" is not an actorMove step.');
+  }
+
+  final currentPathMode = cinematicTimelineActorPathModeOf(step);
+  if (currentPathMode == pathMode) {
+    return CinematicTimelineStepUpdateResult(
+      updatedProject: project,
+      cinematic: cinematic,
+      step: step,
+    );
+  }
+
+  final updatedMetadata = Map<String, String>.from(step.metadata)
+    ..[cinematicTimelineActorPathModeMetadataKey] = pathMode.name;
+
+  final updatedStep = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: step.label,
+    durationMs: step.durationMs,
+    actorId: step.actorId,
+    targetId: step.targetId,
+    dialogueText: step.dialogueText,
+    assetRef: step.assetRef,
+    metadata: updatedMetadata,
+  );
+
+  final updatedSteps = List<CinematicTimelineStep>.from(steps);
+  updatedSteps[index] = updatedStep;
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: updatedSteps),
+  );
+
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineStepUpdateResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: updatedStep,
+  );
+}
+
+/// Repasse un step actorMove en mode direct et supprime ses chemins manuels associés.
+/// Évite d'avoir des chemins orphelins dans le Stage Context.
+CinematicStageContextAuthoringResult clearActorMoveManualPath(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final context = cinematic.stageContext ?? CinematicStageContext();
+
+  final steps = cinematic.timeline.steps;
+  final index = steps.indexWhere((s) => s.id == stepId);
+  if (index == -1) {
+    throw ArgumentError('Step ID "$stepId" not found.');
+  }
+  final step = steps[index];
+  if (!isCinematicTimelineActorMoveStep(step)) {
+    throw ArgumentError('Step "$stepId" is not an actorMove step.');
+  }
+
+  final updatedMetadata = Map<String, String>.from(step.metadata)
+    ..[cinematicTimelineActorPathModeMetadataKey] =
+        CinematicTimelineActorPathMode.direct.name;
+
+  final updatedStep = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: step.label,
+    durationMs: step.durationMs,
+    actorId: step.actorId,
+    targetId: step.targetId,
+    dialogueText: step.dialogueText,
+    assetRef: step.assetRef,
+    metadata: updatedMetadata,
+  );
+
+  final updatedSteps = List<CinematicTimelineStep>.from(steps);
+  updatedSteps[index] = updatedStep;
+
+  final updatedPaths =
+      context.manualPaths.where((p) => p.ownerActorMoveStepId != stepId).toList();
+
+  final updatedContext = CinematicStageContext(
+    backdropMode: context.backdropMode,
+    actorBindings: context.actorBindings,
+    actorAppearanceBindings: context.actorAppearanceBindings,
+    initialPlacements: context.initialPlacements,
+    movementTargetBindings: context.movementTargetBindings,
+    stagePoints: context.stagePoints,
+    manualPaths: updatedPaths,
+  );
+
+  final updatedCinematic = _copyCinematicWithStageContext(
+    _copyCinematicWithTimeline(
+      cinematic,
+      CinematicTimeline(steps: updatedSteps),
+    ),
+    updatedContext,
+  );
+
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicStageContextAuthoringResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+  );
 }
 
 void _validateCinematics(List<CinematicAsset> cinematics) {

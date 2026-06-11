@@ -205,6 +205,7 @@ final class CinematicStageContext {
     List<CinematicMovementTargetBinding> movementTargetBindings =
         const <CinematicMovementTargetBinding>[],
     List<CinematicStagePoint> stagePoints = const <CinematicStagePoint>[],
+    List<CinematicManualPath> manualPaths = const <CinematicManualPath>[],
   })  : actorBindings = List<CinematicActorBinding>.unmodifiable(actorBindings),
         actorAppearanceBindings =
             List<CinematicActorAppearanceBinding>.unmodifiable(
@@ -217,7 +218,8 @@ final class CinematicStageContext {
             List<CinematicMovementTargetBinding>.unmodifiable(
           movementTargetBindings,
         ),
-        stagePoints = List<CinematicStagePoint>.unmodifiable(stagePoints);
+        stagePoints = List<CinematicStagePoint>.unmodifiable(stagePoints),
+        manualPaths = List<CinematicManualPath>.unmodifiable(manualPaths);
 
   factory CinematicStageContext.fromJson(Map<String, dynamic> json) {
     return CinematicStageContext(
@@ -251,6 +253,11 @@ final class CinematicStageContext {
         'stagePoints',
         CinematicStagePoint.fromJson,
       ),
+      manualPaths: _readObjectList(
+        json,
+        'manualPaths',
+        CinematicManualPath.fromJson,
+      ),
     );
   }
 
@@ -260,6 +267,7 @@ final class CinematicStageContext {
   final List<CinematicActorInitialPlacement> initialPlacements;
   final List<CinematicMovementTargetBinding> movementTargetBindings;
   final List<CinematicStagePoint> stagePoints;
+  final List<CinematicManualPath> manualPaths;
 
   Map<String, dynamic> toJson() => {
         'backdropMode': backdropMode.name,
@@ -273,6 +281,8 @@ final class CinematicStageContext {
             movementTargetBindings.map((binding) => binding.toJson()).toList(),
         'stagePoints':
             stagePoints.map((point) => point.toJson()).toList(),
+        'manualPaths':
+            manualPaths.map((path) => path.toJson()).toList(),
       };
 
   @override
@@ -287,7 +297,8 @@ final class CinematicStageContext {
           ) &&
           _listEquals(other.initialPlacements, initialPlacements) &&
           _listEquals(other.movementTargetBindings, movementTargetBindings) &&
-          _listEquals(other.stagePoints, stagePoints);
+          _listEquals(other.stagePoints, stagePoints) &&
+          _listEquals(other.manualPaths, manualPaths);
 
   @override
   int get hashCode => Object.hash(
@@ -297,6 +308,7 @@ final class CinematicStageContext {
         Object.hashAll(initialPlacements),
         Object.hashAll(movementTargetBindings),
         Object.hashAll(stagePoints),
+        Object.hashAll(manualPaths),
       );
 }
 
@@ -550,6 +562,100 @@ final class CinematicStagePoint {
 
   @override
   int get hashCode => Object.hash(id, label, x, y, description);
+}
+
+@immutable
+final class CinematicManualPath {
+  CinematicManualPath({
+    required String id,
+    required String label,
+    String? description,
+    required String ownerActorMoveStepId,
+    List<String> waypointStagePointIds = const <String>[],
+  })  : id = _requireTrimmed(id, 'CinematicManualPath.id'),
+        label = _requireTrimmed(label, 'CinematicManualPath.label'),
+        description = _trimOptional(description),
+        ownerActorMoveStepId = _requireTrimmed(
+          ownerActorMoveStepId,
+          'CinematicManualPath.ownerActorMoveStepId',
+        ),
+        waypointStagePointIds = _cleanWaypointList(waypointStagePointIds);
+
+  factory CinematicManualPath.fromJson(Map<String, dynamic> json) {
+    final rawWaypoints = json['waypointStagePointIds'];
+    final List<String> waypoints;
+    if (rawWaypoints == null) {
+      waypoints = const [];
+    } else if (rawWaypoints is! List) {
+      throw ArgumentError.value(rawWaypoints, 'waypointStagePointIds', 'must be a list');
+    } else {
+      waypoints = List<String>.unmodifiable([
+        for (final item in rawWaypoints)
+          if (item is String)
+            item
+          else
+            throw ArgumentError.value(item, 'waypointStagePointIds', 'must contain strings'),
+      ]);
+    }
+    return CinematicManualPath(
+      id: _readRequiredString(json, 'id'),
+      label: _readRequiredString(json, 'label'),
+      description: _readOptionalString(json, 'description'),
+      ownerActorMoveStepId: _readRequiredString(json, 'ownerActorMoveStepId'),
+      waypointStagePointIds: waypoints,
+    );
+  }
+
+  final String id;
+  final String label;
+  final String? description;
+  final String ownerActorMoveStepId;
+  final List<String> waypointStagePointIds;
+
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'id': id,
+        'label': label,
+        'description': description,
+        'ownerActorMoveStepId': ownerActorMoveStepId,
+        'waypointStagePointIds': waypointStagePointIds,
+      });
+
+  CinematicManualPath copyWith({
+    String? id,
+    String? label,
+    String? description,
+    String? ownerActorMoveStepId,
+    List<String>? waypointStagePointIds,
+    bool clearDescription = false,
+  }) {
+    return CinematicManualPath(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      description: clearDescription ? null : (description ?? this.description),
+      ownerActorMoveStepId: ownerActorMoveStepId ?? this.ownerActorMoveStepId,
+      waypointStagePointIds:
+          waypointStagePointIds ?? this.waypointStagePointIds,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicManualPath &&
+          other.id == id &&
+          other.label == label &&
+          other.description == description &&
+          other.ownerActorMoveStepId == ownerActorMoveStepId &&
+          _listEquals(other.waypointStagePointIds, waypointStagePointIds);
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        label,
+        description,
+        ownerActorMoveStepId,
+        Object.hashAll(waypointStagePointIds),
+      );
 }
 
 @immutable
@@ -1008,4 +1114,15 @@ int _mapHash<K, V>(Map<K, V> map) {
   return Object.hashAll(
     map.entries.map((entry) => Object.hash(entry.key, entry.value)),
   );
+}
+
+List<String> _cleanWaypointList(List<String> values) {
+  final result = <String>[];
+  for (final value in values) {
+    final trimmed = value.trim();
+    if (trimmed.isNotEmpty) {
+      result.add(trimmed);
+    }
+  }
+  return List<String>.unmodifiable(result);
 }

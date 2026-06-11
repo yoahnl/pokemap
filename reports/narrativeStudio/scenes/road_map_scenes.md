@@ -169,12 +169,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure | DONE | Clôture documentaire, vérification de la vérité visuelle et validation des tests et de l'analyse statique sans modification du code produit. |
 | NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0 | DONE | Simplification UX demandée par Karim après audit visuel : vocabulaire no-code `Repère` / `Destination`, suppression des anciens libellés visibles Stage Point/target techniques, Library et Builder alignés, Visual Gate 1663x926. |
 | NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract | DONE | Cadrer le futur modèle et l’UX des trajets manuels cinématiques composés de points de passage, en continuité avec Repères, Destination et actorMove, sans code produit ni runtime. |
+| NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0 | DONE | Ajouter le modèle core authoring-only des chemins manuels cinématiques stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0`
+`NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0`
 
-Raison : V1-106 a cadré le contrat produit/UX/modèle des trajets manuels sans code. La suite peut maintenant ajouter le modèle core authoring-only `CinematicManualPath`, son stockage dans `CinematicStageContext.manualPaths`, les opérations pures minimales et les diagnostics, sans UI ni runtime.
+Raison : V1-107 a implémenté le modèle core des chemins manuels, les opérations pures et les diagnostics. La suite logique est de réaliser l'interface utilisateur pour dessiner ces chemins manuels de manière interactive et les lier aux actorMove dans l'éditeur.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -183,9 +184,21 @@ Ordre apres V1-102 :
 4. `NS-SCENES-V1-104-bis — ActorMove Stage Point Target Evidence / Quality Gate Closure` (DONE)
 5. `NS-SCENES-V1-105 — Cinematic Builder UX Simplification / Destination Vocabulary V0` (DONE)
 6. `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract` (DONE)
-7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0`
+7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` (DONE)
 8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0`
 9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
+
+## Mise a jour V1-107
+
+Statut : `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` est DONE.
+
+Demande : Implémenter le modèle core authoring-only des chemins manuels cinématiques, stocké dans `CinematicStageContext.manualPaths`, avec sérialisation backward-compatible, opérations pures d'édition et diagnostics, sans UI ni runtime.
+
+Decision : L'ownership est stocké côté chemin via `ownerActorMoveStepId` en se basant sur le step ID stable existant. Le mode de trajet `manual` a été ajouté. Les opérations pures d'authoring (CRUD sur les chemins et points de passage) et 12 diagnostics statiques dédiés ont été codés et testés.
+
+Preuve : Tous les tests unitaires et d'intégration de `map_core` compilent et passent (2484 tests au total). `dart analyze` retourne zéro erreur.
+
+Limites : Pas d'UI de dessin, pas de preview graphique, pas de runtime.
 
 ## Mise a jour V1-106
 

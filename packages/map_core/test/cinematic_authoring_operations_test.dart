@@ -2235,6 +2235,352 @@ void main() {
         throwsA(isA<ArgumentError>()),
       );
     });
+
+    group('manual paths', () {
+      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
+      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
+      final waitStep = CinematicTimelineStep(
+        id: 'step_wait',
+        kind: CinematicTimelineStepKind.wait,
+        durationMs: 100,
+      );
+      final actorMoveStep = CinematicTimelineStep(
+        id: 'step_actor_move',
+        kind: CinematicTimelineStepKind.actorMove,
+        actorId: 'actor_professor',
+        targetId: 'target_center',
+        durationMs: 1000,
+        metadata: const {
+          'authoring.source': 'cinematic-builder-v0',
+          'authoring.kind': 'basicBlock',
+          'authoring.block': 'actorMove',
+          'actor.movementMode': 'walk',
+          'actor.pathMode': 'direct',
+        },
+      );
+
+      CinematicAsset createTestAsset() {
+        return CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'target_center',
+              label: 'Centre scène',
+            ),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [pointA, pointB],
+          ),
+          timeline: CinematicTimeline(
+            steps: [waitStep, actorMoveStep],
+          ),
+        );
+      }
+
+      test('addCinematicManualPathForActorMove creates path and sets mode to manual', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final result = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          label: 'Jean manual path',
+          description: 'A description',
+          waypointStagePointIds: ['point_a', 'point_b'],
+        );
+
+        final updatedCinematic = result.cinematic;
+        final context = updatedCinematic.stageContext!;
+        expect(context.manualPaths, hasLength(1));
+        final path = context.manualPaths.single;
+        expect(path.label, 'Jean manual path');
+        expect(path.description, 'A description');
+        expect(path.ownerActorMoveStepId, 'step_actor_move');
+        expect(path.waypointStagePointIds, ['point_a', 'point_b']);
+
+        final step = updatedCinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.manual);
+      });
+
+      test('addCinematicManualPathForActorMove defaults label and generates unique ID', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final result1 = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        expect(result1.cinematic.stageContext!.manualPaths.single.id, 'path');
+        expect(result1.cinematic.stageContext!.manualPaths.single.label, 'Chemin de déplacement');
+      });
+
+      test('addCinematicManualPathForActorMove validations', () {
+        var project = _project(cinematics: [createTestAsset()]);
+
+        // Non-actorMove step
+        expect(
+          () => addCinematicManualPathForActorMove(
+            project,
+            cinematicId: 'cinematic_intro',
+            actorMoveStepId: 'step_wait',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        // Unknown step
+        expect(
+          () => addCinematicManualPathForActorMove(
+            project,
+            cinematicId: 'cinematic_intro',
+            actorMoveStepId: 'step_unknown',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        // Stage point does not exist
+        expect(
+          () => addCinematicManualPathForActorMove(
+            project,
+            cinematicId: 'cinematic_intro',
+            actorMoveStepId: 'step_actor_move',
+            waypointStagePointIds: ['missing_point'],
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        // Duplicate path for step
+        final firstAdded = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+        );
+        expect(
+          () => addCinematicManualPathForActorMove(
+            firstAdded.updatedProject,
+            cinematicId: 'cinematic_intro',
+            actorMoveStepId: 'step_actor_move',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('updateCinematicManualPath updates path properties', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          waypointStagePointIds: ['point_a'],
+        );
+
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+        final updated = updateCinematicManualPath(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          manualPathId: pathId,
+          label: 'Updated Label',
+          description: 'Updated Description',
+          waypointStagePointIds: ['point_b', 'point_a'],
+        );
+
+        final path = updated.cinematic.stageContext!.manualPaths.single;
+        expect(path.label, 'Updated Label');
+        expect(path.description, 'Updated Description');
+        expect(path.waypointStagePointIds, ['point_b', 'point_a']);
+      });
+
+      test('updateCinematicManualPath validations', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+        );
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+
+        // Empty label
+        expect(
+          () => updateCinematicManualPath(
+            added.updatedProject,
+            cinematicId: 'cinematic_intro',
+            manualPathId: pathId,
+            label: '   ',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        // Missing waypoint stage point
+        expect(
+          () => updateCinematicManualPath(
+            added.updatedProject,
+            cinematicId: 'cinematic_intro',
+            manualPathId: pathId,
+            waypointStagePointIds: ['missing_point'],
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+
+        // Unknown manual path ID
+        expect(
+          () => updateCinematicManualPath(
+            added.updatedProject,
+            cinematicId: 'cinematic_intro',
+            manualPathId: 'missing_path',
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('removeCinematicManualPath removes path and resets step to direct', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+        );
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+
+        final removed = removeCinematicManualPath(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          manualPathId: pathId,
+        );
+
+        expect(removed.cinematic.stageContext!.manualPaths, isEmpty);
+        final step = removed.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.direct);
+      });
+
+      test('addCinematicManualPathWaypoint adds waypoint', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          waypointStagePointIds: ['point_a'],
+        );
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+
+        final updated = addCinematicManualPathWaypoint(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          manualPathId: pathId,
+          stagePointId: 'point_b',
+        );
+
+        expect(
+          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          ['point_a', 'point_b'],
+        );
+      });
+
+      test('removeCinematicManualPathWaypointAt removes waypoint at index', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          waypointStagePointIds: ['point_a', 'point_b'],
+        );
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+
+        final updated = removeCinematicManualPathWaypointAt(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          manualPathId: pathId,
+          index: 0,
+        );
+
+        expect(
+          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          ['point_b'],
+        );
+
+        // Out of bounds
+        expect(
+          () => removeCinematicManualPathWaypointAt(
+            updated.updatedProject,
+            cinematicId: 'cinematic_intro',
+            manualPathId: pathId,
+            index: 5,
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('reorderCinematicManualPathWaypoint reorders waypoints', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+          waypointStagePointIds: ['point_a', 'point_b'],
+        );
+        final pathId = added.cinematic.stageContext!.manualPaths.single.id;
+
+        final updated = reorderCinematicManualPathWaypoint(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          manualPathId: pathId,
+          fromIndex: 0,
+          toIndex: 1,
+        );
+
+        expect(
+          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          ['point_b', 'point_a'],
+        );
+
+        // Out of bounds
+        expect(
+          () => reorderCinematicManualPathWaypoint(
+            updated.updatedProject,
+            cinematicId: 'cinematic_intro',
+            manualPathId: pathId,
+            fromIndex: -1,
+            toIndex: 1,
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+
+      test('setActorMovePathMode updates mode without affecting targets', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final updated = setActorMovePathMode(
+          project,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_actor_move',
+          pathMode: CinematicTimelineActorPathMode.manual,
+        );
+
+        final step = updated.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.manual);
+        expect(step.targetId, 'target_center'); // Preserves target
+      });
+
+      test('clearActorMoveManualPath resets step and deletes path', () {
+        var project = _project(cinematics: [createTestAsset()]);
+        final added = addCinematicManualPathForActorMove(
+          project,
+          cinematicId: 'cinematic_intro',
+          actorMoveStepId: 'step_actor_move',
+        );
+
+        final cleared = clearActorMoveManualPath(
+          added.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: 'step_actor_move',
+        );
+
+        expect(cleared.cinematic.stageContext!.manualPaths, isEmpty);
+        final step = cleared.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.direct);
+      });
+    });
   });
 }
 

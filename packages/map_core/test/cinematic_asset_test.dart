@@ -233,6 +233,121 @@ void main() {
       expect(decoded.stageContext?.actorAppearanceBindings, isEmpty);
     });
 
+    test('deserializes cinematic stage context without manual paths', () {
+      final decoded = CinematicAsset.fromJson({
+        'id': 'cinematic_intro',
+        'title': 'Intro cinematic',
+        'stageContext': {
+          'stagePoints': [
+            {'id': 'point_a', 'label': 'Point A', 'x': 1, 'y': 2},
+          ],
+        },
+        'timeline': {'steps': <Object?>[]},
+      });
+
+      expect(decoded.stageContext?.manualPaths, isEmpty);
+    });
+
+    test('round-trips cinematic manual paths preserving waypoint order', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_manual_path',
+        title: 'Manual path cinematic',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(targetId: 'target_gate', label: 'Gate'),
+        ],
+        stageContext: CinematicStageContext(
+          stagePoints: [
+            CinematicStagePoint(id: 'point_a', label: 'A', x: 1, y: 2),
+            CinematicStagePoint(id: 'point_b', label: 'B', x: 3, y: 4),
+          ],
+          manualPaths: [
+            CinematicManualPath(
+              id: 'manual_path_1',
+              label: 'Entrée Lysa',
+              ownerActorMoveStepId: 'step_actor_move',
+              waypointStagePointIds: const ['point_b', 'point_a', 'point_b'],
+            ),
+            CinematicManualPath(
+              id: 'manual_path_2',
+              label: 'Draft path',
+              description: null,
+              ownerActorMoveStepId: 'step_unused',
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_actor_move',
+              kind: CinematicTimelineStepKind.actorMove,
+              actorId: 'actor_lysa',
+              targetId: 'target_gate',
+              durationMs: 800,
+              metadata: const {
+                cinematicTimelineDraftMetadataKindKey:
+                    cinematicTimelineBasicBlockMetadataKindValue,
+                cinematicTimelineDraftMetadataSourceKey:
+                    cinematicTimelineDraftMetadataSourceValue,
+                cinematicTimelineAuthoringBlockMetadataKey:
+                    cinematicTimelineActorMoveBlockMetadataValue,
+                cinematicTimelineActorMovementModeMetadataKey: 'walk',
+                cinematicTimelineActorPathModeMetadataKey: 'manual',
+              },
+            ),
+          ],
+        ),
+      );
+
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final decoded = CinematicAsset.fromJson(json);
+      final stageJson = json['stageContext'] as Map<String, dynamic>;
+      final manualPathJson =
+          (stageJson['manualPaths'] as List<dynamic>).first as Map;
+
+      expect(decoded, asset);
+      expect(decoded.stageContext?.manualPaths, asset.stageContext?.manualPaths);
+      expect(decoded.stageContext?.manualPaths.first.waypointStagePointIds, [
+        'point_b',
+        'point_a',
+        'point_b',
+      ]);
+      expect(manualPathJson, isNot(contains('description')));
+      expect(jsonEncode(json), isNot(contains('"x":null')));
+      expect(jsonEncode(json), isNot(contains('destination')));
+    });
+
+    test('manual path lists are immutable', () {
+      final context = CinematicStageContext(
+        manualPaths: [
+          CinematicManualPath(
+            id: 'manual_path_1',
+            label: 'Path',
+            ownerActorMoveStepId: 'step_actor_move',
+            waypointStagePointIds: const ['point_a'],
+          ),
+        ],
+      );
+
+      expect(
+        () => context.manualPaths.add(
+          CinematicManualPath(
+            id: 'manual_path_2',
+            label: 'Other',
+            ownerActorMoveStepId: 'step_actor_move_2',
+          ),
+        ),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => context.manualPaths.single.waypointStagePointIds.add('point_b'),
+        throwsUnsupportedError,
+      );
+    });
+
     test('does not store character id inside actor binding', () {
       final context = CinematicStageContext(
         actorBindings: [
