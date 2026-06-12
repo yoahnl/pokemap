@@ -176,12 +176,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0 | DONE | Connecter les contrôles transport du Cinematic Builder au plan de playback preview V1-110 via un état local editor-only, avec Play/Pause/Stop/Reset, playhead de lecture et statut no-code, sans runtime, Flame, GameState ni déplacement acteur rendu. |
 | NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0 | DONE | Connecter les poses `CinematicPreviewPlaybackFrame.actorPoses` au rendu preview editor-only des acteurs, avec direct/manual path visibles pendant la lecture locale, sans runtime, Flame, GameState, pathfinding, collision, scrubber/seek ni walking animation. |
 | NS-SCENES-V1-113 — Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0 | DONE | Supprimer l’effet de déplacement par cases dans la preview playback acteur en conservant les positions sub-tile issues de `CinematicPreviewPlaybackFrame.actorPoses`, sans recalculer l’interpolation dans l’UI, sans walking animation, runtime, Flame, GameState, pathfinding ni collision. |
+| NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract | DONE | Cadrer le futur système d’animation de marche preview-only des acteurs du Cinematic Builder, en distinguant mouvement, frame sprite, cadence, direction, fallback et anti-scope runtime/Flame/GameState, sans code produit. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`
+`NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`
 
-Raison : V1-113 rend le mouvement sub-tile fluide dans la preview. La prochaine étape utile est de cadrer l’animation de marche sans compenser un déplacement encore saccadé, et toujours sans ouvrir le runtime, Flame ou GameState.
+Raison : V1-114 a cadré l’animation de marche preview-only et recommande une trajectoire prudente. Le prochain lot doit implémenter uniquement un resolver editor-only de frame idle/walk/run/fallback, sans intégration renderer complète ni runtime/Flame/GameState.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -197,7 +198,22 @@ Ordre apres V1-102 :
 11. `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0` (DONE)
 12. `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` (DONE)
 13. `NS-SCENES-V1-113 — Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0` (DONE)
-14. `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`
+14. `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract` (DONE)
+15. `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`
+
+## Mise a jour V1-114
+
+Statut : `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract` est DONE documentaire.
+
+Demande : cadrer le futur système d’animation de marche preview-only après V1-113, sans coder, sans screenshot, sans Visual Gate et sans modifier `map_core`, `map_editor`, runtime, Flame ou GameState.
+
+Decision : retenir une trajectoire prudente en deux lots. V1-115 implémente un resolver editor-only de frame `idle | walk | run | fallback` basé sur `CinematicPreviewPlaybackFrame.actorPoses`, `playbackTimeMs`, la Character Library et les métadonnées actorMove. V1-116 intégrera ensuite ce résultat au renderer/overlay.
+
+Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_walking_animation_prep_contract.md` et `reports/narrativeStudio/scenes/ns_scenes_v1_114_evidence_pack.md`.
+
+Limites : aucune animation n’est encore implémentée. La cadence V0 reste time-based pour éviter de recalculer une distance de route dans l’UI.
+
+Prochain lot recommande : `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
 
 ## Mise a jour V1-113
 
