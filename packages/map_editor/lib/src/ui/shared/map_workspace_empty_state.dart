@@ -1,8 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as p;
 import 'package:map_core/map_core.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
@@ -76,13 +74,7 @@ class MapWorkspaceEmptyState extends ConsumerWidget {
                     ),
                     PokeMapButton(
                       variant: PokeMapButtonVariant.secondary,
-                      onPressed: () async {
-                        final selectedDirectory = await FilePicker.platform.getDirectoryPath();
-                        if (selectedDirectory != null) {
-                          final manifestPath = p.join(selectedDirectory, 'project.json');
-                          await notifier.loadProject(manifestPath);
-                        }
-                      },
+                      onPressed: () => showTopToolbarOpenProjectDialog(context, notifier),
                       child: const Text('Ouvrir un projet'),
                     ),
                   ],

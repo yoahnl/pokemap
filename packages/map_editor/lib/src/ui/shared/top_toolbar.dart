@@ -1,9 +1,7 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
-import 'package:path/path.dart' as p;
 
 import '../../application/models/terrain_selection_mode.dart';
 import '../../features/editor/state/editor_notifier.dart';
@@ -118,14 +116,7 @@ class TopToolbar extends ConsumerWidget {
           ToolbarCapsuleButton(
             icon: CupertinoIcons.folder_open,
             tooltip: 'Open Project',
-            onPressed: () async {
-              final selectedDirectory =
-                  await FilePicker.platform.getDirectoryPath();
-              if (selectedDirectory != null) {
-                final manifestPath = p.join(selectedDirectory, 'project.json');
-                await notifier.loadProject(manifestPath);
-              }
-            },
+            onPressed: () => showTopToolbarOpenProjectDialog(context, notifier),
           ),
           if (toolbar.isSaving)
             const SizedBox(
@@ -556,7 +547,8 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.tileset => 'Tileset Studio',
                 EditorWorkspaceMode.trainer => 'Trainer Studio',
                 EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
-                EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
+                EditorWorkspaceMode.narrativeOverview =>
+                  'Narrative Studio / Aperçu',
                 EditorWorkspaceMode.globalStory => 'Global Story',
                 EditorWorkspaceMode.scenes => 'Scenes Workspace',
                 EditorWorkspaceMode.step => 'Step Studio',
@@ -644,4 +636,3 @@ class TopToolbar extends ConsumerWidget {
     };
   }
 }
-

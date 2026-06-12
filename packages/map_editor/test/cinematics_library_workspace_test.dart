@@ -553,16 +553,24 @@ void main() {
     expect(find.text('Sans acteurs'), findsWidgets);
     expect(find.text('Sans lecture'), findsWidgets);
 
-    for (final key in <String>[
-      'cinematic-builder-transport-reset-button',
-      'cinematic-builder-transport-play-button',
-      'cinematic-builder-transport-stop-button',
-    ]) {
-      final button = tester.widget<PokeMapButton>(
-        find.byKey(ValueKey<String>(key)),
-      );
-      expect(button.onPressed, isNull);
-    }
+    final resetButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-reset-button'),
+      ),
+    );
+    final playButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-play-button'),
+      ),
+    );
+    final stopButton = tester.widget<PokeMapButton>(
+      find.byKey(
+        const ValueKey('cinematic-builder-transport-stop-button'),
+      ),
+    );
+    expect(resetButton.onPressed, isNotNull);
+    expect(playButton.onPressed, isNotNull);
+    expect(stopButton.onPressed, isNull);
 
     expect(project.toJson(), beforeProject);
     expect(stageMapData.toJson(), beforeMapData);

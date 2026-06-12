@@ -2,12 +2,35 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('TopToolbar', () {
+    test('normalizes manual project paths for the macOS picker fallback', () {
+      expect(
+        resolveProjectManifestPathFromUserSelection(
+          '/Users/karim/PokeMapDemo',
+        ),
+        '/Users/karim/PokeMapDemo/project.json',
+      );
+      expect(
+        resolveProjectManifestPathFromUserSelection(
+          '"/Users/karim/PokeMapDemo/project.json"',
+        ),
+        '/Users/karim/PokeMapDemo/project.json',
+      );
+      final home = Platform.environment['HOME'];
+      if (home != null && home.isNotEmpty) {
+        expect(
+          resolveProjectManifestPathFromUserSelection('~/PokeMapDemo'),
+          '$home/PokeMapDemo/project.json',
+        );
+      }
+    });
+
     testWidgets('shows the app brand and project workspace label',
         (tester) async {
       await pumpTopToolbarHarness(

@@ -41,10 +41,8 @@ typedef UpdateCinematicBasicBlockStepCallback = Future<bool> Function({
   CinematicTimelineCameraMode? cameraMode,
 });
 
-typedef AddCinematicRequiredActorCallback = Future<String?> Function({
-  required String cinematicId,
-  String? label,
-});
+typedef AddCinematicRequiredActorCallback = Future<String?> Function(
+    {required String cinematicId, String? label});
 
 typedef RenameCinematicRequiredActorCallback = Future<bool> Function({
   required String cinematicId,
@@ -57,9 +55,8 @@ typedef RemoveCinematicRequiredActorCallback = Future<bool> Function({
   required String actorId,
 });
 
-typedef AddCinematicMovementTargetCallback = Future<String?> Function({
-  required String cinematicId,
-});
+typedef AddCinematicMovementTargetCallback = Future<String?> Function(
+    {required String cinematicId});
 
 typedef UpdateCinematicMovementTargetCallback = Future<bool> Function({
   required String cinematicId,
@@ -111,10 +108,8 @@ typedef RemoveCinematicAuthoringStepCallback = Future<bool> Function({
   required String stepId,
 });
 
-typedef UpdateCinematicStageMapCallback = Future<bool> Function({
-  required String cinematicId,
-  String? mapId,
-});
+typedef UpdateCinematicStageMapCallback = Future<bool> Function(
+    {required String cinematicId, String? mapId});
 
 typedef UpdateCinematicStageContextCallback = Future<bool> Function({
   required String cinematicId,
@@ -132,20 +127,13 @@ typedef _ToggleActorMovePathModeCallback = Future<void> Function(
 );
 
 typedef _AddManualPathWaypointCallback = Future<void> Function(
-  CinematicManualPath path,
-  String stagePointId,
-);
+    CinematicManualPath path, String stagePointId);
 
 typedef _RemoveManualPathWaypointCallback = Future<void> Function(
-  CinematicManualPath path,
-  int index,
-);
+    CinematicManualPath path, int index);
 
 typedef _ReorderManualPathWaypointCallback = Future<void> Function(
-  CinematicManualPath path,
-  int fromIndex,
-  int toIndex,
-);
+    CinematicManualPath path, int fromIndex, int toIndex);
 
 typedef UpsertCinematicActorBindingCallback = Future<bool> Function({
   required String cinematicId,
@@ -200,21 +188,16 @@ typedef _ResizeStepDurationCallback = Future<bool> Function(
 });
 
 typedef _AddBasicBlockCallback = Future<void> Function(
-  CinematicTimelineBasicBlockKind blockKind,
-);
+    CinematicTimelineBasicBlockKind blockKind);
 
-typedef _AddRequiredActorCallback = Future<bool> Function({
-  required String label,
-});
+typedef _AddRequiredActorCallback = Future<bool> Function(
+    {required String label});
 
-typedef _RenameRequiredActorCallback = Future<bool> Function(
-  CinematicActorRef actor, {
-  required String label,
-});
+typedef _RenameRequiredActorCallback = Future<bool>
+    Function(CinematicActorRef actor, {required String label});
 
 typedef _RemoveRequiredActorCallback = Future<bool> Function(
-  CinematicActorRef actor,
-);
+    CinematicActorRef actor);
 
 typedef _AddMovementTargetCallback = Future<void> Function();
 
@@ -225,42 +208,34 @@ typedef _UpdateMovementTargetCallback = Future<bool> Function(
 });
 
 typedef _RemoveMovementTargetCallback = Future<bool> Function(
-  CinematicMovementTargetRef target,
-);
+    CinematicMovementTargetRef target);
 
 typedef _AddActorFacingCallback = Future<void> Function();
 
 typedef _AddActorMoveCallback = Future<void> Function();
 
 typedef _RemoveAuthoringStepCallback = Future<void> Function(
-  CinematicTimelineStep step,
-);
+    CinematicTimelineStep step);
 
 typedef _UpdateStageMapCallback = Future<void> Function(String? mapId);
 
 typedef _UpdateStageContextCallback = Future<void> Function(
-  CinematicStageContext stageContext,
-);
+    CinematicStageContext stageContext);
 
 typedef _UpsertActorBindingCallback = Future<void> Function(
-  CinematicActorBinding binding,
-);
+    CinematicActorBinding binding);
 
 typedef _UpsertActorAppearanceBindingCallback = Future<void> Function(
-  CinematicActorAppearanceBinding binding,
-);
+    CinematicActorAppearanceBinding binding);
 
 typedef _RemoveActorAppearanceBindingCallback = Future<void> Function(
-  String actorId,
-);
+    String actorId);
 
 typedef _UpsertActorInitialPlacementCallback = Future<void> Function(
-  CinematicActorInitialPlacement placement,
-);
+    CinematicActorInitialPlacement placement);
 
 typedef _UpsertMovementTargetBindingCallback = Future<void> Function(
-  CinematicMovementTargetBinding binding,
-);
+    CinematicMovementTargetBinding binding);
 
 class CinematicBuilderWorkspace extends StatefulWidget {
   const CinematicBuilderWorkspace({
@@ -351,7 +326,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
       _CinematicBuilderWorkspaceState();
 }
 
-class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
+class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
+    with SingleTickerProviderStateMixin {
   String? _selectedStepId;
   int? _timelineProbeTimeMs;
   _TimelineProbeSnapHint? _timelineProbeSnapHint;
@@ -359,6 +335,26 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       const CinematicBackdropPreviewFramingState();
   String? _selectedStagePointId;
   bool _addStagePointMode = false;
+  late final AnimationController _playbackController;
+  late String _playbackTimelineSignature;
+  bool _isPlaybackPlaying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _playbackTimelineSignature = _playbackSignature(widget.asset);
+    _playbackController = AnimationController(vsync: this)
+      ..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      })
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed && _isPlaybackPlaying) {
+          setState(() => _isPlaybackPlaying = false);
+        }
+      });
+  }
 
   @override
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
@@ -374,6 +370,66 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       _selectedStagePointId = null;
       _addStagePointMode = false;
     }
+    final nextPlaybackSignature = _playbackSignature(widget.asset);
+    if (_playbackTimelineSignature != nextPlaybackSignature) {
+      _playbackTimelineSignature = nextPlaybackSignature;
+      _stopPlaybackWithoutSetState(resetTime: true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _playbackController.dispose();
+    super.dispose();
+  }
+
+  void _stopPlaybackWithoutSetState({required bool resetTime}) {
+    _playbackController.stop();
+    if (resetTime) {
+      _playbackController.value = 0;
+    }
+    _isPlaybackPlaying = false;
+  }
+
+  void _pausePlaybackWithoutSetState() {
+    _playbackController.stop();
+    _isPlaybackPlaying = false;
+  }
+
+  int _playbackTimeMs(CinematicPreviewPlaybackPlan plan) {
+    if (plan.totalDurationMs <= 0) {
+      return 0;
+    }
+    return (_playbackController.value * plan.totalDurationMs).round().clamp(
+          0,
+          plan.totalDurationMs,
+        );
+  }
+
+  void _togglePlayback(CinematicPreviewPlaybackPlan plan) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    if (_isPlaybackPlaying) {
+      _playbackController.stop();
+      setState(() => _isPlaybackPlaying = false);
+      return;
+    }
+    _playbackController.duration = Duration(
+      milliseconds: math.max(1, plan.totalDurationMs),
+    );
+    final startValue =
+        _playbackController.value >= 1 ? 0.0 : _playbackController.value;
+    setState(() => _isPlaybackPlaying = true);
+    _playbackController.forward(from: startValue);
+  }
+
+  void _stopPlayback() {
+    setState(() => _stopPlaybackWithoutSetState(resetTime: true));
+  }
+
+  void _resetPlayback() {
+    setState(() => _stopPlaybackWithoutSetState(resetTime: true));
   }
 
   @override
@@ -391,6 +447,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
       mapWidth: widget.backdropPreviewModel?.mapWidth,
       mapHeight: widget.backdropPreviewModel?.mapHeight,
     );
+    final playbackPlan = buildCinematicPreviewPlaybackPlan(
+      cinematic: widget.asset,
+      actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
+    );
+    final playbackTimeMs = _playbackTimeMs(playbackPlan);
+    final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
 
     return Material(
       type: MaterialType.transparency,
@@ -557,7 +619,14 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                   selectedStepId: _selectedStepId,
                                   timelineProbeTimeMs: _timelineProbeTimeMs,
                                   timelineProbeSnapHint: _timelineProbeSnapHint,
+                                  playbackPlan: playbackPlan,
+                                  playbackFrame: playbackFrame,
+                                  playbackTimeMs: playbackTimeMs,
+                                  isPlaybackPlaying: _isPlaybackPlaying,
                                   onStepSelected: (step) {
+                                    if (_isPlaybackPlaying) {
+                                      _pausePlaybackWithoutSetState();
+                                    }
                                     setState(() {
                                       _selectedStepId = step.id;
                                       _timelineProbeTimeMs = null;
@@ -579,6 +648,10 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
                                   onStepDurationResized:
                                       _resizeTimelineStepDuration,
                                   onAddDraftStep: _addDraftStep,
+                                  onPlaybackPlayPause: () =>
+                                      _togglePlayback(playbackPlan),
+                                  onPlaybackStop: _stopPlayback,
+                                  onPlaybackReset: _resetPlayback,
                                 ),
                               ),
                             ],
@@ -675,9 +748,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
     setState(() => _selectedStepId = null);
   }
 
-  Future<void> _addBasicBlock(
-    CinematicTimelineBasicBlockKind blockKind,
-  ) async {
+  Future<void> _addBasicBlock(CinematicTimelineBasicBlockKind blockKind) async {
     final createdStepId = await widget.onAddBasicBlockStep(
       cinematicId: widget.asset.id,
       blockKind: blockKind,
@@ -747,10 +818,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
   }
 
   Future<void> _updateStageMap(String? mapId) async {
-    await widget.onUpdateStageMap(
-      cinematicId: widget.asset.id,
-      mapId: mapId,
-    );
+    await widget.onUpdateStageMap(cinematicId: widget.asset.id, mapId: mapId);
   }
 
   Future<void> _updateStageContext(CinematicStageContext stageContext) async {
@@ -910,8 +978,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace> {
 
     // Find the next unique index
     int nextIndex = maxIndex + 1;
-    while (existingPoints.any((p) =>
-        p.id == 'stage_point_$nextIndex' || p.id == 'point_$nextIndex')) {
+    while (existingPoints.any(
+      (p) => p.id == 'stage_point_$nextIndex' || p.id == 'point_$nextIndex',
+    )) {
       nextIndex++;
     }
     return 'stage_point_$nextIndex';
@@ -1551,10 +1620,7 @@ class _BlockPalette extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   'Sélectionnez une action dans le déroulé pour ajuster ses réglages.',
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 11,
-                  ),
+                  style: TextStyle(color: colors.textSecondary, fontSize: 11),
                 ),
               ],
             ),
@@ -1618,9 +1684,7 @@ class _RequiredActorsCardState extends State<_RequiredActorsCard> {
             ),
           const SizedBox(height: 8),
           _MovementTargetTextField(
-            key: const ValueKey(
-              'cinematic-builder-required-actor-label-field',
-            ),
+            key: const ValueKey('cinematic-builder-required-actor-label-field'),
             controller: _labelController,
             placeholder: 'Nom de l’acteur',
           ),
@@ -1764,8 +1828,9 @@ class _MovementTargetEditorRowState extends State<_MovementTargetEditorRow> {
   void initState() {
     super.initState();
     _labelController = TextEditingController(text: widget.target.label);
-    _descriptionController =
-        TextEditingController(text: widget.target.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.target.description ?? '',
+    );
   }
 
   @override
@@ -2095,10 +2160,7 @@ class _ActorMovePaletteTile extends StatelessWidget {
 }
 
 class _PaletteBlockTile extends StatelessWidget {
-  const _PaletteBlockTile({
-    required this.block,
-    required this.onAddBasicBlock,
-  });
+  const _PaletteBlockTile({required this.block, required this.onAddBasicBlock});
 
   final _PaletteBlock block;
   final _AddBasicBlockCallback onAddBasicBlock;
@@ -2129,11 +2191,7 @@ class _PaletteBlockTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 6),
-            Icon(
-              CupertinoIcons.lock_fill,
-              color: colors.textMuted,
-              size: 13,
-            ),
+            Icon(CupertinoIcons.lock_fill, color: colors.textMuted, size: 13),
           ],
         ),
       );
@@ -2170,7 +2228,8 @@ class _PaletteBlockTile extends StatelessWidget {
             hitTestable: true,
             child: PokeMapButton(
               key: ValueKey(
-                  'cinematic-builder-palette-${blockKind.name}-button'),
+                'cinematic-builder-palette-${blockKind.name}-button',
+              ),
               onPressed: () => onAddBasicBlock(blockKind),
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
@@ -2302,8 +2361,8 @@ class _PreviewSandbox extends StatelessWidget {
                   if (!ultraCompact) ...[
                     SizedBox(height: compact ? 4 : 6),
                     Text(
-                      'La preview in-engine n’est pas disponible dans ce lot. '
-                      'Cette zone reste une sandbox visuelle sans runtime.',
+                      'La lecture complète n’est pas encore disponible dans ce lot. '
+                      'Cette zone reste une prévisualisation visuelle locale.',
                       textAlign: TextAlign.center,
                       maxLines: compact ? 2 : null,
                       overflow: compact ? TextOverflow.ellipsis : null,
@@ -2343,17 +2402,11 @@ class _PreviewSandbox extends StatelessWidget {
                       selectedStep != null &&
                       selectedStepIndex != null) ...[
                     const SizedBox(height: 12),
-                    const _MutedText(
-                      'Scène non jouée. Bloc sélectionné :',
-                    ),
+                    const _MutedText('Scène non jouée. Bloc sélectionné :'),
                     const SizedBox(height: 6),
                     PokeMapBadge(
                       label: '${selectedStepIndex! + 1}. '
-                          '${_stepDisplayTitle(
-                        asset,
-                        selectedStep!,
-                        selectedStepIndex!,
-                      )} • '
+                          '${_stepDisplayTitle(asset, selectedStep!, selectedStepIndex!)} • '
                           '${selectedStep!.kind.name}',
                       variant: PokeMapBadgeVariant.info,
                     ),
@@ -2402,10 +2455,7 @@ double _builderTimelineHeight(
       : _builderTimelinePreferredShare;
   final maxTimeline = math.min(
     timelineMaxHeight,
-    math.max(
-      0.0,
-      availableHeight - _builderTimelineGap - previewMinHeight,
-    ),
+    math.max(0.0, availableHeight - _builderTimelineGap - previewMinHeight),
   );
   final minTimeline = math.min(timelineMinHeight, maxTimeline);
   final preferredHeight = math.max(
@@ -2423,18 +2473,10 @@ const _timelineBarMinWidth = 72.0;
 const _timelinePixelsPerMsFloor = 0.32;
 const _timelineProbeSnapThresholdPx = 8.0;
 
-enum _TimelineProbeSnapHint {
-  timelineStart,
-  timelineEnd,
-  blockStart,
-  blockEnd,
-}
+enum _TimelineProbeSnapHint { timelineStart, timelineEnd, blockStart, blockEnd }
 
 class _TimelineProbeSnapResult {
-  const _TimelineProbeSnapResult({
-    required this.timeMs,
-    this.snapHint,
-  });
+  const _TimelineProbeSnapResult({required this.timeMs, this.snapHint});
 
   final int timeMs;
   final _TimelineProbeSnapHint? snapHint;
@@ -2454,14 +2496,7 @@ class _TimelineProbeSnapTarget {
   final int stableOrder;
 }
 
-enum _TimelineKeyboardNavigation {
-  previous,
-  next,
-  up,
-  down,
-  first,
-  last,
-}
+enum _TimelineKeyboardNavigation { previous, next, up, down, first, last }
 
 _TimelineKeyboardNavigation? _timelineKeyboardNavigationForKey(
   LogicalKeyboardKey key,
@@ -2595,11 +2630,18 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.selectedStepId,
     required this.timelineProbeTimeMs,
     required this.timelineProbeSnapHint,
+    required this.playbackPlan,
+    required this.playbackFrame,
+    required this.playbackTimeMs,
+    required this.isPlaybackPlaying,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
     required this.onTimelineProbeCleared,
     required this.onStepDurationResized,
     required this.onAddDraftStep,
+    required this.onPlaybackPlayPause,
+    required this.onPlaybackStop,
+    required this.onPlaybackReset,
   });
 
   final CinematicsLibraryEntry entry;
@@ -2607,11 +2649,18 @@ class _TimelinePlaceholder extends StatefulWidget {
   final String? selectedStepId;
   final int? timelineProbeTimeMs;
   final _TimelineProbeSnapHint? timelineProbeSnapHint;
+  final CinematicPreviewPlaybackPlan playbackPlan;
+  final CinematicPreviewPlaybackFrame playbackFrame;
+  final int playbackTimeMs;
+  final bool isPlaybackPlaying;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
   final VoidCallback onTimelineProbeCleared;
   final _ResizeStepDurationCallback onStepDurationResized;
   final VoidCallback onAddDraftStep;
+  final VoidCallback onPlaybackPlayPause;
+  final VoidCallback onPlaybackStop;
+  final VoidCallback onPlaybackReset;
 
   @override
   State<_TimelinePlaceholder> createState() => _TimelinePlaceholderState();
@@ -2830,9 +2879,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     final selectedBlock = _selectedTimeBlock(timeLayout, widget.selectedStepId);
     final timelineProbeTimeMs = widget.timelineProbeTimeMs;
     final hoveredBlock = _selectedTimeBlock(timeLayout, _hoveredStepId);
-    final stepsById = {
-      for (final step in steps) step.id: step,
-    };
+    final stepsById = {for (final step in steps) step.id: step};
     final hoveredStep =
         hoveredBlock == null ? null : stepsById[hoveredBlock.stepId];
     final hoveredLane =
@@ -2849,11 +2896,8 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
           }
           setState(() => _timelineHasKeyboardFocus = hasFocus);
         },
-        onKeyEvent: (node, event) => _handleTimelineKeyEvent(
-          timeLayout,
-          stepsById,
-          event,
-        ),
+        onKeyEvent: (node, event) =>
+            _handleTimelineKeyEvent(timeLayout, stepsById, event),
         child: PokeMapPanel(
           key: const ValueKey('cinematic-builder-timeline-placeholder'),
           expandChild: true,
@@ -3056,7 +3100,8 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         const SizedBox(width: 5),
                         PokeMapBadge(
                           key: const ValueKey(
-                              'cinematic-builder-time-probe-badge'),
+                            'cinematic-builder-time-probe-badge',
+                          ),
                           label: _timelineProbeBadgeLabel(
                             timelineProbeTimeMs,
                             widget.timelineProbeSnapHint,
@@ -3090,7 +3135,8 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                         const SizedBox(width: 5),
                         PokeMapBadge(
                           key: const ValueKey(
-                              'cinematic-builder-selected-time-badge'),
+                            'cinematic-builder-selected-time-badge',
+                          ),
                           label:
                               'Sélection : ${_shortTimeLabel(selectedBlock.startMs)}',
                           variant: PokeMapBadgeVariant.info,
@@ -3118,6 +3164,10 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                               selectedStepId: widget.selectedStepId,
                               selectedBlock: selectedBlock,
                               timelineProbeTimeMs: timelineProbeTimeMs,
+                              playbackTimeMs: widget.playbackTimeMs,
+                              showPlaybackPlayhead: _canPlayPreview(
+                                widget.playbackPlan,
+                              ),
                               hoveredStepId: _hoveredStepId,
                               timelineFocused: _timelineHasKeyboardFocus,
                               onStepHovered: _setHoveredStepId,
@@ -3169,10 +3219,9 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                 ),
               ),
               const SizedBox(height: 6),
-              // Durée totale footer
-              Row(
-                children: [
-                  DefaultTextStyle.merge(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final durationLabel = DefaultTextStyle.merge(
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -3182,10 +3231,42 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const Spacer(),
-                  const _TimelineTransportControlsPlaceholder(),
-                ],
+                  );
+                  final transportControls = _TimelinePlaybackTransportControls(
+                    plan: widget.playbackPlan,
+                    frame: widget.playbackFrame,
+                    playbackTimeMs: widget.playbackTimeMs,
+                    isPlaying: widget.isPlaybackPlaying,
+                    onPlayPause: widget.onPlaybackPlayPause,
+                    onStop: widget.onPlaybackStop,
+                    onReset: widget.onPlaybackReset,
+                  );
+                  if (constraints.maxWidth < 760) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        durationLabel,
+                        const SizedBox(height: 6),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: transportControls,
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(child: durationLabel),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: transportControls,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -3465,6 +3546,8 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.selectedStepId,
     required this.selectedBlock,
     required this.timelineProbeTimeMs,
+    required this.playbackTimeMs,
+    required this.showPlaybackPlayhead,
     required this.hoveredStepId,
     required this.timelineFocused,
     required this.onStepHovered,
@@ -3481,6 +3564,8 @@ class _TimelineTimeGrid extends StatelessWidget {
   final String? selectedStepId;
   final CinematicTimelineTimeBlock? selectedBlock;
   final int? timelineProbeTimeMs;
+  final int playbackTimeMs;
+  final bool showPlaybackPlayhead;
   final String? hoveredStepId;
   final bool timelineFocused;
   final ValueChanged<String?> onStepHovered;
@@ -3592,6 +3677,18 @@ class _TimelineTimeGrid extends StatelessWidget {
                               bottom: 0,
                               child: const _TimelineSelectionCursor(),
                             ),
+                          if (showPlaybackPlayhead)
+                            Positioned(
+                              left: _tickLeft(
+                                    playbackTimeMs,
+                                    pixelsPerMs,
+                                    contentWidth,
+                                  ) -
+                                  6,
+                              top: 0,
+                              bottom: 0,
+                              child: const _TimelinePlaybackPlayhead(),
+                            ),
                         ],
                       ),
                     ),
@@ -3618,9 +3715,7 @@ class _TimelineLaneHeaderCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 7),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
-        border: Border(
-          bottom: BorderSide(color: colors.borderSubtle),
-        ),
+        border: Border(bottom: BorderSide(color: colors.borderSubtle)),
       ),
       child: Text(
         'Pistes',
@@ -3652,17 +3747,11 @@ class _TimelineLaneLabelCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: colors.surfaceSubtle,
-        border: Border(
-          bottom: BorderSide(color: colors.borderSubtle),
-        ),
+        border: Border(bottom: BorderSide(color: colors.borderSubtle)),
       ),
       child: Row(
         children: [
-          Icon(
-            _laneIcon(lane.laneKind),
-            size: 16,
-            color: tone.icon,
-          ),
+          Icon(_laneIcon(lane.laneKind), size: 16, color: tone.icon),
           const SizedBox(width: 8),
           Expanded(
             child: Stack(
@@ -3766,9 +3855,7 @@ class _TimelineAxis extends StatelessWidget {
         height: _timelineAxisHeight,
         decoration: BoxDecoration(
           color: colors.surfaceSubtle,
-          border: Border(
-            bottom: BorderSide(color: colors.borderSubtle),
-          ),
+          border: Border(bottom: BorderSide(color: colors.borderSubtle)),
         ),
         child: Stack(
           clipBehavior: Clip.hardEdge,
@@ -3807,9 +3894,7 @@ class _TimelineAxis extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                             ),
                       ),
-                      _TestHidden(
-                        child: Text(tick.label),
-                      ),
+                      _TestHidden(child: Text(tick.label)),
                     ],
                   ),
                 ),
@@ -3927,76 +4012,269 @@ class _TimelineSelectionCursor extends StatelessWidget {
   }
 }
 
-class _TimelineTransportControlsPlaceholder extends StatelessWidget {
-  const _TimelineTransportControlsPlaceholder();
+class _TimelinePlaybackPlayhead extends StatelessWidget {
+  const _TimelinePlaybackPlayhead();
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: 'Contrôles de lecture à venir',
-      child: const Center(
-        child: Row(
-          key: ValueKey('cinematic-builder-transport-controls'),
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _TimelineTransportAction(
-              buttonKey: ValueKey(
-                'cinematic-builder-transport-reset-button',
+    final colors = context.pokeMapColors;
+    return IgnorePointer(
+      child: Semantics(
+        label: 'Tête de lecture',
+        child: SizedBox(
+          width: 58,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned(
+                left: 5,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  key: const ValueKey('cinematic-builder-playback-playhead'),
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: colors.brandPrimary.withValues(alpha: 0.95),
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: colors.brandPrimary.withValues(alpha: 0.34),
+                        blurRadius: 9,
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              icon: CupertinoIcons.arrow_counterclockwise,
-              label: 'Reset',
-            ),
-            SizedBox(width: 14),
-            _TimelineTransportAction(
-              buttonKey: ValueKey(
-                'cinematic-builder-transport-play-button',
+              Positioned(
+                top: 2,
+                left: 0,
+                child: DecoratedBox(
+                  key: const ValueKey(
+                    'cinematic-builder-playback-playhead-handle',
+                  ),
+                  decoration: BoxDecoration(
+                    color: colors.brandPrimarySoft,
+                    border: Border.all(color: colors.brandPrimary),
+                    borderRadius: BorderRadius.circular(5),
+                  ),
+                  child: SizedBox(
+                    height: 14,
+                    width: 50,
+                    child: Center(
+                      child: Text(
+                        'Lecture',
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                        style: DefaultTextStyle.of(context).style.copyWith(
+                              color: colors.textPrimary,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w900,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
-              icon: CupertinoIcons.play_fill,
-              label: 'Play',
-            ),
-            SizedBox(width: 14),
-            _TimelineTransportAction(
-              buttonKey: ValueKey(
-                'cinematic-builder-transport-stop-button',
-              ),
-              icon: CupertinoIcons.stop_fill,
-              label: 'Stop',
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _TimelineTransportAction extends StatelessWidget {
-  const _TimelineTransportAction({
-    required this.buttonKey,
-    required this.icon,
-    required this.label,
+class _TimelinePlaybackTransportControls extends StatelessWidget {
+  const _TimelinePlaybackTransportControls({
+    required this.plan,
+    required this.frame,
+    required this.playbackTimeMs,
+    required this.isPlaying,
+    required this.onPlayPause,
+    required this.onStop,
+    required this.onReset,
   });
 
-  final Key buttonKey;
-  final IconData icon;
-  final String label;
+  final CinematicPreviewPlaybackPlan plan;
+  final CinematicPreviewPlaybackFrame frame;
+  final int playbackTimeMs;
+  final bool isPlaying;
+  final VoidCallback onPlayPause;
+  final VoidCallback onStop;
+  final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: '$label indisponible dans ce lot',
-      child: SizedBox(
-        width: 76,
-        child: PokeMapButton(
-          key: buttonKey,
-          onPressed: null,
-          variant: PokeMapButtonVariant.secondary,
-          size: PokeMapButtonSize.medium,
-          leading: Icon(icon),
-          child: const SizedBox.shrink(),
-        ),
+    final canPlay = _canPlayPreview(plan);
+    final canReturnToStart = canPlay && (playbackTimeMs > 0 || isPlaying);
+    final status = _playbackStatusLabel(
+      plan: plan,
+      frame: frame,
+      playbackTimeMs: playbackTimeMs,
+      isPlaying: isPlaying,
+    );
+    final capabilityStatus = _playbackCapabilityStatusLabel(
+      plan: plan,
+      frame: frame,
+    );
+    final showCapabilityStatus = canPlay && status != capabilityStatus;
+    return Semantics(
+      label: 'Contrôles de lecture',
+      child: Wrap(
+        key: const ValueKey('cinematic-builder-transport-controls'),
+        alignment: WrapAlignment.end,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 6,
+        children: [
+          Tooltip(
+            message: 'Revenir au début',
+            child: Semantics(
+              button: true,
+              label: 'Revenir au début',
+              child: PokeMapButton(
+                key: const ValueKey('cinematic-builder-transport-reset-button'),
+                onPressed: canPlay ? onReset : null,
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.arrow_counterclockwise),
+                child: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: isPlaying
+                ? 'Mettre en pause la prévisualisation'
+                : 'Lire la cinématique',
+            child: Semantics(
+              button: true,
+              label: isPlaying
+                  ? 'Mettre en pause la prévisualisation'
+                  : 'Lire la cinématique',
+              child: PokeMapButton(
+                key: const ValueKey('cinematic-builder-transport-play-button'),
+                onPressed: canPlay ? onPlayPause : null,
+                variant: PokeMapButtonVariant.primary,
+                size: PokeMapButtonSize.small,
+                isSelected: isPlaying,
+                leading: Icon(
+                  isPlaying
+                      ? CupertinoIcons.pause_fill
+                      : CupertinoIcons.play_fill,
+                ),
+                child: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          Tooltip(
+            message: 'Arrêter la prévisualisation',
+            child: Semantics(
+              button: true,
+              label: 'Arrêter la prévisualisation',
+              child: PokeMapButton(
+                key: const ValueKey('cinematic-builder-transport-stop-button'),
+                onPressed: canReturnToStart ? onStop : null,
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.stop_fill),
+                child: const SizedBox.shrink(),
+              ),
+            ),
+          ),
+          Semantics(
+            label: 'Temps de prévisualisation',
+            child: Text(
+              '${_shortTimeLabel(playbackTimeMs)} / '
+              '${_shortTimeLabel(plan.totalDurationMs)}',
+              key: const ValueKey('cinematic-builder-playback-time-label'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: DefaultTextStyle.of(
+                context,
+              ).style.copyWith(fontSize: 11, fontWeight: FontWeight.w900),
+            ),
+          ),
+          Semantics(
+            label: 'Statut de prévisualisation',
+            child: PokeMapBadge(
+              key: const ValueKey('cinematic-builder-playback-status-label'),
+              label: status,
+              variant: canPlay
+                  ? plan.capabilities.hasUnsupportedSteps
+                      ? PokeMapBadgeVariant.warning
+                      : PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.neutral,
+            ),
+          ),
+          if (showCapabilityStatus)
+            Semantics(
+              label: 'Capacité de prévisualisation',
+              child: PokeMapBadge(
+                key: const ValueKey(
+                  'cinematic-builder-playback-capability-label',
+                ),
+                label: capabilityStatus,
+                variant: plan.capabilities.hasUnsupportedSteps
+                    ? PokeMapBadgeVariant.warning
+                    : PokeMapBadgeVariant.success,
+              ),
+            ),
+        ],
       ),
     );
   }
+}
+
+String _playbackStatusLabel({
+  required CinematicPreviewPlaybackPlan plan,
+  required CinematicPreviewPlaybackFrame frame,
+  required int playbackTimeMs,
+  required bool isPlaying,
+}) {
+  if (!_canPlayPreview(plan)) {
+    return 'Aucun bloc à lire';
+  }
+  if (isPlaying) {
+    return 'Lecture en cours';
+  }
+  if (playbackTimeMs >= plan.totalDurationMs) {
+    return 'Fin de prévisualisation';
+  }
+  if (playbackTimeMs > 0) {
+    return 'Lecture en pause';
+  }
+  return _playbackCapabilityStatusLabel(plan: plan, frame: frame);
+}
+
+String _playbackCapabilityStatusLabel({
+  required CinematicPreviewPlaybackPlan plan,
+  required CinematicPreviewPlaybackFrame frame,
+}) {
+  if (frame.visibleDiagnostics.isNotEmpty ||
+      plan.capabilities.hasUnsupportedSteps) {
+    return 'Prévisualisation partielle';
+  }
+  return 'Prévisualisation prête';
+}
+
+bool _canPlayPreview(CinematicPreviewPlaybackPlan plan) {
+  return plan.totalDurationMs > 0 && plan.timelineItems.isNotEmpty;
+}
+
+String _playbackSignature(CinematicAsset asset) {
+  return asset.timeline.steps
+      .map(
+        (step) => [
+          step.id,
+          step.kind.name,
+          step.actorId ?? '',
+          step.targetId ?? '',
+          step.durationMs?.toString() ?? '',
+          step.metadata.entries
+              .map((entry) => '${entry.key}:${entry.value}')
+              .join('|'),
+        ].join('#'),
+      )
+      .join('::');
 }
 
 class _TimelineTrackRow extends StatelessWidget {
@@ -4041,9 +4319,7 @@ class _TimelineTrackRow extends StatelessWidget {
       height: _timelineLaneRowHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: colors.borderSubtle),
-          ),
+          border: Border(bottom: BorderSide(color: colors.borderSubtle)),
         ),
         child: Stack(
           clipBehavior: Clip.hardEdge,
@@ -4117,9 +4393,8 @@ class _TimelineTrackRow extends StatelessWidget {
                           timelineFocused && selectedStepId == block.stepId,
                       hovered: hoveredStepId == block.stepId,
                       pixelsPerMs: pixelsPerMs,
-                      onHoverChanged: (isHovered) => onStepHovered(
-                        isHovered ? block.stepId : null,
-                      ),
+                      onHoverChanged: (isHovered) =>
+                          onStepHovered(isHovered ? block.stepId : null),
                       onTap: () => onStepSelected(step),
                       onDurationResize: onStepDurationResized,
                     ),
@@ -4189,9 +4464,7 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
       return;
     }
     _resizeDrag = resizeDrag.copyWith(lastAppliedDurationMs: durationMs);
-    unawaited(
-      widget.onDurationResize(widget.step, durationMs: durationMs),
-    );
+    unawaited(widget.onDurationResize(widget.step, durationMs: durationMs));
   }
 
   void _endDurationResize(DragEndDetails details) {
@@ -4224,9 +4497,7 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
     final endLabel = _shortTimeLabel(endMs);
     final timeRangeLabel = '$startLabel - $endLabel';
     Widget card = KeyedSubtree(
-      key: ValueKey(
-        'cinematic-builder-time-visual-bar-${widget.block.stepId}',
-      ),
+      key: ValueKey('cinematic-builder-time-visual-bar-${widget.block.stepId}'),
       child: PokeMapCard(
         key: ValueKey('cinematic-builder-step-card-${widget.block.stepId}'),
         selected: widget.selected,
@@ -4241,14 +4512,8 @@ class _TimelineStepCardState extends State<_TimelineStepCard> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _TestHidden(
-                  child: Text('${widget.block.stepIndex + 1}'),
-                ),
-                Icon(
-                  _stepIcon(widget.block.kind),
-                  color: tone.icon,
-                  size: 11,
-                ),
+                _TestHidden(child: Text('${widget.block.stepIndex + 1}')),
+                Icon(_stepIcon(widget.block.kind), color: tone.icon, size: 11),
                 const SizedBox(width: 4),
                 Expanded(
                   child: Text(
@@ -4351,9 +4616,7 @@ class _TimelineDurationResizeDrag {
   final int initialDurationMs;
   final int lastAppliedDurationMs;
 
-  _TimelineDurationResizeDrag copyWith({
-    int? lastAppliedDurationMs,
-  }) {
+  _TimelineDurationResizeDrag copyWith({int? lastAppliedDurationMs}) {
     return _TimelineDurationResizeDrag(
       stepId: stepId,
       startGlobalX: startGlobalX,
@@ -4491,10 +4754,7 @@ class _EmptyTimelineState extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _SectionTitle(
-          title: 'Timeline vide',
-          subtitle: 'Déroulé',
-        ),
+        _SectionTitle(title: 'Timeline vide', subtitle: 'Déroulé'),
         SizedBox(height: 10),
         _BodyText('Cette cinématique ne contient encore aucun bloc.'),
         SizedBox(height: 4),
@@ -4531,8 +4791,9 @@ class _SelectedStagePointInspectorState
   void initState() {
     super.initState();
     _labelController = TextEditingController(text: widget.point.label);
-    _descriptionController =
-        TextEditingController(text: widget.point.description ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.point.description ?? '',
+    );
   }
 
   @override
@@ -4567,13 +4828,15 @@ class _SelectedStagePointInspectorState
         : _descriptionController.text;
     if (newLabel != widget.point.label ||
         newDescription != widget.point.description) {
-      widget.onUpdateStagePoint(CinematicStagePoint(
-        id: widget.point.id,
-        label: newLabel,
-        x: widget.point.x,
-        y: widget.point.y,
-        description: newDescription,
-      ));
+      widget.onUpdateStagePoint(
+        CinematicStagePoint(
+          id: widget.point.id,
+          label: newLabel,
+          x: widget.point.x,
+          y: widget.point.y,
+          description: newDescription,
+        ),
+      );
     }
   }
 
@@ -4994,8 +5257,9 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                               : widget.entry.description!,
                         ),
                         _KeyValue(
-                            label: 'Map',
-                            value: widget.entry.mapId ?? 'Aucune map'),
+                          label: 'Map',
+                          value: widget.entry.mapId ?? 'Aucune map',
+                        ),
                         _KeyValue(
                           label: 'Acteurs',
                           value: widget.entry.requiredActors.isEmpty
@@ -5009,8 +5273,9 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                           value: '${widget.entry.timeline.stepCount} step(s)',
                         ),
                         _KeyValue(
-                            label: 'Durée',
-                            value: _durationLabel(widget.entry.timeline)),
+                          label: 'Durée',
+                          value: _durationLabel(widget.entry.timeline),
+                        ),
                         _KeyValue(
                           label: 'Usages',
                           value: widget.entry.usages.isEmpty
@@ -5034,10 +5299,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
 
 /// Compact inspector panel header: large title + subtitle matching the mockup.
 class _InspectorHeader extends StatelessWidget {
-  const _InspectorHeader({
-    required this.title,
-    required this.subtitle,
-  });
+  const _InspectorHeader({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -5076,10 +5338,7 @@ class _InspectorHeader extends StatelessWidget {
 
 /// Segmented "Scène / Action" tabs for the inspector panel.
 class _InspectorTabs extends StatelessWidget {
-  const _InspectorTabs({
-    required this.tabIndex,
-    required this.onTabChanged,
-  });
+  const _InspectorTabs({required this.tabIndex, required this.onTabChanged});
 
   final int tabIndex;
   final ValueChanged<int> onTabChanged;
@@ -5363,8 +5622,10 @@ class _StageMapSectionState extends State<_StageMapSection> {
                     ? SystemMouseCursors.basic
                     : SystemMouseCursors.click,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.controlSurface,
                     borderRadius: BorderRadius.circular(8),
@@ -5628,10 +5889,7 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _buildClearItem(),
-            Container(
-              height: 1,
-              color: widget.colors.divider,
-            ),
+            Container(height: 1, color: widget.colors.divider),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(vertical: 4),
@@ -5743,8 +6001,8 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
                         ),
                         Text(
                           _translateGroupType(
-                                  node.group?.type ?? MapGroupType.special)
-                              .toUpperCase(),
+                            node.group?.type ?? MapGroupType.special,
+                          ).toUpperCase(),
                           style: TextStyle(
                             color: colors.textMuted,
                             fontSize: 8,
@@ -5892,8 +6150,10 @@ class _StageBackdropSection extends StatelessWidget {
               child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: colors.controlSurface,
                     borderRadius: BorderRadius.circular(8),
@@ -5998,10 +6258,7 @@ class _StageBackdropSection extends StatelessWidget {
                   height: estimatedHeight,
                   onModeSelected: (mode) {
                     onUpdateStageContext(
-                      _copyStageContext(
-                        stageContext,
-                        backdropMode: mode,
-                      ),
+                      _copyStageContext(stageContext, backdropMode: mode),
                     );
                     dismiss();
                   },
@@ -6152,10 +6409,7 @@ class _StageActorBindingsSection extends StatelessWidget {
       key: const ValueKey('cinematic-builder-stage-actors-section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionTitle(
-          title: 'Acteurs',
-          subtitle: 'Binding',
-        ),
+        const _SectionTitle(title: 'Acteurs', subtitle: 'Binding'),
         const SizedBox(height: 8),
         if (asset.requiredActors.isEmpty)
           const _MutedText('Aucun acteur requis.')
@@ -6215,10 +6469,7 @@ class _StageOrphanAppearanceBindingNotice extends StatelessWidget {
       ),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _KeyValue(
-          label: 'Apparence',
-          value: 'Référence orpheline',
-        ),
+        const _KeyValue(label: 'Apparence', value: 'Référence orpheline'),
         const SizedBox(height: 4),
         const _MutedText('Une apparence référence un acteur supprimé.'),
         _MutedText('Acteur référencé : ${binding.actorId}'),
@@ -6328,14 +6579,18 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
       return false;
     }
     if (binding.kind == CinematicActorBindingKind.cinematicOnly) {
-      final appearanceBinding =
-          _actorAppearanceBindingFor(widget.stageContext, widget.actor.actorId);
+      final appearanceBinding = _actorAppearanceBindingFor(
+        widget.stageContext,
+        widget.actor.actorId,
+      );
       if (appearanceBinding == null || appearanceBinding.characterId.isEmpty) {
         return false;
       }
     }
-    final placement =
-        _initialPlacementFor(widget.stageContext, widget.actor.actorId);
+    final placement = _initialPlacementFor(
+      widget.stageContext,
+      widget.actor.actorId,
+    );
     if (placement == null ||
         placement.kind == CinematicActorInitialPlacementKind.unset) {
       return false;
@@ -6355,8 +6610,11 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
     final playerDisabled =
         widget.playerActorId != null && widget.playerActorId != actor.actorId;
     final actorSources = _actorBindableEntitySources(asset, sourceCatalog);
-    final mapEntityDisabledReason =
-        _mapEntityActorDisabledReason(asset, sourceCatalog, actorSources);
+    final mapEntityDisabledReason = _mapEntityActorDisabledReason(
+      asset,
+      sourceCatalog,
+      actorSources,
+    );
     final canPickMapEntity = mapEntityDisabledReason == null;
     final selectedSource = binding?.mapEntityId == null
         ? null
@@ -6425,10 +6683,14 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               ? 'Personnage ou objet : ${selectedSource.label}'
               : 'Depuis personnage/objet';
         case CinematicActorBindingKind.cinematicOnly:
-          final appearanceBinding =
-              _actorAppearanceBindingFor(stageContext, actor.actorId);
-          final character =
-              _characterById(widget.characters, appearanceBinding?.characterId);
+          final appearanceBinding = _actorAppearanceBindingFor(
+            stageContext,
+            actor.actorId,
+          );
+          final character = _characterById(
+            widget.characters,
+            appearanceBinding?.characterId,
+          );
           return character?.name ?? 'Non défini';
         case CinematicActorBindingKind.unbound:
         default:
@@ -6508,16 +6770,19 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     // Status Badge
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         color: isComplete
                             ? colors.successSoft
                             : colors.warningSoft,
                         border: Border.all(
-                            color: isComplete
-                                ? colors.successBorder
-                                : colors.warningBorder),
+                          color: isComplete
+                              ? colors.successBorder
+                              : colors.warningBorder,
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -6558,10 +6823,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             ),
           ),
           if (_isExpanded) ...[
-            Container(
-              height: 1,
-              color: colors.borderSubtle,
-            ),
+            Container(height: 1, color: colors.borderSubtle),
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -6569,10 +6831,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                 children: [
                   Text(
                     'Choisis qui est ${_actorDisplayLabel(actor)}, où il apparaît au début, et à quoi il ressemble.',
-                    style: TextStyle(
-                      color: colors.textMuted,
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: colors.textMuted, fontSize: 11),
                   ),
                   const SizedBox(height: 16),
 
@@ -6914,8 +7173,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                                 ),
                               ),
                               if (widget.selectedStagePointId != null &&
-                                  widget.stageContext.stagePoints.any((p) =>
-                                      p.id == widget.selectedStagePointId)) ...[
+                                  widget.stageContext.stagePoints.any(
+                                    (p) => p.id == widget.selectedStagePointId,
+                                  )) ...[
                                 const SizedBox(height: 8),
                                 MouseRegion(
                                   cursor: SystemMouseCursors.click,
@@ -6964,8 +7224,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     context,
                     actor: actor,
                     selectedKind: selectedKind,
-                    appearanceBinding:
-                        _actorAppearanceBindingFor(stageContext, actor.actorId),
+                    appearanceBinding: _actorAppearanceBindingFor(
+                      stageContext,
+                      actor.actorId,
+                    ),
                     characters: widget.characters,
                     tilesets: widget.tilesets,
                     actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
@@ -6984,13 +7246,17 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       children: [
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => setState(() => _isRenamingPanelExpanded =
-                              !_isRenamingPanelExpanded),
+                          onTap: () => setState(
+                            () => _isRenamingPanelExpanded =
+                                !_isRenamingPanelExpanded,
+                          ),
                           child: MouseRegion(
                             cursor: SystemMouseCursors.click,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 10),
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
                               child: Row(
                                 children: [
                                   Text(
@@ -7015,10 +7281,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                           ),
                         ),
                         if (_isRenamingPanelExpanded) ...[
-                          Container(
-                            height: 1,
-                            color: colors.borderSubtle,
-                          ),
+                          Container(height: 1, color: colors.borderSubtle),
                           Padding(
                             padding: const EdgeInsets.all(12),
                             child: Column(
@@ -7026,7 +7289,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                               children: [
                                 _MovementTargetTextField(
                                   key: ValueKey(
-                                      'cinematic-builder-actor-label-${actor.actorId}'),
+                                    'cinematic-builder-actor-label-${actor.actorId}',
+                                  ),
                                   controller: _labelController,
                                   placeholder: 'Nom de l’acteur',
                                 ),
@@ -7054,10 +7318,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
                         'Cet acteur est utilisé par $usageCount bloc(s) timeline.',
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 10,
-                        ),
+                        style: TextStyle(color: colors.textMuted, fontSize: 10),
                       ),
                     ),
                   ],
@@ -7068,7 +7329,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       Expanded(
                         child: PokeMapButton(
                           key: ValueKey(
-                              'cinematic-builder-save-required-actor-${actor.actorId}'),
+                            'cinematic-builder-save-required-actor-${actor.actorId}',
+                          ),
                           onPressed: _isRenaming ? null : _rename,
                           variant: PokeMapButtonVariant.secondary,
                           isLoading: _isRenaming,
@@ -7080,7 +7342,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       Expanded(
                         child: PokeMapButton(
                           key: ValueKey(
-                              'cinematic-builder-delete-required-actor-${actor.actorId}'),
+                            'cinematic-builder-delete-required-actor-${actor.actorId}',
+                          ),
                           onPressed: isUsed || _isRemoving ? null : _remove,
                           variant: PokeMapButtonVariant.danger,
                           isLoading: _isRemoving,
@@ -7117,11 +7380,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               shape: BoxShape.circle,
               color: colors.brandPrimarySoft,
             ),
-            child: Icon(
-              icon,
-              size: 14,
-              color: colors.brandPrimary,
-            ),
+            child: Icon(icon, size: 14, color: colors.brandPrimary),
           ),
           const SizedBox(width: 10),
           Text(
@@ -7185,23 +7444,18 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               const SizedBox(height: 4),
               Text(
                 'L’apparence Character Library ne s’applique plus.',
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: colors.textMuted, fontSize: 11),
               ),
               const SizedBox(height: 2),
               Text(
                 'Personnage référencé : ${appearanceBinding.characterId}',
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: colors.textMuted, fontSize: 11),
               ),
               const SizedBox(height: 8),
               PokeMapButton(
                 key: ValueKey(
-                    'cinematic-builder-character-appearance-${actor.actorId}-clear'),
+                  'cinematic-builder-character-appearance-${actor.actorId}-clear',
+                ),
                 onPressed: () =>
                     widget.onRemoveActorAppearanceBinding(actor.actorId),
                 variant: PokeMapButtonVariant.secondary,
@@ -7274,7 +7528,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               const SizedBox(height: 8),
               PokeMapButton(
                 key: ValueKey(
-                    'cinematic-builder-character-appearance-${actor.actorId}-clear'),
+                  'cinematic-builder-character-appearance-${actor.actorId}-clear',
+                ),
                 onPressed: () =>
                     widget.onRemoveActorAppearanceBinding(actor.actorId),
                 variant: PokeMapButtonVariant.secondary,
@@ -7318,7 +7573,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               builder: (btnCtx) {
                 return PokeMapButton(
                   key: ValueKey(
-                      'cinematic-builder-character-appearance-${actor.actorId}-toggle'),
+                    'cinematic-builder-character-appearance-${actor.actorId}-toggle',
+                  ),
                   onPressed: () => _showCharacterDropdown(
                     context,
                     btnCtx,
@@ -7369,7 +7625,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               builder: (btnCtx) {
                 return PokeMapButton(
                   key: ValueKey(
-                      'cinematic-builder-character-appearance-${actor.actorId}-toggle'),
+                    'cinematic-builder-character-appearance-${actor.actorId}-toggle',
+                  ),
                   onPressed: () => _showCharacterDropdown(
                     context,
                     btnCtx,
@@ -7394,7 +7651,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
             const SizedBox(height: 6),
             PokeMapButton(
               key: ValueKey(
-                  'cinematic-builder-character-appearance-${actor.actorId}-clear'),
+                'cinematic-builder-character-appearance-${actor.actorId}-clear',
+              ),
               onPressed: () =>
                   widget.onRemoveActorAppearanceBinding(actor.actorId),
               variant: PokeMapButtonVariant.secondary,
@@ -7501,7 +7759,9 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                             shape: BoxShape.circle,
                             color: colors.surfaceBase.withValues(alpha: 0.9),
                             border: Border.all(
-                                color: colors.borderStrong, width: 1.5),
+                              color: colors.borderStrong,
+                              width: 1.5,
+                            ),
                           ),
                           child: Center(
                             child: Text(
@@ -7534,18 +7794,12 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                     const SizedBox(height: 2),
                     Text(
                       '${selectedCharacter.frameWidth} × ${selectedCharacter.frameHeight}',
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 11,
-                      ),
+                      style: TextStyle(color: colors.textMuted, fontSize: 11),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Id technique : ${selectedCharacter.id}',
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 10,
-                      ),
+                      style: TextStyle(color: colors.textMuted, fontSize: 10),
                     ),
                   ],
                 ),
@@ -7558,7 +7812,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
           builder: (btnCtx) {
             return PokeMapButton(
               key: ValueKey(
-                  'cinematic-builder-character-appearance-${actor.actorId}-toggle'),
+                'cinematic-builder-character-appearance-${actor.actorId}-toggle',
+              ),
               onPressed: () => _showCharacterDropdown(
                 context,
                 btnCtx,
@@ -7583,7 +7838,8 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         const SizedBox(height: 6),
         PokeMapButton(
           key: ValueKey(
-              'cinematic-builder-character-appearance-${actor.actorId}-clear'),
+            'cinematic-builder-character-appearance-${actor.actorId}-clear',
+          ),
           onPressed: () => widget.onRemoveActorAppearanceBinding(actor.actorId),
           variant: PokeMapButtonVariant.secondary,
           size: PokeMapButtonSize.small,
@@ -7668,8 +7924,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight =
-            (sources.length * 44.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight = (sources.length * 44.0 + 8.0).clamp(
+          100.0,
+          320.0,
+        );
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -7753,8 +8011,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight =
-            (targets.length * 44.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight = (targets.length * 44.0 + 8.0).clamp(
+          100.0,
+          320.0,
+        );
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -7839,8 +8099,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight =
-            (points.length * 44.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight = (points.length * 44.0 + 8.0).clamp(
+          100.0,
+          320.0,
+        );
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -7925,8 +8187,10 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
         }
         if (left < 8) left = 8;
 
-        final estimatedHeight =
-            (characters.length * 56.0 + 8.0).clamp(100.0, 320.0);
+        final estimatedHeight = (characters.length * 56.0 + 8.0).clamp(
+          100.0,
+          320.0,
+        );
         if (top + estimatedHeight > maxH - 8) {
           top = position.dy - estimatedHeight - 4;
         }
@@ -8245,9 +8509,7 @@ class _TargetDropdownPopup extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          children: [
-            for (final target in targets) _buildItem(target),
-          ],
+          children: [for (final target in targets) _buildItem(target)],
         ),
       ),
     );
@@ -8356,9 +8618,7 @@ class _StagePointDropdownPopup extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          children: [
-            for (final point in points) _buildItem(point),
-          ],
+          children: [for (final point in points) _buildItem(point)],
         ),
       ),
     );
@@ -8402,10 +8662,7 @@ class _StagePointDropdownPopup extends StatelessWidget {
                     ),
                     Text(
                       'x: ${point.x.toStringAsFixed(2)}, y: ${point.y.toStringAsFixed(2)}',
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 10,
-                      ),
+                      style: TextStyle(color: colors.textMuted, fontSize: 10),
                     ),
                   ],
                 ),
@@ -8425,8 +8682,7 @@ class _StagePointDropdownPopup extends StatelessWidget {
 }
 
 typedef _SelectProjectCharacter = Future<void> Function(
-  ProjectCharacterEntry character,
-);
+    ProjectCharacterEntry character);
 
 class _StageAppearanceClearButton extends StatelessWidget {
   const _StageAppearanceClearButton({
@@ -8492,9 +8748,7 @@ class _CharacterDropdownPopup extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          children: [
-            for (final character in characters) _buildItem(character),
-          ],
+          children: [for (final character in characters) _buildItem(character)],
         ),
       ),
     );
@@ -8592,10 +8846,7 @@ class _StageMovementTargetBindingsSection extends StatelessWidget {
       key: const ValueKey('cinematic-builder-stage-movement-targets-section'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionTitle(
-          title: 'Destinations',
-          subtitle: 'Résolution',
-        ),
+        const _SectionTitle(title: 'Destinations', subtitle: 'Résolution'),
         const SizedBox(height: 8),
         if (asset.movementTargets.isEmpty)
           const _MutedText('Aucune destination.')
@@ -8658,10 +8909,16 @@ class _StageMovementTargetBindingRowState
     final selectedKind = binding?.kind;
     final entitySources = _movementTargetEntitySources(asset, sourceCatalog);
     final eventSources = _movementTargetEventSources(asset, sourceCatalog);
-    final entityReason =
-        _mapEntityTargetDisabledReason(asset, sourceCatalog, entitySources);
-    final eventReason =
-        _mapEventTargetDisabledReason(asset, sourceCatalog, eventSources);
+    final entityReason = _mapEntityTargetDisabledReason(
+      asset,
+      sourceCatalog,
+      entitySources,
+    );
+    final eventReason = _mapEventTargetDisabledReason(
+      asset,
+      sourceCatalog,
+      eventSources,
+    );
     final canPickEntity = entityReason == null;
     final canPickEvent = eventReason == null;
     final selectedEntity =
@@ -8873,12 +9130,10 @@ class _StageMovementTargetBindingRowState
 }
 
 typedef _SelectStageMapEntitySource = Future<void> Function(
-  CinematicStageMapEntitySource source,
-);
+    CinematicStageMapEntitySource source);
 
 typedef _SelectStageMapEventSource = Future<void> Function(
-  CinematicStageMapEventSource source,
-);
+    CinematicStageMapEventSource source);
 
 class _StageMapEntitySourcePicker extends StatelessWidget {
   const _StageMapEntitySourcePicker({
@@ -8952,9 +9207,7 @@ class _MapEntityDropdownPopup extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: ListView(
           padding: const EdgeInsets.symmetric(vertical: 4),
-          children: [
-            for (final source in sources) _buildItem(source),
-          ],
+          children: [for (final source in sources) _buildItem(source)],
         ),
       ),
     );
@@ -9054,8 +9307,7 @@ class _StageMapEventSourcePicker extends StatelessWidget {
 }
 
 typedef _SelectStagePointSource = Future<void> Function(
-  CinematicStagePoint source,
-);
+    CinematicStagePoint source);
 
 class _StagePointSourcePicker extends StatelessWidget {
   const _StagePointSourcePicker({
@@ -9093,10 +9345,7 @@ class _StagePointSourcePicker extends StatelessWidget {
 }
 
 class _StageSourcePickerShell extends StatelessWidget {
-  const _StageSourcePickerShell({
-    required this.title,
-    required this.children,
-  });
+  const _StageSourcePickerShell({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
@@ -9107,11 +9356,7 @@ class _StageSourcePickerShell extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _KeyValue(label: title, value: '${children.length} source(s)'),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: children,
-        ),
+        Wrap(spacing: 8, runSpacing: 8, children: children),
       ],
     );
   }
@@ -9331,10 +9576,7 @@ class _StageChoice extends StatelessWidget {
       child: Text(label),
     );
     if (tooltip != null) {
-      button = Tooltip(
-        message: tooltip!,
-        child: button,
-      );
+      button = Tooltip(message: tooltip!, child: button);
     }
     return button;
   }
@@ -9382,10 +9624,7 @@ class _SelectedStepInspector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(
-          title: 'Bloc sélectionné',
-          subtitle: step.id,
-        ),
+        _SectionTitle(title: 'Bloc sélectionné', subtitle: step.id),
         const SizedBox(height: 8),
         _KeyValue(label: 'Titre', value: _stepDisplayTitle(asset, step, index)),
         _KeyValue(label: 'Id', value: step.id),
@@ -9411,10 +9650,7 @@ class _SelectedStepInspector extends StatelessWidget {
         _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
         _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
         if (basicBlockKind != null) ...[
-          const _KeyValue(
-            label: 'Statut',
-            value: 'Bloc authoring V0',
-          ),
+          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
           _BasicBlockControls(
             step: step,
             blockKind: basicBlockKind,
@@ -9423,10 +9659,7 @@ class _SelectedStepInspector extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         if (isActorFacing) ...[
-          const _KeyValue(
-            label: 'Statut',
-            value: 'Bloc authoring V0',
-          ),
+          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
           _ActorFacingControls(
             asset: asset,
             step: step,
@@ -9435,10 +9668,7 @@ class _SelectedStepInspector extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         if (isActorMove) ...[
-          const _KeyValue(
-            label: 'Statut',
-            value: 'Bloc authoring V0',
-          ),
+          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
           _KeyValue(label: 'Résumé', value: _actorMoveSummary(asset, step)),
           _ActorMoveControls(
             asset: asset,
@@ -9461,13 +9691,8 @@ class _SelectedStepInspector extends StatelessWidget {
           const SizedBox(height: 8),
         ],
         if (isDraft) ...[
-          const _KeyValue(
-            label: 'Statut',
-            value: 'Placeholder authoring',
-          ),
-          const _BodyText(
-            'Durée non éditable — brouillon sans effet moteur.',
-          ),
+          const _KeyValue(label: 'Statut', value: 'Placeholder authoring'),
+          const _BodyText('Durée non éditable — brouillon sans effet moteur.'),
           const SizedBox(height: 8),
         ],
         if (isAuthoringOwned) ...[
@@ -9488,15 +9713,10 @@ class _SelectedStepInspector extends StatelessWidget {
             child: const SizedBox.shrink(),
           ),
           const SizedBox(height: 4),
-          _MutedText(
-            isDraft ? 'Supprimer ce brouillon' : 'Supprimer ce bloc',
-          ),
+          _MutedText(isDraft ? 'Supprimer ce brouillon' : 'Supprimer ce bloc'),
           const SizedBox(height: 8),
         ],
-        const _KeyValue(
-          label: 'Preview',
-          value: 'Scène non jouée.',
-        ),
+        const _KeyValue(label: 'Preview', value: 'Scène non jouée.'),
         const _KeyValue(
           label: 'Statut runtime',
           value: 'Lecture read-only dans ce lot.',
@@ -9524,10 +9744,7 @@ class _StepDiagnosticsSummary extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _SectionTitle(
-          title: 'Diagnostics',
-          subtitle: 'Contexte du bloc',
-        ),
+        const _SectionTitle(title: 'Diagnostics', subtitle: 'Contexte du bloc'),
         const SizedBox(height: 8),
         for (final diagnostic in diagnostics) ...[
           PokeMapBadge(
@@ -9575,10 +9792,7 @@ class _BasicBlockControls extends StatelessWidget {
         ),
         if (blockKind == CinematicTimelineBasicBlockKind.fade) ...[
           const SizedBox(height: 8),
-          _FadeModeControls(
-            step: step,
-            onUpdateBasicBlock: onUpdateBasicBlock,
-          ),
+          _FadeModeControls(step: step, onUpdateBasicBlock: onUpdateBasicBlock),
         ],
         if (blockKind == CinematicTimelineBasicBlockKind.camera) ...[
           const SizedBox(height: 8),
@@ -9928,10 +10142,7 @@ class _ActorFacingControls extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: 8),
-        const _SectionTitle(
-          title: 'Acteur',
-          subtitle: 'Picker requis',
-        ),
+        const _SectionTitle(title: 'Acteur', subtitle: 'Picker requis'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 6,
@@ -10131,10 +10342,7 @@ class _ActorMoveControls extends StatelessWidget {
                       Text(
                         'Ajoutez un repère au trajet ou repassez en trajet direct.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 10,
-                        ),
+                        style: TextStyle(color: colors.textMuted, fontSize: 10),
                       ),
                     ],
                   ),
@@ -10149,10 +10357,7 @@ class _ActorMoveControls extends StatelessWidget {
                 final spId = manualPath.waypointStagePointIds[i];
                 final sp = asset.stageContext?.stagePoints
                     .cast<CinematicStagePoint?>()
-                    .firstWhere(
-                      (p) => p?.id == spId,
-                      orElse: () => null,
-                    );
+                    .firstWhere((p) => p?.id == spId, orElse: () => null);
                 final label = sp?.label ?? 'Repère inconnu ($spId)';
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
@@ -10219,10 +10424,8 @@ class _ActorMoveControls extends StatelessWidget {
                         ),
                         size: 24,
                         variant: PokeMapIconButtonVariant.soft,
-                        onPressed: () => onRemoveManualPathWaypoint(
-                          manualPath,
-                          i,
-                        ),
+                        onPressed: () =>
+                            onRemoveManualPathWaypoint(manualPath, i),
                       ),
                     ],
                   ),
@@ -10234,10 +10437,7 @@ class _ActorMoveControls extends StatelessWidget {
           if (availablePoints.isEmpty) ...[
             Text(
               'Aucun repère disponible.\nPosez d\'abord un repère dans l\'aperçu de scène.',
-              style: TextStyle(
-                color: colors.textMuted,
-                fontSize: 10,
-              ),
+              style: TextStyle(color: colors.textMuted, fontSize: 10),
             ),
           ] else ...[
             PopupMenuButton<CinematicStagePoint>(
@@ -10250,10 +10450,7 @@ class _ActorMoveControls extends StatelessWidget {
               },
               itemBuilder: (context) => [
                 for (final sp in availablePoints)
-                  PopupMenuItem(
-                    value: sp,
-                    child: Text(sp.label),
-                  ),
+                  PopupMenuItem(value: sp, child: Text(sp.label)),
               ],
               child: IgnorePointer(
                 child: PokeMapButton(
@@ -10294,10 +10491,7 @@ class _ActorMoveControls extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        const _SectionTitle(
-          title: 'Acteur',
-          subtitle: 'Picker requis',
-        ),
+        const _SectionTitle(title: 'Acteur', subtitle: 'Picker requis'),
         const SizedBox(height: 8),
         Wrap(
           spacing: 6,
@@ -10384,10 +10578,7 @@ class _ActorMoveControls extends StatelessWidget {
 }
 
 class _InlineControlAction extends StatelessWidget {
-  const _InlineControlAction({
-    required this.label,
-    required this.button,
-  });
+  const _InlineControlAction({required this.label, required this.button});
 
   final String label;
   final Widget button;
@@ -10439,10 +10630,7 @@ class _EmptySelectionCard extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -10480,10 +10668,7 @@ class _SectionTitle extends StatelessWidget {
 }
 
 class _KeyValue extends StatelessWidget {
-  const _KeyValue({
-    required this.label,
-    required this.value,
-  });
+  const _KeyValue({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -10775,10 +10960,7 @@ double _timelineContentWidth(int totalDurationMs, double viewportWidth) {
   if (totalDurationMs <= 0) {
     return viewportWidth;
   }
-  return math.max(
-    viewportWidth,
-    totalDurationMs * _timelinePixelsPerMsFloor,
-  );
+  return math.max(viewportWidth, totalDurationMs * _timelinePixelsPerMsFloor);
 }
 
 double _tickLeft(int timeMs, double pixelsPerMs, double contentWidth) {
@@ -10920,9 +11102,9 @@ int _compareTimelineProbeSnapTargetIdentity(
   _TimelineProbeSnapTarget a,
   _TimelineProbeSnapTarget b,
 ) {
-  final hintOrder = _timelineProbeSnapHintPriority(a.snapHint).compareTo(
-    _timelineProbeSnapHintPriority(b.snapHint),
-  );
+  final hintOrder = _timelineProbeSnapHintPriority(
+    a.snapHint,
+  ).compareTo(_timelineProbeSnapHintPriority(b.snapHint));
   if (hintOrder != 0) {
     return hintOrder;
   }
@@ -10942,10 +11124,7 @@ int _timelineProbeSnapHintPriority(_TimelineProbeSnapHint hint) {
   };
 }
 
-String _timelineProbeBadgeLabel(
-  int timeMs,
-  _TimelineProbeSnapHint? snapHint,
-) {
+String _timelineProbeBadgeLabel(int timeMs, _TimelineProbeSnapHint? snapHint) {
   final baseLabel = 'Marqueur : ${_shortTimeLabel(timeMs)}';
   if (snapHint == null) {
     return baseLabel;
@@ -10962,14 +11141,8 @@ String _timelineProbeSnapHintLabel(_TimelineProbeSnapHint hint) {
   };
 }
 
-double _timelineBarWidth(
-  CinematicTimelineTimeBlock block,
-  double pixelsPerMs,
-) {
-  return math.max(
-    _timelineBarMinWidth,
-    block.visualDurationMs * pixelsPerMs,
-  );
+double _timelineBarWidth(CinematicTimelineTimeBlock block, double pixelsPerMs) {
+  return math.max(_timelineBarMinWidth, block.visualDurationMs * pixelsPerMs);
 }
 
 CinematicTimelineTimeBlock? _selectedTimeBlock(
@@ -11002,9 +11175,7 @@ List<String> _timelineHoverDetailLabels(
 
   if (isCinematicTimelineActorFacingStep(step)) {
     details.add(
-      'Direction : ${_actorDirectionLabel(
-        cinematicTimelineActorFacingDirectionOf(step),
-      )}',
+      'Direction : ${_actorDirectionLabel(cinematicTimelineActorFacingDirectionOf(step))}',
     );
   }
 
@@ -11030,9 +11201,7 @@ List<String> _timelineHoverDetailLabels(
   }
 
   if (block.actorId != null && !isCinematicTimelineActorMoveStep(step)) {
-    details.add(
-      'Acteur : ${_actorDisplayLabelForId(asset, block.actorId!)}',
-    );
+    details.add('Acteur : ${_actorDisplayLabelForId(asset, block.actorId!)}');
   }
   if (block.targetId != null && !isCinematicTimelineActorMoveStep(step)) {
     details.add(
@@ -11717,10 +11886,7 @@ class _StagePointsSection extends StatelessWidget {
                 ),
                 child: Text(
                   point.label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               );
             }).toList(),
@@ -11733,10 +11899,8 @@ class _StagePointsSection extends StatelessWidget {
 /// Helper widget that renders its child completely invisible and with 0 size,
 /// but keeps it visible to the Flutter test framework finders and allows hit-testing.
 class _TestHidden extends SingleChildRenderObjectWidget {
-  const _TestHidden({
-    required Widget child,
-    this.hitTestable = false,
-  }) : super(child: child);
+  const _TestHidden({required Widget child, this.hitTestable = false})
+      : super(child: child);
 
   final bool hitTestable;
 
@@ -11747,7 +11911,9 @@ class _TestHidden extends SingleChildRenderObjectWidget {
 
   @override
   void updateRenderObject(
-      BuildContext context, covariant _RenderTestHidden renderObject) {
+    BuildContext context,
+    covariant _RenderTestHidden renderObject,
+  ) {
     renderObject.hitTestable = hitTestable;
   }
 }

@@ -173,12 +173,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0 | DONE | Dessiner le trajet de déplacement manuel dans la preview (dashed lines) et éditer/ordonner les points de passage, avec Visual Gate V1-108-ter régénérée et conforme, sans runtime/Flame/playback. |
 | NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract | DONE | Cadrer le futur playback preview editor-only du Cinematic Builder, avec plan pur, source de vérité temporelle, transport, actorMove direct/manual path, diagnostics et anti-scope runtime/Flame. |
 | NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0 | DONE | Implémenter dans `map_core` le plan pur de playback preview cinématique, avec timeline dérivée, frames déterministes, poses acteurs, actorMove direct/manual path, diagnostics et capabilities, sans UI, ticker, runtime ni Flame. |
+| NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0 | DONE | Connecter les contrôles transport du Cinematic Builder au plan de playback preview V1-110 via un état local editor-only, avec Play/Pause/Stop/Reset, playhead de lecture et statut no-code, sans runtime, Flame, GameState ni déplacement acteur rendu. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0`
+`NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0`
 
-Raison : V1-110 fournit maintenant le plan pur `map_core`. La prochaine étape peut connecter les contrôles Transport du Cinematic Builder à un état local editor-only, sans runtime ni Flame.
+Raison : V1-111 active maintenant le transport local editor-only et affiche un Playback Playhead. La prochaine étape peut consommer les poses du plan V1-110 pour déplacer visuellement les acteurs dans la preview, sans brancher de runtime.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -191,7 +192,20 @@ Ordre apres V1-102 :
 8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0` (DONE)
 9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` (DONE documentaire)
 10. `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0` (DONE)
-11. `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0`
+11. `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0` (DONE)
+12. `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0`
+
+## Mise a jour V1-111
+
+Statut : `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0` est DONE.
+
+Demande : Connecter les contrôles transport du Cinematic Builder au `CinematicPreviewPlaybackPlan` V1-110 via un état local editor-only, sans runtime, Flame, GameState, persistance ni déplacement acteur rendu.
+
+Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement via `AnimationController`, consomme `buildCinematicPreviewPlaybackPlan(...)` et `plan.frameAt(...)`, affiche Play/Pause/Stop/Reset, un Playback Playhead distinct, un temps courant et des badges no-code `Lecture en cours` / `Prévisualisation partielle`.
+
+Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
+
+Limites : Aucun actor overlay playback n'est branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'a été ajouté. V1-112 n'est pas démarré.
 
 ## Mise a jour V1-110
 

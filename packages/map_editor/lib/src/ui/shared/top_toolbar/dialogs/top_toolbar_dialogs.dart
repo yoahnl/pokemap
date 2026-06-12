@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
@@ -33,6 +35,69 @@ Future<void> showTopToolbarNewProjectDialog(
   if (baseDir != null) {
     final projectDir = p.join(baseDir, name.replaceAll(' ', '_').toLowerCase());
     await notifier.createProject(name, projectDir);
+  }
+}
+
+Future<void> showTopToolbarOpenProjectDialog(
+  BuildContext context,
+  EditorNotifier notifier,
+) async {
+  String? selectedDirectory;
+  try {
+    selectedDirectory = await FilePicker.platform.getDirectoryPath();
+  } catch (error, stackTrace) {
+    debugPrint('TopToolbar: native project picker failed: $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
+  if (!context.mounted) return;
+  final manifestPath = selectedDirectory == null
+      ? await _promptForProjectManifestPath(context)
+      : resolveProjectManifestPathFromUserSelection(selectedDirectory);
+  if (!context.mounted || manifestPath == null) return;
+  await notifier.loadProject(manifestPath);
+}
+
+String resolveProjectManifestPathFromUserSelection(String value) {
+  var path = value.trim();
+  if (path.length >= 2) {
+    final first = path[0];
+    final last = path[path.length - 1];
+    if ((first == '"' && last == '"') || (first == "'" && last == "'")) {
+      path = path.substring(1, path.length - 1).trim();
+    }
+  }
+  if (path == '~') {
+    path = Platform.environment['HOME'] ?? path;
+  } else if (path.startsWith('~/')) {
+    final home = Platform.environment['HOME'];
+    if (home != null && home.isNotEmpty) {
+      path = p.join(home, path.substring(2));
+    }
+  }
+  final normalized = p.normalize(path);
+  if (p.basename(normalized) == 'project.json') {
+    return normalized;
+  }
+  return p.join(normalized, 'project.json');
+}
+
+Future<String?> _promptForProjectManifestPath(BuildContext context) async {
+  final controller = TextEditingController();
+  try {
+    final ok = await showMacosEditorPromptSheet(
+      context,
+      title: 'Open Project',
+      controller: controller,
+      placeholder:
+          '/Users/you/PokeMapProject or /Users/you/PokeMapProject/project.json',
+      confirmLabel: 'Open Project',
+    );
+    if (!context.mounted || !ok) return null;
+    final value = controller.text.trim();
+    if (value.isEmpty) return null;
+    return resolveProjectManifestPathFromUserSelection(value);
+  } finally {
+    controller.dispose();
   }
 }
 
