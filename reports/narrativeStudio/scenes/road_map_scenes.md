@@ -172,12 +172,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0 | DONE | Ajouter le modèle core authoring-only des chemins manuels cinématiques stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. |
 | NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0 | DONE | Dessiner le trajet de déplacement manuel dans la preview (dashed lines) et éditer/ordonner les points de passage, avec Visual Gate V1-108-ter régénérée et conforme, sans runtime/Flame/playback. |
 | NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract | DONE | Cadrer le futur playback preview editor-only du Cinematic Builder, avec plan pur, source de vérité temporelle, transport, actorMove direct/manual path, diagnostics et anti-scope runtime/Flame. |
+| NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0 | DONE | Implémenter dans `map_core` le plan pur de playback preview cinématique, avec timeline dérivée, frames déterministes, poses acteurs, actorMove direct/manual path, diagnostics et capabilities, sans UI, ticker, runtime ni Flame. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0`
+`NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0`
 
-Raison : V1-109 a retenu l'Option C. La prochaine étape doit implémenter le read model pur de playback preview dans `map_core`, sans ticker editor, sans transport actif, sans runtime ni Flame.
+Raison : V1-110 fournit maintenant le plan pur `map_core`. La prochaine étape peut connecter les contrôles Transport du Cinematic Builder à un état local editor-only, sans runtime ni Flame.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -189,7 +190,20 @@ Ordre apres V1-102 :
 7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` (DONE)
 8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0` (DONE)
 9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` (DONE documentaire)
-10. `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0`
+10. `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0` (DONE)
+11. `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0`
+
+## Mise a jour V1-110
+
+Statut : `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0` est DONE.
+
+Demande : Implémenter dans `map_core` un plan pur et déterministe du futur playback preview cinématique, sans UI, ticker, transport actif, runtime, Flame, GameState, screenshot ni V1-111.
+
+Decision : `CinematicPreviewPlaybackPlan` devient le contrat public consommable par les futurs lots editor. Il expose timeline dérivée, frames clampées, poses acteurs, `actorFace`, `wait`, `actorMove` direct/manual path, fade V0, caméra placeholder unsupported, diagnostics et capabilities.
+
+Preuve : test dédié V1-110 `+12`, `dart analyze` sans issue, suite complète `map_core` `+2496`, checks anti-scope vides et aucun screenshot V1-110.
+
+Limites : Aucun transport UI n'a été activé ; aucun playhead visuel, ticker, runtime, Flame, GameState, pathfinding, collision ou animation de marche n'a été ajouté.
 
 ## Mise a jour V1-109
 

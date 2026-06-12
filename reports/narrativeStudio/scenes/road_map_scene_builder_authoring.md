@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0
+NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0
 ```
 
 ## Principes
@@ -161,7 +161,20 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-107 | Cinematic Manual Path Core Model V0 | core / model | Ajouter le modèle core authoring-only des chemins manuels cinématiques, stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. | Pas de Flame, pas d'UI, pas de modification hors de `map_core`, pas de playback runtime. | `map_core`, `cinematic_asset.dart`, `cinematic_authoring_operations.dart`, `cinematic_diagnostics.dart`. | DONE : `dart test` et `dart analyze` propres. | Divergence de step IDs (écartée par l'audit), double source (écartée par l'ownership). | DONE : modèle stable, diagnostics complets, opérations d'authoring validées par tests unitaires. | V1-106 |
 | NS-SCENES-V1-108 | Cinematic Manual Path Drawing UI V0 | editor / ui | Tracé graphique du trajet manuel, configuration des points de passage (waypoint lists) et Visual Gate. | Pas de playback interactif, pas de Flame, pas de runtime. | `cinematic_manual_path_preview_overlay.dart`, `cinematic_builder_workspace.dart`, `cinematic_builder_workspace_test.dart`, screenshot V1-108. | DONE : Visual Gate V1-108-ter régénérée, ciblé V1-108 `+3`, Builder complet `+207`, Library/overlay `+26`, analyse ciblée sortie 0. | Instanciation d'objets sentinelles invalides (résolu) ; cadrage de capture Visual Gate corrigé. | DONE : tracé proportionnel affiché, waypoints ordonnés, deux repères visibles, pas d'ID technique comme workflow principal. | V1-107 |
 | NS-SCENES-V1-109 | Cinematic Preview Playback Prep Contract | doc / contract | Cadrer le futur playback preview editor-only du Cinematic Builder, avec plan pur, source de vérité temporelle, transport, actorMove direct/manual path, diagnostics et anti-scope runtime/Flame. | Pas d'implémentation de playback, pas de runtime, pas de Flame, pas de ticker, pas de screenshot, pas de V1-110. | Rapport documentaire, Evidence Pack, roadmaps. | DONE : `git diff --check` documentaire. | Confondre preview editor-only et runtime ; activer les transports trop tôt ; fusionner Selection Cursor, Mouse Probe et Playback Playhead. | DONE : Option C retenue, Playback Plan pur recommandé, diagnostics/tests futurs cadrés. | V1-108 |
-| NS-SCENES-V1-110 | Cinematic Preview Playback Plan Read Model V0 | core / read-model | Implémenter le plan pur de playback preview dans `map_core` : timeline items, frames déterministes, actor poses, diagnostics et capabilities. | Pas de ticker, pas de transport actif, pas de rendu editor, pas de runtime/Flame, pas de GameState. | `map_core` read model + tests core, rapports. | Tests core plan vide, durée totale, active step, actorFace, actorMove direct/manual path, diagnostics, no persisted time. | Dupliquer les read models existants ; créer une vérité runtime cachée ; persister le temps. | TODO : prochaine étape recommandée. | V1-109 |
+| NS-SCENES-V1-110 | Cinematic Preview Playback Plan Read Model V0 | core / read-model | Implémenter le plan pur de playback preview dans `map_core` : timeline items, frames déterministes, actor poses, diagnostics et capabilities. | Pas de ticker, pas de transport actif, pas de rendu editor, pas de runtime/Flame, pas de GameState. | `packages/map_core/lib/src/read_models/cinematic_preview_playback_plan.dart`, export `map_core.dart`, test dédié, rapports. | Tests core plan vide, durée totale, active step, actorFace, actorMove direct/manual path, diagnostics, fade/camera, pureté, no persisted time. | Dupliquer les read models existants ; créer une vérité runtime cachée ; persister le temps. | DONE : plan pur exporté, frames déterministes, direct/manual path supportés côté read model, `dart analyze` et suite `map_core` complète verts, aucun editor/runtime/screenshot. | V1-109 |
+| NS-SCENES-V1-111 | Cinematic Preview Playback Transport UI V0 | editor / ui | Connecter les contrôles Transport du Cinematic Builder à un état local de lecture consommant `CinematicPreviewPlaybackPlan`, sans runtime ni Flame. | Pas de timer runtime, pas de Flame, pas de GameState, pas de PlayableMapGame, pas de persistance du playhead, pas de playback runtime. | `map_editor` transport local + tests widget + rapport. | Tests Play/Pause/Stop/Reset locaux, séparation Selection Cursor / Mouse Probe / Playback Playhead, non-mutation ProjectManifest. | Confondre plan core et runtime ; rendre la timeline cliquable trop tôt ; activer des effets non supportés. | TODO : prochain lot recommandé. | V1-110 |
+
+## Mise a jour V1-110
+
+Statut : `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0` est DONE.
+
+Demande : Implémenter dans `map_core` un read model pur et déterministe du futur playback preview cinématique, sans UI, ticker, transport actif, runtime, Flame, GameState, screenshot ni V1-111.
+
+Decision : Le plan exporté `CinematicPreviewPlaybackPlan` s'appuie sur `CinematicTimelineTimeLayoutReadModel` comme source de vérité temporelle. `frameAt(timeMs)` clamp le temps et évalue les poses d'acteurs, `actorFace`, `wait`, `actorMove` direct, `actorMove` manual path, fade V0 et caméra placeholder unsupported.
+
+Preuve : test V1-110 dédié `+12`, tests ciblés existants verts, `dart analyze` sans issue et suite complète `map_core` `+2496`. Checks anti-scope vides pour `map_editor`, runtime/gameplay/battle/examples, Xcode et screenshots V1-110.
+
+Limites : Pas de transport UI, pas de ticker, pas d'overlay connecté au playback, pas de runtime/Flame, pas de pathfinding/collision, pas d'animation de marche frame-by-frame.
 
 ## Mise a jour V1-109
 
