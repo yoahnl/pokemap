@@ -1412,7 +1412,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       final result = addCinematicMovementTarget(
         project,
         cinematicId: cinematicId,
-        label: 'Cible',
+        label: 'Destination',
       );
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,

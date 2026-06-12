@@ -27,6 +27,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     this.framingState = const CinematicBackdropPreviewFramingState(),
     this.selectedStep,
@@ -52,6 +53,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
@@ -95,6 +97,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   tileRenderPlan: tileRenderPlan,
                   layerRenderPlan: layerRenderPlan,
                   actorDisplayPreviewModel: actorDisplayPreviewModel,
+                  actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                   actorSpritePreviewPlan: actorSpritePreviewPlan,
                   framingState: framingState,
                   selectedStep: selectedStep,
@@ -252,6 +255,7 @@ class _BackdropMapFrame extends StatelessWidget {
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
@@ -276,6 +280,7 @@ class _BackdropMapFrame extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
@@ -328,6 +333,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           plan: layerBitmapPlan,
                           compact: effectiveCompact,
                           actorDisplayPreviewModel: actorDisplayPreviewModel,
+                          actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                           actorSpritePreviewPlan: actorSpritePreviewPlan,
                           framingState: framingState,
                           selectedStep: selectedStep,
@@ -354,6 +360,8 @@ class _BackdropMapFrame extends StatelessWidget {
                               compact: effectiveCompact,
                               actorDisplayPreviewModel:
                                   actorDisplayPreviewModel,
+                              actorPlaybackPreviewModel:
+                                  actorPlaybackPreviewModel,
                               actorSpritePreviewPlan: actorSpritePreviewPlan,
                               framingState: framingState,
                               selectedStep: selectedStep,
@@ -396,6 +404,8 @@ class _BackdropMapFrame extends StatelessWidget {
                                   layerRenderPlan: layerBitmapPlan,
                                   actorDisplayPreviewModel:
                                       actorDisplayPreviewModel,
+                                  actorPlaybackPreviewModel:
+                                      actorPlaybackPreviewModel,
                                 ),
                 ),
               ],
@@ -414,6 +424,7 @@ class _BackdropBitmapMap extends StatelessWidget {
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
@@ -437,6 +448,7 @@ class _BackdropBitmapMap extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
@@ -606,9 +618,12 @@ class _BackdropBitmapMap extends StatelessWidget {
                                           ),
                                           child: const SizedBox.expand(),
                                         ),
-                                        if (actorDisplayPreviewModel != null)
+                                        if ((actorPlaybackPreviewModel ??
+                                                actorDisplayPreviewModel) !=
+                                            null)
                                           CinematicActorDisplayPreviewOverlay(
-                                            model: actorDisplayPreviewModel!,
+                                            model: actorPlaybackPreviewModel ??
+                                                actorDisplayPreviewModel!,
                                             spritePreviewPlan:
                                                 actorSpritePreviewPlan,
                                             tilesets: plan.tilesets,
@@ -705,6 +720,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     required this.plan,
     required this.compact,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     required this.framingState,
     this.selectedStep,
@@ -728,6 +744,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final CinematicMapBackdropLayerRenderPlan plan;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
@@ -911,9 +928,12 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                           ),
                                           child: const SizedBox.expand(),
                                         ),
-                                        if (actorDisplayPreviewModel != null)
+                                        if ((actorPlaybackPreviewModel ??
+                                                actorDisplayPreviewModel) !=
+                                            null)
                                           CinematicActorDisplayPreviewOverlay(
-                                            model: actorDisplayPreviewModel!,
+                                            model: actorPlaybackPreviewModel ??
+                                                actorDisplayPreviewModel!,
                                             spritePreviewPlan:
                                                 actorSpritePreviewPlan,
                                             tilesets: plan.tilesets,
@@ -1275,6 +1295,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
     this.tileRenderPlan,
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -1283,6 +1304,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? tileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -1321,6 +1343,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
               palette: palette,
               compact: compact,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
+              actorPlaybackPreviewModel: actorPlaybackPreviewModel,
             ),
           ),
           const SizedBox(width: 8),
@@ -1371,6 +1394,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
             palette: palette,
             compact: compact,
             actorDisplayPreviewModel: actorDisplayPreviewModel,
+            actorPlaybackPreviewModel: actorPlaybackPreviewModel,
           ),
         ),
         SizedBox(height: compact ? 5 : 7),
@@ -1406,6 +1430,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
     required this.palette,
     required this.compact,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
   });
 
   final int mapWidth;
@@ -1414,6 +1439,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
   final CinematicMapBackdropPrimitivePalette palette;
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
 
   @override
   Widget build(BuildContext context) {
@@ -1452,9 +1478,12 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
                         ),
                         child: const SizedBox.expand(),
                       ),
-                      if (actorDisplayPreviewModel != null)
+                      if ((actorPlaybackPreviewModel ??
+                              actorDisplayPreviewModel) !=
+                          null)
                         CinematicActorDisplayPreviewOverlay(
-                          model: actorDisplayPreviewModel!,
+                          model: actorPlaybackPreviewModel ??
+                              actorDisplayPreviewModel!,
                           mapWidth: mapWidth,
                           mapHeight: mapHeight,
                           compact: compact,

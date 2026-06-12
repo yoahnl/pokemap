@@ -6735,6 +6735,256 @@ void main() {
   );
 
   testWidgets(
+    'V1-112 moves direct actorMove actor during playback and resets to start',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('0 ms / 1 s'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final middleAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('Lecture en cours'), findsOneWidget);
+      expect(find.text('500 ms / 1 s'), findsOneWidget);
+      expect(middleAnchor.dx, greaterThan(initialAnchor.dx));
+      expect(middleAnchor.dx, lessThan(initialAnchor.dx + 260));
+      expect(middleAnchor.dy, closeTo(initialAnchor.dy, 1));
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final pausedAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), pausedAnchor);
+      expect(find.text('Lecture en pause'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 700));
+      final finalAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(finalAnchor.dx, greaterThan(middleAnchor.dx));
+      expect(find.text('1 s / 1 s'), findsOneWidget);
+      expect(find.text('Fin de prévisualisation'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-stop-button')),
+      );
+      await tester.pump();
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), initialAnchor);
+      expect(find.text('0 ms / 1 s'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        _actorDisplayAnchor(tester, 'actor_lysa').dx,
+        greaterThan(initialAnchor.dx),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
+      );
+      await tester.pump();
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), initialAnchor);
+      expect(find.text('Lecture en cours'), findsNothing);
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-112 follows manual path actorMove poses without mutating waypoints',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackManualPathActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      final beforeWaypoints =
+          asset.stageContext!.manualPaths.single.waypointStagePointIds;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final waypointAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(waypointAnchor.dx, closeTo(initialAnchor.dx, 1));
+      expect(waypointAnchor.dy, greaterThan(initialAnchor.dy + 50));
+      expect(find.text('400 ms / 1 s'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 700));
+      final destinationAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(destinationAnchor.dx, greaterThan(waypointAnchor.dx));
+      expect(destinationAnchor.dy, closeTo(waypointAnchor.dy, 1));
+      expect(find.text('1 s / 1 s'), findsOneWidget);
+
+      expect(
+        asset.stageContext!.manualPaths.single.waypointStagePointIds,
+        beforeWaypoints,
+      );
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'captures V1-112 cinematic actorMove preview playback visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_112_CAPTURE_CINEMATIC_ACTORMOVE_PREVIEW_PLAYBACK',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _playbackManualPathActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-move_manual'),
+      );
+      await tester.ensureVisible(moveCard);
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Lecture en cours'), findsOneWidget);
+      expect(find.text('400 ms / 1 s'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+        ),
+        findsOneWidget,
+      );
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_112_cinematic_actormove_preview_playback_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
     'captures V1-111 cinematic preview playback transport UI when requested',
     (tester) async {
       if (!const bool.fromEnvironment(
@@ -8238,11 +8488,11 @@ void main() {
     expect(find.text('Caméra'), findsWidgets);
     expect(find.text('Hold'), findsWidgets);
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-remove-authoring-step-button'),
-      ),
+    final removeAuthoringStepButton = find.byKey(
+      const ValueKey('cinematic-builder-remove-authoring-step-button'),
     );
+    await tester.ensureVisible(removeAuthoringStepButton);
+    await tester.tap(removeAuthoringStepButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -8536,11 +8786,11 @@ void main() {
     expect(find.text('Rival'), findsWidgets);
     expect(find.text('Gauche'), findsWidgets);
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-remove-authoring-step-button'),
-      ),
+    final removeActorMoveButton = find.byKey(
+      const ValueKey('cinematic-builder-remove-authoring-step-button'),
     );
+    await tester.ensureVisible(removeActorMoveButton);
+    await tester.tap(removeActorMoveButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -8594,12 +8844,116 @@ void main() {
     );
     expect(
       latestProject.cinematics.single.movementTargets.single.label,
-      'Cible',
+      'Destination',
     );
     expect(find.text('Destinations'), findsWidgets);
-    expect(find.text('Cible'), findsWidgets);
+    expect(find.text('Destination'), findsWidgets);
     expect(tester.widget<PokeMapButton>(actorMoveButton).onPressed, isNotNull);
   });
+
+  testWidgets(
+    'binds actor movement destination to a stage point from the action inspector',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      late ProjectManifest latestProject;
+      final asset = CinematicAsset(
+        id: 'cinematic_actor_move_destination_picker',
+        title: 'Actor move destination picker',
+        mapId: 'map_lab',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_jean', label: 'Jean'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(targetId: 'target', label: 'Cible'),
+        ],
+        stageContext: CinematicStageContext(
+          stagePoints: [
+            CinematicStagePoint(
+              id: 'stage_point_1',
+              label: 'Point 1',
+              x: 2.5,
+              y: 3.5,
+            ),
+            CinematicStagePoint(
+              id: 'stage_point_2',
+              label: 'Repère 2',
+              x: 8.5,
+              y: 10.5,
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_move',
+              kind: CinematicTimelineStepKind.actorMove,
+              label: 'Déplacement Jean',
+              actorId: 'actor_jean',
+              targetId: 'target',
+              durationMs: 800,
+              metadata: const {
+                cinematicTimelineDraftMetadataKindKey:
+                    cinematicTimelineBasicBlockMetadataKindValue,
+                cinematicTimelineDraftMetadataSourceKey:
+                    cinematicTimelineDraftMetadataSourceValue,
+                cinematicTimelineAuthoringBlockMetadataKey:
+                    cinematicTimelineActorMoveBlockMetadataValue,
+                cinematicTimelineActorMovementModeMetadataKey: 'walk',
+                cinematicTimelineActorPathModeMetadataKey: 'manual',
+              },
+            ),
+          ],
+        ),
+      );
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-step_move'),
+      );
+      await tester.ensureVisible(moveCard);
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Repère final du déplacement'), findsOneWidget);
+      expect(
+        find.text(
+          'Choisissez un repère pour que le déplacement puisse être prévisualisé.',
+        ),
+        findsOneWidget,
+      );
+
+      final destinationPoint = find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-move-destination-stage-point-target-stage_point_2',
+        ),
+      );
+      await tester.ensureVisible(destinationPoint);
+      await tester.tap(destinationPoint);
+      await tester.pumpAndSettle();
+
+      final binding = latestProject
+          .cinematics.single.stageContext?.movementTargetBindings.single;
+      expect(binding, isNotNull);
+      expect(binding!.targetId, 'target');
+      expect(binding.kind, CinematicMovementTargetBindingKind.stagePoint);
+      expect(binding.sourceId, 'stage_point_2');
+      expect(find.text('Destination actuelle : Repère 2'), findsOneWidget);
+      expect(find.text('Picker label + id stable'), findsNothing);
+    },
+  );
 
   testWidgets('keeps actor movement disabled without required actor', (
     tester,
@@ -8728,11 +9082,11 @@ void main() {
     expect(find.text('Sortie'), findsWidgets);
     expect(find.text('Course'), findsWidgets);
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-remove-authoring-step-button'),
-      ),
+    final removeActorMoveStepButton = find.byKey(
+      const ValueKey('cinematic-builder-remove-authoring-step-button'),
     );
+    await tester.ensureVisible(removeActorMoveStepButton);
+    await tester.tap(removeActorMoveStepButton);
     await tester.pumpAndSettle();
 
     expect(
@@ -13117,6 +13471,131 @@ void main() {
   });
 
   testWidgets(
+    'V1-108 — adding a waypoint creates the manual path when missing',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+
+      final asset = CinematicAsset(
+        id: 'cinematic_manual_path_missing',
+        title: 'Manual path missing',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+        movementTargets: [
+          CinematicMovementTargetRef(
+            targetId: 'target_center',
+            label: 'Centre scène',
+          ),
+        ],
+        stageContext: CinematicStageContext(
+          movementTargetBindings: [
+            CinematicMovementTargetBinding(
+              targetId: 'target_center',
+              kind: CinematicMovementTargetBindingKind.stagePoint,
+              sourceId: 'stage_point_2',
+            ),
+          ],
+          stagePoints: [
+            CinematicStagePoint(
+              id: 'stage_point_1',
+              label: 'Point 1',
+              x: 2.5,
+              y: 3.5,
+            ),
+            CinematicStagePoint(
+              id: 'stage_point_2',
+              label: 'Point 2',
+              x: 8.5,
+              y: 10.5,
+            ),
+            CinematicStagePoint(
+              id: 'stage_point_3',
+              label: 'Point 3',
+              x: 5.5,
+              y: 6.5,
+            ),
+          ],
+        ),
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'step_move',
+              kind: CinematicTimelineStepKind.actorMove,
+              actorId: 'actor_professor',
+              targetId: 'target_center',
+              durationMs: 1000,
+              metadata: const {
+                cinematicTimelineDraftMetadataKindKey:
+                    cinematicTimelineBasicBlockMetadataKindValue,
+                cinematicTimelineDraftMetadataSourceKey:
+                    cinematicTimelineDraftMetadataSourceValue,
+                cinematicTimelineAuthoringBlockMetadataKey:
+                    cinematicTimelineActorMoveBlockMetadataValue,
+                cinematicTimelineActorMovementModeMetadataKey: 'walk',
+                cinematicTimelineActorPathModeMetadataKey: 'manual',
+              },
+            ),
+          ],
+        ),
+      );
+      final project = ProjectManifest(
+        name: 'Manual path missing test',
+        maps: const [],
+        tilesets: const [],
+        cinematics: [asset],
+      );
+      late ProjectManifest latestProject;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (p) => latestProject = p,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-step_move'),
+      );
+      await tester.ensureVisible(moveCard);
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+
+      final actionTab = find.byKey(
+        const ValueKey('cinematic-builder-inspector-tab-action'),
+      );
+      await tester.tap(actionTab);
+      await tester.pumpAndSettle();
+
+      final pickerFinder = find.byKey(
+        const ValueKey('cinematic-builder-add-waypoint-picker'),
+      );
+      await tester.ensureVisible(pickerFinder);
+      await tester.tap(pickerFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byWidgetPredicate((w) => w is PopupMenuItem),
+          matching: find.text('Point 1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final paths =
+          latestProject.cinematics.single.stageContext?.manualPaths ?? [];
+      expect(paths, hasLength(1));
+      expect(paths.single.ownerActorMoveStepId, 'step_move');
+      expect(paths.single.waypointStagePointIds, ['stage_point_1']);
+      expect(
+        cinematicTimelineActorPathModeOf(
+          latestProject.cinematics.single.timeline.steps.single,
+        ),
+        CinematicTimelineActorPathMode.manual,
+      );
+    },
+  );
+
+  testWidgets(
     'V1-108 — manual mode reuses an existing path owned by a direct actorMove',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -13615,6 +14094,7 @@ Future<void> _pumpBuilderHarness(
   ValueChanged<ProjectManifest>? onProjectChanged,
   CinematicStageMapSourceCatalog? stageMapSourceCatalog,
   CinematicMapBackdropPreviewModel? backdropPreviewModel,
+  CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan,
   CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan,
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   bool provideStageMapSourceCatalog = true,
@@ -13627,6 +14107,7 @@ Future<void> _pumpBuilderHarness(
       onProjectChanged: onProjectChanged,
       stageMapSourceCatalog: stageMapSourceCatalog,
       backdropPreviewModel: backdropPreviewModel,
+      backdropTileRenderPlan: backdropTileRenderPlan,
       backdropLayerRenderPlan: backdropLayerRenderPlan,
       actorDisplayPreviewModel: actorDisplayPreviewModel,
       provideStageMapSourceCatalog: provideStageMapSourceCatalog,
@@ -13644,6 +14125,7 @@ class _BuilderHarness extends StatefulWidget {
     required this.provideStageMapSourceCatalog,
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
+    this.backdropTileRenderPlan,
     this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
     this.onProjectChanged,
@@ -13654,6 +14136,7 @@ class _BuilderHarness extends StatefulWidget {
   final Size surfaceSize;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
+  final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool provideStageMapSourceCatalog;
@@ -13689,6 +14172,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
                       ? _stageMapSourceCatalog()
                       : null),
               backdropPreviewModel: widget.backdropPreviewModel,
+              backdropTileRenderPlan: widget.backdropTileRenderPlan,
               backdropLayerRenderPlan: widget.backdropLayerRenderPlan,
               actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
               onBackToLibrary: () {},
@@ -13838,7 +14322,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     final result = addCinematicMovementTarget(
       _project,
       cinematicId: cinematicId,
-      label: 'Cible',
+      label: 'Destination',
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
@@ -14889,6 +15373,141 @@ CinematicAsset _stageReadyCinematic() {
   );
 }
 
+CinematicAsset _playbackDirectActorMoveCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_playback_direct_actor_move',
+    title: 'Playback direct actorMove',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(targetId: 'target_port', label: 'Port'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.stagePoint,
+          stagePointId: 'start',
+        ),
+      ],
+      movementTargetBindings: [
+        CinematicMovementTargetBinding(
+          targetId: 'target_port',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'dest',
+        ),
+      ],
+      stagePoints: [
+        CinematicStagePoint(id: 'start', label: 'Départ', x: 1.5, y: 4.5),
+        CinematicStagePoint(id: 'dest', label: 'Destination', x: 9.5, y: 4.5),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'move_direct',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Entrée Lysa',
+          actorId: 'actor_lysa',
+          targetId: 'target_port',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'direct',
+          },
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _playbackManualPathActorMoveCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_playback_manual_actor_move',
+    title: 'Playback manual actorMove',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    movementTargets: [
+      CinematicMovementTargetRef(targetId: 'target_port', label: 'Port'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.stagePoint,
+          stagePointId: 'start',
+        ),
+      ],
+      movementTargetBindings: [
+        CinematicMovementTargetBinding(
+          targetId: 'target_port',
+          kind: CinematicMovementTargetBindingKind.stagePoint,
+          sourceId: 'dest',
+        ),
+      ],
+      stagePoints: [
+        CinematicStagePoint(id: 'start', label: 'Départ', x: 1.5, y: 1.5),
+        CinematicStagePoint(id: 'wp_a', label: 'Repère A', x: 1.5, y: 5.5),
+        CinematicStagePoint(id: 'dest', label: 'Destination', x: 7.5, y: 5.5),
+      ],
+      manualPaths: [
+        CinematicManualPath(
+          id: 'path_manual',
+          label: 'Trajet manuel',
+          ownerActorMoveStepId: 'move_manual',
+          waypointStagePointIds: const ['wp_a'],
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'move_manual',
+          kind: CinematicTimelineStepKind.actorMove,
+          label: 'Trajet Lysa',
+          actorId: 'actor_lysa',
+          targetId: 'target_port',
+          durationMs: 1000,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorMoveBlockMetadataValue,
+            cinematicTimelineActorMovementModeMetadataKey: 'walk',
+            cinematicTimelineActorPathModeMetadataKey: 'manual',
+          },
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicAsset _stageContextTwoActorsCinematic() {
   return CinematicAsset(
     id: 'cinematic_stage_two_actors',
@@ -15809,6 +16428,35 @@ Future<ui.Image> _makeReferenceTilesetImage() {
   return picture.toImage(16, 16);
 }
 
+Future<CinematicMapBackdropTileRenderPlan> _referenceTileRenderPlanFor({
+  required ProjectManifest project,
+  required MapData mapData,
+}) async {
+  final tilesetImage = await _makeReferenceTilesetImage();
+  final bitmapProject = project.copyWith(
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'lab_tiles',
+        name: 'Lab tiles',
+        relativePath: 'assets/tilesets/lab.png',
+      ),
+    ],
+    settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
+  );
+  return buildCinematicMapBackdropTileRenderPlan(
+    mapData: mapData,
+    manifest: bitmapProject,
+    tilesets: {
+      'lab_tiles': CinematicResolvedTilesetAsset.available(
+        tilesetId: 'lab_tiles',
+        image: tilesetImage,
+        tileWidth: 8,
+        tileHeight: 8,
+      ),
+    },
+  );
+}
+
 SceneAsset _sceneReferencing({
   required String id,
   required String name,
@@ -15850,6 +16498,28 @@ void _expectTransportControlsPresent(WidgetTester tester) {
   ]) {
     expect(find.byKey(ValueKey(key)), findsOneWidget);
   }
+}
+
+Offset _actorDisplayAnchor(WidgetTester tester, String actorId) {
+  return tester
+      .getRect(
+        find.byKey(ValueKey('cinematic-builder-actor-display-actor-$actorId')),
+      )
+      .bottomCenter;
+}
+
+CinematicActorDisplayPreviewModel _actorDisplayPreviewModelFor({
+  required ProjectManifest project,
+  required CinematicAsset asset,
+  required MapData mapData,
+}) {
+  return buildCinematicActorDisplayPreviewModel(
+    cinematic: asset,
+    project: project,
+    stageMap: project.maps.single,
+    mapData: mapData,
+    stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+  );
 }
 
 PokeMapButton _transportButton(WidgetTester tester, String action) {

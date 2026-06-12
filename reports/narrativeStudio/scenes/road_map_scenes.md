@@ -177,9 +177,9 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0`
+`NS-SCENES-V1-113 — Cinematic Playback Preview Polish / Diagnostics V0`
 
-Raison : V1-111 active maintenant le transport local editor-only et affiche un Playback Playhead. La prochaine étape peut consommer les poses du plan V1-110 pour déplacer visuellement les acteurs dans la preview, sans brancher de runtime.
+Raison : V1-112 connecte maintenant les poses acteur du plan V1-110 au rendu preview editor-only. La prochaine étape utile est de polir les diagnostics et les états cassés du playback preview, sans démarrer de runtime, Flame, GameState, scrubber/seek ni animation de marche.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -193,7 +193,20 @@ Ordre apres V1-102 :
 9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` (DONE documentaire)
 10. `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0` (DONE)
 11. `NS-SCENES-V1-111 — Cinematic Preview Playback Transport UI V0` (DONE)
-12. `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0`
+12. `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` (DONE)
+13. `NS-SCENES-V1-113 — Cinematic Playback Preview Polish / Diagnostics V0`
+
+## Mise a jour V1-112
+
+Statut : `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` est DONE.
+
+Demande : Connecter les poses acteur du `CinematicPreviewPlaybackFrame` au rendu preview du Cinematic Builder afin que les acteurs se déplacent visuellement pendant la lecture locale, sans recalculer l’interpolation dans l’UI, sans runtime, Flame, GameState, pathfinding ni animation de marche.
+
+Decision : Le Builder continue de porter le temps local V1-111, appelle `playbackPlan.frameAt(playbackTimeMs)` et construit un modèle overlay dynamique depuis `actorPoses`. Le panneau de preview privilégie ce modèle dynamique pour l’acteur visible et conserve le modèle statique comme fallback/diagnostic.
+
+Preuve : tests V1-112 ciblés `+3`, Builder complet `+214`, Library/Stage overlay `+26`, sprite renderer `+21`, régressions `map_core` `+12/+27/+4`, Visual Gate 1663x926 `ns_scenes_v1_112_cinematic_actormove_preview_playback_v0.png` prouvée par shasum `a53f2d0e5d4538afa8c5fbcffdab7ae481dd90f191c64c4290c0b78dd31baa4d`.
+
+Limites : aucune exécution runtime/Flame/GameState ; pas de scrubber/seek, pathfinding/collision, animation de marche ni persistance du temps. La projection visuelle utilise encore le contrat overlay entier existant, donc la précision sub-tuile pourra être polie dans V1-113 si nécessaire.
 
 ## Mise a jour V1-111
 
@@ -205,7 +218,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites : Aucun actor overlay playback n'est branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'a été ajouté. V1-112 n'est pas démarré.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Cette limite est maintenant traitée par V1-112 ; le prochain lot recommandé devient `NS-SCENES-V1-113 — Cinematic Playback Preview Polish / Diagnostics V0`.
 
 ## Mise a jour V1-110
 

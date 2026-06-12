@@ -15,6 +15,7 @@ import 'cinematic_backdrop_preview_framing.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
+import 'cinematic_preview_playback_actor_overlay_adapter.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
@@ -127,7 +128,10 @@ typedef _ToggleActorMovePathModeCallback = Future<void> Function(
 );
 
 typedef _AddManualPathWaypointCallback = Future<void> Function(
-    CinematicManualPath path, String stagePointId);
+  CinematicTimelineStep step,
+  CinematicManualPath? path,
+  String stagePointId,
+);
 
 typedef _RemoveManualPathWaypointCallback = Future<void> Function(
     CinematicManualPath path, int index);
@@ -250,6 +254,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     this.backdropTileRenderPlan,
     this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     this.tilesets,
     this.startExpanded = false,
@@ -289,6 +294,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final bool startExpanded;
@@ -453,6 +459,11 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     );
     final playbackTimeMs = _playbackTimeMs(playbackPlan);
     final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
+    final playbackActorOverlayModel =
+        buildCinematicPreviewPlaybackActorOverlayModel(
+      displayModel: widget.actorDisplayPreviewModel,
+      playbackFrame: playbackFrame,
+    );
 
     return Material(
       type: MaterialType.transparency,
@@ -531,6 +542,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                       widget.backdropLayerRenderPlan,
                                   actorDisplayPreviewModel:
                                       widget.actorDisplayPreviewModel,
+                                  actorPlaybackPreviewModel:
+                                      playbackActorOverlayModel,
                                   actorSpritePreviewPlan:
                                       widget.actorSpritePreviewPlan,
                                   backdropFramingState: _backdropFramingState,
@@ -908,11 +921,23 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   }
 
   Future<void> _addManualPathWaypoint(
-    CinematicManualPath path,
+    CinematicTimelineStep step,
+    CinematicManualPath? path,
     String stagePointId,
   ) async {
     try {
       final dummyProject = _createDummyProject();
+      if (path == null || path.id.isEmpty) {
+        final result = addCinematicManualPathForActorMove(
+          dummyProject,
+          cinematicId: widget.asset.id,
+          actorMoveStepId: step.id,
+          waypointStagePointIds: [stagePointId],
+        );
+        await _updateCinematic(result.cinematic);
+        return;
+      }
+
       final result = addCinematicManualPathWaypoint(
         dummyProject,
         cinematicId: widget.asset.id,
@@ -2250,6 +2275,7 @@ class _PreviewSandbox extends StatelessWidget {
     this.backdropTileRenderPlan,
     this.backdropLayerRenderPlan,
     this.actorDisplayPreviewModel,
+    this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     required this.backdropFramingState,
     required this.onBackdropFramingModeChanged,
@@ -2277,6 +2303,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState backdropFramingState;
   final ValueChanged<CinematicBackdropPreviewFramingMode>
@@ -2317,6 +2344,7 @@ class _PreviewSandbox extends StatelessWidget {
               tileRenderPlan: backdropTileRenderPlan,
               layerRenderPlan: backdropLayerRenderPlan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
+              actorPlaybackPreviewModel: actorPlaybackPreviewModel,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
               framingState: backdropFramingState,
               selectedStep: selectedStep,
@@ -5146,6 +5174,8 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                             widget.onRemoveManualPathWaypoint,
                         onReorderManualPathWaypoint:
                             widget.onReorderManualPathWaypoint,
+                        onUpsertMovementTargetBinding:
+                            widget.onUpsertMovementTargetBinding,
                       ),
                   ],
                 ),
@@ -5228,6 +5258,8 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                           widget.onRemoveManualPathWaypoint,
                       onReorderManualPathWaypoint:
                           widget.onReorderManualPathWaypoint,
+                      onUpsertMovementTargetBinding:
+                          widget.onUpsertMovementTargetBinding,
                     )
                   else
                     const _EmptySelectionCard(),
@@ -9596,6 +9628,7 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.onAddManualPathWaypoint,
     required this.onRemoveManualPathWaypoint,
     required this.onReorderManualPathWaypoint,
+    required this.onUpsertMovementTargetBinding,
   });
 
   final CinematicAsset asset;
@@ -9610,6 +9643,7 @@ class _SelectedStepInspector extends StatelessWidget {
   final _AddManualPathWaypointCallback onAddManualPathWaypoint;
   final _RemoveManualPathWaypointCallback onRemoveManualPathWaypoint;
   final _ReorderManualPathWaypointCallback onReorderManualPathWaypoint;
+  final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
 
   @override
   Widget build(BuildContext context) {
@@ -9678,6 +9712,7 @@ class _SelectedStepInspector extends StatelessWidget {
             onAddManualPathWaypoint: onAddManualPathWaypoint,
             onRemoveManualPathWaypoint: onRemoveManualPathWaypoint,
             onReorderManualPathWaypoint: onReorderManualPathWaypoint,
+            onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
           ),
           const SizedBox(height: 8),
         ],
@@ -10217,6 +10252,7 @@ class _ActorMoveControls extends StatelessWidget {
     required this.onAddManualPathWaypoint,
     required this.onRemoveManualPathWaypoint,
     required this.onReorderManualPathWaypoint,
+    required this.onUpsertMovementTargetBinding,
   });
 
   final CinematicAsset asset;
@@ -10226,6 +10262,7 @@ class _ActorMoveControls extends StatelessWidget {
   final _AddManualPathWaypointCallback onAddManualPathWaypoint;
   final _RemoveManualPathWaypointCallback onRemoveManualPathWaypoint;
   final _ReorderManualPathWaypointCallback onReorderManualPathWaypoint;
+  final _UpsertMovementTargetBindingCallback onUpsertMovementTargetBinding;
 
   Widget _buildNumberBadge(int number, PokeMapColorTokens colors) {
     return Container(
@@ -10256,16 +10293,20 @@ class _ActorMoveControls extends StatelessWidget {
         CinematicTimelineActorPathMode.direct;
     final colors = context.pokeMapColors;
 
+    final stagePoints =
+        asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[];
     final manualPaths = asset.stageContext?.manualPaths ?? const [];
     final manualPath = manualPaths.cast<CinematicManualPath?>().firstWhere(
           (p) => p?.ownerActorMoveStepId == step.id,
           orElse: () => null,
         );
 
+    final selectedTarget = _selectedTarget(asset, step);
     final destinationStagePointId = _destinationStagePointId(asset, step);
+    final destinationStagePoint =
+        _stagePointById(stagePoints, destinationStagePointId);
     final availablePoints = [
-      for (final point
-          in asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+      for (final point in stagePoints)
         if (point.id != destinationStagePointId) point,
     ];
 
@@ -10444,9 +10485,7 @@ class _ActorMoveControls extends StatelessWidget {
               key: const ValueKey('cinematic-builder-add-waypoint-picker'),
               tooltip: 'Ajouter un repère de passage',
               onSelected: (sp) {
-                if (manualPath != null && manualPath.id.isNotEmpty) {
-                  onAddManualPathWaypoint(manualPath, sp.id);
-                }
+                onAddManualPathWaypoint(step, manualPath, sp.id);
               },
               itemBuilder: (context) => [
                 for (final sp in availablePoints)
@@ -10519,31 +10558,74 @@ class _ActorMoveControls extends StatelessWidget {
         const SizedBox(height: 8),
         const _SectionTitle(
           title: 'Destination',
-          subtitle: 'Picker label + id stable',
+          subtitle: 'Repère final du déplacement',
         ),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final target in asset.movementTargets)
-              _InlineControlAction(
-                label: target.label,
-                button: PokeMapButton(
-                  key: ValueKey(
-                    'cinematic-builder-target-picker-${target.targetId}',
+        const SizedBox(height: 6),
+        if (selectedTarget == null) ...[
+          const _MutedText(
+            'Choisissez une destination avant de lancer la prévisualisation.',
+          ),
+          const SizedBox(height: 6),
+          _MovementTargetPicker(
+            asset: asset,
+            selectedTargetId: step.targetId,
+            onUpdateActorMove: onUpdateActorMove,
+            step: step,
+          ),
+        ] else ...[
+          _MutedText(
+            destinationStagePoint == null
+                ? 'Choisissez un repère pour que le déplacement puisse être prévisualisé.'
+                : 'Destination actuelle : ${destinationStagePoint.label}',
+          ),
+          const SizedBox(height: 6),
+          if (stagePoints.isEmpty)
+            const _MutedText(
+              'Aucun repère disponible. Posez d\'abord un repère dans l\'aperçu de scène.',
+            )
+          else
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final point in stagePoints)
+                  _InlineControlAction(
+                    label: point.label,
+                    button: PokeMapButton(
+                      key: ValueKey(
+                        'cinematic-builder-actor-move-destination-stage-point-${selectedTarget.targetId}-${point.id}',
+                      ),
+                      onPressed: () => onUpsertMovementTargetBinding(
+                        CinematicMovementTargetBinding(
+                          targetId: selectedTarget.targetId,
+                          kind: CinematicMovementTargetBindingKind.stagePoint,
+                          sourceId: point.id,
+                        ),
+                      ),
+                      variant: PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.small,
+                      isSelected: destinationStagePointId == point.id,
+                      leading: const Icon(CupertinoIcons.location),
+                      child: const SizedBox.shrink(),
+                    ),
                   ),
-                  onPressed: () {
-                    onUpdateActorMove(step, targetId: target.targetId);
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: step.targetId == target.targetId,
-                  leading: const Icon(CupertinoIcons.location),
-                  child: const SizedBox.shrink(),
-                ),
-              ),
+              ],
+            ),
+          if (asset.movementTargets.length > 1) ...[
+            const SizedBox(height: 8),
+            const _KeyValue(
+              label: 'Variante de destination',
+              value: 'Choisissez la destination à éditer.',
+            ),
+            const SizedBox(height: 6),
+            _MovementTargetPicker(
+              asset: asset,
+              selectedTargetId: step.targetId,
+              onUpdateActorMove: onUpdateActorMove,
+              step: step,
+            ),
           ],
-        ),
+        ],
         const SizedBox(height: 8),
         _DurationEditorControls(
           currentDurationMs: _editableDurationMs(step),
@@ -10574,6 +10656,78 @@ class _ActorMoveControls extends StatelessWidget {
       }
     }
     return null;
+  }
+
+  CinematicMovementTargetRef? _selectedTarget(
+    CinematicAsset asset,
+    CinematicTimelineStep step,
+  ) {
+    final targetId = step.targetId;
+    if (targetId == null) {
+      return null;
+    }
+    for (final target in asset.movementTargets) {
+      if (target.targetId == targetId) {
+        return target;
+      }
+    }
+    return null;
+  }
+
+  CinematicStagePoint? _stagePointById(
+    List<CinematicStagePoint> stagePoints,
+    String? stagePointId,
+  ) {
+    if (stagePointId == null) {
+      return null;
+    }
+    for (final point in stagePoints) {
+      if (point.id == stagePointId) {
+        return point;
+      }
+    }
+    return null;
+  }
+}
+
+class _MovementTargetPicker extends StatelessWidget {
+  const _MovementTargetPicker({
+    required this.asset,
+    required this.selectedTargetId,
+    required this.onUpdateActorMove,
+    required this.step,
+  });
+
+  final CinematicAsset asset;
+  final String? selectedTargetId;
+  final _UpdateActorMoveCallback onUpdateActorMove;
+  final CinematicTimelineStep step;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        for (final target in asset.movementTargets)
+          _InlineControlAction(
+            label: target.label,
+            button: PokeMapButton(
+              key: ValueKey(
+                'cinematic-builder-target-picker-${target.targetId}',
+              ),
+              onPressed: () {
+                onUpdateActorMove(step, targetId: target.targetId);
+              },
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              isSelected: selectedTargetId == target.targetId,
+              leading: const Icon(CupertinoIcons.location),
+              child: const SizedBox.shrink(),
+            ),
+          ),
+      ],
+    );
   }
 }
 
