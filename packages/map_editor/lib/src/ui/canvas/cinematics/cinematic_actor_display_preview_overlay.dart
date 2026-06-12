@@ -8,11 +8,13 @@ import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_renderer.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_map_backdrop_viewport_transform.dart';
+import 'cinematic_preview_playback_actor_overlay_adapter.dart';
 
 class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
   const CinematicActorDisplayPreviewOverlay({
     super.key,
     required this.model,
+    this.playbackPoseOverrides = const {},
     this.spritePreviewPlan,
     this.tilesets,
     required this.mapWidth,
@@ -21,6 +23,7 @@ class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
   });
 
   final CinematicActorDisplayPreviewModel model;
+  final Map<String, CinematicActorPlaybackOverlayPose> playbackPoseOverrides;
   final CinematicActorSpritePreviewPlan? spritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final int mapWidth;
@@ -81,22 +84,34 @@ class CinematicActorDisplayPreviewOverlay extends StatelessWidget {
             key: const ValueKey('cinematic-builder-actor-display-overlay'),
             clipBehavior: Clip.hardEdge,
             children: [
-              for (final actor in actors)
+              for (final actor in actors) ...[
                 _ActorDisplayPlaceholder(
                   actor: actor,
                   spriteActor: findSpriteActor(actor.actorId),
                   tilesets: tilesets,
                   transform: transform,
-                  anchor: transform.tileCenterBottom(
-                    tileX: actor.position.x ?? 0,
-                    tileY: actor.position.y ?? 0,
-                  ),
+                  anchor: _anchorForActor(transform, actor),
                   compact: compact,
                 ),
+              ],
             ],
           );
         },
       ),
+    );
+  }
+
+  Offset _anchorForActor(
+    CinematicMapBackdropViewportTransform transform,
+    CinematicActorDisplayPreviewActor actor,
+  ) {
+    final override = playbackPoseOverrides[actor.actorId];
+    if (override != null) {
+      return transform.tileToPreview(override.x, override.y);
+    }
+    return transform.tileCenterBottom(
+      tileX: actor.position.x ?? 0,
+      tileY: actor.position.y ?? 0,
     );
   }
 }

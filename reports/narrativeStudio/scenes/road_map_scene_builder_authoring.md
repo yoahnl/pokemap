@@ -164,6 +164,21 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-110 | Cinematic Preview Playback Plan Read Model V0 | core / read-model | Implémenter le plan pur de playback preview dans `map_core` : timeline items, frames déterministes, actor poses, diagnostics et capabilities. | Pas de ticker, pas de transport actif, pas de rendu editor, pas de runtime/Flame, pas de GameState. | `packages/map_core/lib/src/read_models/cinematic_preview_playback_plan.dart`, export `map_core.dart`, test dédié, rapports. | Tests core plan vide, durée totale, active step, actorFace, actorMove direct/manual path, diagnostics, fade/camera, pureté, no persisted time. | Dupliquer les read models existants ; créer une vérité runtime cachée ; persister le temps. | DONE : plan pur exporté, frames déterministes, direct/manual path supportés côté read model, `dart analyze` et suite `map_core` complète verts, aucun editor/runtime/screenshot. | V1-109 |
 | NS-SCENES-V1-111 | Cinematic Preview Playback Transport UI V0 | editor / ui | Connecter les contrôles Transport du Cinematic Builder à un état local de lecture consommant `CinematicPreviewPlaybackPlan`, sans runtime ni Flame. | Pas de timer runtime, pas de Flame, pas de GameState, pas de PlayableMapGame, pas de persistance du playhead, pas de playback runtime. | `map_editor` transport local + tests widget + rapport. | Tests Play/Pause/Stop/Reset locaux, séparation Selection Cursor / Mouse Probe / Playback Playhead, non-mutation ProjectManifest. | Confondre plan core et runtime ; rendre la timeline cliquable trop tôt ; activer des effets non supportés. | DONE : transports Play/Pause/Stop/Reset actifs, temps local, Playback Playhead distinct, statut no-code et Visual Gate, sans actor overlay playback ni runtime. | V1-110 |
 | NS-SCENES-V1-112 | Cinematic ActorMove Preview Playback V0 | editor / preview-sandbox | Consommer les poses acteur du plan V1-110 pour déplacer visuellement les acteurs dans la preview pendant la lecture locale V1-111. | Pas de runtime, Flame, GameState, pathfinding, collision, scrubber/seek timeline, persistance du temps ou animation de marche avancée. | Builder cinematic actor overlay, tests widget, rapport, Visual Gate. | Tests actorMove direct/manual path visible pendant playback, non-mutation, séparation transport/sélection/probe. | Confondre preview editor-only et runtime ; déplacer les acteurs hors plan ; casser l'overlay statique existant. | DONE : les poses `CinematicPreviewPlaybackFrame.actorPoses` alimentent un modèle overlay dynamique via adaptateur editor-only, avec Visual Gate 1663x926 et tests V1-112 verts. | V1-111 |
+| NS-SCENES-V1-113 | Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0 | editor / preview-sandbox | Conserver les coordonnées sub-tile des poses acteur playback dans le rendu de preview, pour supprimer l’effet de déplacement par cases. | Pas de walking animation, pas de runtime, Flame, GameState, pathfinding, collision, scrubber/seek timeline, interpolation UI ou mutation projet. | Adaptateur overlay acteur, overlay acteur, panneau preview, tests Builder, rapport, Evidence Pack, Visual Gate. | Tests V1-113 direct/manual path, pause, stop, reset, fallback pose absente/sans position, anti-round et Visual Gate. | Recalculer l’interpolation dans l’UI ; changer `map_core` inutilement ; masquer le problème par une animation de marche. | DONE : overrides sub-tile editor-only consommés depuis `actorPoses`, `round()/toInt()` supprimés pour le rendu playback, Visual Gate V1-113 générée. | V1-112 |
+
+## Mise a jour V1-113
+
+Statut : `NS-SCENES-V1-113 — Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0` est DONE.
+
+Demande : Fluidifier le rendu actorMove direct/manual path dans la preview du Cinematic Builder en conservant `pose.x`/`pose.y` comme `double`, sans recalculer l’interpolation dans l’UI.
+
+Decision : Option A retenue. L’adaptateur retourne le modèle d’affichage acteur et une table d’overrides sub-tile par acteur ; l’overlay utilise ces overrides uniquement quand `CinematicPreviewPlaybackFrame.actorPoses` fournit une position.
+
+Preuve : tests V1-113 ciblés, Visual Gate `ns_scenes_v1_113_cinematic_actor_playback_smooth_motion_subtile_overlay_polish_v0.png`, rapport et Evidence Pack dédiés.
+
+Limites : le mouvement est fluide en position, mais aucune animation de marche frame-by-frame n’est démarrée.
+
+Prochain lot recommande : `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`.
 
 ## Mise a jour V1-112
 
@@ -177,7 +192,7 @@ Preuve : tests V1-112 ciblés `+3`, Builder complet `+214`, Library/Stage overla
 
 Limites : le contrat overlay acteur reste ancré sur des positions entières de tuile, donc la pose playback est consommée comme source de vérité mais projetée par arrondi dans l’overlay actuel. Aucun scrubber, seek, runtime, Flame, GameState, collision/pathfinding, animation de marche ou persistance du temps n’a été ajouté.
 
-Prochain lot recommande : `NS-SCENES-V1-113 — Cinematic Playback Preview Polish / Diagnostics V0`, pour lisser les diagnostics/états cassés et préparer une éventuelle précision visuelle plus fine sans changer la frontière runtime.
+Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite est maintenant traitée par V1-113 ; le prochain lot recommandé devient `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`.
 
 ## Mise a jour V1-111
 
@@ -189,7 +204,7 @@ Decision : `map_editor` porte le ticker local avec `AnimationController`, affich
 
 Preuve : tests V1-111 ciblés `+4`, Builder complet `+211`, Library/Stage overlay `+26`, régressions `map_core` `+12/+4/+27`, Visual Gate `ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` prouvée par shasum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`.
 
-Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite est maintenant traitée par V1-112 ; le prochain lot recommandé devient `NS-SCENES-V1-113 — Cinematic Playback Preview Polish / Diagnostics V0`.
+Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite est traitée par V1-112, puis la fluidité sub-tile par V1-113 ; le prochain lot recommandé devient `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`.
 
 ## Mise a jour V1-110
 

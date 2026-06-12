@@ -3,30 +3,59 @@ import 'package:map_core/map_core.dart';
 /// Builds the actor display model used by the preview overlay during local
 /// editor playback.
 ///
-/// V1-112 deliberately keeps movement calculation in `map_core`: this adapter
-/// only reads `CinematicPreviewPlaybackFrame.actorPoses` and copies those
-/// positions into the existing actor display model consumed by the overlay.
-CinematicActorDisplayPreviewModel?
+/// Movement calculation stays in `map_core`: this adapter only reads
+/// `CinematicPreviewPlaybackFrame.actorPoses` and exposes sub-tile playback
+/// coordinates to the overlay without recalculating or snapping them.
+final class CinematicActorPlaybackOverlayPose {
+  const CinematicActorPlaybackOverlayPose({
+    required this.actorId,
+    required this.x,
+    required this.y,
+  });
+
+  final String actorId;
+  final double x;
+  final double y;
+}
+
+final class CinematicActorPlaybackOverlayModel {
+  CinematicActorPlaybackOverlayModel({
+    required this.displayModel,
+    required Map<String, CinematicActorPlaybackOverlayPose> poseOverrides,
+  }) : poseOverrides =
+            Map<String, CinematicActorPlaybackOverlayPose>.unmodifiable(
+          poseOverrides,
+        );
+
+  final CinematicActorDisplayPreviewModel displayModel;
+  final Map<String, CinematicActorPlaybackOverlayPose> poseOverrides;
+}
+
+CinematicActorPlaybackOverlayModel?
     buildCinematicPreviewPlaybackActorOverlayModel({
   required CinematicActorDisplayPreviewModel? displayModel,
   required CinematicPreviewPlaybackFrame? playbackFrame,
 }) {
   if (displayModel == null || playbackFrame == null) {
-    return displayModel;
+    return null;
   }
 
   final actors = <CinematicActorDisplayPreviewActor>[];
+  final poseOverrides = <String, CinematicActorPlaybackOverlayPose>{};
   for (final actor in displayModel.actors) {
     final pose = playbackFrame.actorPoseById(actor.actorId);
-    if (pose == null || !pose.hasPosition) {
+    if (pose == null) {
       actors.add(actor);
       continue;
     }
+    if (pose.hasPosition) {
+      poseOverrides[actor.actorId] = CinematicActorPlaybackOverlayPose(
+        actorId: actor.actorId,
+        x: pose.x!,
+        y: pose.y!,
+      );
+    }
 
-    // The existing actor overlay is tile-anchored and consumes integer display
-    // positions. We still consume the playback pose as the source of truth, but
-    // project it into the current overlay contract instead of introducing a
-    // second renderer in this lot.
     actors.add(
       CinematicActorDisplayPreviewActor(
         actorId: actor.actorId,
@@ -36,14 +65,7 @@ CinematicActorDisplayPreviewModel?
         bindingKind: actor.bindingKind,
         bindingSourceId: actor.bindingSourceId,
         bindingSourceLabel: actor.bindingSourceLabel,
-        position: CinematicActorPreviewPosition(
-          status: CinematicActorPreviewPositionStatus.resolved,
-          sourceKind: actor.position.sourceKind,
-          x: pose.x!.round(),
-          y: pose.y!.round(),
-          sourceId: actor.position.sourceId,
-          sourceLabel: actor.position.sourceLabel,
-        ),
+        position: actor.position,
         appearance: actor.appearance,
         direction: pose.facing == CinematicActorPreviewDirection.unknown
             ? actor.direction
@@ -57,10 +79,13 @@ CinematicActorDisplayPreviewModel?
     );
   }
 
-  return CinematicActorDisplayPreviewModel(
-    status: displayModel.status,
-    summary: displayModel.summary,
-    actors: actors,
-    diagnostics: displayModel.diagnostics,
+  return CinematicActorPlaybackOverlayModel(
+    displayModel: CinematicActorDisplayPreviewModel(
+      status: displayModel.status,
+      summary: displayModel.summary,
+      actors: actors,
+      diagnostics: displayModel.diagnostics,
+    ),
+    poseOverrides: poseOverrides,
   );
 }

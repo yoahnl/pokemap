@@ -8,11 +8,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_display_preview_overlay.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_backdrop_preview_framing.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_preview_playback_actor_overlay_adapter.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_plan.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -6777,14 +6779,15 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
       );
       await tester.pump();
+      final playbackStartAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
       await tester.pump(const Duration(milliseconds: 500));
 
       final middleAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
       expect(find.text('Lecture en cours'), findsOneWidget);
       expect(find.text('500 ms / 1 s'), findsOneWidget);
-      expect(middleAnchor.dx, greaterThan(initialAnchor.dx));
-      expect(middleAnchor.dx, lessThan(initialAnchor.dx + 260));
-      expect(middleAnchor.dy, closeTo(initialAnchor.dy, 1));
+      expect(middleAnchor.dx, greaterThan(playbackStartAnchor.dx));
+      expect(middleAnchor.dx, lessThan(playbackStartAnchor.dx + 260));
+      expect(middleAnchor.dy, closeTo(playbackStartAnchor.dy, 8));
 
       await tester.tap(
         find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
@@ -6879,16 +6882,16 @@ void main() {
         surfaceSize: _referenceTimelineSurfaceSize,
       );
 
-      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
       await tester.tap(
         find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
       );
       await tester.pump();
+      final playbackStartAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
       await tester.pump(const Duration(milliseconds: 400));
 
       final waypointAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
-      expect(waypointAnchor.dx, closeTo(initialAnchor.dx, 1));
-      expect(waypointAnchor.dy, greaterThan(initialAnchor.dy + 50));
+      expect(waypointAnchor.dx, closeTo(playbackStartAnchor.dx, 8));
+      expect(waypointAnchor.dy, greaterThan(playbackStartAnchor.dy + 50));
       expect(find.text('400 ms / 1 s'), findsOneWidget);
 
       await tester.pump(const Duration(milliseconds: 700));
@@ -6904,6 +6907,376 @@ void main() {
       expect(project.toJson(), beforeProject);
       expect(asset.toJson(), beforeAsset);
       expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-113 direct actorMove preserves sub-tile playback positions',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final playbackStartAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final earlyAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('100 ms / 1 s'), findsOneWidget);
+      expect(
+        earlyAnchor.dx,
+        greaterThan(playbackStartAnchor.dx + 12),
+        reason: 'At 100 ms, round() kept the actor visually stuck on start.',
+      );
+      expect(earlyAnchor.dy, closeTo(playbackStartAnchor.dy, 2));
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final pausedSubTileAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), pausedSubTileAnchor);
+      expect(find.text('Lecture en pause'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      final middleAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('500 ms / 1 s'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 600));
+      final finalAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('1 s / 1 s'), findsOneWidget);
+      expect(
+        middleAnchor.dx,
+        closeTo((playbackStartAnchor.dx + finalAnchor.dx) / 2, 6),
+      );
+      expect(middleAnchor.dy, closeTo(playbackStartAnchor.dy, 8));
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-stop-button')),
+      );
+      await tester.pump();
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), initialAnchor);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final secondPlaybackStartAnchor =
+          _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        _actorDisplayAnchor(tester, 'actor_lysa').dx,
+        greaterThan(secondPlaybackStartAnchor.dx + 12),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
+      );
+      await tester.pump();
+      expect(_actorDisplayAnchor(tester, 'actor_lysa'), initialAnchor);
+
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-113 manual path actorMove moves before tile rounding threshold',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackManualPathActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      final beforeWaypoints =
+          asset.stageContext!.manualPaths.single.waypointStagePointIds;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final playbackStartAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.pump(const Duration(milliseconds: 40));
+
+      final earlyAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('40 ms / 1 s'), findsOneWidget);
+      expect(earlyAnchor.dx, closeTo(playbackStartAnchor.dx, 2));
+      expect(
+        earlyAnchor.dy,
+        greaterThan(playbackStartAnchor.dy + 5),
+        reason: 'At 40 ms, round() kept the manual path actor on start.',
+      );
+
+      await tester.pump(const Duration(milliseconds: 360));
+      final segmentAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('400 ms / 1 s'), findsOneWidget);
+      expect(segmentAnchor.dx, closeTo(playbackStartAnchor.dx, 8));
+      expect(segmentAnchor.dy, greaterThan(earlyAnchor.dy));
+
+      await tester.pump(const Duration(milliseconds: 700));
+      final destinationAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(destinationAnchor.dx, greaterThan(segmentAnchor.dx));
+      expect(destinationAnchor.dy, closeTo(segmentAnchor.dy, 8));
+
+      expect(
+        asset.stageContext!.manualPaths.single.waypointStagePointIds,
+        beforeWaypoints,
+      );
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-113 overlay applies sub-tile playback overrides and static fallback',
+    (tester) async {
+      final model = CinematicActorDisplayPreviewModel(
+        status: CinematicActorDisplayPreviewStatus.ready,
+        summary: '2 acteurs prêts.',
+        actors: [
+          _testDisplayActor(
+            actorId: 'actor_moving',
+            label: 'Moving',
+            x: 1,
+            y: 0,
+          ),
+          _testDisplayActor(
+            actorId: 'actor_static',
+            label: 'Static',
+            x: 2,
+            y: 0,
+          ),
+        ],
+        diagnostics: const [],
+      );
+
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.dark(),
+          child: MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 200,
+                child: CinematicActorDisplayPreviewOverlay(
+                  model: model,
+                  playbackPoseOverrides: const {
+                    'actor_moving': CinematicActorPlaybackOverlayPose(
+                      actorId: 'actor_moving',
+                      x: 1.25,
+                      y: 0.75,
+                    ),
+                  },
+                  mapWidth: 4,
+                  mapHeight: 2,
+                  compact: true,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final movingAnchor = _actorDisplayAnchor(tester, 'actor_moving');
+      final staticAnchor = _actorDisplayAnchor(tester, 'actor_static');
+      expect(movingAnchor.dx, closeTo(125, 1));
+      expect(movingAnchor.dy, closeTo(75, 1));
+      expect(staticAnchor.dx, closeTo(250, 1));
+      expect(staticAnchor.dy, closeTo(100, 1));
+    },
+  );
+
+  test(
+    'V1-113 adapter falls back when playback pose has no position',
+    () {
+      final model = CinematicActorDisplayPreviewModel(
+        status: CinematicActorDisplayPreviewStatus.ready,
+        summary: '1 acteur prêt.',
+        actors: [
+          _testDisplayActor(
+            actorId: 'actor_static',
+            label: 'Static',
+            x: 2,
+            y: 1,
+          ),
+        ],
+        diagnostics: const [],
+      );
+
+      final overlayModel = buildCinematicPreviewPlaybackActorOverlayModel(
+        displayModel: model,
+        playbackFrame: CinematicPreviewPlaybackFrame(
+          timeMs: 100,
+          clampedTimeMs: 100,
+          activeStepIds: const ['face_actor'],
+          actorPoses: const [
+            CinematicActorPlaybackPose(
+              actorId: 'actor_static',
+              facing: CinematicActorPreviewDirection.east,
+              source: CinematicActorPlaybackPoseSource.actorFace,
+              isInterpolated: false,
+              activeStepId: 'face_actor',
+            ),
+          ],
+          visibleDiagnostics: const [],
+        ),
+      );
+
+      expect(overlayModel, isNotNull);
+      expect(overlayModel!.poseOverrides, isEmpty);
+      final actor = overlayModel.displayModel.actors.single;
+      expect(actor.position.x, 2);
+      expect(actor.position.y, 1);
+      expect(actor.direction, CinematicActorPreviewDirection.east);
+    },
+  );
+
+  testWidgets(
+    'captures V1-113 cinematic actor playback smooth motion visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_113_CAPTURE_CINEMATIC_ACTOR_PLAYBACK_SMOOTH_MOTION_SUBTILE',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _playbackManualPathActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-move_manual'),
+      );
+      await tester.ensureVisible(moveCard);
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      final playbackAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      expect(find.text('Lecture en cours'), findsOneWidget);
+      expect(find.text('400 ms / 1 s'), findsOneWidget);
+      expect(
+        playbackAnchor.dy,
+        greaterThan(initialAnchor.dy + 60),
+        reason: 'La Visual Gate doit montrer une pose intermédiaire visible.',
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+        ),
+        findsOneWidget,
+      );
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_113_cinematic_actor_playback_smooth_motion_subtile_overlay_polish_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
     },
   );
 
@@ -16506,6 +16879,36 @@ Offset _actorDisplayAnchor(WidgetTester tester, String actorId) {
         find.byKey(ValueKey('cinematic-builder-actor-display-actor-$actorId')),
       )
       .bottomCenter;
+}
+
+CinematicActorDisplayPreviewActor _testDisplayActor({
+  required String actorId,
+  required String label,
+  required int x,
+  required int y,
+}) {
+  return CinematicActorDisplayPreviewActor(
+    actorId: actorId,
+    label: label,
+    role: null,
+    bindingStatus: CinematicActorDisplayBindingStatus.cinematicOnly,
+    bindingKind: CinematicActorBindingKind.cinematicOnly,
+    bindingSourceId: null,
+    bindingSourceLabel: null,
+    position: CinematicActorPreviewPosition(
+      status: CinematicActorPreviewPositionStatus.resolved,
+      sourceKind: CinematicActorPreviewPositionSourceKind.stagePoint,
+      x: x,
+      y: y,
+    ),
+    appearance: const CinematicActorPreviewAppearance(
+      status: CinematicActorPreviewAppearanceStatus.placeholderOnly,
+    ),
+    direction: CinematicActorPreviewDirection.south,
+    directionSource: CinematicActorPreviewDirectionSource.fallback,
+    renderHint: CinematicActorPreviewRenderHint.placeholder,
+    diagnostics: const [],
+  );
 }
 
 CinematicActorDisplayPreviewModel _actorDisplayPreviewModelFor({

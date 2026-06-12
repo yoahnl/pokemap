@@ -294,7 +294,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
-  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
+  final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final Map<String, CinematicResolvedTilesetAsset>? tilesets;
   final bool startExpanded;
@@ -459,11 +459,15 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     );
     final playbackTimeMs = _playbackTimeMs(playbackPlan);
     final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
+    final isPlaybackOverlayActive =
+        _isPlaybackPlaying || playbackTimeMs > 0;
     final playbackActorOverlayModel =
-        buildCinematicPreviewPlaybackActorOverlayModel(
-      displayModel: widget.actorDisplayPreviewModel,
-      playbackFrame: playbackFrame,
-    );
+        isPlaybackOverlayActive
+            ? buildCinematicPreviewPlaybackActorOverlayModel(
+                displayModel: widget.actorDisplayPreviewModel,
+                playbackFrame: playbackFrame,
+              )
+            : null;
 
     return Material(
       type: MaterialType.transparency,
@@ -2303,7 +2307,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
   final CinematicMapBackdropLayerRenderPlan? backdropLayerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
-  final CinematicActorDisplayPreviewModel? actorPlaybackPreviewModel;
+  final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicBackdropPreviewFramingState backdropFramingState;
   final ValueChanged<CinematicBackdropPreviewFramingMode>
