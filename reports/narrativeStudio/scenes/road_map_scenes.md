@@ -171,12 +171,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract | DONE | Cadrer le futur modèle et l’UX des trajets manuels cinématiques composés de points de passage, en continuité avec Repères, Destination et actorMove, sans code produit ni runtime. |
 | NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0 | DONE | Ajouter le modèle core authoring-only des chemins manuels cinématiques stocké dans Stage Context, composé de Repères ordonnés, avec opérations pures et diagnostics, sans UI ni runtime. |
 | NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0 | DONE | Dessiner le trajet de déplacement manuel dans la preview (dashed lines) et éditer/ordonner les points de passage, avec Visual Gate V1-108-ter régénérée et conforme, sans runtime/Flame/playback. |
+| NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract | DONE | Cadrer le futur playback preview editor-only du Cinematic Builder, avec plan pur, source de vérité temporelle, transport, actorMove direct/manual path, diagnostics et anti-scope runtime/Flame. |
 
 ## Prochain lot recommande
 
-`NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
+`NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0`
 
-Raison : V1-108 a implémenté le tracé visuel des chemins manuels et l'édition des points de passage. La suite logique est de concevoir le contrat de lecture/playback temporel de ces cinématiques dans l'éditeur.
+Raison : V1-109 a retenu l'Option C. La prochaine étape doit implémenter le read model pur de playback preview dans `map_core`, sans ticker editor, sans transport actif, sans runtime ni Flame.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -187,7 +188,20 @@ Ordre apres V1-102 :
 6. `NS-SCENES-V1-106 — Cinematic Manual Path Authoring Prep Contract` (DONE)
 7. `NS-SCENES-V1-107 — Cinematic Manual Path Core Model V0` (DONE)
 8. `NS-SCENES-V1-108 — Cinematic Manual Path Drawing UI V0` (DONE)
-9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract`
+9. `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` (DONE documentaire)
+10. `NS-SCENES-V1-110 — Cinematic Preview Playback Plan Read Model V0`
+
+## Mise a jour V1-109
+
+Statut : `NS-SCENES-V1-109 — Cinematic Preview Playback Prep Contract` est DONE documentaire.
+
+Demande : Cadrer le futur playback preview editor-only du Cinematic Builder sans implémenter de lecture, sans rendre les transports fonctionnels, sans runtime, sans Flame et sans V1-110.
+
+Decision : Option C retenue : `map_core` doit produire un `CinematicPreviewPlaybackPlan` pur et déterministe ; `map_editor` ne portera plus tard que l'état local de lecture, le ticker et le rendu. Selection Cursor, Mouse Time Probe et Playback Playhead restent trois notions séparées.
+
+Preuve : Rapport `ns_scenes_v1_109_cinematic_preview_playback_prep_contract.md`, Evidence Pack `ns_scenes_v1_109_evidence_pack.md`, roadmaps mises à jour, validation documentaire `git diff --check`.
+
+Limites : Aucun playback codé, aucun transport actif, aucun screenshot, aucun package modifié, V1-110 non démarré.
 
 ## Mise a jour V1-108
 
