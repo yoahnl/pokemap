@@ -15396,6 +15396,10 @@
         {
           "targetId": "target",
           "label": "Cible"
+        },
+        {
+          "targetId": "target_2",
+          "label": "Destination"
         }
       ],
       "stageContext": {
@@ -15419,8 +15423,8 @@
         "initialPlacements": [
           {
             "actorId": "actor",
-            "kind": "fromMovementTarget",
-            "targetId": "target"
+            "kind": "stagePoint",
+            "stagePointId": "stage_point_1"
           },
           {
             "actorId": "actor_4",
@@ -15431,7 +15435,8 @@
         "movementTargetBindings": [
           {
             "targetId": "target",
-            "kind": "abstractPoint"
+            "kind": "stagePoint",
+            "sourceId": "stage_point_4"
           }
         ],
         "stagePoints": [
@@ -15460,19 +15465,7 @@
             "y": 20.5
           }
         ],
-        "manualPaths": [
-          {
-            "id": "path",
-            "label": "Chemin de déplacement",
-            "ownerActorMoveStepId": "step_actor_move_2",
-            "waypointStagePointIds": [
-              "stage_point_1",
-              "stage_point_2",
-              "stage_point_3",
-              "stage_point_4"
-            ]
-          }
-        ]
+        "manualPaths": []
       },
       "timeline": {
         "steps": [
@@ -15491,7 +15484,7 @@
             "id": "step_actor_move",
             "kind": "actorMove",
             "label": "Déplacement Acteur",
-            "durationMs": 1000,
+            "durationMs": 1700,
             "actorId": "actor",
             "targetId": "target",
             "metadata": {
@@ -15506,7 +15499,7 @@
             "id": "step_actor_move_2",
             "kind": "actorMove",
             "label": "Déplacement Jean",
-            "durationMs": 200,
+            "durationMs": 3000,
             "actorId": "actor_4",
             "targetId": "target",
             "metadata": {
@@ -15514,7 +15507,7 @@
               "authoring.source": "cinematic-builder-v0",
               "authoring.block": "actorMove",
               "actor.movementMode": "walk",
-              "actor.pathMode": "manual"
+              "actor.pathMode": "direct"
             }
           },
           {
