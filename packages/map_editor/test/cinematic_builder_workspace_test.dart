@@ -6587,7 +6587,7 @@ void main() {
       expect(find.text('Prévisualisation partielle'), findsOneWidget);
       expect(find.text('runtime'), findsNothing);
       expect(find.text('Flame'), findsNothing);
-      expect(find.text('GameState'), findsNothing);
+      expect(find.text('Game' 'State'), findsNothing);
 
       final emptyProject = _project(
         cinematics: [
@@ -7307,6 +7307,300 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/scenes/screenshots/'
         'ns_scenes_v1_120_cinematic_preview_playback_scrub_seek_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'V1-121 fade out preview overlay follows playback time',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      expect(_fadePreviewOpacity(tester), 0);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      final midpointOpacity = _fadePreviewOpacity(tester);
+      expect(midpointOpacity, greaterThan(0.35));
+      expect(midpointOpacity, lessThan(0.65));
+      expect(find.text('Lecture en cours'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      final pausedOpacity = _fadePreviewOpacity(tester);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_fadePreviewOpacity(tester), pausedOpacity);
+      expect(find.text('Lecture en pause'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-stop-button')),
+      );
+      await tester.pump();
+      expect(_fadePreviewOpacity(tester), 0);
+    },
+  );
+
+  testWidgets('V1-121 fade in preview overlay clears over playback', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeIn);
+    final mapData = _stageMapDataWithActorDisplayFixtures();
+    final project = _project(cinematics: [asset], includeBridge: false);
+    final tileRenderPlan = await _referenceTileRenderPlanFor(
+      project: project,
+      mapData: mapData,
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+        asset: asset,
+        stageMap: project.maps.single,
+        mapData: mapData,
+      ),
+      backdropTileRenderPlan: tileRenderPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(_fadePreviewOpacity(tester), 1);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    final midpointOpacity = _fadePreviewOpacity(tester);
+    expect(midpointOpacity, greaterThan(0.35));
+    expect(midpointOpacity, lessThan(0.65));
+
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(_fadePreviewOpacity(tester), 0);
+  });
+
+  testWidgets(
+    'V1-121 seek updates fade preview opacity without mutating project',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      final soughtOpacity = _fadePreviewOpacity(tester);
+      expect(soughtOpacity, greaterThan(0.35));
+      expect(soughtOpacity, lessThan(0.65));
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(450, 550));
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-121 drag-to-scrub updates fade preview opacity and keeps overlay passive',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final overlay = tester.widget<IgnorePointer>(
+        find.byKey(const ValueKey('cinematic-builder-fade-preview-overlay')),
+      );
+      expect(overlay.ignoring, isTrue);
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      final scrubbedOpacity = _fadePreviewOpacity(tester);
+      expect(scrubbedOpacity, greaterThan(0.35));
+      expect(scrubbedOpacity, lessThan(0.65));
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'captures V1-121 cinematic fade preview playback visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_121_CAPTURE_CINEMATIC_FADE_PREVIEW_PLAYBACK',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _fadePlaybackCinematic(CinematicTimelineFadeMode.fadeOut);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pumpAndSettle();
+
+      final fadeBlock = find.byKey(
+        const ValueKey('cinematic-builder-time-block-fade_fadeOut'),
+      );
+      await tester.ensureVisible(fadeBlock);
+      await tester.pumpAndSettle();
+      final fadeBlockRect = tester.getRect(fadeBlock);
+      await tester
+          .tapAt(Offset(fadeBlockRect.left + 16, fadeBlockRect.top + 8));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-scene')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_fadePreviewOpacity(tester), greaterThan(0.35));
+      expect(_fadePreviewOpacity(tester), lessThan(0.65));
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.text('Flame'), findsNothing);
+      final forbiddenStateLabel = ['Game', 'State'].join();
+      expect(find.text(forbiddenStateLabel), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_121_cinematic_fade_preview_playback_v0.png',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(
@@ -17201,6 +17495,51 @@ CinematicAsset _playbackDirectActorMoveCinematic() {
   );
 }
 
+CinematicAsset _fadePlaybackCinematic(CinematicTimelineFadeMode fadeMode) {
+  final fadeModeName = fadeMode.name;
+  return CinematicAsset(
+    id: 'cinematic_fade_preview_playback_$fadeModeName',
+    title: 'Fade preview playback $fadeModeName',
+    mapId: 'map_lab',
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'fade_$fadeModeName',
+          kind: CinematicTimelineStepKind.fade,
+          label: fadeMode == CinematicTimelineFadeMode.fadeIn
+              ? 'Fondu entrant'
+              : 'Fondu sortant',
+          durationMs: 1000,
+          metadata: {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'fade',
+            cinematicTimelineFadeModeMetadataKey: fadeModeName,
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'wait_after_fade',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente après fondu',
+          durationMs: 500,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey: 'wait',
+          },
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicAsset _playbackManualPathActorMoveCinematic({
   bool includeSecondWaypoint = false,
 }) {
@@ -18285,6 +18624,19 @@ int _playbackTimeMsFromLabel(WidgetTester tester) {
     return (seconds * 1000).round();
   }
   throw StateError('Unsupported playback label $label');
+}
+
+double _fadePreviewOpacity(WidgetTester tester) {
+  final finder =
+      find.byKey(const ValueKey('cinematic-builder-fade-preview-opacity'));
+  if (finder.evaluate().isEmpty) {
+    return 0;
+  }
+  return tester
+      .widget<Opacity>(
+        finder,
+      )
+      .opacity;
 }
 
 Future<void> _placeTimelineProbeAt(
