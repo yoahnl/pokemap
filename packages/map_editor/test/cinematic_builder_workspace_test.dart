@@ -1920,7 +1920,7 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
     );
     final probeX = tick0Rect.left + (tick500Rect.left - tick0Rect.left) * 0.5;
-    await tester.tapAt(Offset(probeX, axisRect.center.dy));
+    await _placeTimelineProbeAt(tester, Offset(probeX, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(
@@ -4389,7 +4389,7 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
       );
       final probeX = tick0Rect.left + (tick500Rect.left - tick0Rect.left) * 0.5;
-      await tester.tapAt(Offset(probeX, axisRect.center.dy));
+      await _placeTimelineProbeAt(tester, Offset(probeX, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       expect(
@@ -4592,7 +4592,8 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(axisRect.left + 24, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(axisRect.left + 24, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       final selectedMoveCard = tester.widget<PokeMapCard>(
@@ -4658,7 +4659,7 @@ void main() {
       final pxPer500Ms = tick500Rect.left - tick0Rect.left;
       final probeX = tick0Rect.left + pxPer500Ms * 1.5;
 
-      await tester.tapAt(Offset(probeX, axisRect.center.dy));
+      await _placeTimelineProbeAt(tester, Offset(probeX, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       _expectTimelineStepSelected(tester, 'step_face');
@@ -4721,7 +4722,8 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
 
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       _expectTimelineStepSelected(tester, 'step_face');
@@ -4779,7 +4781,8 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -4847,7 +4850,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -4906,7 +4910,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
@@ -4971,7 +4976,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
@@ -5046,7 +5052,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick1000Rect.left + 4, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick1000Rect.left + 4, axisRect.center.dy));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-probe-help-button')),
@@ -5808,7 +5815,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -5947,7 +5955,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     await tester.tap(
@@ -6004,7 +6013,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -6034,7 +6044,8 @@ void main() {
       findsNothing,
     );
 
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -6072,7 +6083,8 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
 
-    await tester.tapAt(Offset(tick0Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick0Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 0 ms · début timeline'), findsOneWidget);
@@ -6094,7 +6106,8 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
 
-    await tester.tapAt(
+    await _placeTimelineProbeAt(
+      tester,
       Offset(visibleTick3000Rect.center.dx, visibleAxisRect.center.dy),
     );
     await tester.pumpAndSettle();
@@ -6139,7 +6152,8 @@ void main() {
     final pxPer500Ms = tick500Rect.left - tick0Rect.left;
     final faceEndX = tick0Rect.left + pxPer500Ms * 1.6;
 
-    await tester.tapAt(Offset(faceEndX - 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(faceEndX - 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 800 ms · début bloc'), findsOneWidget);
@@ -6187,7 +6201,8 @@ void main() {
     final pxPer500Ms = tick500Rect.left - tick0Rect.left;
     final sharedBoundaryX = tick0Rect.left + pxPer500Ms * 1.6;
 
-    await tester.tapAt(Offset(sharedBoundaryX, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(sharedBoundaryX, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 800 ms · début bloc'), findsOneWidget);
@@ -6224,10 +6239,18 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
     final pxPer500Ms = tick500Rect.left - tick0Rect.left;
+    final probeStart = Offset(
+      tick0Rect.left + pxPer500Ms,
+      axisRect.center.dy,
+    );
     final gesture = await tester.startGesture(
-      Offset(tick0Rect.left + pxPer500Ms, axisRect.center.dy),
+      probeStart,
       kind: PointerDeviceKind.mouse,
     );
+    await tester.pump();
+    await gesture.moveBy(const Offset(24, 0));
+    await tester.pump();
+    await gesture.moveTo(probeStart);
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -6291,7 +6314,7 @@ void main() {
         tick0Rect.left + pxPer500Ms * 1.5,
         axisRect.center.dy,
       );
-      await tester.tapAt(probePoint);
+      await _placeTimelineProbeAt(tester, probePoint);
       await tester.pumpAndSettle();
       expect(find.text('Marqueur : 750 ms'), findsOneWidget);
 
@@ -6313,7 +6336,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tapAt(probePoint);
+      await _placeTimelineProbeAt(tester, probePoint);
       await tester.pumpAndSettle();
       expect(find.text('Marqueur : 750 ms'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -6326,7 +6349,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.home);
       await tester.pumpAndSettle();
       _expectTimelineStepSelected(tester, 'step_camera');
-      await tester.tapAt(probePoint);
+      await _placeTimelineProbeAt(tester, probePoint);
       await tester.pumpAndSettle();
       expect(find.text('Marqueur : 750 ms'), findsOneWidget);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -6373,7 +6396,7 @@ void main() {
     final pxPer1000Ms = tick1000Rect.left - tick0Rect.left;
     final probeX = tick0Rect.left + pxPer1000Ms * 2.5;
 
-    await tester.tapAt(Offset(probeX, axisRect.center.dy));
+    await _placeTimelineProbeAt(tester, Offset(probeX, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 2.5 s'), findsOneWidget);
@@ -6416,7 +6439,8 @@ void main() {
     final pxPer1000Ms = tick1000Rect.left - tick0Rect.left;
     final targetX = tick0Rect.left + pxPer1000Ms * 3;
 
-    await tester.tapAt(Offset(targetX + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(targetX + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
 
     expect(find.text('Marqueur : 3 s · début bloc'), findsOneWidget);
@@ -6720,7 +6744,10 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+        tester,
+        Offset(tick500Rect.left + 6, axisRect.center.dy),
+      );
       await tester.pump();
       expect(
         find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
@@ -6735,6 +6762,559 @@ void main() {
       expect(find.text('Seek'), findsNothing);
       expect(projectChangeCount, 0);
       expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
+    'V1-120 clicking timeline axis seeks playback without changing selection',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-move_direct')),
+      );
+      await tester.pumpAndSettle();
+      _expectTimelineStepSelected(tester, 'move_direct');
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      final soughtAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      final playbackLabel = tester
+          .widget<Text>(
+            find.byKey(const ValueKey('cinematic-builder-playback-time-label')),
+          )
+          .data;
+      final playbackTimeMs = int.parse(playbackLabel!.split(' ms').first);
+      expect(playbackTimeMs, inInclusiveRange(450, 550));
+      expect(soughtAnchor.dx, greaterThan(initialAnchor.dx + 50));
+      _expectTimelineStepSelected(tester, 'move_direct');
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(find.textContaining('Marqueur :'), findsNothing);
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-120 clicking timeline bars keeps selection as the only block action',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final project = _project(cinematics: [_timeLayoutCinematic()]);
+      final before = project.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_time_layout',
+        surfaceSize: _referenceTimelineSurfaceSize,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+
+      final faceTapRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+      );
+      await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+      await tester.pumpAndSettle();
+
+      _expectTimelineStepSelected(tester, 'step_face');
+      expect(find.text('0 ms / 3 s'), findsOneWidget);
+      expect(find.text('Sélection : 500 ms'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
+    'V1-120 clicking empty timeline background seeks playback',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final project = _project(cinematics: [_timeLayoutCinematic()]);
+      final before = project.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_time_layout',
+        surfaceSize: _referenceTimelineSurfaceSize,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+
+      final faceTapRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+      );
+      await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+      await tester.pumpAndSettle();
+      _expectTimelineStepSelected(tester, 'step_face');
+
+      final tick2500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-2500')),
+      );
+      await tester.tapAt(Offset(tick2500Rect.left + 2, faceTapRect.center.dy));
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(2450, 2550));
+      _expectTimelineStepSelected(tester, 'step_face');
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(find.textContaining('Marqueur :'), findsNothing);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
+    'V1-120 dragging playback playhead scrubs actor preview without creating mouse probe',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final initialAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      final scrubbedAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      final playbackLabel = tester
+          .widget<Text>(
+            find.byKey(const ValueKey('cinematic-builder-playback-time-label')),
+          )
+          .data;
+      final playbackTimeMs = int.parse(playbackLabel!.split(' ms').first);
+      expect(playbackTimeMs, inInclusiveRange(450, 550));
+      expect(scrubbedAnchor.dx, greaterThan(initialAnchor.dx + 50));
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(find.textContaining('Marqueur :'), findsNothing);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets('V1-120 dragging playback playhead clamps to timeline bounds', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+    final before = project.toJson();
+    var projectChangeCount = 0;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+      onProjectChanged: (_) => projectChangeCount += 1,
+    );
+
+    var playheadHandleRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-playback-playhead-handle')),
+    );
+    final contentRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-content')),
+    );
+    var gesture = await tester.startGesture(playheadHandleRect.center);
+    await tester.pump();
+    await gesture.moveTo(
+      Offset(contentRect.right + 800, playheadHandleRect.center.dy),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+    expect(_playbackTimeMsFromLabel(tester), 3000);
+
+    final tick1000Rect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+    );
+    final axisRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-time-axis')),
+    );
+    await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+    await tester.pump();
+    expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+
+    playheadHandleRect = tester.getRect(
+      find.byKey(const ValueKey('cinematic-builder-playback-playhead-handle')),
+    );
+    gesture = await tester.startGesture(playheadHandleRect.center);
+    await tester.pump();
+    await gesture.moveTo(
+      Offset(contentRect.left - 800, playheadHandleRect.center.dy),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pump();
+    expect(_playbackTimeMsFromLabel(tester), 0);
+    expect(projectChangeCount, 0);
+    expect(project.toJson(), before);
+  });
+
+  testWidgets(
+    'V1-120 dragging playback playhead pauses then resumes active preview',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      expect(find.text('Lecture en cours'), findsWidgets);
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      expect(find.text('Lecture en pause'), findsWidgets);
+
+      await gesture.up();
+      await tester.pump();
+      expect(find.text('Lecture en cours'), findsWidgets);
+      expect(projectChangeCount, 0);
+    },
+  );
+
+  testWidgets(
+    'V1-120 clear probe stop and reset keep probe and playback roles separated',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final project = _project(cinematics: [_timeLayoutCinematic()]);
+      final before = project.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_time_layout',
+        surfaceSize: _referenceTimelineSurfaceSize,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final tick1000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await _placeTimelineProbeAt(
+        tester,
+        Offset(tick500Rect.left + 6, axisRect.center.dy),
+      );
+      await tester.pump();
+      expect(find.textContaining('Marqueur :'), findsWidgets);
+
+      await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+      expect(find.textContaining('Marqueur :'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-clear-time-probe-button')),
+      );
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+      expect(find.textContaining('Marqueur :'), findsNothing);
+
+      await _placeTimelineProbeAt(
+        tester,
+        Offset(tick500Rect.left + 6, axisRect.center.dy),
+      );
+      await tester.pump();
+      expect(find.textContaining('Marqueur :'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-stop-button')),
+      );
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), 0);
+      expect(find.textContaining('Marqueur :'), findsWidgets);
+
+      await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
+      );
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), 0);
+      expect(find.textContaining('Marqueur :'), findsWidgets);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets('V1-120 exposes no-code seek and scrub labels', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project(cinematics: [_timeLayoutCinematic()]);
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      'cinematic_time_layout',
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(find.text('Lecture'), findsWidgets);
+    expect(find.byTooltip('Glisser pour parcourir'), findsOneWidget);
+    final semanticsWidgets = tester.widgetList<Semantics>(
+      find.byType(Semantics),
+    );
+    expect(
+      semanticsWidgets.any(
+        (widget) =>
+            widget.properties.label == 'Prévisualiser ce moment' &&
+            widget.properties.hint == 'Lire depuis ce moment',
+      ),
+      isTrue,
+    );
+    expect(
+      semanticsWidgets.any(
+        (widget) =>
+            widget.properties.label == 'Tête de lecture' &&
+            widget.properties.hint == 'Déplacer la lecture',
+      ),
+      isTrue,
+    );
+    expect(find.text('playbackTimeMs'), findsNothing);
+    expect(find.text('seek'), findsNothing);
+    expect(find.text('scrub'), findsNothing);
+    expect(find.text('frameAt'), findsNothing);
+    expect(find.text('activeStepIds'), findsNothing);
+    expect(find.text('timelineItem'), findsNothing);
+    expect(find.text('probe'), findsNothing);
+    expect(find.textContaining('runtime'), findsNothing);
+  });
+
+  testWidgets(
+    'captures V1-120 cinematic preview playback scrub seek ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_120_CAPTURE_CINEMATIC_PREVIEW_PLAYBACK_SCRUB_SEEK_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _playbackDirectActorMoveCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-move_direct'),
+      );
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pumpAndSettle();
+
+      _expectTimelineStepSelected(tester, 'move_direct');
+      final playbackLabel = tester
+          .widget<Text>(
+            find.byKey(const ValueKey('cinematic-builder-playback-time-label')),
+          )
+          .data;
+      final playbackTimeMs = int.parse(playbackLabel!.split(' ms').first);
+      expect(playbackTimeMs, inInclusiveRange(450, 550));
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-actor-display-actor-actor_lysa'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Seek'), findsNothing);
+      expect(find.text('Scrubber'), findsNothing);
+      expect(find.text('runtime'), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_120_cinematic_preview_playback_scrub_seek_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
     },
   );
 
@@ -8097,7 +8677,8 @@ void main() {
     final axisRect = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-time-axis')),
     );
-    await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+    await _placeTimelineProbeAt(
+        tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
     await tester.pumpAndSettle();
     expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
 
@@ -11256,7 +11837,8 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -11314,7 +11896,8 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       expect(find.text('Marqueur : 500 ms · début bloc'), findsOneWidget);
@@ -11380,7 +11963,8 @@ void main() {
       final axisRect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-axis')),
       );
-      await tester.tapAt(Offset(tick500Rect.left + 6, axisRect.center.dy));
+      await _placeTimelineProbeAt(
+          tester, Offset(tick500Rect.left + 6, axisRect.center.dy));
       await tester.pumpAndSettle();
 
       await tester.tap(
@@ -17684,6 +18268,40 @@ void _expectTransportControlsPresent(WidgetTester tester) {
   ]) {
     expect(find.byKey(ValueKey(key)), findsOneWidget);
   }
+}
+
+int _playbackTimeMsFromLabel(WidgetTester tester) {
+  final label = tester
+      .widget<Text>(
+        find.byKey(const ValueKey('cinematic-builder-playback-time-label')),
+      )
+      .data!;
+  final elapsed = label.split('/').first.trim();
+  if (elapsed.endsWith(' ms')) {
+    return int.parse(elapsed.replaceFirst(' ms', ''));
+  }
+  if (elapsed.endsWith(' s')) {
+    final seconds = double.parse(elapsed.replaceFirst(' s', ''));
+    return (seconds * 1000).round();
+  }
+  throw StateError('Unsupported playback label $label');
+}
+
+Future<void> _placeTimelineProbeAt(
+  WidgetTester tester,
+  Offset point,
+) async {
+  final gesture = await tester.startGesture(
+    point,
+    kind: PointerDeviceKind.mouse,
+  );
+  await tester.pump();
+  await gesture.moveBy(const Offset(24, 0));
+  await tester.pump();
+  await gesture.moveTo(point);
+  await tester.pump();
+  await gesture.up();
+  await gesture.removePointer();
 }
 
 Offset _actorDisplayAnchor(WidgetTester tester, String actorId) {

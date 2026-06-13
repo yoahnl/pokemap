@@ -346,6 +346,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   late final AnimationController _playbackController;
   late String _playbackTimelineSignature;
   bool _isPlaybackPlaying = false;
+  bool _resumePlaybackAfterScrub = false;
 
   @override
   void initState() {
@@ -397,11 +398,13 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       _playbackController.value = 0;
     }
     _isPlaybackPlaying = false;
+    _resumePlaybackAfterScrub = false;
   }
 
   void _pausePlaybackWithoutSetState() {
     _playbackController.stop();
     _isPlaybackPlaying = false;
+    _resumePlaybackAfterScrub = false;
   }
 
   int _playbackTimeMs(CinematicPreviewPlaybackPlan plan) {
@@ -430,6 +433,85 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         _playbackController.value >= 1 ? 0.0 : _playbackController.value;
     setState(() => _isPlaybackPlaying = true);
     _playbackController.forward(from: startValue);
+  }
+
+  void _setPlaybackTimeWithoutSetState(
+    CinematicPreviewPlaybackPlan plan,
+    int timeMs,
+  ) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    final totalDurationMs = math.max(1, plan.totalDurationMs);
+    final boundedTimeMs = timeMs.clamp(0, plan.totalDurationMs).toInt();
+    _playbackController.duration = Duration(milliseconds: totalDurationMs);
+    _playbackController.value = boundedTimeMs / totalDurationMs;
+  }
+
+  void _seekPlayback(
+    CinematicPreviewPlaybackPlan plan,
+    _TimelineProbeSnapResult position,
+  ) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    final wasPlaying = _isPlaybackPlaying;
+    setState(() {
+      _playbackController.stop();
+      _setPlaybackTimeWithoutSetState(plan, position.timeMs);
+      _isPlaybackPlaying = wasPlaying && _playbackController.value < 1;
+      _resumePlaybackAfterScrub = false;
+      if (_isPlaybackPlaying) {
+        _playbackController.forward(from: _playbackController.value);
+      }
+    });
+  }
+
+  void _beginPlaybackScrub(
+    CinematicPreviewPlaybackPlan plan,
+    _TimelineProbeSnapResult position,
+  ) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    setState(() {
+      _resumePlaybackAfterScrub = _isPlaybackPlaying;
+      _playbackController.stop();
+      _isPlaybackPlaying = false;
+      _setPlaybackTimeWithoutSetState(plan, position.timeMs);
+    });
+  }
+
+  void _updatePlaybackScrub(
+    CinematicPreviewPlaybackPlan plan,
+    _TimelineProbeSnapResult position,
+  ) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    setState(() {
+      _isPlaybackPlaying = false;
+      _setPlaybackTimeWithoutSetState(plan, position.timeMs);
+    });
+  }
+
+  void _endPlaybackScrub(CinematicPreviewPlaybackPlan plan) {
+    if (!_canPlayPreview(plan)) {
+      return;
+    }
+    setState(() {
+      final shouldResume =
+          _resumePlaybackAfterScrub && _playbackController.value < 1;
+      _resumePlaybackAfterScrub = false;
+      _isPlaybackPlaying = shouldResume;
+      if (shouldResume) {
+        _playbackController.forward(from: _playbackController.value);
+      }
+    });
+  }
+
+  void _cancelPlaybackScrub(CinematicPreviewPlaybackPlan plan) {
+    _endPlaybackScrub(plan);
   }
 
   void _stopPlayback() {
@@ -703,6 +785,22 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                       _timelineProbeSnapHint = null;
                                     });
                                   },
+                                  onPlaybackSeekRequested: (position) =>
+                                      _seekPlayback(playbackPlan, position),
+                                  onPlaybackScrubStart: (position) =>
+                                      _beginPlaybackScrub(
+                                    playbackPlan,
+                                    position,
+                                  ),
+                                  onPlaybackScrubUpdate: (position) =>
+                                      _updatePlaybackScrub(
+                                    playbackPlan,
+                                    position,
+                                  ),
+                                  onPlaybackScrubEnd: () =>
+                                      _endPlaybackScrub(playbackPlan),
+                                  onPlaybackScrubCancel: () =>
+                                      _cancelPlaybackScrub(playbackPlan),
                                   onStepDurationResized:
                                       _resizeTimelineStepDuration,
                                   onAddDraftStep: _addDraftStep,
@@ -3007,6 +3105,11 @@ class _TimelinePlaceholder extends StatefulWidget {
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
     required this.onTimelineProbeCleared,
+    required this.onPlaybackSeekRequested,
+    required this.onPlaybackScrubStart,
+    required this.onPlaybackScrubUpdate,
+    required this.onPlaybackScrubEnd,
+    required this.onPlaybackScrubCancel,
     required this.onStepDurationResized,
     required this.onAddDraftStep,
     required this.onPlaybackPlayPause,
@@ -3026,6 +3129,11 @@ class _TimelinePlaceholder extends StatefulWidget {
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
   final VoidCallback onTimelineProbeCleared;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackSeekRequested;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubStart;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubUpdate;
+  final VoidCallback onPlaybackScrubEnd;
+  final VoidCallback onPlaybackScrubCancel;
   final _ResizeStepDurationCallback onStepDurationResized;
   final VoidCallback onAddDraftStep;
   final VoidCallback onPlaybackPlayPause;
@@ -3549,6 +3657,19 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                                 _requestTimelineKeyboardFocus();
                                 widget.onTimelineProbeChanged(timeMs);
                               },
+                              onPlaybackSeekRequested: (position) {
+                                _requestTimelineKeyboardFocus();
+                                widget.onPlaybackSeekRequested(position);
+                              },
+                              onPlaybackScrubStart: (position) {
+                                _requestTimelineKeyboardFocus();
+                                widget.onPlaybackScrubStart(position);
+                              },
+                              onPlaybackScrubUpdate:
+                                  widget.onPlaybackScrubUpdate,
+                              onPlaybackScrubEnd: widget.onPlaybackScrubEnd,
+                              onPlaybackScrubCancel:
+                                  widget.onPlaybackScrubCancel,
                               onStepDurationResized:
                                   widget.onStepDurationResized,
                             ),
@@ -3923,6 +4044,11 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.onStepHovered,
     required this.onStepSelected,
     required this.onTimelineProbeChanged,
+    required this.onPlaybackSeekRequested,
+    required this.onPlaybackScrubStart,
+    required this.onPlaybackScrubUpdate,
+    required this.onPlaybackScrubEnd,
+    required this.onPlaybackScrubCancel,
     required this.onStepDurationResized,
   });
 
@@ -3941,6 +4067,11 @@ class _TimelineTimeGrid extends StatelessWidget {
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackSeekRequested;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubStart;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubUpdate;
+  final VoidCallback onPlaybackScrubEnd;
+  final VoidCallback onPlaybackScrubCancel;
   final _ResizeStepDurationCallback onStepDurationResized;
 
   @override
@@ -4000,6 +4131,8 @@ class _TimelineTimeGrid extends StatelessWidget {
                                 pixelsPerMs: pixelsPerMs,
                                 contentWidth: contentWidth,
                                 totalDurationMs: timeLayout.totalDurationMs,
+                                onPlaybackSeekRequested:
+                                    onPlaybackSeekRequested,
                                 onTimelineProbeChanged: onTimelineProbeChanged,
                               ),
                               for (final lane in timeLayout.lanes)
@@ -4017,6 +4150,8 @@ class _TimelineTimeGrid extends StatelessWidget {
                                   totalDurationMs: timeLayout.totalDurationMs,
                                   onStepHovered: onStepHovered,
                                   onStepSelected: onStepSelected,
+                                  onPlaybackSeekRequested:
+                                      onPlaybackSeekRequested,
                                   onTimelineProbeChanged:
                                       onTimelineProbeChanged,
                                   onStepDurationResized: onStepDurationResized,
@@ -4057,7 +4192,17 @@ class _TimelineTimeGrid extends StatelessWidget {
                                   6,
                               top: 0,
                               bottom: 0,
-                              child: const _TimelinePlaybackPlayhead(),
+                              child: _TimelinePlaybackPlayhead(
+                                timeLayout: timeLayout,
+                                pixelsPerMs: pixelsPerMs,
+                                contentWidth: contentWidth,
+                                totalDurationMs: timeLayout.totalDurationMs,
+                                playbackTimeMs: playbackTimeMs,
+                                onPlaybackScrubStart: onPlaybackScrubStart,
+                                onPlaybackScrubUpdate: onPlaybackScrubUpdate,
+                                onPlaybackScrubEnd: onPlaybackScrubEnd,
+                                onPlaybackScrubCancel: onPlaybackScrubCancel,
+                              ),
                             ),
                         ],
                       ),
@@ -4174,6 +4319,7 @@ class _TimelineAxis extends StatelessWidget {
     required this.pixelsPerMs,
     required this.contentWidth,
     required this.totalDurationMs,
+    required this.onPlaybackSeekRequested,
     required this.onTimelineProbeChanged,
   });
 
@@ -4182,6 +4328,7 @@ class _TimelineAxis extends StatelessWidget {
   final double pixelsPerMs;
   final double contentWidth;
   final int totalDurationMs;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackSeekRequested;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
 
   String _formatFrenchTickLabel(String label) {
@@ -4191,85 +4338,94 @@ class _TimelineAxis extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (details) => onTimelineProbeChanged(
-        _resolveTimelineProbeSnap(
-          details.localPosition.dx,
-          timeLayout: timeLayout,
-          pixelsPerMs: pixelsPerMs,
-          contentWidth: contentWidth,
-          totalDurationMs: totalDurationMs,
-        ),
-      ),
-      onPanStart: (details) => onTimelineProbeChanged(
-        _resolveTimelineProbeSnap(
-          details.localPosition.dx,
-          timeLayout: timeLayout,
-          pixelsPerMs: pixelsPerMs,
-          contentWidth: contentWidth,
-          totalDurationMs: totalDurationMs,
-        ),
-      ),
-      onPanUpdate: (details) => onTimelineProbeChanged(
-        _resolveTimelineProbeSnap(
-          details.localPosition.dx,
-          timeLayout: timeLayout,
-          pixelsPerMs: pixelsPerMs,
-          contentWidth: contentWidth,
-          totalDurationMs: totalDurationMs,
-        ),
-      ),
-      child: Container(
-        key: const ValueKey('cinematic-builder-time-axis'),
-        height: _timelineAxisHeight,
-        decoration: BoxDecoration(
-          color: colors.surfaceSubtle,
-          border: Border(bottom: BorderSide(color: colors.borderSubtle)),
-        ),
-        child: Stack(
-          clipBehavior: Clip.hardEdge,
-          children: [
-            for (final tick in ticks)
-              Positioned(
-                key: ValueKey('cinematic-builder-time-tick-${tick.timeMs}'),
-                left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 1,
-                  color: colors.borderSubtle.withValues(alpha: 0.72),
-                ),
-              ),
-            for (final tick in ticks)
-              Positioned(
-                left: math.min(
-                  _tickLeft(tick.timeMs, pixelsPerMs, contentWidth) + 5,
-                  math.max(0, contentWidth - 58),
-                ),
-                top: 6,
-                child: SizedBox(
-                  width: 56,
-                  child: Stack(
-                    children: [
-                      Text(
-                        _formatFrenchTickLabel(tick.label),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              color: tick.isMajor
-                                  ? colors.textSecondary
-                                  : colors.textMuted,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w800,
-                            ),
-                      ),
-                      _TestHidden(child: Text(tick.label)),
-                    ],
+    return Semantics(
+      label: 'Prévisualiser ce moment',
+      hint: 'Lire depuis ce moment',
+      child: Tooltip(
+        message: 'Prévisualiser ce moment',
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (details) => onPlaybackSeekRequested(
+            _resolveTimelineProbeSnap(
+              details.localPosition.dx,
+              timeLayout: timeLayout,
+              pixelsPerMs: pixelsPerMs,
+              contentWidth: contentWidth,
+              totalDurationMs: totalDurationMs,
+            ),
+          ),
+          onPanStart: (details) => onTimelineProbeChanged(
+            _resolveTimelineProbeSnap(
+              details.localPosition.dx,
+              timeLayout: timeLayout,
+              pixelsPerMs: pixelsPerMs,
+              contentWidth: contentWidth,
+              totalDurationMs: totalDurationMs,
+            ),
+          ),
+          onPanUpdate: (details) => onTimelineProbeChanged(
+            _resolveTimelineProbeSnap(
+              details.localPosition.dx,
+              timeLayout: timeLayout,
+              pixelsPerMs: pixelsPerMs,
+              contentWidth: contentWidth,
+              totalDurationMs: totalDurationMs,
+            ),
+          ),
+          child: Container(
+            key: const ValueKey('cinematic-builder-time-axis'),
+            height: _timelineAxisHeight,
+            decoration: BoxDecoration(
+              color: colors.surfaceSubtle,
+              border: Border(bottom: BorderSide(color: colors.borderSubtle)),
+            ),
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                for (final tick in ticks)
+                  Positioned(
+                    key: ValueKey(
+                      'cinematic-builder-time-tick-${tick.timeMs}',
+                    ),
+                    left: _tickLeft(tick.timeMs, pixelsPerMs, contentWidth),
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 1,
+                      color: colors.borderSubtle.withValues(alpha: 0.72),
+                    ),
                   ),
-                ),
-              ),
-          ],
+                for (final tick in ticks)
+                  Positioned(
+                    left: math.min(
+                      _tickLeft(tick.timeMs, pixelsPerMs, contentWidth) + 5,
+                      math.max(0, contentWidth - 58),
+                    ),
+                    top: 6,
+                    child: SizedBox(
+                      width: 56,
+                      child: Stack(
+                        children: [
+                          Text(
+                            _formatFrenchTickLabel(tick.label),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: DefaultTextStyle.of(context).style.copyWith(
+                                  color: tick.isMajor
+                                      ? colors.textSecondary
+                                      : colors.textMuted,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                          _TestHidden(child: Text(tick.label)),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -4382,72 +4538,166 @@ class _TimelineSelectionCursor extends StatelessWidget {
   }
 }
 
-class _TimelinePlaybackPlayhead extends StatelessWidget {
-  const _TimelinePlaybackPlayhead();
+class _TimelinePlaybackPlayhead extends StatefulWidget {
+  const _TimelinePlaybackPlayhead({
+    required this.timeLayout,
+    required this.pixelsPerMs,
+    required this.contentWidth,
+    required this.totalDurationMs,
+    required this.playbackTimeMs,
+    required this.onPlaybackScrubStart,
+    required this.onPlaybackScrubUpdate,
+    required this.onPlaybackScrubEnd,
+    required this.onPlaybackScrubCancel,
+  });
+
+  final CinematicTimelineTimeLayoutReadModel timeLayout;
+  final double pixelsPerMs;
+  final double contentWidth;
+  final int totalDurationMs;
+  final int playbackTimeMs;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubStart;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackScrubUpdate;
+  final VoidCallback onPlaybackScrubEnd;
+  final VoidCallback onPlaybackScrubCancel;
+
+  @override
+  State<_TimelinePlaybackPlayhead> createState() =>
+      _TimelinePlaybackPlayheadState();
+}
+
+class _TimelinePlaybackPlayheadState extends State<_TimelinePlaybackPlayhead> {
+  int? _dragStartTimeMs;
+  double? _dragStartGlobalX;
+
+  _TimelineProbeSnapResult _positionForGlobalX(double globalX) {
+    final startTimeMs = _dragStartTimeMs ?? widget.playbackTimeMs;
+    final startGlobalX = _dragStartGlobalX ?? globalX;
+    final localX =
+        _tickLeft(startTimeMs, widget.pixelsPerMs, widget.contentWidth) +
+            globalX -
+            startGlobalX;
+    return _resolveTimelineProbeSnap(
+      localX,
+      timeLayout: widget.timeLayout,
+      pixelsPerMs: widget.pixelsPerMs,
+      contentWidth: widget.contentWidth,
+      totalDurationMs: widget.totalDurationMs,
+    );
+  }
+
+  void _prepareDrag(DragDownDetails details) {
+    _dragStartTimeMs = widget.playbackTimeMs;
+    _dragStartGlobalX = details.globalPosition.dx;
+  }
+
+  void _startDrag(DragStartDetails details) {
+    _dragStartTimeMs ??= widget.playbackTimeMs;
+    _dragStartGlobalX ??= details.globalPosition.dx;
+    widget.onPlaybackScrubStart(_positionForGlobalX(details.globalPosition.dx));
+  }
+
+  void _updateDrag(DragUpdateDetails details) {
+    widget.onPlaybackScrubUpdate(
+      _positionForGlobalX(details.globalPosition.dx),
+    );
+  }
+
+  void _endDrag(DragEndDetails details) {
+    _dragStartTimeMs = null;
+    _dragStartGlobalX = null;
+    widget.onPlaybackScrubEnd();
+  }
+
+  void _cancelDrag() {
+    _dragStartTimeMs = null;
+    _dragStartGlobalX = null;
+    widget.onPlaybackScrubCancel();
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return IgnorePointer(
-      child: Semantics(
-        label: 'Tête de lecture',
-        child: SizedBox(
-          width: 58,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: 5,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  key: const ValueKey('cinematic-builder-playback-playhead'),
-                  width: 2,
-                  decoration: BoxDecoration(
-                    color: colors.brandPrimary.withValues(alpha: 0.95),
-                    borderRadius: BorderRadius.circular(999),
-                    boxShadow: [
-                      BoxShadow(
-                        color: colors.brandPrimary.withValues(alpha: 0.34),
-                        blurRadius: 9,
-                      ),
-                    ],
-                  ),
+    return SizedBox(
+      width: 58,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 5,
+            top: 0,
+            bottom: 0,
+            child: IgnorePointer(
+              child: Container(
+                key: const ValueKey('cinematic-builder-playback-playhead'),
+                width: 2,
+                decoration: BoxDecoration(
+                  color: colors.brandPrimary.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.brandPrimary.withValues(alpha: 0.34),
+                      blurRadius: 9,
+                    ),
+                  ],
                 ),
               ),
-              Positioned(
-                top: 2,
-                left: 0,
-                child: DecoratedBox(
-                  key: const ValueKey(
-                    'cinematic-builder-playback-playhead-handle',
-                  ),
-                  decoration: BoxDecoration(
-                    color: colors.brandPrimarySoft,
-                    border: Border.all(color: colors.brandPrimary),
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  child: SizedBox(
-                    height: 14,
-                    width: 50,
-                    child: Center(
-                      child: Text(
-                        'Lecture',
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              color: colors.textPrimary,
-                              fontSize: 8,
-                              fontWeight: FontWeight.w900,
-                            ),
+            ),
+          ),
+          Positioned(
+            top: 2,
+            left: 0,
+            child: Tooltip(
+              key: const ValueKey(
+                'cinematic-builder-playback-playhead-tooltip',
+              ),
+              message: 'Glisser pour parcourir',
+              child: Semantics(
+                label: 'Tête de lecture',
+                hint: 'Déplacer la lecture',
+                value:
+                    'Temps de lecture ${_shortTimeLabel(widget.playbackTimeMs)}',
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.resizeColumn,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onHorizontalDragDown: _prepareDrag,
+                    onHorizontalDragStart: _startDrag,
+                    onHorizontalDragUpdate: _updateDrag,
+                    onHorizontalDragEnd: _endDrag,
+                    onHorizontalDragCancel: _cancelDrag,
+                    child: DecoratedBox(
+                      key: const ValueKey(
+                        'cinematic-builder-playback-playhead-handle',
+                      ),
+                      decoration: BoxDecoration(
+                        color: colors.brandPrimarySoft,
+                        border: Border.all(color: colors.brandPrimary),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: SizedBox(
+                        height: 14,
+                        width: 50,
+                        child: Center(
+                          child: Text(
+                            'Lecture',
+                            maxLines: 1,
+                            overflow: TextOverflow.clip,
+                            style: DefaultTextStyle.of(context).style.copyWith(
+                                  color: colors.textPrimary,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -4551,7 +4801,7 @@ class _TimelinePlaybackTransportControls extends StatelessWidget {
             ),
           ),
           Semantics(
-            label: 'Temps de prévisualisation',
+            label: 'Temps de lecture',
             child: Text(
               '${_shortTimeLabel(playbackTimeMs)} / '
               '${_shortTimeLabel(plan.totalDurationMs)}',
@@ -4662,6 +4912,7 @@ class _TimelineTrackRow extends StatelessWidget {
     required this.totalDurationMs,
     required this.onStepHovered,
     required this.onStepSelected,
+    required this.onPlaybackSeekRequested,
     required this.onTimelineProbeChanged,
     required this.onStepDurationResized,
   });
@@ -4679,6 +4930,7 @@ class _TimelineTrackRow extends StatelessWidget {
   final int totalDurationMs;
   final ValueChanged<String?> onStepHovered;
   final ValueChanged<CinematicTimelineStep> onStepSelected;
+  final ValueChanged<_TimelineProbeSnapResult> onPlaybackSeekRequested;
   final ValueChanged<_TimelineProbeSnapResult> onTimelineProbeChanged;
   final _ResizeStepDurationCallback onStepDurationResized;
 
@@ -4695,36 +4947,40 @@ class _TimelineTrackRow extends StatelessWidget {
           clipBehavior: Clip.hardEdge,
           children: [
             Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTapDown: (details) => onTimelineProbeChanged(
-                  _resolveTimelineProbeSnap(
-                    details.localPosition.dx,
-                    timeLayout: timeLayout,
-                    pixelsPerMs: pixelsPerMs,
-                    contentWidth: contentWidth,
-                    totalDurationMs: totalDurationMs,
+              child: Semantics(
+                label: 'Prévisualiser ce moment',
+                hint: 'Lire depuis ce moment',
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapUp: (details) => onPlaybackSeekRequested(
+                    _resolveTimelineProbeSnap(
+                      details.localPosition.dx,
+                      timeLayout: timeLayout,
+                      pixelsPerMs: pixelsPerMs,
+                      contentWidth: contentWidth,
+                      totalDurationMs: totalDurationMs,
+                    ),
                   ),
-                ),
-                onPanStart: (details) => onTimelineProbeChanged(
-                  _resolveTimelineProbeSnap(
-                    details.localPosition.dx,
-                    timeLayout: timeLayout,
-                    pixelsPerMs: pixelsPerMs,
-                    contentWidth: contentWidth,
-                    totalDurationMs: totalDurationMs,
+                  onPanStart: (details) => onTimelineProbeChanged(
+                    _resolveTimelineProbeSnap(
+                      details.localPosition.dx,
+                      timeLayout: timeLayout,
+                      pixelsPerMs: pixelsPerMs,
+                      contentWidth: contentWidth,
+                      totalDurationMs: totalDurationMs,
+                    ),
                   ),
-                ),
-                onPanUpdate: (details) => onTimelineProbeChanged(
-                  _resolveTimelineProbeSnap(
-                    details.localPosition.dx,
-                    timeLayout: timeLayout,
-                    pixelsPerMs: pixelsPerMs,
-                    contentWidth: contentWidth,
-                    totalDurationMs: totalDurationMs,
+                  onPanUpdate: (details) => onTimelineProbeChanged(
+                    _resolveTimelineProbeSnap(
+                      details.localPosition.dx,
+                      timeLayout: timeLayout,
+                      pixelsPerMs: pixelsPerMs,
+                      contentWidth: contentWidth,
+                      totalDurationMs: totalDurationMs,
+                    ),
                   ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
               ),
             ),
             for (final tick in ticks)
@@ -10095,7 +10351,7 @@ class _SelectedStepInspector extends StatelessWidget {
         ],
         const _KeyValue(label: 'Preview', value: 'Scène non jouée.'),
         const _KeyValue(
-          label: 'Statut runtime',
+          label: 'Statut lecture',
           value: 'Lecture read-only dans ce lot.',
         ),
         const SizedBox(height: 8),
