@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract
+NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0
 ```
 
 ## Principes
@@ -171,6 +171,21 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-117 | Cinematic Actor Animation Cadence / Playback Status Polish V0 | editor / preview-sandbox | Polir la cadence preview-only des frames walk/run selon la vitesse observée depuis les poses du playback plan, sans recalculer les routes, et nettoyer les statuts/badges de preview pour éviter les contradictions pendant une lecture animée active. | Pas de runtime, Flame, GameState, map_core, pathfinding, collision, recalcul de route/manual path, timer, AnimationController ou V1-118. | Resolver cadence hint, builder preview status, panneau backdrop, tests V1-117, Visual Gate, rapports, roadmaps. | Tests cadence hint, walk/run, pause, stop/reset, manual path non-mutant, statuts playback, Visual Gate, analyse ciblée, build macOS debug. | Rendre la cadence trop heuristique ; afficher encore des badges historiques ; confondre statut preview et runtime. | DONE : cadence dérivée des poses playback, statuts Lecture en cours/pause et Animation acteur prête/partielle, Visual Gate créée, anti-scope runtime intact. | V1-116 |
 | NS-SCENES-V1-117-bis | ActorMove Destination Isolation Bugfix V0 | editor / bugfix | Corriger l’isolation des destinations actorMove pour que modifier la destination d’un acteur ou d’un step ne modifie pas les destinations des autres actorMove, acteurs ou trajets manuels. | Pas de V1-118, runtime, Flame, GameState, pathfinding, collision, nouveau playback, nouvelle animation, refonte Stage Points ou modification Selbrume. | `cinematic_builder_workspace.dart`, test widget V1-117-bis, rapports, roadmaps. | Test RED/GREEN multi-actorMove, V1-117, V1-116, Builder complet, Library/overlay, analyse ciblée. | Confondre une cible authoring partagée avec un bug core ; casser les bindings initiaux ; modifier manual path par accident. | DONE : chaque nouvel actorMove reçoit une destination authoring non partagée quand les cibles existantes sont déjà utilisées, et le test prouve que modifier une destination ne change pas l'autre. | V1-117 |
 | NS-SCENES-V1-118 | Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0 | editor / preview-sandbox | Rendre les diagnostics et fallbacks de prévisualisation cinematic lisibles en no-code, avec détails compacts sur les acteurs/animations/sprites concernés. | Pas de V1-119, scrub/seek, runtime, Flame, GameState, map_core, pathfinding, collision, nouveau renderer ou exposition de détails techniques comme UX principale. | Helper fallback summary editor-only, Builder preview status, panneau backdrop, tests V1-118, Visual Gate, rapports, roadmaps. | Tests helper, V1-118, V1-117, V1-117-bis, V1-116, Builder complet, Library/overlay, core ciblé, analyse ciblée, build macOS debug. | Sur-expliquer la preview ; exposer sourceRect/tilesetId/payload/JSON ; ajouter du layout dans les cas sans diagnostic. | DONE : détails fallback no-code compacts, 3 messages max + compteur, Animation prête propre, Animation partielle expliquée, anti-scope runtime/map_core intact. | V1-117-bis |
+| NS-SCENES-V1-119 | Cinematic Preview Playback Scrub / Seek Prep Contract | doc-only / architecture-review / interaction-contract | Cadrer le futur seek/scrub editor-only du playback preview, en separant strictement Selection Cursor, Mouse Time Probe et Playback Playhead, avec regles de hit-test, snapping, interaction Play/Pause/Stop/Reset, accessibilite et tests futurs. | Pas de code produit, pas de package, pas de screenshot, pas de Visual Gate, pas de V1-120, pas de runtime, Flame, GameState, pathfinding, collision ou persistance du temps. | Rapport V1-119, Evidence Pack V1-119, roadmaps. | Validation documentaire : audit rapports/code/tests read-only, `git diff --check`, anti-scope packages/screenshots. | Fusionner Mouse Time Probe et Playback Playhead ; faire seeker les barres au lieu de selectionner ; rendre le comportement Play pendant scrub trop complexe. | DONE : Option C retenue, hit-test strict, non-mutation cadree, tests futurs V1-120 listes, V1-120 recommande non demarre. | V1-118 |
+
+## Mise a jour V1-119
+
+Statut : `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract` est DONE documentaire.
+
+Decision : `Option C — Click-to-seek + drag Playback Playhead controle` est retenue. Le futur V1-120 devra permettre le click-to-seek sur axe/fond timeline vide, le drag-to-scrub depuis le Playback Playhead, et conserver le clic sur barre comme selection de bloc.
+
+Contrat central : `Selection Cursor` reste selection auteur, `Mouse Time Probe` reste inspection-only, `Playback Playhead` devient la future cible seek/scrub. Le seek ne suit pas l'inspecteur et ne persiste aucun etat dans `CinematicAsset`, `ProjectManifest` ou `MapData`.
+
+Preuve : rapports V1-109 a V1-118 et timeline/probe V1-51/V1-52/V1-53/V1-61 a V1-70 relus, code/tests audites en lecture seule, rapport et Evidence Pack V1-119 crees, roadmaps alignees.
+
+Limites : aucun package Dart/Flutter modifie, aucun screenshot cree, V1-120 non demarre.
+
+Prochain lot recommande : `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-118
 
@@ -182,7 +197,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste volontairement borne aux diagnostics deja disponibles. Aucun runtime, Flame, GameState, `map_core`, scrub/seek, pathfinding, collision ou V1-119 n'a ete demarre.
 
-Prochain lot recommande : `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-119 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-117-bis
 
@@ -198,7 +213,7 @@ Preuve : test RED puis GREEN `V1-117-bis changing one actorMove destination keep
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouveau playback, nouvelle animation ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et n'a pas ete modifie par ce lot.
 
-Suite historique : V1-118 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-117
 
@@ -212,7 +227,7 @@ Preuve : tests resolver cadence, tests widget V1-117, non-régressions V1-116/V1
 
 Limites historiques : la cadence reste une heuristique déterministe preview-only et ne remplace pas un vrai système runtime d'animation. Les details de diagnostic ont ete traites par V1-118.
 
-Suite historique : V1-118 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-116
 
@@ -226,7 +241,7 @@ Preuve : tests V1-116, Visual Gate V1-116, tests resolver/renderer/V1-113/core, 
 
 Limites historiques : les libelles/status de preview restaient a polir pour ne plus afficher des badges historiques contradictoires pendant une lecture animee ; cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-117 puis V1-118 ont ete realises ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-115
 
@@ -240,7 +255,7 @@ Preuve : test resolver dédié `+9`, renderer sprite `+21`, V1-113 ciblé `+5`, 
 
 Limites historiques : au moment de V1-115, aucune animation n'etait encore affichee ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-114
 
@@ -254,7 +269,7 @@ Preuve : rapport et Evidence Pack V1-114 dédiés, avec anti-scope packages/scre
 
 Limites historiques : V1-114 documentait seulement le contrat. V1-115 a livré le resolver symbolique ; l'affichage animé a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-113
 
@@ -268,7 +283,7 @@ Preuve : tests V1-113 ciblés, Visual Gate `ns_scenes_v1_113_cinematic_actor_pla
 
 Limites : le mouvement est fluide en position, mais aucune animation de marche frame-by-frame n’est démarrée.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-112
 
@@ -282,7 +297,7 @@ Preuve : tests V1-112 ciblés `+3`, Builder complet `+214`, Library/Stage overla
 
 Limites : le contrat overlay acteur reste ancré sur des positions entières de tuile, donc la pose playback est consommée comme source de vérité mais projetée par arrondi dans l’overlay actuel. Aucun scrubber, seek, runtime, Flame, GameState, collision/pathfinding, animation de marche ou persistance du temps n’a été ajouté.
 
-Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. Le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-111
 
@@ -294,7 +309,7 @@ Decision : `map_editor` porte le ticker local avec `AnimationController`, affich
 
 Preuve : tests V1-111 ciblés `+4`, Builder complet `+211`, Library/Stage overlay `+26`, régressions `map_core` `+12/+4/+27`, Visual Gate `ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` prouvée par shasum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`.
 
-Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. Le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
+Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0`.
 
 ## Mise a jour V1-110
 
