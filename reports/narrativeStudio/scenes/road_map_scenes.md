@@ -185,12 +185,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract | DONE | Cadrer le futur seek/scrub editor-only du playback preview, en separant strictement Selection Cursor, Mouse Time Probe et Playback Playhead, avec regles de hit-test, snapping, interaction Play/Pause/Stop/Reset, accessibilite et tests futurs, sans code produit. |
 | NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0 | DONE | Implémenter le click-to-seek sur axe/fond vide et le drag-to-scrub du Playback Playhead dans le Cinematic Builder, en gardant Selection Cursor, Mouse Time Probe et Playback Playhead séparés, sans mutation projet, runtime, Flame, GameState ni map_core. |
 | NS-SCENES-V1-121 — Cinematic Fade Preview Playback V0 | DONE | Prévisualiser les blocs Fondu dans le Cinematic Builder avec un overlay editor-only piloté par `CinematicPreviewPlaybackFrame.fadeState`, réactif à Play/Pause/Stop/Reset/seek/scrub, sans runtime, Flame, GameState, mutation projet ni couleurs hardcodées. |
+| NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract | DONE | Cadrer la future prévisualisation caméra editor-only du Cinematic Builder, en séparant strictement viewport d’édition, caméra cinématique, playback camera state, runtime camera et rendu preview, sans code produit. |
 
 ## Prochain lot exact recommande
 
-`NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`
+`NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`
 
-Raison : V1-121 a livré la prévisualisation editor-only des blocs Fondu. Le prochain verrou naturel est de cadrer la future preview caméra sans démarrer de runtime, Flame, GameState, interpolation, pathfinding ou collision.
+Raison : V1-122 a confirmé que `CinematicPreviewPlaybackFrame.cameraPose` est encore un placeholder `supported: false`. Le prochain verrou naturel est donc de créer une source de vérité caméra pure et testable avant toute UI de cadrage.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -215,7 +216,22 @@ Ordre apres V1-102 :
 20. `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract` (DONE documentaire)
 21. `NS-SCENES-V1-120 — Cinematic Preview Playback Scrub / Seek UI V0` (DONE)
 22. `NS-SCENES-V1-121 — Cinematic Fade Preview Playback V0` (DONE)
-23. `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract` (recommande, non demarre)
+23. `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract` (DONE documentaire)
+24. `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` (recommande, non demarre)
+
+## Mise a jour V1-122
+
+Statut : `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract` est DONE documentaire.
+
+Demande : cadrer la future prévisualisation caméra editor-only du Cinematic Builder, sans implémenter la caméra et sans modifier les packages.
+
+Decision : le modèle actuel ne suffit pas pour une UI caméra directe. Le plan V1-110 expose `CinematicCameraPlaybackPose`, mais seulement avec `supported` et `activeStepId`; les tests existants vérifient `supportsCamera == false` et le diagnostic `cinematicPreviewPlaybackCameraUnsupported`. La suite retenue est donc un split prudent : read model caméra puis UI.
+
+Preuve : rapport V1-122 et Evidence Pack V1-122 créés ; audit des rapports V1-110/V1-121 et des zones `cinematic_preview_playback_plan.dart`, `cinematic_authoring_operations.dart`, `cinematic_builder_workspace.dart`, `cinematic_backdrop_preview_framing.dart` et tests associés ; options A/B/C/D/E/F comparées.
+
+Limites : aucun code produit, package Dart/Flutter, runtime, Flame, GameState, screenshot, Visual Gate ou V1-123 n'a été démarré.
+
+Prochain lot recommande : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-121
 
@@ -227,9 +243,9 @@ Decision : le fade est peint par un overlay editor-only dans la preview map fram
 
 Preuve : tests V1-121, regressions V1-120/V1-118/V1-117/V1-117-bis/V1-116, Builder complet, Library/overlay, fallback summary, core ciblé, analyse ciblée, build macOS debug et Visual Gate V1-121 documentes dans le rapport et l'Evidence Pack.
 
-Limites : l'overlay ne prolonge pas artificiellement un fade au-dela du `fadeState` fourni par le plan. Aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur, mutation projet ou V1-122 n'a ete demarre.
+Limites : l'overlay ne prolonge pas artificiellement un fade au-dela du `fadeState` fourni par le plan. Aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur ou mutation projet n'a ete demarre pendant V1-121.
 
-Prochain lot recommande : `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-120
 
@@ -241,9 +257,9 @@ Decision : le seek standard met a jour uniquement le temps local editor-only de 
 
 Preuve : tests V1-120, regressions V1-118/V1-117/V1-117-bis/V1-116, Builder complet, tests Library/overlay, fallback summary, core ciblé, analyse ciblee, build macOS debug et Visual Gate V1-120 documentes dans le rapport et l'Evidence Pack.
 
-Limites : la Visual Gate reste une capture de harness test. Les IDs techniques encore présents dans les métadonnées historiques ne sont pas le workflow principal du seek/scrub. Le fade playback a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding, collision ou V1-122 n'a ete demarre.
+Limites : la Visual Gate reste une capture de harness test. Les IDs techniques encore présents dans les métadonnées historiques ne sont pas le workflow principal du seek/scrub. Le fade playback a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding ou collision n'a ete demarre pendant V1-120.
 
-Prochain lot recommande : `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-119
 
@@ -259,7 +275,7 @@ Preuve : rapports V1-109 a V1-118 relus, rapports timeline/probe V1-51/V1-52/V1-
 
 Limites historiques : aucun test Dart/Flutter, analyse package, build, screenshot ou Visual Gate n'avait ete lance car le prompt V1-119 etait documentaire et interdisait les modifications de packages. Cette limite a ete levee par V1-120.
 
-Suite historique : V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-118
 
@@ -273,7 +289,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste borne aux diagnostics deja exposes par le resolver et le sprite preview plan. Aucun scrub/seek, runtime, Flame, GameState, pathfinding, collision, nouveau renderer ou changement `map_core` n'a ete demarre.
 
-Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-117-bis
 
@@ -289,7 +305,7 @@ Preuve : test RED `V1-117-bis changing one actorMove destination keeps another a
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouvelle animation, nouveau playback ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et reste hors lot.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-117
 
@@ -303,7 +319,7 @@ Preuve : tests resolver, renderer, V1-117, V1-116, V1-113, builder complet, libr
 
 Limites historiques : les details fins de diagnostics/fallback restaient candidates pour V1-118, désormais realise ; aucun playback runtime, scrubber/seek, interpolation nouvelle, pathfinding ou collision n'a ete ajoute.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-116
 
@@ -317,7 +333,7 @@ Preuve : tests V1-116 ciblés, Visual Gate `ns_scenes_v1_116_cinematic_actor_wal
 
 Limites historiques : au moment de V1-116, les statuts et badges affichaient encore des libelles historiques comme "Acteurs statiques" / "Sans lecture" dans certains panneaux. Cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-115
 
@@ -331,7 +347,7 @@ Preuve : test resolver dédié, régressions renderer/V1-113, tests core ciblés
 
 Limites historiques : au moment de V1-115, le résultat restait symbolique ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-114
 
@@ -345,7 +361,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_w
 
 Limites historiques : V1-114 ne codait aucune animation. V1-115 a implémenté le resolver symbolique ; le rendu frame-by-frame a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-113
 
@@ -359,7 +375,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_113_cinematic_actor_p
 
 Limites : aucune animation de marche n’est ajoutée ; les sprites/placeholders glissent maintenant continûment, mais la cadence de pas reste à cadrer dans V1-114.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-112
 
@@ -383,7 +399,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-122 — Cinematic Camera Preview Playback Prep Contract`.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0`.
 
 ## Mise a jour V1-110
 
