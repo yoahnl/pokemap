@@ -9,7 +9,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0
+NS-SCENES-V1-116 — Cinematic Actor Walking Animation Renderer Integration V0
 ```
 
 ## Principes
@@ -166,6 +166,21 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-112 | Cinematic ActorMove Preview Playback V0 | editor / preview-sandbox | Consommer les poses acteur du plan V1-110 pour déplacer visuellement les acteurs dans la preview pendant la lecture locale V1-111. | Pas de runtime, Flame, GameState, pathfinding, collision, scrubber/seek timeline, persistance du temps ou animation de marche avancée. | Builder cinematic actor overlay, tests widget, rapport, Visual Gate. | Tests actorMove direct/manual path visible pendant playback, non-mutation, séparation transport/sélection/probe. | Confondre preview editor-only et runtime ; déplacer les acteurs hors plan ; casser l'overlay statique existant. | DONE : les poses `CinematicPreviewPlaybackFrame.actorPoses` alimentent un modèle overlay dynamique via adaptateur editor-only, avec Visual Gate 1663x926 et tests V1-112 verts. | V1-111 |
 | NS-SCENES-V1-113 | Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0 | editor / preview-sandbox | Conserver les coordonnées sub-tile des poses acteur playback dans le rendu de preview, pour supprimer l’effet de déplacement par cases. | Pas de walking animation, pas de runtime, Flame, GameState, pathfinding, collision, scrubber/seek timeline, interpolation UI ou mutation projet. | Adaptateur overlay acteur, overlay acteur, panneau preview, tests Builder, rapport, Evidence Pack, Visual Gate. | Tests V1-113 direct/manual path, pause, stop, reset, fallback pose absente/sans position, anti-round et Visual Gate. | Recalculer l’interpolation dans l’UI ; changer `map_core` inutilement ; masquer le problème par une animation de marche. | DONE : overrides sub-tile editor-only consommés depuis `actorPoses`, `round()/toInt()` supprimés pour le rendu playback, Visual Gate V1-113 générée. | V1-112 |
 | NS-SCENES-V1-114 | Cinematic Actor Walking Animation Prep Contract | doc-only / architecture-review | Cadrer le futur système d’animation de marche preview-only des acteurs du Cinematic Builder, en distinguant mouvement, frame sprite, cadence, direction, fallback et anti-scope runtime/Flame/GameState, sans code produit. | Pas de code produit, pas de screenshot, pas de Visual Gate, pas de runtime, Flame, GameState, map_core ou map_editor. | Rapport V1-114, Evidence Pack, roadmaps. | Audit V1-110 à V1-113, audit sprites V1-97 à V1-99, options A-G comparées, diagnostics/tests futurs cadrés. | Coder trop tôt ; confondre interpolation de mouvement et animation sprite ; importer runtime/Flame ; faire un lot V1-115 trop large. | DONE : Option B+F retenue, trajectoire prudente resolver puis intégration, V1-115 recommandé. | V1-113 |
+| NS-SCENES-V1-115 | Cinematic Actor Walking Animation Frame Resolver V0 | editor / pure-resolver | Implémenter un resolver editor-only, pur et testable, capable de choisir symboliquement une frame idle/walk/run/fallback pour les acteurs du Cinematic Builder à partir des actorPoses playback, du temps de preview, de la Character Library et des métadonnées actorMove. | Pas d'intégration renderer, pas de screenshot, pas de runtime, Flame, GameState, widget, overlay ou chargement d'image. | Resolver walking animation, test dédié, rapports, roadmaps. | Tests moving/stationary, walk/run, directions, cadence durationMs, fallbacks, déterminisme, anti-scope imports/recalcul. | Coupler le resolver au renderer ; importer Flutter indirectement ; promettre une animation visible avant V1-116. | DONE : resolver symbolique créé, tests et analyse ciblée verts, anti-scope vide. | V1-114 |
+
+## Mise a jour V1-115
+
+Statut : `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0` est DONE.
+
+Demande : choisir symboliquement la frame `idle | walk | run | fallback` des acteurs cinematic pendant le playback preview, sans lancer l'intégration renderer.
+
+Decision : nouveau fichier resolver dédié, synchrone et déterministe, consommant les poses playback et les animations Character Library sans dépendre de Flutter, Flame, runtime ou widgets.
+
+Preuve : test resolver dédié `+9`, renderer sprite `+21`, V1-113 ciblé `+5`, core playback plan `+12`, core actor display `+27`, analyses ciblées propres et checks anti-scope vides.
+
+Limites : aucune animation n'est encore affichée ; V1-116 doit brancher la sortie symbolique au renderer/overlay.
+
+Prochain lot recommande : `NS-SCENES-V1-116 — Cinematic Actor Walking Animation Renderer Integration V0`.
 
 ## Mise a jour V1-114
 
@@ -177,9 +192,9 @@ Decision : Option B + F retenue. Un resolver editor-only séparé choisira une f
 
 Preuve : rapport et Evidence Pack V1-114 dédiés, avec anti-scope packages/screenshots/runtime.
 
-Limites : aucune frame de marche n’est encore affichée ; le lot documente le contrat et les tests futurs seulement.
+Limites : V1-114 documentait seulement le contrat. V1-115 a maintenant livré le resolver symbolique ; l'affichage animé reste repoussé à V1-116.
 
-Prochain lot recommande : `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+Suite historique : V1-115 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-116 — Cinematic Actor Walking Animation Renderer Integration V0`.
 
 ## Mise a jour V1-113
 
