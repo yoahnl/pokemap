@@ -17,6 +17,7 @@ import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_preview_playback_actor_overlay_adapter.dart';
+import 'cinematic_playback_preview_fallback_summary.dart';
 import 'cinematic_stage_preview_readiness.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
@@ -489,12 +490,23 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             animationStatus: _hasReadyActorSprite(widget.actorSpritePreviewPlan)
                 ? _PlaybackActorAnimationStatus.ready
                 : _PlaybackActorAnimationStatus.none,
+            walkingFrames: const [],
           );
     final previewActorSpritePreviewPlan = spritePreviewResolution.plan;
+    final playbackFallbackSummary =
+        buildCinematicPlaybackPreviewFallbackSummary(
+      animationState: _previewFallbackAnimationState(
+        spritePreviewResolution.animationStatus,
+      ),
+      isPlaybackOverlayActive: isPlaybackOverlayActive,
+      walkingFrames: spritePreviewResolution.walkingFrames,
+      spritePreviewPlan: previewActorSpritePreviewPlan,
+    );
     final playbackPreviewStatus = _playbackPreviewStatusFor(
       isPlaybackOverlayActive: isPlaybackOverlayActive,
       isPlaybackPlaying: _isPlaybackPlaying,
       animationStatus: spritePreviewResolution.animationStatus,
+      fallbackSummary: playbackFallbackSummary,
     );
 
     return Material(
@@ -2773,6 +2785,7 @@ CinematicPlaybackPreviewStatus _playbackPreviewStatusFor({
   required bool isPlaybackOverlayActive,
   required bool isPlaybackPlaying,
   required _PlaybackActorAnimationStatus animationStatus,
+  required CinematicPlaybackPreviewFallbackSummary fallbackSummary,
 }) {
   final playbackLabel = isPlaybackPlaying
       ? 'Lecture en cours'
@@ -2799,6 +2812,7 @@ CinematicPlaybackPreviewStatus _playbackPreviewStatusFor({
     playbackTone: playbackTone,
     actorAnimationLabel: actorAnimationLabel,
     actorAnimationTone: actorAnimationTone,
+    fallbackSummary: fallbackSummary,
   );
 }
 
@@ -2811,14 +2825,29 @@ bool _hasReadyActorSprite(CinematicActorSpritePreviewPlan? plan) {
 
 enum _PlaybackActorAnimationStatus { none, ready, partial }
 
+CinematicPlaybackPreviewAnimationState _previewFallbackAnimationState(
+  _PlaybackActorAnimationStatus status,
+) {
+  return switch (status) {
+    _PlaybackActorAnimationStatus.none =>
+      CinematicPlaybackPreviewAnimationState.none,
+    _PlaybackActorAnimationStatus.ready =>
+      CinematicPlaybackPreviewAnimationState.ready,
+    _PlaybackActorAnimationStatus.partial =>
+      CinematicPlaybackPreviewAnimationState.partial,
+  };
+}
+
 final class _PlaybackActorSpritePreviewResolution {
   const _PlaybackActorSpritePreviewResolution({
     required this.plan,
     required this.animationStatus,
+    required this.walkingFrames,
   });
 
   final CinematicActorSpritePreviewPlan? plan;
   final _PlaybackActorAnimationStatus animationStatus;
+  final List<CinematicActorWalkingAnimationPreviewFrame> walkingFrames;
 }
 
 _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
@@ -2836,6 +2865,7 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
     return _PlaybackActorSpritePreviewResolution(
       plan: basePlan,
       animationStatus: _PlaybackActorAnimationStatus.none,
+      walkingFrames: const [],
     );
   }
 
@@ -2849,6 +2879,7 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
   var changed = false;
   var hasReadyAnimation = false;
   var hasPartialAnimation = false;
+  final walkingFrames = <CinematicActorWalkingAnimationPreviewFrame>[];
   final resolvedActors = <CinematicActorSpritePreviewActor>[];
   for (final spriteActor in basePlan.actors) {
     final displayActor = displayActorById[spriteActor.actorId];
@@ -2865,6 +2896,9 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
             character: character,
             cadenceHint: cadenceHintsByActorId[spriteActor.actorId],
           );
+    if (resolved != null) {
+      walkingFrames.add(resolved);
+    }
     final sourceRect = resolved?.sourceRect;
     final isMoving = resolved?.isMoving ?? false;
 
@@ -2935,6 +2969,7 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
     return _PlaybackActorSpritePreviewResolution(
       plan: basePlan,
       animationStatus: animationStatus,
+      walkingFrames: walkingFrames,
     );
   }
   return _PlaybackActorSpritePreviewResolution(
@@ -2943,6 +2978,7 @@ _PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
       diagnostics: basePlan.diagnostics,
     ),
     animationStatus: animationStatus,
+    walkingFrames: walkingFrames,
   );
 }
 

@@ -13,6 +13,7 @@ import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_map_backdrop_tile_renderer.dart';
 import 'cinematic_map_backdrop_viewport_transform.dart';
 import 'cinematic_map_backdrop_visual_primitives_painter.dart';
+import 'cinematic_playback_preview_fallback_summary.dart';
 import 'cinematic_preview_playback_actor_overlay_adapter.dart';
 import 'cinematic_stage_point_preview_overlay.dart';
 import 'cinematic_stage_preview_readiness.dart';
@@ -24,18 +25,22 @@ final class CinematicPlaybackPreviewStatus {
     required this.playbackTone,
     required this.actorAnimationLabel,
     required this.actorAnimationTone,
+    this.fallbackSummary =
+        const CinematicPlaybackPreviewFallbackSummary.empty(),
   });
 
   const CinematicPlaybackPreviewStatus.staticPreview()
       : playbackLabel = 'Aperçu statique',
         playbackTone = PokeMapTone.neutral,
         actorAnimationLabel = 'Animation acteur prête',
-        actorAnimationTone = PokeMapTone.info;
+        actorAnimationTone = PokeMapTone.info,
+        fallbackSummary = const CinematicPlaybackPreviewFallbackSummary.empty();
 
   final String playbackLabel;
   final PokeMapTone playbackTone;
   final String actorAnimationLabel;
   final PokeMapTone actorAnimationTone;
+  final CinematicPlaybackPreviewFallbackSummary fallbackSummary;
 }
 
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
@@ -1592,7 +1597,7 @@ class _BackdropMetaBar extends StatelessWidget {
         : (bitmapPlan?.diagnostics.isNotEmpty ?? false)
             ? bitmapPlan!.diagnostics.first
             : null;
-    return Wrap(
+    final badges = Wrap(
       key: const ValueKey('cinematic-builder-map-backdrop-meta-bar'),
       spacing: 7,
       runSpacing: 5,
@@ -1654,6 +1659,24 @@ class _BackdropMetaBar extends StatelessWidget {
           ),
       ],
     );
+
+    if (!playbackPreviewStatus.fallbackSummary.hasDetails) {
+      return badges;
+    }
+
+    return Column(
+      key: const ValueKey('cinematic-builder-map-backdrop-meta-bar-details'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        badges,
+        SizedBox(height: compact ? 5 : 6),
+        _PlaybackFallbackDetails(
+          summary: playbackPreviewStatus.fallbackSummary,
+          compact: compact,
+        ),
+      ],
+    );
   }
 }
 
@@ -1694,6 +1717,126 @@ class _BackdropMetaPill extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PlaybackFallbackDetails extends StatelessWidget {
+  const _PlaybackFallbackDetails({
+    required this.summary,
+    required this.compact,
+  });
+
+  final CinematicPlaybackPreviewFallbackSummary summary;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return DecoratedBox(
+      key: const ValueKey('cinematic-builder-playback-fallback-details'),
+      decoration: BoxDecoration(
+        color: colors.surfaceBase,
+        border: Border.all(color: colors.borderSubtle),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(compact ? 7 : 9),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  CupertinoIcons.info_circle,
+                  size: compact ? 12 : 14,
+                  color: colors.textMuted,
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Détails de prévisualisation',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: DefaultTextStyle.of(context).style.copyWith(
+                          color: colors.textSecondary,
+                          fontSize: compact ? 10 : 11,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: compact ? 5 : 7),
+            for (final message in summary.visibleMessages) ...[
+              _PlaybackFallbackMessageRow(
+                message: message,
+                compact: compact,
+              ),
+              if (message != summary.visibleMessages.last)
+                SizedBox(height: compact ? 3 : 4),
+            ],
+            if (summary.extraCount > 0) ...[
+              SizedBox(height: compact ? 5 : 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _BackdropMetaPill(
+                  label: '+${summary.extraCount} autre(s) point(s) à vérifier',
+                  tone: PokeMapTone.info,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlaybackFallbackMessageRow extends StatelessWidget {
+  const _PlaybackFallbackMessageRow({
+    required this.message,
+    required this.compact,
+  });
+
+  final CinematicPlaybackPreviewFallbackMessage message;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final tone =
+        _toneForPlaybackFallbackSeverity(message.severity).resolve(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: compact ? 4 : 5),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: tone.icon,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: SizedBox(
+              width: compact ? 5 : 6,
+              height: compact ? 5 : 6,
+            ),
+          ),
+        ),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Text(
+            message.label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: DefaultTextStyle.of(context).style.copyWith(
+                  color: colors.textSecondary,
+                  fontSize: compact ? 10 : 11,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2136,6 +2279,16 @@ PokeMapTone _toneForTileDiagnostic(
     CinematicMapBackdropTileDiagnosticSeverity.info => PokeMapTone.info,
     CinematicMapBackdropTileDiagnosticSeverity.warning => PokeMapTone.warning,
     CinematicMapBackdropTileDiagnosticSeverity.error => PokeMapTone.danger,
+  };
+}
+
+PokeMapTone _toneForPlaybackFallbackSeverity(
+  CinematicPlaybackPreviewFallbackSeverity severity,
+) {
+  return switch (severity) {
+    CinematicPlaybackPreviewFallbackSeverity.info => PokeMapTone.info,
+    CinematicPlaybackPreviewFallbackSeverity.warning => PokeMapTone.warning,
+    CinematicPlaybackPreviewFallbackSeverity.error => PokeMapTone.danger,
   };
 }
 

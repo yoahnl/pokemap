@@ -181,12 +181,13 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-116 — Cinematic Actor Walking Animation Renderer Integration V0 | DONE | Brancher le resolver V1-115 au rendu preview du Cinematic Builder afin que les acteurs affichent visuellement des frames idle/walk/run/fallback pendant le playback editor-only, tout en conservant le déplacement sub-tile, l’ancrage bottom-center, les fallbacks sprites et l’anti-scope runtime/Flame/GameState. |
 | NS-SCENES-V1-117 — Cinematic Actor Animation Cadence / Playback Status Polish V0 | DONE | Polir la cadence des frames animees a partir des poses playback et remplacer les badges contradictoires par des statuts no-code coherents pendant la lecture/pause/apercu statique, avec Visual Gate et tests de non-regression. |
 | NS-SCENES-V1-117-bis — ActorMove Destination Isolation Bugfix V0 | DONE | Corriger l’isolation des destinations actorMove pour que modifier la destination d’un acteur ou d’un step ne modifie pas les destinations des autres actorMove, acteurs ou trajets manuels. |
+| NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0 | DONE | Rendre les diagnostics et fallbacks de prévisualisation cinematic lisibles en no-code, avec détails compacts sur les acteurs/animations/sprites concernés, sans exposer de détails techniques ni modifier runtime, Flame, GameState ou map_core. |
 
 ## Prochain lot exact recommande
 
-`NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`
+`NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`
 
-Raison : V1-117 a corrige la cadence et les statuts visibles du playback preview, puis V1-117-bis a ferme le bug prioritaire d'isolation des destinations actorMove. Le prochain lot peut se limiter aux details de diagnostic/fallback restants, sans demarrer runtime, Flame, GameState, pathfinding ou collision.
+Raison : V1-118 a ferme les details no-code de diagnostic/fallback preview. Le prochain verrou naturel est le cadrage du scrub/seek preview editor-only, sans l'implementer encore et sans demarrer runtime, Flame, GameState, pathfinding ou collision.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -207,7 +208,22 @@ Ordre apres V1-102 :
 16. `NS-SCENES-V1-116 — Cinematic Actor Walking Animation Renderer Integration V0` (DONE)
 17. `NS-SCENES-V1-117 — Cinematic Actor Animation Cadence / Playback Status Polish V0` (DONE)
 18. `NS-SCENES-V1-117-bis — ActorMove Destination Isolation Bugfix V0` (DONE)
-19. `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`
+19. `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0` (DONE)
+20. `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract` (recommande, non demarre)
+
+## Mise a jour V1-118
+
+Statut : `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0` est DONE.
+
+Demande : rendre les diagnostics et fallbacks de la preview cinematic comprehensibles pour une personne non technique, notamment pendant `Animation partielle`, sans exposer `sourceRect`, `tilesetId`, `payload`, `JSON`, `actorId` ou `map_core` comme experience principale.
+
+Decision : ajout d'un helper editor-only `CinematicPlaybackPreviewFallbackSummary` qui transforme les raisons internes du resolver walking animation et du sprite preview plan en messages no-code compacts, avec severite `info/warning/error`, maximum trois messages visibles et compteur `+N autre(s) point(s) a verifier`.
+
+Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, Builder complet, Library/overlay, tests core ciblés, analyse ciblee, build macOS debug et Visual Gate V1-118 documentes dans le rapport et l'Evidence Pack.
+
+Limites : le mapping reste borne aux diagnostics deja exposes par le resolver et le sprite preview plan. Aucun scrub/seek, runtime, Flame, GameState, pathfinding, collision, nouveau renderer ou changement `map_core` n'a ete demarre.
+
+Prochain lot recommande : `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-117-bis
 
@@ -221,9 +237,9 @@ Correction : `_addActorMove` reutilise seulement une cible de mouvement non enco
 
 Preuve : test RED `V1-117-bis changing one actorMove destination keeps another actorMove destination unchanged` reproduit la regression avant correction, puis GREEN apres correction. Suites V1-117, V1-116, Builder complet, Library/overlay et analyse ciblee documentees dans le rapport et l'Evidence Pack V1-117-bis.
 
-Limites : aucun runtime, Flame, GameState, pathfinding, collision, nouvelle animation, nouveau playback ni V1-118 n'a ete demarre. `selbrume/project.json` etait deja dirty au Gate 0 et reste hors lot.
+Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouvelle animation, nouveau playback ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et reste hors lot.
 
-Prochain lot recommande : `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-118 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-117
 
@@ -235,9 +251,9 @@ Decision : la cadence animee est derivee uniquement des `CinematicPreviewPlaybac
 
 Preuve : tests resolver, renderer, V1-117, V1-116, V1-113, builder complet, library/overlay, core, analyse ciblee, build macOS debug, Visual Gate `ns_scenes_v1_117_cinematic_actor_animation_cadence_playback_status_polish_v0.png` et anti-scope documentes dans le rapport et l'Evidence Pack V1-117.
 
-Limites : les details fins de diagnostics/fallback restent candidates pour V1-118 ; aucun playback runtime, scrubber/seek, interpolation nouvelle, pathfinding ou collision n'a ete ajoute.
+Limites historiques : les details fins de diagnostics/fallback restaient candidates pour V1-118, désormais realise ; aucun playback runtime, scrubber/seek, interpolation nouvelle, pathfinding ou collision n'a ete ajoute.
 
-Prochain lot recommande : `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-118 a ete realise ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-116
 
@@ -251,7 +267,7 @@ Preuve : tests V1-116 ciblés, Visual Gate `ns_scenes_v1_116_cinematic_actor_wal
 
 Limites historiques : au moment de V1-116, les statuts et badges affichaient encore des libelles historiques comme "Acteurs statiques" / "Sans lecture" dans certains panneaux. Cette limite est traitee par V1-117.
 
-Suite historique : V1-117 est realise ; le prochain lot global actuel est `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-117 puis V1-118 sont realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-115
 
@@ -265,7 +281,7 @@ Preuve : test resolver dédié, régressions renderer/V1-113, tests core ciblés
 
 Limites historiques : au moment de V1-115, le résultat restait symbolique ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116 et V1-117 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-114
 
@@ -279,7 +295,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_w
 
 Limites historiques : V1-114 ne codait aucune animation. V1-115 a implémenté le resolver symbolique ; le rendu frame-by-frame a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116 et V1-117 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-113
 
@@ -293,7 +309,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_113_cinematic_actor_p
 
 Limites : aucune animation de marche n’est ajoutée ; les sprites/placeholders glissent maintenant continûment, mais la cadence de pas reste à cadrer dans V1-114.
 
-Suite historique : V1-114, V1-115, V1-116 et V1-117 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-112
 
@@ -317,7 +333,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116 et V1-117 ont ferme la chaîne d'animation preview actuelle. Le prochain lot global actuel est `NS-SCENES-V1-118 — Cinematic Playback Preview Diagnostics / Fallback Detail Polish V0`.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. Le prochain lot global actuel est `NS-SCENES-V1-119 — Cinematic Preview Playback Scrub / Seek Prep Contract`.
 
 ## Mise a jour V1-110
 

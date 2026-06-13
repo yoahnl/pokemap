@@ -7243,6 +7243,27 @@ void main() {
       expect(setup.project.toJson(), beforeProject);
       expect(setup.asset.toJson(), beforeAsset);
       expect(setup.mapData.toJson(), beforeMapData);
+
+      final readyAsset = _animatedLysaPlaybackCinematic(
+        _playbackDirectActorMoveCinematic(),
+      );
+      await _pumpAnimatedLysaPlaybackBuilder(
+        tester,
+        asset: readyAsset,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(find.text('Animation acteur prête'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-fallback-details'),
+        ),
+        findsNothing,
+      );
     },
   );
 
@@ -7337,9 +7358,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(_currentActorSpriteSource(tester), _walkSouthFrame2Source);
+      final movedAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
       expect(
-        _actorDisplayAnchor(tester, 'actor_lysa').dy,
-        greaterThan(playbackStartAnchor.dy),
+        (movedAnchor - playbackStartAnchor).distance,
+        greaterThan(8),
       );
       expect(
         asset.stageContext!.manualPaths.single.waypointStagePointIds,
@@ -7550,6 +7572,191 @@ void main() {
       expect(setup.project.toJson(), beforeProject);
       expect(setup.asset.toJson(), beforeAsset);
       expect(setup.mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-118 ready animation does not show fallback details',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _animatedLysaPlaybackCinematic(
+        _playbackDirectActorMoveCinematic(),
+      );
+      await _pumpAnimatedLysaPlaybackBuilder(
+        tester,
+        asset: asset,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(find.text('Animation acteur prête'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-fallback-details'),
+        ),
+        findsNothing,
+      );
+      expect(find.textContaining('animation de marche indisponible'),
+          findsNothing);
+    },
+  );
+
+  testWidgets(
+    'V1-118 partial animation shows no-code fallback details without mutation',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final runAsset = _animatedLysaPlaybackCinematic(
+        _playbackDirectActorMoveCinematic(),
+        movementMode: CinematicTimelineActorMovementMode.run,
+      );
+      final setup = await _pumpAnimatedLysaPlaybackBuilder(
+        tester,
+        asset: runAsset,
+        includeRunAnimation: false,
+      );
+      final beforeProject = setup.project.toJson();
+      final beforeAsset = setup.asset.toJson();
+      final beforeMapData = setup.mapData.toJson();
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+
+      expect(find.text('Animation partielle'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-fallback-details'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Détails de prévisualisation'), findsOneWidget);
+      expect(
+        find.text(
+          'Lysa utilise une animation de secours : animation de marche indisponible.',
+        ),
+        findsOneWidget,
+      );
+      for (final token in const [
+        'sourceRect',
+        'tilesetId',
+        'payload',
+        'JSON',
+        'actorId',
+        'map_core',
+      ]) {
+        expect(find.textContaining(token), findsNothing);
+      }
+      expect(setup.project.toJson(), beforeProject);
+      expect(setup.asset.toJson(), beforeAsset);
+      expect(setup.mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-118 fallback details remain visible while playback is paused',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final runAsset = _animatedLysaPlaybackCinematic(
+        _playbackDirectActorMoveCinematic(),
+        movementMode: CinematicTimelineActorMovementMode.run,
+      );
+      await _pumpAnimatedLysaPlaybackBuilder(
+        tester,
+        asset: runAsset,
+        includeRunAnimation: false,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(find.text('Animation partielle'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-fallback-details'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('animation de marche indisponible'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'captures V1-118 cinematic playback preview diagnostics fallback detail polish visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_118_CAPTURE_CINEMATIC_PLAYBACK_PREVIEW_DIAGNOSTICS_FALLBACK_DETAIL_POLISH',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final runAsset = _animatedLysaPlaybackCinematic(
+        _playbackDirectActorMoveCinematic(),
+        movementMode: CinematicTimelineActorMovementMode.run,
+      );
+      await _pumpAnimatedLysaPlaybackBuilder(
+        tester,
+        asset: runAsset,
+        includeRunAnimation: false,
+      );
+
+      final moveCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-move_direct'),
+      );
+      await tester.ensureVisible(moveCard);
+      await tester.tap(moveCard);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.text('Lecture en cours'), findsWidgets);
+      expect(find.text('Animation partielle'), findsWidgets);
+      expect(find.text('Détails de prévisualisation'), findsOneWidget);
+      expect(
+        find.text(
+          'Lysa utilise une animation de secours : animation de marche indisponible.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead'),
+        ),
+        findsOneWidget,
+      );
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_118_cinematic_playback_preview_diagnostics_fallback_detail_polish_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
     },
   );
 
