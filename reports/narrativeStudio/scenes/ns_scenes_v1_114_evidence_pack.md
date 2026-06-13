@@ -228,3 +228,102 @@ reports/narrativeStudio/scenes/road_map_scenes.md
 ?? reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_walking_animation_prep_contract.md
 ?? reports/narrativeStudio/scenes/ns_scenes_v1_114_evidence_pack.md
 ```
+
+## V1-114-bis — Roadmap Header Alignment Closure
+
+Correction documentaire :
+- le header global des roadmaps pointe maintenant vers NS-SCENES-V1-115 ;
+- l'ancien header obsolète vers NS-SCENES-V1-112 a été supprimé ;
+- les anciennes phrases qui présentaient V1-114 comme prochain lot recommandé ont été reformulées comme historique ;
+- aucun package Dart/Flutter n'a été modifié ;
+- aucun screenshot n'a été créé ;
+- V1-115 n'a pas été démarré.
+
+Commande initiale :
+
+```bash
+pwd
+git branch --show-current
+git status --short --untracked-files=all
+git diff --stat
+git diff --name-only
+git log --oneline -n 10
+```
+
+Sortie initiale :
+
+```text
+/Users/karim/Project/pokemonProject
+main
+<git status --short --untracked-files=all vide>
+<git diff --stat vide>
+<git diff --name-only vide>
+a6b197c0 docs: préparation contrat animation marche acteur cinematic v1.114
+2dff3a1e feat: cinematic actor playback smooth motion v1.113
+d41f7f22 feat: cinematic actor move preview playback v1.112
+e41f5874 update selbrume
+e9972298 Add cinematic preview transport UI
+3411ae0b feat: cinematic preview playback plan read model v1.110
+8cf3b6f6 docs: préparation contrat preview/playback cinematic v1.109
+3ed90377 fix: corrections tests et rapports v1.108
+4670f42c update selbrume
+caaa7f65 feat: cinematic manual path drawing UI et rapports v1.108
+```
+
+Commande de contrôle roadmap :
+
+```bash
+rg -n "Prochain lot exact recommande|Prochain lot exact recommandé|NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0|NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0" reports/narrativeStudio/scenes/road_map_scenes.md reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md
+```
+
+Sortie de contrôle roadmap :
+
+```text
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:9:## Prochain lot exact recommande
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:12:NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:182:Prochain lot recommande : `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:196:Suite historique : V1-114 a ete realise comme contrat documentaire ; le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:200:Statut : `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` est DONE.
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:210:Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite est maintenant traitée par V1-113 ; la suite historique V1-114 a ete realisee, et le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md:222:Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite est traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, et le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scenes.md:177:| NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0 | DONE | Connecter les poses `CinematicPreviewPlaybackFrame.actorPoses` au rendu preview editor-only des acteurs, avec direct/manual path visibles pendant la lecture locale, sans runtime, Flame, GameState, pathfinding, collision, scrubber/seek ni walking animation. |
+reports/narrativeStudio/scenes/road_map_scenes.md:181:## Prochain lot exact recommande
+reports/narrativeStudio/scenes/road_map_scenes.md:183:`NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`
+reports/narrativeStudio/scenes/road_map_scenes.md:199:12. `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` (DONE)
+reports/narrativeStudio/scenes/road_map_scenes.md:202:15. `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`
+reports/narrativeStudio/scenes/road_map_scenes.md:216:Prochain lot recommande : `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scenes.md:230:Suite historique : V1-114 a ete realise comme contrat documentaire ; le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+reports/narrativeStudio/scenes/road_map_scenes.md:234:Statut : `NS-SCENES-V1-112 — Cinematic ActorMove Preview Playback V0` est DONE.
+reports/narrativeStudio/scenes/road_map_scenes.md:254:Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, et le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
+```
+
+Commande finale :
+
+```bash
+git diff --check
+git diff --stat
+git diff --name-only
+git status --short --untracked-files=all
+git diff --name-only -- packages examples assets selbrume
+find reports/narrativeStudio/scenes/screenshots -maxdepth 1 -name '*v1_114*' -print
+find reports/narrativeStudio/scenes/screenshots -maxdepth 1 -name '*v1_115*' -print
+```
+
+Sortie finale :
+
+```text
+<git diff --check vide>
+ .../scenes/ns_scenes_v1_114_evidence_pack.md       | 99 ++++++++++++++++++++++
+ .../scenes/road_map_scene_builder_authoring.md     |  8 +-
+ reports/narrativeStudio/scenes/road_map_scenes.md  |  6 +-
+ 3 files changed, 106 insertions(+), 7 deletions(-)
+reports/narrativeStudio/scenes/ns_scenes_v1_114_evidence_pack.md
+reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md
+reports/narrativeStudio/scenes/road_map_scenes.md
+ M reports/narrativeStudio/scenes/ns_scenes_v1_114_evidence_pack.md
+ M reports/narrativeStudio/scenes/road_map_scene_builder_authoring.md
+ M reports/narrativeStudio/scenes/road_map_scenes.md
+<git diff --name-only -- packages examples assets selbrume vide>
+<find screenshots *v1_114* vide>
+<find screenshots *v1_115* vide>
+```

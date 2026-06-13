@@ -178,7 +178,7 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-113 — Cinematic Actor Playback Smooth Motion / Sub-tile Overlay Polish V0 | DONE | Supprimer l’effet de déplacement par cases dans la preview playback acteur en conservant les positions sub-tile issues de `CinematicPreviewPlaybackFrame.actorPoses`, sans recalculer l’interpolation dans l’UI, sans walking animation, runtime, Flame, GameState, pathfinding ni collision. |
 | NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract | DONE | Cadrer le futur système d’animation de marche preview-only des acteurs du Cinematic Builder, en distinguant mouvement, frame sprite, cadence, direction, fallback et anti-scope runtime/Flame/GameState, sans code produit. |
 
-## Prochain lot recommande
+## Prochain lot exact recommande
 
 `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`
 
@@ -227,7 +227,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_113_cinematic_actor_p
 
 Limites : aucune animation de marche n’est ajoutée ; les sprites/placeholders glissent maintenant continûment, mais la cadence de pas reste à cadrer dans V1-114.
 
-Prochain lot recommande : `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`.
+Suite historique : V1-114 a ete realise comme contrat documentaire ; le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
 
 ## Mise a jour V1-112
 
@@ -251,7 +251,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; le prochain lot recommandé devient `NS-SCENES-V1-114 — Cinematic Actor Walking Animation Prep Contract`.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, et le prochain lot global actuel est `NS-SCENES-V1-115 — Cinematic Actor Walking Animation Frame Resolver V0`.
 
 ## Mise a jour V1-110
 
