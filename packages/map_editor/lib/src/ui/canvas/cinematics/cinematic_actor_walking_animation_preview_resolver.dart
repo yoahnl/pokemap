@@ -134,6 +134,30 @@ final class CinematicActorWalkingAnimationPreviewFrame {
       );
 }
 
+final class CinematicActorAnimationCadenceHint {
+  const CinematicActorAnimationCadenceHint({
+    required this.actorId,
+    required this.velocityTilesPerSecond,
+    required this.sampleWindowMs,
+  });
+
+  final String actorId;
+  final double velocityTilesPerSecond;
+  final int sampleWindowMs;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicActorAnimationCadenceHint &&
+          other.actorId == actorId &&
+          other.velocityTilesPerSecond == velocityTilesPerSecond &&
+          other.sampleWindowMs == sampleWindowMs;
+
+  @override
+  int get hashCode =>
+      Object.hash(actorId, velocityTilesPerSecond, sampleWindowMs);
+}
+
 // V1-115 is deliberately editor-only read logic: it only chooses a symbolic
 // frame. The preview renderer will consume this later in V1-116.
 CinematicActorWalkingAnimationPreviewFrame
@@ -144,6 +168,7 @@ CinematicActorWalkingAnimationPreviewFrame
   required bool isPlaybackPlaying,
   required List<CinematicTimelineStep> timelineSteps,
   required ProjectCharacterEntry? character,
+  CinematicActorAnimationCadenceHint? cadenceHint,
 }) {
   final diagnostics = <CinematicActorWalkingAnimationPreviewDiagnostic>[];
   final pose = playbackFrame?.actorPoseById(actor.actorId);
@@ -288,9 +313,14 @@ CinematicActorWalkingAnimationPreviewFrame
     frames: animation.frames,
     kind: selection.kind,
     playbackTimeMs: playbackTimeMs,
+    cadenceHint: moving ? cadenceHint : null,
   );
   final frame = animation.frames[frameIndex];
-  final durationMs = _durationFor(frame, selection.kind);
+  final durationMs = _durationFor(
+    frame,
+    selection.kind,
+    cadenceHint: moving ? cadenceHint : null,
+  );
   if (!_isValidSource(frame.source)) {
     return _fallback(
       actor,
@@ -473,13 +503,15 @@ int _frameIndexFor({
   required List<CharacterAnimationFrame> frames,
   required CinematicActorWalkingAnimationPreviewKind kind,
   required int playbackTimeMs,
+  CinematicActorAnimationCadenceHint? cadenceHint,
 }) {
   if (frames.length <= 1) {
     return 0;
   }
 
   final durations = [
-    for (final frame in frames) _durationFor(frame, kind),
+    for (final frame in frames)
+      _durationFor(frame, kind, cadenceHint: cadenceHint),
   ];
   final cycleDurationMs = durations.fold<int>(0, (sum, value) => sum + value);
   if (cycleDurationMs <= 0) {
@@ -499,12 +531,16 @@ int _frameIndexFor({
 
 int _durationFor(
   CharacterAnimationFrame frame,
-  CinematicActorWalkingAnimationPreviewKind kind,
-) {
-  if (frame.durationMs > 0) {
-    return frame.durationMs;
-  }
-  return _fallbackDurationFor(kind);
+  CinematicActorWalkingAnimationPreviewKind kind, {
+  CinematicActorAnimationCadenceHint? cadenceHint,
+}) {
+  final baseDurationMs =
+      frame.durationMs > 0 ? frame.durationMs : _fallbackDurationFor(kind);
+  return _effectiveDurationForCadence(
+    baseDurationMs: baseDurationMs,
+    kind: kind,
+    cadenceHint: cadenceHint,
+  );
 }
 
 int _fallbackDurationFor(CinematicActorWalkingAnimationPreviewKind kind) {
@@ -522,6 +558,37 @@ bool _isValidSource(TilesetSourceRect source) {
       source.y >= 0 &&
       source.width > 0 &&
       source.height > 0;
+}
+
+int _effectiveDurationForCadence({
+  required int baseDurationMs,
+  required CinematicActorWalkingAnimationPreviewKind kind,
+  required CinematicActorAnimationCadenceHint? cadenceHint,
+}) {
+  if (cadenceHint == null ||
+      cadenceHint.velocityTilesPerSecond <= 0 ||
+      cadenceHint.sampleWindowMs <= 0 ||
+      (kind != CinematicActorWalkingAnimationPreviewKind.walk &&
+          kind != CinematicActorWalkingAnimationPreviewKind.run)) {
+    return baseDurationMs;
+  }
+
+  // The hint is derived from playback poses only; keeping the adjustment here
+  // avoids any actorMove/manual-path route recalculation in the renderer.
+  final referenceSpeed = switch (kind) {
+    CinematicActorWalkingAnimationPreviewKind.run => 4.0,
+    CinematicActorWalkingAnimationPreviewKind.walk => 2.0,
+    CinematicActorWalkingAnimationPreviewKind.idle ||
+    CinematicActorWalkingAnimationPreviewKind.fallback =>
+      0.0,
+  };
+  if (referenceSpeed <= 0) {
+    return baseDurationMs;
+  }
+
+  final rawFactor = cadenceHint.velocityTilesPerSecond / referenceSpeed;
+  final cadenceFactor = rawFactor.clamp(0.75, 1.75).toDouble();
+  return (baseDurationMs / cadenceFactor).round().clamp(60, 260);
 }
 
 CinematicActorWalkingAnimationPreviewFrame _fallback(

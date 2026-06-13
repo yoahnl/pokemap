@@ -11,6 +11,7 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_renderer.dart';
+import 'cinematic_actor_walking_animation_preview_resolver.dart';
 import 'cinematic_backdrop_preview_framing.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
@@ -459,15 +460,42 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     );
     final playbackTimeMs = _playbackTimeMs(playbackPlan);
     final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
-    final isPlaybackOverlayActive =
-        _isPlaybackPlaying || playbackTimeMs > 0;
-    final playbackActorOverlayModel =
-        isPlaybackOverlayActive
-            ? buildCinematicPreviewPlaybackActorOverlayModel(
-                displayModel: widget.actorDisplayPreviewModel,
-                playbackFrame: playbackFrame,
-              )
-            : null;
+    final isPlaybackOverlayActive = _isPlaybackPlaying || playbackTimeMs > 0;
+    final cadenceHintsByActorId = _cadenceHintsForPlayback(
+      playbackPlan: playbackPlan,
+      playbackFrame: playbackFrame,
+      playbackTimeMs: playbackTimeMs,
+    );
+    final playbackActorOverlayModel = isPlaybackOverlayActive
+        ? buildCinematicPreviewPlaybackActorOverlayModel(
+            displayModel: widget.actorDisplayPreviewModel,
+            playbackFrame: playbackFrame,
+          )
+        : null;
+    final spritePreviewResolution = isPlaybackOverlayActive
+        ? _resolvePlaybackActorSpritePreviewPlan(
+            basePlan: widget.actorSpritePreviewPlan,
+            displayModel: playbackActorOverlayModel?.displayModel ??
+                widget.actorDisplayPreviewModel,
+            playbackFrame: playbackFrame,
+            playbackTimeMs: playbackTimeMs,
+            isPlaybackPlaying: _isPlaybackPlaying,
+            timelineSteps: widget.asset.timeline.steps,
+            characters: widget.characters,
+            cadenceHintsByActorId: cadenceHintsByActorId,
+          )
+        : _PlaybackActorSpritePreviewResolution(
+            plan: widget.actorSpritePreviewPlan,
+            animationStatus: _hasReadyActorSprite(widget.actorSpritePreviewPlan)
+                ? _PlaybackActorAnimationStatus.ready
+                : _PlaybackActorAnimationStatus.none,
+          );
+    final previewActorSpritePreviewPlan = spritePreviewResolution.plan;
+    final playbackPreviewStatus = _playbackPreviewStatusFor(
+      isPlaybackOverlayActive: isPlaybackOverlayActive,
+      isPlaybackPlaying: _isPlaybackPlaying,
+      animationStatus: spritePreviewResolution.animationStatus,
+    );
 
     return Material(
       type: MaterialType.transparency,
@@ -549,7 +577,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                   actorPlaybackPreviewModel:
                                       playbackActorOverlayModel,
                                   actorSpritePreviewPlan:
-                                      widget.actorSpritePreviewPlan,
+                                      previewActorSpritePreviewPlan,
+                                  playbackPreviewStatus: playbackPreviewStatus,
                                   backdropFramingState: _backdropFramingState,
                                   stagePoints:
                                       widget.asset.stageContext?.stagePoints ??
@@ -1250,11 +1279,54 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     final actor = widget.asset.requiredActors.isEmpty
         ? null
         : widget.asset.requiredActors.first;
-    final target = widget.asset.movementTargets.isEmpty
-        ? null
-        : widget.asset.movementTargets.first;
-    if (actor == null || target == null) {
+    if (actor == null || widget.asset.movementTargets.isEmpty) {
       return;
+    }
+    final usedTargetIds = {
+      for (final step in widget.asset.timeline.steps)
+        if (isCinematicTimelineActorMoveStep(step) && step.targetId != null)
+          step.targetId!,
+    };
+    CinematicMovementTargetRef? target;
+    for (final candidate in widget.asset.movementTargets) {
+      if (!usedTargetIds.contains(candidate.targetId)) {
+        target = candidate;
+        break;
+      }
+    }
+
+    if (target == null) {
+      final seedTarget = widget.asset.movementTargets.first;
+      final seedBinding = widget.asset.stageContext == null
+          ? null
+          : _movementTargetBindingFor(
+              widget.asset.stageContext!,
+              seedTarget.targetId,
+            );
+      // Each actorMove owns its destination choice in authoring. Reusing an
+      // already-used movement target would couple blocks through the same
+      // binding, so changing one final repere would visually move the others.
+      final targetId = await widget.onAddMovementTarget(
+        cinematicId: widget.asset.id,
+      );
+      if (!mounted || targetId == null) {
+        return;
+      }
+      if (seedBinding != null) {
+        await widget.onUpsertMovementTargetBinding(
+          cinematicId: widget.asset.id,
+          binding: CinematicMovementTargetBinding(
+            targetId: targetId,
+            kind: seedBinding.kind,
+            sourceId: seedBinding.sourceId,
+          ),
+        );
+        if (!mounted) {
+          return;
+        }
+      }
+      target =
+          CinematicMovementTargetRef(targetId: targetId, label: 'Destination');
     }
     final createdStepId = await widget.onAddActorMoveStep(
       cinematicId: widget.asset.id,
@@ -2281,6 +2353,7 @@ class _PreviewSandbox extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    required this.playbackPreviewStatus,
     required this.backdropFramingState,
     required this.onBackdropFramingModeChanged,
     required this.onBackdropFramingZoomChanged,
@@ -2309,6 +2382,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState backdropFramingState;
   final ValueChanged<CinematicBackdropPreviewFramingMode>
       onBackdropFramingModeChanged;
@@ -2350,6 +2424,7 @@ class _PreviewSandbox extends StatelessWidget {
               actorDisplayPreviewModel: actorDisplayPreviewModel,
               actorPlaybackPreviewModel: actorPlaybackPreviewModel,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
+              playbackPreviewStatus: playbackPreviewStatus,
               framingState: backdropFramingState,
               selectedStep: selectedStep,
               onFramingModeChanged: onBackdropFramingModeChanged,
@@ -2464,6 +2539,7 @@ const _builderBackdropPreviewMaxHeight = 560.0;
 const _builderBackdropTimelineMinHeight = 320.0;
 const _builderBackdropTimelineMaxHeight = 520.0;
 const _builderBackdropTimelinePreferredShare = 0.40;
+const _actorAnimationCadenceSampleWindowMs = 100;
 
 double _builderTimelineHeight(
   double availableHeight, {
@@ -2653,6 +2729,232 @@ CinematicTimelineTimeBlock _timelineClosestBlockInLane(
 
 double _timelineBlockCenterMs(CinematicTimelineTimeBlock block) {
   return block.startMs + block.visualDurationMs / 2;
+}
+
+Map<String, CinematicActorAnimationCadenceHint> _cadenceHintsForPlayback({
+  required CinematicPreviewPlaybackPlan playbackPlan,
+  required CinematicPreviewPlaybackFrame? playbackFrame,
+  required int playbackTimeMs,
+}) {
+  if (playbackFrame == null || playbackTimeMs <= 0) {
+    return const {};
+  }
+
+  final previousFrame = playbackPlan.frameAt(
+    math.max(0, playbackTimeMs - _actorAnimationCadenceSampleWindowMs),
+  );
+
+  final hints = <String, CinematicActorAnimationCadenceHint>{};
+  for (final pose in playbackFrame.actorPoses) {
+    if (!pose.hasPosition) {
+      continue;
+    }
+    final previousPose = previousFrame.actorPoseById(pose.actorId);
+    if (previousPose == null || !previousPose.hasPosition) {
+      continue;
+    }
+
+    final velocityTilesPerSecond = ((pose.x! - previousPose.x!).abs() +
+            (pose.y! - previousPose.y!).abs()) /
+        (_actorAnimationCadenceSampleWindowMs / 1000);
+    if (!velocityTilesPerSecond.isFinite || velocityTilesPerSecond < 0) {
+      continue;
+    }
+    hints[pose.actorId] = CinematicActorAnimationCadenceHint(
+      actorId: pose.actorId,
+      velocityTilesPerSecond: velocityTilesPerSecond,
+      sampleWindowMs: _actorAnimationCadenceSampleWindowMs,
+    );
+  }
+  return hints;
+}
+
+CinematicPlaybackPreviewStatus _playbackPreviewStatusFor({
+  required bool isPlaybackOverlayActive,
+  required bool isPlaybackPlaying,
+  required _PlaybackActorAnimationStatus animationStatus,
+}) {
+  final playbackLabel = isPlaybackPlaying
+      ? 'Lecture en cours'
+      : isPlaybackOverlayActive
+          ? 'Lecture en pause'
+          : 'Aperçu statique';
+  final playbackTone = isPlaybackPlaying
+      ? PokeMapTone.success
+      : isPlaybackOverlayActive
+          ? PokeMapTone.info
+          : PokeMapTone.neutral;
+  final actorAnimationLabel = switch (animationStatus) {
+    _PlaybackActorAnimationStatus.partial => 'Animation partielle',
+    _PlaybackActorAnimationStatus.ready => 'Animation acteur prête',
+    _PlaybackActorAnimationStatus.none => 'Aucun acteur animé',
+  };
+  final actorAnimationTone = switch (animationStatus) {
+    _PlaybackActorAnimationStatus.partial => PokeMapTone.warning,
+    _PlaybackActorAnimationStatus.ready => PokeMapTone.success,
+    _PlaybackActorAnimationStatus.none => PokeMapTone.neutral,
+  };
+  return CinematicPlaybackPreviewStatus(
+    playbackLabel: playbackLabel,
+    playbackTone: playbackTone,
+    actorAnimationLabel: actorAnimationLabel,
+    actorAnimationTone: actorAnimationTone,
+  );
+}
+
+bool _hasReadyActorSprite(CinematicActorSpritePreviewPlan? plan) {
+  return plan?.actors.any(
+        (actor) => actor.status == CinematicActorSpriteStatus.spriteReady,
+      ) ??
+      false;
+}
+
+enum _PlaybackActorAnimationStatus { none, ready, partial }
+
+final class _PlaybackActorSpritePreviewResolution {
+  const _PlaybackActorSpritePreviewResolution({
+    required this.plan,
+    required this.animationStatus,
+  });
+
+  final CinematicActorSpritePreviewPlan? plan;
+  final _PlaybackActorAnimationStatus animationStatus;
+}
+
+_PlaybackActorSpritePreviewResolution _resolvePlaybackActorSpritePreviewPlan({
+  required CinematicActorSpritePreviewPlan? basePlan,
+  required CinematicActorDisplayPreviewModel? displayModel,
+  required CinematicPreviewPlaybackFrame? playbackFrame,
+  required int playbackTimeMs,
+  required bool isPlaybackPlaying,
+  required List<CinematicTimelineStep> timelineSteps,
+  required List<ProjectCharacterEntry> characters,
+  required Map<String, CinematicActorAnimationCadenceHint>
+      cadenceHintsByActorId,
+}) {
+  if (basePlan == null || displayModel == null || playbackFrame == null) {
+    return _PlaybackActorSpritePreviewResolution(
+      plan: basePlan,
+      animationStatus: _PlaybackActorAnimationStatus.none,
+    );
+  }
+
+  final displayActorById = <String, CinematicActorDisplayPreviewActor>{
+    for (final actor in displayModel.actors) actor.actorId: actor,
+  };
+  final characterById = <String, ProjectCharacterEntry>{
+    for (final character in characters) character.id: character,
+  };
+
+  var changed = false;
+  var hasReadyAnimation = false;
+  var hasPartialAnimation = false;
+  final resolvedActors = <CinematicActorSpritePreviewActor>[];
+  for (final spriteActor in basePlan.actors) {
+    final displayActor = displayActorById[spriteActor.actorId];
+    final characterId = displayActor?.appearance.characterId;
+    final character = characterId == null ? null : characterById[characterId];
+    final resolved = displayActor == null
+        ? null
+        : resolveCinematicActorWalkingAnimationPreviewFrame(
+            actor: displayActor,
+            playbackFrame: playbackFrame,
+            playbackTimeMs: playbackTimeMs,
+            isPlaybackPlaying: isPlaybackPlaying,
+            timelineSteps: timelineSteps,
+            character: character,
+            cadenceHint: cadenceHintsByActorId[spriteActor.actorId],
+          );
+    final sourceRect = resolved?.sourceRect;
+    final isMoving = resolved?.isMoving ?? false;
+
+    // V1-116 only swaps the already-resolved sprite source during editor
+    // preview playback. Missing/invalid animation data deliberately falls back
+    // to the V1-99 idle sprite or placeholder path instead of inventing frames.
+    if (sourceRect == null ||
+        resolved?.characterId == null ||
+        resolved?.tilesetId == null ||
+        spriteActor.spriteRef == null ||
+        spriteActor.status != CinematicActorSpriteStatus.spriteReady) {
+      if (isMoving) {
+        hasPartialAnimation = true;
+      }
+      resolvedActors.add(spriteActor);
+      continue;
+    }
+
+    if (isMoving) {
+      if (resolved!.isFallback) {
+        hasPartialAnimation = true;
+      } else {
+        hasReadyAnimation = true;
+      }
+    }
+
+    final animatedSpriteRef = CinematicActorSpriteRef(
+      characterId: resolved!.characterId!,
+      tilesetId: resolved.tilesetId!,
+      sourceTileRect: TilesetSourceRect(
+        x: sourceRect.x,
+        y: sourceRect.y,
+        width: character?.frameWidth ?? spriteActor.spriteRef!.frameWidthTiles,
+        height:
+            character?.frameHeight ?? spriteActor.spriteRef!.frameHeightTiles,
+      ),
+      frameWidthTiles:
+          character?.frameWidth ?? spriteActor.spriteRef!.frameWidthTiles,
+      frameHeightTiles:
+          character?.frameHeight ?? spriteActor.spriteRef!.frameHeightTiles,
+      direction: _previewDirectionFromFacing(resolved.direction) ??
+          spriteActor.spriteRef!.direction,
+    );
+    changed = true;
+    resolvedActors.add(
+      CinematicActorSpritePreviewActor(
+        actorId: spriteActor.actorId,
+        actorLabel: spriteActor.actorLabel,
+        bindingKind: spriteActor.bindingKind,
+        position: spriteActor.position,
+        direction: spriteActor.direction,
+        status: spriteActor.status,
+        spriteRef: animatedSpriteRef,
+        placeholderFallback: spriteActor.placeholderFallback,
+        depthHint: spriteActor.depthHint,
+        diagnostics: spriteActor.diagnostics,
+      ),
+    );
+  }
+
+  final animationStatus = hasPartialAnimation
+      ? _PlaybackActorAnimationStatus.partial
+      : hasReadyAnimation
+          ? _PlaybackActorAnimationStatus.ready
+          : _PlaybackActorAnimationStatus.none;
+
+  if (!changed) {
+    return _PlaybackActorSpritePreviewResolution(
+      plan: basePlan,
+      animationStatus: animationStatus,
+    );
+  }
+  return _PlaybackActorSpritePreviewResolution(
+    plan: CinematicActorSpritePreviewPlan(
+      actors: resolvedActors,
+      diagnostics: basePlan.diagnostics,
+    ),
+    animationStatus: animationStatus,
+  );
+}
+
+CinematicActorPreviewDirection? _previewDirectionFromFacing(
+    EntityFacing? facing) {
+  return switch (facing) {
+    EntityFacing.north => CinematicActorPreviewDirection.north,
+    EntityFacing.south => CinematicActorPreviewDirection.south,
+    EntityFacing.east => CinematicActorPreviewDirection.east,
+    EntityFacing.west => CinematicActorPreviewDirection.west,
+    null => null,
+  };
 }
 
 class _TimelinePlaceholder extends StatefulWidget {

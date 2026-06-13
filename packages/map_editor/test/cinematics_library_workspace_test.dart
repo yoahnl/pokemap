@@ -471,9 +471,9 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Acteurs statiques'), findsWidgets);
+    expect(find.text('Aucun acteur animé'), findsWidgets);
     expect(find.text('1 acteur(s) placés'), findsWidgets);
-    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Aperçu statique'), findsWidgets);
   });
 
   testWidgets(
@@ -551,7 +551,7 @@ void main() {
     expect(find.text('2 couche(s) bitmap'), findsOneWidget);
     expect(find.text('Fallback structurel'), findsNothing);
     expect(find.text('Sans acteurs'), findsWidgets);
-    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Aperçu statique'), findsWidgets);
 
     final resetButton = tester.widget<PokeMapButton>(
       find.byKey(
@@ -1010,7 +1010,7 @@ void main() {
     expect(find.text('Fallback structurel'), findsNothing);
     expect(find.text('Déroulé'), findsOneWidget);
     expect(find.text('Sans acteurs'), findsWidgets);
-    expect(find.text('Sans lecture'), findsWidgets);
+    expect(find.text('Aperçu statique'), findsWidgets);
     expect(tester.takeException(), isNull);
 
     final screenshotFile = File(

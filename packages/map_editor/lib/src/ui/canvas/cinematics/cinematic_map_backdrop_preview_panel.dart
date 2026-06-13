@@ -18,6 +18,26 @@ import 'cinematic_stage_point_preview_overlay.dart';
 import 'cinematic_stage_preview_readiness.dart';
 import 'cinematic_manual_path_preview_overlay.dart';
 
+final class CinematicPlaybackPreviewStatus {
+  const CinematicPlaybackPreviewStatus({
+    required this.playbackLabel,
+    required this.playbackTone,
+    required this.actorAnimationLabel,
+    required this.actorAnimationTone,
+  });
+
+  const CinematicPlaybackPreviewStatus.staticPreview()
+      : playbackLabel = 'Aperçu statique',
+        playbackTone = PokeMapTone.neutral,
+        actorAnimationLabel = 'Animation acteur prête',
+        actorAnimationTone = PokeMapTone.info;
+
+  final String playbackLabel;
+  final PokeMapTone playbackTone;
+  final String actorAnimationLabel;
+  final PokeMapTone actorAnimationTone;
+}
+
 class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   const CinematicMapBackdropPreviewPanel({
     super.key,
@@ -30,6 +50,8 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    this.playbackPreviewStatus =
+        const CinematicPlaybackPreviewStatus.staticPreview(),
     this.framingState = const CinematicBackdropPreviewFramingState(),
     this.selectedStep,
     this.onFramingModeChanged,
@@ -56,6 +78,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -86,6 +109,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
             actorDisplayPreviewModel: actorDisplayPreviewModel,
             compact: compact,
             readiness: readiness,
+            playbackPreviewStatus: playbackPreviewStatus,
           ),
           SizedBox(height: compact ? 8 : 12),
         ],
@@ -100,6 +124,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   actorDisplayPreviewModel: actorDisplayPreviewModel,
                   actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                   actorSpritePreviewPlan: actorSpritePreviewPlan,
+                  playbackPreviewStatus: playbackPreviewStatus,
                   framingState: framingState,
                   selectedStep: selectedStep,
                   onFramingModeChanged: onFramingModeChanged,
@@ -136,12 +161,14 @@ class _BackdropHeader extends StatelessWidget {
     required this.actorDisplayPreviewModel,
     required this.compact,
     required this.readiness,
+    required this.playbackPreviewStatus,
   });
 
   final CinematicMapBackdropPreviewModel model;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final bool compact;
   final CinematicStagePreviewReadiness readiness;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -217,9 +244,9 @@ class _BackdropHeader extends StatelessWidget {
                       variant: PokeMapBadgeVariant.neutral,
                     ),
                   ] else ...[
-                    const _BackdropMetaPill(
-                      label: 'Acteurs statiques',
-                      tone: PokeMapTone.info,
+                    _BackdropMetaPill(
+                      label: playbackPreviewStatus.actorAnimationLabel,
+                      tone: playbackPreviewStatus.actorAnimationTone,
                     ),
                     _BackdropMetaPill(
                       label: _placedActorsLabel(actorDisplayPreviewModel!),
@@ -235,8 +262,9 @@ class _BackdropHeader extends StatelessWidget {
                       label: 'Placeholders',
                     ),
                   ],
-                  const _BackdropMetaPill(
-                    label: 'Sans lecture',
+                  _BackdropMetaPill(
+                    label: playbackPreviewStatus.playbackLabel,
+                    tone: playbackPreviewStatus.playbackTone,
                   ),
                 ],
               ),
@@ -258,6 +286,7 @@ class _BackdropMapFrame extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    required this.playbackPreviewStatus,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -283,6 +312,7 @@ class _BackdropMapFrame extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -336,6 +366,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           actorDisplayPreviewModel: actorDisplayPreviewModel,
                           actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                           actorSpritePreviewPlan: actorSpritePreviewPlan,
+                          playbackPreviewStatus: playbackPreviewStatus,
                           framingState: framingState,
                           selectedStep: selectedStep,
                           onFramingModeChanged: onFramingModeChanged,
@@ -364,6 +395,7 @@ class _BackdropMapFrame extends StatelessWidget {
                               actorPlaybackPreviewModel:
                                   actorPlaybackPreviewModel,
                               actorSpritePreviewPlan: actorSpritePreviewPlan,
+                              playbackPreviewStatus: playbackPreviewStatus,
                               framingState: framingState,
                               selectedStep: selectedStep,
                               onFramingModeChanged: onFramingModeChanged,
@@ -407,6 +439,7 @@ class _BackdropMapFrame extends StatelessWidget {
                                       actorDisplayPreviewModel,
                                   actorPlaybackPreviewModel:
                                       actorPlaybackPreviewModel,
+                                  playbackPreviewStatus: playbackPreviewStatus,
                                 ),
                 ),
               ],
@@ -427,6 +460,7 @@ class _BackdropBitmapMap extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    required this.playbackPreviewStatus,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -451,6 +485,7 @@ class _BackdropBitmapMap extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -488,6 +523,7 @@ class _BackdropBitmapMap extends StatelessWidget {
             compact: compact,
             bitmapPlan: plan,
             actorDisplayPreviewModel: actorDisplayPreviewModel,
+            playbackPreviewStatus: playbackPreviewStatus,
           ),
           const SizedBox(height: 8),
         ],
@@ -514,6 +550,7 @@ class _BackdropBitmapMap extends StatelessWidget {
               compact: true,
               bitmapPlan: plan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
+              playbackPreviewStatus: playbackPreviewStatus,
             ),
           ),
         ],
@@ -729,6 +766,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    required this.playbackPreviewStatus,
     required this.framingState,
     this.selectedStep,
     this.onFramingModeChanged,
@@ -753,6 +791,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState framingState;
   final CinematicTimelineStep? selectedStep;
   final ValueChanged<CinematicBackdropPreviewFramingMode>? onFramingModeChanged;
@@ -798,6 +837,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
             compact: compact,
             layerBitmapPlan: plan,
             actorDisplayPreviewModel: actorDisplayPreviewModel,
+            playbackPreviewStatus: playbackPreviewStatus,
           ),
           const SizedBox(height: 8),
         ],
@@ -824,6 +864,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
               compact: true,
               layerBitmapPlan: plan,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
+              playbackPreviewStatus: playbackPreviewStatus,
             ),
           ),
         ],
@@ -1309,6 +1350,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
+    required this.playbackPreviewStatus,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -1318,6 +1360,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -1373,6 +1416,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
                     bitmapPlan: tileRenderPlan,
                     layerBitmapPlan: layerRenderPlan,
                     actorDisplayPreviewModel: actorDisplayPreviewModel,
+                    playbackPreviewStatus: playbackPreviewStatus,
                   ),
                   const SizedBox(height: 8),
                   _BackdropPrimitiveLegend(
@@ -1397,6 +1441,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
           bitmapPlan: tileRenderPlan,
           layerBitmapPlan: layerRenderPlan,
           actorDisplayPreviewModel: actorDisplayPreviewModel,
+          playbackPreviewStatus: playbackPreviewStatus,
         ),
         SizedBox(height: compact ? 6 : 8),
         Expanded(
@@ -1524,6 +1569,7 @@ class _BackdropMetaBar extends StatelessWidget {
     this.bitmapPlan,
     this.layerBitmapPlan,
     this.actorDisplayPreviewModel,
+    required this.playbackPreviewStatus,
   });
 
   final CinematicMapBackdropPreviewModel model;
@@ -1532,6 +1578,7 @@ class _BackdropMetaBar extends StatelessWidget {
   final CinematicMapBackdropTileRenderPlan? bitmapPlan;
   final CinematicMapBackdropLayerRenderPlan? layerBitmapPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
+  final CinematicPlaybackPreviewStatus playbackPreviewStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -1588,13 +1635,16 @@ class _BackdropMetaBar extends StatelessWidget {
                   '${_actorCompletionCount(actorDisplayPreviewModel!)} à compléter',
               tone: PokeMapTone.warning,
             ),
-          const _BackdropMetaPill(
-            label: 'Acteurs statiques',
-            tone: PokeMapTone.info,
+          _BackdropMetaPill(
+            label: playbackPreviewStatus.actorAnimationLabel,
+            tone: playbackPreviewStatus.actorAnimationTone,
           ),
           const _BackdropMetaPill(label: 'Placeholders'),
         ],
-        const _BackdropMetaPill(label: 'Sans lecture'),
+        _BackdropMetaPill(
+          label: playbackPreviewStatus.playbackLabel,
+          tone: playbackPreviewStatus.playbackTone,
+        ),
         if (firstDiagnostic != null)
           _BackdropMetaPill(
             label: firstDiagnostic.message,

@@ -379,6 +379,190 @@ void main() {
       expect(resolveAt(350), resolveAt(350));
     });
 
+    test('without cadence hint keeps V1-115 time-based cadence', () {
+      final actor = _actor();
+      final character = _character(animations: [
+        _animation(
+          CharacterAnimationState.walk,
+          EntityFacing.east,
+          [
+            _frame(0, 0, durationMs: 120),
+            _frame(1, 0, durationMs: 120),
+          ],
+        ),
+      ]);
+
+      final resolved = resolveCinematicActorWalkingAnimationPreviewFrame(
+        actor: actor,
+        playbackFrame: _frameAt(
+          100,
+          pose: _pose(
+            facing: CinematicActorPreviewDirection.east,
+            activeStepId: 'move_1',
+          ),
+        ),
+        playbackTimeMs: 100,
+        isPlaybackPlaying: true,
+        timelineSteps: [_actorMoveStep('move_1')],
+        character: character,
+      );
+
+      expect(resolved.frameIndex, 0);
+      expect(resolved.frameDurationMs, 120);
+    });
+
+    test('cadence hint speeds up fast walk and slows down slow walk', () {
+      final actor = _actor();
+      final character = _character(animations: [
+        _animation(
+          CharacterAnimationState.walk,
+          EntityFacing.east,
+          [
+            _frame(0, 0, durationMs: 120),
+            _frame(1, 0, durationMs: 120),
+          ],
+        ),
+      ]);
+
+      CinematicActorWalkingAnimationPreviewFrame resolveWithVelocity(
+        double velocityTilesPerSecond, {
+        int playbackTimeMs = 100,
+      }) {
+        return resolveCinematicActorWalkingAnimationPreviewFrame(
+          actor: actor,
+          playbackFrame: _frameAt(
+            playbackTimeMs,
+            pose: _pose(
+              facing: CinematicActorPreviewDirection.east,
+              activeStepId: 'move_1',
+            ),
+          ),
+          playbackTimeMs: playbackTimeMs,
+          isPlaybackPlaying: true,
+          timelineSteps: [_actorMoveStep('move_1')],
+          character: character,
+          cadenceHint: CinematicActorAnimationCadenceHint(
+            actorId: 'actor_lysa',
+            velocityTilesPerSecond: velocityTilesPerSecond,
+            sampleWindowMs: 100,
+          ),
+        );
+      }
+
+      final fast = resolveWithVelocity(8);
+      final slow = resolveWithVelocity(0.5, playbackTimeMs: 130);
+
+      expect(fast.frameIndex, 1);
+      expect(fast.frameDurationMs, 69);
+      expect(slow.frameIndex, 0);
+      expect(slow.frameDurationMs, 160);
+    });
+
+    test('cadence hint clamps fast movement and ignores zero velocity', () {
+      final actor = _actor();
+      final character = _character(animations: [
+        _animation(
+          CharacterAnimationState.walk,
+          EntityFacing.east,
+          [
+            _frame(0, 0, durationMs: 80),
+            _frame(1, 0, durationMs: 80),
+          ],
+        ),
+      ]);
+
+      CinematicActorWalkingAnimationPreviewFrame resolveWithVelocity(
+        double velocityTilesPerSecond,
+      ) {
+        return resolveCinematicActorWalkingAnimationPreviewFrame(
+          actor: actor,
+          playbackFrame: _frameAt(
+            65,
+            pose: _pose(
+              facing: CinematicActorPreviewDirection.east,
+              activeStepId: 'move_1',
+            ),
+          ),
+          playbackTimeMs: 65,
+          isPlaybackPlaying: true,
+          timelineSteps: [_actorMoveStep('move_1')],
+          character: character,
+          cadenceHint: CinematicActorAnimationCadenceHint(
+            actorId: 'actor_lysa',
+            velocityTilesPerSecond: velocityTilesPerSecond,
+            sampleWindowMs: 100,
+          ),
+        );
+      }
+
+      final absurdFast = resolveWithVelocity(999);
+      final stopped = resolveWithVelocity(0);
+
+      expect(absurdFast.frameDurationMs, 60);
+      expect(absurdFast.frameIndex, 1);
+      expect(stopped.frameDurationMs, 80);
+      expect(stopped.frameIndex, 0);
+    });
+
+    test(
+        'cadence hint remains stable and does not affect stationary idle actor',
+        () {
+      final actor = _actor();
+      final character = _character(animations: [
+        _animation(
+          CharacterAnimationState.idle,
+          EntityFacing.south,
+          [_frame(0, 0, durationMs: 200), _frame(1, 0, durationMs: 200)],
+        ),
+        _animation(
+          CharacterAnimationState.walk,
+          EntityFacing.east,
+          [_frame(2, 0, durationMs: 120), _frame(3, 0, durationMs: 120)],
+        ),
+      ]);
+      const cadenceHint = CinematicActorAnimationCadenceHint(
+        actorId: 'actor_lysa',
+        velocityTilesPerSecond: 8,
+        sampleWindowMs: 100,
+      );
+
+      final first = resolveCinematicActorWalkingAnimationPreviewFrame(
+        actor: actor,
+        playbackFrame: _frameAt(
+          180,
+          pose: _pose(
+            isInterpolated: false,
+            activeStepId: 'move_1',
+          ),
+        ),
+        playbackTimeMs: 180,
+        isPlaybackPlaying: false,
+        timelineSteps: [_actorMoveStep('move_1')],
+        character: character,
+        cadenceHint: cadenceHint,
+      );
+      final second = resolveCinematicActorWalkingAnimationPreviewFrame(
+        actor: actor,
+        playbackFrame: _frameAt(
+          180,
+          pose: _pose(
+            isInterpolated: false,
+            activeStepId: 'move_1',
+          ),
+        ),
+        playbackTimeMs: 180,
+        isPlaybackPlaying: false,
+        timelineSteps: [_actorMoveStep('move_1')],
+        character: character,
+        cadenceHint: cadenceHint,
+      );
+
+      expect(first, second);
+      expect(first.kind, CinematicActorWalkingAnimationPreviewKind.idle);
+      expect(first.frameDurationMs, 200);
+      expect(first.frameIndex, 0);
+    });
+
     test('single-frame animation stays at frame zero', () {
       final resolved = resolveCinematicActorWalkingAnimationPreviewFrame(
         actor: _actor(),

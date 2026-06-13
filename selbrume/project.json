@@ -15437,6 +15437,11 @@
             "targetId": "target",
             "kind": "stagePoint",
             "sourceId": "stage_point_4"
+          },
+          {
+            "targetId": "target_2",
+            "kind": "stagePoint",
+            "sourceId": "stage_point_5"
           }
         ],
         "stagePoints": [
@@ -15461,8 +15466,14 @@
           {
             "id": "stage_point_4",
             "label": "Repère 4",
-            "x": 28.5,
-            "y": 20.5
+            "x": 27.5,
+            "y": 21.5
+          },
+          {
+            "id": "stage_point_5",
+            "label": "Repère 5",
+            "x": 29.5,
+            "y": 21.5
           }
         ],
         "manualPaths": []
@@ -15486,7 +15497,7 @@
             "label": "Déplacement Acteur",
             "durationMs": 1700,
             "actorId": "actor",
-            "targetId": "target",
+            "targetId": "target_2",
             "metadata": {
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
@@ -15506,8 +15517,8 @@
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
               "authoring.block": "actorMove",
-              "actor.movementMode": "walk",
-              "actor.pathMode": "direct"
+              "actor.movementMode": "run",
+              "actor.pathMode": "manual"
             }
           },
           {
