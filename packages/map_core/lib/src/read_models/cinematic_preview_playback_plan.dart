@@ -377,23 +377,53 @@ final class CinematicFadePlaybackState {
 
 @immutable
 final class CinematicCameraPlaybackPose {
-  const CinematicCameraPlaybackPose({
-    required this.supported,
+  CinematicCameraPlaybackPose({
+    required this.isActive,
+    required this.isSupported,
+    required this.progress,
     this.activeStepId,
-  });
+    this.mode,
+    List<CinematicPreviewPlaybackDiagnostic> diagnostics = const [],
+  }) : diagnostics =
+            List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics);
 
-  final bool supported;
+  const CinematicCameraPlaybackPose.inactive()
+      : isActive = false,
+        isSupported = false,
+        progress = 0,
+        activeStepId = null,
+        mode = null,
+        diagnostics = const <CinematicPreviewPlaybackDiagnostic>[];
+
+  final bool isActive;
+  final bool isSupported;
   final String? activeStepId;
+  final CinematicTimelineCameraMode? mode;
+  final double progress;
+  final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
+
+  bool get supported => isSupported;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is CinematicCameraPlaybackPose &&
-          other.supported == supported &&
-          other.activeStepId == activeStepId;
+          other.isActive == isActive &&
+          other.isSupported == isSupported &&
+          other.activeStepId == activeStepId &&
+          other.mode == mode &&
+          other.progress == progress &&
+          _listEquals(other.diagnostics, diagnostics);
 
   @override
-  int get hashCode => Object.hash(supported, activeStepId);
+  int get hashCode => Object.hash(
+        isActive,
+        isSupported,
+        activeStepId,
+        mode,
+        progress,
+        Object.hashAll(diagnostics),
+      );
 }
 
 @immutable
@@ -404,10 +434,12 @@ final class CinematicPreviewPlaybackFrame {
     required List<String> activeStepIds,
     required List<CinematicActorPlaybackPose> actorPoses,
     this.fadeState,
-    this.cameraPose,
+    CinematicCameraPlaybackPose? cameraPose,
     required List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics,
   })  : activeStepIds = List<String>.unmodifiable(activeStepIds),
         actorPoses = List<CinematicActorPlaybackPose>.unmodifiable(actorPoses),
+        cameraPose =
+            cameraPose ?? const CinematicCameraPlaybackPose.inactive(),
         visibleDiagnostics =
             List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(
           visibleDiagnostics,
@@ -418,7 +450,7 @@ final class CinematicPreviewPlaybackFrame {
   final List<String> activeStepIds;
   final List<CinematicActorPlaybackPose> actorPoses;
   final CinematicFadePlaybackState? fadeState;
-  final CinematicCameraPlaybackPose? cameraPose;
+  final CinematicCameraPlaybackPose cameraPose;
   final List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics;
 
   CinematicActorPlaybackPose? actorPoseById(String actorId) {
@@ -467,6 +499,7 @@ final class CinematicPreviewPlaybackPlan {
     required Map<String, _ActorMovePlaybackPlan> movePlans,
     required Map<String, CinematicActorPreviewDirection> actorFaceDirections,
     required Map<String, CinematicFadePlaybackMode> fadeModes,
+    required Map<String, CinematicTimelineCameraMode> cameraModes,
   })  : timelineItems = List<CinematicPreviewPlaybackTimelineItem>.unmodifiable(
           timelineItems,
         ),
@@ -484,6 +517,9 @@ final class CinematicPreviewPlaybackPlan {
         ),
         _fadeModes = Map<String, CinematicFadePlaybackMode>.unmodifiable(
           fadeModes,
+        ),
+        _cameraModes = Map<String, CinematicTimelineCameraMode>.unmodifiable(
+          cameraModes,
         );
 
   final String cinematicId;
@@ -495,6 +531,7 @@ final class CinematicPreviewPlaybackPlan {
   final Map<String, _ActorMovePlaybackPlan> _movePlans;
   final Map<String, CinematicActorPreviewDirection> _actorFaceDirections;
   final Map<String, CinematicFadePlaybackMode> _fadeModes;
+  final Map<String, CinematicTimelineCameraMode> _cameraModes;
 
   CinematicPreviewPlaybackFrame frameAt(int timeMs) =>
       evaluateCinematicPreviewPlaybackFrame(this, timeMs: timeMs);
@@ -558,6 +595,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   final movePlans = <String, _ActorMovePlaybackPlan>{};
   final faceDirections = <String, CinematicActorPreviewDirection>{};
   final fadeModes = <String, CinematicFadePlaybackMode>{};
+  final cameraModes = <String, CinematicTimelineCameraMode>{};
   final timelineItems = <CinematicPreviewPlaybackTimelineItem>[];
   var hasUnsupportedSteps = false;
 
@@ -616,16 +654,13 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
           fadeModes[step.id] = fadeMode;
         }
       case CinematicTimelineStepKind.camera:
-        itemDiagnostics.add(
-          CinematicPreviewPlaybackDiagnostic(
-            code: CinematicPreviewPlaybackDiagnosticCode
-                .cinematicPreviewPlaybackCameraUnsupported,
-            severity: CinematicPreviewPlaybackDiagnosticSeverity.info,
-            message: 'La caméra de ce bloc sera cadrée dans un lot suivant.',
-            stepId: step.id,
-          ),
-        );
-        hasUnsupportedSteps = true;
+        final cameraMode = _cameraModeOf(step);
+        if (cameraMode == null) {
+          itemDiagnostics.add(_cameraUnsupportedDiagnostic(step));
+          hasUnsupportedSteps = true;
+        } else {
+          cameraModes[step.id] = cameraMode;
+        }
       case CinematicTimelineStepKind.wait:
         break;
       case CinematicTimelineStepKind.actorEmote:
@@ -681,12 +716,13 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       supportsActorFace: true,
       supportsWait: true,
       supportsFade: true,
-      supportsCamera: false,
+      supportsCamera: true,
       hasUnsupportedSteps: hasUnsupportedSteps,
     ),
     movePlans: movePlans,
     actorFaceDirections: faceDirections,
     fadeModes: fadeModes,
+    cameraModes: cameraModes,
   );
 }
 
@@ -704,7 +740,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
   };
 
   CinematicFadePlaybackState? fadeState;
-  CinematicCameraPlaybackPose? cameraPose;
+  var cameraPose = const CinematicCameraPlaybackPose.inactive();
 
   for (final item in plan.timelineItems) {
     if (clampedTimeMs < item.startMs) {
@@ -754,9 +790,10 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
         }
       case CinematicTimelineStepKind.camera:
         if (item.containsTime(clampedTimeMs)) {
-          cameraPose = CinematicCameraPlaybackPose(
-            supported: false,
-            activeStepId: item.stepId,
+          cameraPose = _cameraPoseFor(
+            item: item,
+            mode: plan._cameraModes[item.stepId],
+            clampedTimeMs: clampedTimeMs,
           );
         }
       case CinematicTimelineStepKind.wait:
@@ -1037,8 +1074,7 @@ CinematicFadePlaybackState _fadeStateFor({
   required CinematicFadePlaybackMode mode,
   required int clampedTimeMs,
 }) {
-  final localProgress =
-      ((clampedTimeMs - item.startMs) / item.visualDurationMs).clamp(0.0, 1.0);
+  final localProgress = _timelineItemProgress(item, clampedTimeMs);
   final opacity = switch (mode) {
     CinematicFadePlaybackMode.fadeIn => 1.0 - localProgress,
     CinematicFadePlaybackMode.fadeOut => localProgress,
@@ -1051,6 +1087,35 @@ CinematicFadePlaybackState _fadeStateFor({
   );
 }
 
+CinematicCameraPlaybackPose _cameraPoseFor({
+  required CinematicPreviewPlaybackTimelineItem item,
+  required CinematicTimelineCameraMode? mode,
+  required int clampedTimeMs,
+}) {
+  // This is preview/read-model state only: V1-123 intentionally describes the
+  // cinematic camera timeline without mutating editor viewport pan or zoom.
+  return CinematicCameraPlaybackPose(
+    isActive: true,
+    isSupported: mode != null,
+    activeStepId: item.stepId,
+    mode: mode,
+    progress: _timelineItemProgress(item, clampedTimeMs),
+    diagnostics: item.diagnostics,
+  );
+}
+
+double _timelineItemProgress(
+  CinematicPreviewPlaybackTimelineItem item,
+  int clampedTimeMs,
+) {
+  if (item.visualDurationMs <= 0) {
+    return 0;
+  }
+  return ((clampedTimeMs - item.startMs) / item.visualDurationMs)
+      .clamp(0.0, 1.0)
+      .toDouble();
+}
+
 bool _stepSupportedForPlayback(CinematicTimelineStep step) {
   return switch (step.kind) {
     CinematicTimelineStepKind.wait ||
@@ -1058,7 +1123,7 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
     CinematicTimelineStepKind.actorMove ||
     CinematicTimelineStepKind.fade =>
       true,
-    CinematicTimelineStepKind.camera ||
+    CinematicTimelineStepKind.camera => _cameraModeOf(step) != null,
     CinematicTimelineStepKind.actorEmote ||
     CinematicTimelineStepKind.dialogueLine ||
     CinematicTimelineStepKind.sound ||
@@ -1068,6 +1133,32 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
     CinematicTimelineStepKind.marker =>
       false,
   };
+}
+
+CinematicTimelineCameraMode? _cameraModeOf(CinematicTimelineStep step) {
+  // V1-123 only supports the camera modes already persisted by authoring.
+  // Unknown values stay unsupported so a future UI can explain them honestly.
+  return switch (step.metadata[cinematicTimelineCameraModeMetadataKey]) {
+    'reset' => CinematicTimelineCameraMode.reset,
+    'hold' => CinematicTimelineCameraMode.hold,
+    _ => null,
+  };
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraUnsupportedDiagnostic(
+  CinematicTimelineStep step,
+) {
+  final hasMode =
+      step.metadata.containsKey(cinematicTimelineCameraModeMetadataKey);
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraUnsupported,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.warning,
+    message: hasMode
+        ? 'Caméra non prévisualisée dans cette version.'
+        : 'Cadrage caméra incomplet.',
+    stepId: step.id,
+  );
 }
 
 CinematicPreviewPlaybackDiagnostic _actorMissingDiagnostic(

@@ -310,9 +310,189 @@ void main() {
       );
     });
 
-    test(
-        'fade returns fade state and camera remains an unsupported placeholder',
+    test('V1-123 camera block produces active playback state', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera',
+          title: 'Camera cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_reset',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 1000,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'reset',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(500);
+
+      expect(frame.cameraPose.isActive, isTrue);
+      expect(frame.cameraPose.activeStepId, 'camera_reset');
+      expect(frame.cameraPose.isSupported, isTrue);
+      expect(frame.cameraPose.supported, isTrue);
+      expect(frame.cameraPose.mode, CinematicTimelineCameraMode.reset);
+      expect(frame.cameraPose.progress, closeTo(0.5, 0.001));
+      expect(frame.cameraPose.diagnostics, isEmpty);
+      expect(plan.capabilities.supportsCamera, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
+    });
+
+    test('V1-123 camera playback state exposes clamped progress', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_progress',
+          title: 'Camera progress cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'wait',
+                kind: CinematicTimelineStepKind.wait,
+                durationMs: 200,
+              ),
+              CinematicTimelineStep(
+                id: 'camera_hold',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 1000,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(plan.frameAt(-50).cameraPose.isActive, isFalse);
+      expect(plan.frameAt(199).cameraPose.isActive, isFalse);
+      expect(plan.frameAt(200).cameraPose.progress, 0);
+      expect(plan.frameAt(700).cameraPose.progress, closeTo(0.5, 0.001));
+      expect(plan.frameAt(1199).cameraPose.progress, closeTo(0.999, 0.001));
+      expect(plan.frameAt(1200).cameraPose.isActive, isFalse);
+      expect(plan.frameAt(2000).cameraPose.isActive, isFalse);
+    });
+
+    test('V1-123 unsupported camera mode produces diagnostic without crashing',
         () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_unknown',
+          title: 'Camera unknown cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_orbit',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'orbit',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.isActive, isTrue);
+      expect(frame.cameraPose.activeStepId, 'camera_orbit');
+      expect(frame.cameraPose.isSupported, isFalse);
+      expect(frame.cameraPose.mode, isNull);
+      expect(frame.cameraPose.progress, closeTo(0.5, 0.001));
+      expect(
+        frame.cameraPose.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraUnsupported,
+        ),
+      );
+      expect(plan.capabilities.supportsCamera, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+    });
+
+    test('V1-123 missing camera mode stays diagnosed and does not mutate asset',
+        () {
+      final cinematic = CinematicAsset(
+        id: 'cinematic_camera_missing_mode',
+        title: 'Camera missing mode cinematic',
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'camera_missing_mode',
+              kind: CinematicTimelineStepKind.camera,
+              durationMs: 500,
+            ),
+          ],
+        ),
+      );
+      final before = cinematic.toJson();
+
+      final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic);
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.isActive, isTrue);
+      expect(frame.cameraPose.isSupported, isFalse);
+      expect(frame.cameraPose.activeStepId, 'camera_missing_mode');
+      expect(frame.cameraPose.progress, closeTo(0.5, 0.001));
+      expect(
+        frame.cameraPose.diagnostics.single.message,
+        'Cadrage caméra incomplet.',
+      );
+      expect(cinematic.toJson(), before);
+    });
+
+    test('V1-123 consecutive camera steps choose deterministic active state',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_consecutive',
+          title: 'Camera consecutive cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_reset',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 400,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'reset',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'camera_hold',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 600,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final beforeBoundary = plan.frameAt(399).cameraPose;
+      final atBoundary = plan.frameAt(400).cameraPose;
+      final nearEnd = plan.frameAt(999).cameraPose;
+      final afterEnd = plan.frameAt(1000).cameraPose;
+
+      expect(beforeBoundary.activeStepId, 'camera_reset');
+      expect(beforeBoundary.mode, CinematicTimelineCameraMode.reset);
+      expect(beforeBoundary.progress, closeTo(0.9975, 0.001));
+      expect(atBoundary.activeStepId, 'camera_hold');
+      expect(atBoundary.mode, CinematicTimelineCameraMode.hold);
+      expect(atBoundary.progress, 0);
+      expect(nearEnd.activeStepId, 'camera_hold');
+      expect(nearEnd.progress, closeTo(0.998, 0.001));
+      expect(afterEnd.isActive, isFalse);
+    });
+
+    test('fade returns fade state alongside camera playback state', () {
       final plan = buildCinematicPreviewPlaybackPlan(
         cinematic: CinematicAsset(
           id: 'cinematic_fx',
@@ -331,6 +511,9 @@ void main() {
                 id: 'camera_hold',
                 kind: CinematicTimelineStepKind.camera,
                 durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
+                },
               ),
             ],
           ),
@@ -343,16 +526,19 @@ void main() {
       expect(fadeFrame.fadeState, isNotNull);
       expect(fadeFrame.fadeState!.mode, CinematicFadePlaybackMode.fadeOut);
       expect(fadeFrame.fadeState!.opacity, closeTo(0.5, 0.001));
-      expect(cameraFrame.cameraPose, isNotNull);
-      expect(cameraFrame.cameraPose!.supported, isFalse);
+      expect(cameraFrame.cameraPose.isActive, isTrue);
+      expect(cameraFrame.cameraPose.isSupported, isTrue);
+      expect(cameraFrame.cameraPose.mode, CinematicTimelineCameraMode.hold);
       expect(plan.capabilities.supportsFade, isTrue);
-      expect(plan.capabilities.supportsCamera, isFalse);
-      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+      expect(plan.capabilities.supportsCamera, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
       expect(
-        plan.diagnostics.map((diagnostic) => diagnostic.code),
-        contains(
-          CinematicPreviewPlaybackDiagnosticCode
-              .cinematicPreviewPlaybackCameraUnsupported,
+        cameraFrame.visibleDiagnostics.map((diagnostic) => diagnostic.code),
+        isNot(
+          contains(
+            CinematicPreviewPlaybackDiagnosticCode
+                .cinematicPreviewPlaybackCameraUnsupported,
+          ),
         ),
       );
     });
