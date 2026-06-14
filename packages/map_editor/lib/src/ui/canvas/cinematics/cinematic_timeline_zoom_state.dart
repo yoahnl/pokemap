@@ -16,7 +16,7 @@ class CinematicTimelineZoomState {
   }
 
   static const double defaultScale = 1.0;
-  static const double minScale = 0.5;
+  static const double minScale = 0.25;
   static const double maxScale = 4.0;
   static const double step = 0.25;
 

@@ -25,6 +25,14 @@ void main() {
     controller.zoomOut();
     expect(controller.value.scale, 0.75);
 
+    controller.zoomOut();
+    expect(controller.value.scale, 0.5);
+
+    controller.zoomOut();
+    expect(controller.value.scale, 0.25);
+    expect(controller.value.percentage, 25);
+    expect(controller.value.canZoomOut, isFalse);
+
     controller.reset();
     expect(controller.value.scale, CinematicTimelineZoomState.defaultScale);
   });

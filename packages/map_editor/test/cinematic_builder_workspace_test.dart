@@ -7703,6 +7703,22 @@ void main() {
 
       await tester.tap(
         find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-out-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zoom timeline 50%'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-out-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zoom timeline 25%'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
           const ValueKey('cinematic-builder-timeline-zoom-reset-button'),
         ),
       );
