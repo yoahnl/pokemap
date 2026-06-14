@@ -15400,6 +15400,10 @@
         {
           "targetId": "target_2",
           "label": "Destination"
+        },
+        {
+          "targetId": "target_3",
+          "label": "Destination"
         }
       ],
       "stageContext": {
@@ -15442,6 +15446,11 @@
             "targetId": "target_2",
             "kind": "stagePoint",
             "sourceId": "stage_point_5"
+          },
+          {
+            "targetId": "target_3",
+            "kind": "stagePoint",
+            "sourceId": "stage_point_6"
           }
         ],
         "stagePoints": [
@@ -15473,6 +15482,12 @@
             "id": "stage_point_5",
             "label": "Repère 5",
             "x": 29.5,
+            "y": 21.5
+          },
+          {
+            "id": "stage_point_6",
+            "label": "Repère 6",
+            "x": 28.5,
             "y": 21.5
           }
         ],
@@ -15547,10 +15562,64 @@
             }
           },
           {
+            "id": "step_actor_move_3",
+            "kind": "actorMove",
+            "label": "Déplacement Acteur",
+            "durationMs": 400,
+            "actorId": "actor",
+            "targetId": "target_3",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorMove",
+              "actor.movementMode": "walk",
+              "actor.pathMode": "direct"
+            }
+          },
+          {
+            "id": "step_actor_emote_3",
+            "kind": "actorEmote",
+            "label": "Acteur affiche Coeur",
+            "durationMs": 800,
+            "actorId": "actor",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorEmote",
+              "actor.emoteId": "heart"
+            }
+          },
+          {
             "id": "step_actor_emote_2",
             "kind": "actorEmote",
             "label": "Jean affiche Coeur",
-            "durationMs": 800,
+            "durationMs": 400,
+            "actorId": "actor_4",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorEmote",
+              "actor.emoteId": "heart"
+            }
+          },
+          {
+            "id": "step_actor_emote_4",
+            "kind": "actorEmote",
+            "label": "Acteur affiche Coeur",
+            "durationMs": 400,
+            "actorId": "actor",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorEmote",
+              "actor.emoteId": "heart"
+            }
+          },
+          {
+            "id": "step_actor_emote_5",
+            "kind": "actorEmote",
+            "label": "Jean affiche Coeur",
+            "durationMs": 200,
             "actorId": "actor_4",
             "metadata": {
               "authoring.kind": "basicBlock",
@@ -15613,17 +15682,6 @@
             }
           },
           {
-            "id": "node_yarn_dialogue",
-            "kind": "yarnDialogue",
-            "title": "g",
-            "payload": {
-              "kind": "yarnDialogue",
-              "dialogueId": "g",
-              "expectedOutcomes": [],
-              "speakerHints": []
-            }
-          },
-          {
             "id": "node_yarn_dialogue_2",
             "kind": "yarnDialogue",
             "title": "g",
@@ -15633,6 +15691,15 @@
               "expectedOutcomes": [],
               "speakerHints": []
             }
+          },
+          {
+            "id": "node_cinematic",
+            "kind": "cinematic",
+            "title": "UwU",
+            "payload": {
+              "kind": "cinematic",
+              "cinematicId": "cinematic_uwu"
+            }
           }
         ],
         "edges": [
@@ -15641,22 +15708,6 @@
             "fromNodeId": "node_start",
             "fromPortId": "completed",
             "toNodeId": "node_battle",
-            "kind": "default",
-            "label": "completed"
-          },
-          {
-            "id": "edge_node_battle_victory_node_yarn_dialogue",
-            "fromNodeId": "node_battle",
-            "fromPortId": "victory",
-            "toNodeId": "node_yarn_dialogue",
-            "kind": "battleVictory",
-            "label": "victory"
-          },
-          {
-            "id": "edge_node_yarn_dialogue_completed_node_end",
-            "fromNodeId": "node_yarn_dialogue",
-            "fromPortId": "completed",
-            "toNodeId": "node_end",
             "kind": "default",
             "label": "completed"
           },
@@ -15675,6 +15726,22 @@
             "toNodeId": "node_end_2",
             "kind": "default",
             "label": "completed"
+          },
+          {
+            "id": "edge_node_battle_victory_node_cinematic",
+            "fromNodeId": "node_battle",
+            "fromPortId": "victory",
+            "toNodeId": "node_cinematic",
+            "kind": "battleVictory",
+            "label": "victory"
+          },
+          {
+            "id": "edge_node_cinematic_completed_node_end",
+            "fromNodeId": "node_cinematic",
+            "fromPortId": "completed",
+            "toNodeId": "node_end",
+            "kind": "cinematicCompleted",
+            "label": "completed"
           }
         ]
       },
@@ -15682,8 +15749,8 @@
         "nodeLayouts": [
           {
             "nodeId": "node_start",
-            "x": 104.63287559117919,
-            "y": 149.69921875
+            "x": 14.179750591179138,
+            "y": 130.86067708333334
           },
           {
             "nodeId": "node_end",
@@ -15701,14 +15768,14 @@
             "y": 184.95703125
           },
           {
-            "nodeId": "node_yarn_dialogue",
-            "x": 544.1997332406877,
-            "y": 1.260315041796988
-          },
-          {
             "nodeId": "node_yarn_dialogue_2",
             "x": 638.02734375,
             "y": 302.73046875
+          },
+          {
+            "nodeId": "node_cinematic",
+            "x": 583.4040477400431,
+            "y": 18.130645193388403
           }
         ],
         "edgeLayouts": []
