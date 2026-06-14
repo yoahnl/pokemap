@@ -705,6 +705,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                       playbackActorOverlayModel,
                                   actorSpritePreviewPlan:
                                       previewActorSpritePreviewPlan,
+                                  playbackFrame: playbackFrame,
                                   fadeState: playbackFrame.fadeState,
                                   cameraPose: playbackFrame.cameraPose,
                                   playbackPreviewStatus: playbackPreviewStatus,
@@ -2617,6 +2618,7 @@ class _PreviewSandbox extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    required this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
     required this.playbackPreviewStatus,
@@ -2648,6 +2650,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPreviewPlaybackFrame playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -2692,6 +2695,7 @@ class _PreviewSandbox extends StatelessWidget {
               actorDisplayPreviewModel: actorDisplayPreviewModel,
               actorPlaybackPreviewModel: actorPlaybackPreviewModel,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
+              playbackFrame: playbackFrame,
               fadeState: fadeState,
               cameraPose: cameraPose,
               playbackPreviewStatus: playbackPreviewStatus,

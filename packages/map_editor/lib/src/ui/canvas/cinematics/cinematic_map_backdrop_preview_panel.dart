@@ -7,6 +7,7 @@ import 'cinematic_actor_display_preview_overlay.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_backdrop_preview_framing.dart';
 import 'cinematic_camera_preview_overlay.dart';
+import 'cinematic_emote_preview_overlay.dart';
 import 'cinematic_fade_preview_overlay.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_layer_renderer.dart';
@@ -57,6 +58,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    this.playbackFrame,
     this.fadeState,
     this.cameraPose = const CinematicCameraPlaybackPose.inactive(),
     this.playbackPreviewStatus =
@@ -87,6 +89,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -135,6 +138,7 @@ class CinematicMapBackdropPreviewPanel extends StatelessWidget {
                   actorDisplayPreviewModel: actorDisplayPreviewModel,
                   actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                   actorSpritePreviewPlan: actorSpritePreviewPlan,
+                  playbackFrame: playbackFrame,
                   fadeState: fadeState,
                   cameraPose: cameraPose,
                   playbackPreviewStatus: playbackPreviewStatus,
@@ -299,6 +303,7 @@ class _BackdropMapFrame extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
     required this.playbackPreviewStatus,
@@ -327,6 +332,7 @@ class _BackdropMapFrame extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -383,6 +389,7 @@ class _BackdropMapFrame extends StatelessWidget {
                           actorDisplayPreviewModel: actorDisplayPreviewModel,
                           actorPlaybackPreviewModel: actorPlaybackPreviewModel,
                           actorSpritePreviewPlan: actorSpritePreviewPlan,
+                          playbackFrame: playbackFrame,
                           fadeState: fadeState,
                           cameraPose: cameraPose,
                           playbackPreviewStatus: playbackPreviewStatus,
@@ -414,6 +421,7 @@ class _BackdropMapFrame extends StatelessWidget {
                               actorPlaybackPreviewModel:
                                   actorPlaybackPreviewModel,
                               actorSpritePreviewPlan: actorSpritePreviewPlan,
+                              playbackFrame: playbackFrame,
                               fadeState: fadeState,
                               cameraPose: cameraPose,
                               playbackPreviewStatus: playbackPreviewStatus,
@@ -460,6 +468,7 @@ class _BackdropMapFrame extends StatelessWidget {
                                       actorDisplayPreviewModel,
                                   actorPlaybackPreviewModel:
                                       actorPlaybackPreviewModel,
+                                  playbackFrame: playbackFrame,
                                   fadeState: fadeState,
                                   cameraPose: cameraPose,
                                   playbackPreviewStatus: playbackPreviewStatus,
@@ -483,6 +492,7 @@ class _BackdropBitmapMap extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
     required this.playbackPreviewStatus,
@@ -510,6 +520,7 @@ class _BackdropBitmapMap extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -702,6 +713,13 @@ class _BackdropBitmapMap extends StatelessWidget {
                                             mapHeight: plan.mapHeight,
                                             compact: compact,
                                           ),
+                                        if (playbackFrame != null)
+                                          CinematicEmotePreviewOverlay(
+                                            playbackFrame: playbackFrame!,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                            compact: compact,
+                                          ),
                                         CinematicStagePointPreviewOverlay(
                                           stagePoints: stagePoints,
                                           selectedStagePointId:
@@ -801,6 +819,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
+    this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
     required this.playbackPreviewStatus,
@@ -828,6 +847,7 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -1030,6 +1050,13 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                             spritePreviewPlan:
                                                 actorSpritePreviewPlan,
                                             tilesets: plan.tilesets,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                            compact: compact,
+                                          ),
+                                        if (playbackFrame != null)
+                                          CinematicEmotePreviewOverlay(
+                                            playbackFrame: playbackFrame!,
                                             mapWidth: plan.mapWidth,
                                             mapHeight: plan.mapHeight,
                                             compact: compact,
@@ -1397,6 +1424,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
     this.layerRenderPlan,
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
+    this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
     required this.playbackPreviewStatus,
@@ -1409,6 +1437,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
   final CinematicMapBackdropLayerRenderPlan? layerRenderPlan;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
@@ -1451,6 +1480,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
               compact: compact,
               actorDisplayPreviewModel: actorDisplayPreviewModel,
               actorPlaybackPreviewModel: actorPlaybackPreviewModel,
+              playbackFrame: playbackFrame,
               fadeState: fadeState,
               cameraPose: cameraPose,
             ),
@@ -1506,6 +1536,7 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
             compact: compact,
             actorDisplayPreviewModel: actorDisplayPreviewModel,
             actorPlaybackPreviewModel: actorPlaybackPreviewModel,
+            playbackFrame: playbackFrame,
             fadeState: fadeState,
             cameraPose: cameraPose,
           ),
@@ -1544,6 +1575,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
     required this.compact,
     this.actorDisplayPreviewModel,
     this.actorPlaybackPreviewModel,
+    this.playbackFrame,
     this.fadeState,
     required this.cameraPose,
   });
@@ -1555,6 +1587,7 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
   final bool compact;
   final CinematicActorDisplayPreviewModel? actorDisplayPreviewModel;
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
+  final CinematicPreviewPlaybackFrame? playbackFrame;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
 
@@ -1604,6 +1637,13 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
                           playbackPoseOverrides:
                               actorPlaybackPreviewModel?.poseOverrides ??
                                   const {},
+                          mapWidth: mapWidth,
+                          mapHeight: mapHeight,
+                          compact: compact,
+                        ),
+                      if (playbackFrame != null)
+                        CinematicEmotePreviewOverlay(
+                          playbackFrame: playbackFrame!,
                           mapWidth: mapWidth,
                           mapHeight: mapHeight,
                           compact: compact,

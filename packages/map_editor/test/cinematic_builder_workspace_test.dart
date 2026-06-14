@@ -11,6 +11,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_display_preview_overlay.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_backdrop_preview_framing.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/cinematic_emote_preview_overlay.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
@@ -326,6 +327,322 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/scenes/screenshots/'
         'ns_scenes_v1_128_cinematic_emote_block_editor_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'V1-129 seek renders active actor emote above playback actor without mutating data',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackActorEmoteCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-emote-preview-overlay')),
+        findsNothing,
+      );
+
+      final tick1000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      final actorAnchor = _actorDisplayAnchor(tester, 'actor_lysa');
+      final emoteFinder = find.byKey(
+        const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+      );
+      expect(emoteFinder, findsOneWidget);
+      final emoteRect = tester.getRect(emoteFinder);
+      expect(emoteRect.center.dy, lessThan(actorAnchor.dy - 12));
+      expect(emoteRect.center.dx, closeTo(actorAnchor.dx, 40));
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(find.textContaining('activeEmotes'), findsNothing);
+      expect(find.textContaining('emoteId'), findsNothing);
+      expect(find.textContaining('atlas'), findsNothing);
+
+      final tick2000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-2000')),
+      );
+      await tester.tapAt(Offset(tick2000Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(emoteFinder, findsNothing);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-129 dragging playback playhead scrubs emote visibility without creating a probe',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _playbackActorEmoteCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick1000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture.moveTo(
+        Offset(tick1000Rect.left + 2, playheadHandleRect.center.dy),
+      );
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(find.textContaining('Marqueur :'), findsNothing);
+
+      final tick2000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-2000')),
+      );
+      final secondHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final secondGesture = await tester.startGesture(secondHandleRect.center);
+      await tester.pump();
+      await secondGesture.moveTo(
+        Offset(tick2000Rect.left + 2, secondHandleRect.center.dy),
+      );
+      await tester.pump();
+      await secondGesture.up();
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(1950, 2050));
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+        ),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+      'V1-129 emote overlay follows actor poses supplied by playback frames', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MacosTheme(
+        data: MacosThemeData.dark(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 480,
+              height: 240,
+              child: CinematicEmotePreviewOverlay(
+                playbackFrame: _emotePreviewFrame(actorX: 2, actorY: 4),
+                mapWidth: 10,
+                mapHeight: 6,
+                compact: false,
+                atlasImagesById: const {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final firstCenter = tester
+        .getRect(
+          find.byKey(
+            const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+          ),
+        )
+        .center;
+
+    await tester.pumpWidget(
+      MacosTheme(
+        data: MacosThemeData.dark(),
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 480,
+              height: 240,
+              child: CinematicEmotePreviewOverlay(
+                playbackFrame: _emotePreviewFrame(actorX: 7, actorY: 4),
+                mapWidth: 10,
+                mapHeight: 6,
+                compact: false,
+                atlasImagesById: const {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final secondCenter = tester
+        .getRect(
+          find.byKey(
+            const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+          ),
+        )
+        .center;
+    expect(secondCenter.dx, greaterThan(firstCenter.dx + 150));
+    expect(secondCenter.dy, closeTo(firstCenter.dy, 1));
+    expect(find.text('?'), findsOneWidget);
+  });
+
+  testWidgets(
+    'captures V1-129 cinematic emote preview playback ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_129_CAPTURE_CINEMATIC_EMOTE_PREVIEW_PLAYBACK_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _playbackActorEmoteCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+          project: project,
+          asset: asset,
+          mapData: mapData,
+        ),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_emote')),
+      );
+      await tester.pumpAndSettle();
+      final tick1000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Lysa affiche Question'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-emote-preview-step-step_emote'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Lecture en pause'), findsWidgets);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_129_cinematic_emote_preview_playback_ui_v0.png',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(
@@ -18504,6 +18821,68 @@ CinematicAsset _playbackDirectActorMoveCinematic() {
   );
 }
 
+CinematicAsset _playbackActorEmoteCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_playback_actor_emote',
+    title: 'Playback actor emote',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.stagePoint,
+          stagePointId: 'start',
+        ),
+      ],
+      stagePoints: [
+        CinematicStagePoint(id: 'start', label: 'Départ', x: 4.5, y: 4.5),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'wait_before_emote',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente avant émotion',
+          durationMs: 500,
+        ),
+        CinematicTimelineStep(
+          id: 'step_emote',
+          kind: CinematicTimelineStepKind.actorEmote,
+          label: 'Lysa affiche Question',
+          actorId: 'actor_lysa',
+          durationMs: 800,
+          metadata: const {
+            cinematicTimelineDraftMetadataKindKey:
+                cinematicTimelineBasicBlockMetadataKindValue,
+            cinematicTimelineDraftMetadataSourceKey:
+                cinematicTimelineDraftMetadataSourceValue,
+            cinematicTimelineAuthoringBlockMetadataKey:
+                cinematicTimelineActorEmoteBlockMetadataValue,
+            cinematicTimelineActorEmoteEmoteIdMetadataKey: 'question',
+          },
+        ),
+        CinematicTimelineStep(
+          id: 'wait_after_emote',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente après émotion',
+          durationMs: 1000,
+        ),
+      ],
+    ),
+  );
+}
+
 CinematicAsset _fadePlaybackCinematic(CinematicTimelineFadeMode fadeMode) {
   final fadeModeName = fadeMode.name;
   return CinematicAsset(
@@ -19671,6 +20050,43 @@ Offset _actorDisplayAnchor(WidgetTester tester, String actorId) {
         find.byKey(ValueKey('cinematic-builder-actor-display-actor-$actorId')),
       )
       .bottomCenter;
+}
+
+CinematicPreviewPlaybackFrame _emotePreviewFrame({
+  required double actorX,
+  required double actorY,
+}) {
+  return CinematicPreviewPlaybackFrame(
+    timeMs: 1000,
+    clampedTimeMs: 1000,
+    activeStepIds: const ['step_emote'],
+    actorPoses: [
+      CinematicActorPlaybackPose(
+        actorId: 'actor_lysa',
+        actorLabel: 'Lysa',
+        x: actorX,
+        y: actorY,
+        facing: CinematicActorPreviewDirection.south,
+        source: CinematicActorPlaybackPoseSource.initialPlacement,
+        isInterpolated: false,
+      ),
+    ],
+    activeEmotes: [
+      CinematicActorEmotePlaybackState(
+        activeStepId: 'step_emote',
+        stepIndex: 1,
+        actorId: 'actor_lysa',
+        actorLabel: 'Lysa',
+        emoteId: 'question',
+        emoteLabel: 'Question',
+        durationMs: 800,
+        elapsedMs: 500,
+        progress: 0.625,
+        isSupported: true,
+      ),
+    ],
+    visibleDiagnostics: const [],
+  );
 }
 
 const _idleSouthSource = TilesetSourceRect(x: 0, y: 1, width: 2, height: 2);
