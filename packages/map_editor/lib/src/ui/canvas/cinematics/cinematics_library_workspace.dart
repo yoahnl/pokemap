@@ -52,6 +52,7 @@ typedef UpdateTimelineBasicBlockCallback = Future<bool> Function({
   int? durationMs,
   CinematicTimelineFadeMode? fadeMode,
   CinematicTimelineCameraMode? cameraMode,
+  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 });
 
 typedef AddRequiredActorCallback = Future<String?> Function({

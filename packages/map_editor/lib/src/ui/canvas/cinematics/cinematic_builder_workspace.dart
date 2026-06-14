@@ -48,6 +48,7 @@ typedef UpdateCinematicBasicBlockStepCallback = Future<bool> Function({
   int? durationMs,
   CinematicTimelineFadeMode? fadeMode,
   CinematicTimelineCameraMode? cameraMode,
+  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 });
 
 typedef AddCinematicRequiredActorCallback = Future<String?> Function(
@@ -193,6 +194,7 @@ typedef _UpdateBasicBlockCallback = Future<void> Function(
   int? durationMs,
   CinematicTimelineFadeMode? fadeMode,
   CinematicTimelineCameraMode? cameraMode,
+  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 });
 
 typedef _UpdateActorFacingCallback = Future<void> Function(
@@ -961,6 +963,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     int? durationMs,
     CinematicTimelineFadeMode? fadeMode,
     CinematicTimelineCameraMode? cameraMode,
+    CinematicTimelineCameraFocusBinding? cameraFocusBinding,
   }) async {
     if (!isCinematicTimelineBasicBlockStep(step)) {
       return;
@@ -971,6 +974,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       durationMs: durationMs,
       fadeMode: fadeMode,
       cameraMode: cameraMode,
+      cameraFocusBinding: cameraFocusBinding,
     );
     if (!mounted || !updated || durationMs == null) {
       return;
@@ -10541,11 +10545,18 @@ class _SelectedStepInspector extends StatelessWidget {
             value: step.dialogueText ?? 'Aucun texte cinematic',
           ),
           _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
-          _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+          if (isAuthoringOwned)
+            _KeyValue(
+              label: 'Configuration',
+              value: _authoringStepConfigurationLabel(asset, step),
+            )
+          else
+            _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
         ],
         if (basicBlockKind != null) ...[
           const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
           _BasicBlockControls(
+            asset: asset,
             step: step,
             blockKind: basicBlockKind,
             onUpdateBasicBlock: onUpdateBasicBlock,
@@ -10669,11 +10680,13 @@ class _StepDiagnosticsSummary extends StatelessWidget {
 
 class _BasicBlockControls extends StatelessWidget {
   const _BasicBlockControls({
+    required this.asset,
     required this.step,
     required this.blockKind,
     required this.onUpdateBasicBlock,
   });
 
+  final CinematicAsset asset;
   final CinematicTimelineStep step;
   final CinematicTimelineBasicBlockKind blockKind;
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
@@ -10701,6 +10714,7 @@ class _BasicBlockControls extends StatelessWidget {
         if (blockKind == CinematicTimelineBasicBlockKind.camera) ...[
           const SizedBox(height: 8),
           _CameraModeControls(
+            asset: asset,
             step: step,
             onUpdateBasicBlock: onUpdateBasicBlock,
           ),
@@ -10988,46 +11002,291 @@ class _FadeModeControls extends StatelessWidget {
 
 class _CameraModeControls extends StatelessWidget {
   const _CameraModeControls({
+    required this.asset,
     required this.step,
     required this.onUpdateBasicBlock,
   });
 
+  final CinematicAsset asset;
   final CinematicTimelineStep step;
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
 
   @override
   Widget build(BuildContext context) {
-    final currentMode = step.metadata[cinematicTimelineCameraModeMetadataKey];
-    const authorableModes = [
+    final currentMode = cinematicTimelineCameraModeOf(step);
+    final focusBinding = _cameraFocusBindingOrDefault(step);
+    final targetKind = focusBinding.target.kind;
+    final actors = asset.requiredActors;
+    final stagePoints =
+        asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[];
+    const modes = [
       CinematicTimelineCameraMode.reset,
       CinematicTimelineCameraMode.hold,
+      CinematicTimelineCameraMode.focus,
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _KeyValue(label: 'Mode caméra', value: 'Basique uniquement'),
+        _KeyValue(
+          label: 'Mode caméra',
+          value: currentMode == null
+              ? 'Mode à choisir'
+              : _cameraModeLabel(currentMode),
+        ),
         Wrap(
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final mode in authorableModes)
+            for (final mode in modes)
               _InlineControlAction(
                 label: _cameraModeLabel(mode),
                 button: PokeMapButton(
                   key: ValueKey('cinematic-builder-camera-mode-${mode.name}'),
                   onPressed: () {
-                    onUpdateBasicBlock(step, cameraMode: mode);
+                    onUpdateBasicBlock(
+                      step,
+                      cameraMode: mode,
+                      cameraFocusBinding:
+                          mode == CinematicTimelineCameraMode.focus
+                              ? focusBinding
+                              : null,
+                    );
                   },
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
-                  isSelected: currentMode == mode.name,
-                  leading: const Icon(CupertinoIcons.video_camera),
+                  isSelected: currentMode == mode,
+                  leading: Icon(_cameraModeIcon(mode)),
                   child: const SizedBox.shrink(),
                 ),
               ),
           ],
         ),
+        const SizedBox(height: 8),
+        if (currentMode == CinematicTimelineCameraMode.reset)
+          const _MutedText(
+              'Réinitialise le cadrage caméra. Aucune cible requise.')
+        else if (currentMode == CinematicTimelineCameraMode.hold)
+          const _MutedText('Conserve le cadrage courant. Aucune cible requise.')
+        else if (currentMode == CinematicTimelineCameraMode.focus) ...[
+          const _SectionTitle(title: 'Cible', subtitle: 'Choix no-code'),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _InlineControlAction(
+                label: _cameraTargetKindLabel(
+                  CinematicCameraTargetKind.sceneCenter,
+                ),
+                button: PokeMapButton(
+                  key: const ValueKey(
+                    'cinematic-builder-camera-target-sceneCenter',
+                  ),
+                  onPressed: () => _updateFocusTarget(
+                    CinematicCameraTargetBinding.sceneCenter(),
+                    focusBinding.zoomPreset,
+                  ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected:
+                      targetKind == CinematicCameraTargetKind.sceneCenter,
+                  leading: const Icon(CupertinoIcons.scope),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+              _InlineControlAction(
+                label: _cameraTargetKindLabel(CinematicCameraTargetKind.actor),
+                button: PokeMapButton(
+                  key: const ValueKey(
+                    'cinematic-builder-camera-target-actor',
+                  ),
+                  onPressed: actors.isEmpty
+                      ? null
+                      : () => _updateFocusTarget(
+                            CinematicCameraTargetBinding.actor(
+                              actorId: _selectedCameraTargetActorId(
+                                    focusBinding,
+                                    asset,
+                                  ) ??
+                                  actors.first.actorId,
+                            ),
+                            focusBinding.zoomPreset,
+                          ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: targetKind == CinematicCameraTargetKind.actor,
+                  leading: const Icon(CupertinoIcons.person_crop_circle),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+              _InlineControlAction(
+                label: _cameraTargetKindLabel(
+                  CinematicCameraTargetKind.stagePoint,
+                ),
+                button: PokeMapButton(
+                  key: const ValueKey(
+                    'cinematic-builder-camera-target-stagePoint',
+                  ),
+                  onPressed: stagePoints.isEmpty
+                      ? null
+                      : () => _updateFocusTarget(
+                            CinematicCameraTargetBinding.stagePoint(
+                              stagePointId: _selectedCameraTargetStagePointId(
+                                    focusBinding,
+                                    stagePoints,
+                                  ) ??
+                                  stagePoints.first.id,
+                            ),
+                            focusBinding.zoomPreset,
+                          ),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected:
+                      targetKind == CinematicCameraTargetKind.stagePoint,
+                  leading: const Icon(CupertinoIcons.location),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (targetKind == CinematicCameraTargetKind.sceneCenter)
+            const _MutedText(
+              'Cadrage sur le centre de la carte / scène préparée.',
+            )
+          else if (targetKind == CinematicCameraTargetKind.actor) ...[
+            const _KeyValue(label: 'Acteur à cadrer', value: 'Liste actorisée'),
+            const SizedBox(height: 6),
+            if (actors.isEmpty)
+              const _MutedText('Aucun acteur disponible.')
+            else
+              _InspectorDropdownField<String>(
+                key: const ValueKey(
+                  'cinematic-builder-camera-target-actor-dropdown',
+                ),
+                value: _selectedCameraTargetActorId(focusBinding, asset),
+                hint: 'Choisir un acteur',
+                items: [
+                  for (final actor in actors)
+                    MacosPopupMenuItem<String>(
+                      key: ValueKey(
+                        'cinematic-builder-camera-target-actor-${actor.actorId}',
+                      ),
+                      value: actor.actorId,
+                      child: Text(_actorDisplayLabel(actor)),
+                    ),
+                ],
+                onChanged: (actorId) {
+                  if (actorId == null) {
+                    return;
+                  }
+                  _updateFocusTarget(
+                    CinematicCameraTargetBinding.actor(actorId: actorId),
+                    focusBinding.zoomPreset,
+                  );
+                },
+              ),
+          ] else ...[
+            const _KeyValue(label: 'Repère à cadrer', value: 'Repère de scène'),
+            const SizedBox(height: 6),
+            if (stagePoints.isEmpty)
+              const _MutedText(
+                'Aucun repère disponible. Ajoutez d’abord un repère dans la preview.',
+              )
+            else
+              _InspectorDropdownField<String>(
+                key: const ValueKey(
+                  'cinematic-builder-camera-target-stage-point-dropdown',
+                ),
+                value: _selectedCameraTargetStagePointId(
+                  focusBinding,
+                  stagePoints,
+                ),
+                hint: 'Choisir un repère',
+                items: [
+                  for (final point in stagePoints)
+                    MacosPopupMenuItem<String>(
+                      key: ValueKey(
+                        'cinematic-builder-camera-target-stage-point-${point.id}',
+                      ),
+                      value: point.id,
+                      child: Text(point.label),
+                    ),
+                ],
+                onChanged: (stagePointId) {
+                  if (stagePointId == null) {
+                    return;
+                  }
+                  _updateFocusTarget(
+                    CinematicCameraTargetBinding.stagePoint(
+                      stagePointId: stagePointId,
+                    ),
+                    focusBinding.zoomPreset,
+                  );
+                },
+              ),
+          ],
+          if (stagePoints.isEmpty &&
+              targetKind != CinematicCameraTargetKind.stagePoint) ...[
+            const SizedBox(height: 6),
+            const _MutedText(
+              'Aucun repère disponible. Ajoutez d’abord un repère dans la preview.',
+            ),
+          ],
+          const SizedBox(height: 8),
+          const _SectionTitle(title: 'Plan', subtitle: 'Preset de cadrage'),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final zoomPreset in CinematicCameraZoomPreset.values)
+                _InlineControlAction(
+                  label: _cameraZoomPresetLabel(zoomPreset),
+                  button: PokeMapButton(
+                    key: ValueKey(
+                      'cinematic-builder-camera-zoom-${zoomPreset.name}',
+                    ),
+                    onPressed: () {
+                      onUpdateBasicBlock(
+                        step,
+                        cameraMode: CinematicTimelineCameraMode.focus,
+                        cameraFocusBinding: CinematicTimelineCameraFocusBinding(
+                          target: focusBinding.target,
+                          zoomPreset: zoomPreset,
+                        ),
+                      );
+                    },
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    isSelected: focusBinding.zoomPreset == zoomPreset,
+                    leading: Icon(_cameraZoomPresetIcon(zoomPreset)),
+                    child: const SizedBox.shrink(),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const _MutedText('Cadrage configuré, preview réelle à venir.'),
+        ] else
+          const _MutedText(
+            'Mode caméra non reconnu. Choisissez un mode no-code pour corriger ce bloc.',
+          ),
       ],
+    );
+  }
+
+  void _updateFocusTarget(
+    CinematicCameraTargetBinding target,
+    CinematicCameraZoomPreset zoomPreset,
+  ) {
+    onUpdateBasicBlock(
+      step,
+      cameraMode: CinematicTimelineCameraMode.focus,
+      cameraFocusBinding: CinematicTimelineCameraFocusBinding(
+        target: target,
+        zoomPreset: zoomPreset,
+      ),
     );
   }
 }
@@ -12562,6 +12821,54 @@ String _metadataLabel(Map<String, String> metadata) {
   return entries.map((entry) => '${entry.key} = ${entry.value}').join(', ');
 }
 
+String _authoringStepConfigurationLabel(
+  CinematicAsset asset,
+  CinematicTimelineStep step,
+) {
+  if (isCinematicTimelineActorEmoteStep(step)) {
+    return _actorEmoteSummary(asset, step);
+  }
+  final blockKind = cinematicTimelineBasicBlockKindOf(step);
+  if (blockKind == CinematicTimelineBasicBlockKind.camera) {
+    final mode = cinematicTimelineCameraModeOf(step);
+    if (mode == null) {
+      return 'Caméra : mode à choisir';
+    }
+    if (mode != CinematicTimelineCameraMode.focus) {
+      return 'Caméra : ${_cameraModeLabel(mode)}';
+    }
+    final focusBinding = cinematicTimelineCameraFocusBindingOf(step);
+    if (focusBinding == null) {
+      return 'Caméra : cadrage cible à compléter';
+    }
+    return 'Caméra : ${_cameraModeLabel(mode)} · '
+        '${_cameraTargetBindingLabel(asset, focusBinding.target)} · '
+        '${_cameraZoomPresetLabel(focusBinding.zoomPreset)}';
+  }
+  if (blockKind != null) {
+    return _basicBlockLabel(blockKind);
+  }
+  if (isCinematicTimelineActorMoveStep(step)) {
+    return _actorMoveSummary(asset, step);
+  }
+  return 'Configuration authoring';
+}
+
+String _cameraTargetBindingLabel(
+  CinematicAsset asset,
+  CinematicCameraTargetBinding target,
+) {
+  return switch (target.kind) {
+    CinematicCameraTargetKind.sceneCenter => 'Centre de la scène',
+    CinematicCameraTargetKind.actor => target.actorId == null
+        ? 'Acteur à choisir'
+        : _actorDisplayLabelForId(asset, target.actorId!),
+    CinematicCameraTargetKind.stagePoint => target.stagePointId == null
+        ? 'Repère à choisir'
+        : _stagePointLabelForId(asset, target.stagePointId!),
+  };
+}
+
 String _basicBlockLabel(CinematicTimelineBasicBlockKind blockKind) {
   return switch (blockKind) {
     CinematicTimelineBasicBlockKind.wait => 'Attente',
@@ -12579,10 +12886,84 @@ String _fadeModeLabel(CinematicTimelineFadeMode mode) {
 
 String _cameraModeLabel(CinematicTimelineCameraMode mode) {
   return switch (mode) {
-    CinematicTimelineCameraMode.reset => 'Reset',
-    CinematicTimelineCameraMode.hold => 'Hold',
+    CinematicTimelineCameraMode.reset => 'Réinitialiser le cadrage',
+    CinematicTimelineCameraMode.hold => 'Maintenir le cadrage',
     CinematicTimelineCameraMode.focus => 'Cadrer une cible',
   };
+}
+
+IconData _cameraModeIcon(CinematicTimelineCameraMode mode) {
+  return switch (mode) {
+    CinematicTimelineCameraMode.reset => CupertinoIcons.arrow_counterclockwise,
+    CinematicTimelineCameraMode.hold => CupertinoIcons.pause_rectangle,
+    CinematicTimelineCameraMode.focus => CupertinoIcons.scope,
+  };
+}
+
+String _cameraTargetKindLabel(CinematicCameraTargetKind kind) {
+  return switch (kind) {
+    CinematicCameraTargetKind.sceneCenter => 'Centre de la scène',
+    CinematicCameraTargetKind.actor => 'Acteur',
+    CinematicCameraTargetKind.stagePoint => 'Repère',
+  };
+}
+
+String _cameraZoomPresetLabel(CinematicCameraZoomPreset preset) {
+  return switch (preset) {
+    CinematicCameraZoomPreset.wide => 'Plan large',
+    CinematicCameraZoomPreset.medium => 'Plan moyen',
+    CinematicCameraZoomPreset.close => 'Gros plan',
+  };
+}
+
+IconData _cameraZoomPresetIcon(CinematicCameraZoomPreset preset) {
+  return switch (preset) {
+    CinematicCameraZoomPreset.wide => CupertinoIcons.rectangle_expand_vertical,
+    CinematicCameraZoomPreset.medium => CupertinoIcons.rectangle,
+    CinematicCameraZoomPreset.close => CupertinoIcons.zoom_in,
+  };
+}
+
+CinematicTimelineCameraFocusBinding _cameraFocusBindingOrDefault(
+  CinematicTimelineStep step,
+) {
+  return cinematicTimelineCameraFocusBindingOf(step) ??
+      CinematicTimelineCameraFocusBinding(
+        target: CinematicCameraTargetBinding.sceneCenter(),
+        zoomPreset: CinematicCameraZoomPreset.medium,
+      );
+}
+
+String? _selectedCameraTargetActorId(
+  CinematicTimelineCameraFocusBinding binding,
+  CinematicAsset asset,
+) {
+  if (binding.target.kind != CinematicCameraTargetKind.actor) {
+    return null;
+  }
+  final actorId = binding.target.actorId;
+  if (actorId == null) {
+    return null;
+  }
+  return asset.requiredActors.any((actor) => actor.actorId == actorId)
+      ? actorId
+      : null;
+}
+
+String? _selectedCameraTargetStagePointId(
+  CinematicTimelineCameraFocusBinding binding,
+  List<CinematicStagePoint> stagePoints,
+) {
+  if (binding.target.kind != CinematicCameraTargetKind.stagePoint) {
+    return null;
+  }
+  final stagePointId = binding.target.stagePointId;
+  if (stagePointId == null) {
+    return null;
+  }
+  return stagePoints.any((point) => point.id == stagePointId)
+      ? stagePointId
+      : null;
 }
 
 String _actorDisplayLabel(CinematicActorRef actor) {
@@ -12605,6 +12986,17 @@ String _movementTargetLabelForId(CinematicAsset asset, String targetId) {
     }
   }
   return targetId;
+}
+
+String _stagePointLabelForId(CinematicAsset asset, String stagePointId) {
+  final stagePoints =
+      asset.stageContext?.stagePoints ?? const <CinematicStagePoint>[];
+  for (final point in stagePoints) {
+    if (point.id == stagePointId) {
+      return point.label;
+    }
+  }
+  return 'Repère à corriger';
 }
 
 String _emoteDisplayLabelForId(String? emoteId) {

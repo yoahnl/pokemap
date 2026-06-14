@@ -1305,6 +1305,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     int? durationMs,
     CinematicTimelineFadeMode? fadeMode,
     CinematicTimelineCameraMode? cameraMode,
+    CinematicTimelineCameraFocusBinding? cameraFocusBinding,
   }) async {
     final project = widget.project;
     if (project == null) {
@@ -1318,6 +1319,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
         durationMs: durationMs,
         fadeMode: fadeMode,
         cameraMode: cameraMode,
+        cameraFocusBinding: cameraFocusBinding,
       );
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,

@@ -676,6 +676,483 @@ void main() {
     },
   );
 
+  testWidgets(
+    'V1-132 shows focus camera mode in camera inspector',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mode caméra'), findsWidgets);
+      expect(find.text('Réinitialiser le cadrage'), findsWidgets);
+      expect(find.text('Maintenir le cadrage'), findsWidgets);
+      expect(find.text('Cadrer une cible'), findsWidgets);
+      expect(find.text('Cadrage configuré, preview réelle à venir.'),
+          findsOneWidget);
+      expect(find.textContaining('camera.targetKind'), findsNothing);
+      expect(find.textContaining('camera.zoomPreset'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'V1-132 selecting focus defaults to scene center and medium zoom',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic(cameraMode: 'reset');
+      final project = _project(cinematics: [asset], includeBridge: false);
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-mode-focus'),
+        ),
+      );
+
+      final updatedStep = _cameraTargetZoomStep(latestProject);
+      expect(
+        cinematicTimelineCameraModeOf(updatedStep),
+        CinematicTimelineCameraMode.focus,
+      );
+      expect(
+        cinematicTimelineCameraFocusBindingOf(updatedStep),
+        CinematicTimelineCameraFocusBinding(
+          target: CinematicCameraTargetBinding.sceneCenter(),
+          zoomPreset: CinematicCameraZoomPreset.medium,
+        ),
+      );
+      expect(find.text('Centre de la scène'), findsWidgets);
+      expect(find.text('Plan moyen'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'V1-132 selecting scene center stores no actor or stage point id',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic(
+        targetKind: 'actor',
+        targetActorId: 'actor_lysa',
+        zoomPreset: 'close',
+      );
+      final project = _project(cinematics: [asset], includeBridge: false);
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-target-sceneCenter'),
+        ),
+      );
+
+      final metadata = _cameraTargetZoomStep(latestProject).metadata;
+      expect(metadata[cinematicTimelineCameraTargetKindMetadataKey],
+          'sceneCenter');
+      expect(
+          metadata.containsKey(cinematicTimelineCameraTargetActorIdMetadataKey),
+          isFalse);
+      expect(
+          metadata.containsKey(
+              cinematicTimelineCameraTargetStagePointIdMetadataKey),
+          isFalse);
+      expect(metadata[cinematicTimelineCameraZoomPresetMetadataKey], 'close');
+    },
+  );
+
+  testWidgets(
+    'V1-132 selecting actor target uses actor picker and preserves zoom',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic(zoomPreset: 'wide');
+      final project = _project(cinematics: [asset], includeBridge: false);
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(const ValueKey('cinematic-builder-camera-target-actor')),
+      );
+      final actorDropdown = find.byKey(
+        const ValueKey('cinematic-builder-camera-target-actor-dropdown'),
+      );
+      expect(actorDropdown, findsOneWidget);
+      await _tapVisible(tester, actorDropdown);
+      await tester.tap(find.text('Lysa').last);
+      await tester.pumpAndSettle();
+
+      final updatedStep = _cameraTargetZoomStep(latestProject);
+      final binding = cinematicTimelineCameraFocusBindingOf(updatedStep);
+      expect(binding?.target.kind, CinematicCameraTargetKind.actor);
+      expect(binding?.target.actorId, 'actor_lysa');
+      expect(binding?.zoomPreset, CinematicCameraZoomPreset.wide);
+      expect(
+          updatedStep.metadata.containsKey(
+              cinematicTimelineCameraTargetStagePointIdMetadataKey),
+          isFalse);
+      expect(find.text('Acteur à cadrer'), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'V1-132 selecting stage point target uses stage point picker and preserves zoom',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic(zoomPreset: 'close');
+      final project = _project(cinematics: [asset], includeBridge: false);
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+      await _tapVisible(
+        tester,
+        find.byKey(
+            const ValueKey('cinematic-builder-camera-target-stagePoint')),
+      );
+      final stagePointDropdown = find.byKey(
+        const ValueKey('cinematic-builder-camera-target-stage-point-dropdown'),
+      );
+      expect(stagePointDropdown, findsOneWidget);
+      await _tapVisible(tester, stagePointDropdown);
+      await tester.tap(find.text('Balcon').last);
+      await tester.pumpAndSettle();
+
+      final updatedStep = _cameraTargetZoomStep(latestProject);
+      final binding = cinematicTimelineCameraFocusBindingOf(updatedStep);
+      expect(binding?.target.kind, CinematicCameraTargetKind.stagePoint);
+      expect(binding?.target.stagePointId, 'stage_point_balcony');
+      expect(binding?.zoomPreset, CinematicCameraZoomPreset.close);
+      expect(
+          updatedStep.metadata
+              .containsKey(cinematicTimelineCameraTargetActorIdMetadataKey),
+          isFalse);
+      expect(find.text('Repère à cadrer'), findsWidgets);
+    },
+  );
+
+  testWidgets('V1-132 changing zoom preserves selected target', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _cameraTargetZoomAuthoringCinematic(
+      targetKind: 'stagePoint',
+      targetStagePointId: 'stage_point_balcony',
+      zoomPreset: 'wide',
+    );
+    final project = _project(cinematics: [asset], includeBridge: false);
+    var latestProject = project;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      onProjectChanged: (project) => latestProject = project,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('cinematic-builder-camera-zoom-close')),
+    );
+
+    final binding = cinematicTimelineCameraFocusBindingOf(
+      _cameraTargetZoomStep(latestProject),
+    );
+    expect(binding?.target.kind, CinematicCameraTargetKind.stagePoint);
+    expect(binding?.target.stagePointId, 'stage_point_balcony');
+    expect(binding?.zoomPreset, CinematicCameraZoomPreset.close);
+  });
+
+  testWidgets('V1-132 reset clears focus target and zoom metadata', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _cameraTargetZoomAuthoringCinematic(
+      targetKind: 'actor',
+      targetActorId: 'actor_lysa',
+      zoomPreset: 'close',
+    );
+    final project = _project(cinematics: [asset], includeBridge: false);
+    var latestProject = project;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      onProjectChanged: (project) => latestProject = project,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('cinematic-builder-camera-mode-reset')),
+    );
+
+    final updatedStep = _cameraTargetZoomStep(latestProject);
+    expect(cinematicTimelineCameraModeOf(updatedStep),
+        CinematicTimelineCameraMode.reset);
+    expect(cinematicTimelineCameraFocusBindingOf(updatedStep), isNull);
+    expect(
+        updatedStep.metadata
+            .containsKey(cinematicTimelineCameraTargetKindMetadataKey),
+        isFalse);
+    expect(
+        updatedStep.metadata
+            .containsKey(cinematicTimelineCameraZoomPresetMetadataKey),
+        isFalse);
+    expect(
+        find.textContaining('Réinitialise le cadrage caméra.'), findsWidgets);
+  });
+
+  testWidgets('V1-132 hold clears focus target and zoom metadata', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _cameraTargetZoomAuthoringCinematic(
+      targetKind: 'stagePoint',
+      targetStagePointId: 'stage_point_gate',
+      zoomPreset: 'wide',
+    );
+    final project = _project(cinematics: [asset], includeBridge: false);
+    var latestProject = project;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      onProjectChanged: (project) => latestProject = project,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
+    );
+
+    final updatedStep = _cameraTargetZoomStep(latestProject);
+    expect(cinematicTimelineCameraModeOf(updatedStep),
+        CinematicTimelineCameraMode.hold);
+    expect(cinematicTimelineCameraFocusBindingOf(updatedStep), isNull);
+    expect(
+        updatedStep.metadata
+            .containsKey(cinematicTimelineCameraTargetKindMetadataKey),
+        isFalse);
+    expect(
+        updatedStep.metadata
+            .containsKey(cinematicTimelineCameraZoomPresetMetadataKey),
+        isFalse);
+    expect(find.textContaining('Conserve le cadrage courant.'), findsWidgets);
+  });
+
+  testWidgets(
+    'V1-132 focus with no stage points shows no-code empty repere message',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic(withStagePoints: false);
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+            'Aucun repère disponible. Ajoutez d’abord un repère dans la preview.'),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'V1-132 keeps existing camera preview symbolic and unsupported for focus',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraTargetZoomAuthoringCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(find.text('Caméra active'), findsWidgets);
+      expect(find.text('Caméra non prévisualisée dans cette version.'),
+          findsOneWidget);
+      expect(find.textContaining('camera.targetKind'), findsNothing);
+      expect(find.textContaining('camera.zoomPreset'), findsNothing);
+      expect(find.text('CameraComponent'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'captures V1-132 cinematic camera target zoom editor ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_132_CAPTURE_CINEMATIC_CAMERA_TARGET_ZOOM_EDITOR_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _cameraTargetZoomAuthoringCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_gate',
+        zoomPreset: 'medium',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-medium')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cadrer une cible'), findsWidgets);
+      expect(find.text('Centre de la scène'), findsWidgets);
+      expect(find.text('Acteur'), findsWidgets);
+      expect(find.text('Repère'), findsWidgets);
+      expect(find.text('Plan large'), findsWidgets);
+      expect(find.text('Plan moyen'), findsWidgets);
+      expect(find.text('Gros plan'), findsWidgets);
+      expect(find.text('Cadrage configuré, preview réelle à venir.'),
+          findsOneWidget);
+      expect(find.textContaining('camera.targetKind'), findsNothing);
+      expect(find.textContaining('CameraComponent'), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_132_cinematic_camera_target_zoom_editor_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
   testWidgets('edits cinematic stage map and backdrop from builder', (
     tester,
   ) async {
@@ -17250,6 +17727,7 @@ Future<void> _pumpBuilder(
                 int? durationMs,
                 CinematicTimelineFadeMode? fadeMode,
                 CinematicTimelineCameraMode? cameraMode,
+                CinematicTimelineCameraFocusBinding? cameraFocusBinding,
               }) async =>
                   false,
               onAddRequiredActor:
@@ -17545,6 +18023,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     int? durationMs,
     CinematicTimelineFadeMode? fadeMode,
     CinematicTimelineCameraMode? cameraMode,
+    CinematicTimelineCameraFocusBinding? cameraFocusBinding,
   }) async {
     final result = updateCinematicTimelineBasicBlockStep(
       _project,
@@ -17553,6 +18032,7 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
       durationMs: durationMs,
       fadeMode: fadeMode,
       cameraMode: cameraMode,
+      cameraFocusBinding: cameraFocusBinding,
     );
     setState(() => _project = result.updatedProject);
     widget.onProjectChanged?.call(_project);
@@ -18794,6 +19274,96 @@ CinematicAsset _cameraPreviewPlaybackCinematic({String? cameraMode}) {
       ],
     ),
   );
+}
+
+CinematicAsset _cameraTargetZoomAuthoringCinematic({
+  String cameraMode = 'focus',
+  String targetKind = 'sceneCenter',
+  String? targetActorId,
+  String? targetStagePointId,
+  String zoomPreset = 'medium',
+  bool withStagePoints = true,
+}) {
+  final cameraMetadata = <String, String>{
+    cinematicTimelineDraftMetadataKindKey:
+        cinematicTimelineBasicBlockMetadataKindValue,
+    cinematicTimelineDraftMetadataSourceKey:
+        cinematicTimelineDraftMetadataSourceValue,
+    cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+    cinematicTimelineCameraModeMetadataKey: cameraMode,
+    if (cameraMode == 'focus') ...{
+      cinematicTimelineCameraTargetKindMetadataKey: targetKind,
+      cinematicTimelineCameraZoomPresetMetadataKey: zoomPreset,
+      if (targetActorId != null)
+        cinematicTimelineCameraTargetActorIdMetadataKey: targetActorId,
+      if (targetStagePointId != null)
+        cinematicTimelineCameraTargetStagePointIdMetadataKey:
+            targetStagePointId,
+    },
+  };
+  return CinematicAsset(
+    id: 'cinematic_camera_target_zoom_authoring',
+    title: 'Camera target zoom authoring',
+    description: 'Camera authoring UI fixture.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_professor',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      stagePoints: withStagePoints
+          ? [
+              CinematicStagePoint(
+                id: 'stage_point_gate',
+                label: 'Porte',
+                x: 2.5,
+                y: 3.5,
+              ),
+              CinematicStagePoint(
+                id: 'stage_point_balcony',
+                label: 'Balcon',
+                x: 8.5,
+                y: 5.5,
+              ),
+            ]
+          : const [],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'camera_focus',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Cadrage caméra',
+          durationMs: 800,
+          metadata: cameraMetadata,
+        ),
+        CinematicTimelineStep(
+          id: 'after_camera_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Pause après cadrage',
+          durationMs: 400,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicTimelineStep _cameraTargetZoomStep(ProjectManifest project) {
+  return _asset(project, 'cinematic_camera_target_zoom_authoring')
+      .timeline
+      .steps
+      .singleWhere((step) => step.id == 'camera_focus');
 }
 
 CinematicAsset _playbackDirectActorMoveCinematic() {
@@ -20457,6 +21027,13 @@ PokeMapButton _transportButton(WidgetTester tester, String action) {
   return tester.widget<PokeMapButton>(
     find.byKey(ValueKey('cinematic-builder-transport-$action-button')),
   );
+}
+
+Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
 }
 
 ScrollController _timelineHorizontalScrollController(WidgetTester tester) {

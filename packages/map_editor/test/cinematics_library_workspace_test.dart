@@ -1195,6 +1195,7 @@ class _HarnessState extends State<_Harness> {
                 int? durationMs,
                 CinematicTimelineFadeMode? fadeMode,
                 CinematicTimelineCameraMode? cameraMode,
+                CinematicTimelineCameraFocusBinding? cameraFocusBinding,
               }) async {
                 final result = updateCinematicTimelineBasicBlockStep(
                   _project,
@@ -1203,6 +1204,7 @@ class _HarnessState extends State<_Harness> {
                   durationMs: durationMs,
                   fadeMode: fadeMode,
                   cameraMode: cameraMode,
+                  cameraFocusBinding: cameraFocusBinding,
                 );
                 setState(() => _project = result.updatedProject);
                 return result.step.id == stepId;
