@@ -4,6 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
+import '../models/cinematic_emote_catalog.dart';
 import 'cinematic_actor_display_preview_model.dart';
 import 'cinematic_timeline_time_layout_read_model.dart';
 
@@ -27,6 +28,10 @@ enum CinematicPreviewPlaybackDiagnosticCode {
   cinematicPreviewPlaybackMapUnavailable,
   cinematicPreviewPlaybackCameraUnsupported,
   cinematicPreviewPlaybackFadeUnsupported,
+  cinematicPreviewPlaybackEmoteActorMissing,
+  cinematicPreviewPlaybackEmoteActorUnknown,
+  cinematicPreviewPlaybackEmoteMissing,
+  cinematicPreviewPlaybackEmoteUnknown,
 }
 
 enum CinematicActorPlaybackPoseSource {
@@ -427,19 +432,84 @@ final class CinematicCameraPlaybackPose {
 }
 
 @immutable
+final class CinematicActorEmotePlaybackState {
+  CinematicActorEmotePlaybackState({
+    required this.activeStepId,
+    required this.stepIndex,
+    required this.actorId,
+    this.actorLabel,
+    required this.emoteId,
+    this.emoteLabel,
+    required this.durationMs,
+    required this.elapsedMs,
+    required this.progress,
+    required this.isSupported,
+    List<CinematicPreviewPlaybackDiagnostic> diagnostics = const [],
+  }) : diagnostics =
+            List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics);
+
+  final String activeStepId;
+  final int stepIndex;
+  final String? actorId;
+  final String? actorLabel;
+  final String? emoteId;
+  final String? emoteLabel;
+  final int durationMs;
+  final int elapsedMs;
+  final double progress;
+  final bool isSupported;
+  final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
+
+  bool get supported => isSupported;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicActorEmotePlaybackState &&
+          other.activeStepId == activeStepId &&
+          other.stepIndex == stepIndex &&
+          other.actorId == actorId &&
+          other.actorLabel == actorLabel &&
+          other.emoteId == emoteId &&
+          other.emoteLabel == emoteLabel &&
+          other.durationMs == durationMs &&
+          other.elapsedMs == elapsedMs &&
+          other.progress == progress &&
+          other.isSupported == isSupported &&
+          _listEquals(other.diagnostics, diagnostics);
+
+  @override
+  int get hashCode => Object.hash(
+        activeStepId,
+        stepIndex,
+        actorId,
+        actorLabel,
+        emoteId,
+        emoteLabel,
+        durationMs,
+        elapsedMs,
+        progress,
+        isSupported,
+        Object.hashAll(diagnostics),
+      );
+}
+
+@immutable
 final class CinematicPreviewPlaybackFrame {
   CinematicPreviewPlaybackFrame({
     required this.timeMs,
     required this.clampedTimeMs,
     required List<String> activeStepIds,
     required List<CinematicActorPlaybackPose> actorPoses,
+    List<CinematicActorEmotePlaybackState> activeEmotes = const [],
     this.fadeState,
     CinematicCameraPlaybackPose? cameraPose,
     required List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics,
   })  : activeStepIds = List<String>.unmodifiable(activeStepIds),
         actorPoses = List<CinematicActorPlaybackPose>.unmodifiable(actorPoses),
-        cameraPose =
-            cameraPose ?? const CinematicCameraPlaybackPose.inactive(),
+        activeEmotes =
+            List<CinematicActorEmotePlaybackState>.unmodifiable(activeEmotes),
+        cameraPose = cameraPose ?? const CinematicCameraPlaybackPose.inactive(),
         visibleDiagnostics =
             List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(
           visibleDiagnostics,
@@ -449,6 +519,7 @@ final class CinematicPreviewPlaybackFrame {
   final int clampedTimeMs;
   final List<String> activeStepIds;
   final List<CinematicActorPlaybackPose> actorPoses;
+  final List<CinematicActorEmotePlaybackState> activeEmotes;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics;
@@ -471,6 +542,7 @@ final class CinematicPreviewPlaybackFrame {
           other.clampedTimeMs == clampedTimeMs &&
           _listEquals(other.activeStepIds, activeStepIds) &&
           _listEquals(other.actorPoses, actorPoses) &&
+          _listEquals(other.activeEmotes, activeEmotes) &&
           other.fadeState == fadeState &&
           other.cameraPose == cameraPose &&
           _listEquals(other.visibleDiagnostics, visibleDiagnostics);
@@ -481,6 +553,7 @@ final class CinematicPreviewPlaybackFrame {
         clampedTimeMs,
         Object.hashAll(activeStepIds),
         Object.hashAll(actorPoses),
+        Object.hashAll(activeEmotes),
         fadeState,
         cameraPose,
         Object.hashAll(visibleDiagnostics),
@@ -498,6 +571,7 @@ final class CinematicPreviewPlaybackPlan {
     required this.capabilities,
     required Map<String, _ActorMovePlaybackPlan> movePlans,
     required Map<String, CinematicActorPreviewDirection> actorFaceDirections,
+    required Map<String, _ActorEmotePlaybackPlan> actorEmotePlans,
     required Map<String, CinematicFadePlaybackMode> fadeModes,
     required Map<String, CinematicTimelineCameraMode> cameraModes,
   })  : timelineItems = List<CinematicPreviewPlaybackTimelineItem>.unmodifiable(
@@ -515,6 +589,9 @@ final class CinematicPreviewPlaybackPlan {
             Map<String, CinematicActorPreviewDirection>.unmodifiable(
           actorFaceDirections,
         ),
+        _actorEmotePlans = Map<String, _ActorEmotePlaybackPlan>.unmodifiable(
+          actorEmotePlans,
+        ),
         _fadeModes = Map<String, CinematicFadePlaybackMode>.unmodifiable(
           fadeModes,
         ),
@@ -530,6 +607,7 @@ final class CinematicPreviewPlaybackPlan {
   final CinematicPreviewPlaybackCapabilities capabilities;
   final Map<String, _ActorMovePlaybackPlan> _movePlans;
   final Map<String, CinematicActorPreviewDirection> _actorFaceDirections;
+  final Map<String, _ActorEmotePlaybackPlan> _actorEmotePlans;
   final Map<String, CinematicFadePlaybackMode> _fadeModes;
   final Map<String, CinematicTimelineCameraMode> _cameraModes;
 
@@ -594,6 +672,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   };
   final movePlans = <String, _ActorMovePlaybackPlan>{};
   final faceDirections = <String, CinematicActorPreviewDirection>{};
+  final emotePlans = <String, _ActorEmotePlaybackPlan>{};
   final fadeModes = <String, CinematicFadePlaybackMode>{};
   final cameraModes = <String, CinematicTimelineCameraMode>{};
   final timelineItems = <CinematicPreviewPlaybackTimelineItem>[];
@@ -602,7 +681,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   for (final block in timeLayout.blocks) {
     final step = cinematic.timeline.steps[block.stepIndex];
     final itemDiagnostics = <CinematicPreviewPlaybackDiagnostic>[];
-    final supported = _stepSupportedForPlayback(step);
+    var supported = _stepSupportedForPlayback(step);
     if (!supported) {
       hasUnsupportedSteps = true;
     }
@@ -664,6 +743,18 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       case CinematicTimelineStepKind.wait:
         break;
       case CinematicTimelineStepKind.actorEmote:
+        final plan = _buildActorEmotePlan(
+          step: step,
+          actorTracks: actorTracks,
+          actorTrackIds: actorTrackIds,
+          diagnostics: itemDiagnostics,
+        );
+        emotePlans[step.id] = plan;
+        if (!plan.isSupported) {
+          supported = false;
+          hasUnsupportedSteps = true;
+        }
+        break;
       case CinematicTimelineStepKind.dialogueLine:
       case CinematicTimelineStepKind.sound:
       case CinematicTimelineStepKind.music:
@@ -721,6 +812,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
     ),
     movePlans: movePlans,
     actorFaceDirections: faceDirections,
+    actorEmotePlans: emotePlans,
     fadeModes: fadeModes,
     cameraModes: cameraModes,
   );
@@ -741,6 +833,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
 
   CinematicFadePlaybackState? fadeState;
   var cameraPose = const CinematicCameraPlaybackPose.inactive();
+  final activeEmotes = <CinematicActorEmotePlaybackState>[];
 
   for (final item in plan.timelineItems) {
     if (clampedTimeMs < item.startMs) {
@@ -798,6 +891,16 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
         }
       case CinematicTimelineStepKind.wait:
       case CinematicTimelineStepKind.actorEmote:
+        if (item.containsTime(clampedTimeMs)) {
+          activeEmotes.add(
+            _emotePlaybackStateFor(
+              item: item,
+              plan: plan._actorEmotePlans[item.stepId],
+              clampedTimeMs: clampedTimeMs,
+            ),
+          );
+        }
+        break;
       case CinematicTimelineStepKind.dialogueLine:
       case CinematicTimelineStepKind.sound:
       case CinematicTimelineStepKind.music:
@@ -813,6 +916,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
     clampedTimeMs: clampedTimeMs,
     activeStepIds: activeStepIds,
     actorPoses: posesByActorId.values.toList(),
+    activeEmotes: activeEmotes,
     fadeState: fadeState,
     cameraPose: cameraPose,
     visibleDiagnostics: plan.diagnostics,
@@ -1026,6 +1130,81 @@ _ActorMovePlaybackPlan _buildActorMovePlan({
   );
 }
 
+_ActorEmotePlaybackPlan _buildActorEmotePlan({
+  required CinematicTimelineStep step,
+  required List<CinematicPreviewActorTrack> actorTracks,
+  required Set<String> actorTrackIds,
+  required List<CinematicPreviewPlaybackDiagnostic> diagnostics,
+}) {
+  final actorId = cinematicTimelineActorEmoteActorIdOf(step);
+  String? actorLabel;
+  if (actorId == null) {
+    diagnostics.add(
+      CinematicPreviewPlaybackDiagnostic(
+        code: CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackEmoteActorMissing,
+        severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+        message: 'Impossible de prévisualiser cette émotion : acteur manquant.',
+        stepId: step.id,
+      ),
+    );
+  } else if (!actorTrackIds.contains(actorId)) {
+    diagnostics.add(
+      CinematicPreviewPlaybackDiagnostic(
+        code: CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackEmoteActorUnknown,
+        severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+        message:
+            'Impossible de prévisualiser cette émotion : acteur introuvable.',
+        stepId: step.id,
+        actorId: actorId,
+      ),
+    );
+  } else {
+    for (final track in actorTracks) {
+      if (track.actorId == actorId) {
+        actorLabel = track.actorLabel;
+        break;
+      }
+    }
+  }
+
+  final emoteId = cinematicTimelineActorEmoteEmoteIdOf(step);
+  final emoteEntry = cinematicEmoteCatalogEntryById(emoteId);
+  if (emoteId == null) {
+    diagnostics.add(
+      CinematicPreviewPlaybackDiagnostic(
+        code: CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackEmoteMissing,
+        severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+        message: 'Impossible de prévisualiser cette émotion : choix manquant.',
+        stepId: step.id,
+        actorId: actorId,
+      ),
+    );
+  } else if (emoteEntry == null) {
+    diagnostics.add(
+      CinematicPreviewPlaybackDiagnostic(
+        code: CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackEmoteUnknown,
+        severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+        message:
+            'Impossible de prévisualiser cette émotion : choix indisponible.',
+        stepId: step.id,
+        actorId: actorId,
+      ),
+    );
+  }
+
+  return _ActorEmotePlaybackPlan(
+    actorId: actorId,
+    actorLabel: actorLabel,
+    emoteId: emoteId,
+    emoteLabel: emoteEntry?.label,
+    isSupported: diagnostics.isEmpty,
+  );
+}
+
 CinematicActorPlaybackPose _poseForMove({
   required CinematicActorPlaybackPose current,
   required _ActorMovePlaybackPlan movePlan,
@@ -1116,15 +1295,37 @@ double _timelineItemProgress(
       .toDouble();
 }
 
+CinematicActorEmotePlaybackState _emotePlaybackStateFor({
+  required CinematicPreviewPlaybackTimelineItem item,
+  required _ActorEmotePlaybackPlan? plan,
+  required int clampedTimeMs,
+}) {
+  final elapsedMs =
+      (clampedTimeMs - item.startMs).clamp(0, item.visualDurationMs).toInt();
+  return CinematicActorEmotePlaybackState(
+    activeStepId: item.stepId,
+    stepIndex: item.stepIndex,
+    actorId: plan?.actorId ?? item.actorId,
+    actorLabel: plan?.actorLabel ?? item.actorLabel,
+    emoteId: plan?.emoteId,
+    emoteLabel: plan?.emoteLabel,
+    durationMs: item.visualDurationMs,
+    elapsedMs: elapsedMs,
+    progress: _timelineItemProgress(item, clampedTimeMs),
+    isSupported: plan?.isSupported == true && item.supported,
+    diagnostics: item.diagnostics,
+  );
+}
+
 bool _stepSupportedForPlayback(CinematicTimelineStep step) {
   return switch (step.kind) {
     CinematicTimelineStepKind.wait ||
     CinematicTimelineStepKind.actorFace ||
     CinematicTimelineStepKind.actorMove ||
-    CinematicTimelineStepKind.fade =>
+    CinematicTimelineStepKind.fade ||
+    CinematicTimelineStepKind.actorEmote =>
       true,
     CinematicTimelineStepKind.camera => _cameraModeOf(step) != null,
-    CinematicTimelineStepKind.actorEmote ||
     CinematicTimelineStepKind.dialogueLine ||
     CinematicTimelineStepKind.sound ||
     CinematicTimelineStepKind.music ||
@@ -1378,6 +1579,23 @@ final class _ActorMovePlaybackPlan {
   final CinematicTimelineActorPathMode pathMode;
   final CinematicPreviewPlaybackPoint? destination;
   final List<CinematicPreviewPlaybackPoint> waypoints;
+}
+
+@immutable
+final class _ActorEmotePlaybackPlan {
+  const _ActorEmotePlaybackPlan({
+    required this.actorId,
+    required this.actorLabel,
+    required this.emoteId,
+    required this.emoteLabel,
+    required this.isSupported,
+  });
+
+  final String? actorId;
+  final String? actorLabel;
+  final String? emoteId;
+  final String? emoteLabel;
+  final bool isSupported;
 }
 
 @immutable

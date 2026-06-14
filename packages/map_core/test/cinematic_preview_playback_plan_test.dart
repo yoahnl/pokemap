@@ -582,8 +582,7 @@ void main() {
       );
     });
 
-    test('V1-126 actorEmote remains unsupported until emote playback state',
-        () {
+    test('V1-127 actorEmote exposes active emote playback state', () {
       final plan = buildCinematicPreviewPlaybackPlan(
         cinematic: CinematicAsset(
           id: 'cinematic_emote',
@@ -593,21 +592,191 @@ void main() {
           ],
           timeline: CinematicTimeline(
             steps: [
-              CinematicTimelineStep(
+              _actorEmoteStep(
                 id: 'emote',
-                kind: CinematicTimelineStepKind.actorEmote,
-                label: 'Lysa affiche Surprise',
                 actorId: 'actor_lysa',
+                emoteId: cinematicDefaultActorEmoteId,
                 durationMs: 800,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final startFrame = plan.frameAt(0);
+      final midFrame = plan.frameAt(400);
+      final nearEndFrame = plan.frameAt(799);
+      final endFrame = plan.frameAt(800);
+
+      expect(
+          plan.timelineItems.single.kind, CinematicTimelineStepKind.actorEmote);
+      expect(plan.timelineItems.single.supported, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
+      expect(startFrame.activeStepIds, ['emote']);
+      expect(startFrame.activeEmotes, hasLength(1));
+      expect(startFrame.activeEmotes.single.activeStepId, 'emote');
+      expect(startFrame.activeEmotes.single.actorId, 'actor_lysa');
+      expect(startFrame.activeEmotes.single.actorLabel, 'Lysa');
+      expect(
+        startFrame.activeEmotes.single.emoteId,
+        cinematicDefaultActorEmoteId,
+      );
+      expect(startFrame.activeEmotes.single.emoteLabel, 'Surprise');
+      expect(startFrame.activeEmotes.single.progress, 0);
+      expect(startFrame.activeEmotes.single.isSupported, isTrue);
+      expect(startFrame.activeEmotes.single.supported, isTrue);
+      expect(startFrame.activeEmotes.single.diagnostics, isEmpty);
+      expect(midFrame.activeEmotes.single.progress, closeTo(0.5, 0.001));
+      expect(nearEndFrame.activeEmotes.single.progress, closeTo(0.998, 0.002));
+      expect(endFrame.activeStepIds, isEmpty);
+      expect(endFrame.activeEmotes, isEmpty);
+      expect(startFrame.actorPoseById('actor_lysa'), isNotNull);
+    });
+
+    test('V1-127 actorEmote exposes unsupported diagnostics locally', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_emote_invalid',
+          title: 'Invalid emotes',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              _actorEmoteStep(
+                id: 'missing_actor',
+                actorId: null,
+                emoteId: cinematicDefaultActorEmoteId,
+                durationMs: 300,
+              ),
+              _actorEmoteStep(
+                id: 'unknown_actor',
+                actorId: 'actor_missing',
+                emoteId: cinematicDefaultActorEmoteId,
+                durationMs: 300,
+              ),
+              _actorEmoteStep(
+                id: 'missing_emote',
+                actorId: 'actor_lysa',
+                emoteId: null,
+                durationMs: 300,
+              ),
+              _actorEmoteStep(
+                id: 'unknown_emote',
+                actorId: 'actor_lysa',
+                emoteId: 'missing_emote',
+                durationMs: 300,
+              ),
+              _actorEmoteStep(
+                id: 'invalid_duration',
+                actorId: 'actor_lysa',
+                emoteId: cinematicDefaultActorEmoteId,
+                durationMs: 0,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+      expect(plan.timelineItems.every((item) => item.supported), isFalse);
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        containsAll([
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackEmoteActorMissing,
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackEmoteActorUnknown,
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackEmoteMissing,
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackEmoteUnknown,
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackZeroDurationStep,
+        ]),
+      );
+
+      final missingActor = plan.frameAt(0).activeEmotes.single;
+      expect(missingActor.activeStepId, 'missing_actor');
+      expect(missingActor.actorId, isNull);
+      expect(missingActor.emoteId, cinematicDefaultActorEmoteId);
+      expect(missingActor.isSupported, isFalse);
+      expect(
+        missingActor.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackEmoteActorMissing,
+        ),
+      );
+
+      final unknownActor = plan.frameAt(350).activeEmotes.single;
+      expect(unknownActor.activeStepId, 'unknown_actor');
+      expect(unknownActor.actorId, 'actor_missing');
+      expect(unknownActor.emoteLabel, 'Surprise');
+      expect(unknownActor.isSupported, isFalse);
+
+      final missingEmote = plan.frameAt(650).activeEmotes.single;
+      expect(missingEmote.activeStepId, 'missing_emote');
+      expect(missingEmote.actorId, 'actor_lysa');
+      expect(missingEmote.emoteId, isNull);
+      expect(missingEmote.isSupported, isFalse);
+
+      final unknownEmote = plan.frameAt(950).activeEmotes.single;
+      expect(unknownEmote.activeStepId, 'unknown_emote');
+      expect(unknownEmote.emoteId, 'missing_emote');
+      expect(unknownEmote.emoteLabel, isNull);
+      expect(unknownEmote.isSupported, isFalse);
+
+      final invalidDuration = plan.frameAt(1250).activeEmotes.single;
+      expect(invalidDuration.activeStepId, 'invalid_duration');
+      expect(invalidDuration.durationMs,
+          cinematicTimelineFallbackVisualDurationMs);
+      expect(invalidDuration.isSupported, isFalse);
+      expect(
+        invalidDuration.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackZeroDurationStep,
+        ),
+      );
+    });
+
+    test('V1-127 active emotes stay deterministic in mixed timelines', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_emote_mixed',
+          title: 'Mixed emotes',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              _actorEmoteStep(
+                id: 'emote_question',
+                actorId: 'actor_lysa',
+                emoteId: 'question',
+                durationMs: 200,
+              ),
+              _actorEmoteStep(
+                id: 'emote_heart',
+                actorId: 'actor_lysa',
+                emoteId: 'heart',
+                durationMs: 200,
+              ),
+              CinematicTimelineStep(
+                id: 'fade_out',
+                kind: CinematicTimelineStepKind.fade,
+                durationMs: 500,
                 metadata: const {
-                  cinematicTimelineDraftMetadataSourceKey:
-                      cinematicTimelineDraftMetadataSourceValue,
-                  cinematicTimelineDraftMetadataKindKey:
-                      cinematicTimelineBasicBlockMetadataKindValue,
-                  cinematicTimelineAuthoringBlockMetadataKey:
-                      cinematicTimelineActorEmoteBlockMetadataValue,
-                  cinematicTimelineActorEmoteEmoteIdMetadataKey:
-                      cinematicDefaultActorEmoteId,
+                  cinematicTimelineFadeModeMetadataKey: 'fadeOut',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'camera_hold',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
                 },
               ),
             ],
@@ -615,17 +784,20 @@ void main() {
         ),
       );
 
-      final frame = plan.frameAt(400);
+      final firstFrame = plan.frameAt(100);
+      final secondFrame = plan.frameAt(250);
+      final repeatedSecondFrame = plan.frameAt(250);
+      final fadeFrame = plan.frameAt(450);
+      final cameraFrame = plan.frameAt(950);
 
-      expect(
-          plan.timelineItems.single.kind, CinematicTimelineStepKind.actorEmote);
-      expect(plan.timelineItems.single.supported, isFalse);
-      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
-      expect(frame.activeStepIds, ['emote']);
-      expect(
-          frame.visibleDiagnostics.map((diagnostic) => diagnostic.code),
-          contains(CinematicPreviewPlaybackDiagnosticCode
-              .cinematicPreviewPlaybackUnsupportedStep));
+      expect(firstFrame.activeEmotes.single.emoteId, 'question');
+      expect(secondFrame.activeEmotes.single.emoteId, 'heart');
+      expect(repeatedSecondFrame.activeEmotes, secondFrame.activeEmotes);
+      expect(fadeFrame.activeEmotes, isEmpty);
+      expect(fadeFrame.fadeState, isNotNull);
+      expect(cameraFrame.activeEmotes, isEmpty);
+      expect(cameraFrame.cameraPose.isActive, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
     });
   });
 }
@@ -807,6 +979,31 @@ CinematicTimelineStep _actorMoveStep({
           CinematicTimelineActorMovementMode.walk.name,
       cinematicTimelineActorPathModeMetadataKey: pathMode.name,
     },
+  );
+}
+
+CinematicTimelineStep _actorEmoteStep({
+  required String id,
+  required String? actorId,
+  required String? emoteId,
+  required int durationMs,
+}) {
+  final metadata = {
+    cinematicTimelineDraftMetadataKindKey:
+        cinematicTimelineBasicBlockMetadataKindValue,
+    cinematicTimelineDraftMetadataSourceKey:
+        cinematicTimelineDraftMetadataSourceValue,
+    cinematicTimelineAuthoringBlockMetadataKey:
+        cinematicTimelineActorEmoteBlockMetadataValue,
+    if (emoteId != null) cinematicTimelineActorEmoteEmoteIdMetadataKey: emoteId,
+  };
+  return CinematicTimelineStep(
+    id: id,
+    kind: CinematicTimelineStepKind.actorEmote,
+    label: 'Émotion',
+    actorId: actorId,
+    durationMs: durationMs,
+    metadata: metadata,
   );
 }
 
