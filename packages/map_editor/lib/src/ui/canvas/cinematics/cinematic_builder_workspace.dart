@@ -10,10 +10,13 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import '../../shared/pokemap_macos_ui_shim.dart'
+    show MacosPopupButton, MacosPopupMenuItem;
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_renderer.dart';
 import 'cinematic_actor_walking_animation_preview_resolver.dart';
 import 'cinematic_backdrop_preview_framing.dart';
+import 'cinematic_emote_preview_overlay.dart';
 import 'cinematic_map_backdrop_layer_render_plan.dart';
 import 'cinematic_map_backdrop_preview_panel.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
@@ -11124,6 +11127,16 @@ class _ActorEmoteControls extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedEmoteId = cinematicTimelineActorEmoteEmoteIdOf(step);
     final selectedEmote = cinematicEmoteCatalogEntryById(selectedEmoteId);
+    final selectedActorId = asset.requiredActors.any(
+      (actor) => actor.actorId == step.actorId,
+    )
+        ? step.actorId
+        : null;
+    final selectedCatalogEmoteId = cinematicEmoteCatalog.any(
+      (emote) => emote.id == selectedEmoteId,
+    )
+        ? selectedEmoteId
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -11133,28 +11146,28 @@ class _ActorEmoteControls extends StatelessWidget {
         if (asset.requiredActors.isEmpty)
           const _MutedText('Ajoutez un acteur requis pour choisir qui réagit.')
         else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
+          _InspectorDropdownField<String>(
+            key: const ValueKey(
+              'cinematic-builder-actor-emote-actor-dropdown',
+            ),
+            value: selectedActorId,
+            hint: 'Choisir un acteur',
+            items: [
               for (final actor in asset.requiredActors)
-                _InlineControlAction(
-                  label: _actorDisplayLabel(actor),
-                  button: PokeMapButton(
-                    key: ValueKey(
-                      'cinematic-builder-actor-emote-actor-${actor.actorId}',
-                    ),
-                    onPressed: () {
-                      onUpdateActorEmote(step, actorId: actor.actorId);
-                    },
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    isSelected: step.actorId == actor.actorId,
-                    leading: const Icon(CupertinoIcons.person_crop_circle),
-                    child: const SizedBox.shrink(),
+                MacosPopupMenuItem<String>(
+                  key: ValueKey(
+                    'cinematic-builder-actor-emote-actor-${actor.actorId}',
                   ),
+                  value: actor.actorId,
+                  child: Text(_actorDisplayLabel(actor)),
                 ),
             ],
+            onChanged: (actorId) {
+              if (actorId == null) {
+                return;
+              }
+              onUpdateActorEmote(step, actorId: actorId);
+            },
           ),
         const SizedBox(height: 8),
         _KeyValue(
@@ -11163,28 +11176,26 @@ class _ActorEmoteControls extends StatelessWidget {
         ),
         const _SectionTitle(title: 'Émotion', subtitle: 'Choix no-code'),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
+        _InspectorDropdownField<String>(
+          key: const ValueKey('cinematic-builder-actor-emote-emote-dropdown'),
+          value: selectedCatalogEmoteId,
+          hint: 'Choisir une émotion',
+          items: [
             for (final emote in cinematicEmoteCatalog)
-              _InlineControlAction(
-                label: emote.label,
-                button: PokeMapButton(
-                  key: ValueKey(
-                    'cinematic-builder-actor-emote-emote-${emote.id}',
-                  ),
-                  onPressed: () {
-                    onUpdateActorEmote(step, emoteId: emote.id);
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: selectedEmoteId == emote.id,
-                  leading: const Icon(CupertinoIcons.chat_bubble),
-                  child: const SizedBox.shrink(),
+              MacosPopupMenuItem<String>(
+                key: ValueKey(
+                  'cinematic-builder-actor-emote-emote-${emote.id}',
                 ),
+                value: emote.id,
+                child: _ActorEmoteDropdownOption(entry: emote),
               ),
           ],
+          onChanged: (emoteId) {
+            if (emoteId == null) {
+              return;
+            }
+            onUpdateActorEmote(step, emoteId: emoteId);
+          },
         ),
         if (selectedEmote != null) ...[
           const SizedBox(height: 6),
@@ -11201,6 +11212,72 @@ class _ActorEmoteControls extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class _ActorEmoteDropdownOption extends StatelessWidget {
+  const _ActorEmoteDropdownOption({
+    required this.entry,
+  });
+
+  final CinematicEmoteCatalogEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        CinematicEmoteCatalogThumbnail(
+          key: ValueKey(
+            'cinematic-builder-actor-emote-emote-${entry.id}-thumbnail',
+          ),
+          entry: entry,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            entry.label,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InspectorDropdownField<T> extends StatelessWidget {
+  const _InspectorDropdownField({
+    super.key,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+    required this.hint,
+  });
+
+  final T? value;
+  final List<MacosPopupMenuItem<T>> items;
+  final ValueChanged<T?> onChanged;
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: colors.surfaceBase,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colors.borderSubtle),
+      ),
+      child: MacosPopupButton<T>(
+        value: value,
+        onChanged: onChanged,
+        hint: Text(hint),
+        items: items,
+      ),
     );
   }
 }

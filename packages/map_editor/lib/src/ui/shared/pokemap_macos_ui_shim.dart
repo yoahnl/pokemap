@@ -252,10 +252,10 @@ class MacosIconTheme extends StatelessWidget {
     required this.data,
     required this.child,
   });
-  
+
   final MacosIconThemeData data;
   final Widget child;
-  
+
   static Widget merge({
     required MacosIconThemeData data,
     required Widget child,
@@ -403,7 +403,7 @@ class PushButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    
+
     final Color buttonColor;
     if (color != null) {
       buttonColor = color!;
@@ -532,6 +532,7 @@ class MacosPopupButton<T> extends StatelessWidget {
         items: [
           for (final item in items)
             DropdownMenuItem<T>(
+              key: item.key,
               value: item.value,
               child: DefaultTextStyle.merge(
                 style: TextStyle(color: colors.textPrimary),

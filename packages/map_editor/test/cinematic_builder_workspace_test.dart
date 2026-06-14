@@ -212,11 +212,19 @@ void main() {
     expect(find.textContaining('frameIndex'), findsNothing);
     expect(find.textContaining('atlas'), findsNothing);
 
+    final actorDropdown = find.byKey(
+      const ValueKey('cinematic-builder-actor-emote-actor-dropdown'),
+    );
+    expect(actorDropdown, findsOneWidget);
+    await tester.ensureVisible(actorDropdown);
+    await tester.tap(actorDropdown);
+    await tester.pumpAndSettle();
+
     final rivalButton = find.byKey(
       const ValueKey('cinematic-builder-actor-emote-actor-actor_rival'),
     );
     await tester.ensureVisible(rivalButton);
-    await tester.tap(rivalButton);
+    await tester.tap(find.text('Rival').last);
     await tester.pumpAndSettle();
 
     final updatedStep = _asset(latestProject, asset.id)
@@ -250,11 +258,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      final emoteDropdown = find.byKey(
+        const ValueKey('cinematic-builder-actor-emote-emote-dropdown'),
+      );
+      expect(emoteDropdown, findsOneWidget);
+      await tester.ensureVisible(emoteDropdown);
+      await tester.tap(emoteDropdown);
+      await tester.pumpAndSettle();
+
       final heartButton = find.byKey(
         const ValueKey('cinematic-builder-actor-emote-emote-heart'),
       );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-actor-emote-emote-heart-thumbnail'),
+        ),
+        findsOneWidget,
+      );
       await tester.ensureVisible(heartButton);
-      await tester.tap(heartButton);
+      await tester.tap(find.text('Coeur').last);
       await tester.pumpAndSettle();
 
       var updatedStep = _asset(latestProject, asset.id)

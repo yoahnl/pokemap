@@ -28,6 +28,72 @@ class CinematicEmotePreviewOverlay extends StatefulWidget {
       _CinematicEmotePreviewOverlayState();
 }
 
+class CinematicEmoteCatalogThumbnail extends StatefulWidget {
+  const CinematicEmoteCatalogThumbnail({
+    super.key,
+    required this.entry,
+    this.size = 18,
+  });
+
+  final CinematicEmoteCatalogEntry entry;
+  final double size;
+
+  @override
+  State<CinematicEmoteCatalogThumbnail> createState() =>
+      _CinematicEmoteCatalogThumbnailState();
+}
+
+class _CinematicEmoteCatalogThumbnailState
+    extends State<CinematicEmoteCatalogThumbnail> {
+  AssetBundle? _bundle;
+  String? _assetKey;
+  Future<ui.Image?>? _imageFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    final atlas = cinematicEmoteAtlasById(widget.entry.atlasId);
+    final size = widget.size;
+    if (atlas == null) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: _CinematicEmoteFallback(label: widget.entry.label, size: size),
+      );
+    }
+
+    final bundle = DefaultAssetBundle.of(context);
+    if (_bundle != bundle || _assetKey != atlas.assetKey) {
+      _bundle = bundle;
+      _assetKey = atlas.assetKey;
+      _imageFuture = _loadAtlasImage(bundle, atlas.assetKey);
+    }
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: FutureBuilder<ui.Image?>(
+        future: _imageFuture,
+        builder: (context, snapshot) {
+          final image = snapshot.data;
+          if (image == null) {
+            return _CinematicEmoteFallback(
+                label: widget.entry.label, size: size);
+          }
+          return CustomPaint(
+            painter: _CinematicEmoteSpritePainter(
+              image: image,
+              frame: widget.entry.frame,
+              fallbackTextColor: context.pokeMapColors.textPrimary,
+              fallbackBackgroundColor: context.pokeMapColors.surfaceSubtle,
+              fallbackBorderColor: context.pokeMapColors.controlBorder,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _CinematicEmotePreviewOverlayState
     extends State<CinematicEmotePreviewOverlay> {
   AssetBundle? _bundle;
