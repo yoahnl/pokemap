@@ -15461,7 +15461,7 @@
             "id": "stage_point_3",
             "label": "Repère 3",
             "x": 24.5,
-            "y": 22.5
+            "y": 21.5
           },
           {
             "id": "stage_point_4",
@@ -15522,15 +15522,41 @@
             }
           },
           {
-            "id": "step_fade",
-            "kind": "fade",
-            "label": "Fondu entrant",
-            "durationMs": 1000,
+            "id": "step_actor_face",
+            "kind": "actorFace",
+            "label": "Orientation Acteur",
+            "actorId": "actor",
             "metadata": {
               "authoring.kind": "basicBlock",
               "authoring.source": "cinematic-builder-v0",
-              "authoring.block": "fade",
-              "fade.mode": "fadeIn"
+              "authoring.block": "actorFace",
+              "actor.direction": "left"
+            }
+          },
+          {
+            "id": "step_actor_emote",
+            "kind": "actorEmote",
+            "label": "Acteur affiche Gêne",
+            "durationMs": 800,
+            "actorId": "actor",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorEmote",
+              "actor.emoteId": "sweat"
+            }
+          },
+          {
+            "id": "step_actor_emote_2",
+            "kind": "actorEmote",
+            "label": "Jean affiche Coeur",
+            "durationMs": 800,
+            "actorId": "actor_4",
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "actorEmote",
+              "actor.emoteId": "heart"
             }
           }
         ]
