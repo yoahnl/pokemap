@@ -739,6 +739,11 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
           hasUnsupportedSteps = true;
         } else {
           cameraModes[step.id] = cameraMode;
+          if (cameraMode == CinematicTimelineCameraMode.focus) {
+            itemDiagnostics.add(_cameraUnsupportedDiagnostic(step));
+            supported = false;
+            hasUnsupportedSteps = true;
+          }
         }
       case CinematicTimelineStepKind.wait:
         break;
@@ -1275,7 +1280,7 @@ CinematicCameraPlaybackPose _cameraPoseFor({
   // cinematic camera timeline without mutating editor viewport pan or zoom.
   return CinematicCameraPlaybackPose(
     isActive: true,
-    isSupported: mode != null,
+    isSupported: mode != null && item.supported,
     activeStepId: item.stepId,
     mode: mode,
     progress: _timelineItemProgress(item, clampedTimeMs),
@@ -1325,7 +1330,8 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
     CinematicTimelineStepKind.fade ||
     CinematicTimelineStepKind.actorEmote =>
       true,
-    CinematicTimelineStepKind.camera => _cameraModeOf(step) != null,
+    CinematicTimelineStepKind.camera => _cameraModeOf(step) != null &&
+        _cameraModeOf(step) != CinematicTimelineCameraMode.focus,
     CinematicTimelineStepKind.dialogueLine ||
     CinematicTimelineStepKind.sound ||
     CinematicTimelineStepKind.music ||
@@ -1337,13 +1343,7 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
 }
 
 CinematicTimelineCameraMode? _cameraModeOf(CinematicTimelineStep step) {
-  // V1-123 only supports the camera modes already persisted by authoring.
-  // Unknown values stay unsupported so a future UI can explain them honestly.
-  return switch (step.metadata[cinematicTimelineCameraModeMetadataKey]) {
-    'reset' => CinematicTimelineCameraMode.reset,
-    'hold' => CinematicTimelineCameraMode.hold,
-    _ => null,
-  };
+  return cinematicTimelineCameraModeOf(step);
 }
 
 CinematicPreviewPlaybackDiagnostic _cameraUnsupportedDiagnostic(

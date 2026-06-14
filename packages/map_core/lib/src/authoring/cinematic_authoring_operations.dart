@@ -167,6 +167,104 @@ enum CinematicTimelineFadeMode {
 enum CinematicTimelineCameraMode {
   reset,
   hold,
+  focus,
+}
+
+enum CinematicCameraTargetKind {
+  sceneCenter,
+  actor,
+  stagePoint,
+}
+
+enum CinematicCameraZoomPreset {
+  wide,
+  medium,
+  close,
+}
+
+final class CinematicCameraTargetBinding {
+  const CinematicCameraTargetBinding._({
+    required this.kind,
+    this.actorId,
+    this.stagePointId,
+    this.label,
+  });
+
+  factory CinematicCameraTargetBinding.sceneCenter({
+    String? label,
+  }) {
+    return CinematicCameraTargetBinding._(
+      kind: CinematicCameraTargetKind.sceneCenter,
+      label: _trimOptional(label),
+    );
+  }
+
+  factory CinematicCameraTargetBinding.actor({
+    required String actorId,
+    String? label,
+  }) {
+    return CinematicCameraTargetBinding._(
+      kind: CinematicCameraTargetKind.actor,
+      actorId: _trimRequired(
+        actorId,
+        'actorId',
+        'Camera actor focus requires an actorId.',
+      ),
+      label: _trimOptional(label),
+    );
+  }
+
+  factory CinematicCameraTargetBinding.stagePoint({
+    required String stagePointId,
+    String? label,
+  }) {
+    return CinematicCameraTargetBinding._(
+      kind: CinematicCameraTargetKind.stagePoint,
+      stagePointId: _trimRequired(
+        stagePointId,
+        'stagePointId',
+        'Camera stage point focus requires a stagePointId.',
+      ),
+      label: _trimOptional(label),
+    );
+  }
+
+  final CinematicCameraTargetKind kind;
+  final String? actorId;
+  final String? stagePointId;
+  final String? label;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicCameraTargetBinding &&
+          other.kind == kind &&
+          other.actorId == actorId &&
+          other.stagePointId == stagePointId &&
+          other.label == label;
+
+  @override
+  int get hashCode => Object.hash(kind, actorId, stagePointId, label);
+}
+
+final class CinematicTimelineCameraFocusBinding {
+  const CinematicTimelineCameraFocusBinding({
+    required this.target,
+    required this.zoomPreset,
+  });
+
+  final CinematicCameraTargetBinding target;
+  final CinematicCameraZoomPreset zoomPreset;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicTimelineCameraFocusBinding &&
+          other.target == target &&
+          other.zoomPreset == zoomPreset;
+
+  @override
+  int get hashCode => Object.hash(target, zoomPreset);
 }
 
 enum CinematicTimelineActorFacingDirection {
@@ -194,6 +292,11 @@ const cinematicTimelineDraftMetadataSourceValue = 'cinematic-builder-v0';
 const cinematicTimelineAuthoringBlockMetadataKey = 'authoring.block';
 const cinematicTimelineFadeModeMetadataKey = 'fade.mode';
 const cinematicTimelineCameraModeMetadataKey = 'camera.mode';
+const cinematicTimelineCameraTargetKindMetadataKey = 'camera.targetKind';
+const cinematicTimelineCameraTargetActorIdMetadataKey = 'camera.targetActorId';
+const cinematicTimelineCameraTargetStagePointIdMetadataKey =
+    'camera.targetStagePointId';
+const cinematicTimelineCameraZoomPresetMetadataKey = 'camera.zoomPreset';
 const cinematicTimelineActorDirectionMetadataKey = 'actor.direction';
 const cinematicTimelineActorFaceBlockMetadataValue = 'actorFace';
 const cinematicTimelineActorMoveBlockMetadataValue = 'actorMove';
@@ -1142,8 +1245,19 @@ CinematicTimelineBasicBlockStepResult addCinematicTimelineBasicBlockStep(
   int? durationMs,
   CinematicTimelineFadeMode fadeMode = CinematicTimelineFadeMode.fadeIn,
   CinematicTimelineCameraMode cameraMode = CinematicTimelineCameraMode.reset,
+  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 }) {
   final cinematic = _requireCinematic(project, cinematicId);
+  if (blockKind != CinematicTimelineBasicBlockKind.camera &&
+      cameraFocusBinding != null) {
+    throw ArgumentError(
+      'Only camera blocks can receive a camera focus binding.',
+    );
+  }
+  if (blockKind == CinematicTimelineBasicBlockKind.camera &&
+      cameraMode == CinematicTimelineCameraMode.focus) {
+    _validateCameraFocusBinding(cinematic, cameraFocusBinding);
+  }
   final steps = cinematic.timeline.steps.toList();
   final insertIndex = _timelineInsertIndex(
     steps,
@@ -1157,6 +1271,7 @@ CinematicTimelineBasicBlockStepResult addCinematicTimelineBasicBlockStep(
     durationMs: durationMs,
     fadeMode: fadeMode,
     cameraMode: cameraMode,
+    cameraFocusBinding: cameraFocusBinding,
   );
   steps.insert(insertIndex, step);
 
@@ -1172,6 +1287,28 @@ CinematicTimelineBasicBlockStepResult addCinematicTimelineBasicBlockStep(
   );
 }
 
+CinematicTimelineBasicBlockStepResult addCinematicTimelineCameraFocusStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicCameraTargetBinding target,
+  required CinematicCameraZoomPreset zoomPreset,
+  String? afterStepId,
+  int? durationMs,
+}) {
+  return addCinematicTimelineBasicBlockStep(
+    project,
+    cinematicId: cinematicId,
+    blockKind: CinematicTimelineBasicBlockKind.camera,
+    afterStepId: afterStepId,
+    durationMs: durationMs,
+    cameraMode: CinematicTimelineCameraMode.focus,
+    cameraFocusBinding: CinematicTimelineCameraFocusBinding(
+      target: target,
+      zoomPreset: zoomPreset,
+    ),
+  );
+}
+
 CinematicTimelineStepUpdateResult updateCinematicTimelineBasicBlockStep(
   ProjectManifest project, {
   required String cinematicId,
@@ -1179,6 +1316,7 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineBasicBlockStep(
   int? durationMs,
   CinematicTimelineFadeMode? fadeMode,
   CinematicTimelineCameraMode? cameraMode,
+  CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 }) {
   final cinematic = _requireCinematic(project, cinematicId);
   final id = _trimRequired(
@@ -1204,12 +1342,24 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineBasicBlockStep(
       'Only Cinematic Builder V0 basic blocks can be updated here.',
     );
   }
+  if (blockKind != CinematicTimelineBasicBlockKind.camera &&
+      cameraFocusBinding != null) {
+    throw ArgumentError(
+      'Only camera blocks can receive a camera focus binding.',
+    );
+  }
+  if (blockKind == CinematicTimelineBasicBlockKind.camera &&
+      (cameraMode == CinematicTimelineCameraMode.focus ||
+          cameraFocusBinding != null)) {
+    _validateCameraFocusBinding(cinematic, cameraFocusBinding);
+  }
   final updatedStep = _copyBasicBlockStepWithParams(
     step,
     blockKind: blockKind,
     durationMs: durationMs,
     fadeMode: fadeMode,
     cameraMode: cameraMode,
+    cameraFocusBinding: cameraFocusBinding,
   );
   steps[index] = updatedStep;
 
@@ -1658,6 +1808,95 @@ CinematicTimelineBasicBlockKind? cinematicTimelineBasicBlockKindOf(
   };
 }
 
+CinematicTimelineCameraMode? cinematicTimelineCameraModeOf(
+  CinematicTimelineStep step,
+) {
+  if (step.kind != CinematicTimelineStepKind.camera) {
+    return null;
+  }
+  return switch (step.metadata[cinematicTimelineCameraModeMetadataKey]) {
+    'reset' => CinematicTimelineCameraMode.reset,
+    'hold' => CinematicTimelineCameraMode.hold,
+    'focus' => CinematicTimelineCameraMode.focus,
+    _ => null,
+  };
+}
+
+CinematicCameraTargetKind? cinematicTimelineCameraTargetKindOf(
+  CinematicTimelineStep step,
+) {
+  if (step.kind != CinematicTimelineStepKind.camera) {
+    return null;
+  }
+  return switch (step.metadata[cinematicTimelineCameraTargetKindMetadataKey]) {
+    'sceneCenter' => CinematicCameraTargetKind.sceneCenter,
+    'actor' => CinematicCameraTargetKind.actor,
+    'stagePoint' => CinematicCameraTargetKind.stagePoint,
+    _ => null,
+  };
+}
+
+CinematicCameraZoomPreset? cinematicTimelineCameraZoomPresetOf(
+  CinematicTimelineStep step,
+) {
+  if (step.kind != CinematicTimelineStepKind.camera) {
+    return null;
+  }
+  return switch (step.metadata[cinematicTimelineCameraZoomPresetMetadataKey]) {
+    'wide' => CinematicCameraZoomPreset.wide,
+    'medium' => CinematicCameraZoomPreset.medium,
+    'close' => CinematicCameraZoomPreset.close,
+    _ => null,
+  };
+}
+
+CinematicCameraTargetBinding? cinematicTimelineCameraTargetBindingOf(
+  CinematicTimelineStep step,
+) {
+  final kind = cinematicTimelineCameraTargetKindOf(step);
+  if (kind == null) {
+    return null;
+  }
+  switch (kind) {
+    case CinematicCameraTargetKind.sceneCenter:
+      return CinematicCameraTargetBinding.sceneCenter();
+    case CinematicCameraTargetKind.actor:
+      final actorId = _trimOptional(
+          step.metadata[cinematicTimelineCameraTargetActorIdMetadataKey]);
+      if (actorId == null) {
+        return null;
+      }
+      return CinematicCameraTargetBinding.actor(actorId: actorId);
+    case CinematicCameraTargetKind.stagePoint:
+      final stagePointId = _trimOptional(
+        step.metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey],
+      );
+      if (stagePointId == null) {
+        return null;
+      }
+      return CinematicCameraTargetBinding.stagePoint(
+          stagePointId: stagePointId);
+  }
+}
+
+CinematicTimelineCameraFocusBinding? cinematicTimelineCameraFocusBindingOf(
+  CinematicTimelineStep step,
+) {
+  if (cinematicTimelineCameraModeOf(step) !=
+      CinematicTimelineCameraMode.focus) {
+    return null;
+  }
+  final target = cinematicTimelineCameraTargetBindingOf(step);
+  final zoomPreset = cinematicTimelineCameraZoomPresetOf(step);
+  if (target == null || zoomPreset == null) {
+    return null;
+  }
+  return CinematicTimelineCameraFocusBinding(
+    target: target,
+    zoomPreset: zoomPreset,
+  );
+}
+
 bool isCinematicTimelineActorFacingStep(CinematicTimelineStep step) {
   return step.kind == CinematicTimelineStepKind.actorFace &&
       step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
@@ -1770,8 +2009,10 @@ CinematicStageContextAuthoringResult addCinematicManualPathForActorMove(
     throw ArgumentError('Step "$actorMoveStepId" is not an actorMove step.');
   }
 
-  if (context.manualPaths.any((p) => p.ownerActorMoveStepId == actorMoveStepId)) {
-    throw ArgumentError('A manual path already exists for step "$actorMoveStepId".');
+  if (context.manualPaths
+      .any((p) => p.ownerActorMoveStepId == actorMoveStepId)) {
+    throw ArgumentError(
+        'A manual path already exists for step "$actorMoveStepId".');
   }
 
   final existingPointIds = context.stagePoints.map((p) => p.id).toSet();
@@ -1991,7 +2232,8 @@ CinematicStageContextAuthoringResult addCinematicManualPathWaypoint(
 
   final hasPoint = context.stagePoints.any((p) => p.id == stagePointId);
   if (!hasPoint) {
-    throw ArgumentError('Stage Point ID "$stagePointId" not found in stagePoints.');
+    throw ArgumentError(
+        'Stage Point ID "$stagePointId" not found in stagePoints.');
   }
 
   final updatedPath = existingPath.copyWith(
@@ -2041,11 +2283,12 @@ CinematicStageContextAuthoringResult removeCinematicManualPathWaypointAt(
   final existingPath = context.manualPaths[pathIndex];
 
   if (index < 0 || index >= existingPath.waypointStagePointIds.length) {
-    throw ArgumentError('Index $index out of bounds for manual path waypoints.');
+    throw ArgumentError(
+        'Index $index out of bounds for manual path waypoints.');
   }
 
-  final updatedWaypoints =
-      List<String>.from(existingPath.waypointStagePointIds)..removeAt(index);
+  final updatedWaypoints = List<String>.from(existingPath.waypointStagePointIds)
+    ..removeAt(index);
   final updatedPath = existingPath.copyWith(
     waypointStagePointIds: updatedWaypoints,
   );
@@ -2226,8 +2469,9 @@ CinematicStageContextAuthoringResult clearActorMoveManualPath(
   final updatedSteps = List<CinematicTimelineStep>.from(steps);
   updatedSteps[index] = updatedStep;
 
-  final updatedPaths =
-      context.manualPaths.where((p) => p.ownerActorMoveStepId != stepId).toList();
+  final updatedPaths = context.manualPaths
+      .where((p) => p.ownerActorMoveStepId != stepId)
+      .toList();
 
   final updatedContext = CinematicStageContext(
     backdropMode: context.backdropMode,
@@ -2445,6 +2689,7 @@ CinematicTimelineStep _buildBasicBlockStep(
   required int? durationMs,
   required CinematicTimelineFadeMode fadeMode,
   required CinematicTimelineCameraMode cameraMode,
+  required CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 }) {
   return switch (blockKind) {
     CinematicTimelineBasicBlockKind.wait => CinematicTimelineStep(
@@ -2483,7 +2728,10 @@ CinematicTimelineStep _buildBasicBlockStep(
         ),
         metadata: {
           ..._basicBlockMetadata(CinematicTimelineBasicBlockKind.camera),
-          cinematicTimelineCameraModeMetadataKey: cameraMode.name,
+          ..._cameraMetadata(
+            cameraMode,
+            focusBinding: cameraFocusBinding,
+          ),
         },
       ),
   };
@@ -2577,19 +2825,22 @@ CinematicTimelineStep _copyBasicBlockStepWithParams(
   required int? durationMs,
   required CinematicTimelineFadeMode? fadeMode,
   required CinematicTimelineCameraMode? cameraMode,
+  required CinematicTimelineCameraFocusBinding? cameraFocusBinding,
 }) {
   final metadata = Map<String, String>.of(step.metadata);
   String? label = step.label;
   switch (blockKind) {
     case CinematicTimelineBasicBlockKind.wait:
-      if (fadeMode != null || cameraMode != null) {
+      if (fadeMode != null ||
+          cameraMode != null ||
+          cameraFocusBinding != null) {
         throw ArgumentError(
           'Wait blocks only accept durationMs in Cinematic Builder V0.',
         );
       }
       break;
     case CinematicTimelineBasicBlockKind.fade:
-      if (cameraMode != null) {
+      if (cameraMode != null || cameraFocusBinding != null) {
         throw ArgumentError(
           'Fade blocks cannot receive camera mode in Cinematic Builder V0.',
         );
@@ -2607,8 +2858,15 @@ CinematicTimelineStep _copyBasicBlockStepWithParams(
         );
       }
       final mode = cameraMode;
-      if (mode != null) {
-        metadata[cinematicTimelineCameraModeMetadataKey] = mode.name;
+      if (mode != null || cameraFocusBinding != null) {
+        final updatedMetadata = _cameraMetadata(
+          mode ?? CinematicTimelineCameraMode.focus,
+          focusBinding: cameraFocusBinding,
+          existing: metadata,
+        );
+        metadata
+          ..clear()
+          ..addAll(updatedMetadata);
       }
       break;
   }
@@ -2642,6 +2900,50 @@ Map<String, String> _basicBlockMetadata(
         cinematicTimelineDraftMetadataSourceValue,
     cinematicTimelineAuthoringBlockMetadataKey: blockKind.name,
   };
+}
+
+Map<String, String> _cameraMetadata(
+  CinematicTimelineCameraMode mode, {
+  CinematicTimelineCameraFocusBinding? focusBinding,
+  Map<String, String>? existing,
+}) {
+  if (mode == CinematicTimelineCameraMode.focus && focusBinding == null) {
+    throw ArgumentError('Camera focus mode requires a focus binding.');
+  }
+  final metadata =
+      existing == null ? <String, String>{} : Map<String, String>.of(existing);
+  _removeCameraFocusMetadata(metadata);
+  metadata[cinematicTimelineCameraModeMetadataKey] = mode.name;
+  if (mode != CinematicTimelineCameraMode.focus) {
+    return metadata;
+  }
+
+  final binding = focusBinding!;
+  metadata[cinematicTimelineCameraTargetKindMetadataKey] =
+      binding.target.kind.name;
+  metadata[cinematicTimelineCameraZoomPresetMetadataKey] =
+      binding.zoomPreset.name;
+  switch (binding.target.kind) {
+    case CinematicCameraTargetKind.sceneCenter:
+      break;
+    case CinematicCameraTargetKind.actor:
+      metadata[cinematicTimelineCameraTargetActorIdMetadataKey] =
+          binding.target.actorId!;
+      break;
+    case CinematicCameraTargetKind.stagePoint:
+      metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey] =
+          binding.target.stagePointId!;
+      break;
+  }
+  return metadata;
+}
+
+void _removeCameraFocusMetadata(Map<String, String> metadata) {
+  metadata
+    ..remove(cinematicTimelineCameraTargetKindMetadataKey)
+    ..remove(cinematicTimelineCameraTargetActorIdMetadataKey)
+    ..remove(cinematicTimelineCameraTargetStagePointIdMetadataKey)
+    ..remove(cinematicTimelineCameraZoomPresetMetadataKey);
 }
 
 String _fadeLabel(CinematicTimelineFadeMode mode) {
@@ -2760,6 +3062,49 @@ CinematicActorRef _requireActor(CinematicAsset cinematic, String actorId) {
     actorId,
     'actorId',
     'Actor authoring references an unknown required actor.',
+  );
+}
+
+void _validateCameraFocusBinding(
+  CinematicAsset cinematic,
+  CinematicTimelineCameraFocusBinding? binding,
+) {
+  if (binding == null) {
+    throw ArgumentError('Camera focus mode requires a focus binding.');
+  }
+  switch (binding.target.kind) {
+    case CinematicCameraTargetKind.sceneCenter:
+      return;
+    case CinematicCameraTargetKind.actor:
+      _requireActor(cinematic, binding.target.actorId!);
+      return;
+    case CinematicCameraTargetKind.stagePoint:
+      _requireStagePoint(cinematic, binding.target.stagePointId!);
+      return;
+  }
+}
+
+CinematicStagePoint _requireStagePoint(
+  CinematicAsset cinematic,
+  String stagePointId,
+) {
+  final id = _trimRequired(
+    stagePointId,
+    'stagePointId',
+    'Camera stage point focus requires a stagePointId.',
+  );
+  final stageContext = cinematic.stageContext;
+  if (stageContext != null) {
+    for (final point in stageContext.stagePoints) {
+      if (point.id == id) {
+        return point;
+      }
+    }
+  }
+  throw ArgumentError.value(
+    stagePointId,
+    'stagePointId',
+    'Camera focus references an unknown stage point.',
   );
 }
 

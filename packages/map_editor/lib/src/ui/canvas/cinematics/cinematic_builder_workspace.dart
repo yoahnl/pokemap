@@ -10998,6 +10998,10 @@ class _CameraModeControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currentMode = step.metadata[cinematicTimelineCameraModeMetadataKey];
+    const authorableModes = [
+      CinematicTimelineCameraMode.reset,
+      CinematicTimelineCameraMode.hold,
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -11006,7 +11010,7 @@ class _CameraModeControls extends StatelessWidget {
           spacing: 6,
           runSpacing: 6,
           children: [
-            for (final mode in CinematicTimelineCameraMode.values)
+            for (final mode in authorableModes)
               _InlineControlAction(
                 label: _cameraModeLabel(mode),
                 button: PokeMapButton(
@@ -12457,13 +12461,7 @@ CinematicTimelineFadeMode? _cinematicTimelineFadeModeOf(
 CinematicTimelineCameraMode? _cinematicTimelineCameraModeOf(
   CinematicTimelineStep step,
 ) {
-  final value = step.metadata[cinematicTimelineCameraModeMetadataKey];
-  for (final mode in CinematicTimelineCameraMode.values) {
-    if (mode.name == value) {
-      return mode;
-    }
-  }
-  return null;
+  return cinematicTimelineCameraModeOf(step);
 }
 
 String _blockDurationBadgeLabel(CinematicTimelineTimeBlock block) {
@@ -12583,6 +12581,7 @@ String _cameraModeLabel(CinematicTimelineCameraMode mode) {
   return switch (mode) {
     CinematicTimelineCameraMode.reset => 'Reset',
     CinematicTimelineCameraMode.hold => 'Hold',
+    CinematicTimelineCameraMode.focus => 'Cadrer une cible',
   };
 }
 

@@ -416,6 +416,46 @@ void main() {
       expect(plan.capabilities.hasUnsupportedSteps, isTrue);
     });
 
+    test('V1-131 camera focus remains symbolic until geometry exists', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_focus',
+          title: 'Camera focus cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_focus',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'sceneCenter',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'medium',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.isActive, isTrue);
+      expect(frame.cameraPose.activeStepId, 'camera_focus');
+      expect(frame.cameraPose.mode, CinematicTimelineCameraMode.focus);
+      expect(frame.cameraPose.isSupported, isFalse);
+      expect(frame.cameraPose.progress, closeTo(0.5, 0.001));
+      expect(
+        frame.cameraPose.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraUnsupported,
+        ),
+      );
+      expect(plan.capabilities.supportsCamera, isTrue);
+      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+    });
+
     test('V1-123 missing camera mode stays diagnosed and does not mutate asset',
         () {
       final cinematic = CinematicAsset(

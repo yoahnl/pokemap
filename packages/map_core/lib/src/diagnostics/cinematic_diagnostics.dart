@@ -34,6 +34,19 @@ enum CinematicDiagnosticCode {
   cinematicActorEmoteMissingEmoteRef,
   cinematicActorEmoteUnknownEmoteRef,
   cinematicActorEmoteInvalidDuration,
+  cameraTargetMissing,
+  cameraTargetKindUnsupported,
+  cameraTargetActorMissing,
+  cameraTargetActorUnknown,
+  cameraTargetActorWithoutPosition,
+  cameraTargetStagePointMissing,
+  cameraTargetStagePointUnknown,
+  cameraTargetStagePointOutOfMap,
+  cameraTargetStageMapMissing,
+  cameraZoomPresetMissing,
+  cameraZoomPresetUnsupported,
+  cameraModeUnsupported,
+  cameraGeometryUnavailable,
   stageMapUnknown,
   stageBackdropRequiresMap,
   actorBindingUnknownActor,
@@ -189,7 +202,12 @@ CinematicDiagnosticsReport diagnoseCinematicAsset(
     mapWidth: mapWidth,
     mapHeight: mapHeight,
   );
-  _diagnoseTimeline(cinematic, diagnostics);
+  _diagnoseTimeline(
+    cinematic,
+    diagnostics,
+    mapWidth: mapWidth,
+    mapHeight: mapHeight,
+  );
   _diagnoseLegacyBridge(cinematic, diagnostics);
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
 }
@@ -591,7 +609,8 @@ void _diagnoseStageContext(
       if (point == null) {
         diagnostics.add(
           CinematicDiagnostic(
-            code: CinematicDiagnosticCode.actorInitialPlacementStagePointMissing,
+            code:
+                CinematicDiagnosticCode.actorInitialPlacementStagePointMissing,
             severity: CinematicDiagnosticSeverity.error,
             message:
                 'Le placement initial de l’acteur "${placement.actorId}" référence un Stage Point inexistant "$pointId".',
@@ -623,7 +642,8 @@ void _diagnoseStageContext(
               point.y >= mapHeight) {
             diagnostics.add(
               CinematicDiagnostic(
-                code: CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap,
+                code: CinematicDiagnosticCode
+                    .actorInitialPlacementStagePointOutOfMap,
                 severity: CinematicDiagnosticSeverity.error,
                 message:
                     'Le placement initial de l’acteur "${placement.actorId}" référence un Stage Point en dehors des limites de la map ($mapWidth × $mapHeight).',
@@ -718,7 +738,8 @@ void _diagnoseStageContext(
       if (point == null) {
         diagnostics.add(
           CinematicDiagnostic(
-            code: CinematicDiagnosticCode.movementTargetBindingStagePointMissing,
+            code:
+                CinematicDiagnosticCode.movementTargetBindingStagePointMissing,
             severity: CinematicDiagnosticSeverity.error,
             message:
                 'La cible de mouvement "${binding.targetId}" référence un Stage Point inexistant "$pointId".',
@@ -803,8 +824,7 @@ void _diagnoseStageContext(
           CinematicDiagnostic(
             code: CinematicDiagnosticCode.stagePointDuplicateId,
             severity: CinematicDiagnosticSeverity.error,
-            message:
-                'Plusieurs Stage Points utilisent le même id : "$id".',
+            message: 'Plusieurs Stage Points utilisent le même id : "$id".',
             cinematicId: cinematic.id,
             referenceId: id,
             target: CinematicDiagnosticTarget.stageContext,
@@ -836,8 +856,7 @@ void _diagnoseStageContext(
           CinematicDiagnostic(
             code: CinematicDiagnosticCode.stagePointInvalidCoordinate,
             severity: CinematicDiagnosticSeverity.error,
-            message:
-                'Le Stage Point "$id" a des coordonnées non finies.',
+            message: 'Le Stage Point "$id" a des coordonnées non finies.',
             cinematicId: cinematic.id,
             referenceId: id,
             target: CinematicDiagnosticTarget.stageContext,
@@ -911,11 +930,13 @@ void _diagnoseManualPaths(
         CinematicDiagnostic(
           code: CinematicDiagnosticCode.manualPathDuplicateId,
           severity: CinematicDiagnosticSeverity.error,
-          message: 'Plusieurs trajets manuels utilisent le même id : "$pathId".',
+          message:
+              'Plusieurs trajets manuels utilisent le même id : "$pathId".',
           cinematicId: cinematic.id,
           referenceId: pathId,
           target: CinematicDiagnosticTarget.stageContext,
-          suggestedFixLabel: 'Renommer le trajet manuel pour avoir un id unique.',
+          suggestedFixLabel:
+              'Renommer le trajet manuel pour avoir un id unique.',
         ),
       );
     }
@@ -929,7 +950,8 @@ void _diagnoseManualPaths(
           cinematicId: cinematic.id,
           referenceId: pathId,
           target: CinematicDiagnosticTarget.stageContext,
-          suggestedFixLabel: 'Renseigner un label lisible pour le trajet manuel.',
+          suggestedFixLabel:
+              'Renseigner un label lisible pour le trajet manuel.',
         ),
       );
     }
@@ -940,9 +962,11 @@ void _diagnoseManualPaths(
           orElse: () => null,
         );
 
-    final isOwnedByActorMove = ownerStep != null && isCinematicTimelineActorMoveStep(ownerStep);
+    final isOwnedByActorMove =
+        ownerStep != null && isCinematicTimelineActorMoveStep(ownerStep);
     final isUsedByActorMoveManual = isOwnedByActorMove &&
-        cinematicTimelineActorPathModeOf(ownerStep) == CinematicTimelineActorPathMode.manual;
+        cinematicTimelineActorPathModeOf(ownerStep) ==
+            CinematicTimelineActorPathMode.manual;
 
     if (path.waypointStagePointIds.isEmpty) {
       diagnostics.add(
@@ -965,7 +989,8 @@ void _diagnoseManualPaths(
         CinematicDiagnostic(
           code: CinematicDiagnosticCode.manualPathWithoutStageMap,
           severity: CinematicDiagnosticSeverity.warning,
-          message: 'Le trajet manuel a besoin d’une map de scène pour être vérifié visuellement.',
+          message:
+              'Le trajet manuel a besoin d’une map de scène pour être vérifié visuellement.',
           cinematicId: cinematic.id,
           referenceId: pathId,
           target: CinematicDiagnosticTarget.stageContext,
@@ -1004,7 +1029,8 @@ void _diagnoseManualPaths(
                 cinematicId: cinematic.id,
                 referenceId: wpId,
                 target: CinematicDiagnosticTarget.stageContext,
-                suggestedFixLabel: 'Repositionner le repère dans les limites de la map.',
+                suggestedFixLabel:
+                    'Repositionner le repère dans les limites de la map.',
               ),
             );
           }
@@ -1016,7 +1042,8 @@ void _diagnoseManualPaths(
           CinematicDiagnostic(
             code: CinematicDiagnosticCode.manualPathStagePointDuplicate,
             severity: CinematicDiagnosticSeverity.warning,
-            message: 'Le même repère apparaît plusieurs fois dans le trajet manuel.',
+            message:
+                'Le même repère apparaît plusieurs fois dans le trajet manuel.',
             cinematicId: cinematic.id,
             referenceId: wpId,
             target: CinematicDiagnosticTarget.stageContext,
@@ -1036,7 +1063,8 @@ void _diagnoseManualPaths(
           cinematicId: cinematic.id,
           referenceId: pathId,
           target: CinematicDiagnosticTarget.stageContext,
-          suggestedFixLabel: 'Associer ce chemin à un déplacement existant ou le supprimer.',
+          suggestedFixLabel:
+              'Associer ce chemin à un déplacement existant ou le supprimer.',
         ),
       );
     }
@@ -1149,8 +1177,10 @@ bool _movementTargetBindingRequiresStageMap(
 
 void _diagnoseTimeline(
   CinematicAsset cinematic,
-  List<CinematicDiagnostic> diagnostics,
-) {
+  List<CinematicDiagnostic> diagnostics, {
+  int? mapWidth,
+  int? mapHeight,
+}) {
   if (cinematic.timeline.steps.isEmpty) {
     diagnostics.add(
       CinematicDiagnostic(
@@ -1236,6 +1266,16 @@ void _diagnoseTimeline(
         step,
         requiredActorIds: requiredActorIds,
         diagnostics: diagnostics,
+      );
+    }
+    if (step.kind == CinematicTimelineStepKind.camera) {
+      _diagnoseCameraStep(
+        cinematic,
+        step,
+        requiredActorIds: requiredActorIds,
+        diagnostics: diagnostics,
+        mapWidth: mapWidth,
+        mapHeight: mapHeight,
       );
     }
   }
@@ -1374,6 +1414,270 @@ void _diagnoseActorEmoteStep(
   }
 }
 
+void _diagnoseCameraStep(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step, {
+  required Set<String> requiredActorIds,
+  required List<CinematicDiagnostic> diagnostics,
+  int? mapWidth,
+  int? mapHeight,
+}) {
+  final rawMode = step.metadata[cinematicTimelineCameraModeMetadataKey]?.trim();
+  final mode = cinematicTimelineCameraModeOf(step);
+  if (mode == null) {
+    if (rawMode != null && rawMode.isNotEmpty) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.cameraModeUnsupported,
+          severity: CinematicDiagnosticSeverity.error,
+          message: 'Le mode caméra "$rawMode" n’est pas supporté.',
+          cinematicId: cinematic.id,
+          stepId: step.id,
+          referenceId: rawMode,
+          target: CinematicDiagnosticTarget.step,
+          suggestedFixLabel:
+              'Choisir réinitialiser, maintenir ou cadrer une cible.',
+        ),
+      );
+    }
+    return;
+  }
+  if (mode != CinematicTimelineCameraMode.focus) {
+    return;
+  }
+
+  final rawTargetKind =
+      step.metadata[cinematicTimelineCameraTargetKindMetadataKey]?.trim();
+  final targetKind = cinematicTimelineCameraTargetKindOf(step);
+  if (rawTargetKind == null || rawTargetKind.isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetMissing,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra doit choisir une cible.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel:
+            'Choisir le centre de scène, un acteur ou un repère.',
+      ),
+    );
+  } else if (targetKind == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetKindUnsupported,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Le type de cible caméra "$rawTargetKind" n’est pas supporté.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: rawTargetKind,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel:
+            'Choisir le centre de scène, un acteur ou un repère.',
+      ),
+    );
+  } else {
+    switch (targetKind) {
+      case CinematicCameraTargetKind.sceneCenter:
+        break;
+      case CinematicCameraTargetKind.actor:
+        _diagnoseCameraActorTarget(
+          cinematic,
+          step,
+          requiredActorIds: requiredActorIds,
+          diagnostics: diagnostics,
+        );
+        break;
+      case CinematicCameraTargetKind.stagePoint:
+        _diagnoseCameraStagePointTarget(
+          cinematic,
+          step,
+          diagnostics: diagnostics,
+          mapWidth: mapWidth,
+          mapHeight: mapHeight,
+        );
+        break;
+    }
+  }
+
+  final rawZoom =
+      step.metadata[cinematicTimelineCameraZoomPresetMetadataKey]?.trim();
+  final zoomPreset = cinematicTimelineCameraZoomPresetOf(step);
+  if (rawZoom == null || rawZoom.isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraZoomPresetMissing,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra doit choisir un niveau de zoom.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir plan large, plan moyen ou gros plan.',
+      ),
+    );
+  } else if (zoomPreset == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraZoomPresetUnsupported,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Le zoom caméra "$rawZoom" n’est pas supporté.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: rawZoom,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir plan large, plan moyen ou gros plan.',
+      ),
+    );
+  }
+}
+
+void _diagnoseCameraActorTarget(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step, {
+  required Set<String> requiredActorIds,
+  required List<CinematicDiagnostic> diagnostics,
+}) {
+  final actorId =
+      step.metadata[cinematicTimelineCameraTargetActorIdMetadataKey]?.trim();
+  if (actorId == null || actorId.isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetActorMissing,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra sur acteur doit référencer un acteur.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un acteur requis existant.',
+      ),
+    );
+    return;
+  }
+  if (!requiredActorIds.contains(actorId)) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetActorUnknown,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra référence un acteur inconnu.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: actorId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un acteur requis existant.',
+      ),
+    );
+    return;
+  }
+
+  final placements = cinematic.stageContext?.initialPlacements ?? const [];
+  final hasInitialPosition =
+      placements.any((placement) => placement.actorId == actorId);
+  if (!hasInitialPosition) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetActorWithoutPosition,
+        severity: CinematicDiagnosticSeverity.warning,
+        message:
+            'L’acteur ciblé par la caméra n’a pas encore de position initiale preview.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: actorId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel:
+            'Définir une position initiale pour prévisualiser ce cadrage.',
+      ),
+    );
+  }
+}
+
+void _diagnoseCameraStagePointTarget(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step, {
+  required List<CinematicDiagnostic> diagnostics,
+  int? mapWidth,
+  int? mapHeight,
+}) {
+  final stagePointId = step
+      .metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey]
+      ?.trim();
+  if (stagePointId == null || stagePointId.isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetStagePointMissing,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra sur repère doit référencer un Stage Point.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un repère existant.',
+      ),
+    );
+    return;
+  }
+
+  final stageContext = cinematic.stageContext;
+  CinematicStagePoint? point;
+  if (stageContext != null) {
+    for (final candidate in stageContext.stagePoints) {
+      if (candidate.id == stagePointId) {
+        point = candidate;
+        break;
+      }
+    }
+  }
+  if (point == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetStagePointUnknown,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Un cadrage caméra référence un Stage Point inconnu.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: stagePointId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un repère existant ou le recréer.',
+      ),
+    );
+    return;
+  }
+
+  if (cinematic.mapId == null) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cameraTargetStageMapMissing,
+        severity: CinematicDiagnosticSeverity.warning,
+        message:
+            'Un cadrage caméra sur repère nécessite une map stage pour vérifier la cible.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: stagePointId,
+        target: CinematicDiagnosticTarget.stageContext,
+        suggestedFixLabel: 'Définir une map stage pour la cinématique.',
+      ),
+    );
+  } else if (mapWidth != null && mapHeight != null) {
+    if (point.x < 0 ||
+        point.x >= mapWidth ||
+        point.y < 0 ||
+        point.y >= mapHeight) {
+      diagnostics.add(
+        CinematicDiagnostic(
+          code: CinematicDiagnosticCode.cameraTargetStagePointOutOfMap,
+          severity: CinematicDiagnosticSeverity.error,
+          message:
+              'Le repère ciblé par la caméra est en dehors des limites de la map ($mapWidth × $mapHeight).',
+          cinematicId: cinematic.id,
+          stepId: step.id,
+          referenceId: stagePointId,
+          target: CinematicDiagnosticTarget.stageContext,
+          suggestedFixLabel:
+              'Repositionner le Stage Point dans les limites de la map.',
+        ),
+      );
+    }
+  }
+}
+
 void _diagnoseActorMoveStep(
   CinematicAsset cinematic,
   CinematicTimelineStep step, {
@@ -1492,7 +1796,8 @@ void _diagnoseActorMoveStep(
             CinematicDiagnostic(
               code: CinematicDiagnosticCode.actorMoveManualPathMissing,
               severity: CinematicDiagnosticSeverity.error,
-              message: 'Ce déplacement est en trajet manuel, mais aucun chemin n’est défini.',
+              message:
+                  'Ce déplacement est en trajet manuel, mais aucun chemin n’est défini.',
               cinematicId: cinematic.id,
               stepId: step.id,
               target: CinematicDiagnosticTarget.step,
@@ -1504,11 +1809,13 @@ void _diagnoseActorMoveStep(
             CinematicDiagnostic(
               code: CinematicDiagnosticCode.actorMoveManualPathAmbiguous,
               severity: CinematicDiagnosticSeverity.error,
-              message: 'Plusieurs chemins manuels sont liés au même déplacement.',
+              message:
+                  'Plusieurs chemins manuels sont liés au même déplacement.',
               cinematicId: cinematic.id,
               stepId: step.id,
               target: CinematicDiagnosticTarget.step,
-              suggestedFixLabel: 'Garder un unique chemin manuel pour ce déplacement.',
+              suggestedFixLabel:
+                  'Garder un unique chemin manuel pour ce déplacement.',
             ),
           );
         }
@@ -1518,7 +1825,8 @@ void _diagnoseActorMoveStep(
             CinematicDiagnostic(
               code: CinematicDiagnosticCode.actorMoveManualPathUnused,
               severity: CinematicDiagnosticSeverity.warning,
-              message: 'Ce déplacement est en trajet direct, mais un chemin manuel y est toujours associé.',
+              message:
+                  'Ce déplacement est en trajet direct, mais un chemin manuel y est toujours associé.',
               cinematicId: cinematic.id,
               stepId: step.id,
               target: CinematicDiagnosticTarget.step,

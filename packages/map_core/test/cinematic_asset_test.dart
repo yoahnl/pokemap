@@ -77,6 +77,80 @@ void main() {
       expect(decoded.legacyBridge?.scenarioId, 'scenario_legacy_intro');
     });
 
+    test('V1-131 round-trips camera focus metadata through typed helpers', () {
+      final asset = CinematicAsset(
+        id: 'cinematic_camera_focus',
+        title: 'Camera focus cinematic',
+        timeline: CinematicTimeline(
+          steps: [
+            CinematicTimelineStep(
+              id: 'camera_focus_actor',
+              kind: CinematicTimelineStepKind.camera,
+              durationMs: 800,
+              metadata: const {
+                cinematicTimelineCameraModeMetadataKey: 'focus',
+                cinematicTimelineCameraTargetKindMetadataKey: 'actor',
+                cinematicTimelineCameraTargetActorIdMetadataKey:
+                    'actor_professor',
+                cinematicTimelineCameraZoomPresetMetadataKey: 'close',
+              },
+            ),
+          ],
+        ),
+      );
+
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final decoded = CinematicAsset.fromJson(json);
+      final step = decoded.timeline.steps.single;
+      final target = cinematicTimelineCameraTargetBindingOf(step);
+      final focus = cinematicTimelineCameraFocusBindingOf(step);
+
+      expect(cinematicTimelineCameraModeOf(step),
+          CinematicTimelineCameraMode.focus);
+      expect(cinematicTimelineCameraTargetKindOf(step),
+          CinematicCameraTargetKind.actor);
+      expect(target,
+          CinematicCameraTargetBinding.actor(actorId: 'actor_professor'));
+      expect(
+        cinematicTimelineCameraZoomPresetOf(step),
+        CinematicCameraZoomPreset.close,
+      );
+      expect(
+        focus,
+        CinematicTimelineCameraFocusBinding(
+          target:
+              CinematicCameraTargetBinding.actor(actorId: 'actor_professor'),
+          zoomPreset: CinematicCameraZoomPreset.close,
+        ),
+      );
+    });
+
+    test('V1-131 legacy camera reset and hold remain readable', () {
+      final resetStep = CinematicTimelineStep(
+        id: 'camera_reset',
+        kind: CinematicTimelineStepKind.camera,
+        metadata: const {
+          cinematicTimelineCameraModeMetadataKey: 'reset',
+        },
+      );
+      final holdStep = CinematicTimelineStep(
+        id: 'camera_hold',
+        kind: CinematicTimelineStepKind.camera,
+        metadata: const {
+          cinematicTimelineCameraModeMetadataKey: 'hold',
+        },
+      );
+
+      expect(cinematicTimelineCameraModeOf(resetStep),
+          CinematicTimelineCameraMode.reset);
+      expect(cinematicTimelineCameraModeOf(holdStep),
+          CinematicTimelineCameraMode.hold);
+      expect(cinematicTimelineCameraTargetBindingOf(resetStep), isNull);
+      expect(cinematicTimelineCameraFocusBindingOf(holdStep), isNull);
+      expect(cinematicTimelineCameraZoomPresetOf(resetStep), isNull);
+    });
+
     test('serializes cinematic stage context without duplicating map id', () {
       final asset = CinematicAsset(
         id: 'cinematic_stage_intro',
@@ -309,7 +383,8 @@ void main() {
           (stageJson['manualPaths'] as List<dynamic>).first as Map;
 
       expect(decoded, asset);
-      expect(decoded.stageContext?.manualPaths, asset.stageContext?.manualPaths);
+      expect(
+          decoded.stageContext?.manualPaths, asset.stageContext?.manualPaths);
       expect(decoded.stageContext?.manualPaths.first.waypointStagePointIds, [
         'point_b',
         'point_a',
@@ -625,7 +700,8 @@ void main() {
         timeline: CinematicTimeline(steps: const []),
       );
 
-      final json = jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
       final decoded = CinematicAsset.fromJson(json);
 
       expect(decoded.stageContext?.stagePoints, hasLength(2));
@@ -661,9 +737,11 @@ void main() {
           CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2),
         ],
       );
-      final json = jsonDecode(jsonEncode(context.toJson())) as Map<String, dynamic>;
+      final json =
+          jsonDecode(jsonEncode(context.toJson())) as Map<String, dynamic>;
       final decoded = CinematicStageContext.fromJson(json);
-      expect(decoded.stagePoints.map((p) => p.id).toList(), ['point_a', 'point_b']);
+      expect(decoded.stagePoints.map((p) => p.id).toList(),
+          ['point_a', 'point_b']);
     });
 
     test('actor initial placement can reference a cinematic stage point', () {
@@ -693,7 +771,8 @@ void main() {
         timeline: CinematicTimeline(steps: const []),
       );
 
-      final json = jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
+      final json =
+          jsonDecode(jsonEncode(asset.toJson())) as Map<String, dynamic>;
       final decoded = CinematicAsset.fromJson(json);
 
       expect(decoded.stageContext?.initialPlacements, hasLength(1));

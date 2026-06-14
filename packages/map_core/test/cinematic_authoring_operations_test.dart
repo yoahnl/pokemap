@@ -1383,6 +1383,279 @@ void main() {
       expect(result.step.metadata, containsPair('camera.mode', 'hold'));
     });
 
+    test('V1-131 adds camera focus blocks with typed target bindings', () {
+      var project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(
+                actorId: 'actor_professor',
+                label: 'Professor',
+              ),
+            ],
+            stageContext: CinematicStageContext(
+              stagePoints: [
+                CinematicStagePoint(
+                  id: 'point_gate',
+                  label: 'Port',
+                  x: 4,
+                  y: 6,
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      final sceneCenter = addCinematicTimelineCameraFocusStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        target: CinematicCameraTargetBinding.sceneCenter(),
+        zoomPreset: CinematicCameraZoomPreset.medium,
+      );
+      project = sceneCenter.updatedProject;
+      final actor = addCinematicTimelineCameraFocusStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        target: CinematicCameraTargetBinding.actor(
+          actorId: 'actor_professor',
+          label: 'Professor',
+        ),
+        zoomPreset: CinematicCameraZoomPreset.close,
+      );
+      project = actor.updatedProject;
+      final stagePoint = addCinematicTimelineCameraFocusStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        target: CinematicCameraTargetBinding.stagePoint(
+          stagePointId: 'point_gate',
+          label: 'Port',
+        ),
+        zoomPreset: CinematicCameraZoomPreset.wide,
+      );
+
+      expect(sceneCenter.step.kind, CinematicTimelineStepKind.camera);
+      expect(sceneCenter.step.durationMs,
+          cinematicTimelineDefaultCameraDurationMs);
+      expect(cinematicTimelineCameraModeOf(sceneCenter.step),
+          CinematicTimelineCameraMode.focus);
+      expect(
+        cinematicTimelineCameraFocusBindingOf(sceneCenter.step),
+        CinematicTimelineCameraFocusBinding(
+          target: CinematicCameraTargetBinding.sceneCenter(),
+          zoomPreset: CinematicCameraZoomPreset.medium,
+        ),
+      );
+      expect(
+        sceneCenter.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetActorIdMetadataKey)),
+      );
+      expect(
+        sceneCenter.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetStagePointIdMetadataKey)),
+      );
+
+      expect(
+        cinematicTimelineCameraFocusBindingOf(actor.step),
+        CinematicTimelineCameraFocusBinding(
+          target: CinematicCameraTargetBinding.actor(
+            actorId: 'actor_professor',
+          ),
+          zoomPreset: CinematicCameraZoomPreset.close,
+        ),
+      );
+      expect(
+        actor.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetStagePointIdMetadataKey)),
+      );
+
+      expect(
+        cinematicTimelineCameraFocusBindingOf(stagePoint.step),
+        CinematicTimelineCameraFocusBinding(
+          target: CinematicCameraTargetBinding.stagePoint(
+            stagePointId: 'point_gate',
+          ),
+          zoomPreset: CinematicCameraZoomPreset.wide,
+        ),
+      );
+      expect(
+        stagePoint.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetActorIdMetadataKey)),
+      );
+      expect(
+        stagePoint.cinematic.timeline.steps.map((step) => step.id),
+        ['step_camera', 'step_camera_2', 'step_camera_3'],
+      );
+    });
+
+    test('V1-131 updates camera focus and cleans stale camera bindings', () {
+      final actorMove = CinematicTimelineStep(
+        id: 'step_actor_move',
+        kind: CinematicTimelineStepKind.actorMove,
+        actorId: 'actor_professor',
+        targetId: 'target_center',
+        durationMs: 900,
+        metadata: const {
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineAuthoringBlockMetadataKey:
+              cinematicTimelineActorMoveBlockMetadataValue,
+          cinematicTimelineActorMovementModeMetadataKey: 'walk',
+          cinematicTimelineActorPathModeMetadataKey: 'manual',
+        },
+      );
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(
+                actorId: 'actor_professor',
+                label: 'Professor',
+              ),
+            ],
+            movementTargets: [
+              CinematicMovementTargetRef(
+                targetId: 'target_center',
+                label: 'Centre',
+              ),
+            ],
+            stageContext: CinematicStageContext(
+              stagePoints: [
+                CinematicStagePoint(
+                  id: 'point_gate',
+                  label: 'Port',
+                  x: 4,
+                  y: 6,
+                ),
+              ],
+              manualPaths: [
+                CinematicManualPath(
+                  id: 'path_step_actor_move',
+                  label: 'Trajet',
+                  ownerActorMoveStepId: 'step_actor_move',
+                  waypointStagePointIds: ['point_gate'],
+                ),
+              ],
+            ),
+            timeline: CinematicTimeline(steps: [actorMove]),
+          ),
+        ],
+      );
+      final added = addCinematicTimelineCameraFocusStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        target: CinematicCameraTargetBinding.actor(actorId: 'actor_professor'),
+        zoomPreset: CinematicCameraZoomPreset.close,
+      );
+
+      final stagePointFocus = updateCinematicTimelineBasicBlockStep(
+        added.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        cameraMode: CinematicTimelineCameraMode.focus,
+        cameraFocusBinding: CinematicTimelineCameraFocusBinding(
+          target: CinematicCameraTargetBinding.stagePoint(
+            stagePointId: 'point_gate',
+          ),
+          zoomPreset: CinematicCameraZoomPreset.wide,
+        ),
+      );
+      final reset = updateCinematicTimelineBasicBlockStep(
+        stagePointFocus.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        cameraMode: CinematicTimelineCameraMode.reset,
+      );
+
+      expect(stagePointFocus.step.durationMs,
+          cinematicTimelineDefaultCameraDurationMs);
+      expect(
+        stagePointFocus.step.metadata,
+        containsPair(
+            cinematicTimelineCameraTargetStagePointIdMetadataKey, 'point_gate'),
+      );
+      expect(
+        stagePointFocus.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetActorIdMetadataKey)),
+      );
+      expect(cinematicTimelineCameraFocusBindingOf(stagePointFocus.step),
+          isNotNull);
+
+      expect(cinematicTimelineCameraModeOf(reset.step),
+          CinematicTimelineCameraMode.reset);
+      expect(cinematicTimelineCameraFocusBindingOf(reset.step), isNull);
+      expect(
+        reset.step.metadata,
+        isNot(contains(cinematicTimelineCameraTargetKindMetadataKey)),
+      );
+      expect(
+        reset.step.metadata,
+        isNot(contains(cinematicTimelineCameraZoomPresetMetadataKey)),
+      );
+
+      final original = project.cinematics.single;
+      final updated = reset.cinematic;
+      expect(updated.movementTargets, original.movementTargets);
+      expect(updated.stageContext?.manualPaths,
+          original.stageContext?.manualPaths);
+      expect(updated.timeline.steps.first, actorMove);
+    });
+
+    test('V1-131 validates camera focus target bindings', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(
+            id: 'cinematic_intro',
+            requiredActors: [
+              CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+            ],
+            stageContext: CinematicStageContext(
+              stagePoints: [
+                CinematicStagePoint(
+                    id: 'point_gate', label: 'Port', x: 1, y: 2),
+              ],
+            ),
+            timeline: CinematicTimeline(),
+          ),
+        ],
+      );
+
+      expect(
+        () => addCinematicTimelineBasicBlockStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          blockKind: CinematicTimelineBasicBlockKind.camera,
+          cameraMode: CinematicTimelineCameraMode.focus,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => addCinematicTimelineCameraFocusStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          target: CinematicCameraTargetBinding.actor(actorId: 'actor_missing'),
+          zoomPreset: CinematicCameraZoomPreset.medium,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => addCinematicTimelineCameraFocusStep(
+          project,
+          cinematicId: 'cinematic_intro',
+          target: CinematicCameraTargetBinding.stagePoint(
+            stagePointId: 'point_missing',
+          ),
+          zoomPreset: CinematicCameraZoomPreset.medium,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
     test('updateCinematicTimelineBasicBlockStep changes only allowed params',
         () {
       var project = _project(

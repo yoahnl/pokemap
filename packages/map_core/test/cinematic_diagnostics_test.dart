@@ -202,6 +202,215 @@ void main() {
       );
     });
 
+    test('V1-131 diagnoses invalid camera focus metadata', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_camera_focus',
+          title: 'Camera focus',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(
+                id: 'point_gate',
+                label: 'Port',
+                x: 4,
+                y: 6,
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'focus_no_target',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'medium',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_actor_missing',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'actor',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'close',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_actor_unknown',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'actor',
+                  cinematicTimelineCameraTargetActorIdMetadataKey:
+                      'actor_missing',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'close',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_stage_missing',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'stagePoint',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'wide',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_stage_unknown',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'stagePoint',
+                  cinematicTimelineCameraTargetStagePointIdMetadataKey:
+                      'point_missing',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'wide',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_no_zoom',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'sceneCenter',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_zoom_unknown',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'sceneCenter',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'macro',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'focus_target_unknown',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'mapMarker',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'medium',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'camera_mode_unknown',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'orbit',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(report.byCode(CinematicDiagnosticCode.cameraTargetMissing),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraTargetActorMissing),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraTargetActorUnknown),
+          hasLength(1));
+      expect(
+          report.byCode(CinematicDiagnosticCode.cameraTargetStagePointMissing),
+          hasLength(1));
+      expect(
+          report.byCode(CinematicDiagnosticCode.cameraTargetStagePointUnknown),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraZoomPresetMissing),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraZoomPresetUnsupported),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraTargetKindUnsupported),
+          hasLength(1));
+      expect(report.byCode(CinematicDiagnosticCode.cameraModeUnsupported),
+          hasLength(1));
+    });
+
+    test('V1-131 diagnoses camera stage point map constraints when available',
+        () {
+      final outOfMapReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_camera_stage_point',
+          title: 'Camera stage point',
+          mapId: 'map_lab',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_far', label: 'Loin', x: 99, y: 1),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'focus_stage_point',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'stagePoint',
+                  cinematicTimelineCameraTargetStagePointIdMetadataKey:
+                      'point_far',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'wide',
+                },
+              ),
+            ],
+          ),
+        ),
+        mapWidth: 10,
+        mapHeight: 10,
+      );
+      final missingMapReport = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_camera_no_map',
+          title: 'Camera no map',
+          stageContext: CinematicStageContext(
+            stagePoints: [
+              CinematicStagePoint(id: 'point_gate', label: 'Port', x: 4, y: 6),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'focus_stage_point',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'stagePoint',
+                  cinematicTimelineCameraTargetStagePointIdMetadataKey:
+                      'point_gate',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'wide',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        outOfMapReport
+            .byCode(CinematicDiagnosticCode.cameraTargetStagePointOutOfMap),
+        hasLength(1),
+      );
+      expect(
+        missingMapReport
+            .byCode(CinematicDiagnosticCode.cameraTargetStageMapMissing),
+        hasLength(1),
+      );
+    });
+
     test('diagnostics use the same bounds as authoring validation', () {
       final invalidBasicDuration = cinematicTimelineMinimumDurationMs - 1;
       final invalidActorMoveDuration =
