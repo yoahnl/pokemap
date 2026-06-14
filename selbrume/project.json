@@ -17383,7 +17383,7 @@
     "defaultMapWidth": 45,
     "defaultMapHeight": 45,
     "defaultPlayerCharacterId": "vova",
-    "mistralApiKey": "YxQWaPOS8SR11EaUUWJU6dxnVJSfZGzO"
+    "mistralApiKey": ""
   },
   "pokemon": {
     "enabled": true,
