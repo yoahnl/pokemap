@@ -7613,6 +7613,490 @@ void main() {
   );
 
   testWidgets(
+    'V1-124 active supported camera shows camera preview overlay',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-frame')),
+        findsOneWidget,
+      );
+      expect(find.text('Caméra active'), findsOneWidget);
+      expect(find.text('Cadrage caméra prêt'), findsOneWidget);
+      expect(find.text('Prévisualisation caméra partielle'), findsNothing);
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-124 unsupported camera shows no-code camera fallback message',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'orbit');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      expect(find.text('Caméra active'), findsOneWidget);
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsOneWidget,
+      );
+      expect(find.text('Cadrage caméra prêt'), findsNothing);
+      expect(find.textContaining('cameraPose'), findsNothing);
+      expect(find.textContaining('activeStepId'), findsNothing);
+      expect(find.textContaining('unsupported'), findsNothing);
+      expect(find.textContaining('progress'), findsNothing);
+      expect(find.textContaining('runtime'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'V1-124 missing camera mode shows Cadrage caméra incomplet',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: null);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(find.text('Cadrage caméra incomplet.'), findsOneWidget);
+      expect(find.text('Prévisualisation caméra partielle'), findsNothing);
+      expect(find.textContaining('camera.mode'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'V1-124 no active camera hides camera overlay before and after step',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'reset');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      final tick1500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1500')),
+      );
+      await tester.tapAt(Offset(tick1500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(1450, 1550));
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'V1-124 Play Pause Stop and Reset update camera overlay from playback time',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (_) => projectChangeCount += 1,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.text('Lecture en cours'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-play-button')),
+      );
+      await tester.pump();
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      final pausedTime = _playbackTimeMsFromLabel(tester);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(_playbackTimeMsFromLabel(tester), pausedTime);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-stop-button')),
+      );
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), 0);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-transport-reset-button')),
+      );
+      await tester.pump();
+      expect(_playbackTimeMsFromLabel(tester), 0);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-124 seek and scrub update camera overlay without probe or selection changes',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final cameraCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-camera_preview'),
+      );
+      await tester.tap(cameraCard);
+      await tester.pumpAndSettle();
+      _expectTimelineStepSelected(tester, 'camera_preview');
+
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final tick1500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1500')),
+      );
+
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      _expectTimelineStepSelected(tester, 'camera_preview');
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+
+      await tester.tapAt(Offset(tick1500Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsNothing,
+      );
+      _expectTimelineStepSelected(tester, 'camera_preview');
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      final overlay = tester.widget<IgnorePointer>(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+      );
+      expect(overlay.ignoring, isTrue);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      _expectTimelineStepSelected(tester, 'camera_preview');
+    },
+  );
+
+  testWidgets(
+    'captures V1-124 cinematic camera preview playback ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_124_CAPTURE_CINEMATIC_CAMERA_PREVIEW_PLAYBACK_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final tileRenderPlan = await _referenceTileRenderPlanFor(
+        project: project,
+        mapData: mapData,
+      );
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+          asset: asset,
+          stageMap: project.maps.single,
+          mapData: mapData,
+        ),
+        backdropTileRenderPlan: tileRenderPlan,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      final cameraCard = find.byKey(
+        const ValueKey('cinematic-builder-step-card-camera_preview'),
+      );
+      await tester.tap(cameraCard);
+      await tester.pumpAndSettle();
+
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick500Rect.left + 2, axisRect.center.dy));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-inspector-tab-scene')),
+      );
+      await tester.pumpAndSettle();
+
+      _expectTimelineStepSelected(tester, 'camera_preview');
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+        findsOneWidget,
+      );
+      expect(find.text('Caméra active'), findsOneWidget);
+      expect(find.text('Cadrage caméra prêt'), findsOneWidget);
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.text('Flame'), findsNothing);
+      final forbiddenStateLabel = ['Game', 'State'].join();
+      expect(find.text(forbiddenStateLabel), findsNothing);
+      final forbiddenNextLotLabel = ['V1', '125'].join('-');
+      expect(find.text(forbiddenNextLotLabel), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_124_cinematic_camera_preview_playback_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
     'V1-112 moves direct actorMove actor during playback and resets to start',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
@@ -17426,6 +17910,49 @@ CinematicAsset _stageReadyCinematic() {
             cinematicTimelineActorMovementModeMetadataKey: 'walk',
             cinematicTimelineActorPathModeMetadataKey: 'direct',
           },
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _cameraPreviewPlaybackCinematic({String? cameraMode}) {
+  final cameraMetadata = <String, String>{
+    cinematicTimelineDraftMetadataKindKey:
+        cinematicTimelineBasicBlockMetadataKindValue,
+    cinematicTimelineDraftMetadataSourceKey:
+        cinematicTimelineDraftMetadataSourceValue,
+    cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+    if (cameraMode != null) cinematicTimelineCameraModeMetadataKey: cameraMode,
+  };
+  return CinematicAsset(
+    id: 'cinematic_camera_preview_playback',
+    title: 'Camera preview playback',
+    description: 'Neutral fixture for camera preview playback.',
+    mapId: 'map_lab',
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'camera_intro_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Ouverture',
+          durationMs: 400,
+        ),
+        CinematicTimelineStep(
+          id: 'camera_preview',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Cadrage port',
+          durationMs: 800,
+          metadata: cameraMetadata,
+        ),
+        CinematicTimelineStep(
+          id: 'camera_outro_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Sortie caméra',
+          durationMs: 500,
         ),
       ],
     ),

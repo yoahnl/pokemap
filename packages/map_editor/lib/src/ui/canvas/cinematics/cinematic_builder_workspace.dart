@@ -673,6 +673,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                   actorSpritePreviewPlan:
                                       previewActorSpritePreviewPlan,
                                   fadeState: playbackFrame.fadeState,
+                                  cameraPose: playbackFrame.cameraPose,
                                   playbackPreviewStatus: playbackPreviewStatus,
                                   backdropFramingState: _backdropFramingState,
                                   stagePoints:
@@ -2465,6 +2466,7 @@ class _PreviewSandbox extends StatelessWidget {
     this.actorPlaybackPreviewModel,
     this.actorSpritePreviewPlan,
     this.fadeState,
+    required this.cameraPose,
     required this.playbackPreviewStatus,
     required this.backdropFramingState,
     required this.onBackdropFramingModeChanged,
@@ -2495,6 +2497,7 @@ class _PreviewSandbox extends StatelessWidget {
   final CinematicActorPlaybackOverlayModel? actorPlaybackPreviewModel;
   final CinematicActorSpritePreviewPlan? actorSpritePreviewPlan;
   final CinematicFadePlaybackState? fadeState;
+  final CinematicCameraPlaybackPose cameraPose;
   final CinematicPlaybackPreviewStatus playbackPreviewStatus;
   final CinematicBackdropPreviewFramingState backdropFramingState;
   final ValueChanged<CinematicBackdropPreviewFramingMode>
@@ -2538,6 +2541,7 @@ class _PreviewSandbox extends StatelessWidget {
               actorPlaybackPreviewModel: actorPlaybackPreviewModel,
               actorSpritePreviewPlan: actorSpritePreviewPlan,
               fadeState: fadeState,
+              cameraPose: cameraPose,
               playbackPreviewStatus: playbackPreviewStatus,
               framingState: backdropFramingState,
               selectedStep: selectedStep,
