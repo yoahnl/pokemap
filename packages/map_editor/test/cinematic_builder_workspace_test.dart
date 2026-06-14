@@ -136,6 +136,207 @@ void main() {
     expect(fixture.mapData.toJson(), beforeMapData);
   });
 
+  testWidgets('V1-128 palette adds actor emote block', (tester) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _actorEmoteAuthoringCinematic(withEmoteStep: false);
+    final mapData = _stageMapDataWithActorDisplayFixtures();
+    final project = _project(cinematics: [asset], includeBridge: false);
+    final beforeMapData = mapData.toJson();
+    var latestProject = project;
+    var projectChangeCount = 0;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      onProjectChanged: (project) {
+        latestProject = project;
+        projectChangeCount += 1;
+      },
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    expect(find.text('Émotion'), findsWidgets);
+    final paletteButton = find.byKey(
+      const ValueKey('cinematic-builder-palette-actor-emote-button'),
+    );
+    await tester.ensureVisible(paletteButton);
+    await tester.tap(paletteButton);
+    await tester.pumpAndSettle();
+
+    final updatedAsset = _asset(latestProject, asset.id);
+    final emoteSteps = updatedAsset.timeline.steps
+        .where((step) => step.kind == CinematicTimelineStepKind.actorEmote)
+        .toList(growable: false);
+    expect(emoteSteps, hasLength(1));
+    final emoteStep = emoteSteps.single;
+    expect(emoteStep.actorId, 'actor_professor');
+    expect(
+      cinematicTimelineActorEmoteEmoteIdOf(emoteStep),
+      cinematicDefaultActorEmoteId,
+    );
+    expect(emoteStep.durationMs, cinematicTimelineDefaultActorEmoteDurationMs);
+    expect(projectChangeCount, 1);
+    expect(find.text('Professor affiche Surprise'), findsWidgets);
+    _expectTimelineStepSelected(tester, emoteStep.id);
+    expect(mapData.toJson(), beforeMapData);
+  });
+
+  testWidgets('V1-128 actor emote inspector lets user choose actor', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _actorEmoteAuthoringCinematic(emoteId: 'question');
+    final project = _project(cinematics: [asset], includeBridge: false);
+    var latestProject = project;
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      onProjectChanged: (project) => latestProject = project,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematic-builder-step-card-step_emote')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Réaction'), findsWidgets);
+    expect(find.text('Choix no-code'), findsWidgets);
+    expect(find.text('Question'), findsWidgets);
+    expect(find.textContaining('actor.emoteId'), findsNothing);
+    expect(find.textContaining('frameIndex'), findsNothing);
+    expect(find.textContaining('atlas'), findsNothing);
+
+    final rivalButton = find.byKey(
+      const ValueKey('cinematic-builder-actor-emote-actor-actor_rival'),
+    );
+    await tester.ensureVisible(rivalButton);
+    await tester.tap(rivalButton);
+    await tester.pumpAndSettle();
+
+    final updatedStep = _asset(latestProject, asset.id)
+        .timeline
+        .steps
+        .singleWhere((step) => step.id == 'step_emote');
+    expect(updatedStep.actorId, 'actor_rival');
+    expect(cinematicTimelineActorEmoteEmoteIdOf(updatedStep), 'question');
+    expect(updatedStep.label, 'Rival affiche Question');
+    expect(find.text('Rival affiche Question'), findsWidgets);
+  });
+
+  testWidgets(
+    'V1-128 actor emote inspector lets user choose no-code emote and duration',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _actorEmoteAuthoringCinematic();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      var latestProject = project;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        onProjectChanged: (project) => latestProject = project,
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_emote')),
+      );
+      await tester.pumpAndSettle();
+
+      final heartButton = find.byKey(
+        const ValueKey('cinematic-builder-actor-emote-emote-heart'),
+      );
+      await tester.ensureVisible(heartButton);
+      await tester.tap(heartButton);
+      await tester.pumpAndSettle();
+
+      var updatedStep = _asset(latestProject, asset.id)
+          .timeline
+          .steps
+          .singleWhere((step) => step.id == 'step_emote');
+      expect(updatedStep.actorId, 'actor_professor');
+      expect(cinematicTimelineActorEmoteEmoteIdOf(updatedStep), 'heart');
+      expect(updatedStep.label, 'Professor affiche Coeur');
+      expect(find.text('Coeur'), findsWidgets);
+
+      final durationField = find.byKey(
+        const ValueKey('cinematic-builder-actor-emote-duration-ms-field'),
+      );
+      await tester.ensureVisible(durationField);
+      await tester.enterText(durationField, '1200');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      updatedStep = _asset(latestProject, asset.id).timeline.steps.singleWhere(
+            (step) => step.id == 'step_emote',
+          );
+      expect(updatedStep.durationMs, 1200);
+      expect(find.textContaining('sourceRect'), findsNothing);
+      expect(find.textContaining('AssetImage'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'captures V1-128 cinematic emote block editor ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_128_CAPTURE_CINEMATIC_EMOTE_BLOCK_EDITOR_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _actorEmoteAuthoringCinematic(emoteId: 'question');
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        asset.id,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        surfaceSize: _referenceTimelineSurfaceSize,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_emote')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Émotion'), findsWidgets);
+      expect(find.text('Réaction'), findsWidgets);
+      expect(find.text('Choix no-code'), findsWidgets);
+      expect(find.text('Question'), findsWidgets);
+      expect(find.text('Bornes : 100–30000 ms · pas 100 ms'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('actor.emoteId'), findsNothing);
+      expect(find.textContaining('frameIndex'), findsNothing);
+      expect(find.textContaining('runtime'), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_128_cinematic_emote_block_editor_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
   testWidgets('edits cinematic stage map and backdrop from builder', (
     tester,
   ) async {
@@ -16756,6 +16957,22 @@ Future<void> _pumpBuilder(
                 CinematicTimelineActorMovementMode? movementMode,
               }) async =>
                   false,
+              onAddActorEmoteStep: ({
+                required String cinematicId,
+                required String actorId,
+                required String emoteId,
+                int? durationMs,
+                String? afterStepId,
+              }) async =>
+                  null,
+              onUpdateActorEmoteStep: ({
+                required String cinematicId,
+                required String stepId,
+                String? actorId,
+                String? emoteId,
+                int? durationMs,
+              }) async =>
+                  false,
               onRemoveAuthoringStep: ({
                 required String cinematicId,
                 required String stepId,
@@ -16905,6 +17122,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               onUpdateActorFacingStep: _updateActorFacingStep,
               onAddActorMoveStep: _addActorMoveStep,
               onUpdateActorMoveStep: _updateActorMoveStep,
+              onAddActorEmoteStep: _addActorEmoteStep,
+              onUpdateActorEmoteStep: _updateActorEmoteStep,
               onRemoveAuthoringStep: _removeAuthoringStep,
               onUpdateStageMap: _updateStageMap,
               onUpdateStageContext: _updateStageContext,
@@ -17252,6 +17471,46 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
     return result.step.id == stepId;
   }
 
+  Future<String?> _addActorEmoteStep({
+    required String cinematicId,
+    required String actorId,
+    required String emoteId,
+    int? durationMs,
+    String? afterStepId,
+  }) async {
+    final result = addCinematicTimelineActorEmoteStep(
+      _project,
+      cinematicId: cinematicId,
+      actorId: actorId,
+      emoteId: emoteId,
+      durationMs: durationMs,
+      afterStepId: afterStepId,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id;
+  }
+
+  Future<bool> _updateActorEmoteStep({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    String? emoteId,
+    int? durationMs,
+  }) async {
+    final result = updateCinematicTimelineActorEmoteStep(
+      _project,
+      cinematicId: cinematicId,
+      stepId: stepId,
+      actorId: actorId,
+      emoteId: emoteId,
+      durationMs: durationMs,
+    );
+    setState(() => _project = result.updatedProject);
+    widget.onProjectChanged?.call(_project);
+    return result.step.id == stepId;
+  }
+
   Future<bool> _updateActorFacingStep({
     required String cinematicId,
     required String stepId,
@@ -17313,6 +17572,57 @@ CinematicAsset _actorFacingCinematic() {
           label: 'Opening wait',
           durationMs: 500,
         ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _actorEmoteAuthoringCinematic({
+  bool withEmoteStep = true,
+  String actorId = 'actor_professor',
+  String emoteId = cinematicDefaultActorEmoteId,
+}) {
+  final actorLabel = switch (actorId) {
+    'actor_professor' => 'Professor',
+    'actor_rival' => 'Rival',
+    _ => actorId,
+  };
+  final emoteLabel =
+      cinematicEmoteCatalogEntryById(emoteId)?.label ?? 'Réaction';
+  return CinematicAsset(
+    id: 'cinematic_actor_emote',
+    title: 'Actor emote cinematic',
+    description: 'Actor emote authoring fixture.',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+      CinematicActorRef(actorId: 'actor_rival', label: 'Rival'),
+    ],
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'step_wait',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Opening wait',
+          durationMs: 500,
+        ),
+        if (withEmoteStep)
+          CinematicTimelineStep(
+            id: 'step_emote',
+            kind: CinematicTimelineStepKind.actorEmote,
+            label: '$actorLabel affiche $emoteLabel',
+            actorId: actorId,
+            durationMs: cinematicTimelineDefaultActorEmoteDurationMs,
+            metadata: {
+              cinematicTimelineDraftMetadataKindKey:
+                  cinematicTimelineBasicBlockMetadataKindValue,
+              cinematicTimelineDraftMetadataSourceKey:
+                  cinematicTimelineDraftMetadataSourceValue,
+              cinematicTimelineAuthoringBlockMetadataKey:
+                  cinematicTimelineActorEmoteBlockMetadataValue,
+              cinematicTimelineActorEmoteEmoteIdMetadataKey: emoteId,
+            },
+          ),
       ],
     ),
   );

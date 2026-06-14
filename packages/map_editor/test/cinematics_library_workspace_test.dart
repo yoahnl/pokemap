@@ -1360,6 +1360,42 @@ class _HarnessState extends State<_Harness> {
                 setState(() => _project = result.updatedProject);
                 return result.step.id == stepId;
               },
+              onAddTimelineActorEmote: ({
+                required String cinematicId,
+                required String actorId,
+                required String emoteId,
+                int? durationMs,
+                String? afterStepId,
+              }) async {
+                final result = addCinematicTimelineActorEmoteStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  actorId: actorId,
+                  emoteId: emoteId,
+                  durationMs: durationMs,
+                  afterStepId: afterStepId,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id;
+              },
+              onUpdateTimelineActorEmote: ({
+                required String cinematicId,
+                required String stepId,
+                String? actorId,
+                String? emoteId,
+                int? durationMs,
+              }) async {
+                final result = updateCinematicTimelineActorEmoteStep(
+                  _project,
+                  cinematicId: cinematicId,
+                  stepId: stepId,
+                  actorId: actorId,
+                  emoteId: emoteId,
+                  durationMs: durationMs,
+                );
+                setState(() => _project = result.updatedProject);
+                return result.step.id == stepId;
+              },
               onRemoveTimelineAuthoringStep: ({
                 required String cinematicId,
                 required String stepId,

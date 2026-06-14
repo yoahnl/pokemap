@@ -1115,6 +1115,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       onUpdateTimelineActorFacing: _updateCinematicTimelineActorFacing,
       onAddTimelineActorMove: _addCinematicTimelineActorMove,
       onUpdateTimelineActorMove: _updateCinematicTimelineActorMove,
+      onAddTimelineActorEmote: _addCinematicTimelineActorEmote,
+      onUpdateTimelineActorEmote: _updateCinematicTimelineActorEmote,
       onRemoveTimelineAuthoringStep: _removeCinematicTimelineAuthoringStep,
       onUpdateStageMap: _updateCinematicStageMap,
       onUpdateStageContext: _updateCinematicStageContext,
@@ -1591,6 +1593,66 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       widget.editorNotifier.applyInMemoryProjectManifest(
         result.updatedProject,
         statusMessage: 'Cinematic actor movement block updated',
+      );
+      return result.step.id == stepId;
+    } on ArgumentError {
+      return false;
+    }
+  }
+
+  Future<String?> _addCinematicTimelineActorEmote({
+    required String cinematicId,
+    required String actorId,
+    required String emoteId,
+    int? durationMs,
+    String? afterStepId,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return null;
+    }
+    try {
+      final result = addCinematicTimelineActorEmoteStep(
+        project,
+        cinematicId: cinematicId,
+        actorId: actorId,
+        emoteId: emoteId,
+        durationMs: durationMs,
+        afterStepId: afterStepId,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor emote block created',
+      );
+      return result.step.id;
+    } on ArgumentError {
+      return null;
+    }
+  }
+
+  Future<bool> _updateCinematicTimelineActorEmote({
+    required String cinematicId,
+    required String stepId,
+    String? actorId,
+    String? emoteId,
+    int? durationMs,
+  }) async {
+    final project = widget.project;
+    if (project == null) {
+      return false;
+    }
+    try {
+      final result = updateCinematicTimelineActorEmoteStep(
+        project,
+        cinematicId: cinematicId,
+        stepId: stepId,
+        actorId: actorId,
+        emoteId: emoteId,
+        durationMs: durationMs,
+      );
+      widget.editorNotifier.applyInMemoryProjectManifest(
+        result.updatedProject,
+        statusMessage: 'Cinematic actor emote block updated',
       );
       return result.step.id == stepId;
     } on ArgumentError {

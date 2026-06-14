@@ -119,6 +119,22 @@ typedef UpdateTimelineActorMoveCallback = Future<bool> Function({
   CinematicTimelineActorMovementMode? movementMode,
 });
 
+typedef AddTimelineActorEmoteCallback = Future<String?> Function({
+  required String cinematicId,
+  required String actorId,
+  required String emoteId,
+  int? durationMs,
+  String? afterStepId,
+});
+
+typedef UpdateTimelineActorEmoteCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  String? emoteId,
+  int? durationMs,
+});
+
 typedef RemoveTimelineAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
@@ -195,6 +211,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     required this.onUpdateTimelineActorFacing,
     required this.onAddTimelineActorMove,
     required this.onUpdateTimelineActorMove,
+    required this.onAddTimelineActorEmote,
+    required this.onUpdateTimelineActorEmote,
     required this.onRemoveTimelineAuthoringStep,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
@@ -231,6 +249,8 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final UpdateTimelineActorFacingCallback onUpdateTimelineActorFacing;
   final AddTimelineActorMoveCallback onAddTimelineActorMove;
   final UpdateTimelineActorMoveCallback onUpdateTimelineActorMove;
+  final AddTimelineActorEmoteCallback onAddTimelineActorEmote;
+  final UpdateTimelineActorEmoteCallback onUpdateTimelineActorEmote;
   final RemoveTimelineAuthoringStepCallback onRemoveTimelineAuthoringStep;
   final UpdateStageMapCallback onUpdateStageMap;
   final UpdateStageContextCallback onUpdateStageContext;
@@ -360,6 +380,8 @@ class _CinematicsLibraryWorkspaceState
         onUpdateActorFacingStep: widget.onUpdateTimelineActorFacing,
         onAddActorMoveStep: widget.onAddTimelineActorMove,
         onUpdateActorMoveStep: widget.onUpdateTimelineActorMove,
+        onAddActorEmoteStep: widget.onAddTimelineActorEmote,
+        onUpdateActorEmoteStep: widget.onUpdateTimelineActorEmote,
         onRemoveAuthoringStep: widget.onRemoveTimelineAuthoringStep,
         onUpdateStageMap: widget.onUpdateStageMap,
         onUpdateStageContext: widget.onUpdateStageContext,

@@ -109,6 +109,22 @@ typedef UpdateCinematicActorMoveStepCallback = Future<bool> Function({
   CinematicTimelineActorMovementMode? movementMode,
 });
 
+typedef AddCinematicActorEmoteStepCallback = Future<String?> Function({
+  required String cinematicId,
+  required String actorId,
+  required String emoteId,
+  int? durationMs,
+  String? afterStepId,
+});
+
+typedef UpdateCinematicActorEmoteStepCallback = Future<bool> Function({
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  String? emoteId,
+  int? durationMs,
+});
+
 typedef RemoveCinematicAuthoringStepCallback = Future<bool> Function({
   required String cinematicId,
   required String stepId,
@@ -191,6 +207,13 @@ typedef _UpdateActorMoveCallback = Future<void> Function(
   CinematicTimelineActorMovementMode? movementMode,
 });
 
+typedef _UpdateActorEmoteCallback = Future<void> Function(
+  CinematicTimelineStep step, {
+  String? actorId,
+  String? emoteId,
+  int? durationMs,
+});
+
 typedef _ResizeStepDurationCallback = Future<bool> Function(
   CinematicTimelineStep step, {
   required int durationMs,
@@ -222,6 +245,8 @@ typedef _RemoveMovementTargetCallback = Future<bool> Function(
 typedef _AddActorFacingCallback = Future<void> Function();
 
 typedef _AddActorMoveCallback = Future<void> Function();
+
+typedef _AddActorEmoteCallback = Future<void> Function();
 
 typedef _RemoveAuthoringStepCallback = Future<void> Function(
     CinematicTimelineStep step);
@@ -278,6 +303,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.onUpdateActorFacingStep,
     required this.onAddActorMoveStep,
     required this.onUpdateActorMoveStep,
+    required this.onAddActorEmoteStep,
+    required this.onUpdateActorEmoteStep,
     required this.onRemoveAuthoringStep,
     required this.onUpdateStageMap,
     required this.onUpdateStageContext,
@@ -318,6 +345,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final UpdateCinematicActorFacingStepCallback onUpdateActorFacingStep;
   final AddCinematicActorMoveStepCallback onAddActorMoveStep;
   final UpdateCinematicActorMoveStepCallback onUpdateActorMoveStep;
+  final AddCinematicActorEmoteStepCallback onAddActorEmoteStep;
+  final UpdateCinematicActorEmoteStepCallback onUpdateActorEmoteStep;
   final RemoveCinematicAuthoringStepCallback onRemoveAuthoringStep;
   final UpdateCinematicStageMapCallback onUpdateStageMap;
   final UpdateCinematicStageContextCallback onUpdateStageContext;
@@ -639,6 +668,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                         onRemoveMovementTarget: _removeMovementTarget,
                         onAddActorFacing: _addActorFacing,
                         onAddActorMove: _addActorMove,
+                        onAddActorEmote: _addActorEmote,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -850,6 +880,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                         onUpdateBasicBlock: _updateBasicBlock,
                         onUpdateActorFacing: _updateActorFacing,
                         onUpdateActorMove: _updateActorMove,
+                        onUpdateActorEmote: _updateActorEmote,
                         onRemoveAuthoringStep: _removeAuthoringStep,
                         onAddRequiredActor: _addRequiredActor,
                         onUpdateMovementTarget: _updateMovementTarget,
@@ -1457,6 +1488,26 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     setState(() => _selectedStepId = createdStepId);
   }
 
+  Future<void> _addActorEmote() async {
+    final actor = widget.asset.requiredActors.isEmpty
+        ? null
+        : widget.asset.requiredActors.first;
+    if (actor == null) {
+      return;
+    }
+    final createdStepId = await widget.onAddActorEmoteStep(
+      cinematicId: widget.asset.id,
+      actorId: actor.actorId,
+      emoteId: cinematicDefaultActorEmoteId,
+      durationMs: cinematicTimelineDefaultActorEmoteDurationMs,
+      afterStepId: _selectedStepId,
+    );
+    if (!mounted || createdStepId == null) {
+      return;
+    }
+    setState(() => _selectedStepId = createdStepId);
+  }
+
   Future<void> _updateActorFacing(
     CinematicTimelineStep step, {
     String? actorId,
@@ -1509,6 +1560,31 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     });
   }
 
+  Future<void> _updateActorEmote(
+    CinematicTimelineStep step, {
+    String? actorId,
+    String? emoteId,
+    int? durationMs,
+  }) async {
+    if (!isCinematicTimelineActorEmoteStep(step)) {
+      return;
+    }
+    final updated = await widget.onUpdateActorEmoteStep(
+      cinematicId: widget.asset.id,
+      stepId: step.id,
+      actorId: actorId,
+      emoteId: emoteId,
+      durationMs: durationMs,
+    );
+    if (!mounted || !updated || durationMs == null) {
+      return;
+    }
+    setState(() {
+      _timelineProbeTimeMs = null;
+      _timelineProbeSnapHint = null;
+    });
+  }
+
   Future<bool> _resizeTimelineStepDuration(
     CinematicTimelineStep step, {
     required int durationMs,
@@ -1528,6 +1604,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       );
     } else if (isCinematicTimelineActorMoveStep(step)) {
       updated = await widget.onUpdateActorMoveStep(
+        cinematicId: widget.asset.id,
+        stepId: step.id,
+        durationMs: durationMs,
+      );
+    } else if (isCinematicTimelineActorEmoteStep(step)) {
+      updated = await widget.onUpdateActorEmoteStep(
         cinematicId: widget.asset.id,
         stepId: step.id,
         durationMs: durationMs,
@@ -1700,6 +1782,7 @@ class _BlockPalette extends StatelessWidget {
     required this.onRemoveMovementTarget,
     required this.onAddActorFacing,
     required this.onAddActorMove,
+    required this.onAddActorEmote,
   });
 
   final CinematicsLibraryEntry entry;
@@ -1711,6 +1794,7 @@ class _BlockPalette extends StatelessWidget {
   final _RemoveMovementTargetCallback onRemoveMovementTarget;
   final _AddActorFacingCallback onAddActorFacing;
   final _AddActorMoveCallback onAddActorMove;
+  final _AddActorEmoteCallback onAddActorEmote;
 
   @override
   Widget build(BuildContext context) {
@@ -1774,6 +1858,11 @@ class _BlockPalette extends StatelessWidget {
                   _ActorFacingPaletteTile(
                     asset: asset,
                     onAddActorFacing: onAddActorFacing,
+                  ),
+                  const SizedBox(height: 8),
+                  _ActorEmotePaletteTile(
+                    asset: asset,
+                    onAddActorEmote: onAddActorEmote,
                   ),
                   _TestHidden(
                     child: Column(
@@ -2303,6 +2392,66 @@ class _ActorFacingPaletteTile extends StatelessWidget {
             child: PokeMapButton(
               key: const ValueKey('cinematic-builder-palette-actorFace-button'),
               onPressed: hasActors ? onAddActorFacing : null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ActorEmotePaletteTile extends StatelessWidget {
+  const _ActorEmotePaletteTile({
+    required this.asset,
+    required this.onAddActorEmote,
+  });
+
+  final CinematicAsset asset;
+  final _AddActorEmoteCallback onAddActorEmote;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasActors = asset.requiredActors.isNotEmpty;
+    final description = hasActors
+        ? 'Afficher une réaction'
+        : 'Ajoutez un acteur pour afficher une réaction';
+    return Stack(
+      children: [
+        PokeMapCard(
+          onTap: hasActors ? onAddActorEmote : null,
+          child: Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.chat_bubble,
+                tone: PokeMapTone.brand,
+                size: 30,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _StrongText('Émotion'),
+                    const SizedBox(height: 2),
+                    _MutedText(description),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned.fill(
+          child: _TestHidden(
+            hitTestable: true,
+            child: PokeMapButton(
+              key: const ValueKey(
+                'cinematic-builder-palette-actor-emote-button',
+              ),
+              onPressed: hasActors ? onAddActorEmote : null,
               variant: PokeMapButtonVariant.secondary,
               size: PokeMapButtonSize.small,
               child: const SizedBox.shrink(),
@@ -5705,6 +5854,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.onUpdateBasicBlock,
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
+    required this.onUpdateActorEmote,
     required this.onRemoveAuthoringStep,
     required this.onAddMovementTarget,
     required this.onAddRequiredActor,
@@ -5747,6 +5897,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
+  final _UpdateActorEmoteCallback onUpdateActorEmote;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _AddMovementTargetCallback onAddMovementTarget;
   final _AddRequiredActorCallback onAddRequiredActor;
@@ -5854,6 +6005,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                         onUpdateBasicBlock: widget.onUpdateBasicBlock,
                         onUpdateActorFacing: widget.onUpdateActorFacing,
                         onUpdateActorMove: widget.onUpdateActorMove,
+                        onUpdateActorEmote: widget.onUpdateActorEmote,
                         onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                         onToggleActorMovePathMode:
                             widget.onToggleActorMovePathMode,
@@ -5938,6 +6090,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       onUpdateBasicBlock: widget.onUpdateBasicBlock,
                       onUpdateActorFacing: widget.onUpdateActorFacing,
                       onUpdateActorMove: widget.onUpdateActorMove,
+                      onUpdateActorEmote: widget.onUpdateActorEmote,
                       onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                       onToggleActorMovePathMode:
                           widget.onToggleActorMovePathMode,
@@ -10311,6 +10464,7 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.onUpdateBasicBlock,
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
+    required this.onUpdateActorEmote,
     required this.onRemoveAuthoringStep,
     required this.onToggleActorMovePathMode,
     required this.onAddManualPathWaypoint,
@@ -10326,6 +10480,7 @@ class _SelectedStepInspector extends StatelessWidget {
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
+  final _UpdateActorEmoteCallback onUpdateActorEmote;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
   final _AddManualPathWaypointCallback onAddManualPathWaypoint;
@@ -10340,37 +10495,47 @@ class _SelectedStepInspector extends StatelessWidget {
     final basicBlockKind = cinematicTimelineBasicBlockKindOf(step);
     final isActorFacing = isCinematicTimelineActorFacingStep(step);
     final isActorMove = isCinematicTimelineActorMoveStep(step);
+    final isActorEmote = isCinematicTimelineActorEmoteStep(step);
     final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
     final durationNonEditableReason =
         isDraft ? null : _durationNonEditableReason(step);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(title: 'Bloc sélectionné', subtitle: step.id),
+        _SectionTitle(
+          title: 'Bloc sélectionné',
+          subtitle: isActorEmote ? 'Émotion acteur' : step.id,
+        ),
         const SizedBox(height: 8),
         _KeyValue(label: 'Titre', value: _stepDisplayTitle(asset, step, index)),
-        _KeyValue(label: 'Id', value: step.id),
-        _KeyValue(label: 'Index', value: '${index + 1}'),
-        _KeyValue(label: 'Kind', value: step.kind.name),
-        _KeyValue(label: 'Durée', value: _stepDurationLabel(step)),
-        _KeyValue(
-          label: 'Acteur',
-          value: step.actorId == null
-              ? 'Aucun acteur'
-              : _actorDisplayLabelForId(asset, step.actorId!),
-        ),
-        _KeyValue(
-          label: 'Destination',
-          value: step.targetId == null
-              ? 'Aucune destination'
-              : _movementTargetLabelForId(asset, step.targetId!),
-        ),
-        _KeyValue(
-          label: 'Dialogue',
-          value: step.dialogueText ?? 'Aucun texte cinematic',
-        ),
-        _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
-        _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+        if (isActorEmote) ...[
+          const _KeyValue(label: 'Type', value: 'Émotion acteur'),
+          _KeyValue(label: 'Durée', value: _stepDurationLabel(step)),
+          _KeyValue(label: 'Résumé', value: _actorEmoteSummary(asset, step)),
+        ] else ...[
+          _KeyValue(label: 'Id', value: step.id),
+          _KeyValue(label: 'Index', value: '${index + 1}'),
+          _KeyValue(label: 'Kind', value: step.kind.name),
+          _KeyValue(label: 'Durée', value: _stepDurationLabel(step)),
+          _KeyValue(
+            label: 'Acteur',
+            value: step.actorId == null
+                ? 'Aucun acteur'
+                : _actorDisplayLabelForId(asset, step.actorId!),
+          ),
+          _KeyValue(
+            label: 'Destination',
+            value: step.targetId == null
+                ? 'Aucune destination'
+                : _movementTargetLabelForId(asset, step.targetId!),
+          ),
+          _KeyValue(
+            label: 'Dialogue',
+            value: step.dialogueText ?? 'Aucun texte cinematic',
+          ),
+          _KeyValue(label: 'Asset', value: step.assetRef ?? 'Aucun assetRef'),
+          _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
+        ],
         if (basicBlockKind != null) ...[
           const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
           _BasicBlockControls(
@@ -10401,6 +10566,15 @@ class _SelectedStepInspector extends StatelessWidget {
             onRemoveManualPathWaypoint: onRemoveManualPathWaypoint,
             onReorderManualPathWaypoint: onReorderManualPathWaypoint,
             onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorEmote) ...[
+          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
+          _ActorEmoteControls(
+            asset: asset,
+            step: step,
+            onUpdateActorEmote: onUpdateActorEmote,
           ),
           const SizedBox(height: 8),
         ],
@@ -10924,6 +11098,102 @@ class _ActorFacingControls extends StatelessWidget {
           keyPrefix: 'cinematic-builder-actor-facing-duration',
           onDurationChanged: (durationMs) {
             return onUpdateActorFacing(step, durationMs: durationMs);
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ActorEmoteControls extends StatelessWidget {
+  const _ActorEmoteControls({
+    required this.asset,
+    required this.step,
+    required this.onUpdateActorEmote,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final _UpdateActorEmoteCallback onUpdateActorEmote;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedEmoteId = cinematicTimelineActorEmoteEmoteIdOf(step);
+    final selectedEmote = cinematicEmoteCatalogEntryById(selectedEmoteId);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        const _SectionTitle(title: 'Acteur', subtitle: 'Picker requis'),
+        const SizedBox(height: 8),
+        if (asset.requiredActors.isEmpty)
+          const _MutedText('Ajoutez un acteur requis pour choisir qui réagit.')
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              for (final actor in asset.requiredActors)
+                _InlineControlAction(
+                  label: _actorDisplayLabel(actor),
+                  button: PokeMapButton(
+                    key: ValueKey(
+                      'cinematic-builder-actor-emote-actor-${actor.actorId}',
+                    ),
+                    onPressed: () {
+                      onUpdateActorEmote(step, actorId: actor.actorId);
+                    },
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    isSelected: step.actorId == actor.actorId,
+                    leading: const Icon(CupertinoIcons.person_crop_circle),
+                    child: const SizedBox.shrink(),
+                  ),
+                ),
+            ],
+          ),
+        const SizedBox(height: 8),
+        _KeyValue(
+          label: 'Réaction',
+          value: selectedEmote?.label ?? 'Réaction à choisir',
+        ),
+        const _SectionTitle(title: 'Émotion', subtitle: 'Choix no-code'),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final emote in cinematicEmoteCatalog)
+              _InlineControlAction(
+                label: emote.label,
+                button: PokeMapButton(
+                  key: ValueKey(
+                    'cinematic-builder-actor-emote-emote-${emote.id}',
+                  ),
+                  onPressed: () {
+                    onUpdateActorEmote(step, emoteId: emote.id);
+                  },
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  isSelected: selectedEmoteId == emote.id,
+                  leading: const Icon(CupertinoIcons.chat_bubble),
+                  child: const SizedBox.shrink(),
+                ),
+              ),
+          ],
+        ),
+        if (selectedEmote != null) ...[
+          const SizedBox(height: 6),
+          _MutedText(selectedEmote.description),
+        ],
+        const SizedBox(height: 8),
+        _DurationEditorControls(
+          currentDurationMs: _editableDurationMs(step),
+          explicitDurationMs: step.durationMs,
+          minDurationMs: _editableDurationMinimumMs(step),
+          keyPrefix: 'cinematic-builder-actor-emote-duration',
+          onDurationChanged: (durationMs) {
+            return onUpdateActorEmote(step, durationMs: durationMs);
           },
         ),
       ],
@@ -11684,7 +11954,8 @@ int _editableDurationMinimumMs(CinematicTimelineStep step) {
 bool _canResizeTimelineStepDuration(CinematicTimelineStep step) {
   return isCinematicTimelineBasicBlockStep(step) ||
       isCinematicTimelineActorFacingStep(step) ||
-      isCinematicTimelineActorMoveStep(step);
+      isCinematicTimelineActorMoveStep(step) ||
+      isCinematicTimelineActorEmoteStep(step);
 }
 
 int _durationResizeCandidateMs({
@@ -12177,6 +12448,19 @@ String _actorMoveSummary(CinematicAsset asset, CinematicTimelineStep step) {
       '$duration.';
 }
 
+String _actorEmoteSummary(CinematicAsset asset, CinematicTimelineStep step) {
+  final actor = step.actorId == null
+      ? 'Acteur à choisir'
+      : _actorDisplayLabelForId(asset, step.actorId!);
+  final emote = _emoteDisplayLabelForId(
+    cinematicTimelineActorEmoteEmoteIdOf(step),
+  );
+  final duration = step.durationMs == null
+      ? 'durée non renseignée'
+      : '${step.durationMs} ms';
+  return '$actor affiche $emote pendant $duration.';
+}
+
 String _actorMovementVerb(CinematicTimelineActorMovementMode? mode) {
   return switch (mode) {
     CinematicTimelineActorMovementMode.walk => 'marche',
@@ -12241,6 +12525,10 @@ String _movementTargetLabelForId(CinematicAsset asset, String targetId) {
     }
   }
   return targetId;
+}
+
+String _emoteDisplayLabelForId(String? emoteId) {
+  return cinematicEmoteCatalogEntryById(emoteId)?.label ?? 'réaction à choisir';
 }
 
 ProjectMapEntry? _stageMapForId(List<ProjectMapEntry> maps, String? mapId) {
@@ -12587,7 +12875,7 @@ IconData _stepIcon(CinematicTimelineStepKind kind) {
     CinematicTimelineStepKind.camera => CupertinoIcons.video_camera,
     CinematicTimelineStepKind.actorMove => CupertinoIcons.arrow_right,
     CinematicTimelineStepKind.actorFace => CupertinoIcons.arrow_turn_up_right,
-    CinematicTimelineStepKind.actorEmote => CupertinoIcons.person_crop_circle,
+    CinematicTimelineStepKind.actorEmote => CupertinoIcons.chat_bubble,
     CinematicTimelineStepKind.dialogueLine => CupertinoIcons.text_bubble,
     CinematicTimelineStepKind.sound => CupertinoIcons.speaker_2,
     CinematicTimelineStepKind.music => CupertinoIcons.music_note_2,
