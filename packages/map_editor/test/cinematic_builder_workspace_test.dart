@@ -7050,6 +7050,178 @@ void main() {
   });
 
   testWidgets(
+    'timeline zoom controls resize the grid and keep seek scrub and cursor aligned',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _timeLayoutCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset]);
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_time_layout',
+        surfaceSize: _referenceTimelineSurfaceSize,
+        stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+
+      expect(find.text('Zoom timeline 100%'), findsOneWidget);
+      final defaultContentWidth = tester
+          .getSize(
+            find.byKey(const ValueKey('cinematic-builder-time-content')),
+          )
+          .width;
+
+      final faceTapRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-block-step_face')),
+      );
+      await tester.tapAt(Offset(faceTapRect.left + 16, faceTapRect.top + 12));
+      await tester.pumpAndSettle();
+      _expectTimelineStepSelected(tester, 'step_face');
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-in-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zoom timeline 125%'), findsOneWidget);
+      final zoomedContentWidth = tester
+          .getSize(
+            find.byKey(const ValueKey('cinematic-builder-time-content')),
+          )
+          .width;
+      expect(zoomedContentWidth, greaterThan(defaultContentWidth));
+
+      final faceCardRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
+      );
+      final cursorRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+      );
+      expect(cursorRect.center.dx, closeTo(faceCardRect.left, 1));
+
+      final tick1000Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-1000')),
+      );
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      await tester.tapAt(Offset(tick1000Rect.left + 2, axisRect.center.dy));
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(950, 1050));
+      _expectTimelineStepSelected(tester, 'step_face');
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(_playbackTimeMsFromLabel(tester), inInclusiveRange(450, 550));
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-out-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zoom timeline 100%'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-out-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zoom timeline 75%'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-timeline-zoom-reset-button'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Zoom timeline 100%'), findsOneWidget);
+
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'timeline zoom trackpad pinch updates zoom without seeking or selecting',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final project = _project(cinematics: [_timeLayoutCinematic()]);
+      final before = project.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpBuilderHarness(
+        tester,
+        project,
+        'cinematic_time_layout',
+        surfaceSize: _referenceTimelineSurfaceSize,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+
+      final axisRect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-axis')),
+      );
+      final gesture = await tester.createGesture(
+        kind: PointerDeviceKind.trackpad,
+      );
+      addTearDown(gesture.removePointer);
+
+      await gesture.panZoomStart(axisRect.center);
+      await gesture.panZoomUpdate(axisRect.center, scale: 1.5);
+      await tester.pumpAndSettle();
+      await gesture.panZoomEnd();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Zoom timeline 150%'), findsOneWidget);
+      expect(_playbackTimeMsFromLabel(tester), 0);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-time-probe-cursor')),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
     'V1-120 dragging playback playhead pauses then resumes active preview',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
@@ -19,6 +20,8 @@ import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_preview_playback_actor_overlay_adapter.dart';
 import 'cinematic_playback_preview_fallback_summary.dart';
 import 'cinematic_stage_preview_readiness.dart';
+import 'cinematic_timeline_zoom_controller.dart';
+import 'cinematic_timeline_zoom_state.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
   required String cinematicId,
@@ -3161,6 +3164,9 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
       ScrollController();
   late final ScrollController _timelineHorizontalScrollController =
       ScrollController();
+  late final CinematicTimelineZoomController _timelineZoomController =
+      CinematicTimelineZoomController();
+  double? _timelinePanZoomStartScale;
   bool _timelineHasKeyboardFocus = false;
   bool _timelineKeyboardHelpOpen = false;
   bool _timelineProbeHelpOpen = false;
@@ -3186,6 +3192,38 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
   void _toggleTimelineProbeHelp() {
     _requestTimelineKeyboardFocus();
     setState(() => _timelineProbeHelpOpen = !_timelineProbeHelpOpen);
+  }
+
+  void _zoomTimelineIn() {
+    setState(_timelineZoomController.zoomIn);
+  }
+
+  void _zoomTimelineOut() {
+    setState(_timelineZoomController.zoomOut);
+  }
+
+  void _resetTimelineZoom() {
+    setState(_timelineZoomController.reset);
+  }
+
+  void _handleTimelinePanZoomStart(PointerPanZoomStartEvent event) {
+    _requestTimelineKeyboardFocus();
+    _timelinePanZoomStartScale = _timelineZoomController.value.scale;
+  }
+
+  void _handleTimelinePanZoomUpdate(PointerPanZoomUpdateEvent event) {
+    final before = _timelineZoomController.value;
+    _timelineZoomController.applyScale(
+      event.scale,
+      baseScale: _timelinePanZoomStartScale,
+    );
+    if (_timelineZoomController.value != before) {
+      setState(() {});
+    }
+  }
+
+  void _handleTimelinePanZoomEnd(PointerPanZoomEndEvent event) {
+    _timelinePanZoomStartScale = null;
   }
 
   @override
@@ -3354,6 +3392,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
     _timelineFocusNode.dispose();
     _timelineVerticalScrollController.dispose();
     _timelineHorizontalScrollController.dispose();
+    _timelineZoomController.dispose();
     super.dispose();
   }
 
@@ -3370,6 +3409,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
         hoveredBlock == null ? null : stepsById[hoveredBlock.stepId];
     final hoveredLane =
         hoveredBlock == null ? null : timeLayout.laneById(hoveredBlock.laneId);
+    final timelineZoomState = _timelineZoomController.value;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapDown: (_) => _requestTimelineKeyboardFocus(),
@@ -3467,19 +3507,50 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                       ),
                       const SizedBox(width: 4),
                       PokeMapIconButton(
-                        tooltip: 'Zoom -',
+                        key: const ValueKey(
+                          'cinematic-builder-timeline-zoom-out-button',
+                        ),
+                        tooltip: 'Réduire',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
+                        onPressed: timelineZoomState.canZoomOut
+                            ? _zoomTimelineOut
+                            : null,
                         icon: const Icon(CupertinoIcons.zoom_out),
                       ),
                       const SizedBox(width: 4),
+                      PokeMapBadge(
+                        key: const ValueKey(
+                          'cinematic-builder-timeline-zoom-label',
+                        ),
+                        label: 'Zoom timeline ${timelineZoomState.percentage}%',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      const SizedBox(width: 4),
                       PokeMapIconButton(
-                        tooltip: 'Zoom',
+                        key: const ValueKey(
+                          'cinematic-builder-timeline-zoom-in-button',
+                        ),
+                        tooltip: 'Agrandir',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
-                        icon: const Icon(CupertinoIcons.circle),
+                        onPressed: timelineZoomState.canZoomIn
+                            ? _zoomTimelineIn
+                            : null,
+                        icon: const Icon(CupertinoIcons.zoom_in),
+                      ),
+                      const SizedBox(width: 4),
+                      PokeMapIconButton(
+                        key: const ValueKey(
+                          'cinematic-builder-timeline-zoom-reset-button',
+                        ),
+                        tooltip: 'Réinitialiser',
+                        size: 28,
+                        variant: PokeMapIconButtonVariant.soft,
+                        onPressed: timelineZoomState.canReset
+                            ? _resetTimelineZoom
+                            : null,
+                        icon: const Icon(CupertinoIcons.arrow_counterclockwise),
                       ),
                       const SizedBox(width: 4),
                       _TestHidden(
@@ -3639,47 +3710,55 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                     Positioned.fill(
                       child: steps.isEmpty
                           ? const _EmptyTimelineState()
-                          : _TimelineTimeGrid(
-                              asset: widget.asset,
-                              timeLayout: timeLayout,
-                              stepsById: stepsById,
-                              verticalScrollController:
-                                  _timelineVerticalScrollController,
-                              horizontalScrollController:
-                                  _timelineHorizontalScrollController,
-                              selectedStepId: widget.selectedStepId,
-                              selectedBlock: selectedBlock,
-                              timelineProbeTimeMs: timelineProbeTimeMs,
-                              playbackTimeMs: widget.playbackTimeMs,
-                              showPlaybackPlayhead: _canPlayPreview(
-                                widget.playbackPlan,
+                          : Listener(
+                              onPointerPanZoomStart:
+                                  _handleTimelinePanZoomStart,
+                              onPointerPanZoomUpdate:
+                                  _handleTimelinePanZoomUpdate,
+                              onPointerPanZoomEnd: _handleTimelinePanZoomEnd,
+                              child: _TimelineTimeGrid(
+                                asset: widget.asset,
+                                timeLayout: timeLayout,
+                                stepsById: stepsById,
+                                verticalScrollController:
+                                    _timelineVerticalScrollController,
+                                horizontalScrollController:
+                                    _timelineHorizontalScrollController,
+                                timelineZoomScale: timelineZoomState.scale,
+                                selectedStepId: widget.selectedStepId,
+                                selectedBlock: selectedBlock,
+                                timelineProbeTimeMs: timelineProbeTimeMs,
+                                playbackTimeMs: widget.playbackTimeMs,
+                                showPlaybackPlayhead: _canPlayPreview(
+                                  widget.playbackPlan,
+                                ),
+                                hoveredStepId: _hoveredStepId,
+                                timelineFocused: _timelineHasKeyboardFocus,
+                                onStepHovered: _setHoveredStepId,
+                                onStepSelected: (step) {
+                                  _requestTimelineKeyboardFocus();
+                                  widget.onStepSelected(step);
+                                },
+                                onTimelineProbeChanged: (timeMs) {
+                                  _requestTimelineKeyboardFocus();
+                                  widget.onTimelineProbeChanged(timeMs);
+                                },
+                                onPlaybackSeekRequested: (position) {
+                                  _requestTimelineKeyboardFocus();
+                                  widget.onPlaybackSeekRequested(position);
+                                },
+                                onPlaybackScrubStart: (position) {
+                                  _requestTimelineKeyboardFocus();
+                                  widget.onPlaybackScrubStart(position);
+                                },
+                                onPlaybackScrubUpdate:
+                                    widget.onPlaybackScrubUpdate,
+                                onPlaybackScrubEnd: widget.onPlaybackScrubEnd,
+                                onPlaybackScrubCancel:
+                                    widget.onPlaybackScrubCancel,
+                                onStepDurationResized:
+                                    widget.onStepDurationResized,
                               ),
-                              hoveredStepId: _hoveredStepId,
-                              timelineFocused: _timelineHasKeyboardFocus,
-                              onStepHovered: _setHoveredStepId,
-                              onStepSelected: (step) {
-                                _requestTimelineKeyboardFocus();
-                                widget.onStepSelected(step);
-                              },
-                              onTimelineProbeChanged: (timeMs) {
-                                _requestTimelineKeyboardFocus();
-                                widget.onTimelineProbeChanged(timeMs);
-                              },
-                              onPlaybackSeekRequested: (position) {
-                                _requestTimelineKeyboardFocus();
-                                widget.onPlaybackSeekRequested(position);
-                              },
-                              onPlaybackScrubStart: (position) {
-                                _requestTimelineKeyboardFocus();
-                                widget.onPlaybackScrubStart(position);
-                              },
-                              onPlaybackScrubUpdate:
-                                  widget.onPlaybackScrubUpdate,
-                              onPlaybackScrubEnd: widget.onPlaybackScrubEnd,
-                              onPlaybackScrubCancel:
-                                  widget.onPlaybackScrubCancel,
-                              onStepDurationResized:
-                                  widget.onStepDurationResized,
                             ),
                     ),
                     if (hoveredBlock != null && hoveredStep != null)
@@ -4042,6 +4121,7 @@ class _TimelineTimeGrid extends StatelessWidget {
     required this.stepsById,
     required this.verticalScrollController,
     required this.horizontalScrollController,
+    required this.timelineZoomScale,
     required this.selectedStepId,
     required this.selectedBlock,
     required this.timelineProbeTimeMs,
@@ -4065,6 +4145,7 @@ class _TimelineTimeGrid extends StatelessWidget {
   final Map<String, CinematicTimelineStep> stepsById;
   final ScrollController verticalScrollController;
   final ScrollController horizontalScrollController;
+  final double timelineZoomScale;
   final String? selectedStepId;
   final CinematicTimelineTimeBlock? selectedBlock;
   final int? timelineProbeTimeMs;
@@ -4093,6 +4174,7 @@ class _TimelineTimeGrid extends StatelessWidget {
         final contentWidth = _timelineContentWidth(
           timeLayout.totalDurationMs,
           trackViewportWidth,
+          zoomScale: timelineZoomScale,
         );
         final pixelsPerMs = timeLayout.totalDurationMs <= 0
             ? 1.0
@@ -11716,11 +11798,20 @@ String _shortTimeLabel(int durationMs) {
   return '$seconds s';
 }
 
-double _timelineContentWidth(int totalDurationMs, double viewportWidth) {
+double _timelineContentWidth(
+  int totalDurationMs,
+  double viewportWidth, {
+  double zoomScale = CinematicTimelineZoomState.defaultScale,
+}) {
   if (totalDurationMs <= 0) {
     return viewportWidth;
   }
-  return math.max(viewportWidth, totalDurationMs * _timelinePixelsPerMsFloor);
+  final scale = CinematicTimelineZoomState.clampScale(zoomScale);
+  final baseWidth = math.max(
+    viewportWidth,
+    totalDurationMs * _timelinePixelsPerMsFloor,
+  );
+  return math.max(viewportWidth, baseWidth * scale);
 }
 
 double _tickLeft(int timeMs, double pixelsPerMs, double contentWidth) {
