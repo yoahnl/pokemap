@@ -15633,7 +15633,16 @@
       "metadata": {}
     }
   ],
-  "facts": [],
+  "facts": [
+    {
+      "id": "fact_test",
+      "label": "test",
+      "description": "",
+      "category": "test",
+      "defaultValue": false,
+      "tags": []
+    }
+  ],
   "worldRules": [],
   "scenes": [
     {
