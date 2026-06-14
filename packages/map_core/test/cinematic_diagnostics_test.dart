@@ -624,6 +624,115 @@ void main() {
       );
     });
 
+    test('V1-126 reports actorEmote missing and unknown refs', () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_missing_refs',
+                kind: CinematicTimelineStepKind.actorEmote,
+                durationMs: 800,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorEmote',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'step_unknown_refs',
+                kind: CinematicTimelineStepKind.actorEmote,
+                actorId: 'actor_missing',
+                durationMs: 800,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorEmote',
+                  'actor.emoteId': 'missing_emote',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorEmoteMissingActorRef)
+            .single
+            .stepId,
+        'step_missing_refs',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorEmoteMissingEmoteRef)
+            .single
+            .stepId,
+        'step_missing_refs',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorEmoteUnknownActorRef)
+            .single
+            .referenceId,
+        'actor_missing',
+      );
+      expect(
+        report
+            .byCode(CinematicDiagnosticCode.cinematicActorEmoteUnknownEmoteRef)
+            .single
+            .referenceId,
+        'missing_emote',
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicUnknownActorRef),
+        isEmpty,
+      );
+    });
+
+    test('V1-126 reports actorEmote invalid duration without technical wording',
+        () {
+      final report = diagnoseCinematicAsset(
+        CinematicAsset(
+          id: 'cinematic_intro',
+          title: 'Intro cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step_bad_emote',
+                kind: CinematicTimelineStepKind.actorEmote,
+                actorId: 'actor_professor',
+                durationMs: 0,
+                metadata: const {
+                  'authoring.source': 'cinematic-builder-v0',
+                  'authoring.kind': 'basicBlock',
+                  'authoring.block': 'actorEmote',
+                  'actor.emoteId': 'question',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.cinematicActorEmoteInvalidDuration)
+          .single;
+      expect(diagnostic.stepId, 'step_bad_emote');
+      expect(diagnostic.message, contains('émotion'));
+      expect(diagnostic.message, isNot(contains('frameIndex')));
+      expect(diagnostic.message, isNot(contains('sourceRect')));
+      expect(diagnostic.message, isNot(contains('atlasRect')));
+    });
+
     test('reports duplicate cinematic ids in a collection', () {
       final report = diagnoseCinematics([
         _cinematic(id: 'cinematic_intro'),
@@ -1253,14 +1362,16 @@ void main() {
           stageContext: CinematicStageContext(
             stagePoints: [
               CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
-              CinematicStagePoint(id: 'point_a', label: 'Point A Duplicate', x: 2, y: 2),
+              CinematicStagePoint(
+                  id: 'point_a', label: 'Point A Duplicate', x: 2, y: 2),
             ],
           ),
           timeline: CinematicTimeline(),
         ),
       );
 
-      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointDuplicateId).single;
+      final diagnostic =
+          report.byCode(CinematicDiagnosticCode.stagePointDuplicateId).single;
       expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
       expect(diagnostic.referenceId, 'point_a');
     });
@@ -1279,14 +1390,17 @@ void main() {
           title: 'Intro',
           stageContext: CinematicStageContext(
             stagePoints: [
-              CinematicStagePoint(id: 'point_a', label: 'Point A', x: double.nan, y: 1),
+              CinematicStagePoint(
+                  id: 'point_a', label: 'Point A', x: double.nan, y: 1),
             ],
           ),
           timeline: CinematicTimeline(),
         ),
       );
 
-      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointInvalidCoordinate).single;
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.stagePointInvalidCoordinate)
+          .single;
       expect(diagnostic.severity, CinematicDiagnosticSeverity.error);
       expect(diagnostic.referenceId, 'point_a');
     });
@@ -1305,11 +1419,15 @@ void main() {
         ),
       );
 
-      final diagnostic = report.byCode(CinematicDiagnosticCode.stagePointWithoutStageMap).single;
+      final diagnostic = report
+          .byCode(CinematicDiagnosticCode.stagePointWithoutStageMap)
+          .single;
       expect(diagnostic.severity, CinematicDiagnosticSeverity.warning);
     });
 
-    test('diagnoses stage point out of map bounds when map dimensions are available', () {
+    test(
+        'diagnoses stage point out of map bounds when map dimensions are available',
+        () {
       final report = diagnoseCinematicAsset(
         CinematicAsset(
           id: 'cinematic_intro',
@@ -1317,9 +1435,12 @@ void main() {
           mapId: 'map_stage',
           stageContext: CinematicStageContext(
             stagePoints: [
-              CinematicStagePoint(id: 'point_a', label: 'Point A', x: 25.5, y: 10),
-              CinematicStagePoint(id: 'point_b', label: 'Point B', x: 10, y: -1),
-              CinematicStagePoint(id: 'point_c', label: 'Point C', x: 10, y: 15),
+              CinematicStagePoint(
+                  id: 'point_a', label: 'Point A', x: 25.5, y: 10),
+              CinematicStagePoint(
+                  id: 'point_b', label: 'Point B', x: 10, y: -1),
+              CinematicStagePoint(
+                  id: 'point_c', label: 'Point C', x: 10, y: 15),
             ],
           ),
           timeline: CinematicTimeline(),
@@ -1328,7 +1449,8 @@ void main() {
         mapHeight: 15,
       );
 
-      final outOfMapDiagnostics = report.byCode(CinematicDiagnosticCode.stagePointOutOfMap);
+      final outOfMapDiagnostics =
+          report.byCode(CinematicDiagnosticCode.stagePointOutOfMap);
       expect(outOfMapDiagnostics, hasLength(3));
       expect(outOfMapDiagnostics[0].referenceId, 'point_a');
       expect(outOfMapDiagnostics[1].referenceId, 'point_b');
@@ -1362,9 +1484,18 @@ void main() {
         mapWidth: 10,
         mapHeight: 10,
       );
-      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointMissing), isEmpty);
-      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointWithoutStageMap), isEmpty);
-      expect(validReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap), isEmpty);
+      expect(
+          validReport.byCode(
+              CinematicDiagnosticCode.actorInitialPlacementStagePointMissing),
+          isEmpty);
+      expect(
+          validReport.byCode(CinematicDiagnosticCode
+              .actorInitialPlacementStagePointWithoutStageMap),
+          isEmpty);
+      expect(
+          validReport.byCode(
+              CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap),
+          isEmpty);
 
       // 2. Missing stage point reference
       final missingReport = diagnoseCinematicAsset(
@@ -1387,7 +1518,10 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       );
-      final missingDiag = missingReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointMissing).single;
+      final missingDiag = missingReport
+          .byCode(
+              CinematicDiagnosticCode.actorInitialPlacementStagePointMissing)
+          .single;
       expect(missingDiag.severity, CinematicDiagnosticSeverity.error);
       expect(missingDiag.referenceId, 'actor_professor');
 
@@ -1415,7 +1549,10 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       );
-      final noMapDiag = noMapReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointWithoutStageMap).single;
+      final noMapDiag = noMapReport
+          .byCode(CinematicDiagnosticCode
+              .actorInitialPlacementStagePointWithoutStageMap)
+          .single;
       expect(noMapDiag.severity, CinematicDiagnosticSeverity.warning);
       expect(noMapDiag.referenceId, 'actor_professor');
 
@@ -1445,7 +1582,10 @@ void main() {
         mapWidth: 10,
         mapHeight: 10,
       );
-      final outOfBoundsDiag = outOfBoundsReport.byCode(CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap).single;
+      final outOfBoundsDiag = outOfBoundsReport
+          .byCode(
+              CinematicDiagnosticCode.actorInitialPlacementStagePointOutOfMap)
+          .single;
       expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
       expect(outOfBoundsDiag.referenceId, 'actor_professor');
     });
@@ -1458,7 +1598,8 @@ void main() {
           title: 'Valid',
           mapId: 'map_lab',
           movementTargets: [
-            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+            CinematicMovementTargetRef(
+                targetId: 'target_center', label: 'Centre'),
           ],
           stageContext: CinematicStageContext(
             stagePoints: [
@@ -1477,9 +1618,18 @@ void main() {
         mapWidth: 10,
         mapHeight: 10,
       );
-      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointMissing), isEmpty);
-      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointWithoutStageMap), isEmpty);
-      expect(validReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap), isEmpty);
+      expect(
+          validReport.byCode(
+              CinematicDiagnosticCode.movementTargetBindingStagePointMissing),
+          isEmpty);
+      expect(
+          validReport.byCode(CinematicDiagnosticCode
+              .movementTargetBindingStagePointWithoutStageMap),
+          isEmpty);
+      expect(
+          validReport.byCode(
+              CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap),
+          isEmpty);
 
       // 2. Missing stage point reference
       final missingReport = diagnoseCinematicAsset(
@@ -1487,7 +1637,8 @@ void main() {
           id: 'cinematic_missing',
           title: 'Missing',
           movementTargets: [
-            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+            CinematicMovementTargetRef(
+                targetId: 'target_center', label: 'Centre'),
           ],
           stageContext: CinematicStageContext(
             stagePoints: const [],
@@ -1502,7 +1653,10 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       );
-      final missingDiag = missingReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointMissing).single;
+      final missingDiag = missingReport
+          .byCode(
+              CinematicDiagnosticCode.movementTargetBindingStagePointMissing)
+          .single;
       expect(missingDiag.severity, CinematicDiagnosticSeverity.error);
       expect(missingDiag.referenceId, 'target_center');
 
@@ -1513,7 +1667,8 @@ void main() {
           title: 'No Map',
           mapId: null,
           movementTargets: [
-            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+            CinematicMovementTargetRef(
+                targetId: 'target_center', label: 'Centre'),
           ],
           stageContext: CinematicStageContext(
             stagePoints: [
@@ -1530,7 +1685,10 @@ void main() {
           timeline: CinematicTimeline(),
         ),
       );
-      final noMapDiag = noMapReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointWithoutStageMap).single;
+      final noMapDiag = noMapReport
+          .byCode(CinematicDiagnosticCode
+              .movementTargetBindingStagePointWithoutStageMap)
+          .single;
       expect(noMapDiag.severity, CinematicDiagnosticSeverity.warning);
       expect(noMapDiag.referenceId, 'target_center');
 
@@ -1541,7 +1699,8 @@ void main() {
           title: 'Out of Bounds',
           mapId: 'map_lab',
           movementTargets: [
-            CinematicMovementTargetRef(targetId: 'target_center', label: 'Centre'),
+            CinematicMovementTargetRef(
+                targetId: 'target_center', label: 'Centre'),
           ],
           stageContext: CinematicStageContext(
             stagePoints: [
@@ -1560,14 +1719,19 @@ void main() {
         mapWidth: 10,
         mapHeight: 10,
       );
-      final outOfBoundsDiag = outOfBoundsReport.byCode(CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap).single;
+      final outOfBoundsDiag = outOfBoundsReport
+          .byCode(
+              CinematicDiagnosticCode.movementTargetBindingStagePointOutOfMap)
+          .single;
       expect(outOfBoundsDiag.severity, CinematicDiagnosticSeverity.error);
       expect(outOfBoundsDiag.referenceId, 'target_center');
     });
 
     group('manual path diagnostics', () {
-      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5);
-      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 15, y: 5);
+      final pointA =
+          CinematicStagePoint(id: 'point_a', label: 'Point A', x: 5, y: 5);
+      final pointB =
+          CinematicStagePoint(id: 'point_b', label: 'Point B', x: 15, y: 5);
 
       CinematicAsset createBaseCinematic({
         required String id,
@@ -1639,20 +1803,22 @@ void main() {
           mapHeight: 10,
         );
 
-        final manualPathDiags = report.diagnostics.where((d) => {
-          CinematicDiagnosticCode.manualPathEmpty,
-          CinematicDiagnosticCode.manualPathStagePointMissing,
-          CinematicDiagnosticCode.manualPathStagePointDuplicate,
-          CinematicDiagnosticCode.manualPathWithoutStageMap,
-          CinematicDiagnosticCode.manualPathStagePointOutOfMap,
-          CinematicDiagnosticCode.actorMoveManualPathMissing,
-          CinematicDiagnosticCode.actorMoveManualPathAmbiguous,
-          CinematicDiagnosticCode.actorMoveManualPathUnused,
-          CinematicDiagnosticCode.manualPathOrphaned,
-          CinematicDiagnosticCode.manualPathDuplicateId,
-          CinematicDiagnosticCode.manualPathEmptyId,
-          CinematicDiagnosticCode.manualPathEmptyLabel,
-        }.contains(d.code)).toList();
+        final manualPathDiags = report.diagnostics
+            .where((d) => {
+                  CinematicDiagnosticCode.manualPathEmpty,
+                  CinematicDiagnosticCode.manualPathStagePointMissing,
+                  CinematicDiagnosticCode.manualPathStagePointDuplicate,
+                  CinematicDiagnosticCode.manualPathWithoutStageMap,
+                  CinematicDiagnosticCode.manualPathStagePointOutOfMap,
+                  CinematicDiagnosticCode.actorMoveManualPathMissing,
+                  CinematicDiagnosticCode.actorMoveManualPathAmbiguous,
+                  CinematicDiagnosticCode.actorMoveManualPathUnused,
+                  CinematicDiagnosticCode.manualPathOrphaned,
+                  CinematicDiagnosticCode.manualPathDuplicateId,
+                  CinematicDiagnosticCode.manualPathEmptyId,
+                  CinematicDiagnosticCode.manualPathEmptyLabel,
+                }.contains(d.code))
+            .toList();
         expect(manualPathDiags, isEmpty);
       });
 
@@ -1682,7 +1848,8 @@ void main() {
           mapHeight: 10,
         );
 
-        final dupDiags = report.byCode(CinematicDiagnosticCode.manualPathDuplicateId);
+        final dupDiags =
+            report.byCode(CinematicDiagnosticCode.manualPathDuplicateId);
         expect(dupDiags, hasLength(1));
         expect(dupDiags.single.severity, CinematicDiagnosticSeverity.error);
         expect(dupDiags.single.referenceId, 'dup_id');
@@ -1724,12 +1891,16 @@ void main() {
         );
 
         final unusedDiag = report.diagnostics.firstWhere(
-          (d) => d.code == CinematicDiagnosticCode.manualPathEmpty && d.referenceId == 'path_unused',
+          (d) =>
+              d.code == CinematicDiagnosticCode.manualPathEmpty &&
+              d.referenceId == 'path_unused',
         );
         expect(unusedDiag.severity, CinematicDiagnosticSeverity.warning);
 
         final usedDiag = report.diagnostics.firstWhere(
-          (d) => d.code == CinematicDiagnosticCode.manualPathEmpty && d.referenceId == 'path_used',
+          (d) =>
+              d.code == CinematicDiagnosticCode.manualPathEmpty &&
+              d.referenceId == 'path_used',
         );
         expect(usedDiag.severity, CinematicDiagnosticSeverity.error);
       });
@@ -1754,7 +1925,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointMissing).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.manualPathStagePointMissing)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.error);
         expect(diag.referenceId, 'missing_point');
       });
@@ -1779,7 +1952,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointDuplicate).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.manualPathStagePointDuplicate)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.warning);
         expect(diag.referenceId, 'point_a');
       });
@@ -1803,7 +1978,9 @@ void main() {
           ),
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.manualPathWithoutStageMap).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.manualPathWithoutStageMap)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.warning);
         expect(diag.referenceId, 'path_1');
       });
@@ -1828,7 +2005,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.manualPathStagePointOutOfMap).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.manualPathStagePointOutOfMap)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.error);
         expect(diag.referenceId, 'point_b');
       });
@@ -1852,7 +2031,8 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.manualPathOrphaned).single;
+        final diag =
+            report.byCode(CinematicDiagnosticCode.manualPathOrphaned).single;
         expect(diag.severity, CinematicDiagnosticSeverity.warning);
         expect(diag.referenceId, 'path_1');
       });
@@ -1871,7 +2051,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathMissing).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.actorMoveManualPathMissing)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.error);
         expect(diag.stepId, 'step_move');
       });
@@ -1902,7 +2084,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathAmbiguous).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.actorMoveManualPathAmbiguous)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.error);
         expect(diag.stepId, 'step_move');
       });
@@ -1927,7 +2111,9 @@ void main() {
           mapHeight: 10,
         );
 
-        final diag = report.byCode(CinematicDiagnosticCode.actorMoveManualPathUnused).single;
+        final diag = report
+            .byCode(CinematicDiagnosticCode.actorMoveManualPathUnused)
+            .single;
         expect(diag.severity, CinematicDiagnosticSeverity.warning);
         expect(diag.stepId, 'step_move');
       });
@@ -2026,4 +2212,3 @@ ProjectCharacterEntry _character({
     ],
   );
 }
-

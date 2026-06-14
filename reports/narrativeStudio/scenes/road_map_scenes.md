@@ -189,13 +189,17 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0 | DONE | Implémenter dans `map_core` un état caméra de playback preview pur et déterministe, exposé par `frameAt(timeMs)`, avec `activeStepId`, `progress`, support/unsupported diagnostics et séparation stricte du viewport editor, sans UI, renderer, runtime, Flame ni GameState. |
 | NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0 | DONE | Brancher l’état caméra de playback preview V1-123 au Cinematic Builder avec un overlay/cadre caméra editor-only, labels no-code et diagnostics supportés/partiels, sans muter le viewport d’édition, sans runtime, Flame, GameState, map_core ni prétendre à un vrai pan/zoom. |
 | NS-SCENES-V1-125 — Cinematic Emote Assets / Reaction Bubble Prep Contract V0 | DONE | Cadrer le futur système d’emotes cinématiques à partir des assets racine `emotions.png` et `emotions2.png`, avec audit atlas, catalogue no-code, modèle actorEmote, diagnostics, UX inspecteur, preview playback future et trajectoire core/UI, sans code produit ni déplacement d’assets. |
-| NS-SCENES-V1-129 — Cinematic Camera Target / Zoom Authoring Prep Contract | BACKLOG | Reprendre plus tard l’enrichissement caméra centre/cible/zoom après la chaîne emotes V1-126 à V1-128. |
+| NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0 | DONE | Implémenter le modèle core authoring du bloc actorEmote et un catalogue emote V0 typé, avec IDs stables, labels no-code, frame rects validées, opérations pures et diagnostics, sans UI, renderer, runtime, Flame, GameState, déplacement d’assets ni modification pubspec. |
+| NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0 | TODO | Exposer les emotes actives dans `frameAt(timeMs)` via un état playback preview pur avant toute UI/renderer. |
+| NS-SCENES-V1-128 — Cinematic Emote Block Editor UI V0 | TODO | Ajouter le bloc Emote dans la palette/inspecteur avec pickers acteur et réaction no-code. |
+| NS-SCENES-V1-129 — Cinematic Emote Preview Playback UI V0 | TODO | Afficher les emotes actives au-dessus des acteurs dans la preview playback, seek/scrub inclus. |
+| NS-SCENES-V1-130 — Cinematic Camera Target / Zoom Authoring Prep Contract | BACKLOG | Reprendre plus tard l’enrichissement caméra centre/cible/zoom après la chaîne emotes V1-126 à V1-129. |
 
 ## Prochain lot exact recommande
 
-`NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`
+`NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`
 
-Raison : V1-125 a volontairement pivoté vers les emotes cinématiques. V1-124 fournit déjà une caméra V0 suffisante pour continuer la démonstration du Builder, tandis que les assets `emotions.png` et `emotions2.png` existent déjà et débloquent une valeur visuelle immédiate. Camera Target / Zoom reste pertinent, mais il est reporté en backlog sous `NS-SCENES-V1-129 — Cinematic Camera Target / Zoom Authoring Prep Contract`.
+Raison : V1-126 a posé le modèle core authoring et le catalogue emote V0 sans playback visuel. Le prochain verrou propre est d’exposer les emotes actives dans `frameAt(timeMs)` avant toute UI/renderer. Camera Target / Zoom reste pertinent, mais il est reporté en backlog sous `NS-SCENES-V1-130 — Cinematic Camera Target / Zoom Authoring Prep Contract`.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -224,10 +228,25 @@ Ordre apres V1-102 :
 24. `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` (DONE)
 25. `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (DONE)
 26. `NS-SCENES-V1-125 — Cinematic Emote Assets / Reaction Bubble Prep Contract V0` (DONE documentaire)
-27. `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0` (recommande, non demarre)
-28. `NS-SCENES-V1-127 — Cinematic Emote Block Editor UI V0` (previsionnel)
-29. `NS-SCENES-V1-128 — Cinematic Emote Preview Playback UI V0` (previsionnel)
-30. `NS-SCENES-V1-129 — Cinematic Camera Target / Zoom Authoring Prep Contract` (backlog reporte)
+27. `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0` (DONE)
+28. `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0` (recommande, non demarre)
+29. `NS-SCENES-V1-128 — Cinematic Emote Block Editor UI V0` (previsionnel)
+30. `NS-SCENES-V1-129 — Cinematic Emote Preview Playback UI V0` (previsionnel)
+31. `NS-SCENES-V1-130 — Cinematic Camera Target / Zoom Authoring Prep Contract` (backlog reporte)
+
+## Mise a jour V1-126
+
+Statut : `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0` est DONE.
+
+Demande : implémenter côté `map_core` le modèle authoring minimal `actorEmote` et un catalogue emote V0 pur, déterministe et testable, sans UI, renderer, runtime, Flame, GameState, déplacement d’assets, modification pubspec, screenshot ni Visual Gate.
+
+Decision : réutiliser le kind existant `CinematicTimelineStepKind.actorEmote`, stocker `actorId` dans le champ modèle existant et `emoteId` dans metadata `actor.emoteId`, avec catalogue typé `CinematicEmoteCatalogEntry`, opérations pures add/update et diagnostics dédiés acteur/emote/durée. L’état playback actif des emotes est volontairement reporté.
+
+Preuve : tests catalogue, authoring, diagnostics et playback boundary ajoutés ; `map_core` ciblé, suite complète `map_core`, `dart analyze` et régressions Builder ciblées relancés ; anti-scope map_editor/runtime/assets/pubspec/screenshots vérifié.
+
+Limites : les assets `emotions.png` et `emotions2.png` restent candidats à la racine, non déplacés et non chargés ; les labels de frames restent prudents ; aucune emote n’est encore exposée dans `frameAt(timeMs)`.
+
+Prochain lot recommande : `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-125
 
@@ -241,7 +260,7 @@ Preuve : rapport V1-125 et Evidence Pack V1-125 créés, assets audités par `ls
 
 Limites : les labels sémantiques de certaines cellules de l’atlas restent à valider visuellement pendant V1-126 ; aucun catalogue codé, aucune UI, aucun renderer et aucun asset registry n’ont été créés.
 
-Prochain lot recommande : `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`. Camera Target / Zoom reste en backlog sous `NS-SCENES-V1-129 — Cinematic Camera Target / Zoom Authoring Prep Contract`.
+Suite historique : le lot recommande V1-126 a ete realise. Prochain lot global actuel : `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`. Camera Target / Zoom reste en backlog sous `NS-SCENES-V1-130 — Cinematic Camera Target / Zoom Authoring Prep Contract`.
 
 ## Mise a jour V1-124
 
@@ -253,9 +272,9 @@ Decision : l’UI consomme directement `playbackFrame.cameraPose` et affiche un 
 
 Preuve : tests RED/GREEN V1-124 ajoutés, régressions V1-121/V1-120/V1-118/V1-117/V1-117-bis/V1-116 relancées, suite Builder complète relancée, tests core ciblés relancés, analyse ciblée, build macOS debug et Visual Gate V1-124.
 
-Limites : le cadre est symbolique et ne remplace pas une vraie géométrie caméra. Aucun runtime, Flame, GameState, map_core, map_runtime, viewport editor, ProjectManifest, CinematicAsset ou MapData n’a été modifié. L’enrichissement Camera Target / Zoom reste reporté en V1-129.
+Limites : le cadre est symbolique et ne remplace pas une vraie géométrie caméra. Aucun runtime, Flame, GameState, map_core, map_runtime, viewport editor, ProjectManifest, CinematicAsset ou MapData n’a été modifié. L’enrichissement Camera Target / Zoom reste reporté en V1-130.
 
-Suite realisee : V1-125 a cadré les emotes cinématiques ; prochain lot recommande : `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-123
 
@@ -269,7 +288,7 @@ Preuve : tests RED/GREEN V1-123 ajoutés dans `cinematic_preview_playback_plan_t
 
 Limites : aucun centre, zoom, follow actor, renderer caméra, UI caméra, viewport editor, runtime, Flame, GameState, screenshot ou Visual Gate n'a été démarré.
 
-Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-122
 
@@ -283,7 +302,7 @@ Preuve : rapport V1-122 et Evidence Pack V1-122 créés ; audit des rapports V1-
 
 Limites : aucun code produit, package Dart/Flutter, runtime, Flame, GameState, screenshot, Visual Gate ou V1-123 n'a été démarré.
 
-Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-121
 
@@ -297,7 +316,7 @@ Preuve : tests V1-121, regressions V1-120/V1-118/V1-117/V1-117-bis/V1-116, Build
 
 Limites : l'overlay ne prolonge pas artificiellement un fade au-dela du `fadeState` fourni par le plan. Aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur ou mutation projet n'a ete demarre pendant V1-121.
 
-Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-120
 
@@ -311,7 +330,7 @@ Preuve : tests V1-120, regressions V1-118/V1-117/V1-117-bis/V1-116, Builder comp
 
 Limites : la Visual Gate reste une capture de harness test. Les IDs techniques encore présents dans les métadonnées historiques ne sont pas le workflow principal du seek/scrub. Le fade playback a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding ou collision n'a ete demarre pendant V1-120.
 
-Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-119
 
@@ -327,7 +346,7 @@ Preuve : rapports V1-109 a V1-118 relus, rapports timeline/probe V1-51/V1-52/V1-
 
 Limites historiques : aucun test Dart/Flutter, analyse package, build, screenshot ou Visual Gate n'avait ete lance car le prompt V1-119 etait documentaire et interdisait les modifications de packages. Cette limite a ete levee par V1-120.
 
-Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-118
 
@@ -341,7 +360,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste borne aux diagnostics deja exposes par le resolver et le sprite preview plan. Aucun scrub/seek, runtime, Flame, GameState, pathfinding, collision, nouveau renderer ou changement `map_core` n'a ete demarre.
 
-Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-117-bis
 
@@ -357,7 +376,7 @@ Preuve : test RED `V1-117-bis changing one actorMove destination keeps another a
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouvelle animation, nouveau playback ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et reste hors lot.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-117
 
@@ -371,7 +390,7 @@ Preuve : tests resolver, renderer, V1-117, V1-116, V1-113, builder complet, libr
 
 Limites historiques : les details fins de diagnostics/fallback restaient candidates pour V1-118, désormais realise ; aucun playback runtime, scrubber/seek, interpolation nouvelle, pathfinding ou collision n'a ete ajoute.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-116
 
@@ -385,7 +404,7 @@ Preuve : tests V1-116 ciblés, Visual Gate `ns_scenes_v1_116_cinematic_actor_wal
 
 Limites historiques : au moment de V1-116, les statuts et badges affichaient encore des libelles historiques comme "Acteurs statiques" / "Sans lecture" dans certains panneaux. Cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-115
 
@@ -399,7 +418,7 @@ Preuve : test resolver dédié, régressions renderer/V1-113, tests core ciblés
 
 Limites historiques : au moment de V1-115, le résultat restait symbolique ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-114
 
@@ -413,7 +432,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_w
 
 Limites historiques : V1-114 ne codait aucune animation. V1-115 a implémenté le resolver symbolique ; le rendu frame-by-frame a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-113
 
@@ -427,7 +446,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_113_cinematic_actor_p
 
 Limites : aucune animation de marche n’est ajoutée ; les sprites/placeholders glissent maintenant continûment, mais la cadence de pas reste à cadrer dans V1-114.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-112
 
@@ -451,7 +470,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-126 — Cinematic Emote Core Model / Asset Catalog V0`.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-127 — Cinematic Emote Playback State Read Model V0`.
 
 ## Mise a jour V1-110
 

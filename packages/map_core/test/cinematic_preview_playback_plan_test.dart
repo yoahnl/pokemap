@@ -581,6 +581,52 @@ void main() {
         'Ce bloc n’est pas encore prévisualisé.',
       );
     });
+
+    test('V1-126 actorEmote remains unsupported until emote playback state',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_emote',
+          title: 'Emote cinematic',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'emote',
+                kind: CinematicTimelineStepKind.actorEmote,
+                label: 'Lysa affiche Surprise',
+                actorId: 'actor_lysa',
+                durationMs: 800,
+                metadata: const {
+                  cinematicTimelineDraftMetadataSourceKey:
+                      cinematicTimelineDraftMetadataSourceValue,
+                  cinematicTimelineDraftMetadataKindKey:
+                      cinematicTimelineBasicBlockMetadataKindValue,
+                  cinematicTimelineAuthoringBlockMetadataKey:
+                      cinematicTimelineActorEmoteBlockMetadataValue,
+                  cinematicTimelineActorEmoteEmoteIdMetadataKey:
+                      cinematicDefaultActorEmoteId,
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(400);
+
+      expect(
+          plan.timelineItems.single.kind, CinematicTimelineStepKind.actorEmote);
+      expect(plan.timelineItems.single.supported, isFalse);
+      expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+      expect(frame.activeStepIds, ['emote']);
+      expect(
+          frame.visibleDiagnostics.map((diagnostic) => diagnostic.code),
+          contains(CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackUnsupportedStep));
+    });
   });
 }
 

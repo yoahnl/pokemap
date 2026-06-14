@@ -1776,6 +1776,156 @@ void main() {
       );
     });
 
+    test('V1-126 addCinematicTimelineActorEmoteStep creates actorEmote block',
+        () {
+      final cinematic = _cinematic(
+        id: 'cinematic_intro',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+        ],
+      );
+      final project = _project(cinematics: [cinematic]);
+
+      final result = addCinematicTimelineActorEmoteStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        emoteId: 'question',
+        durationMs: 1200,
+        afterStepId: 'step_wait',
+      );
+
+      expect(result.step.id, 'step_actor_emote');
+      expect(result.step.kind, CinematicTimelineStepKind.actorEmote);
+      expect(result.step.label, 'Professor affiche Question');
+      expect(result.step.actorId, 'actor_professor');
+      expect(result.step.durationMs, 1200);
+      expect(result.step.targetId, isNull);
+      expect(
+        result.step.metadata,
+        containsPair('authoring.block', 'actorEmote'),
+      );
+      expect(result.step.metadata, containsPair('actor.emoteId', 'question'));
+      expect(cinematicTimelineActorEmoteEmoteIdOf(result.step), 'question');
+      expect(isCinematicTimelineActorEmoteStep(result.step), isTrue);
+      expect(isCinematicTimelineAuthoringStep(result.step), isTrue);
+      expect(
+        result.cinematic.timeline.steps.map((step) => step.id),
+        ['step_wait', 'step_actor_emote'],
+      );
+
+      final defaultResult = addCinematicTimelineActorEmoteStep(
+        result.updatedProject,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+      );
+      expect(
+        cinematicTimelineActorEmoteEmoteIdOf(defaultResult.step),
+        cinematicDefaultActorEmoteId,
+      );
+      expect(defaultResult.step.durationMs,
+          cinematicTimelineDefaultActorEmoteDurationMs);
+      expect(defaultResult.step.id, 'step_actor_emote_2');
+    });
+
+    test(
+        'V1-126 updateCinematicTimelineActorEmoteStep preserves independent ids',
+        () {
+      final cinematic = _cinematic(
+        id: 'cinematic_intro',
+        requiredActors: [
+          CinematicActorRef(actorId: 'actor_professor', label: 'Professor'),
+          CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+        ],
+      );
+      var project = _project(cinematics: [cinematic]);
+      final added = addCinematicTimelineActorEmoteStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        actorId: 'actor_professor',
+        emoteId: 'question',
+      );
+      project = added.updatedProject;
+
+      final changedActor = updateCinematicTimelineActorEmoteStep(
+        project,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        actorId: 'actor_lysa',
+      );
+      expect(changedActor.step.actorId, 'actor_lysa');
+      expect(
+        cinematicTimelineActorEmoteEmoteIdOf(changedActor.step),
+        'question',
+      );
+
+      final changedEmote = updateCinematicTimelineActorEmoteStep(
+        changedActor.updatedProject,
+        cinematicId: 'cinematic_intro',
+        stepId: added.step.id,
+        emoteId: 'heart',
+      );
+      expect(changedEmote.step.actorId, 'actor_lysa');
+      expect(cinematicTimelineActorEmoteEmoteIdOf(changedEmote.step), 'heart');
+      expect(
+        changedEmote.step.durationMs,
+        cinematicTimelineDefaultActorEmoteDurationMs,
+      );
+      expect(
+        () => updateCinematicTimelineActorEmoteStep(
+          changedEmote.updatedProject,
+          cinematicId: 'cinematic_intro',
+          stepId: added.step.id,
+          emoteId: 'missing_emote',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('V1-126 actorEmote JSON roundtrip preserves actor and emote ids', () {
+      final step = CinematicTimelineStep(
+        id: 'step_actor_emote',
+        kind: CinematicTimelineStepKind.actorEmote,
+        label: 'Lysa affiche Surprise',
+        actorId: 'actor_lysa',
+        durationMs: 800,
+        metadata: const {
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineAuthoringBlockMetadataKey:
+              cinematicTimelineActorEmoteBlockMetadataValue,
+          cinematicTimelineActorEmoteEmoteIdMetadataKey: 'exclamation',
+        },
+      );
+
+      final roundtrip = CinematicTimelineStep.fromJson(step.toJson());
+
+      expect(roundtrip.kind, CinematicTimelineStepKind.actorEmote);
+      expect(roundtrip.actorId, 'actor_lysa');
+      expect(roundtrip.durationMs, 800);
+      expect(cinematicTimelineActorEmoteEmoteIdOf(roundtrip), 'exclamation');
+      expect(isCinematicTimelineActorEmoteStep(roundtrip), isTrue);
+    });
+
+    test('V1-126 legacy actorEmote JSON without metadata remains readable', () {
+      final decoded = CinematicTimelineStep.fromJson({
+        'id': 'legacy_emote',
+        'kind': 'actorEmote',
+        'label': 'Ancienne émotion',
+        'actorId': 'actor_legacy',
+        'durationMs': 700,
+      });
+
+      expect(decoded.kind, CinematicTimelineStepKind.actorEmote);
+      expect(decoded.actorId, 'actor_legacy');
+      expect(decoded.durationMs, 700);
+      expect(decoded.metadata, isEmpty);
+      expect(isCinematicTimelineActorEmoteStep(decoded), isFalse);
+      expect(cinematicTimelineActorEmoteEmoteIdOf(decoded), isNull);
+    });
+
     test('updateCinematicTimelineActorMoveStep changes bounded parameters', () {
       var project = _project(
         cinematics: [
@@ -2117,7 +2267,8 @@ void main() {
 
       expect(project.cinematics.single.stageContext?.stagePoints, isNull);
       expect(result.cinematic.stageContext?.stagePoints, [point]);
-      expect(result.updatedProject.cinematics.single.stageContext?.stagePoints, [point]);
+      expect(result.updatedProject.cinematics.single.stageContext?.stagePoints,
+          [point]);
     });
 
     test('updates a stage point through pure authoring operation', () {
@@ -2153,13 +2304,16 @@ void main() {
         point: updatedPoint,
       );
 
-      expect(project.cinematics.single.stageContext?.stagePoints, [initialPoint]);
+      expect(
+          project.cinematics.single.stageContext?.stagePoints, [initialPoint]);
       expect(result.cinematic.stageContext?.stagePoints, [updatedPoint]);
     });
 
     test('removes a stage point through pure authoring operation', () {
-      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
-      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
+      final pointA =
+          CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
+      final pointB =
+          CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
       final project = _project(
         cinematics: [
           CinematicAsset(
@@ -2179,11 +2333,14 @@ void main() {
         stagePointId: 'point_a',
       );
 
-      expect(project.cinematics.single.stageContext?.stagePoints, [pointA, pointB]);
+      expect(project.cinematics.single.stageContext?.stagePoints,
+          [pointA, pointB]);
       expect(result.cinematic.stageContext?.stagePoints, [pointB]);
     });
 
-    test('authoring operations reject duplicate ids, empty labels, non-finite coordinates', () {
+    test(
+        'authoring operations reject duplicate ids, empty labels, non-finite coordinates',
+        () {
       final project = _project(
         cinematics: [
           CinematicAsset(
@@ -2191,7 +2348,8 @@ void main() {
             title: 'Intro',
             stageContext: CinematicStageContext(
               stagePoints: [
-                CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1),
+                CinematicStagePoint(
+                    id: 'point_a', label: 'Point A', x: 1, y: 1),
               ],
             ),
             timeline: CinematicTimeline(),
@@ -2230,15 +2388,18 @@ void main() {
         () => addCinematicStagePoint(
           project,
           cinematicId: 'cinematic_intro',
-          point: CinematicStagePoint(id: 'point_b', label: 'Valid', x: double.nan, y: 2),
+          point: CinematicStagePoint(
+              id: 'point_b', label: 'Valid', x: double.nan, y: 2),
         ),
         throwsA(isA<ArgumentError>()),
       );
     });
 
     group('manual paths', () {
-      final pointA = CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
-      final pointB = CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
+      final pointA =
+          CinematicStagePoint(id: 'point_a', label: 'Point A', x: 1, y: 1);
+      final pointB =
+          CinematicStagePoint(id: 'point_b', label: 'Point B', x: 2, y: 2);
       final waitStep = CinematicTimelineStep(
         id: 'step_wait',
         kind: CinematicTimelineStepKind.wait,
@@ -2281,7 +2442,9 @@ void main() {
         );
       }
 
-      test('addCinematicManualPathForActorMove creates path and sets mode to manual', () {
+      test(
+          'addCinematicManualPathForActorMove creates path and sets mode to manual',
+          () {
         var project = _project(cinematics: [createTestAsset()]);
         final result = addCinematicManualPathForActorMove(
           project,
@@ -2301,11 +2464,15 @@ void main() {
         expect(path.ownerActorMoveStepId, 'step_actor_move');
         expect(path.waypointStagePointIds, ['point_a', 'point_b']);
 
-        final step = updatedCinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
-        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.manual);
+        final step = updatedCinematic.timeline.steps
+            .firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step),
+            CinematicTimelineActorPathMode.manual);
       });
 
-      test('addCinematicManualPathForActorMove defaults label and generates unique ID', () {
+      test(
+          'addCinematicManualPathForActorMove defaults label and generates unique ID',
+          () {
         var project = _project(cinematics: [createTestAsset()]);
         final result1 = addCinematicManualPathForActorMove(
           project,
@@ -2315,7 +2482,8 @@ void main() {
         );
 
         expect(result1.cinematic.stageContext!.manualPaths.single.id, 'path');
-        expect(result1.cinematic.stageContext!.manualPaths.single.label, 'Chemin de déplacement');
+        expect(result1.cinematic.stageContext!.manualPaths.single.label,
+            'Chemin de déplacement');
       });
 
       test('addCinematicManualPathForActorMove validations', () {
@@ -2435,7 +2603,8 @@ void main() {
         );
       });
 
-      test('removeCinematicManualPath removes path and resets step to direct', () {
+      test('removeCinematicManualPath removes path and resets step to direct',
+          () {
         var project = _project(cinematics: [createTestAsset()]);
         final added = addCinematicManualPathForActorMove(
           project,
@@ -2451,8 +2620,10 @@ void main() {
         );
 
         expect(removed.cinematic.stageContext!.manualPaths, isEmpty);
-        final step = removed.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
-        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.direct);
+        final step = removed.cinematic.timeline.steps
+            .firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step),
+            CinematicTimelineActorPathMode.direct);
       });
 
       test('addCinematicManualPathWaypoint adds waypoint', () {
@@ -2473,7 +2644,8 @@ void main() {
         );
 
         expect(
-          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          updated
+              .cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
           ['point_a', 'point_b'],
         );
       });
@@ -2496,7 +2668,8 @@ void main() {
         );
 
         expect(
-          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          updated
+              .cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
           ['point_b'],
         );
 
@@ -2531,7 +2704,8 @@ void main() {
         );
 
         expect(
-          updated.cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
+          updated
+              .cinematic.stageContext!.manualPaths.single.waypointStagePointIds,
           ['point_b', 'point_a'],
         );
 
@@ -2557,8 +2731,10 @@ void main() {
           pathMode: CinematicTimelineActorPathMode.manual,
         );
 
-        final step = updated.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
-        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.manual);
+        final step = updated.cinematic.timeline.steps
+            .firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step),
+            CinematicTimelineActorPathMode.manual);
         expect(step.targetId, 'target_center'); // Preserves target
       });
 
@@ -2577,8 +2753,10 @@ void main() {
         );
 
         expect(cleared.cinematic.stageContext!.manualPaths, isEmpty);
-        final step = cleared.cinematic.timeline.steps.firstWhere((s) => s.id == 'step_actor_move');
-        expect(cinematicTimelineActorPathModeOf(step), CinematicTimelineActorPathMode.direct);
+        final step = cleared.cinematic.timeline.steps
+            .firstWhere((s) => s.id == 'step_actor_move');
+        expect(cinematicTimelineActorPathModeOf(step),
+            CinematicTimelineActorPathMode.direct);
       });
     });
   });

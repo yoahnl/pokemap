@@ -1,5 +1,6 @@
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
+import '../models/cinematic_emote_catalog.dart';
 import '../models/enums.dart';
 import '../models/project_manifest.dart';
 
@@ -28,6 +29,11 @@ enum CinematicDiagnosticCode {
   cinematicActorMoveInvalidDuration,
   cinematicActorMoveInvalidMovementMode,
   cinematicActorMoveUnsupportedPathMode,
+  cinematicActorEmoteMissingActorRef,
+  cinematicActorEmoteUnknownActorRef,
+  cinematicActorEmoteMissingEmoteRef,
+  cinematicActorEmoteUnknownEmoteRef,
+  cinematicActorEmoteInvalidDuration,
   stageMapUnknown,
   stageBackdropRequiresMap,
   actorBindingUnknownActor,
@@ -1199,7 +1205,9 @@ void _diagnoseTimeline(
       );
     }
     final actorId = step.actorId;
-    if (actorId != null && !requiredActorIds.contains(actorId)) {
+    if (actorId != null &&
+        step.kind != CinematicTimelineStepKind.actorEmote &&
+        !requiredActorIds.contains(actorId)) {
       diagnostics.add(
         CinematicDiagnostic(
           code: CinematicDiagnosticCode.cinematicUnknownActorRef,
@@ -1222,6 +1230,14 @@ void _diagnoseTimeline(
         diagnostics: diagnostics,
       );
     }
+    if (step.kind == CinematicTimelineStepKind.actorEmote) {
+      _diagnoseActorEmoteStep(
+        cinematic,
+        step,
+        requiredActorIds: requiredActorIds,
+        diagnostics: diagnostics,
+      );
+    }
   }
 }
 
@@ -1230,7 +1246,8 @@ void _diagnoseStepDuration(
   CinematicTimelineStep step,
   List<CinematicDiagnostic> diagnostics,
 ) {
-  if (step.kind == CinematicTimelineStepKind.actorMove) {
+  if (step.kind == CinematicTimelineStepKind.actorMove ||
+      step.kind == CinematicTimelineStepKind.actorEmote) {
     return;
   }
   final durationMs = step.durationMs;
@@ -1271,6 +1288,90 @@ int? _diagnosticDurationMinimumMs(CinematicTimelineStep step) {
     return cinematicTimelineMinimumDurationMs;
   }
   return null;
+}
+
+void _diagnoseActorEmoteStep(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step, {
+  required Set<String> requiredActorIds,
+  required List<CinematicDiagnostic> diagnostics,
+}) {
+  final actorId = step.actorId;
+  if (actorId == null || actorId.trim().isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorEmoteMissingActorRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Une émotion doit référencer un acteur requis.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un acteur requis existant.',
+      ),
+    );
+  } else if (!requiredActorIds.contains(actorId)) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorEmoteUnknownActorRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Une émotion référence un acteur inconnu.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: actorId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir un acteur requis existant.',
+      ),
+    );
+  }
+
+  final emoteId = cinematicTimelineActorEmoteEmoteIdOf(step);
+  if (emoteId == null || emoteId.isEmpty) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorEmoteMissingEmoteRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Une émotion à afficher doit être choisie.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir une émotion disponible.',
+      ),
+    );
+  } else if (!isCinematicEmoteIdKnown(emoteId)) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorEmoteUnknownEmoteRef,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Une émotion référence un choix indisponible.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        referenceId: emoteId,
+        target: CinematicDiagnosticTarget.reference,
+        suggestedFixLabel: 'Choisir une émotion disponible.',
+      ),
+    );
+  }
+
+  final durationMs = step.durationMs;
+  if (durationMs == null ||
+      durationMs < cinematicTimelineMinimumDurationMs ||
+      durationMs > cinematicTimelineMaximumDurationMs) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicActorEmoteInvalidDuration,
+        severity: CinematicDiagnosticSeverity.error,
+        message: 'Une émotion doit durer entre '
+            '$cinematicTimelineMinimumDurationMs ms et '
+            '$cinematicTimelineMaximumDurationMs ms.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Choisir une durée entre '
+            '$cinematicTimelineMinimumDurationMs ms et '
+            '$cinematicTimelineMaximumDurationMs ms.',
+      ),
+    );
+  }
 }
 
 void _diagnoseActorMoveStep(

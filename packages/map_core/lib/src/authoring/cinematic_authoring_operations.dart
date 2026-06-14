@@ -1,4 +1,5 @@
 import '../models/cinematic_asset.dart';
+import '../models/cinematic_emote_catalog.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 
@@ -116,6 +117,18 @@ final class CinematicTimelineActorMoveStepResult {
   final CinematicTimelineStep step;
 }
 
+final class CinematicTimelineActorEmoteStepResult {
+  const CinematicTimelineActorEmoteStepResult({
+    required this.updatedProject,
+    required this.cinematic,
+    required this.step,
+  });
+
+  final ProjectManifest updatedProject;
+  final CinematicAsset cinematic;
+  final CinematicTimelineStep step;
+}
+
 final class CinematicTimelineStepUpdateResult {
   const CinematicTimelineStepUpdateResult({
     required this.updatedProject,
@@ -184,13 +197,16 @@ const cinematicTimelineCameraModeMetadataKey = 'camera.mode';
 const cinematicTimelineActorDirectionMetadataKey = 'actor.direction';
 const cinematicTimelineActorFaceBlockMetadataValue = 'actorFace';
 const cinematicTimelineActorMoveBlockMetadataValue = 'actorMove';
+const cinematicTimelineActorEmoteBlockMetadataValue = 'actorEmote';
 const cinematicTimelineActorMovementModeMetadataKey = 'actor.movementMode';
 const cinematicTimelineActorPathModeMetadataKey = 'actor.pathMode';
+const cinematicTimelineActorEmoteEmoteIdMetadataKey = 'actor.emoteId';
 
 const cinematicTimelineDefaultWaitDurationMs = 1000;
 const cinematicTimelineDefaultFadeDurationMs = 1000;
 const cinematicTimelineDefaultCameraDurationMs = 500;
 const cinematicTimelineDefaultActorMoveDurationMs = 1000;
+const cinematicTimelineDefaultActorEmoteDurationMs = 800;
 const cinematicTimelineMinimumDurationMs = 100;
 const cinematicTimelineActorMoveMinimumDurationMs = 200;
 const cinematicTimelineMaximumDurationMs = 30000;
@@ -1449,6 +1465,115 @@ CinematicTimelineStepUpdateResult updateCinematicTimelineActorMoveStep(
   );
 }
 
+CinematicTimelineActorEmoteStepResult addCinematicTimelineActorEmoteStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String actorId,
+  String emoteId = cinematicDefaultActorEmoteId,
+  int? durationMs,
+  String? afterStepId,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final actor = _requireActor(cinematic, actorId);
+  final emote = _requireEmoteEntry(emoteId);
+  final steps = cinematic.timeline.steps.toList();
+  final insertIndex = _timelineInsertIndex(
+    steps,
+    afterStepId,
+    argumentName: 'afterStepId',
+    message: 'Actor emote insertion references an unknown timeline step.',
+  );
+  final step = _buildActorEmoteStep(
+    cinematic,
+    actor: actor,
+    emote: emote,
+    durationMs: durationMs ?? cinematicTimelineDefaultActorEmoteDurationMs,
+  );
+  steps.insert(insertIndex, step);
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineActorEmoteStepResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: step,
+  );
+}
+
+CinematicTimelineStepUpdateResult updateCinematicTimelineActorEmoteStep(
+  ProjectManifest project, {
+  required String cinematicId,
+  required String stepId,
+  String? actorId,
+  String? emoteId,
+  int? durationMs,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  final id = _trimRequired(
+    stepId,
+    'stepId',
+    'Actor emote update requires a timeline step id.',
+  );
+  final steps = cinematic.timeline.steps.toList();
+  final index = steps.indexWhere((step) => step.id == id);
+  if (index == -1) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Actor emote update references an unknown timeline step.',
+    );
+  }
+  final step = steps[index];
+  if (!isCinematicTimelineActorEmoteStep(step)) {
+    throw ArgumentError.value(
+      stepId,
+      'stepId',
+      'Only Cinematic Builder V0 actor emote blocks can be updated here.',
+    );
+  }
+
+  final actor = actorId == null
+      ? _requireActor(cinematic, step.actorId ?? '')
+      : _requireActor(cinematic, actorId);
+  final emote = emoteId == null
+      ? _requireEmoteEntry(cinematicTimelineActorEmoteEmoteIdOf(step) ?? '')
+      : _requireEmoteEntry(emoteId);
+  final metadata = Map<String, String>.of(step.metadata)
+    ..[cinematicTimelineActorEmoteEmoteIdMetadataKey] = emote.id;
+  final updatedStep = CinematicTimelineStep(
+    id: step.id,
+    kind: step.kind,
+    label: _actorEmoteLabel(actor, emote),
+    durationMs: durationMs == null
+        ? step.durationMs
+        : _validateDuration(
+            durationMs,
+            argumentName: 'durationMs',
+            minMs: cinematicTimelineMinimumDurationMs,
+          ),
+    actorId: actor.actorId,
+    targetId: step.targetId,
+    dialogueText: step.dialogueText,
+    assetRef: step.assetRef,
+    metadata: metadata,
+  );
+  steps[index] = updatedStep;
+
+  final updatedCinematic = _copyCinematicWithTimeline(
+    cinematic,
+    CinematicTimeline(steps: steps),
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicTimelineStepUpdateResult(
+    updatedProject: result.updatedProject,
+    cinematic: result.cinematic,
+    step: updatedStep,
+  );
+}
+
 CinematicTimelineAuthoringStepRemovalResult
     removeCinematicTimelineAuthoringStep(
   ProjectManifest project, {
@@ -1504,7 +1629,8 @@ bool isCinematicTimelineAuthoringStep(CinematicTimelineStep step) {
   return isCinematicTimelineDraftStep(step) ||
       isCinematicTimelineBasicBlockStep(step) ||
       isCinematicTimelineActorFacingStep(step) ||
-      isCinematicTimelineActorMoveStep(step);
+      isCinematicTimelineActorMoveStep(step) ||
+      isCinematicTimelineActorEmoteStep(step);
 }
 
 bool isCinematicTimelineBasicBlockStep(CinematicTimelineStep step) {
@@ -1592,6 +1718,33 @@ CinematicTimelineActorPathMode? cinematicTimelineActorPathModeOf(
     'manual' => CinematicTimelineActorPathMode.manual,
     _ => null,
   };
+}
+
+bool isCinematicTimelineActorEmoteStep(CinematicTimelineStep step) {
+  return step.kind == CinematicTimelineStepKind.actorEmote &&
+      step.metadata[cinematicTimelineDraftMetadataSourceKey] ==
+          cinematicTimelineDraftMetadataSourceValue &&
+      step.metadata[cinematicTimelineDraftMetadataKindKey] ==
+          cinematicTimelineBasicBlockMetadataKindValue &&
+      step.metadata[cinematicTimelineAuthoringBlockMetadataKey] ==
+          cinematicTimelineActorEmoteBlockMetadataValue;
+}
+
+String? cinematicTimelineActorEmoteActorIdOf(CinematicTimelineStep step) {
+  final actorId = step.actorId?.trim();
+  if (actorId == null || actorId.isEmpty) {
+    return null;
+  }
+  return actorId;
+}
+
+String? cinematicTimelineActorEmoteEmoteIdOf(CinematicTimelineStep step) {
+  final emoteId =
+      step.metadata[cinematicTimelineActorEmoteEmoteIdMetadataKey]?.trim();
+  if (emoteId == null || emoteId.isEmpty) {
+    return null;
+  }
+  return emoteId;
 }
 
 /// Ajoute un chemin manuel owned par un bloc actorMove existant et bascule le step en mode manual.
@@ -2390,6 +2543,34 @@ CinematicTimelineStep _buildActorMoveStep(
   );
 }
 
+CinematicTimelineStep _buildActorEmoteStep(
+  CinematicAsset cinematic, {
+  required CinematicActorRef actor,
+  required CinematicEmoteCatalogEntry emote,
+  required int durationMs,
+}) {
+  return CinematicTimelineStep(
+    id: _nextTimelineStepId(cinematic, 'step_actor_emote'),
+    kind: CinematicTimelineStepKind.actorEmote,
+    label: _actorEmoteLabel(actor, emote),
+    durationMs: _validateDuration(
+      durationMs,
+      argumentName: 'durationMs',
+      minMs: cinematicTimelineMinimumDurationMs,
+    ),
+    actorId: actor.actorId,
+    metadata: {
+      cinematicTimelineDraftMetadataKindKey:
+          cinematicTimelineBasicBlockMetadataKindValue,
+      cinematicTimelineDraftMetadataSourceKey:
+          cinematicTimelineDraftMetadataSourceValue,
+      cinematicTimelineAuthoringBlockMetadataKey:
+          cinematicTimelineActorEmoteBlockMetadataValue,
+      cinematicTimelineActorEmoteEmoteIdMetadataKey: emote.id,
+    },
+  );
+}
+
 CinematicTimelineStep _copyBasicBlockStepWithParams(
   CinematicTimelineStep step, {
   required CinematicTimelineBasicBlockKind blockKind,
@@ -2478,6 +2659,14 @@ String _actorFacingLabel(CinematicActorRef actor) {
 String _actorMoveLabel(CinematicActorRef actor) {
   final label = actor.label ?? actor.actorId;
   return 'Déplacement $label';
+}
+
+String _actorEmoteLabel(
+  CinematicActorRef actor,
+  CinematicEmoteCatalogEntry emote,
+) {
+  final actorLabel = actor.label ?? actor.actorId;
+  return '$actorLabel affiche ${emote.label}';
 }
 
 int validateCinematicTimelineDurationMs(
@@ -2626,6 +2815,23 @@ CinematicMovementTargetRef _requireMovementTarget(
     targetId,
     'targetId',
     'Actor move authoring references an unknown movement target.',
+  );
+}
+
+CinematicEmoteCatalogEntry _requireEmoteEntry(String emoteId) {
+  final id = _trimRequired(
+    emoteId,
+    'emoteId',
+    'Actor emote authoring requires an emote id.',
+  );
+  final emote = cinematicEmoteCatalogEntryById(id);
+  if (emote != null) {
+    return emote;
+  }
+  throw ArgumentError.value(
+    emoteId,
+    'emoteId',
+    'Actor emote authoring references an unknown emote.',
   );
 }
 

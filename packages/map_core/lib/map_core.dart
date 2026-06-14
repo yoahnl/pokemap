@@ -24,6 +24,7 @@ export 'src/models/script_asset.dart';
 export 'src/models/script_conditions.dart';
 export 'src/models/map_event_definition.dart';
 export 'src/models/cinematic_asset.dart';
+export 'src/models/cinematic_emote_catalog.dart';
 export 'src/models/narrative_fact.dart';
 export 'src/models/project_trainer.dart';
 export 'src/models/scenario_asset.dart';
