@@ -5715,7 +5715,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_face');
       expect(find.text('Sélection : 500 ms'), findsOneWidget);
       expect(find.text('Professor turns'), findsWidgets);
-      expect(find.text('step_face'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_face');
 
       final tick0Rect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-tick-0')),
@@ -5741,7 +5741,7 @@ void main() {
       );
       expect(find.text('Sélection : 500 ms'), findsNothing);
       expect(find.text('Professor turns'), findsWidgets);
-      expect(find.text('step_face'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_face');
       expect(
         find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
         findsNothing,
@@ -5783,7 +5783,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_face');
       expect(find.text('Sélection : 500 ms'), findsOneWidget);
       expect(find.text('Professor turns'), findsWidgets);
-      expect(find.text('step_face'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_face');
 
       final tick500Rect = tester.getRect(
         find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
@@ -5805,7 +5805,7 @@ void main() {
       );
       expect(find.text('Sélection : 500 ms'), findsNothing);
       expect(find.text('Professor turns'), findsWidgets);
-      expect(find.text('step_face'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_face');
       expect(
         find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
         findsNothing,
@@ -11916,7 +11916,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_camera');
       expect(find.text('Sélection : 0 ms'), findsOneWidget);
       expect(find.text('Camera reveal'), findsWidgets);
-      expect(find.text('step_camera'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_camera');
       expect(find.textContaining('1. Camera reveal'), findsOneWidget);
 
       final moveCardRect = tester.getRect(
@@ -11938,7 +11938,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_face');
       expect(find.text('Sélection : 500 ms'), findsOneWidget);
       expect(find.text('Professor turns'), findsWidgets);
-      expect(find.text('step_face'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_face');
       expect(find.textContaining('2. Professor turns'), findsOneWidget);
 
       final faceCursorRect = tester.getRect(
@@ -11960,7 +11960,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_sound');
       expect(find.text('Sélection : 2.7 s'), findsOneWidget);
       expect(find.text('Cue bell'), findsWidgets);
-      expect(find.text('step_sound'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_sound');
       expect(find.textContaining('6. Cue bell'), findsOneWidget);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowUp);
@@ -11968,7 +11968,7 @@ void main() {
       _expectTimelineStepSelected(tester, 'step_move');
       expect(find.text('Sélection : 1.1 s'), findsOneWidget);
       expect(find.text('Professor → Centre scène'), findsWidgets);
-      expect(find.text('step_move'), findsWidgets);
+      _expectTimelineStepCardPresentWithoutRawId(tester, 'step_move');
       expect(
         find.textContaining('4. Professor → Centre scène'),
         findsOneWidget,
@@ -12037,7 +12037,7 @@ void main() {
 
     _expectTimelineStepSelected(tester, 'step_camera_a');
     expect(find.text('Camera left'), findsWidgets);
-    expect(find.text('step_camera_a'), findsWidgets);
+    _expectTimelineStepCardPresentWithoutRawId(tester, 'step_camera_a');
   });
 
   testWidgets(
@@ -12593,17 +12593,13 @@ void main() {
     expect(find.text('Bloc brouillon'), findsWidgets);
     expect(find.text('Brouillon'), findsWidgets);
     expect(find.text('marker'), findsWidgets);
-    expect(find.text('Statut'), findsWidgets);
-    expect(find.text('Placeholder authoring'), findsOneWidget);
-    expect(
-      find.text('Durée non éditable — brouillon sans effet moteur.'),
-      findsOneWidget,
-    );
+    expect(find.text('Statut'), findsNothing);
+    expect(find.text('Placeholder authoring'), findsNothing);
     expect(
       find.text(
         'authoring.kind = draft, authoring.source = cinematic-builder-v0',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     final selectedDraftCard = tester.widget<PokeMapCard>(
       find.byKey(const ValueKey('cinematic-builder-step-card-step_draft')),
@@ -13575,11 +13571,11 @@ void main() {
     await tester.tap(actorMoveButton);
     await tester.pumpAndSettle();
 
-    expect(
-      find.text('Professor marche vers Centre scène en 1000 ms.'),
-      findsOneWidget,
-    );
     expect(find.text('Professor → Centre scène'), findsWidgets);
+    expect(find.text('Centre scène'), findsWidgets);
+    expect(find.text('1000'), findsWidgets);
+    expect(find.text('Mode mouvement'), findsWidgets);
+    expect(find.text('Marche'), findsWidgets);
     expect(find.text('Trajet'), findsWidgets);
     expect(find.text('Direct'), findsWidgets);
     expect(find.text('Manuel'), findsWidgets);
@@ -13636,11 +13632,9 @@ void main() {
     );
     await tester.tap(actionTab);
     await tester.pumpAndSettle();
-    expect(
-      find.text('Professor marche vers Centre du plateau en 1000 ms.'),
-      findsOneWidget,
-    );
     expect(find.text('Professor → Centre du plateau'), findsWidgets);
+    expect(find.text('Centre du plateau'), findsWidgets);
+    expect(find.text('1000'), findsWidgets);
     await tester.tap(sceneTab);
     await tester.pumpAndSettle();
 
@@ -21521,6 +21515,17 @@ void _expectTimelineStepSelected(WidgetTester tester, String stepId) {
     find.byKey(ValueKey('cinematic-builder-step-card-$stepId')),
   );
   expect(card.selected, isTrue);
+}
+
+void _expectTimelineStepCardPresentWithoutRawId(
+  WidgetTester tester,
+  String stepId,
+) {
+  expect(
+    find.byKey(ValueKey('cinematic-builder-step-card-$stepId')),
+    findsOneWidget,
+  );
+  expect(find.text(stepId), findsNothing);
 }
 
 void _expectTransportControlsPresent(WidgetTester tester) {

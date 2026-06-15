@@ -12,7 +12,7 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan
 ```
 
-Suite V1-136 : le Cinematic Builder V1 est closable avec reserves non bloquantes. Le prochain verrou produit sort de l'extension du Builder et cadre la golden slice narrative jouable Selbrume avec les systemes Narrative Studio stabilises.
+Suite V1-136-bis : le Cinematic Builder V1 est closable, et la reserve de tests widget legacy identifiee par V1-136 est nettoyee sans changement produit. Le prochain verrou produit sort de l'extension du Builder et cadre la golden slice narrative jouable Selbrume avec les systemes Narrative Studio stabilises.
 
 ## Principes
 
@@ -191,7 +191,18 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-134 | Cinematic Camera Geometry Preview UI V0 | editor / preview-ui | Brancher l'etat geometrique V1-133 dans la preview editor-only avec cadre/cible/cadrage visuel base sur la geometrie derivee. | Pas de runtime, Flame, GameState, CameraComponent, mutation viewport editor, vraie camera runtime, pan/zoom persiste ou interpolation camera. | Cinematic Builder preview, tests widget, rapports, Visual Gate. | Tests preview geometry scene/actor/stagePoint, diagnostics no-code, focus unsupported honnete, anti-scope runtime/viewport. | Faire croire a une vraie camera runtime ; confondre zoom preset et zoom numerique ; muter le viewport editor. | DONE : cadre camera editor-only, marqueur cible, labels no-code, Visual Gate et anti-scope runtime/viewport confirmes. | V1-133 |
 | NS-SCENES-V1-135 | Cinematic Builder V1 Camera Closure / Polish Gate | editor / polish-gate | Fermer la sequence camera V1 par un polish/gate cible : wording, diagnostics restants, coherence inspecteur/preview et preuves finales. | Pas de nouveau moteur camera, runtime, Flame, GameState, CameraComponent, mutation viewport editor, interpolation ou nouveau continent fonctionnel. | Builder cinematic, tests de non-regression, rapports, Visual Gate finale. | Regressions camera V1-124/V1-132/V1-134, diagnostics no-code, anti-scope runtime/viewport. | Transformer le gate en nouvelle feature ; relancer une vraie camera runtime trop tot. | DONE : wording final harmonise, overlay geometrique confirme, diagnostics no-code preserves, Visual Gate finale et anti-scope runtime/viewport confirmes. | V1-134 |
 | NS-SCENES-V1-136 | Cinematic Builder V1 Closure / Readiness Audit | doc / readiness-gate | Fermer officiellement le Cinematic Builder V1 par un audit global : matrice livre/backlog V2, validations finales, limites assumees et trajectoire Narrative Studio. | Pas de nouveau moteur camera, pas de runtime, pas de nouvelle feature, pas de V2 fonctionnelle, pas de mutation viewport editor. | Roadmaps, rapports, synthese readiness, preuves de non-regression. | Audit global Builder V1, checks anti-scope, tests critiques reutilises, backlog V2 explicite. | Transformer la fermeture en nouveau chantier ; masquer les limites restantes. | DONE : Builder V1 closable avec reserves non bloquantes ; tests legacy rouges documentes ; V1-137 recommande. | V1-135 |
+| NS-SCENES-V1-136-bis | Cinematic Builder Legacy Widget Expectations Cleanup | tests / maintenance | Realigner les attentes widget legacy Builder/Library sur l'UX no-code actuelle. | Pas de code produit, pas de nouvelle feature, pas de runtime, pas de Visual Gate, pas de reintroduction d'IDs techniques visibles. | Tests Builder/Library, rapports, roadmaps. | 6 attentes Builder et 1 attente Library corrigees ; suites completes Builder/Library vertes ; regression ciblee V1-102 a V1-135 verte ; analyse ciblee non fatale. | Affaiblir les assertions ; remettre des IDs techniques dans l'UI ; confondre cleanup de tests et nouveau lot produit. | DONE : tests legacy realignes sans changement produit ; Builder V1 closable sans reserve de test legacy bloquante. | V1-136 |
 | NS-SCENES-V1-137 | Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan | doc / product-readiness | Cadrer la demo narrative jouable Selbrume en reutilisant les systemes stabilises : maps, scenes, cinematiques, dialogues, combats, facts/world rules et contenu. | Pas de reouverture Cinematic Builder V1, pas de runtime cinematic V2, pas de nouveau moteur, pas de seed produit irreversible sans validation. | Rapports readiness Selbrume, plan de contenu, matrice dependances Narrative Studio. | Audit contenu/systemes, gaps jouabilite, plan de validation, anti-scope Builder V1. | Rouvrir le Builder au lieu de cadrer le contenu ; confondre demo jouable et nouveau moteur. | Recommande, non demarre. | V1-136 |
+
+## Mise a jour V1-136-bis
+
+Statut : `NS-SCENES-V1-136-bis — Cinematic Builder Legacy Widget Expectations Cleanup` est DONE.
+
+Decision : les attentes widget legacy restantes ont ete remplacees par des attentes no-code ou des cles de cartes stables, sans modifier le produit et sans reintroduire les anciens IDs/libelles techniques dans l'interface.
+
+Preuve : `cinematic_builder_workspace_test.dart` complet vert, `cinematics_library_workspace_test.dart` complet vert, regression ciblee V1-102 a V1-135 verte, analyse ciblee editor lancee avec infos non fatales preexistantes.
+
+Prochain lot recommande : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
 
 ## Mise a jour V1-136
 

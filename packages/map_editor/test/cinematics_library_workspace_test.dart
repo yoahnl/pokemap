@@ -811,7 +811,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Attente'), findsWidgets);
-    expect(find.text('Bloc authoring V0'), findsOneWidget);
+    expect(find.text('Bloc authoring V0'), findsNothing);
 
     await tester.tap(
       find.byKey(const ValueKey('cinematic-builder-back-button')),

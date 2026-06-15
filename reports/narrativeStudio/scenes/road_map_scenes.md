@@ -200,13 +200,14 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0 | DONE | Etat geometrique V1-133 branche dans la preview editor-only : cadre camera passif, marqueur cible, labels no-code et diagnostics lisibles, sans runtime, Flame, GameState ni mutation viewport editor. |
 | NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate | DONE | Fermeture ciblee de la sequence camera V1 : wording inspecteur/preview harmonise, overlay geometrique confirme, diagnostics no-code preserves, Visual Gate finale et regressions camera/emote relancees, sans nouveau moteur camera ni mutation viewport. |
 | NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit | DONE | Audit global de readiness du Cinematic Builder V1 : verdict closable avec reserves non bloquantes, matrice livre/backlog V2, validations finales, risques assumes et trajectoire Narrative Studio hors extension du Builder. |
+| NS-SCENES-V1-136-bis — Cinematic Builder Legacy Widget Expectations Cleanup | DONE | Maintenance tests uniquement : les 6 attentes legacy Builder et l'attente legacy Library ont ete realignees sur l'UX no-code actuelle, sans modifier le produit, sans reintroduire d'IDs techniques visibles et sans rouvrir le Builder V1. |
 | NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan | RECOMMANDÉ | Cadrer la demo narrative jouable Selbrume en reutilisant les systemes stabilises : maps, scenes, cinematiques, dialogues, combats, facts/world rules et contenu, sans rouvrir le Cinematic Builder V1. |
 
 ## Prochain lot exact recommande
 
 `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`
 
-Raison : V1-136 ferme officiellement le Cinematic Builder V1 avec reserves non bloquantes. Le prochain verrou produit sort de l'extension du Builder : cadrer la golden slice narrative jouable Selbrume avec les systemes Narrative Studio maintenant stabilises.
+Raison : V1-136 a ferme officiellement le Cinematic Builder V1 avec reserves non bloquantes, puis V1-136-bis a nettoye la reserve de tests widget legacy. Le prochain verrou produit sort de l'extension du Builder : cadrer la golden slice narrative jouable Selbrume avec les systemes Narrative Studio maintenant stabilises.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -246,7 +247,18 @@ Ordre apres V1-102 :
 35. `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0` (DONE)
 36. `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate` (DONE)
 37. `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit` (DONE)
-38. `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan` (recommande, non demarre)
+38. `NS-SCENES-V1-136-bis — Cinematic Builder Legacy Widget Expectations Cleanup` (DONE)
+39. `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan` (recommande, non demarre)
+
+## Mise a jour V1-136-bis
+
+Statut : `NS-SCENES-V1-136-bis — Cinematic Builder Legacy Widget Expectations Cleanup` est DONE.
+
+Decision : les attentes widget historiques documentees par V1-136 ont ete realignees sur l'UX no-code actuelle. Les tests ne cherchent plus les IDs/libelles legacy comme workflow principal (`step_face`, `step_camera`, `step_camera_a`, `Statut`, `Bloc authoring V0`, phrases actorMove anciennes), et le produit n'a pas ete modifie.
+
+Preuve : `flutter test --reporter=compact test/cinematic_builder_workspace_test.dart`, `flutter test --reporter=compact test/cinematics_library_workspace_test.dart`, la regression ciblee V1-102 a V1-135 et l'analyse ciblee editor ont ete relancees. Les deux suites completes Builder/Library sont vertes.
+
+Prochain lot recommande : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
 
 ## Mise a jour V1-136
 
