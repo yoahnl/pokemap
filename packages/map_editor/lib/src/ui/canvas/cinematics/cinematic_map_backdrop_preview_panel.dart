@@ -6,6 +6,7 @@ import '../../design_system/design_system.dart';
 import 'cinematic_actor_display_preview_overlay.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_backdrop_preview_framing.dart';
+import 'cinematic_camera_geometry_preview_overlay.dart';
 import 'cinematic_camera_preview_overlay.dart';
 import 'cinematic_emote_preview_overlay.dart';
 import 'cinematic_fade_preview_overlay.dart';
@@ -760,6 +761,18 @@ class _BackdropBitmapMap extends StatelessWidget {
                                           CinematicFadePreviewOverlay(
                                             fadeState: fadeState!,
                                           ),
+                                        CinematicCameraGeometryPreviewOverlay(
+                                          cameraPose: cameraPose,
+                                          transform:
+                                              CinematicMapBackdropViewportTransform
+                                                  .fill(
+                                            viewportSize:
+                                                framing.transform.frame.size,
+                                            mapWidth: plan.mapWidth,
+                                            mapHeight: plan.mapHeight,
+                                          ),
+                                          compact: compact,
+                                        ),
                                         CinematicCameraPreviewOverlay(
                                           cameraPose: cameraPose,
                                           compact: compact,
@@ -1102,6 +1115,11 @@ class _BackdropLayerBitmapMap extends StatelessWidget {
                                           CinematicFadePreviewOverlay(
                                             fadeState: fadeState!,
                                           ),
+                                        CinematicCameraGeometryPreviewOverlay(
+                                          cameraPose: cameraPose,
+                                          transform: transform,
+                                          compact: compact,
+                                        ),
                                         CinematicCameraPreviewOverlay(
                                           cameraPose: cameraPose,
                                           compact: compact,
@@ -1650,6 +1668,18 @@ class _BackdropPrimitiveCanvas extends StatelessWidget {
                         ),
                       if (fadeState != null)
                         CinematicFadePreviewOverlay(fadeState: fadeState!),
+                      CinematicCameraGeometryPreviewOverlay(
+                        cameraPose: cameraPose,
+                        transform: CinematicMapBackdropViewportTransform.fill(
+                          viewportSize: Size(
+                            viewportRect.width,
+                            viewportRect.height,
+                          ),
+                          mapWidth: mapWidth,
+                          mapHeight: mapHeight,
+                        ),
+                        compact: compact,
+                      ),
                       CinematicCameraPreviewOverlay(
                         cameraPose: cameraPose,
                         compact: compact,

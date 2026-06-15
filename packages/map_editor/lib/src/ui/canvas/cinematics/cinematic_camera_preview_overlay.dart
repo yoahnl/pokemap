@@ -20,17 +20,14 @@ class CinematicCameraPreviewOverlay extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    final tone = cameraPose.isSupported
+    final hasGeometryPreview = cameraPose.geometry.isAvailable;
+    final tone = cameraPose.isSupported || hasGeometryPreview
         ? PokeMapTone.info.resolve(context)
         : PokeMapTone.warning.resolve(context);
     final colors = context.pokeMapColors;
     final statusLabel = _cameraPreviewStatusLabel(cameraPose);
     final frameInset = compact ? 10.0 : 16.0;
 
-    // This overlay is preview chrome only: V1-123 exposes camera activity and
-    // diagnostics, but no center/zoom/follow geometry to apply to the editor
-    // viewport. V1-124 therefore signals the active camera honestly without
-    // pretending to pan or zoom the map.
     return IgnorePointer(
       key: const ValueKey('cinematic-builder-camera-preview-overlay'),
       child: Stack(
@@ -123,6 +120,9 @@ class CinematicCameraPreviewOverlay extends StatelessWidget {
 }
 
 String _cameraPreviewStatusLabel(CinematicCameraPlaybackPose cameraPose) {
+  if (cameraPose.geometry.isAvailable) {
+    return 'Cadrage affiché, vue non pilotée.';
+  }
   if (cameraPose.isSupported) {
     return 'Cadrage caméra prêt';
   }

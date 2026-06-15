@@ -1074,7 +1074,7 @@ void main() {
   );
 
   testWidgets(
-    'V1-132 keeps existing camera preview symbolic and unsupported for focus',
+    'V1-132 focus camera remains no-code without raw metadata after geometry preview',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       final asset = _cameraTargetZoomAuthoringCinematic();
@@ -1109,8 +1109,17 @@ void main() {
       await tester.pump();
 
       expect(find.text('Caméra active'), findsWidgets);
-      expect(find.text('Caméra non prévisualisée dans cette version.'),
-          findsOneWidget);
+      expect(find.text('Cadrage affiché, vue non pilotée.'), findsWidgets);
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-overlay'),
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('camera.targetKind'), findsNothing);
       expect(find.textContaining('camera.zoomPreset'), findsNothing);
       expect(find.text('CameraComponent'), findsNothing);
@@ -9330,6 +9339,358 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/scenes/screenshots/'
         'ns_scenes_v1_124_cinematic_camera_preview_playback_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'V1-134 renders camera geometry frame when focus geometry is available',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+      await _seekPlaybackToTick(tester, 500);
+
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-overlay'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-target-marker'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cadrage affiché, vue non pilotée.'), findsWidgets);
+      expect(find.text('Centre de la scène'), findsWidgets);
+      expect(find.text('Plan moyen'), findsWidgets);
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'V1-134 renders camera target marker at resolved actor pose',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'actor',
+        targetActorId: 'actor_lysa',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+      await _seekPlaybackToTick(tester, 500);
+
+      final markerCenter = _cameraGeometryMarkerCenter(tester);
+      final mapFrame = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-map-backdrop-map-frame')),
+      );
+      expect(find.text('Acteur : Lysa'), findsWidgets);
+      expect(markerCenter.dx, lessThan(mapFrame.center.dx));
+      expect(markerCenter.dy, closeTo(mapFrame.center.dy, mapFrame.height / 3));
+    },
+  );
+
+  testWidgets(
+    'V1-134 renders camera target marker at resolved stage point',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_balcony',
+        zoomPreset: 'close',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+      await _seekPlaybackToTick(tester, 500);
+
+      final markerCenter = _cameraGeometryMarkerCenter(tester);
+      final mapFrame = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-map-backdrop-map-frame')),
+      );
+      expect(find.text('Repère : Balcon'), findsWidgets);
+      expect(find.text('Gros plan'), findsWidgets);
+      expect(markerCenter.dx, greaterThan(mapFrame.center.dx));
+      expect(markerCenter.dy, closeTo(mapFrame.center.dy, mapFrame.height / 3));
+    },
+  );
+
+  testWidgets('V1-134 wide medium close produce distinct frame sizes', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+
+    Future<Rect> frameFor(String zoomPreset) async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      final asset = _cameraGeometryPreviewCinematic(zoomPreset: zoomPreset);
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+      await _seekPlaybackToTick(tester, 500);
+      return _cameraGeometryFrameRect(tester);
+    }
+
+    final wideFrame = await frameFor('wide');
+    final mediumFrame = await frameFor('medium');
+    final closeFrame = await frameFor('close');
+
+    expect(wideFrame.width, greaterThan(mediumFrame.width));
+    expect(wideFrame.height, greaterThan(mediumFrame.height));
+    expect(mediumFrame.width, greaterThan(closeFrame.width));
+    expect(mediumFrame.height, greaterThan(closeFrame.height));
+  });
+
+  testWidgets('V1-134 unavailable geometry shows no-code fallback', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _cameraGeometryPreviewCinematic(
+      targetKind: 'actor',
+      targetActorId: 'actor_missing',
+    );
+    final mapData = _stageMapDataWithActorDisplayFixtures();
+    final project = _project(cinematics: [asset], includeBridge: false);
+
+    await _pumpCameraGeometryPreviewBuilder(
+      tester,
+      project: project,
+      asset: asset,
+      mapData: mapData,
+    );
+    await _seekPlaybackToTick(tester, 500);
+
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-camera-geometry-fallback'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Cadrage caméra incomplet.'), findsWidgets);
+    expect(find.textContaining('actor_missing'), findsNothing);
+    expect(find.textContaining('camera.target'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('V1-134 reset and hold keep symbolic camera behavior', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final asset = _cameraPreviewPlaybackCinematic(cameraMode: 'hold');
+    final mapData = _stageMapDataWithActorDisplayFixtures();
+    final project = _project(cinematics: [asset], includeBridge: false);
+    final tileRenderPlan = await _referenceTileRenderPlanFor(
+      project: project,
+      mapData: mapData,
+    );
+
+    await _pumpBuilderHarness(
+      tester,
+      project,
+      asset.id,
+      stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+      backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+        asset: asset,
+        stageMap: project.maps.single,
+        mapData: mapData,
+      ),
+      backdropTileRenderPlan: tileRenderPlan,
+      surfaceSize: _referenceTimelineSurfaceSize,
+    );
+    await _seekPlaybackToTick(tester, 500);
+
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey('cinematic-builder-camera-geometry-overlay'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'V1-134 seek and scrub update camera geometry overlay from playback frame',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewTwoTargetsCinematic();
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+
+      await _seekPlaybackToTick(tester, 500);
+      final sceneMarkerCenter = _cameraGeometryMarkerCenter(tester);
+      expect(find.text('Centre de la scène'), findsWidgets);
+
+      await _seekPlaybackToTick(tester, 1500);
+      final stagePointMarkerCenter = _cameraGeometryMarkerCenter(tester);
+      expect(find.text('Repère : Balcon'), findsWidgets);
+      expect(stagePointMarkerCenter.dx, greaterThan(sceneMarkerCenter.dx));
+
+      final playheadHandleRect = tester.getRect(
+        find.byKey(
+          const ValueKey('cinematic-builder-playback-playhead-handle'),
+        ),
+      );
+      final tick500Rect = tester.getRect(
+        find.byKey(const ValueKey('cinematic-builder-time-tick-500')),
+      );
+      final gesture = await tester.startGesture(playheadHandleRect.center);
+      await tester.pump();
+      await gesture
+          .moveTo(Offset(tick500Rect.left + 2, playheadHandleRect.center.dy));
+      await tester.pump();
+      await gesture.up();
+      await tester.pump();
+
+      expect(find.text('Centre de la scène'), findsWidgets);
+      expect(
+        _cameraGeometryMarkerCenter(tester).dx,
+        closeTo(sceneMarkerCenter.dx, 8),
+      );
+    },
+  );
+
+  testWidgets(
+    'captures V1-134 cinematic camera geometry preview ui visual gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_134_CAPTURE_CINEMATIC_CAMERA_GEOMETRY_PREVIEW_UI',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_balcony',
+        zoomPreset: 'medium',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-step-card-camera_geometry_focus'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _seekPlaybackToTick(tester, 500);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
+      );
+      await tester.pumpAndSettle();
+
+      _expectTimelineStepSelected(tester, 'camera_geometry_focus');
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(find.text('Cadrer une cible'), findsWidgets);
+      expect(find.text('Plan moyen'), findsWidgets);
+      expect(find.text('Cadrage affiché, vue non pilotée.'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-overlay'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-target-marker'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Repère : Balcon'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.text('Flame'), findsNothing);
+      final forbiddenStateLabel = ['Game', 'State'].join();
+      expect(find.text(forbiddenStateLabel), findsNothing);
+      final forbiddenNextLotLabel = ['V1', '135'].join('-');
+      expect(find.text(forbiddenNextLotLabel), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_134_cinematic_camera_geometry_preview_ui_v0.png',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(
@@ -17948,6 +18309,38 @@ Future<void> _pumpBuilderHarness(
   await tester.pumpAndSettle();
 }
 
+Future<void> _pumpCameraGeometryPreviewBuilder(
+  WidgetTester tester, {
+  required ProjectManifest project,
+  required CinematicAsset asset,
+  required MapData mapData,
+  ValueChanged<ProjectManifest>? onProjectChanged,
+}) async {
+  final tileRenderPlan = await _referenceTileRenderPlanFor(
+    project: project,
+    mapData: mapData,
+  );
+  await _pumpBuilderHarness(
+    tester,
+    project,
+    asset.id,
+    onProjectChanged: onProjectChanged,
+    stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+    backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+      asset: asset,
+      stageMap: project.maps.single,
+      mapData: mapData,
+    ),
+    backdropTileRenderPlan: tileRenderPlan,
+    actorDisplayPreviewModel: _actorDisplayPreviewModelFor(
+      project: project,
+      asset: asset,
+      mapData: mapData,
+    ),
+    surfaceSize: _referenceTimelineSurfaceSize,
+  );
+}
+
 class _BuilderHarness extends StatefulWidget {
   const _BuilderHarness({
     required this.project,
@@ -19340,6 +19733,187 @@ CinematicAsset _cameraPreviewPlaybackCinematic({String? cameraMode}) {
       ],
     ),
   );
+}
+
+CinematicAsset _cameraGeometryPreviewCinematic({
+  String targetKind = 'sceneCenter',
+  String? targetActorId,
+  String? targetStagePointId,
+  String zoomPreset = 'medium',
+}) {
+  final cameraMetadata = _cameraGeometryFocusMetadata(
+    targetKind: targetKind,
+    targetActorId: targetActorId,
+    targetStagePointId: targetStagePointId,
+    zoomPreset: zoomPreset,
+  );
+  return CinematicAsset(
+    id: 'cinematic_camera_geometry_preview',
+    title: 'Camera geometry preview',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.stagePoint,
+          stagePointId: 'stage_point_start',
+        ),
+      ],
+      stagePoints: [
+        CinematicStagePoint(
+          id: 'stage_point_start',
+          label: 'Départ',
+          x: 1.5,
+          y: 4.5,
+        ),
+        CinematicStagePoint(
+          id: 'stage_point_gate',
+          label: 'Porte',
+          x: 2.5,
+          y: 3.5,
+        ),
+        CinematicStagePoint(
+          id: 'stage_point_balcony',
+          label: 'Balcon',
+          x: 8.5,
+          y: 5.5,
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'before_camera_geometry',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente avant cadrage',
+          durationMs: 400,
+        ),
+        CinematicTimelineStep(
+          id: 'camera_geometry_focus',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Cadrage géométrique',
+          durationMs: 800,
+          metadata: cameraMetadata,
+        ),
+        CinematicTimelineStep(
+          id: 'after_camera_geometry',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente après cadrage',
+          durationMs: 600,
+        ),
+      ],
+    ),
+  );
+}
+
+CinematicAsset _cameraGeometryPreviewTwoTargetsCinematic() {
+  return CinematicAsset(
+    id: 'cinematic_camera_geometry_preview_two_targets',
+    title: 'Camera geometry preview two targets',
+    mapId: 'map_lab',
+    requiredActors: [
+      CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+    ],
+    stageContext: CinematicStageContext(
+      backdropMode: CinematicStageBackdropMode.projectMap,
+      actorBindings: [
+        CinematicActorBinding(
+          actorId: 'actor_lysa',
+          kind: CinematicActorBindingKind.cinematicOnly,
+        ),
+      ],
+      initialPlacements: [
+        CinematicActorInitialPlacement(
+          actorId: 'actor_lysa',
+          kind: CinematicActorInitialPlacementKind.stagePoint,
+          stagePointId: 'stage_point_start',
+        ),
+      ],
+      stagePoints: [
+        CinematicStagePoint(
+          id: 'stage_point_start',
+          label: 'Départ',
+          x: 1.5,
+          y: 4.5,
+        ),
+        CinematicStagePoint(
+          id: 'stage_point_balcony',
+          label: 'Balcon',
+          x: 8.5,
+          y: 5.5,
+        ),
+      ],
+    ),
+    timeline: CinematicTimeline(
+      steps: [
+        CinematicTimelineStep(
+          id: 'before_camera_scene',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente avant scène',
+          durationMs: 400,
+        ),
+        CinematicTimelineStep(
+          id: 'camera_scene_center',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Cadrage scène',
+          durationMs: 500,
+          metadata: _cameraGeometryFocusMetadata(
+            targetKind: 'sceneCenter',
+            zoomPreset: 'wide',
+          ),
+        ),
+        CinematicTimelineStep(
+          id: 'between_camera_targets',
+          kind: CinematicTimelineStepKind.wait,
+          label: 'Attente entre cadrages',
+          durationMs: 300,
+        ),
+        CinematicTimelineStep(
+          id: 'camera_stage_point',
+          kind: CinematicTimelineStepKind.camera,
+          label: 'Cadrage balcon',
+          durationMs: 600,
+          metadata: _cameraGeometryFocusMetadata(
+            targetKind: 'stagePoint',
+            targetStagePointId: 'stage_point_balcony',
+            zoomPreset: 'close',
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Map<String, String> _cameraGeometryFocusMetadata({
+  required String targetKind,
+  String? targetActorId,
+  String? targetStagePointId,
+  required String zoomPreset,
+}) {
+  return {
+    cinematicTimelineDraftMetadataKindKey:
+        cinematicTimelineBasicBlockMetadataKindValue,
+    cinematicTimelineDraftMetadataSourceKey:
+        cinematicTimelineDraftMetadataSourceValue,
+    cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+    cinematicTimelineCameraModeMetadataKey: 'focus',
+    cinematicTimelineCameraTargetKindMetadataKey: targetKind,
+    cinematicTimelineCameraZoomPresetMetadataKey: zoomPreset,
+    if (targetActorId != null)
+      cinematicTimelineCameraTargetActorIdMetadataKey: targetActorId,
+    if (targetStagePointId != null)
+      cinematicTimelineCameraTargetStagePointIdMetadataKey: targetStagePointId,
+  };
 }
 
 CinematicAsset _cameraTargetZoomAuthoringCinematic({
@@ -21110,6 +21684,31 @@ Future<void> _selectDropdownItem(
   await _tapVisible(tester, dropdown);
   await tester.tap(item.last, warnIfMissed: false);
   await tester.pumpAndSettle();
+}
+
+Future<void> _seekPlaybackToTick(WidgetTester tester, int tickMs) async {
+  final tickRect = tester.getRect(
+    find.byKey(ValueKey('cinematic-builder-time-tick-$tickMs')),
+  );
+  final axisRect = tester.getRect(
+    find.byKey(const ValueKey('cinematic-builder-time-axis')),
+  );
+  await tester.tapAt(Offset(tickRect.left + 2, axisRect.center.dy));
+  await tester.pump();
+}
+
+Rect _cameraGeometryFrameRect(WidgetTester tester) {
+  return tester.getRect(
+    find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+  );
+}
+
+Offset _cameraGeometryMarkerCenter(WidgetTester tester) {
+  return tester.getCenter(
+    find.byKey(
+      const ValueKey('cinematic-builder-camera-geometry-target-marker'),
+    ),
+  );
 }
 
 ScrollController _timelineHorizontalScrollController(WidgetTester tester) {

@@ -577,6 +577,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     final playbackPlan = buildCinematicPreviewPlaybackPlan(
       cinematic: widget.asset,
       actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
+      stageBounds: _previewPlaybackStageBoundsFor(widget.backdropPreviewModel),
     );
     final playbackTimeMs = _playbackTimeMs(playbackPlan);
     final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
@@ -918,6 +919,20 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
           ),
         ),
       ),
+    );
+  }
+
+  CinematicPreviewPlaybackStageBounds? _previewPlaybackStageBoundsFor(
+    CinematicMapBackdropPreviewModel? model,
+  ) {
+    final width = model?.mapWidth;
+    final height = model?.mapHeight;
+    if (width == null || height == null || width <= 0 || height <= 0) {
+      return null;
+    }
+    return CinematicPreviewPlaybackStageBounds(
+      width: width.toDouble(),
+      height: height.toDouble(),
     );
   }
 
