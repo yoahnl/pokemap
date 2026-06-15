@@ -456,6 +456,379 @@ void main() {
       expect(plan.capabilities.hasUnsupportedSteps, isTrue);
     });
 
+    test(
+        'V1-133 camera focus scene center exposes geometry when stage bounds are available',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_scene_center',
+          title: 'Camera scene center',
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.sceneCenter(),
+                zoomPreset: CinematicCameraZoomPreset.medium,
+              ),
+            ],
+          ),
+        ),
+        stageBounds: const CinematicPreviewPlaybackStageBounds(
+          width: 12,
+          height: 8,
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+      final geometry = frame.cameraPose.geometry;
+
+      expect(frame.cameraPose.isSupported, isFalse);
+      expect(geometry.isAvailable, isTrue);
+      expect(geometry.targetKind, CinematicCameraTargetKind.sceneCenter);
+      expect(geometry.targetLabel, 'Centre de la scène');
+      expect(geometry.centerX, 6);
+      expect(geometry.centerY, 4);
+      expect(geometry.zoomPreset, CinematicCameraZoomPreset.medium);
+      expect(
+        frame.cameraPose.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraUnsupported,
+        ),
+      );
+    });
+
+    test(
+        'V1-133 camera focus scene center reports unavailable geometry when bounds are missing',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_scene_center_missing_bounds',
+          title: 'Camera scene center missing bounds',
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.sceneCenter(),
+                zoomPreset: CinematicCameraZoomPreset.medium,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.geometry.isAvailable, isFalse);
+      expect(
+        frame.cameraPose.geometry.diagnostics
+            .map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraTargetStageMapMissing,
+        ),
+      );
+    });
+
+    test('V1-133 camera focus actor resolves geometry from active actor pose',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_actor',
+          title: 'Camera actor',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+          ],
+          stageContext: CinematicStageContext(
+            stagePoints: [_point('start', 2, 3)],
+            initialPlacements: [
+              CinematicActorInitialPlacement(
+                actorId: 'actor_lysa',
+                kind: CinematicActorInitialPlacementKind.stagePoint,
+                stagePointId: 'start',
+              ),
+            ],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.actor(
+                  actorId: 'actor_lysa',
+                ),
+                zoomPreset: CinematicCameraZoomPreset.close,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+      final geometry = frame.cameraPose.geometry;
+
+      expect(geometry.isAvailable, isTrue);
+      expect(geometry.targetKind, CinematicCameraTargetKind.actor);
+      expect(geometry.actorId, 'actor_lysa');
+      expect(geometry.targetLabel, 'Lysa');
+      expect(geometry.centerX, 2);
+      expect(geometry.centerY, 3);
+      expect(geometry.zoomPreset, CinematicCameraZoomPreset.close);
+    });
+
+    test('V1-133 camera focus actor consumes actorMove playback pose', () {
+      final cinematic = _directMoveCinematic(
+        steps: [
+          _actorMoveStep(
+            id: 'move_direct',
+            actorId: 'actor_lysa',
+            targetId: 'target_port',
+            durationMs: 1000,
+            pathMode: CinematicTimelineActorPathMode.direct,
+          ),
+          _cameraFocusStep(
+            id: 'camera_focus',
+            target: CinematicCameraTargetBinding.actor(
+              actorId: 'actor_lysa',
+            ),
+            zoomPreset: CinematicCameraZoomPreset.medium,
+          ),
+        ],
+      );
+      final plan = buildCinematicPreviewPlaybackPlan(cinematic: cinematic);
+
+      final frame = plan.frameAt(1250);
+      final actorPose = frame.actorPoseById('actor_lysa');
+
+      expect(actorPose?.x, 10);
+      expect(actorPose?.y, 0);
+      expect(frame.cameraPose.geometry.isAvailable, isTrue);
+      expect(frame.cameraPose.geometry.centerX, actorPose?.x);
+      expect(frame.cameraPose.geometry.centerY, actorPose?.y);
+    });
+
+    test(
+        'V1-133 camera focus actor reports missing pose for unavailable actor position',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_actor_missing_pose',
+          title: 'Camera actor missing pose',
+          requiredActors: [
+            CinematicActorRef(actorId: 'actor_lysa', label: 'Lysa'),
+          ],
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.actor(
+                  actorId: 'actor_lysa',
+                ),
+                zoomPreset: CinematicCameraZoomPreset.medium,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.geometry.isAvailable, isFalse);
+      expect(
+        frame.cameraPose.geometry.diagnostics
+            .map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraTargetActorWithoutPosition,
+        ),
+      );
+    });
+
+    test('V1-133 camera focus stage point resolves geometry from stage point',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_stage_point',
+          title: 'Camera stage point',
+          stageContext: CinematicStageContext(
+            stagePoints: [_point('balcony', 7, 5)],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.stagePoint(
+                  stagePointId: 'balcony',
+                ),
+                zoomPreset: CinematicCameraZoomPreset.wide,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+      final geometry = frame.cameraPose.geometry;
+
+      expect(geometry.isAvailable, isTrue);
+      expect(geometry.targetKind, CinematicCameraTargetKind.stagePoint);
+      expect(geometry.stagePointId, 'balcony');
+      expect(geometry.targetLabel, 'balcony');
+      expect(geometry.centerX, 7);
+      expect(geometry.centerY, 5);
+      expect(geometry.zoomPreset, CinematicCameraZoomPreset.wide);
+    });
+
+    test('V1-133 camera focus stage point reports unknown stage point', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_unknown_stage_point',
+          title: 'Camera unknown stage point',
+          stageContext: CinematicStageContext(
+            stagePoints: [_point('known', 1, 1)],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.stagePoint(
+                  stagePointId: 'missing',
+                ),
+                zoomPreset: CinematicCameraZoomPreset.medium,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.geometry.isAvailable, isFalse);
+      expect(
+        frame.cameraPose.geometry.diagnostics
+            .map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraTargetStagePointUnknown,
+        ),
+      );
+    });
+
+    test(
+        'V1-133 camera focus stage point reports out of map when bounds are available',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_stage_point_out_of_map',
+          title: 'Camera stage point out of map',
+          stageContext: CinematicStageContext(
+            stagePoints: [_point('outside', 20, 1)],
+          ),
+          timeline: CinematicTimeline(
+            steps: [
+              _cameraFocusStep(
+                id: 'camera_focus',
+                target: CinematicCameraTargetBinding.stagePoint(
+                  stagePointId: 'outside',
+                ),
+                zoomPreset: CinematicCameraZoomPreset.medium,
+              ),
+            ],
+          ),
+        ),
+        stageBounds: const CinematicPreviewPlaybackStageBounds(
+          width: 10,
+          height: 8,
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.geometry.isAvailable, isFalse);
+      expect(
+        frame.cameraPose.geometry.diagnostics
+            .map((diagnostic) => diagnostic.code),
+        contains(
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraTargetStagePointOutOfMap,
+        ),
+      );
+    });
+
+    test('V1-133 reset and hold do not expose target geometry', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_reset_hold',
+          title: 'Camera reset hold',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_reset',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'reset',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'camera_hold',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'hold',
+                },
+              ),
+            ],
+          ),
+        ),
+        stageBounds: const CinematicPreviewPlaybackStageBounds(
+          width: 10,
+          height: 8,
+        ),
+      );
+
+      expect(plan.frameAt(250).cameraPose.geometry.isAvailable, isFalse);
+      expect(plan.frameAt(750).cameraPose.geometry.isAvailable, isFalse);
+    });
+
+    test('V1-133 invalid camera metadata remains diagnostic and non-crashing',
+        () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_camera_invalid_focus',
+          title: 'Camera invalid focus',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'camera_focus',
+                kind: CinematicTimelineStepKind.camera,
+                durationMs: 500,
+                metadata: const {
+                  cinematicTimelineCameraModeMetadataKey: 'focus',
+                  cinematicTimelineCameraTargetKindMetadataKey: 'orbital',
+                  cinematicTimelineCameraZoomPresetMetadataKey: 'macro',
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final frame = plan.frameAt(250);
+
+      expect(frame.cameraPose.isActive, isTrue);
+      expect(frame.cameraPose.geometry.isAvailable, isFalse);
+      expect(
+        frame.cameraPose.geometry.diagnostics
+            .map((diagnostic) => diagnostic.code),
+        containsAll([
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraTargetKindUnsupported,
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraZoomPresetUnsupported,
+        ]),
+      );
+    });
+
     test('V1-123 missing camera mode stays diagnosed and does not mutate asset',
         () {
       final cinematic = CinematicAsset(
@@ -845,6 +1218,7 @@ void main() {
 CinematicAsset _directMoveCinematic({
   List<CinematicMovementTargetRef>? movementTargets,
   List<CinematicMovementTargetBinding>? movementTargetBindings,
+  List<CinematicTimelineStep>? steps,
 }) {
   return CinematicAsset(
     id: 'cinematic_direct',
@@ -887,21 +1261,22 @@ CinematicAsset _directMoveCinematic({
           ],
     ),
     timeline: CinematicTimeline(
-      steps: [
-        _actorFaceStep(
-          id: 'face_down',
-          actorId: 'actor_lysa',
-          direction: CinematicTimelineActorFacingDirection.down,
-        ),
-        _waitStep(id: 'wait', durationMs: 400),
-        _actorMoveStep(
-          id: 'move_direct',
-          actorId: 'actor_lysa',
-          targetId: 'target_port',
-          durationMs: 1000,
-          pathMode: CinematicTimelineActorPathMode.direct,
-        ),
-      ],
+      steps: steps ??
+          [
+            _actorFaceStep(
+              id: 'face_down',
+              actorId: 'actor_lysa',
+              direction: CinematicTimelineActorFacingDirection.down,
+            ),
+            _waitStep(id: 'wait', durationMs: 400),
+            _actorMoveStep(
+              id: 'move_direct',
+              actorId: 'actor_lysa',
+              targetId: 'target_port',
+              durationMs: 1000,
+              pathMode: CinematicTimelineActorPathMode.direct,
+            ),
+          ],
     ),
   );
 }
@@ -1055,6 +1430,31 @@ CinematicTimelineStep _waitStep({
     id: id,
     kind: CinematicTimelineStepKind.wait,
     durationMs: durationMs,
+  );
+}
+
+CinematicTimelineStep _cameraFocusStep({
+  required String id,
+  required CinematicCameraTargetBinding target,
+  required CinematicCameraZoomPreset zoomPreset,
+  int durationMs = 500,
+}) {
+  final metadata = <String, String>{
+    cinematicTimelineCameraModeMetadataKey:
+        CinematicTimelineCameraMode.focus.name,
+    cinematicTimelineCameraTargetKindMetadataKey: target.kind.name,
+    cinematicTimelineCameraZoomPresetMetadataKey: zoomPreset.name,
+    if (target.actorId != null)
+      cinematicTimelineCameraTargetActorIdMetadataKey: target.actorId!,
+    if (target.stagePointId != null)
+      cinematicTimelineCameraTargetStagePointIdMetadataKey:
+          target.stagePointId!,
+  };
+  return CinematicTimelineStep(
+    id: id,
+    kind: CinematicTimelineStepKind.camera,
+    durationMs: durationMs,
+    metadata: metadata,
   );
 }
 

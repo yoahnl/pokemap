@@ -15627,6 +15627,21 @@
               "authoring.block": "actorEmote",
               "actor.emoteId": "heart"
             }
+          },
+          {
+            "id": "step_camera",
+            "kind": "camera",
+            "label": "Caméra",
+            "durationMs": 500,
+            "metadata": {
+              "authoring.kind": "basicBlock",
+              "authoring.source": "cinematic-builder-v0",
+              "authoring.block": "camera",
+              "camera.mode": "focus",
+              "camera.targetKind": "actor",
+              "camera.zoomPreset": "wide",
+              "camera.targetActorId": "actor"
+            }
           }
         ]
       },

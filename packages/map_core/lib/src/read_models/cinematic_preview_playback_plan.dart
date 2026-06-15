@@ -27,6 +27,17 @@ enum CinematicPreviewPlaybackDiagnosticCode {
   cinematicPreviewPlaybackStageContextMissing,
   cinematicPreviewPlaybackMapUnavailable,
   cinematicPreviewPlaybackCameraUnsupported,
+  cinematicPreviewPlaybackCameraTargetMissing,
+  cinematicPreviewPlaybackCameraTargetKindUnsupported,
+  cinematicPreviewPlaybackCameraTargetActorMissing,
+  cinematicPreviewPlaybackCameraTargetActorUnknown,
+  cinematicPreviewPlaybackCameraTargetActorWithoutPosition,
+  cinematicPreviewPlaybackCameraTargetStagePointMissing,
+  cinematicPreviewPlaybackCameraTargetStagePointUnknown,
+  cinematicPreviewPlaybackCameraTargetStagePointOutOfMap,
+  cinematicPreviewPlaybackCameraTargetStageMapMissing,
+  cinematicPreviewPlaybackCameraZoomPresetMissing,
+  cinematicPreviewPlaybackCameraZoomPresetUnsupported,
   cinematicPreviewPlaybackFadeUnsupported,
   cinematicPreviewPlaybackEmoteActorMissing,
   cinematicPreviewPlaybackEmoteActorUnknown,
@@ -170,6 +181,35 @@ final class CinematicPreviewPlaybackPoint {
 
   @override
   int get hashCode => Object.hash(x, y, source, sourceId);
+}
+
+@immutable
+final class CinematicPreviewPlaybackStageBounds {
+  const CinematicPreviewPlaybackStageBounds({
+    required this.width,
+    required this.height,
+  })  : assert(width > 0),
+        assert(height > 0);
+
+  final double width;
+  final double height;
+
+  double get centerX => width / 2;
+  double get centerY => height / 2;
+
+  bool containsPoint(double x, double y) {
+    return x >= 0 && x < width && y >= 0 && y < height;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicPreviewPlaybackStageBounds &&
+          other.width == width &&
+          other.height == height;
+
+  @override
+  int get hashCode => Object.hash(width, height);
 }
 
 @immutable
@@ -381,6 +421,83 @@ final class CinematicFadePlaybackState {
 }
 
 @immutable
+final class CinematicCameraPlaybackGeometry {
+  CinematicCameraPlaybackGeometry.available({
+    required this.targetKind,
+    required this.targetLabel,
+    this.actorId,
+    this.stagePointId,
+    required this.centerX,
+    required this.centerY,
+    required this.zoomPreset,
+    List<CinematicPreviewPlaybackDiagnostic> diagnostics = const [],
+  })  : isAvailable = true,
+        diagnostics =
+            List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics);
+
+  CinematicCameraPlaybackGeometry.unavailable({
+    this.targetKind,
+    this.targetLabel,
+    this.actorId,
+    this.stagePointId,
+    this.zoomPreset,
+    List<CinematicPreviewPlaybackDiagnostic> diagnostics = const [],
+  })  : isAvailable = false,
+        centerX = null,
+        centerY = null,
+        diagnostics =
+            List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics);
+
+  const CinematicCameraPlaybackGeometry.none()
+      : isAvailable = false,
+        targetKind = null,
+        targetLabel = null,
+        actorId = null,
+        stagePointId = null,
+        centerX = null,
+        centerY = null,
+        zoomPreset = null,
+        diagnostics = const <CinematicPreviewPlaybackDiagnostic>[];
+
+  final bool isAvailable;
+  final CinematicCameraTargetKind? targetKind;
+  final String? targetLabel;
+  final String? actorId;
+  final String? stagePointId;
+  final double? centerX;
+  final double? centerY;
+  final CinematicCameraZoomPreset? zoomPreset;
+  final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CinematicCameraPlaybackGeometry &&
+          other.isAvailable == isAvailable &&
+          other.targetKind == targetKind &&
+          other.targetLabel == targetLabel &&
+          other.actorId == actorId &&
+          other.stagePointId == stagePointId &&
+          other.centerX == centerX &&
+          other.centerY == centerY &&
+          other.zoomPreset == zoomPreset &&
+          _listEquals(other.diagnostics, diagnostics);
+
+  @override
+  int get hashCode => Object.hash(
+        isAvailable,
+        targetKind,
+        targetLabel,
+        actorId,
+        stagePointId,
+        centerX,
+        centerY,
+        zoomPreset,
+        Object.hashAll(diagnostics),
+      );
+}
+
+@immutable
 final class CinematicCameraPlaybackPose {
   CinematicCameraPlaybackPose({
     required this.isActive,
@@ -388,6 +505,7 @@ final class CinematicCameraPlaybackPose {
     required this.progress,
     this.activeStepId,
     this.mode,
+    this.geometry = const CinematicCameraPlaybackGeometry.none(),
     List<CinematicPreviewPlaybackDiagnostic> diagnostics = const [],
   }) : diagnostics =
             List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics);
@@ -398,6 +516,7 @@ final class CinematicCameraPlaybackPose {
         progress = 0,
         activeStepId = null,
         mode = null,
+        geometry = const CinematicCameraPlaybackGeometry.none(),
         diagnostics = const <CinematicPreviewPlaybackDiagnostic>[];
 
   final bool isActive;
@@ -405,6 +524,7 @@ final class CinematicCameraPlaybackPose {
   final String? activeStepId;
   final CinematicTimelineCameraMode? mode;
   final double progress;
+  final CinematicCameraPlaybackGeometry geometry;
   final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
 
   bool get supported => isSupported;
@@ -418,6 +538,7 @@ final class CinematicCameraPlaybackPose {
           other.activeStepId == activeStepId &&
           other.mode == mode &&
           other.progress == progress &&
+          other.geometry == geometry &&
           _listEquals(other.diagnostics, diagnostics);
 
   @override
@@ -427,6 +548,7 @@ final class CinematicCameraPlaybackPose {
         activeStepId,
         mode,
         progress,
+        geometry,
         Object.hashAll(diagnostics),
       );
 }
@@ -574,6 +696,10 @@ final class CinematicPreviewPlaybackPlan {
     required Map<String, _ActorEmotePlaybackPlan> actorEmotePlans,
     required Map<String, CinematicFadePlaybackMode> fadeModes,
     required Map<String, CinematicTimelineCameraMode> cameraModes,
+    required Map<String, CinematicTimelineCameraFocusBinding>
+        cameraFocusBindings,
+    required Map<String, CinematicStagePoint> stagePointsById,
+    required CinematicPreviewPlaybackStageBounds? stageBounds,
   })  : timelineItems = List<CinematicPreviewPlaybackTimelineItem>.unmodifiable(
           timelineItems,
         ),
@@ -597,7 +723,15 @@ final class CinematicPreviewPlaybackPlan {
         ),
         _cameraModes = Map<String, CinematicTimelineCameraMode>.unmodifiable(
           cameraModes,
-        );
+        ),
+        _cameraFocusBindings =
+            Map<String, CinematicTimelineCameraFocusBinding>.unmodifiable(
+          cameraFocusBindings,
+        ),
+        _stagePointsById = Map<String, CinematicStagePoint>.unmodifiable(
+          stagePointsById,
+        ),
+        _stageBounds = stageBounds;
 
   final String cinematicId;
   final int totalDurationMs;
@@ -610,6 +744,9 @@ final class CinematicPreviewPlaybackPlan {
   final Map<String, _ActorEmotePlaybackPlan> _actorEmotePlans;
   final Map<String, CinematicFadePlaybackMode> _fadeModes;
   final Map<String, CinematicTimelineCameraMode> _cameraModes;
+  final Map<String, CinematicTimelineCameraFocusBinding> _cameraFocusBindings;
+  final Map<String, CinematicStagePoint> _stagePointsById;
+  final CinematicPreviewPlaybackStageBounds? _stageBounds;
 
   CinematicPreviewPlaybackFrame frameAt(int timeMs) =>
       evaluateCinematicPreviewPlaybackFrame(this, timeMs: timeMs);
@@ -619,11 +756,17 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   required CinematicAsset cinematic,
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   Map<String, CinematicPreviewPlaybackPoint> resolvedMovementTargets = const {},
+  CinematicPreviewPlaybackStageBounds? stageBounds,
 }) {
   final timeLayout = buildCinematicTimelineTimeLayoutReadModel(cinematic);
   final stageContext = cinematic.stageContext;
   final diagnostics = <CinematicPreviewPlaybackDiagnostic>[];
   final actorTracks = <CinematicPreviewActorTrack>[];
+  final stagePointsById = <String, CinematicStagePoint>{
+    for (final point
+        in stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+      point.id: point,
+  };
 
   if (timeLayout.blocks.isEmpty) {
     diagnostics.add(
@@ -675,6 +818,7 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   final emotePlans = <String, _ActorEmotePlaybackPlan>{};
   final fadeModes = <String, CinematicFadePlaybackMode>{};
   final cameraModes = <String, CinematicTimelineCameraMode>{};
+  final cameraFocusBindings = <String, CinematicTimelineCameraFocusBinding>{};
   final timelineItems = <CinematicPreviewPlaybackTimelineItem>[];
   var hasUnsupportedSteps = false;
 
@@ -740,6 +884,13 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
         } else {
           cameraModes[step.id] = cameraMode;
           if (cameraMode == CinematicTimelineCameraMode.focus) {
+            final focusBinding = cinematicTimelineCameraFocusBindingOf(step);
+            if (focusBinding != null) {
+              cameraFocusBindings[step.id] = focusBinding;
+            }
+            itemDiagnostics.addAll(
+              _cameraFocusStaticDiagnostics(step),
+            );
             itemDiagnostics.add(_cameraUnsupportedDiagnostic(step));
             supported = false;
             hasUnsupportedSteps = true;
@@ -820,6 +971,9 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
     actorEmotePlans: emotePlans,
     fadeModes: fadeModes,
     cameraModes: cameraModes,
+    cameraFocusBindings: cameraFocusBindings,
+    stagePointsById: stagePointsById,
+    stageBounds: stageBounds,
   );
 }
 
@@ -891,6 +1045,10 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
           cameraPose = _cameraPoseFor(
             item: item,
             mode: plan._cameraModes[item.stepId],
+            focusBinding: plan._cameraFocusBindings[item.stepId],
+            actorPosesById: posesByActorId,
+            stagePointsById: plan._stagePointsById,
+            stageBounds: plan._stageBounds,
             clampedTimeMs: clampedTimeMs,
           );
         }
@@ -1274,17 +1432,391 @@ CinematicFadePlaybackState _fadeStateFor({
 CinematicCameraPlaybackPose _cameraPoseFor({
   required CinematicPreviewPlaybackTimelineItem item,
   required CinematicTimelineCameraMode? mode,
+  required CinematicTimelineCameraFocusBinding? focusBinding,
+  required Map<String, CinematicActorPlaybackPose> actorPosesById,
+  required Map<String, CinematicStagePoint> stagePointsById,
+  required CinematicPreviewPlaybackStageBounds? stageBounds,
   required int clampedTimeMs,
 }) {
-  // This is preview/read-model state only: V1-123 intentionally describes the
-  // cinematic camera timeline without mutating editor viewport pan or zoom.
+  final geometry = _cameraGeometryFor(
+    item: item,
+    mode: mode,
+    focusBinding: focusBinding,
+    actorPosesById: actorPosesById,
+    stagePointsById: stagePointsById,
+    stageBounds: stageBounds,
+  );
   return CinematicCameraPlaybackPose(
     isActive: true,
     isSupported: mode != null && item.supported,
     activeStepId: item.stepId,
     mode: mode,
     progress: _timelineItemProgress(item, clampedTimeMs),
-    diagnostics: item.diagnostics,
+    geometry: geometry,
+    diagnostics: _mergedDiagnostics(item.diagnostics, geometry.diagnostics),
+  );
+}
+
+CinematicCameraPlaybackGeometry _cameraGeometryFor({
+  required CinematicPreviewPlaybackTimelineItem item,
+  required CinematicTimelineCameraMode? mode,
+  required CinematicTimelineCameraFocusBinding? focusBinding,
+  required Map<String, CinematicActorPlaybackPose> actorPosesById,
+  required Map<String, CinematicStagePoint> stagePointsById,
+  required CinematicPreviewPlaybackStageBounds? stageBounds,
+}) {
+  if (mode != CinematicTimelineCameraMode.focus) {
+    return const CinematicCameraPlaybackGeometry.none();
+  }
+  final staticDiagnostics = _cameraGeometryDiagnostics(item.diagnostics);
+  if (focusBinding == null) {
+    return CinematicCameraPlaybackGeometry.unavailable(
+      diagnostics: staticDiagnostics,
+    );
+  }
+  final target = focusBinding.target;
+  final zoomPreset = focusBinding.zoomPreset;
+  switch (target.kind) {
+    case CinematicCameraTargetKind.sceneCenter:
+      if (stageBounds == null) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.sceneCenter,
+          targetLabel: _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetStageMapMissingDiagnostic(item.stepId),
+          ],
+        );
+      }
+      return CinematicCameraPlaybackGeometry.available(
+        targetKind: CinematicCameraTargetKind.sceneCenter,
+        targetLabel: _cameraTargetLabel(target),
+        centerX: stageBounds.centerX,
+        centerY: stageBounds.centerY,
+        zoomPreset: zoomPreset,
+        diagnostics: staticDiagnostics,
+      );
+    case CinematicCameraTargetKind.actor:
+      final actorId = target.actorId;
+      if (actorId == null || actorId.isEmpty) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.actor,
+          targetLabel: _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetActorMissingDiagnostic(item.stepId),
+          ],
+        );
+      }
+      final pose = actorPosesById[actorId];
+      if (pose == null) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.actor,
+          actorId: actorId,
+          targetLabel: _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetActorUnknownDiagnostic(item.stepId, actorId),
+          ],
+        );
+      }
+      if (!pose.hasPosition) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.actor,
+          actorId: actorId,
+          targetLabel: pose.actorLabel ?? _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetActorWithoutPositionDiagnostic(item.stepId, actorId),
+          ],
+        );
+      }
+      return CinematicCameraPlaybackGeometry.available(
+        targetKind: CinematicCameraTargetKind.actor,
+        actorId: actorId,
+        targetLabel: pose.actorLabel ?? _cameraTargetLabel(target),
+        centerX: pose.x!,
+        centerY: pose.y!,
+        zoomPreset: zoomPreset,
+        diagnostics: staticDiagnostics,
+      );
+    case CinematicCameraTargetKind.stagePoint:
+      final stagePointId = target.stagePointId;
+      if (stagePointId == null || stagePointId.isEmpty) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.stagePoint,
+          targetLabel: _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetStagePointMissingDiagnostic(item.stepId),
+          ],
+        );
+      }
+      final point = stagePointsById[stagePointId];
+      if (point == null) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.stagePoint,
+          stagePointId: stagePointId,
+          targetLabel: _cameraTargetLabel(target),
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetStagePointUnknownDiagnostic(
+              item.stepId,
+              stagePointId,
+            ),
+          ],
+        );
+      }
+      if (stageBounds != null && !stageBounds.containsPoint(point.x, point.y)) {
+        return CinematicCameraPlaybackGeometry.unavailable(
+          targetKind: CinematicCameraTargetKind.stagePoint,
+          stagePointId: stagePointId,
+          targetLabel: point.label,
+          zoomPreset: zoomPreset,
+          diagnostics: [
+            ...staticDiagnostics,
+            _cameraTargetStagePointOutOfMapDiagnostic(
+              item.stepId,
+              stagePointId,
+            ),
+          ],
+        );
+      }
+      return CinematicCameraPlaybackGeometry.available(
+        targetKind: CinematicCameraTargetKind.stagePoint,
+        stagePointId: stagePointId,
+        targetLabel: point.label,
+        centerX: point.x,
+        centerY: point.y,
+        zoomPreset: zoomPreset,
+        diagnostics: staticDiagnostics,
+      );
+  }
+}
+
+List<CinematicPreviewPlaybackDiagnostic> _cameraFocusStaticDiagnostics(
+  CinematicTimelineStep step,
+) {
+  final diagnostics = <CinematicPreviewPlaybackDiagnostic>[];
+  final rawTargetKind =
+      step.metadata[cinematicTimelineCameraTargetKindMetadataKey]?.trim();
+  final targetKind = cinematicTimelineCameraTargetKindOf(step);
+  if (rawTargetKind == null || rawTargetKind.isEmpty) {
+    diagnostics.add(_cameraTargetMissingDiagnostic(step.id));
+  } else if (targetKind == null) {
+    diagnostics.add(
+      _cameraTargetKindUnsupportedDiagnostic(step.id, rawTargetKind),
+    );
+  } else {
+    switch (targetKind) {
+      case CinematicCameraTargetKind.sceneCenter:
+        break;
+      case CinematicCameraTargetKind.actor:
+        final actorId = step
+            .metadata[cinematicTimelineCameraTargetActorIdMetadataKey]
+            ?.trim();
+        if (actorId == null || actorId.isEmpty) {
+          diagnostics.add(_cameraTargetActorMissingDiagnostic(step.id));
+        }
+        break;
+      case CinematicCameraTargetKind.stagePoint:
+        final stagePointId = step
+            .metadata[cinematicTimelineCameraTargetStagePointIdMetadataKey]
+            ?.trim();
+        if (stagePointId == null || stagePointId.isEmpty) {
+          diagnostics.add(_cameraTargetStagePointMissingDiagnostic(step.id));
+        }
+        break;
+    }
+  }
+
+  final rawZoom =
+      step.metadata[cinematicTimelineCameraZoomPresetMetadataKey]?.trim();
+  if (rawZoom == null || rawZoom.isEmpty) {
+    diagnostics.add(_cameraZoomPresetMissingDiagnostic(step.id));
+  } else if (cinematicTimelineCameraZoomPresetOf(step) == null) {
+    diagnostics.add(_cameraZoomPresetUnsupportedDiagnostic(step.id, rawZoom));
+  }
+  return diagnostics;
+}
+
+List<CinematicPreviewPlaybackDiagnostic> _cameraGeometryDiagnostics(
+  List<CinematicPreviewPlaybackDiagnostic> diagnostics,
+) {
+  return [
+    for (final diagnostic in diagnostics)
+      if (diagnostic.code !=
+          CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackCameraUnsupported)
+        diagnostic,
+  ];
+}
+
+List<CinematicPreviewPlaybackDiagnostic> _mergedDiagnostics(
+  List<CinematicPreviewPlaybackDiagnostic> primary,
+  List<CinematicPreviewPlaybackDiagnostic> secondary,
+) {
+  final result = <CinematicPreviewPlaybackDiagnostic>[];
+  for (final diagnostic in [...primary, ...secondary]) {
+    if (!result.contains(diagnostic)) {
+      result.add(diagnostic);
+    }
+  }
+  return result;
+}
+
+String _cameraTargetLabel(CinematicCameraTargetBinding target) {
+  return target.label ??
+      switch (target.kind) {
+        CinematicCameraTargetKind.sceneCenter => 'Centre de la scène',
+        CinematicCameraTargetKind.actor => target.actorId ?? 'Acteur',
+        CinematicCameraTargetKind.stagePoint => target.stagePointId ?? 'Repère',
+      };
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetMissingDiagnostic(
+  String stepId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetMissing,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra doit choisir une cible.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetKindUnsupportedDiagnostic(
+  String stepId,
+  String targetKind,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetKindUnsupported,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le type de cible caméra "$targetKind" n’est pas supporté.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetActorMissingDiagnostic(
+  String stepId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetActorMissing,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra sur acteur doit choisir un acteur.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetActorUnknownDiagnostic(
+  String stepId,
+  String actorId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetActorUnknown,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra référence un acteur inconnu.',
+    stepId: stepId,
+    actorId: actorId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetActorWithoutPositionDiagnostic(
+  String stepId,
+  String actorId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetActorWithoutPosition,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.warning,
+    message: 'L’acteur ciblé par la caméra n’a pas de position preview.',
+    stepId: stepId,
+    actorId: actorId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetStagePointMissingDiagnostic(
+  String stepId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetStagePointMissing,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra sur repère doit choisir un repère.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetStagePointUnknownDiagnostic(
+  String stepId,
+  String stagePointId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetStagePointUnknown,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra référence un repère inconnu.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetStagePointOutOfMapDiagnostic(
+  String stepId,
+  String stagePointId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetStagePointOutOfMap,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le repère ciblé par la caméra est en dehors des bounds stage.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraTargetStageMapMissingDiagnostic(
+  String stepId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraTargetStageMapMissing,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.warning,
+    message: 'Le centre de scène caméra nécessite des bounds stage.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraZoomPresetMissingDiagnostic(
+  String stepId,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraZoomPresetMissing,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le cadrage caméra doit choisir un plan.',
+    stepId: stepId,
+  );
+}
+
+CinematicPreviewPlaybackDiagnostic _cameraZoomPresetUnsupportedDiagnostic(
+  String stepId,
+  String zoomPreset,
+) {
+  return CinematicPreviewPlaybackDiagnostic(
+    code: CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackCameraZoomPresetUnsupported,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: 'Le plan caméra "$zoomPreset" n’est pas supporté.',
+    stepId: stepId,
   );
 }
 

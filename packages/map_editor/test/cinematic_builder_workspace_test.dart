@@ -696,9 +696,21 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Mode caméra'), findsWidgets);
-      expect(find.text('Réinitialiser le cadrage'), findsWidgets);
-      expect(find.text('Maintenir le cadrage'), findsWidgets);
       expect(find.text('Cadrer une cible'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-mode-dropdown')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
+        findsOneWidget,
+      );
       expect(find.text('Cadrage configuré, preview réelle à venir.'),
           findsOneWidget);
       expect(find.textContaining('camera.targetKind'), findsNothing);
@@ -726,9 +738,12 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
       );
       await tester.pumpAndSettle();
-      await _tapVisible(
+      await _selectDropdownItem(
         tester,
-        find.byKey(
+        dropdown: find.byKey(
+          const ValueKey('cinematic-builder-camera-mode-dropdown'),
+        ),
+        item: find.byKey(
           const ValueKey('cinematic-builder-camera-mode-focus'),
         ),
       );
@@ -774,9 +789,12 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
       );
       await tester.pumpAndSettle();
-      await _tapVisible(
+      await _selectDropdownItem(
         tester,
-        find.byKey(
+        dropdown: find.byKey(
+          const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+        ),
+        item: find.byKey(
           const ValueKey('cinematic-builder-camera-target-sceneCenter'),
         ),
       );
@@ -815,9 +833,14 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
       );
       await tester.pumpAndSettle();
-      await _tapVisible(
+      await _selectDropdownItem(
         tester,
-        find.byKey(const ValueKey('cinematic-builder-camera-target-actor')),
+        dropdown: find.byKey(
+          const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+        ),
+        item: find.byKey(
+          const ValueKey('cinematic-builder-camera-target-actor'),
+        ),
       );
       final actorDropdown = find.byKey(
         const ValueKey('cinematic-builder-camera-target-actor-dropdown'),
@@ -860,10 +883,14 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
       );
       await tester.pumpAndSettle();
-      await _tapVisible(
+      await _selectDropdownItem(
         tester,
-        find.byKey(
-            const ValueKey('cinematic-builder-camera-target-stagePoint')),
+        dropdown: find.byKey(
+          const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+        ),
+        item: find.byKey(
+          const ValueKey('cinematic-builder-camera-target-stagePoint'),
+        ),
       );
       final stagePointDropdown = find.byKey(
         const ValueKey('cinematic-builder-camera-target-stage-point-dropdown'),
@@ -908,9 +935,12 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
     );
     await tester.pumpAndSettle();
-    await _tapVisible(
+    await _selectDropdownItem(
       tester,
-      find.byKey(const ValueKey('cinematic-builder-camera-zoom-close')),
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-camera-zoom-dropdown'),
+      ),
+      item: find.byKey(const ValueKey('cinematic-builder-camera-zoom-close')),
     );
 
     final binding = cinematicTimelineCameraFocusBindingOf(
@@ -945,9 +975,12 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
     );
     await tester.pumpAndSettle();
-    await _tapVisible(
+    await _selectDropdownItem(
       tester,
-      find.byKey(const ValueKey('cinematic-builder-camera-mode-reset')),
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-camera-mode-dropdown'),
+      ),
+      item: find.byKey(const ValueKey('cinematic-builder-camera-mode-reset')),
     );
 
     final updatedStep = _cameraTargetZoomStep(latestProject);
@@ -990,9 +1023,12 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-camera_focus')),
     );
     await tester.pumpAndSettle();
-    await _tapVisible(
+    await _selectDropdownItem(
       tester,
-      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-camera-mode-dropdown'),
+      ),
+      item: find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
     );
 
     final updatedStep = _cameraTargetZoomStep(latestProject);
@@ -1123,17 +1159,22 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.ensureVisible(
-        find.byKey(const ValueKey('cinematic-builder-camera-zoom-medium')),
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
       );
       await tester.pumpAndSettle();
 
       expect(find.text('Cadrer une cible'), findsWidgets);
-      expect(find.text('Centre de la scène'), findsWidgets);
-      expect(find.text('Acteur'), findsWidgets);
-      expect(find.text('Repère'), findsWidgets);
-      expect(find.text('Plan large'), findsWidgets);
       expect(find.text('Plan moyen'), findsWidgets);
-      expect(find.text('Gros plan'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
+        findsOneWidget,
+      );
       expect(find.text('Cadrage configuré, preview réelle à venir.'),
           findsOneWidget);
       expect(find.textContaining('camera.targetKind'), findsNothing);
@@ -5481,9 +5522,8 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-step_camera')),
     );
     expect(selectedCameraBar.selected, isTrue);
-    expect(find.text('Bloc sélectionné'), findsWidgets);
-    expect(find.text('step_camera'), findsWidgets);
-    expect(find.text('Camera reveal'), findsWidgets);
+    expect(find.text('Détails techniques'), findsOneWidget);
+    expect(find.text('step_camera'), findsNothing);
     expect(find.text('Fallback visuel'), findsWidgets);
     expect(find.text('drag'), findsNothing);
     expect(find.text('resize'), findsNothing);
@@ -10832,8 +10872,8 @@ void main() {
     final faceCursorBefore = tester.getRect(
       find.byKey(const ValueKey('cinematic-builder-selection-cursor')),
     );
-    expect(find.text('Bloc sélectionné'), findsWidgets);
-    expect(find.text('step_face'), findsWidgets);
+    expect(find.text('Détails techniques'), findsOneWidget);
+    expect(find.text('step_face'), findsNothing);
     expect(find.text('Professor turns'), findsWidgets);
 
     final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -11731,7 +11771,19 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-step_dialogue')),
     );
     expect(selectedDialogueCard.selected, isTrue);
-    expect(find.text('Bloc sélectionné'), findsWidgets);
+    expect(find.text('Détails techniques'), findsOneWidget);
+    expect(find.text('step_dialogue'), findsNothing);
+    expect(find.text('Index'), findsNothing);
+    expect(find.text('Kind'), findsNothing);
+    expect(find.text('Labo sécurisé.'), findsNothing);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematic-builder-selected-step-details-accordion'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('step_dialogue'), findsWidgets);
     expect(find.text('Index'), findsWidgets);
     expect(find.text('2'), findsWidgets);
@@ -11819,8 +11871,8 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-step-card-step_face')),
     );
     expect(selectedFaceCard.selected, isTrue);
-    expect(find.text('Bloc sélectionné'), findsWidgets);
-    expect(find.text('step_face'), findsWidgets);
+    expect(find.text('Détails techniques'), findsOneWidget);
+    expect(find.text('step_face'), findsNothing);
     expect(find.text('Direction'), findsWidgets);
     expect(project.toJson(), before);
   });
@@ -12004,8 +12056,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Attente'), findsWidgets);
-    expect(find.text('Bloc authoring V0'), findsOneWidget);
-    expect(find.text('wait'), findsWidgets);
+    expect(find.text('Détails techniques'), findsOneWidget);
+    expect(find.text('Bloc authoring V0'), findsNothing);
     expect(find.text('1000 ms'), findsWidgets);
     expect(
       latestProject.cinematics.single.timeline.steps.last.kind,
@@ -12016,13 +12068,15 @@ void main() {
       containsPair('authoring.block', 'wait'),
     );
 
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('cinematic-builder-duration-preset-2000')),
+    await _selectDropdownItem(
+      tester,
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-duration-preset-dropdown'),
+      ),
+      item: find.byKey(
+        const ValueKey('cinematic-builder-duration-preset-2000'),
+      ),
     );
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-duration-preset-2000')),
-    );
-    await tester.pumpAndSettle();
 
     expect(
       latestProject.cinematics.single.timeline.steps.last.durationMs,
@@ -12072,13 +12126,13 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-palette-camera-button')),
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
+    await _selectDropdownItem(
+      tester,
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-camera-mode-dropdown'),
+      ),
+      item: find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
     );
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-camera-mode-hold')),
-    );
-    await tester.pumpAndSettle();
 
     final cameraStep = latestProject.cinematics.single.timeline.steps.last;
     expect(cameraStep.kind, CinematicTimelineStepKind.camera);
@@ -12086,7 +12140,7 @@ void main() {
     expect(cameraStep.targetId, isNull);
     expect(cameraStep.metadata, containsPair('camera.mode', 'hold'));
     expect(find.text('Caméra'), findsWidgets);
-    expect(find.text('Hold'), findsWidgets);
+    expect(find.text('Maintenir le cadrage'), findsWidgets);
 
     final removeAuthoringStepButton = find.byKey(
       const ValueKey('cinematic-builder-remove-authoring-step-button'),
@@ -12527,22 +12581,27 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(find.text('Repère final du déplacement'), findsOneWidget);
+      expect(find.text('Point final du déplacement'), findsOneWidget);
       expect(
         find.text(
-          'Choisissez un repère pour que le déplacement puisse être prévisualisé.',
+          'Choisissez le repère d’arrivée utilisé par ce déplacement.',
         ),
         findsOneWidget,
       );
 
-      final destinationPoint = find.byKey(
-        const ValueKey(
-          'cinematic-builder-actor-move-destination-stage-point-target-stage_point_2',
+      await _selectDropdownItem(
+        tester,
+        dropdown: find.byKey(
+          const ValueKey(
+            'cinematic-builder-actor-move-destination-stage-point-dropdown',
+          ),
+        ),
+        item: find.byKey(
+          const ValueKey(
+            'cinematic-builder-actor-move-destination-stage-point-target-stage_point_2',
+          ),
         ),
       );
-      await tester.ensureVisible(destinationPoint);
-      await tester.tap(destinationPoint);
-      await tester.pumpAndSettle();
 
       final binding = latestProject
           .cinematics.single.stageContext?.movementTargetBindings.single;
@@ -12550,7 +12609,7 @@ void main() {
       expect(binding!.targetId, 'target');
       expect(binding.kind, CinematicMovementTargetBindingKind.stagePoint);
       expect(binding.sourceId, 'stage_point_2');
-      expect(find.text('Destination actuelle : Repère 2'), findsOneWidget);
+      expect(find.text('Repère d’arrivée actuel : Repère 2'), findsOneWidget);
       expect(find.text('Picker label + id stable'), findsNothing);
     },
   );
@@ -12662,14 +12721,19 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final firstDestinationButton = find.byKey(
-        ValueKey(
-          'cinematic-builder-actor-move-destination-stage-point-${firstMove.targetId}-stage_point_left',
+      await _selectDropdownItem(
+        tester,
+        dropdown: find.byKey(
+          const ValueKey(
+            'cinematic-builder-actor-move-destination-stage-point-dropdown',
+          ),
+        ),
+        item: find.byKey(
+          ValueKey(
+            'cinematic-builder-actor-move-destination-stage-point-${firstMove.targetId}-stage_point_left',
+          ),
         ),
       );
-      await tester.ensureVisible(firstDestinationButton);
-      await tester.tap(firstDestinationButton);
-      await tester.pumpAndSettle();
 
       final updatedAsset = latestProject.cinematics.single;
       final updatedFirstMove = updatedAsset.timeline.steps.firstWhere(
@@ -12774,24 +12838,26 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-actor-picker-actor_rival')),
     );
     await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('cinematic-builder-target-picker-target_exit')),
+    await _selectDropdownItem(
+      tester,
+      dropdown: find.byKey(
+        const ValueKey('cinematic-builder-target-picker-dropdown'),
+      ),
+      item: find.byKey(
+        const ValueKey('cinematic-builder-target-picker-target_exit'),
+      ),
     );
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-target-picker-target_exit')),
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(
-      find.byKey(
+    await _selectDropdownItem(
+      tester,
+      dropdown: find.byKey(
+        const ValueKey(
+          'cinematic-builder-actor-move-duration-preset-dropdown',
+        ),
+      ),
+      item: find.byKey(
         const ValueKey('cinematic-builder-actor-move-duration-preset-2000'),
       ),
     );
-    await tester.tap(
-      find.byKey(
-        const ValueKey('cinematic-builder-actor-move-duration-preset-2000'),
-      ),
-    );
-    await tester.pumpAndSettle();
     await tester.ensureVisible(
       find.byKey(
         const ValueKey('cinematic-builder-actor-move-duration-decrement-100'),
@@ -21033,6 +21099,16 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _selectDropdownItem(
+  WidgetTester tester, {
+  required Finder dropdown,
+  required Finder item,
+}) async {
+  await _tapVisible(tester, dropdown);
+  await tester.tap(item.last, warnIfMissed: false);
   await tester.pumpAndSettle();
 }
 

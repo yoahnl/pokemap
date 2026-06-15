@@ -9,10 +9,10 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0
+NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0
 ```
 
-Suite V1-132 : l'UI d'authoring Camera Target / Zoom est branchee sans preview camera réelle. Le prochain verrou produit est l'etat de geometrie playback camera derive : cible resolue, centre symbolique/geometrique et intention de zoom, sans renderer reel, runtime, Flame, GameState ni mutation du viewport editor.
+Suite V1-133 : l'etat de geometrie camera derive est disponible dans le read model playback sans renderer. Le prochain verrou produit est son branchement preview editor-only, sans runtime, Flame, GameState ni mutation du viewport editor.
 
 ## Principes
 
@@ -187,7 +187,20 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-130 | Cinematic Camera Target / Zoom Authoring Prep Contract | doc-only / architecture-review | Cadrer le futur authoring Camera Target / Zoom avec cibles no-code `Centre de la scene / Acteur / Repere`, presets `Plan large / Plan moyen / Gros plan`, diagnostics futurs et separation viewport editor / camera cinematographique. | Pas de code produit, pas de package, pas de screenshot, pas de runtime, Flame, GameState, coordonnees libres ou waypoints libres. | Rapport V1-130, Evidence Pack V1-130, roadmaps. | Validation documentaire : audit read-only camera/stage/viewport/playback, `git diff --check`, anti-scope packages/screenshots. | Confondre zoom editor et zoom camera ; lancer la preview reelle trop tot ; reutiliser actorMove target comme workflow principal. | DONE : Option D + G retenue, V1-131 core model recommande, aucun code produit modifie. | V1-129 |
 | NS-SCENES-V1-131 | Cinematic Camera Target / Zoom Core Model V0 | core / authoring-model | Implementer le core model camera cible/zoom retenu par V1-130 avec enums, helpers metadata, operations pures et diagnostics. | Pas d'UI preview reelle, pas de runtime, Flame, GameState, coordonnees libres, waypoints libres, `manualPathId` camera ou mutation du viewport editor. | `map_core` cinematic asset/authoring/diagnostics/tests, rapports. | Tests JSON backward-compatible, focus scene center/actor/stage point, zoom presets, diagnostics target/zoom/mode, anti-scope runtime/editor viewport. | Sur-modeliser le step Camera ; casser les blocs reset/hold historiques ; exposer des IDs techniques comme workflow principal. | DONE : mode `focus`, target kinds sceneCenter/actor/stagePoint, zoom presets wide/medium/close, bindings/helpers typés, operations pures et diagnostics core en place ; aucune UI complete ni preview camera réelle. | V1-130 |
 | NS-SCENES-V1-132 | Cinematic Camera Target / Zoom Editor UI V0 | editor / authoring-ui | Brancher le core model V1-131 dans l'inspecteur Camera du Cinematic Builder avec controles no-code cible/zoom. | Pas de preview camera reelle, geometrie camera, centre/zoom numerique, runtime, Flame, GameState, mutation du viewport editor ou coordonnees libres. | Builder cinematic, tests widget, rapports. | Tests UI cible/zoom, reset/hold/focus, diagnostics no-code, anti-scope runtime/viewport. | Confondre zoom timeline/editor avec zoom camera ; exposer des IDs techniques comme workflow principal. | DONE : modes reset/hold/focus en francais, cible scene/acteur/repere, presets Plan large/moyen/gros plan, Visual Gate, sans vraie camera. | V1-131 |
-| NS-SCENES-V1-133 | Cinematic Camera Geometry Playback State V0 | core / read-model | Produire un etat de geometrie camera derive cote playback : cible resolue, centre symbolique/geometrique et intention de zoom preset. | Pas de renderer UI reel, runtime, Flame, GameState, CameraComponent, mutation viewport editor, pan interactif ou preview camera finale. | `map_core` playback camera state/read model, tests, rapports. | Tests target scene/actor/stage point, zoom presets, diagnostics geometrie indisponible/supportee, regressions playback. | Sur-promettre un vrai rendu camera ; muter le viewport editor ; confondre zoom camera et zoom timeline. | Recommande, non demarre. | V1-132 |
+| NS-SCENES-V1-133 | Cinematic Camera Geometry Playback State V0 | core / read-model | Produire un etat de geometrie camera derive cote playback : cible resolue, centre symbolique/geometrique et intention de zoom preset. | Pas de renderer UI reel, runtime, Flame, GameState, CameraComponent, mutation viewport editor, pan interactif ou preview camera finale. | `map_core` playback camera state/read model, tests, rapports. | Tests target scene/actor/stage point, zoom presets, diagnostics geometrie indisponible/supportee, regressions playback. | Sur-promettre un vrai rendu camera ; muter le viewport editor ; confondre zoom camera et zoom timeline. | DONE : `cameraPose.geometry` expose sceneCenter/actor/stagePoint, centre scene/tile, zoom preset symbolique et diagnostics honnetes, focus restant visuellement unsupported. | V1-132 |
+| NS-SCENES-V1-134 | Cinematic Camera Geometry Preview UI V0 | editor / preview-ui | Brancher l'etat geometrique V1-133 dans la preview editor-only avec cadre/cible/cadrage visuel base sur la geometrie derivee. | Pas de runtime, Flame, GameState, CameraComponent, mutation viewport editor, vraie camera runtime, pan/zoom persiste ou interpolation camera. | Cinematic Builder preview, tests widget, rapports, Visual Gate. | Tests preview geometry scene/actor/stagePoint, diagnostics no-code, focus unsupported honnete, anti-scope runtime/viewport. | Faire croire a une vraie camera runtime ; confondre zoom preset et zoom numerique ; muter le viewport editor. | Recommande, non demarre. | V1-133 |
+
+## Mise a jour V1-133
+
+Statut : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0` est DONE.
+
+Decision : le read model playback expose une geometrie derivee pure via `cameraPose.geometry`. Le mode focus reste `isSupported == false` pour ne pas vendre une preview camera reelle avant le lot UI V1-134.
+
+Preuve : tests core V1-133, regression V1-131, suite core ciblee, regression UI V1-124, analyse ciblee et anti-scope runtime/editor/assets/Selbrume.
+
+Limites : aucune preview UI nouvelle, aucun renderer, aucun zoom numerique, aucun runtime et aucune mutation viewport. Les bounds de scene sont un input pur optionnel du read model.
+
+Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-132
 
@@ -199,7 +212,7 @@ Preuve : tests widget V1-132, regressions V1-124/V1-129, analyse ciblee, Visual 
 
 Limites : aucune geometrie camera, aucun centre/zoom numerique, aucun renderer reel et aucune mutation du viewport editor.
 
-Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-131
 
@@ -211,7 +224,7 @@ Preuve : tests V1-131 RED/GREEN puis régressions core ciblées, analyse `map_co
 
 Limites : l'UI d'authoring cible/zoom n'est pas demarrée ; la preview camera réelle et la geometrie restent hors lot.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-130
 
@@ -223,7 +236,7 @@ Preuve : audit read-only Camera V0 (`reset`/`hold`, metadata `camera.mode`, `cam
 
 Limites : les enums, metadata helpers, operations pures et diagnostics restent a implementer dans V1-131.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-129
 
@@ -235,7 +248,7 @@ Preuve : tests RED/GREEN V1-129, régressions V1-128/V1-124/V1-121/V1-120, Libra
 
 Limites : l’overlay suit toute pose exposée par `actorPoses`; les scénarios avec chevauchement emote + actorMove réel restent dépendants du read model futur si la timeline devient parallèle.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-128
 
@@ -247,7 +260,7 @@ Preuve : tests RED/GREEN V1-128, régressions V1-124/V1-121/V1-120, Library/Stag
 
 Limites : le choix d’émotion est encore textuel ; l’affichage visuel des bulles au-dessus des acteurs est le verrou du prochain lot.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-127
 
@@ -259,7 +272,7 @@ Preuve : tests V1-127 RED/GREEN dans `cinematic_preview_playback_plan_test.dart`
 
 Limites : la timeline actuelle reste linéaire ; plusieurs `activeEmotes` sont supportés par la structure de liste si des fenêtres se chevauchent plus tard, mais V1-127 ne crée pas de modèle parallèle ni de renderer.
 
-Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-126
 
@@ -269,7 +282,7 @@ Decision : le core réutilise `CinematicTimelineStepKind.actorEmote`, stocke `ac
 
 Preuve : tests catalogue/authoring/diagnostics/playback boundary, suite `map_core`, `dart analyze`, régressions Builder ciblées et anti-scope passés dans le lot V1-126.
 
-Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-125
 
@@ -281,7 +294,7 @@ Preuve : assets racine audités (`emotions.png`, `emotions2.png`), dimensions `1
 
 Limites : les assets restent à leur emplacement actuel et ne sont que candidats ; aucun modèle, catalogue, UI, renderer, pubspec, runtime, Flame, GameState ou screenshot n’a été créé. Camera Target / Zoom est reporté en V1-130.
 
-Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-124
 
@@ -293,7 +306,7 @@ Preuve : tests V1-124, régressions playback/fade/actor/fallback, suite Builder 
 
 Limites : la vraie géométrie caméra reste absente du read model. Ce verrou cible/zoom reste pertinent, mais il est reporté en V1-129 après la chaîne emotes.
 
-Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-123
 
@@ -305,7 +318,7 @@ Preuve : tests V1-123 ajoutés, tests `map_core` ciblés et complets relancés, 
 
 Limites : aucun centre/zoom fiable n'est inventé, aucune UI caméra ou Visual Gate n'est démarrée, aucun viewport editor/runtime/Flame/GameState n'est modifié.
 
-Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-122
 
@@ -317,7 +330,7 @@ Preuve : rapport V1-122, Evidence Pack V1-122, audit read-only des rapports V1-1
 
 Limites : aucun code produit, package Dart/Flutter, runtime, Flame, GameState, screenshot, Visual Gate ou V1-123 n'a été démarré.
 
-Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-121
 
@@ -329,7 +342,7 @@ Preuve : tests V1-121, regressions V1-120/V1-118/V1-117/V1-117-bis/V1-116, Build
 
 Limites : aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur, nouvelle persistance ou couleurs hardcodées n'a ete demarre pendant V1-121.
 
-Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-120
 
@@ -341,7 +354,7 @@ Preuve : tests V1-120, regressions V1-118/V1-117/V1-117-bis/V1-116, Builder comp
 
 Limites : le fade preview a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding ou collision n'a ete demarre pendant V1-120. La capture reste issue du harness test.
 
-Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-119
 
@@ -355,7 +368,7 @@ Preuve : rapports V1-109 a V1-118 et timeline/probe V1-51/V1-52/V1-53/V1-61 a V1
 
 Limites historiques : aucun package Dart/Flutter n'avait ete modifie, aucun screenshot n'avait ete cree et V1-120 n'etait pas demarre pendant ce contrat documentaire. Cette limite a ete levee par V1-120.
 
-Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-118
 
@@ -367,7 +380,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste volontairement borne aux diagnostics deja disponibles. Aucun runtime, Flame, GameState, `map_core`, scrub/seek, pathfinding, collision ou V1-119 n'a ete demarre.
 
-Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-117-bis
 
@@ -383,7 +396,7 @@ Preuve : test RED puis GREEN `V1-117-bis changing one actorMove destination keep
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouveau playback, nouvelle animation ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et n'a pas ete modifie par ce lot.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-117
 
@@ -397,7 +410,7 @@ Preuve : tests resolver cadence, tests widget V1-117, non-régressions V1-116/V1
 
 Limites historiques : la cadence reste une heuristique déterministe preview-only et ne remplace pas un vrai système runtime d'animation. Les details de diagnostic ont ete traites par V1-118.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-116
 
@@ -411,7 +424,7 @@ Preuve : tests V1-116, Visual Gate V1-116, tests resolver/renderer/V1-113/core, 
 
 Limites historiques : les libelles/status de preview restaient a polir pour ne plus afficher des badges historiques contradictoires pendant une lecture animee ; cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-117 puis V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-115
 
@@ -425,7 +438,7 @@ Preuve : test resolver dédié `+9`, renderer sprite `+21`, V1-113 ciblé `+5`, 
 
 Limites historiques : au moment de V1-115, aucune animation n'etait encore affichee ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-114
 
@@ -439,7 +452,7 @@ Preuve : rapport et Evidence Pack V1-114 dédiés, avec anti-scope packages/scre
 
 Limites historiques : V1-114 documentait seulement le contrat. V1-115 a livré le resolver symbolique ; l'affichage animé a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-113
 
@@ -453,7 +466,7 @@ Preuve : tests V1-113 ciblés, Visual Gate `ns_scenes_v1_113_cinematic_actor_pla
 
 Limites : le mouvement est fluide en position, mais aucune animation de marche frame-by-frame n’est démarrée.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-112
 
@@ -467,7 +480,7 @@ Preuve : tests V1-112 ciblés `+3`, Builder complet `+214`, Library/Stage overla
 
 Limites : le contrat overlay acteur reste ancré sur des positions entières de tuile, donc la pose playback est consommée comme source de vérité mais projetée par arrondi dans l’overlay actuel. Aucun scrubber, seek, runtime, Flame, GameState, collision/pathfinding, animation de marche ou persistance du temps n’a été ajouté.
 
-Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-111
 
@@ -479,7 +492,7 @@ Decision : `map_editor` porte le ticker local avec `AnimationController`, affich
 
 Preuve : tests V1-111 ciblés `+4`, Builder complet `+211`, Library/Stage overlay `+26`, régressions `map_core` `+12/+4/+27`, Visual Gate `ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` prouvée par shasum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`.
 
-Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0`.
+Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0`.
 
 ## Mise a jour V1-110
 

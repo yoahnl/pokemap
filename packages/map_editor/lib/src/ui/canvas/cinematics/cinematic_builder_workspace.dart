@@ -10513,11 +10513,164 @@ class _SelectedStepInspector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SectionTitle(
-          title: 'Bloc sélectionné',
-          subtitle: isActorEmote ? 'Émotion acteur' : step.id,
-        ),
+        if (basicBlockKind != null) ...[
+          _BasicBlockControls(
+            asset: asset,
+            step: step,
+            blockKind: basicBlockKind,
+            onUpdateBasicBlock: onUpdateBasicBlock,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorFacing) ...[
+          _ActorFacingControls(
+            asset: asset,
+            step: step,
+            onUpdateActorFacing: onUpdateActorFacing,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorMove) ...[
+          _ActorMoveControls(
+            asset: asset,
+            step: step,
+            onUpdateActorMove: onUpdateActorMove,
+            onToggleActorMovePathMode: onToggleActorMovePathMode,
+            onAddManualPathWaypoint: onAddManualPathWaypoint,
+            onRemoveManualPathWaypoint: onRemoveManualPathWaypoint,
+            onReorderManualPathWaypoint: onReorderManualPathWaypoint,
+            onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isActorEmote) ...[
+          _ActorEmoteControls(
+            asset: asset,
+            step: step,
+            onUpdateActorEmote: onUpdateActorEmote,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (durationNonEditableReason != null) ...[
+          _MutedText(
+            durationNonEditableReason,
+            key: const ValueKey(
+              'cinematic-builder-duration-non-editable-reason',
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isDraft) ...[
+          const _BodyText('Durée non éditable — brouillon sans effet moteur.'),
+          const SizedBox(height: 8),
+        ],
+        if (isAuthoringOwned) ...[
+          PokeMapButton(
+            key: const ValueKey(
+              'cinematic-builder-remove-authoring-step-button',
+            ),
+            onPressed: () {
+              if (isDraft) {
+                onRemoveDraftStep(step);
+              } else {
+                onRemoveAuthoringStep(step);
+              }
+            },
+            variant: PokeMapButtonVariant.danger,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.trash),
+            child: const SizedBox.shrink(),
+          ),
+          const SizedBox(height: 4),
+          _MutedText(isDraft ? 'Supprimer ce brouillon' : 'Supprimer ce bloc'),
+          const SizedBox(height: 8),
+        ],
+        _StepDiagnosticsSummary(diagnostics: diagnostics),
         const SizedBox(height: 8),
+        _SelectedStepTechnicalDetailsAccordion(
+          asset: asset,
+          step: step,
+          index: index,
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectedStepTechnicalDetailsAccordion extends StatelessWidget {
+  const _SelectedStepTechnicalDetailsAccordion({
+    required this.asset,
+    required this.step,
+    required this.index,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        dividerColor: PokeMapLegacyColors.transparent,
+      ),
+      child: ExpansionTile(
+        key: const ValueKey(
+          'cinematic-builder-selected-step-details-accordion',
+        ),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        expandedAlignment: Alignment.topLeft,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        title: Text(
+          'Détails techniques',
+          style: DefaultTextStyle.of(context).style.copyWith(
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        children: [
+          _SelectedStepTechnicalDetails(
+            asset: asset,
+            step: step,
+            index: index,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectedStepTechnicalDetails extends StatelessWidget {
+  const _SelectedStepTechnicalDetails({
+    required this.asset,
+    required this.step,
+    required this.index,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final int index;
+
+  @override
+  Widget build(BuildContext context) {
+    final isActorEmote = isCinematicTimelineActorEmoteStep(step);
+    final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
+    final isDraft = isCinematicTimelineDraftStep(step);
+    final status = isDraft
+        ? 'Placeholder authoring'
+        : isAuthoringOwned
+            ? 'Bloc authoring V0'
+            : 'Lecture seule';
+
+    return Column(
+      key: const ValueKey('cinematic-builder-selected-step-details-content'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         _KeyValue(label: 'Titre', value: _stepDisplayTitle(asset, step, index)),
         if (isActorEmote) ...[
           const _KeyValue(label: 'Type', value: 'Émotion acteur'),
@@ -10553,91 +10706,12 @@ class _SelectedStepInspector extends StatelessWidget {
           else
             _KeyValue(label: 'Metadata', value: _metadataLabel(step.metadata)),
         ],
-        if (basicBlockKind != null) ...[
-          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
-          _BasicBlockControls(
-            asset: asset,
-            step: step,
-            blockKind: basicBlockKind,
-            onUpdateBasicBlock: onUpdateBasicBlock,
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (isActorFacing) ...[
-          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
-          _ActorFacingControls(
-            asset: asset,
-            step: step,
-            onUpdateActorFacing: onUpdateActorFacing,
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (isActorMove) ...[
-          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
-          _KeyValue(label: 'Résumé', value: _actorMoveSummary(asset, step)),
-          _ActorMoveControls(
-            asset: asset,
-            step: step,
-            onUpdateActorMove: onUpdateActorMove,
-            onToggleActorMovePathMode: onToggleActorMovePathMode,
-            onAddManualPathWaypoint: onAddManualPathWaypoint,
-            onRemoveManualPathWaypoint: onRemoveManualPathWaypoint,
-            onReorderManualPathWaypoint: onReorderManualPathWaypoint,
-            onUpsertMovementTargetBinding: onUpsertMovementTargetBinding,
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (isActorEmote) ...[
-          const _KeyValue(label: 'Statut', value: 'Bloc authoring V0'),
-          _ActorEmoteControls(
-            asset: asset,
-            step: step,
-            onUpdateActorEmote: onUpdateActorEmote,
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (durationNonEditableReason != null) ...[
-          _MutedText(
-            durationNonEditableReason,
-            key: const ValueKey(
-              'cinematic-builder-duration-non-editable-reason',
-            ),
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (isDraft) ...[
-          const _KeyValue(label: 'Statut', value: 'Placeholder authoring'),
-          const _BodyText('Durée non éditable — brouillon sans effet moteur.'),
-          const SizedBox(height: 8),
-        ],
-        if (isAuthoringOwned) ...[
-          PokeMapButton(
-            key: const ValueKey(
-              'cinematic-builder-remove-authoring-step-button',
-            ),
-            onPressed: () {
-              if (isDraft) {
-                onRemoveDraftStep(step);
-              } else {
-                onRemoveAuthoringStep(step);
-              }
-            },
-            variant: PokeMapButtonVariant.danger,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.trash),
-            child: const SizedBox.shrink(),
-          ),
-          const SizedBox(height: 4),
-          _MutedText(isDraft ? 'Supprimer ce brouillon' : 'Supprimer ce bloc'),
-          const SizedBox(height: 8),
-        ],
+        _KeyValue(label: 'Statut', value: status),
         const _KeyValue(label: 'Preview', value: 'Scène non jouée.'),
         const _KeyValue(
           label: 'Statut lecture',
           value: 'Lecture read-only dans ce lot.',
         ),
-        const SizedBox(height: 8),
-        _StepDiagnosticsSummary(diagnostics: diagnostics),
       ],
     );
   }
@@ -10696,16 +10770,10 @@ class _BasicBlockControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 8),
-        const _SectionTitle(
-          title: 'Paramètres V0',
-          subtitle: 'Contrôles bornés',
-        ),
-        const SizedBox(height: 8),
-        _KeyValue(label: 'Bloc', value: _basicBlockLabel(blockKind)),
         _DurationPresetControls(
           step: step,
           onUpdateBasicBlock: onUpdateBasicBlock,
+          compact: true,
         ),
         if (blockKind == CinematicTimelineBasicBlockKind.fade) ...[
           const SizedBox(height: 8),
@@ -10728,10 +10796,12 @@ class _DurationPresetControls extends StatelessWidget {
   const _DurationPresetControls({
     required this.step,
     required this.onUpdateBasicBlock,
+    this.compact = false,
   });
 
   final CinematicTimelineStep step;
   final _UpdateBasicBlockCallback onUpdateBasicBlock;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -10740,6 +10810,7 @@ class _DurationPresetControls extends StatelessWidget {
       explicitDurationMs: step.durationMs,
       minDurationMs: _editableDurationMinimumMs(step),
       keyPrefix: 'cinematic-builder-duration',
+      compact: compact,
       onDurationChanged: (durationMs) {
         return onUpdateBasicBlock(step, durationMs: durationMs);
       },
@@ -10754,6 +10825,7 @@ class _DurationEditorControls extends StatefulWidget {
     required this.minDurationMs,
     required this.keyPrefix,
     required this.onDurationChanged,
+    this.compact = false,
   });
 
   final int currentDurationMs;
@@ -10761,6 +10833,7 @@ class _DurationEditorControls extends StatefulWidget {
   final int minDurationMs;
   final String keyPrefix;
   final Future<void> Function(int durationMs) onDurationChanged;
+  final bool compact;
 
   @override
   State<_DurationEditorControls> createState() =>
@@ -10835,16 +10908,25 @@ class _DurationEditorControlsState extends State<_DurationEditorControls> {
       widget.currentDurationMs,
       minDurationMs: widget.minDurationMs,
     );
+    final presetValues = [
+      for (final preset in _durationPresetsMs)
+        if (preset >= widget.minDurationMs) preset,
+    ];
+    final selectedPreset = presetValues.contains(widget.currentDurationMs)
+        ? widget.currentDurationMs
+        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const _KeyValue(label: 'Durée', value: 'Edition en millisecondes'),
-        _MutedText(
-          _durationGuidanceLabel(widget.minDurationMs),
-          key: ValueKey('${widget.keyPrefix}-guidance'),
-        ),
+        if (!widget.compact) ...[
+          const _KeyValue(label: 'Durée', value: 'Edition en millisecondes'),
+          _MutedText(
+            _durationGuidanceLabel(widget.minDurationMs),
+            key: ValueKey('${widget.keyPrefix}-guidance'),
+          ),
+        ],
         if (boundaryFeedback != null) ...[
-          const SizedBox(height: 4),
+          if (!widget.compact) const SizedBox(height: 4),
           Text(
             boundaryFeedback,
             key: ValueKey('${widget.keyPrefix}-boundary-feedback'),
@@ -10855,7 +10937,7 @@ class _DurationEditorControlsState extends State<_DurationEditorControls> {
                 ),
           ),
         ],
-        const SizedBox(height: 6),
+        if (!widget.compact) const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -10920,26 +11002,27 @@ class _DurationEditorControlsState extends State<_DurationEditorControls> {
           ],
         ),
         const SizedBox(height: 6),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final preset in _durationPresetsMs)
-              _InlineControlAction(
-                label: '$preset ms',
-                button: PokeMapButton(
-                  key: ValueKey('${widget.keyPrefix}-preset-$preset'),
-                  onPressed: preset < widget.minDurationMs
-                      ? null
-                      : () => unawaited(_submitDuration(preset)),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: widget.explicitDurationMs == preset,
-                  leading: const Icon(CupertinoIcons.clock),
-                  child: const SizedBox.shrink(),
+        _InspectorDropdownField<int>(
+          key: ValueKey('${widget.keyPrefix}-preset-dropdown'),
+          value: selectedPreset,
+          hint: 'Preset rapide',
+          items: [
+            for (final preset in presetValues)
+              MacosPopupMenuItem<int>(
+                key: ValueKey('${widget.keyPrefix}-preset-$preset'),
+                value: preset,
+                child: _InspectorDropdownOption(
+                  icon: CupertinoIcons.clock,
+                  label: '$preset ms',
                 ),
               ),
           ],
+          onChanged: (preset) {
+            if (preset == null) {
+              return;
+            }
+            unawaited(_submitDuration(preset));
+          },
         ),
         if (_errorText != null) ...[
           const SizedBox(height: 6),
@@ -11027,39 +11110,35 @@ class _CameraModeControls extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _KeyValue(
-          label: 'Mode caméra',
-          value: currentMode == null
-              ? 'Mode à choisir'
-              : _cameraModeLabel(currentMode),
-        ),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
+        const _SectionTitle(title: 'Mode caméra', subtitle: 'Choix no-code'),
+        const SizedBox(height: 6),
+        _InspectorDropdownField<CinematicTimelineCameraMode>(
+          key: const ValueKey('cinematic-builder-camera-mode-dropdown'),
+          value: currentMode,
+          hint: 'Choisir un mode caméra',
+          items: [
             for (final mode in modes)
-              _InlineControlAction(
-                label: _cameraModeLabel(mode),
-                button: PokeMapButton(
-                  key: ValueKey('cinematic-builder-camera-mode-${mode.name}'),
-                  onPressed: () {
-                    onUpdateBasicBlock(
-                      step,
-                      cameraMode: mode,
-                      cameraFocusBinding:
-                          mode == CinematicTimelineCameraMode.focus
-                              ? focusBinding
-                              : null,
-                    );
-                  },
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: currentMode == mode,
-                  leading: Icon(_cameraModeIcon(mode)),
-                  child: const SizedBox.shrink(),
+              MacosPopupMenuItem<CinematicTimelineCameraMode>(
+                key: ValueKey('cinematic-builder-camera-mode-${mode.name}'),
+                value: mode,
+                child: _InspectorDropdownOption(
+                  icon: _cameraModeIcon(mode),
+                  label: _cameraModeLabel(mode),
                 ),
               ),
           ],
+          onChanged: (mode) {
+            if (mode == null) {
+              return;
+            }
+            onUpdateBasicBlock(
+              step,
+              cameraMode: mode,
+              cameraFocusBinding: mode == CinematicTimelineCameraMode.focus
+                  ? focusBinding
+                  : null,
+            );
+          },
         ),
         const SizedBox(height: 8),
         if (currentMode == CinematicTimelineCameraMode.reset)
@@ -11070,84 +11149,64 @@ class _CameraModeControls extends StatelessWidget {
         else if (currentMode == CinematicTimelineCameraMode.focus) ...[
           const _SectionTitle(title: 'Cible', subtitle: 'Choix no-code'),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _InlineControlAction(
-                label: _cameraTargetKindLabel(
-                  CinematicCameraTargetKind.sceneCenter,
-                ),
-                button: PokeMapButton(
-                  key: const ValueKey(
-                    'cinematic-builder-camera-target-sceneCenter',
+          _InspectorDropdownField<CinematicCameraTargetKind>(
+            key:
+                const ValueKey('cinematic-builder-camera-target-kind-dropdown'),
+            value: targetKind,
+            hint: 'Choisir une cible',
+            items: [
+              for (final kind in CinematicCameraTargetKind.values)
+                MacosPopupMenuItem<CinematicCameraTargetKind>(
+                  key: ValueKey(
+                    'cinematic-builder-camera-target-${kind.name}',
                   ),
-                  onPressed: () => _updateFocusTarget(
+                  value: kind,
+                  child: _InspectorDropdownOption(
+                    icon: _cameraTargetKindIcon(kind),
+                    label: _cameraTargetKindLabel(kind),
+                  ),
+                ),
+            ],
+            onChanged: (kind) {
+              if (kind == null) {
+                return;
+              }
+              switch (kind) {
+                case CinematicCameraTargetKind.sceneCenter:
+                  _updateFocusTarget(
                     CinematicCameraTargetBinding.sceneCenter(),
                     focusBinding.zoomPreset,
-                  ),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected:
-                      targetKind == CinematicCameraTargetKind.sceneCenter,
-                  leading: const Icon(CupertinoIcons.scope),
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-              _InlineControlAction(
-                label: _cameraTargetKindLabel(CinematicCameraTargetKind.actor),
-                button: PokeMapButton(
-                  key: const ValueKey(
-                    'cinematic-builder-camera-target-actor',
-                  ),
-                  onPressed: actors.isEmpty
-                      ? null
-                      : () => _updateFocusTarget(
-                            CinematicCameraTargetBinding.actor(
-                              actorId: _selectedCameraTargetActorId(
-                                    focusBinding,
-                                    asset,
-                                  ) ??
-                                  actors.first.actorId,
-                            ),
-                            focusBinding.zoomPreset,
-                          ),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected: targetKind == CinematicCameraTargetKind.actor,
-                  leading: const Icon(CupertinoIcons.person_crop_circle),
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-              _InlineControlAction(
-                label: _cameraTargetKindLabel(
-                  CinematicCameraTargetKind.stagePoint,
-                ),
-                button: PokeMapButton(
-                  key: const ValueKey(
-                    'cinematic-builder-camera-target-stagePoint',
-                  ),
-                  onPressed: stagePoints.isEmpty
-                      ? null
-                      : () => _updateFocusTarget(
-                            CinematicCameraTargetBinding.stagePoint(
-                              stagePointId: _selectedCameraTargetStagePointId(
-                                    focusBinding,
-                                    stagePoints,
-                                  ) ??
-                                  stagePoints.first.id,
-                            ),
-                            focusBinding.zoomPreset,
-                          ),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.small,
-                  isSelected:
-                      targetKind == CinematicCameraTargetKind.stagePoint,
-                  leading: const Icon(CupertinoIcons.location),
-                  child: const SizedBox.shrink(),
-                ),
-              ),
-            ],
+                  );
+                case CinematicCameraTargetKind.actor:
+                  if (actors.isEmpty) {
+                    return;
+                  }
+                  _updateFocusTarget(
+                    CinematicCameraTargetBinding.actor(
+                      actorId: _selectedCameraTargetActorId(
+                            focusBinding,
+                            asset,
+                          ) ??
+                          actors.first.actorId,
+                    ),
+                    focusBinding.zoomPreset,
+                  );
+                case CinematicCameraTargetKind.stagePoint:
+                  if (stagePoints.isEmpty) {
+                    return;
+                  }
+                  _updateFocusTarget(
+                    CinematicCameraTargetBinding.stagePoint(
+                      stagePointId: _selectedCameraTargetStagePointId(
+                            focusBinding,
+                            stagePoints,
+                          ) ??
+                          stagePoints.first.id,
+                    ),
+                    focusBinding.zoomPreset,
+                  );
+              }
+            },
           ),
           const SizedBox(height: 6),
           if (targetKind == CinematicCameraTargetKind.sceneCenter)
@@ -11236,35 +11295,36 @@ class _CameraModeControls extends StatelessWidget {
           const SizedBox(height: 8),
           const _SectionTitle(title: 'Plan', subtitle: 'Preset de cadrage'),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
+          _InspectorDropdownField<CinematicCameraZoomPreset>(
+            key: const ValueKey('cinematic-builder-camera-zoom-dropdown'),
+            value: focusBinding.zoomPreset,
+            hint: 'Choisir un plan',
+            items: [
               for (final zoomPreset in CinematicCameraZoomPreset.values)
-                _InlineControlAction(
-                  label: _cameraZoomPresetLabel(zoomPreset),
-                  button: PokeMapButton(
-                    key: ValueKey(
-                      'cinematic-builder-camera-zoom-${zoomPreset.name}',
-                    ),
-                    onPressed: () {
-                      onUpdateBasicBlock(
-                        step,
-                        cameraMode: CinematicTimelineCameraMode.focus,
-                        cameraFocusBinding: CinematicTimelineCameraFocusBinding(
-                          target: focusBinding.target,
-                          zoomPreset: zoomPreset,
-                        ),
-                      );
-                    },
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    isSelected: focusBinding.zoomPreset == zoomPreset,
-                    leading: Icon(_cameraZoomPresetIcon(zoomPreset)),
-                    child: const SizedBox.shrink(),
+                MacosPopupMenuItem<CinematicCameraZoomPreset>(
+                  key: ValueKey(
+                    'cinematic-builder-camera-zoom-${zoomPreset.name}',
+                  ),
+                  value: zoomPreset,
+                  child: _InspectorDropdownOption(
+                    icon: _cameraZoomPresetIcon(zoomPreset),
+                    label: _cameraZoomPresetLabel(zoomPreset),
                   ),
                 ),
             ],
+            onChanged: (zoomPreset) {
+              if (zoomPreset == null) {
+                return;
+              }
+              onUpdateBasicBlock(
+                step,
+                cameraMode: CinematicTimelineCameraMode.focus,
+                cameraFocusBinding: CinematicTimelineCameraFocusBinding(
+                  target: focusBinding.target,
+                  zoomPreset: zoomPreset,
+                ),
+              );
+            },
           ),
           const SizedBox(height: 6),
           const _MutedText('Cadrage configuré, preview réelle à venir.'),
@@ -11510,6 +11570,34 @@ class _ActorEmoteDropdownOption extends StatelessWidget {
   }
 }
 
+class _InspectorDropdownOption extends StatelessWidget {
+  const _InspectorDropdownOption({
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: colors.textSecondary),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _InspectorDropdownField<T> extends StatelessWidget {
   const _InspectorDropdownField({
     super.key,
@@ -11607,6 +11695,7 @@ class _ActorMoveControls extends StatelessWidget {
     final destinationStagePointId = _destinationStagePointId(asset, step);
     final destinationStagePoint =
         _stagePointById(stagePoints, destinationStagePointId);
+    final selectedDestinationStagePointId = destinationStagePoint?.id;
     final availablePoints = [
       for (final point in stagePoints)
         if (point.id != destinationStagePointId) point,
@@ -11859,13 +11948,13 @@ class _ActorMoveControls extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         const _SectionTitle(
-          title: 'Destination',
-          subtitle: 'Repère final du déplacement',
+          title: 'Repère d’arrivée',
+          subtitle: 'Point final du déplacement',
         ),
         const SizedBox(height: 6),
         if (selectedTarget == null) ...[
           const _MutedText(
-            'Choisissez une destination avant de lancer la prévisualisation.',
+            'Choisissez d’abord le profil de destination à configurer.',
           ),
           const SizedBox(height: 6),
           _MovementTargetPicker(
@@ -11877,8 +11966,8 @@ class _ActorMoveControls extends StatelessWidget {
         ] else ...[
           _MutedText(
             destinationStagePoint == null
-                ? 'Choisissez un repère pour que le déplacement puisse être prévisualisé.'
-                : 'Destination actuelle : ${destinationStagePoint.label}',
+                ? 'Choisissez le repère d’arrivée utilisé par ce déplacement.'
+                : 'Repère d’arrivée actuel : ${destinationStagePoint.label}',
           ),
           const SizedBox(height: 6),
           if (stagePoints.isEmpty)
@@ -11886,38 +11975,43 @@ class _ActorMoveControls extends StatelessWidget {
               'Aucun repère disponible. Posez d\'abord un repère dans l\'aperçu de scène.',
             )
           else
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
+            _InspectorDropdownField<String>(
+              key: const ValueKey(
+                'cinematic-builder-actor-move-destination-stage-point-dropdown',
+              ),
+              value: selectedDestinationStagePointId,
+              hint: 'Choisir un repère d’arrivée',
+              items: [
                 for (final point in stagePoints)
-                  _InlineControlAction(
-                    label: point.label,
-                    button: PokeMapButton(
-                      key: ValueKey(
-                        'cinematic-builder-actor-move-destination-stage-point-${selectedTarget.targetId}-${point.id}',
-                      ),
-                      onPressed: () => onUpsertMovementTargetBinding(
-                        CinematicMovementTargetBinding(
-                          targetId: selectedTarget.targetId,
-                          kind: CinematicMovementTargetBindingKind.stagePoint,
-                          sourceId: point.id,
-                        ),
-                      ),
-                      variant: PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.small,
-                      isSelected: destinationStagePointId == point.id,
-                      leading: const Icon(CupertinoIcons.location),
-                      child: const SizedBox.shrink(),
+                  MacosPopupMenuItem<String>(
+                    key: ValueKey(
+                      'cinematic-builder-actor-move-destination-stage-point-${selectedTarget.targetId}-${point.id}',
+                    ),
+                    value: point.id,
+                    child: _InspectorDropdownOption(
+                      icon: CupertinoIcons.location,
+                      label: point.label,
                     ),
                   ),
               ],
+              onChanged: (pointId) {
+                if (pointId == null) {
+                  return;
+                }
+                onUpsertMovementTargetBinding(
+                  CinematicMovementTargetBinding(
+                    targetId: selectedTarget.targetId,
+                    kind: CinematicMovementTargetBindingKind.stagePoint,
+                    sourceId: pointId,
+                  ),
+                );
+              },
             ),
           if (asset.movementTargets.length > 1) ...[
             const SizedBox(height: 8),
             const _KeyValue(
-              label: 'Variante de destination',
-              value: 'Choisissez la destination à éditer.',
+              label: 'Profil de destination',
+              value: 'Choisissez la cible logique à configurer.',
             ),
             const SizedBox(height: 6),
             _MovementTargetPicker(
@@ -12007,28 +12101,34 @@ class _MovementTargetPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: [
+    final selectedTargetValue = asset.movementTargets
+            .any((target) => target.targetId == selectedTargetId)
+        ? selectedTargetId
+        : null;
+
+    return _InspectorDropdownField<String>(
+      key: const ValueKey('cinematic-builder-target-picker-dropdown'),
+      value: selectedTargetValue,
+      hint: 'Choisir un profil de destination',
+      items: [
         for (final target in asset.movementTargets)
-          _InlineControlAction(
-            label: target.label,
-            button: PokeMapButton(
-              key: ValueKey(
-                'cinematic-builder-target-picker-${target.targetId}',
-              ),
-              onPressed: () {
-                onUpdateActorMove(step, targetId: target.targetId);
-              },
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              isSelected: selectedTargetId == target.targetId,
-              leading: const Icon(CupertinoIcons.location),
-              child: const SizedBox.shrink(),
+          MacosPopupMenuItem<String>(
+            key: ValueKey(
+              'cinematic-builder-target-picker-${target.targetId}',
+            ),
+            value: target.targetId,
+            child: _InspectorDropdownOption(
+              icon: CupertinoIcons.location,
+              label: target.label,
             ),
           ),
       ],
+      onChanged: (targetId) {
+        if (targetId == null) {
+          return;
+        }
+        onUpdateActorMove(step, targetId: targetId);
+      },
     );
   }
 }
@@ -12905,6 +13005,14 @@ String _cameraTargetKindLabel(CinematicCameraTargetKind kind) {
     CinematicCameraTargetKind.sceneCenter => 'Centre de la scène',
     CinematicCameraTargetKind.actor => 'Acteur',
     CinematicCameraTargetKind.stagePoint => 'Repère',
+  };
+}
+
+IconData _cameraTargetKindIcon(CinematicCameraTargetKind kind) {
+  return switch (kind) {
+    CinematicCameraTargetKind.sceneCenter => CupertinoIcons.scope,
+    CinematicCameraTargetKind.actor => CupertinoIcons.person_crop_circle,
+    CinematicCameraTargetKind.stagePoint => CupertinoIcons.location,
   };
 }
 
