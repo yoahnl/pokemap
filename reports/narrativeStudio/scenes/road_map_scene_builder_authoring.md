@@ -9,10 +9,10 @@ Le runtime reste indispensable, mais le prochain blocage produit est plus basiqu
 ## Prochain lot exact recommande
 
 ```text
-NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan
+NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit
 ```
 
-Suite V1-136-bis : le Cinematic Builder V1 est closable, et la reserve de tests widget legacy identifiee par V1-136 est nettoyee sans changement produit. Le prochain verrou produit sort de l'extension du Builder et cadre la golden slice narrative jouable Selbrume avec les systemes Narrative Studio stabilises.
+Suite V1-137 : la golden slice narrative jouable Selbrume est cadree, mais les donnees courantes restent prototypes/incompletes. Le prochain verrou produit est donc l'inventaire de contenu et d'assets Selbrume avant tout authoring direct.
 
 ## Principes
 
@@ -192,7 +192,18 @@ Decision : `CinematicMapBackdropLayerRenderPlan` devient le plan etendu, sans re
 | NS-SCENES-V1-135 | Cinematic Builder V1 Camera Closure / Polish Gate | editor / polish-gate | Fermer la sequence camera V1 par un polish/gate cible : wording, diagnostics restants, coherence inspecteur/preview et preuves finales. | Pas de nouveau moteur camera, runtime, Flame, GameState, CameraComponent, mutation viewport editor, interpolation ou nouveau continent fonctionnel. | Builder cinematic, tests de non-regression, rapports, Visual Gate finale. | Regressions camera V1-124/V1-132/V1-134, diagnostics no-code, anti-scope runtime/viewport. | Transformer le gate en nouvelle feature ; relancer une vraie camera runtime trop tot. | DONE : wording final harmonise, overlay geometrique confirme, diagnostics no-code preserves, Visual Gate finale et anti-scope runtime/viewport confirmes. | V1-134 |
 | NS-SCENES-V1-136 | Cinematic Builder V1 Closure / Readiness Audit | doc / readiness-gate | Fermer officiellement le Cinematic Builder V1 par un audit global : matrice livre/backlog V2, validations finales, limites assumees et trajectoire Narrative Studio. | Pas de nouveau moteur camera, pas de runtime, pas de nouvelle feature, pas de V2 fonctionnelle, pas de mutation viewport editor. | Roadmaps, rapports, synthese readiness, preuves de non-regression. | Audit global Builder V1, checks anti-scope, tests critiques reutilises, backlog V2 explicite. | Transformer la fermeture en nouveau chantier ; masquer les limites restantes. | DONE : Builder V1 closable avec reserves non bloquantes ; tests legacy rouges documentes ; V1-137 recommande. | V1-135 |
 | NS-SCENES-V1-136-bis | Cinematic Builder Legacy Widget Expectations Cleanup | tests / maintenance | Realigner les attentes widget legacy Builder/Library sur l'UX no-code actuelle. | Pas de code produit, pas de nouvelle feature, pas de runtime, pas de Visual Gate, pas de reintroduction d'IDs techniques visibles. | Tests Builder/Library, rapports, roadmaps. | 6 attentes Builder et 1 attente Library corrigees ; suites completes Builder/Library vertes ; regression ciblee V1-102 a V1-135 verte ; analyse ciblee non fatale. | Affaiblir les assertions ; remettre des IDs techniques dans l'UI ; confondre cleanup de tests et nouveau lot produit. | DONE : tests legacy realignes sans changement produit ; Builder V1 closable sans reserve de test legacy bloquante. | V1-136 |
-| NS-SCENES-V1-137 | Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan | doc / product-readiness | Cadrer la demo narrative jouable Selbrume en reutilisant les systemes stabilises : maps, scenes, cinematiques, dialogues, combats, facts/world rules et contenu. | Pas de reouverture Cinematic Builder V1, pas de runtime cinematic V2, pas de nouveau moteur, pas de seed produit irreversible sans validation. | Rapports readiness Selbrume, plan de contenu, matrice dependances Narrative Studio. | Audit contenu/systemes, gaps jouabilite, plan de validation, anti-scope Builder V1. | Rouvrir le Builder au lieu de cadrer le contenu ; confondre demo jouable et nouveau moteur. | Recommande, non demarre. | V1-136 |
+| NS-SCENES-V1-137 | Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan | doc / product-readiness | Cadrer la demo narrative jouable Selbrume en reutilisant les systemes stabilises : maps, scenes, cinematiques, dialogues, combats, facts/world rules et contenu. | Pas de reouverture Cinematic Builder V1, pas de runtime cinematic V2, pas de nouveau moteur, pas de seed produit irreversible sans validation. | Rapports readiness Selbrume, plan de contenu, matrice dependances Narrative Studio. | Audit contenu/systemes, gaps jouabilite, plan de validation, anti-scope Builder V1. | Rouvrir le Builder au lieu de cadrer le contenu ; confondre demo jouable et nouveau moteur. | DONE : chemin joueur, maps/events/scenes/cinematics/dialogues/battles/facts/world rules et matrice de readiness cadres sans modifier le produit ni Selbrume. | V1-136 |
+| NS-SCENES-V1-138 | Selbrume Golden Slice Content Inventory / Asset Gap Audit | doc / content-inventory | Reconciler la bible Selbrume, `project.json`, maps, PNJ, trainers, dialogues, facts, world rules, assets et IDs canoniques avant toute ecriture de contenu golden slice. | Pas de contenu final, pas de runtime, pas de nouvelle feature, pas de modification Selbrume irreversible sans validation. | Rapport d'inventaire, matrice assets/gaps, IDs canoniques proposes, decisions de scope. | Audit data Selbrume, gaps d'assets, anti-scope produit. | Ecrire du contenu avant d'avoir stabilise les IDs ; confondre audit et seed. | Recommande, non demarre. | V1-137 |
+
+## Mise a jour V1-137
+
+Statut : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan` est DONE documentaire.
+
+Decision : la golden slice Selbrume est cadree, mais l'audit des donnees montre qu'un inventaire V1-138 est necessaire avant authoring direct.
+
+Preuve : rapport V1-137, Evidence Pack V1-137, inventaires `project.json`, maps JSON, Yarn et rapports NS-GS.
+
+Prochain lot recommande : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-136-bis
 
@@ -202,7 +213,7 @@ Decision : les attentes widget legacy restantes ont ete remplacees par des atten
 
 Preuve : `cinematic_builder_workspace_test.dart` complet vert, `cinematics_library_workspace_test.dart` complet vert, regression ciblee V1-102 a V1-135 verte, analyse ciblee editor lancee avec infos non fatales preexistantes.
 
-Prochain lot recommande : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot recommande : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-136
 
@@ -216,7 +227,7 @@ Preuve : suite ciblee Builder V1-102 a V1-135 verte, tests core cinematic elargi
 
 Limites : V1 reste editor-only pour le cinematic playback. Runtime cinematic complet, vraie camera runtime, pan/zoom reel, timeline parallele, dialogue/audio/FX avances et storyboard restent backlog V2.
 
-Prochain lot recommande : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot recommande : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-135
 
@@ -228,7 +239,7 @@ Preuve : tests widget V1-135, regressions V1-134/V1-132/V1-124/V1-129, analyse c
 
 Limites : aucune vraie camera runtime, aucun pan/zoom reel, aucun follow permanent, aucune interpolation camera, aucun Flame/GameState et aucune mutation viewport editor.
 
-Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-134
 
@@ -240,7 +251,7 @@ Preuve : tests widget V1-134, regressions V1-124/V1-132/V1-129, analyse ciblee, 
 
 Limites : aucune vraie camera runtime, aucun pan/zoom numerique, aucun CameraComponent, aucun Flame/GameState et aucune mutation du viewport editor.
 
-Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-133
 
@@ -252,7 +263,7 @@ Preuve : tests core V1-133, regression V1-131, suite core ciblee, regression UI 
 
 Limites : aucune preview UI nouvelle, aucun renderer, aucun zoom numerique, aucun runtime et aucune mutation viewport. Les bounds de scene sont un input pur optionnel du read model.
 
-Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-132
 
@@ -264,7 +275,7 @@ Preuve : tests widget V1-132, regressions V1-124/V1-129, analyse ciblee, Visual 
 
 Limites : aucune geometrie camera, aucun centre/zoom numerique, aucun renderer reel et aucune mutation du viewport editor.
 
-Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-131
 
@@ -276,7 +287,7 @@ Preuve : tests V1-131 RED/GREEN puis régressions core ciblées, analyse `map_co
 
 Limites : l'UI d'authoring cible/zoom n'est pas demarrée ; la preview camera réelle et la geometrie restent hors lot.
 
-Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-130
 
@@ -288,7 +299,7 @@ Preuve : audit read-only Camera V0 (`reset`/`hold`, metadata `camera.mode`, `cam
 
 Limites : les enums, metadata helpers, operations pures et diagnostics restent a implementer dans V1-131.
 
-Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-129
 
@@ -300,7 +311,7 @@ Preuve : tests RED/GREEN V1-129, régressions V1-128/V1-124/V1-121/V1-120, Libra
 
 Limites : l’overlay suit toute pose exposée par `actorPoses`; les scénarios avec chevauchement emote + actorMove réel restent dépendants du read model futur si la timeline devient parallèle.
 
-Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-128
 
@@ -312,7 +323,7 @@ Preuve : tests RED/GREEN V1-128, régressions V1-124/V1-121/V1-120, Library/Stag
 
 Limites : le choix d’émotion est encore textuel ; l’affichage visuel des bulles au-dessus des acteurs est le verrou du prochain lot.
 
-Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-127
 
@@ -324,7 +335,7 @@ Preuve : tests V1-127 RED/GREEN dans `cinematic_preview_playback_plan_test.dart`
 
 Limites : la timeline actuelle reste linéaire ; plusieurs `activeEmotes` sont supportés par la structure de liste si des fenêtres se chevauchent plus tard, mais V1-127 ne crée pas de modèle parallèle ni de renderer.
 
-Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-126
 
@@ -334,7 +345,7 @@ Decision : le core réutilise `CinematicTimelineStepKind.actorEmote`, stocke `ac
 
 Preuve : tests catalogue/authoring/diagnostics/playback boundary, suite `map_core`, `dart analyze`, régressions Builder ciblées et anti-scope passés dans le lot V1-126.
 
-Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-125
 
@@ -346,7 +357,7 @@ Preuve : assets racine audités (`emotions.png`, `emotions2.png`), dimensions `1
 
 Limites : les assets restent à leur emplacement actuel et ne sont que candidats ; aucun modèle, catalogue, UI, renderer, pubspec, runtime, Flame, GameState ou screenshot n’a été créé. Camera Target / Zoom est reporté en V1-130.
 
-Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-124
 
@@ -358,7 +369,7 @@ Preuve : tests V1-124, régressions playback/fade/actor/fallback, suite Builder 
 
 Limites : la vraie géométrie caméra reste absente du read model. Ce verrou cible/zoom reste pertinent, mais il est reporté en V1-129 après la chaîne emotes.
 
-Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-123
 
@@ -370,7 +381,7 @@ Preuve : tests V1-123 ajoutés, tests `map_core` ciblés et complets relancés, 
 
 Limites : aucun centre/zoom fiable n'est inventé, aucune UI caméra ou Visual Gate n'est démarrée, aucun viewport editor/runtime/Flame/GameState n'est modifié.
 
-Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-122
 
@@ -382,7 +393,7 @@ Preuve : rapport V1-122, Evidence Pack V1-122, audit read-only des rapports V1-1
 
 Limites : aucun code produit, package Dart/Flutter, runtime, Flame, GameState, screenshot, Visual Gate ou V1-123 n'a été démarré.
 
-Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-121
 
@@ -394,7 +405,7 @@ Preuve : tests V1-121, regressions V1-120/V1-118/V1-117/V1-117-bis/V1-116, Build
 
 Limites : aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur, nouvelle persistance ou couleurs hardcodées n'a ete demarre pendant V1-121.
 
-Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-120
 
@@ -406,7 +417,7 @@ Preuve : tests V1-120, regressions V1-118/V1-117/V1-117-bis/V1-116, Builder comp
 
 Limites : le fade preview a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding ou collision n'a ete demarre pendant V1-120. La capture reste issue du harness test.
 
-Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-119
 
@@ -420,7 +431,7 @@ Preuve : rapports V1-109 a V1-118 et timeline/probe V1-51/V1-52/V1-53/V1-61 a V1
 
 Limites historiques : aucun package Dart/Flutter n'avait ete modifie, aucun screenshot n'avait ete cree et V1-120 n'etait pas demarre pendant ce contrat documentaire. Cette limite a ete levee par V1-120.
 
-Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-118
 
@@ -432,7 +443,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste volontairement borne aux diagnostics deja disponibles. Aucun runtime, Flame, GameState, `map_core`, scrub/seek, pathfinding, collision ou V1-119 n'a ete demarre.
 
-Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-117-bis
 
@@ -448,7 +459,7 @@ Preuve : test RED puis GREEN `V1-117-bis changing one actorMove destination keep
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouveau playback, nouvelle animation ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et n'a pas ete modifie par ce lot.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-117
 
@@ -462,7 +473,7 @@ Preuve : tests resolver cadence, tests widget V1-117, non-régressions V1-116/V1
 
 Limites historiques : la cadence reste une heuristique déterministe preview-only et ne remplace pas un vrai système runtime d'animation. Les details de diagnostic ont ete traites par V1-118.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-116
 
@@ -476,7 +487,7 @@ Preuve : tests V1-116, Visual Gate V1-116, tests resolver/renderer/V1-113/core, 
 
 Limites historiques : les libelles/status de preview restaient a polir pour ne plus afficher des badges historiques contradictoires pendant une lecture animee ; cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-117 puis V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-115
 
@@ -490,7 +501,7 @@ Preuve : test resolver dédié `+9`, renderer sprite `+21`, V1-113 ciblé `+5`, 
 
 Limites historiques : au moment de V1-115, aucune animation n'etait encore affichee ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-114
 
@@ -504,7 +515,7 @@ Preuve : rapport et Evidence Pack V1-114 dédiés, avec anti-scope packages/scre
 
 Limites historiques : V1-114 documentait seulement le contrat. V1-115 a livré le resolver symbolique ; l'affichage animé a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-113
 
@@ -518,7 +529,7 @@ Preuve : tests V1-113 ciblés, Visual Gate `ns_scenes_v1_113_cinematic_actor_pla
 
 Limites : le mouvement est fluide en position, mais aucune animation de marche frame-by-frame n’est démarrée.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-112
 
@@ -532,7 +543,7 @@ Preuve : tests V1-112 ciblés `+3`, Builder complet `+214`, Library/Stage overla
 
 Limites : le contrat overlay acteur reste ancré sur des positions entières de tuile, donc la pose playback est consommée comme source de vérité mais projetée par arrondi dans l’overlay actuel. Aucun scrubber, seek, runtime, Flame, GameState, collision/pathfinding, animation de marche ou persistance du temps n’a été ajouté.
 
-Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Historique avant V1-113 : V1-112 recommandait de corriger la précision visuelle du playback acteur. Cette limite a ete traitée par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-111
 
@@ -544,7 +555,7 @@ Decision : `map_editor` porte le ticker local avec `AnimationController`, affich
 
 Preuve : tests V1-111 ciblés `+4`, Builder complet `+211`, Library/Stage overlay `+26`, régressions `map_core` `+12/+4/+27`, Visual Gate `ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` prouvée par shasum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`.
 
-Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-137 — Narrative Studio Golden Slice Authoring Readiness / Selbrume Demo Content Plan`.
+Limites historiques au moment de V1-111 : actor overlay playback non démarré ; aucun scrubber, seek, runtime, Flame, GameState ou persistance. Cette limite a ete traitée par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-138 — Selbrume Golden Slice Content Inventory / Asset Gap Audit`.
 
 ## Mise a jour V1-110
 
