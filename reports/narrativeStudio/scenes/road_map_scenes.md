@@ -198,13 +198,14 @@ Ces briques sont utiles, mais elles ne constituent pas encore une Scene V1 propr
 | NS-SCENES-V1-132 — Cinematic Camera Target / Zoom Editor UI V0 | DONE | Core model V1-131 branche dans l'inspecteur Camera du Cinematic Builder : modes reset/hold/focus en francais, cible scene/acteur/repere, presets Plan large/moyen/gros plan, Visual Gate, sans preview camera reelle, runtime, Flame, GameState, geometrie camera ni mutation du viewport editor. |
 | NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0 | DONE | Etat de geometrie camera derive ajoute cote read model playback : target sceneCenter/actor/stagePoint resolue, centre scene/tile expose quand disponible, zoom preset conserve comme intention symbolique, diagnostics honnetes, sans renderer UI, runtime, Flame, GameState, screenshot ni mutation viewport. |
 | NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0 | DONE | Etat geometrique V1-133 branche dans la preview editor-only : cadre camera passif, marqueur cible, labels no-code et diagnostics lisibles, sans runtime, Flame, GameState ni mutation viewport editor. |
-| NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate | RECOMMANDÉ | Fermer la sequence camera V1 par un polish/gate cible : cohérence wording, diagnostics restants, preuves UI et non-regression, sans nouveau continent fonctionnel. |
+| NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate | DONE | Fermeture ciblee de la sequence camera V1 : wording inspecteur/preview harmonise, overlay geometrique confirme, diagnostics no-code preserves, Visual Gate finale et regressions camera/emote relancees, sans nouveau moteur camera ni mutation viewport. |
+| NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit | RECOMMANDÉ | Fermer officiellement le Cinematic Builder V1 par un audit global de readiness : matrice livre/backlog V2, validations finales, risques assumes et prochaine trajectoire Narrative Studio, sans ouvrir de nouveau chantier fonctionnel. |
 
 ## Prochain lot exact recommande
 
-`NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`
+`NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`
 
-Raison : V1-134 a rendu la geometrie camera visible en preview editor-only. Le prochain verrou produit est une fermeture/polish ciblee de la sequence camera V1, sans runtime, Flame, GameState, vraie camera runtime ni mutation du viewport editor.
+Raison : V1-135 ferme la sequence camera V1. Le prochain verrou produit est une fermeture globale du Cinematic Builder V1 : readiness, limites assumees, backlog V2 et trajectoire Narrative Studio, sans demarrer de nouvelle capacite.
 
 Ordre apres V1-102 :
 1. `NS-SCENES-V1-103 — Cinematic Actor Initial Placement from Stage Points V0` (DONE)
@@ -242,7 +243,20 @@ Ordre apres V1-102 :
 33. `NS-SCENES-V1-132 — Cinematic Camera Target / Zoom Editor UI V0` (DONE)
 34. `NS-SCENES-V1-133 — Cinematic Camera Geometry Playback State V0` (DONE)
 35. `NS-SCENES-V1-134 — Cinematic Camera Geometry Preview UI V0` (DONE)
-36. `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate` (recommande, non demarre)
+36. `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate` (DONE)
+37. `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit` (recommande, non demarre)
+
+## Mise a jour V1-135
+
+Statut : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate` est DONE.
+
+Decision : la sequence camera V1 est fermee par un polish/gate cible. Le wording final distingue le cadrage visible de la vraie camera non pilotee : l'overlay geometrique conserve `Cadrage affiché, vue non pilotée.`, l'overlay symbolique indique `Cadrage visible dans la preview.`, et l'inspecteur Camera indique `Cadrage visible dans la preview. La vue reste non pilotée.`.
+
+Preuve : tests widget V1-135, regressions V1-134/V1-132/V1-124/V1-129, analyse ciblee, Visual Gate `ns_scenes_v1_135_cinematic_builder_v1_camera_closure_polish_gate.png` et anti-scope runtime/core/assets/Selbrume.
+
+Limites : la camera V1 reste editor-only. Aucune vraie camera runtime, aucun pan/zoom reel, aucune interpolation camera, aucun follow permanent, aucun CameraComponent, aucun Flame/GameState et aucune mutation du viewport editor n'ont ete ajoutes.
+
+Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-134
 
@@ -254,7 +268,7 @@ Preuve : tests widget V1-134, regressions V1-124/V1-132/V1-129, analyse ciblee, 
 
 Limites : la vraie camera runtime n'existe pas encore ; aucun pan, zoom numerique, CameraComponent, Flame, GameState ou mutation viewport editor n'a ete ajoute.
 
-Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-133
 
@@ -266,7 +280,7 @@ Preuve : tests core V1-133, regression V1-131, suite core ciblee, regression UI 
 
 Limites : aucune transformation viewport, aucun zoom numerique, aucun renderer et aucun overlap temporel camera/actorMove n'ont ete ajoutes. Les bounds de scene restent un input pur optionnel du read model.
 
-Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-132
 
@@ -278,7 +292,7 @@ Preuve : tests widget V1-132, regressions V1-124/V1-129, capture Visual Gate `ns
 
 Limites : la preview camera reste symbolique. Aucun centre camera, zoom numerique, pan, interpolation, renderer reel, runtime, Flame, GameState ou mutation viewport n'a ete ajoute.
 
-Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-131
 
@@ -290,7 +304,7 @@ Preuve : core model `sceneCenter | actor | stagePoint`, zoom `wide | medium | cl
 
 Limites : aucune UI d'authoring complete ni preview camera réelle. `cameraGeometryUnavailable` reste reserve au futur lot de geometrie/playback camera.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-130
 
@@ -302,7 +316,7 @@ Preuve : audit read-only Camera V0 (`reset`/`hold`, metadata `camera.mode`, `cam
 
 Limites : le lot ne cree pas encore les enums/metadata helpers/diagnostics. Ces elements sont volontairement reportes au core model V1-131.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-129
 
@@ -314,7 +328,7 @@ Preuve : tests RED/GREEN V1-129, régressions V1-128/V1-124/V1-121/V1-120, Libra
 
 Limites : le chevauchement futur emote + actorMove dépendra de ce que le read model `frameAt(timeMs)` expose ; le renderer suit déjà la pose fournie par `actorPoses` sans recalculer la timeline.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-128
 
@@ -328,7 +342,7 @@ Preuve : tests RED/GREEN V1-128, régressions Builder V1-124/V1-121/V1-120, Libr
 
 Limites : le picker reste textuel dans V1-128 ; aucune bulle emote n’est encore rendue au-dessus de l’acteur. Le rendu visuel est reporté au prochain lot.
 
-Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-127
 
@@ -342,7 +356,7 @@ Preuve : tests RED/GREEN V1-127 ajoutés dans `cinematic_preview_playback_plan_t
 
 Limites : le time layout actuel reste linéaire ; `activeEmotes` conserve une liste déterministe et future-proof, mais le modèle de données existant ne produit pas encore de fenêtres temporelles réellement superposées. Aucun rendu visuel d’emote n’est démarré.
 
-Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-128 a rendu le bloc actorEmote authorable dans le Builder. Suite realisee : V1-132 est DONE. Prochain lot recommande : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-126
 
@@ -356,7 +370,7 @@ Preuve : tests catalogue, authoring, diagnostics et playback boundary ajoutés ;
 
 Limites : les assets `emotions.png` et `emotions2.png` restent candidats à la racine, non déplacés et non chargés ; les labels de frames restent prudents. L’exposition des emotes dans `frameAt(timeMs)` a été traitée par V1-127.
 
-Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-127 puis V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-125
 
@@ -370,7 +384,7 @@ Preuve : rapport V1-125 et Evidence Pack V1-125 créés, assets audités par `ls
 
 Limites : les labels sémantiques de certaines cellules de l’atlas restent à valider visuellement pendant V1-126 ; aucun catalogue codé, aucune UI, aucun renderer et aucun asset registry n’ont été créés.
 
-Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`. Camera Target / Zoom est cadre par V1-130 ; le core model a ete realise par `NS-SCENES-V1-131 — Cinematic Camera Target / Zoom Core Model V0`.
+Suite historique : les lots recommandes V1-126, V1-127 et V1-128 ont ete realises. Prochain lot global actuel : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`. Camera Target / Zoom est cadre par V1-130 ; le core model a ete realise par `NS-SCENES-V1-131 — Cinematic Camera Target / Zoom Core Model V0`.
 
 ## Mise a jour V1-124
 
@@ -384,7 +398,7 @@ Preuve : tests RED/GREEN V1-124 ajoutés, régressions V1-121/V1-120/V1-118/V1-1
 
 Limites : le cadre est symbolique et ne remplace pas une vraie géométrie caméra. Aucun runtime, Flame, GameState, map_core, map_runtime, viewport editor, ProjectManifest, CinematicAsset ou MapData n’a été modifié. L’enrichissement Camera Target / Zoom reste reporté en V1-130.
 
-Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : V1-125 a cadré les emotes cinématiques, puis V1-126 a posé le core/catalogue ; prochain lot global actuel : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-123
 
@@ -398,7 +412,7 @@ Preuve : tests RED/GREEN V1-123 ajoutés dans `cinematic_preview_playback_plan_t
 
 Limites : aucun centre, zoom, follow actor, renderer caméra, UI caméra, viewport editor, runtime, Flame, GameState, screenshot ou Visual Gate n'a été démarré.
 
-Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Prochain lot recommande historique apres V1-123 : `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` (realise) ; prochain lot global actuel : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-122
 
@@ -412,7 +426,7 @@ Preuve : rapport V1-122 et Evidence Pack V1-122 créés ; audit des rapports V1-
 
 Limites : aucun code produit, package Dart/Flutter, runtime, Flame, GameState, screenshot, Visual Gate ou V1-123 n'a été démarré.
 
-Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite realisee : `NS-SCENES-V1-123 — Cinematic Camera Playback State Read Model V0` est DONE ; `NS-SCENES-V1-124 — Cinematic Camera Preview Playback UI V0` est maintenant DONE ; prochain lot global actuel : `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-121
 
@@ -426,7 +440,7 @@ Preuve : tests V1-121, regressions V1-120/V1-118/V1-117/V1-117-bis/V1-116, Build
 
 Limites : l'overlay ne prolonge pas artificiellement un fade au-dela du `fadeState` fourni par le plan. Aucun runtime, Flame, GameState, map_core, pathfinding, collision, interpolation acteur ou mutation projet n'a ete demarre pendant V1-121.
 
-Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-120
 
@@ -440,7 +454,7 @@ Preuve : tests V1-120, regressions V1-118/V1-117/V1-117-bis/V1-116, Builder comp
 
 Limites : la Visual Gate reste une capture de harness test. Les IDs techniques encore présents dans les métadonnées historiques ne sont pas le workflow principal du seek/scrub. Le fade playback a ete traite par V1-121 ; aucun runtime, Flame, GameState, map_core, pathfinding ou collision n'a ete demarre pendant V1-120.
 
-Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-121 puis V1-122 ont ete realises ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-119
 
@@ -456,7 +470,7 @@ Preuve : rapports V1-109 a V1-118 relus, rapports timeline/probe V1-51/V1-52/V1-
 
 Limites historiques : aucun test Dart/Flutter, analyse package, build, screenshot ou Visual Gate n'avait ete lance car le prompt V1-119 etait documentaire et interdisait les modifications de packages. Cette limite a ete levee par V1-120.
 
-Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-118
 
@@ -470,7 +484,7 @@ Preuve : tests helper, resolver, renderer, V1-118, V1-117, V1-117-bis, V1-116, B
 
 Limites : le mapping reste borne aux diagnostics deja exposes par le resolver et le sprite preview plan. Aucun scrub/seek, runtime, Flame, GameState, pathfinding, collision, nouveau renderer ou changement `map_core` n'a ete demarre.
 
-Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-119 a ete realise en documentaire ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-117-bis
 
@@ -486,7 +500,7 @@ Preuve : test RED `V1-117-bis changing one actorMove destination keeps another a
 
 Limites historiques : aucun runtime, Flame, GameState, pathfinding, collision, nouvelle animation, nouveau playback ni V1-118 n'avait ete demarre pendant ce bis. `selbrume/project.json` etait deja dirty au Gate 0 et reste hors lot.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-117
 
@@ -500,7 +514,7 @@ Preuve : tests resolver, renderer, V1-117, V1-116, V1-113, builder complet, libr
 
 Limites historiques : les details fins de diagnostics/fallback restaient candidates pour V1-118, désormais realise ; aucun playback runtime, scrubber/seek, interpolation nouvelle, pathfinding ou collision n'a ete ajoute.
 
-Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-118 a ete realise ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-116
 
@@ -514,7 +528,7 @@ Preuve : tests V1-116 ciblés, Visual Gate `ns_scenes_v1_116_cinematic_actor_wal
 
 Limites historiques : au moment de V1-116, les statuts et badges affichaient encore des libelles historiques comme "Acteurs statiques" / "Sans lecture" dans certains panneaux. Cette limite est traitee par V1-117.
 
-Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-117 puis V1-118 sont realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-115
 
@@ -528,7 +542,7 @@ Preuve : test resolver dédié, régressions renderer/V1-113, tests core ciblés
 
 Limites historiques : au moment de V1-115, le résultat restait symbolique ; cette limite a ete traitee par V1-116 puis polie par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-114
 
@@ -542,7 +556,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_114_cinematic_actor_w
 
 Limites historiques : V1-114 ne codait aucune animation. V1-115 a implémenté le resolver symbolique ; le rendu frame-by-frame a ete traite par V1-116 puis poli par V1-117.
 
-Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-113
 
@@ -556,7 +570,7 @@ Preuve : voir `reports/narrativeStudio/scenes/ns_scenes_v1_113_cinematic_actor_p
 
 Limites : aucune animation de marche n’est ajoutée ; les sprites/placeholders glissent maintenant continûment, mais la cadence de pas reste à cadrer dans V1-114.
 
-Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Suite historique : V1-114, V1-115, V1-116, V1-117 et V1-118 ont ete realises ; V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-112
 
@@ -580,7 +594,7 @@ Decision : Le Builder porte `playbackTimeMs` et `isPlaybackPlaying` localement v
 
 Preuve : Visual Gate V1-111 générée sous `reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_111_cinematic_preview_playback_transport_ui_v0.png` en 1663x926, checksum `2bb8db8e7679576d49d6fa62f4688f2e12482024712f48de5214eeca7afafcba`. Tests relancés : V1-111 ciblé `+4`, Builder complet `+211`, Library/Stage overlay `+26`, core playback plan `+12`, time layout `+4`, actor display `+27`; analyses `map_core` clean et `map_editor` ciblée sortie 0 avec 37 infos non fatales `prefer_const_*`.
 
-Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-135 — Cinematic Builder V1 Camera Closure / Polish Gate`.
+Limites historiques au moment de V1-111 : aucun actor overlay playback n'était branché ; aucun scrubber, seek timeline, runtime, Flame, GameState, pathfinding, collision, animation de marche ou persistance du temps n'avait été ajouté. Le branchement acteur a été traité par V1-112, puis la fluidité sub-tile par V1-113 ; la suite historique V1-114 a ete realisee, puis V1-115, V1-116, V1-117 et V1-118 ont ferme la chaîne d'animation preview actuelle. V1-119 a ete realise ; V1-120 puis V1-121 ont ete realises ; V1-122 a ete realise en documentaire ; le prochain lot global actuel est `NS-SCENES-V1-136 — Cinematic Builder V1 Closure / Readiness Audit`.
 
 ## Mise a jour V1-110
 

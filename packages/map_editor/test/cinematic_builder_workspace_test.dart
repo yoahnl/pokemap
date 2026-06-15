@@ -711,7 +711,9 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
         findsOneWidget,
       );
-      expect(find.text('Cadrage configuré, preview réelle à venir.'),
+      expect(
+          find.text(
+              'Cadrage visible dans la preview. La vue reste non pilotée.'),
           findsOneWidget);
       expect(find.textContaining('camera.targetKind'), findsNothing);
       expect(find.textContaining('camera.zoomPreset'), findsNothing);
@@ -1184,7 +1186,9 @@ void main() {
         find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
         findsOneWidget,
       );
-      expect(find.text('Cadrage configuré, preview réelle à venir.'),
+      expect(
+          find.text(
+              'Cadrage visible dans la preview. La vue reste non pilotée.'),
           findsOneWidget);
       expect(find.textContaining('camera.targetKind'), findsNothing);
       expect(find.textContaining('CameraComponent'), findsNothing);
@@ -9691,6 +9695,290 @@ void main() {
       final screenshotFile = File(
         '../../reports/narrativeStudio/scenes/screenshots/'
         'ns_scenes_v1_134_cinematic_camera_geometry_preview_ui_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    },
+  );
+
+  testWidgets(
+    'V1-135 focus camera uses consistent visible geometry wording',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_balcony',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-step-card-camera_geometry_focus'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _seekPlaybackToTick(tester, 500);
+
+      expect(find.text('Cadrage affiché, vue non pilotée.'), findsOneWidget);
+      expect(find.text('Cadrage visible dans la preview.'), findsOneWidget);
+      expect(
+        find.text(
+          'Cadrage visible dans la preview. La vue reste non pilotée.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Cadrage configuré, preview réelle à venir.'),
+        findsNothing,
+      );
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.textContaining('camera.target'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'V1-135 reset and hold stay symbolic without target geometry frame',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+
+      Future<void> expectNoGeometryForMode(String cameraMode) async {
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        final asset = _cameraPreviewPlaybackCinematic(cameraMode: cameraMode);
+        final mapData = _stageMapDataWithActorDisplayFixtures();
+        final project = _project(cinematics: [asset], includeBridge: false);
+        final tileRenderPlan = await _referenceTileRenderPlanFor(
+          project: project,
+          mapData: mapData,
+        );
+
+        await _pumpBuilderHarness(
+          tester,
+          project,
+          asset.id,
+          stageMapSourceCatalog: _stageMapSourceCatalog(mapData: mapData),
+          backdropPreviewModel: buildCinematicMapBackdropPreviewModel(
+            asset: asset,
+            stageMap: project.maps.single,
+            mapData: mapData,
+          ),
+          backdropTileRenderPlan: tileRenderPlan,
+          surfaceSize: _referenceTimelineSurfaceSize,
+        );
+        await _seekPlaybackToTick(tester, 500);
+
+        expect(
+          find.byKey(
+              const ValueKey('cinematic-builder-camera-preview-overlay')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('cinematic-builder-camera-geometry-overlay'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('cinematic-builder-camera-geometry-frame'),
+          ),
+          findsNothing,
+        );
+        expect(
+          find.text('Cadrage affiché, vue non pilotée.'),
+          findsNothing,
+        );
+      }
+
+      await expectNoGeometryForMode('reset');
+      await expectNoGeometryForMode('hold');
+    },
+  );
+
+  testWidgets(
+    'V1-135 unavailable focus geometry keeps human diagnostics',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_missing',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+      await _seekPlaybackToTick(tester, 500);
+
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-fallback'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cadrage caméra incomplet.'), findsWidgets);
+      expect(find.text('Ce repère n’existe plus dans la scène.'), findsWidgets);
+      expect(find.textContaining('stage_point_missing'), findsNothing);
+      expect(find.textContaining('camera.target'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'V1-135 camera overlay remains passive and does not mutate data',
+    (tester) async {
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'actor',
+        targetActorId: 'actor_lysa',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+      final beforeProject = project.toJson();
+      final beforeAsset = asset.toJson();
+      final beforeMapData = mapData.toJson();
+      var projectChangeCount = 0;
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+        onProjectChanged: (_) => projectChangeCount += 1,
+      );
+      await _seekPlaybackToTick(tester, 500);
+
+      final geometryOverlay = tester.widget<IgnorePointer>(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-overlay'),
+        ),
+      );
+      final cameraOverlay = tester.widget<IgnorePointer>(
+        find.byKey(const ValueKey('cinematic-builder-camera-preview-overlay')),
+      );
+
+      expect(geometryOverlay.ignoring, isTrue);
+      expect(cameraOverlay.ignoring, isTrue);
+      expect(projectChangeCount, 0);
+      expect(project.toJson(), beforeProject);
+      expect(asset.toJson(), beforeAsset);
+      expect(mapData.toJson(), beforeMapData);
+    },
+  );
+
+  testWidgets(
+    'captures V1-135 cinematic builder v1 camera closure polish gate',
+    (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_SCENES_V1_135_CAPTURE_CINEMATIC_BUILDER_V1_CAMERA_CLOSURE_POLISH_GATE',
+      )) {
+        return;
+      }
+
+      _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+      await _loadScreenshotFonts();
+      final asset = _cameraGeometryPreviewCinematic(
+        targetKind: 'stagePoint',
+        targetStagePointId: 'stage_point_balcony',
+        zoomPreset: 'medium',
+      );
+      final mapData = _stageMapDataWithActorDisplayFixtures();
+      final project = _project(cinematics: [asset], includeBridge: false);
+
+      await _pumpCameraGeometryPreviewBuilder(
+        tester,
+        project: project,
+        asset: asset,
+        mapData: mapData,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('cinematic-builder-step-card-camera_geometry_focus'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _seekPlaybackToTick(tester, 500);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('cinematic-builder-camera-zoom-dropdown')),
+      );
+      await tester.pumpAndSettle();
+
+      _expectTimelineStepSelected(tester, 'camera_geometry_focus');
+      expect(find.text('Lecture en pause'), findsWidgets);
+      expect(find.text('Cadrer une cible'), findsWidgets);
+      expect(find.text('Plan moyen'), findsWidgets);
+      expect(find.text('Cadrage affiché, vue non pilotée.'), findsOneWidget);
+      expect(find.text('Cadrage visible dans la preview.'), findsOneWidget);
+      expect(
+        find.text(
+          'Cadrage visible dans la preview. La vue reste non pilotée.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-overlay'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-camera-geometry-frame')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematic-builder-camera-geometry-target-marker'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Repère : Balcon'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-playback-playhead')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Caméra non prévisualisée dans cette version.'),
+        findsNothing,
+      );
+      expect(
+        find.text('Cadrage configuré, preview réelle à venir.'),
+        findsNothing,
+      );
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.text('Flame'), findsNothing);
+      final forbiddenStateLabel = ['Game', 'State'].join();
+      expect(find.text(forbiddenStateLabel), findsNothing);
+      final forbiddenNextLotLabel = ['V1', '136'].join('-');
+      expect(find.text(forbiddenNextLotLabel), findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/scenes/screenshots/'
+        'ns_scenes_v1_135_cinematic_builder_v1_camera_closure_polish_gate.png',
       );
       screenshotFile.parent.createSync(recursive: true);
       await expectLater(

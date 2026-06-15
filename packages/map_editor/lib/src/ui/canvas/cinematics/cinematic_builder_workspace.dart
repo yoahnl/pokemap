@@ -11342,7 +11342,9 @@ class _CameraModeControls extends StatelessWidget {
             },
           ),
           const SizedBox(height: 6),
-          const _MutedText('Cadrage configuré, preview réelle à venir.'),
+          const _MutedText(
+            'Cadrage visible dans la preview. La vue reste non pilotée.',
+          ),
         ] else
           const _MutedText(
             'Mode caméra non reconnu. Choisissez un mode no-code pour corriger ce bloc.',

@@ -121,7 +121,7 @@ class CinematicCameraPreviewOverlay extends StatelessWidget {
 
 String _cameraPreviewStatusLabel(CinematicCameraPlaybackPose cameraPose) {
   if (cameraPose.geometry.isAvailable) {
-    return 'Cadrage affiché, vue non pilotée.';
+    return 'Cadrage visible dans la preview.';
   }
   if (cameraPose.isSupported) {
     return 'Cadrage caméra prêt';
