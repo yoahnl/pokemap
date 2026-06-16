@@ -86,14 +86,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       );
     }
 
-    void openStep() {
-      editorNotifier.selectStepWorkspace();
-      narrativeController.openStep(
-        stepId: selectedStep?.id,
-        globalScenarioId: selectedStep?.globalScenarioId,
-      );
-    }
-
     void openScenes() {
       editorNotifier.selectScenesWorkspace();
       narrativeController.openScenes();
@@ -616,7 +608,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       onSelectOverview: openOverview,
       onSelectGlobal: openGlobalStory,
       onSelectScenes: openScenes,
-      onSelectStep: openStep,
       onSelectCutscene: openCutscene,
       onSelectDialogue: openDialogue,
       onSelectFacts: openFacts,

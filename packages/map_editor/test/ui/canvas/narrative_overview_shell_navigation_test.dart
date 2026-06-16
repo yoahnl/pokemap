@@ -139,7 +139,6 @@ void main() {
         'Aperçu',
         'Storylines',
         'Scènes',
-        'Étapes',
       ]) {
         expect(
           find.descendant(of: sidebar, matching: find.text(label)),
@@ -200,6 +199,14 @@ void main() {
       );
       expect(
         find.descendant(of: sidebar, matching: find.text('À clarifier')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: sidebar, matching: find.text('Étapes')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: sidebar, matching: find.text('Étapes narratives')),
         findsNothing,
       );
 
