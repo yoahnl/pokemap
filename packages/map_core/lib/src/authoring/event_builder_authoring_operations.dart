@@ -23,11 +23,17 @@ EventBuilderContractView readEventBuilderContractFromMapEvent(
     source: source,
   );
   final diagnostics = <EventBuilderContractDiagnostic>[];
+  final conditionDiagnosticsStart = diagnostics.length;
   final conditions = _readConditionBindings(
     page.condition,
     diagnostics,
     path: 'page.condition',
   );
+  final hasUnsupportedLegacyCondition = diagnostics
+      .skip(conditionDiagnosticsStart)
+      .any((diagnostic) =>
+          diagnostic.kind ==
+          EventBuilderContractDiagnosticKind.unsupportedLegacyCondition);
   final sceneAction = _readSceneAction(page.sceneTarget);
   final behavior = _readBehaviorBinding(page.metadata, diagnostics);
 
@@ -76,7 +82,13 @@ EventBuilderContractView readEventBuilderContractFromMapEvent(
       behavior: behavior,
     ),
     diagnostics: diagnostics,
-    legacyConditionToPreserve: conditions.isEmpty ? page.condition : null,
+    // Keep the original condition when any unsupported legacy fragment exists.
+    // NS-EVENT-02-bis has no replace-all operation, so partial recompilation
+    // would silently drop data from mixed supported/unsupported conditions.
+    legacyConditionToPreserve: page.condition != null &&
+            (conditions.isEmpty || hasUnsupportedLegacyCondition)
+        ? page.condition
+        : null,
   );
 }
 
@@ -102,18 +114,24 @@ MapEventDefinition applyEventBuilderContractToMapEvent(
 }) {
   final pageIndex = _selectPageIndex(event, pageNumber: pageNumber);
   final page = event.pages[pageIndex];
-  final compiled = compileEventBuilderConditionsToScriptCondition(
-    contract.conditions,
-  );
-  if (compiled.hasErrors) {
-    throw UnsupportedError(
-      'Event Builder contract contains conditions that cannot be compiled '
-      'to ScriptCondition in NS-EVENT-02.',
+  final ScriptCondition? nextCondition;
+  if (contract.legacyConditionToPreserve != null) {
+    // Preserve the whole legacy expression until a future explicit replace-all
+    // API can make condition edits intentional.
+    nextCondition = contract.legacyConditionToPreserve;
+  } else {
+    final compiled = compileEventBuilderConditionsToScriptCondition(
+      contract.conditions,
     );
+    if (compiled.hasErrors) {
+      throw UnsupportedError(
+        'Event Builder contract contains conditions that cannot be compiled '
+        'to ScriptCondition in NS-EVENT-02.',
+      );
+    }
+    nextCondition = compiled.condition;
   }
 
-  final nextCondition = compiled.condition ??
-      (contract.conditions.isEmpty ? contract.legacyConditionToPreserve : null);
   final nextPage = page.copyWith(
     sceneTarget: contract.sceneAction == null
         ? null
@@ -150,6 +168,7 @@ EventBuilderContractView addEventBuilderCondition(
   EventBuilderContractView contract,
   EventBuilderConditionBinding condition,
 ) {
+  _throwIfPreservedLegacyCondition(contract, 'add a condition');
   return contract.copyWith(
     conditions: [...contract.conditions, condition],
     clearLegacyConditionToPreserve: true,
@@ -160,6 +179,7 @@ EventBuilderContractView removeEventBuilderCondition(
   EventBuilderContractView contract,
   int index,
 ) {
+  _throwIfPreservedLegacyCondition(contract, 'remove a condition');
   if (index < 0 || index >= contract.conditions.length) {
     throw RangeError.index(index, contract.conditions, 'index');
   }
@@ -176,6 +196,20 @@ EventBuilderContractView updateEventBuilderBehavior(
   EventBuilderBehaviorBinding behavior,
 ) {
   return contract.copyWith(behavior: behavior);
+}
+
+void _throwIfPreservedLegacyCondition(
+  EventBuilderContractView contract,
+  String operation,
+) {
+  if (contract.legacyConditionToPreserve == null) {
+    return;
+  }
+  throw UnsupportedError(
+    'Cannot $operation while a legacy condition is preserved. '
+    'NS-EVENT-02-bis has no explicit replace-all condition operation, so the '
+    'original condition is kept to avoid silent data loss.',
+  );
 }
 
 MapEventPage _selectPage(

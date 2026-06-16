@@ -133,6 +133,122 @@ void main() {
       );
     });
 
+    test('preserves mixed supported and legacy condition when applying', () {
+      final original = ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.variableEqualsString('legacy_variable', 'yes'),
+      ]);
+      final event = _event(
+        page: MapEventPage(
+          pageNumber: 0,
+          condition: original,
+        ),
+      );
+
+      final contract = readEventBuilderContractFromMapEvent(event);
+
+      expect(contract.conditions, [
+        EventBuilderConditionBinding.factIsTrue('fact_started'),
+      ]);
+      expect(contract.legacyConditionToPreserve, original);
+      expect(
+        contract.diagnostics.map((diagnostic) => diagnostic.kind),
+        contains(EventBuilderContractDiagnosticKind.unsupportedLegacyCondition),
+      );
+
+      final updated = applyEventBuilderContractToMapEvent(
+        event,
+        contract.copyWith(
+          sceneAction: EventBuilderSceneActionBinding(sceneId: 'scene_rival'),
+        ),
+      );
+
+      expect(updated.pages.single.condition, original);
+      expect(
+        updated.pages.single.sceneTarget,
+        const MapEventSceneTarget(sceneId: 'scene_rival'),
+      );
+    });
+
+    test('add condition refuses preserved legacy condition', () {
+      final original = ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.variableEqualsString('legacy_variable', 'yes'),
+      ]);
+      final event = _event(
+        page: MapEventPage(
+          pageNumber: 0,
+          condition: original,
+        ),
+      );
+      final contract = readEventBuilderContractFromMapEvent(event);
+
+      expect(
+        () => addEventBuilderCondition(
+          contract,
+          EventBuilderConditionBinding.factIsFalse('fact_blocked'),
+        ),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('remove condition refuses preserved legacy condition', () {
+      final original = ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.variableEqualsString('legacy_variable', 'yes'),
+      ]);
+      final event = _event(
+        page: MapEventPage(
+          pageNumber: 0,
+          condition: original,
+        ),
+      );
+      final contract = readEventBuilderContractFromMapEvent(event);
+
+      expect(
+        () => removeEventBuilderCondition(contract, 0),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('keeps fully supported conditions editable', () {
+      final original = ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.not(
+          ScriptConditionFactory.eventIsConsumed('evt_rival'),
+        ),
+      ]);
+      final event = _event(
+        page: MapEventPage(
+          pageNumber: 0,
+          condition: original,
+        ),
+      );
+      final contract = readEventBuilderContractFromMapEvent(event);
+
+      final withCondition = addEventBuilderCondition(
+        contract,
+        EventBuilderConditionBinding.factIsFalse('fact_blocked'),
+      );
+      final removedFirst = removeEventBuilderCondition(withCondition, 0);
+      final updated = applyEventBuilderContractToMapEvent(
+        event,
+        removedFirst.copyWith(
+          sceneAction: EventBuilderSceneActionBinding(sceneId: 'scene_rival'),
+        ),
+      );
+
+      expect(contract.legacyConditionToPreserve, isNull);
+      expect(updated.pages.single.condition, isNot(original));
+      expect(updated.pages.single.condition?.type, ScriptConditionType.allOf);
+      expect(updated.pages.single.condition?.children, [
+        ScriptConditionFactory.not(
+          ScriptConditionFactory.eventIsConsumed('evt_rival'),
+        ),
+        ScriptConditionFactory.flagIsUnset('fact_blocked'),
+      ]);
+    });
+
     test('keeps malformed legacy conditions as diagnostic instead of crashing',
         () {
       final malformedLegacyCondition = ScriptConditionFactory.not(
