@@ -556,11 +556,14 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             editorNotifier,
           ),
           sceneOptions: _buildEventBuilderSceneOptions(editor.project),
+          factOptions: _buildEventBuilderFactOptions(editor.project),
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
           onUpdateSceneAction:
               editorNotifier.updateEventBuilderEventSceneAction,
           onUpdateReusePolicy:
               editorNotifier.updateEventBuilderEventReusePolicy,
+          onAddFactCondition: editorNotifier.addEventBuilderFactCondition,
+          onRemoveCondition: editorNotifier.removeEventBuilderConditionAt,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -651,7 +654,7 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
     },
     factLabels: {
       for (final fact in project?.facts ?? const <NarrativeFactDefinition>[])
-        fact.id: fact.label,
+        fact.id: fact.label.trim().isEmpty ? fact.id : fact.label.trim(),
     },
     eventLabels: {
       for (final event in activeMap?.events ?? const <MapEventDefinition>[])
@@ -703,6 +706,18 @@ List<EventBuilderSceneOption> _buildEventBuilderSceneOptions(
       EventBuilderSceneOption(
         id: scene.id,
         label: scene.name.trim().isEmpty ? scene.id : scene.name.trim(),
+      ),
+  ];
+}
+
+List<EventBuilderFactOption> _buildEventBuilderFactOptions(
+  ProjectManifest? project,
+) {
+  return [
+    for (final fact in project?.facts ?? const <NarrativeFactDefinition>[])
+      EventBuilderFactOption(
+        id: fact.id,
+        label: fact.label.trim().isEmpty ? fact.id : fact.label.trim(),
       ),
   ];
 }

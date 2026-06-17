@@ -426,6 +426,254 @@ void main() {
       );
     });
   });
+
+  group('NS-EVENT-13 EditorNotifier fact condition authoring', () {
+    test('adds a true Fact condition without changing other event fields', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final original = notifier.state.activeMap!.events.single;
+      final originalLowestPage =
+          original.pages.singleWhere((page) => page.pageNumber == 2);
+      final originalHigherPage =
+          original.pages.singleWhere((page) => page.pageNumber == 4);
+
+      final added = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_existing',
+        factId: '  fact_started  ',
+        expectedValue: true,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final event = state.activeMap!.events.single;
+      final lowestPage =
+          event.pages.singleWhere((page) => page.pageNumber == 2);
+      final higherPage =
+          event.pages.singleWhere((page) => page.pageNumber == 4);
+      expect(state.errorMessage, isNull);
+      expect(added, isTrue);
+      expect(event.id, original.id);
+      expect(event.title, original.title);
+      expect(event.position, original.position);
+      expect(event.type, original.type);
+      expect(event.metadata, original.metadata);
+      expect(lowestPage.condition,
+          ScriptConditionFactory.flagIsSet('fact_started'));
+      expect(lowestPage.sceneTarget, originalLowestPage.sceneTarget);
+      expect(lowestPage.script, originalLowestPage.script);
+      expect(lowestPage.message, originalLowestPage.message);
+      expect(lowestPage.metadata, originalLowestPage.metadata);
+      expect(higherPage, originalHigherPage);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Condition d’événement ajoutée');
+    });
+
+    test('adds false Fact conditions and compiles multiple conditions as allOf',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(
+          condition: ScriptConditionFactory.flagIsSet('fact_started'),
+        ),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final added = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_existing',
+        factId: 'fact_blocked',
+        expectedValue: false,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final condition = state.activeMap!.events.single.pages
+          .singleWhere((page) => page.pageNumber == 2)
+          .condition;
+      expect(added, isTrue);
+      expect(condition?.type, ScriptConditionType.allOf);
+      expect(condition?.children, [
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.flagIsUnset('fact_blocked'),
+      ]);
+      expect(state.selectedMapEventId, 'evt_existing');
+    });
+
+    test('removes conditions and clears the page condition when none remain',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(
+          condition: ScriptConditionFactory.allOf([
+            ScriptConditionFactory.flagIsSet('fact_started'),
+            ScriptConditionFactory.flagIsUnset('fact_blocked'),
+          ]),
+        ),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final removedFirst = notifier.removeEventBuilderConditionAt(
+        eventId: 'evt_existing',
+        conditionIndex: 0,
+      );
+
+      var state = container.read(editorNotifierProvider);
+      var page = state.activeMap!.events.single.pages
+          .singleWhere((candidate) => candidate.pageNumber == 2);
+      expect(removedFirst, isTrue);
+      expect(
+          page.condition, ScriptConditionFactory.flagIsUnset('fact_blocked'));
+      expect(page.sceneTarget?.sceneId, 'scene_rival');
+      expect(page.script, const ScriptRef(scriptId: 'script_legacy'));
+      expect(page.message, 'Message legacy');
+      expect(page.metadata['legacyKey'], 'legacyValue');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Condition d’événement retirée');
+
+      final removedLast = notifier.removeEventBuilderConditionAt(
+        eventId: 'evt_existing',
+        conditionIndex: 0,
+      );
+
+      state = container.read(editorNotifierProvider);
+      page = state.activeMap!.events.single.pages
+          .singleWhere((candidate) => candidate.pageNumber == 2);
+      expect(removedLast, isTrue);
+      expect(page.condition, isNull);
+      expect(page.sceneTarget?.sceneId, 'scene_rival');
+      expect(page.script, const ScriptRef(scriptId: 'script_legacy'));
+      expect(page.message, 'Message legacy');
+      expect(page.metadata['legacyKey'], 'legacyValue');
+      expect(state.selectedMapEventId, 'evt_existing');
+    });
+
+    test('rejects empty or unknown facts without mutating the event', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final empty = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_existing',
+        factId: '   ',
+        expectedValue: true,
+      );
+      final unknown = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_existing',
+        factId: 'fact_missing',
+        expectedValue: false,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final page = state.activeMap!.events.single.pages
+          .singleWhere((candidate) => candidate.pageNumber == 2);
+      expect(empty, isFalse);
+      expect(unknown, isFalse);
+      expect(page.condition, isNull);
+      expect(page.metadata['legacyKey'], 'legacyValue');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Fact introuvable : fact_missing');
+    });
+
+    test('rejects unknown events without pages and out of range removal', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final unknownEvent = notifier.addEventBuilderFactCondition(
+        eventId: 'missing_event',
+        factId: 'fact_started',
+        expectedValue: true,
+      );
+      final outOfRange = notifier.removeEventBuilderConditionAt(
+        eventId: 'evt_existing',
+        conditionIndex: 4,
+      );
+
+      notifier.state = notifier.state.copyWith(
+        activeMap: _mapWithoutEventPages(),
+        selectedMapEventId: 'evt_empty',
+      );
+      final withoutPage = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_empty',
+        factId: 'fact_started',
+        expectedValue: true,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(unknownEvent, isFalse);
+      expect(outOfRange, isFalse);
+      expect(withoutPage, isFalse);
+      expect(state.activeMap!.events.single.pages, isEmpty);
+      expect(state.selectedMapEventId, 'evt_empty');
+      expect(
+        state.errorMessage,
+        'Cet événement ne contient aucune page authorable.',
+      );
+    });
+
+    test('refuses to edit preserved legacy conditions', () {
+      final legacyCondition = ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.variableEqualsString('legacy_variable', 'yes'),
+      ]);
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithFacts(),
+        activeMap: _mapForFactConditions(condition: legacyCondition),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final added = notifier.addEventBuilderFactCondition(
+        eventId: 'evt_existing',
+        factId: 'fact_blocked',
+        expectedValue: false,
+      );
+      final removed = notifier.removeEventBuilderConditionAt(
+        eventId: 'evt_existing',
+        conditionIndex: 0,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final page = state.activeMap!.events.single.pages
+          .singleWhere((candidate) => candidate.pageNumber == 2);
+      expect(added, isFalse);
+      expect(removed, isFalse);
+      expect(page.condition, legacyCondition);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(
+        state.errorMessage,
+        'Cette condition contient une partie avancée préservée. '
+        'Elle ne peut pas être éditée partiellement.',
+      );
+    });
+  });
 }
 
 ProjectManifest _projectWithScenes() {
@@ -452,6 +700,44 @@ ProjectManifest _projectWithScenes() {
     scenes: [
       _scene('scene_existing', 'Scène existante'),
       _scene('scene_rival', 'Rencontre rival'),
+    ],
+  );
+}
+
+ProjectManifest _projectWithFacts() {
+  return ProjectManifest(
+    name: 'Event Builder test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_port',
+        name: 'Port Selbrume',
+        relativePath: 'maps/port.json',
+      ),
+    ],
+    tilesets: const [],
+    scripts: const [
+      ProjectScriptEntry(
+        id: 'script_legacy',
+        name: 'Script legacy',
+        asset: ScriptAsset(
+          id: 'script_legacy',
+          nodes: [ScriptNode(id: 'start')],
+        ),
+      ),
+    ],
+    scenes: [
+      _scene('scene_existing', 'Scène existante'),
+      _scene('scene_rival', 'Rencontre rival'),
+    ],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_started',
+        label: 'Départ accepté',
+      ),
+      NarrativeFactDefinition(
+        id: 'fact_blocked',
+        label: 'Rival battu',
+      ),
     ],
   );
 }
@@ -573,6 +859,48 @@ MapData _mapForBehaviorAuthoring() {
           MapEventPage(
             pageNumber: 2,
             condition: ScriptConditionFactory.flagIsSet('fact_started'),
+            script: const ScriptRef(scriptId: 'script_legacy'),
+            message: 'Message legacy',
+            sceneTarget: const MapEventSceneTarget(sceneId: 'scene_rival'),
+            metadata: const {
+              'legacyKey': 'legacyValue',
+              EventBuilderMetadataKeys.reusePolicy: 'oneShot',
+            },
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+MapData _mapForFactConditions({ScriptCondition? condition}) {
+  return MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: const GridSize(width: 4, height: 3),
+    layers: const [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        position: const EventPosition(layerId: 'objects', x: 0, y: 0),
+        metadata: {'scope': 'event'},
+        pages: [
+          const MapEventPage(
+            pageNumber: 4,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+            metadata: {'untouched': 'higher'},
+          ),
+          MapEventPage(
+            pageNumber: 2,
+            condition: condition,
             script: const ScriptRef(scriptId: 'script_legacy'),
             message: 'Message legacy',
             sceneTarget: const MapEventSceneTarget(sceneId: 'scene_rival'),

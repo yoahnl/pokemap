@@ -19,8 +19,29 @@ typedef EventBuilderReusePolicyUpdateCallback = bool Function({
   required EventBuilderReusePolicy reusePolicy,
 });
 
+typedef EventBuilderFactConditionAddCallback = bool Function({
+  required String eventId,
+  required String factId,
+  required bool expectedValue,
+});
+
+typedef EventBuilderConditionRemoveCallback = bool Function({
+  required String eventId,
+  required int conditionIndex,
+});
+
 class EventBuilderSceneOption {
   const EventBuilderSceneOption({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
+class EventBuilderFactOption {
+  const EventBuilderFactOption({
     required this.id,
     required this.label,
   });
@@ -35,17 +56,23 @@ class EventBuilderWorkspace extends StatefulWidget {
     required this.readModel,
     this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
     this.sceneOptions = const <EventBuilderSceneOption>[],
+    this.factOptions = const <EventBuilderFactOption>[],
     this.onRenameEventTitle,
     this.onUpdateSceneAction,
     this.onUpdateReusePolicy,
+    this.onAddFactCondition,
+    this.onRemoveCondition,
   });
 
   final EventBuilderReadModel readModel;
   final EventBuilderDraftCreationGate draftCreationGate;
   final List<EventBuilderSceneOption> sceneOptions;
+  final List<EventBuilderFactOption> factOptions;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
+  final EventBuilderFactConditionAddCallback? onAddFactCondition;
+  final EventBuilderConditionRemoveCallback? onRemoveCondition;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
@@ -322,9 +349,12 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                         child: _EventDetailsPanel(
                           event: selected,
                           sceneOptions: widget.sceneOptions,
+                          factOptions: widget.factOptions,
                           onRenameTitle: widget.onRenameEventTitle,
                           onUpdateSceneAction: widget.onUpdateSceneAction,
                           onUpdateReusePolicy: widget.onUpdateReusePolicy,
+                          onAddFactCondition: widget.onAddFactCondition,
+                          onRemoveCondition: widget.onRemoveCondition,
                         ),
                       ),
                     ],
@@ -826,16 +856,22 @@ class _EventDetailsPanel extends StatefulWidget {
   const _EventDetailsPanel({
     required this.event,
     required this.sceneOptions,
+    required this.factOptions,
     required this.onRenameTitle,
     required this.onUpdateSceneAction,
     required this.onUpdateReusePolicy,
+    required this.onAddFactCondition,
+    required this.onRemoveCondition,
   });
 
   final EventBuilderEventSummary? event;
   final List<EventBuilderSceneOption> sceneOptions;
+  final List<EventBuilderFactOption> factOptions;
   final EventBuilderTitleRenameCallback? onRenameTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
+  final EventBuilderFactConditionAddCallback? onAddFactCondition;
+  final EventBuilderConditionRemoveCallback? onRemoveCondition;
 
   @override
   State<_EventDetailsPanel> createState() => _EventDetailsPanelState();
@@ -851,6 +887,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   String? _sceneFeedback;
   String? _behaviorError;
   String? _behaviorFeedback;
+  bool _isChoosingFactCondition = false;
+  String? _conditionError;
+  String? _conditionFeedback;
 
   @override
   void initState() {
@@ -874,6 +913,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _sceneFeedback = null;
       _behaviorError = null;
       _behaviorFeedback = null;
+      _isChoosingFactCondition = false;
+      _conditionError = null;
+      _conditionFeedback = null;
       _titleController.text = next?.displayName ?? '';
       return;
     }
@@ -947,23 +989,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
                   ? 'Condition avancée conservée en lecture seule'
                   : null,
               children: [
-                if (selected.conditionEditingLocked)
-                  const _DiagnosticNotice(
-                    title: 'Conditions verrouillées',
-                    message:
-                        'Cette condition contient une partie avancée préservée.\n'
-                        'Elle est lisible, mais pas encore éditable '
-                        'partiellement.\n'
-                        'La condition complète est conservée telle quelle.',
-                    tone: PokeMapTone.warning,
-                    severityLabel: 'Avertissement',
-                    details: ['Section : Conditions'],
-                  ),
-                if (selected.conditions.isEmpty)
-                  const _MutedText('Aucune condition')
-                else
-                  for (final condition in selected.conditions)
-                    _ConditionDetailLine(condition: condition),
+                _buildConditionsBlock(context, selected),
               ],
             ),
             _DetailSection(
@@ -1161,6 +1187,140 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
         ),
         const SizedBox(height: 8),
         _TechnicalIdHint(technicalId: selected.technicalId),
+      ],
+    );
+  }
+
+  Widget _buildConditionsBlock(
+    BuildContext context,
+    EventBuilderEventSummary selected,
+  ) {
+    final colors = context.pokeMapColors;
+    final canEditConditions = widget.onAddFactCondition != null &&
+        widget.onRemoveCondition != null &&
+        !selected.conditionEditingLocked;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (selected.conditionEditingLocked)
+          const _DiagnosticNotice(
+            title: 'Conditions verrouillées',
+            message: 'Cette condition contient une partie avancée préservée.\n'
+                'Elle est lisible, mais pas encore éditable partiellement.\n'
+                'La condition complète est conservée telle quelle.',
+            tone: PokeMapTone.warning,
+            severityLabel: 'Avertissement',
+            details: ['Section : Conditions'],
+          ),
+        if (selected.conditions.isEmpty)
+          const _MutedText('Aucune condition')
+        else
+          for (var i = 0; i < selected.conditions.length; i++)
+            _ConditionDetailLine(
+              condition: selected.conditions[i],
+              onRemove: canEditConditions &&
+                      _isFactConditionKind(selected.conditions[i].kind)
+                  ? () => _removeCondition(selected, i)
+                  : null,
+              removeKey: ValueKey('event-builder-remove-condition-$i'),
+            ),
+        if (canEditConditions) ...[
+          const SizedBox(height: 8),
+          if (widget.factOptions.isEmpty)
+            const _DiagnosticNotice(
+              title: 'Aucun Fact disponible.',
+              message:
+                  'Créez un Fact dans le workspace Facts avant d’ajouter une '
+                  'condition.',
+              tone: PokeMapTone.warning,
+              severityLabel: 'Action indisponible',
+              details: ['Aucune création de Fact dans ce lot'],
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                PokeMapButton(
+                  key: const ValueKey(
+                    'event-builder-add-fact-condition-button',
+                  ),
+                  onPressed: () => _startFactConditionChoice(),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.slider_horizontal_3),
+                  child: const Text('Ajouter une condition Fact'),
+                ),
+                if (_isChoosingFactCondition)
+                  PokeMapButton(
+                    key: const ValueKey(
+                      'event-builder-cancel-fact-condition-button',
+                    ),
+                    onPressed: _cancelFactConditionChoice,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.xmark),
+                    child: const Text('Annuler'),
+                  ),
+                if (_conditionFeedback != null)
+                  PokeMapBadge(
+                    label: _conditionFeedback!,
+                    variant: PokeMapBadgeVariant.success,
+                    icon: const Icon(CupertinoIcons.checkmark_circle),
+                  ),
+              ],
+            ),
+          if (_isChoosingFactCondition && widget.factOptions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            PokeMapCard(
+              padding: const EdgeInsets.all(10),
+              borderRadius: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Facts disponibles',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final option in widget.factOptions)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _FactConditionOptionRow(
+                        option: option,
+                        onTrue: () => _addFactCondition(
+                          selected,
+                          option,
+                          expectedValue: true,
+                        ),
+                        onFalse: () => _addFactCondition(
+                          selected,
+                          option,
+                          expectedValue: false,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+          if (_conditionError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _conditionError!,
+              style: TextStyle(
+                color: colors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -1411,6 +1571,68 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _titleError = null;
       _titleFeedback = 'Titre mis à jour.';
       _titleController.text = trimmedTitle;
+    });
+  }
+
+  void _startFactConditionChoice() {
+    setState(() {
+      _isChoosingFactCondition = true;
+      _conditionError = null;
+      _conditionFeedback = null;
+    });
+  }
+
+  void _cancelFactConditionChoice() {
+    setState(() {
+      _isChoosingFactCondition = false;
+      _conditionError = null;
+    });
+  }
+
+  void _addFactCondition(
+    EventBuilderEventSummary selected,
+    EventBuilderFactOption option, {
+    required bool expectedValue,
+  }) {
+    final added = widget.onAddFactCondition?.call(
+          eventId: selected.eventId,
+          factId: option.id,
+          expectedValue: expectedValue,
+        ) ??
+        false;
+    if (!added) {
+      setState(() {
+        _conditionError = 'Impossible d’ajouter cette condition.';
+        _conditionFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _isChoosingFactCondition = false;
+      _conditionError = null;
+      _conditionFeedback = 'Condition ajoutée.';
+    });
+  }
+
+  void _removeCondition(
+    EventBuilderEventSummary selected,
+    int conditionIndex,
+  ) {
+    final removed = widget.onRemoveCondition?.call(
+          eventId: selected.eventId,
+          conditionIndex: conditionIndex,
+        ) ??
+        false;
+    if (!removed) {
+      setState(() {
+        _conditionError = 'Impossible de retirer cette condition.';
+        _conditionFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _conditionError = null;
+      _conditionFeedback = 'Condition retirée.';
     });
   }
 
@@ -1669,19 +1891,136 @@ class _DetailLine extends StatelessWidget {
 }
 
 class _ConditionDetailLine extends StatelessWidget {
-  const _ConditionDetailLine({required this.condition});
+  const _ConditionDetailLine({
+    required this.condition,
+    this.onRemove,
+    this.removeKey,
+  });
 
   final EventBuilderConditionReadModel condition;
+  final VoidCallback? onRemove;
+  final Key? removeKey;
 
   @override
   Widget build(BuildContext context) {
-    return _DetailLine(
-      label: condition.isEditable ? 'Condition' : 'Condition lue',
-      value: condition.isSupported
-          ? condition.label
-          : '${condition.label}\nLecture seule dans ce lot',
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: PokeMapCard(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        borderRadius: 8,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 116,
+              child: Text(
+                condition.isEditable ? 'Condition' : 'Condition lue',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                condition.isSupported
+                    ? condition.label
+                    : '${condition.label}\nLecture seule dans ce lot',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.25,
+                ),
+              ),
+            ),
+            if (onRemove != null) ...[
+              const SizedBox(width: 8),
+              PokeMapButton(
+                key: removeKey,
+                onPressed: onRemove,
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.trash),
+                child: const Text('Retirer'),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _FactConditionOptionRow extends StatelessWidget {
+  const _FactConditionOptionRow({
+    required this.option,
+    required this.onTrue,
+    required this.onFalse,
+  });
+
+  final EventBuilderFactOption option;
+  final VoidCallback onTrue;
+  final VoidCallback onFalse;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      borderRadius: 8,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              option.label,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: ValueKey('event-builder-fact-true-${option.id}'),
+            onPressed: onTrue,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.checkmark_circle),
+            child: const Text('Doit être vrai'),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: ValueKey('event-builder-fact-false-${option.id}'),
+            onPressed: onFalse,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.xmark_circle),
+            child: const Text('Doit être faux'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+bool _isFactConditionKind(EventBuilderConditionKind kind) {
+  return switch (kind) {
+    EventBuilderConditionKind.factIsTrue ||
+    EventBuilderConditionKind.factIsFalse =>
+      true,
+    EventBuilderConditionKind.eventConsumed ||
+    EventBuilderConditionKind.eventNotConsumed ||
+    EventBuilderConditionKind.storyStepCompleted ||
+    EventBuilderConditionKind.storyStepNotCompleted =>
+      false,
+  };
 }
 
 class _DiagnosticNotice extends StatelessWidget {

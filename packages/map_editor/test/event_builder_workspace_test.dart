@@ -714,6 +714,138 @@ void main() {
     expect(find.text('eventBuilder.reusePolicy'), findsNothing);
   });
 
+  testWidgets('NS-EVENT-13 adds and removes Fact conditions from details',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Aucune condition'), findsWidgets);
+    expect(
+        find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+        findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Facts disponibles'), findsOneWidget);
+    expect(find.text('Départ accepté'), findsOneWidget);
+    expect(find.text('Rival battu'), findsOneWidget);
+    expect(find.text('fact_started'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+
+    var state = container.read(editorNotifierProvider);
+    var page = state.activeMap!.events.single.pages.single;
+    expect(page.condition, ScriptConditionFactory.flagIsSet('fact_started'));
+    expect(page.sceneTarget?.sceneId, 'scene_existing');
+    expect(state.selectedMapEventId, 'evt_existing');
+    expect(state.statusMessage, 'Condition d’événement ajoutée');
+    expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
+    expect(find.text('Condition ajoutée.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-false-fact_blocked')),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    page = state.activeMap!.events.single.pages.single;
+    expect(page.condition?.type, ScriptConditionType.allOf);
+    expect(page.condition?.children, [
+      ScriptConditionFactory.flagIsSet('fact_started'),
+      ScriptConditionFactory.flagIsUnset('fact_blocked'),
+    ]);
+    expect(find.text('Fact "Rival battu" est faux'), findsWidgets);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    page = state.activeMap!.events.single.pages.single;
+    expect(page.condition, ScriptConditionFactory.flagIsUnset('fact_blocked'));
+    expect(find.text('Fact "Départ accepté" est vrai'), findsNothing);
+    expect(find.text('Condition retirée.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    page = state.activeMap!.events.single.pages.single;
+    expect(page.condition, isNull);
+    expect(find.text('Aucune condition'), findsWidgets);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Créer une règle'), findsNothing);
+    expect(find.text('Modifier le déclencheur'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-13 explains that no Fact is available', (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _draftReadModelWithoutScene(),
+      factOptions: const [],
+      onAddFactCondition: ({
+        required eventId,
+        required factId,
+        required expectedValue,
+      }) =>
+          false,
+      onRemoveCondition: ({required eventId, required conditionIndex}) => false,
+    );
+
+    expect(find.text('Aucun Fact disponible.'), findsOneWidget);
+    expect(
+      find.text('Créez un Fact dans le workspace Facts avant d’ajouter une '
+          'condition.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ajouter une condition Fact'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-13 keeps locked legacy conditions read-only',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _sampleReadModel(),
+      factOptions: _sampleFactOptions,
+      onAddFactCondition: ({
+        required eventId,
+        required factId,
+        required expectedValue,
+      }) =>
+          false,
+      onRemoveCondition: ({required eventId, required conditionIndex}) => false,
+    );
+
+    await _tapEventCard(tester, 'Herbes médicinales');
+
+    expect(find.text('Conditions verrouillées'), findsWidgets);
+    expect(find.text('Condition avancée préservée'), findsWidgets);
+    expect(find.text('Ajouter une condition Fact'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+      findsNothing,
+    );
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -940,6 +1072,51 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
+  testWidgets('captures NS-EVENT-13 fact conditions authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_13_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Conditions'),
+      -120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_13_fact_conditions_authoring_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_04_CAPTURE_WORKSPACE')) {
       return;
@@ -1100,8 +1277,11 @@ Future<void> _pumpWorkspace(
   EventBuilderDraftCreationGate draftCreationGate =
       const EventBuilderDraftCreationGate.disabled(),
   List<EventBuilderSceneOption> sceneOptions = const [],
+  List<EventBuilderFactOption> factOptions = const [],
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
   EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
+  EventBuilderFactConditionAddCallback? onAddFactCondition,
+  EventBuilderConditionRemoveCallback? onRemoveCondition,
 }) async {
   tester.view.physicalSize = const Size(1280, 820);
   tester.view.devicePixelRatio = 1;
@@ -1132,8 +1312,11 @@ Future<void> _pumpWorkspace(
               readModel: readModel,
               draftCreationGate: draftCreationGate,
               sceneOptions: sceneOptions,
+              factOptions: factOptions,
               onUpdateSceneAction: onUpdateSceneAction,
               onUpdateReusePolicy: onUpdateReusePolicy,
+              onAddFactCondition: onAddFactCondition,
+              onRemoveCondition: onRemoveCondition,
             ),
           ),
         ),
@@ -1209,8 +1392,23 @@ ProjectManifest _eventProject() {
     ],
     tilesets: const [],
     scenes: [_eventScene('scene_existing', 'Scène existante')],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_started',
+        label: 'Départ accepté',
+      ),
+      NarrativeFactDefinition(
+        id: 'fact_blocked',
+        label: 'Rival battu',
+      ),
+    ],
   );
 }
+
+const _sampleFactOptions = [
+  EventBuilderFactOption(id: 'fact_started', label: 'Départ accepté'),
+  EventBuilderFactOption(id: 'fact_blocked', label: 'Rival battu'),
+];
 
 EventBuilderReadModel _draftReadModelWithoutScene() {
   return buildEventBuilderReadModel(

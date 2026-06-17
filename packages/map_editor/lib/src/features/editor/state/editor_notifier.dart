@@ -64,6 +64,9 @@ part 'editor_notifier.g.dart';
 const Object _trainerUnset = Object();
 const String _lastOpenedProjectManifestKey = 'lastOpenedProjectManifestPath';
 const String _editorSessionFileName = 'editor_session_state.json';
+const String _eventBuilderConditionLockedMessage =
+    'Cette condition contient une partie avancée préservée. '
+    'Elle ne peut pas être éditée partiellement.';
 const MethodChannel _macOsFileAccessChannel =
     MethodChannel('map_editor/file_access');
 
@@ -3004,6 +3007,170 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         errorMessage:
             'Impossible de mettre à jour le comportement de l’événement : $e',
+      );
+      return false;
+    }
+  }
+
+  bool addEventBuilderFactCondition({
+    required String eventId,
+    required String factId,
+    required bool expectedValue,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Aucune map active pour modifier les conditions de l’événement.',
+      );
+      return false;
+    }
+    final project = state.project;
+    if (project == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucun projet actif pour choisir un Fact.',
+      );
+      return false;
+    }
+    final trimmedFactId = factId.trim();
+    if (trimmedFactId.isEmpty) {
+      state = state.copyWith(errorMessage: 'Fact obligatoire.');
+      return false;
+    }
+    final factExists = project.facts.any((fact) => fact.id == trimmedFactId);
+    if (!factExists) {
+      state = state.copyWith(
+        errorMessage: 'Fact introuvable : $trimmedFactId',
+      );
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.pages.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Cet événement ne contient aucune page authorable.',
+      );
+      return false;
+    }
+
+    // NS-EVENT-13 ne compile que Fact vrai/faux. Le contrat core garde le
+    // garde-fou legacyConditionToPreserve pour empêcher toute perte silencieuse
+    // de conditions avancées.
+    final pageNumber = _eventBuilderAuthorablePageNumber(event);
+    final contract = readEventBuilderContractFromMapEvent(
+      event,
+      pageNumber: pageNumber,
+    );
+    if (contract.legacyConditionToPreserve != null) {
+      state = state.copyWith(errorMessage: _eventBuilderConditionLockedMessage);
+      return false;
+    }
+    final condition = expectedValue
+        ? EventBuilderConditionBinding.factIsTrue(trimmedFactId)
+        : EventBuilderConditionBinding.factIsFalse(trimmedFactId);
+
+    try {
+      final updatedContract = addEventBuilderCondition(contract, condition);
+      final updated = _updateEventBuilderPageCondition(
+        map: map,
+        event: event,
+        pageNumber: pageNumber,
+        conditions: updatedContract.conditions,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Condition d’événement ajoutée',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter la condition d’événement : $e',
+      );
+      return false;
+    }
+  }
+
+  bool removeEventBuilderConditionAt({
+    required String eventId,
+    required int conditionIndex,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Aucune map active pour modifier les conditions de l’événement.',
+      );
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.pages.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Cet événement ne contient aucune page authorable.',
+      );
+      return false;
+    }
+
+    final pageNumber = _eventBuilderAuthorablePageNumber(event);
+    final contract = readEventBuilderContractFromMapEvent(
+      event,
+      pageNumber: pageNumber,
+    );
+    if (contract.legacyConditionToPreserve != null) {
+      state = state.copyWith(errorMessage: _eventBuilderConditionLockedMessage);
+      return false;
+    }
+    if (conditionIndex < 0 || conditionIndex >= contract.conditions.length) {
+      state = state.copyWith(
+        errorMessage: 'Condition introuvable : $conditionIndex',
+      );
+      return false;
+    }
+    final condition = contract.conditions[conditionIndex];
+    if (!_isEventBuilderFactConditionKind(condition.kind)) {
+      state = state.copyWith(
+        errorMessage: 'Seules les conditions Fact sont éditables dans ce lot.',
+      );
+      return false;
+    }
+
+    try {
+      final updatedContract =
+          removeEventBuilderCondition(contract, conditionIndex);
+      final updated = _updateEventBuilderPageCondition(
+        map: map,
+        event: event,
+        pageNumber: pageNumber,
+        conditions: updatedContract.conditions,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Condition d’événement retirée',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de retirer la condition d’événement : $e',
       );
       return false;
     }
@@ -8850,6 +9017,50 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return selected;
+  }
+
+  MapData _updateEventBuilderPageCondition({
+    required MapData map,
+    required MapEventDefinition event,
+    required int pageNumber,
+    required List<EventBuilderConditionBinding> conditions,
+  }) {
+    final compiled = compileEventBuilderConditionsToScriptCondition(conditions);
+    if (compiled.hasErrors) {
+      throw UnsupportedError(
+        'Event Builder conditions contain unsupported entries for NS-EVENT-13.',
+      );
+    }
+    final pageIndex =
+        event.pages.indexWhere((page) => page.pageNumber == pageNumber);
+    if (pageIndex < 0) {
+      throw ValidationException(
+        'Map event page not found: event=${event.id} pageNumber=$pageNumber',
+      );
+    }
+    // updatePageOnMapEvent is intentionally used instead of applying the whole
+    // Event Builder contract: this lot owns only MapEventPage.condition and
+    // must not rewrite sceneTarget, metadata, script or message.
+    return updatePageOnMapEvent(
+      map,
+      eventId: event.id,
+      pageIndex: pageIndex,
+      condition: compiled.condition,
+      clearCondition: compiled.condition == null,
+    );
+  }
+
+  bool _isEventBuilderFactConditionKind(EventBuilderConditionKind kind) {
+    return switch (kind) {
+      EventBuilderConditionKind.factIsTrue ||
+      EventBuilderConditionKind.factIsFalse =>
+        true,
+      EventBuilderConditionKind.eventConsumed ||
+      EventBuilderConditionKind.eventNotConsumed ||
+      EventBuilderConditionKind.storyStepCompleted ||
+      EventBuilderConditionKind.storyStepNotCompleted =>
+        false,
+    };
   }
 
   /// Lot Environment-22 : évite une sélection masque fantôme si le layer ou l’area disparaît.
