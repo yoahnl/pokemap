@@ -559,6 +559,15 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           factOptions: _buildEventBuilderFactOptions(editor.project),
           eventConditionOptions:
               _buildEventBuilderConditionEventOptions(editor.activeMap),
+          mapOptions: _buildEventBuilderMapOptions(editor.project),
+          onOpenMap: (mapId) async {
+            final entry = _findProjectMapById(editor.project, mapId);
+            if (entry == null) {
+              return;
+            }
+            await editorNotifier.loadMap(entry.relativePath);
+            editorNotifier.selectEventsWorkspace();
+          },
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
           onUpdateTriggerType: editorNotifier.updateEventBuilderTriggerType,
           onUpdateSceneAction:
@@ -713,6 +722,31 @@ List<EventBuilderSceneOption> _buildEventBuilderSceneOptions(
         label: scene.name.trim().isEmpty ? scene.id : scene.name.trim(),
       ),
   ];
+}
+
+List<EventBuilderMapOption> _buildEventBuilderMapOptions(
+  ProjectManifest? project,
+) {
+  return [
+    for (final map in project?.maps ?? const <ProjectMapEntry>[])
+      EventBuilderMapOption(
+        id: map.id,
+        label: map.name.trim().isEmpty ? map.id : map.name.trim(),
+      ),
+  ];
+}
+
+ProjectMapEntry? _findProjectMapById(ProjectManifest? project, String mapId) {
+  final normalizedMapId = mapId.trim();
+  if (project == null || normalizedMapId.isEmpty) {
+    return null;
+  }
+  for (final map in project.maps) {
+    if (map.id == normalizedMapId) {
+      return map;
+    }
+  }
+  return null;
 }
 
 List<EventBuilderFactOption> _buildEventBuilderFactOptions(

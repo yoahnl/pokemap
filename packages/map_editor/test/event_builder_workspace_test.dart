@@ -6,11 +6,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   testWidgets('NS-EVENT-04 shows a readable empty state', (tester) async {
@@ -229,6 +233,105 @@ void main() {
     expect(find.text('Brouillon'), findsNothing);
     expect(find.textContaining('0,0'), findsNothing);
     expect(find.textContaining('0, 0'), findsNothing);
+  });
+
+  testWidgets(
+      'NS-EVENT-16 map activation explains missing active map and opens a project map',
+      (tester) async {
+    String? openedMapId;
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(events: const []),
+      draftCreationGate: const EventBuilderDraftCreationGate.disabled(
+        disabledReason:
+            'Ouvrez une map active pour choisir la position de l’événement.',
+      ),
+      mapOptions: const [
+        EventBuilderMapOption(id: 'map_port', label: 'Port Selbrume'),
+      ],
+      onOpenMap: (mapId) async {
+        openedMapId = mapId;
+      },
+    );
+
+    expect(find.text('Aucune map active'), findsOneWidget);
+    expect(
+      find.text('Choisissez une map du projet pour créer des événements.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ouvrir “Port Selbrume”'), findsOneWidget);
+    expect(find.text('Map active'), findsNothing);
+    expect(find.text('Position requise'), findsOneWidget);
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(const ValueKey('event-builder-new-event-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    await tester.tap(find.text('Ouvrir “Port Selbrume”'));
+    await tester.pumpAndSettle();
+
+    expect(openedMapId, 'map_port');
+  });
+
+  testWidgets('NS-EVENT-16 map activation handles project without maps',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(events: const []),
+      draftCreationGate: const EventBuilderDraftCreationGate.disabled(
+        disabledReason:
+            'Ouvrez une map active pour choisir la position de l’événement.',
+      ),
+    );
+
+    expect(find.text('Aucune map active'), findsOneWidget);
+    expect(find.text('Aucune map dans ce projet.'), findsOneWidget);
+    expect(
+      find.text('Créez une map avant d’ajouter des événements.'),
+      findsOneWidget,
+    );
+    expect(find.text('Map active'), findsNothing);
+  });
+
+  testWidgets(
+      'NS-EVENT-16 map activation from NarrativeWorkspaceCanvas opens map and keeps events workspace',
+      (tester) async {
+    final repo = _FakeMapRepository(
+      mapsByPath: {
+        '/project/maps/port.json': _mapWithObjectLayerFirst(),
+      },
+    );
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      startWithoutActiveMap: true,
+      projectRootPath: '/project',
+      providerOverrides: [
+        mapRepositoryProvider.overrideWith((ref) => repo),
+        projectWorkspaceFactoryProvider.overrideWith(
+          (ref) => const _FakeWorkspaceFactory(
+            workspace: _FakeWorkspace(projectRoot: '/project'),
+          ),
+        ),
+      ],
+    );
+
+    expect(find.text('Aucune map active'), findsOneWidget);
+    expect(find.text('Ouvrir “Port Selbrume”'), findsOneWidget);
+
+    await tester.tap(find.text('Ouvrir “Port Selbrume”'));
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    expect(repo.loadedPaths, ['/project/maps/port.json']);
+    expect(state.activeMap?.id, 'map_port');
+    expect(state.workspaceMode, EditorWorkspaceMode.events);
+    expect(find.text('Couche : Objets'), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsOneWidget);
   });
 
   testWidgets('NS-EVENT-07 calls the creation entry only when gate is ready',
@@ -1139,6 +1242,42 @@ void main() {
     expect(find.text('effect'), findsNothing);
   });
 
+  testWidgets('NS-EVENT-16 consolidates the workspace into guided blocks',
+      (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Créer un événement'), findsOneWidget);
+    expect(
+      find.text(
+          'Édition guidée : déclencheur, conditions, scène et comportement.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Création de brouillon uniquement. L’édition reste verrouillée dans ce lot.',
+      ),
+      findsNothing,
+    );
+
+    expect(find.text('Builder d’événement'), findsOneWidget);
+    expect(find.text('Identité'), findsOneWidget);
+    expect(find.text('Déclencheur'), findsOneWidget);
+    expect(find.text('Conditions'), findsOneWidget);
+    expect(find.text('Action principale'), findsOneWidget);
+    expect(find.text('Comportement'), findsOneWidget);
+    expect(find.text('Changements du monde'), findsOneWidget);
+    expect(find.text('Diagnostics'), findsWidgets);
+    expect(find.text('Informations techniques'), findsOneWidget);
+    expect(find.text('Piloté par les conséquences de scène.'), findsOneWidget);
+
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Résultats possibles'), findsNothing);
+    expect(find.text('Ajouter une réaction'), findsNothing);
+    expect(find.text('Créer une règle'), findsNothing);
+    expect(find.text('Flow editor'), findsNothing);
+    expect(find.text('Drag/drop'), findsNothing);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -1499,6 +1638,58 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
+  testWidgets('captures NS-EVENT-16 block layout consolidation visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_16_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_16_block_layout_consolidation_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-16 map activation visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment(
+        'NS_EVENT_16_MAP_ACTIVATION_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _pumpNarrativeEventsShell(
+      tester,
+      startWithoutActiveMap: true,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_16_map_activation_creation_availability_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_04_CAPTURE_WORKSPACE')) {
       return;
@@ -1661,6 +1852,8 @@ Future<void> _pumpWorkspace(
   List<EventBuilderSceneOption> sceneOptions = const [],
   List<EventBuilderFactOption> factOptions = const [],
   List<EventBuilderConditionEventOption> eventConditionOptions = const [],
+  List<EventBuilderMapOption> mapOptions = const [],
+  EventBuilderMapOpenCallback? onOpenMap,
   EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType,
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
   EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
@@ -1699,6 +1892,8 @@ Future<void> _pumpWorkspace(
               sceneOptions: sceneOptions,
               factOptions: factOptions,
               eventConditionOptions: eventConditionOptions,
+              mapOptions: mapOptions,
+              onOpenMap: onOpenMap,
               onUpdateTriggerType: onUpdateTriggerType,
               onUpdateSceneAction: onUpdateSceneAction,
               onUpdateReusePolicy: onUpdateReusePolicy,
@@ -1718,12 +1913,16 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
   WidgetTester tester, {
   String? fontFamily,
   MapData? activeMap,
+  bool startWithoutActiveMap = false,
+  String? projectRootPath,
+  ProjectManifest? project,
+  List<Override> providerOverrides = const [],
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
-  final container = ProviderContainer();
+  final container = ProviderContainer(overrides: providerOverrides);
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
     editorNotifierProvider,
@@ -1732,10 +1931,12 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
   addTearDown(editorSubscription.close);
 
   container.read(editorNotifierProvider.notifier).state = EditorState(
-    project: _eventProject(),
+    projectRootPath: projectRootPath,
+    project: project ?? _eventProject(),
     workspaceMode: EditorWorkspaceMode.events,
-    activeMap: activeMap ?? _mapWithObjectLayer(),
-    activeLayerId: 'objects',
+    activeMap:
+        startWithoutActiveMap ? null : activeMap ?? _mapWithObjectLayer(),
+    activeLayerId: startWithoutActiveMap ? null : 'objects',
   );
 
   final theme = PokeMapTheme.dark();
@@ -1898,6 +2099,23 @@ MapData _mapWithObjectLayer() {
   );
 }
 
+MapData _mapWithObjectLayerFirst() {
+  return const MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: GridSize(width: 4, height: 3),
+    layers: [
+      MapLayer.object(id: 'objects', name: 'Objets'),
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+    ],
+    events: [],
+  );
+}
+
 MapData _mapWithEventConditionTargets() {
   return const MapData(
     id: 'map_port',
@@ -1963,6 +2181,115 @@ Future<void> _tapEventCard(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   await tester.tap(target.first);
   await tester.pumpAndSettle();
+}
+
+class _FakeWorkspaceFactory implements ProjectWorkspaceFactory {
+  const _FakeWorkspaceFactory({
+    required this.workspace,
+  });
+
+  final ProjectWorkspace workspace;
+
+  @override
+  ProjectWorkspace create(String projectRoot) => workspace;
+}
+
+class _FakeWorkspace implements ProjectWorkspace {
+  const _FakeWorkspace({
+    required this.projectRoot,
+  });
+
+  @override
+  final String projectRoot;
+
+  @override
+  String get projectManifestPath => '$projectRoot/project.json';
+
+  @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {}
+
+  @override
+  Future<void> deleteRelativeFile(String relativePath) async {}
+
+  @override
+  Future<bool> directoryExists(String path) async => true;
+
+  @override
+  Future<void> ensureDirectoryExists(String path) async {}
+
+  @override
+  Future<bool> fileExists(String path) async => true;
+
+  @override
+  String getMapPath(String mapId) => '$projectRoot/maps/$mapId.json';
+
+  @override
+  String getMapRelativePath(String mapId) => 'maps/$mapId.json';
+
+  @override
+  Future<String> importTilesetImage(
+    String sourcePath, {
+    String? preferredName,
+  }) async =>
+      '$projectRoot/assets/${preferredName ?? 'tileset.png'}';
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<String> readTextFile(String path) async => '';
+
+  @override
+  String resolveMapPath(String relativePath) => '$projectRoot/$relativePath';
+
+  @override
+  String resolveProjectRelativePath(String relativePath) =>
+      '$projectRoot/$relativePath';
+
+  @override
+  String resolveTilesetPath(String relativePath) =>
+      '$projectRoot/$relativePath';
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {}
+}
+
+class _FakeMapRepository implements MapRepository {
+  _FakeMapRepository({
+    required Map<String, MapData> mapsByPath,
+  }) : _mapsByPath = mapsByPath;
+
+  final Map<String, MapData> _mapsByPath;
+  final List<String> loadedPaths = [];
+
+  @override
+  Future<void> deleteMap(String path) async {}
+
+  @override
+  Future<MapData> loadMap(String path) async {
+    loadedPaths.add(path);
+    final map = _mapsByPath[path];
+    if (map == null) {
+      throw StateError('Map not found at $path');
+    }
+    return map;
+  }
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {}
+
+  @override
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {}
 }
 
 const _eventIdsByLabel = <String, String>{
