@@ -85,6 +85,7 @@ export 'src/diagnostics/world_rule_diagnostics.dart';
 export 'src/operations/narrative_validator.dart';
 export 'src/authoring/event_builder_authoring_operations.dart';
 export 'src/authoring/event_builder_contract.dart';
+export 'src/authoring/event_builder_draft_creation_operations.dart';
 export 'src/authoring/narrative_event_source_authoring_operations.dart';
 export 'src/authoring/narrative_fact_authoring_operations.dart';
 export 'src/authoring/narrative_outcome_authoring_operations.dart';
