@@ -25,6 +25,12 @@ typedef EventBuilderFactConditionAddCallback = bool Function({
   required bool expectedValue,
 });
 
+typedef EventBuilderEventConsumedConditionAddCallback = bool Function({
+  required String eventId,
+  required String targetEventId,
+  required bool expectedConsumed,
+});
+
 typedef EventBuilderConditionRemoveCallback = bool Function({
   required String eventId,
   required int conditionIndex,
@@ -50,6 +56,16 @@ class EventBuilderFactOption {
   final String label;
 }
 
+class EventBuilderConditionEventOption {
+  const EventBuilderConditionEventOption({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
 class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
@@ -57,10 +73,12 @@ class EventBuilderWorkspace extends StatefulWidget {
     this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
     this.sceneOptions = const <EventBuilderSceneOption>[],
     this.factOptions = const <EventBuilderFactOption>[],
+    this.eventConditionOptions = const <EventBuilderConditionEventOption>[],
     this.onRenameEventTitle,
     this.onUpdateSceneAction,
     this.onUpdateReusePolicy,
     this.onAddFactCondition,
+    this.onAddEventConsumedCondition,
     this.onRemoveCondition,
   });
 
@@ -68,10 +86,13 @@ class EventBuilderWorkspace extends StatefulWidget {
   final EventBuilderDraftCreationGate draftCreationGate;
   final List<EventBuilderSceneOption> sceneOptions;
   final List<EventBuilderFactOption> factOptions;
+  final List<EventBuilderConditionEventOption> eventConditionOptions;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
   final EventBuilderFactConditionAddCallback? onAddFactCondition;
+  final EventBuilderEventConsumedConditionAddCallback?
+      onAddEventConsumedCondition;
   final EventBuilderConditionRemoveCallback? onRemoveCondition;
 
   @override
@@ -350,10 +371,13 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                           event: selected,
                           sceneOptions: widget.sceneOptions,
                           factOptions: widget.factOptions,
+                          eventConditionOptions: widget.eventConditionOptions,
                           onRenameTitle: widget.onRenameEventTitle,
                           onUpdateSceneAction: widget.onUpdateSceneAction,
                           onUpdateReusePolicy: widget.onUpdateReusePolicy,
                           onAddFactCondition: widget.onAddFactCondition,
+                          onAddEventConsumedCondition:
+                              widget.onAddEventConsumedCondition,
                           onRemoveCondition: widget.onRemoveCondition,
                         ),
                       ),
@@ -857,20 +881,25 @@ class _EventDetailsPanel extends StatefulWidget {
     required this.event,
     required this.sceneOptions,
     required this.factOptions,
+    required this.eventConditionOptions,
     required this.onRenameTitle,
     required this.onUpdateSceneAction,
     required this.onUpdateReusePolicy,
     required this.onAddFactCondition,
+    required this.onAddEventConsumedCondition,
     required this.onRemoveCondition,
   });
 
   final EventBuilderEventSummary? event;
   final List<EventBuilderSceneOption> sceneOptions;
   final List<EventBuilderFactOption> factOptions;
+  final List<EventBuilderConditionEventOption> eventConditionOptions;
   final EventBuilderTitleRenameCallback? onRenameTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
   final EventBuilderFactConditionAddCallback? onAddFactCondition;
+  final EventBuilderEventConsumedConditionAddCallback?
+      onAddEventConsumedCondition;
   final EventBuilderConditionRemoveCallback? onRemoveCondition;
 
   @override
@@ -888,6 +917,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   String? _behaviorError;
   String? _behaviorFeedback;
   bool _isChoosingFactCondition = false;
+  bool _isChoosingEventCondition = false;
   String? _conditionError;
   String? _conditionFeedback;
 
@@ -914,6 +944,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _behaviorError = null;
       _behaviorFeedback = null;
       _isChoosingFactCondition = false;
+      _isChoosingEventCondition = false;
       _conditionError = null;
       _conditionFeedback = null;
       _titleController.text = next?.displayName ?? '';
@@ -1196,9 +1227,13 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     EventBuilderEventSummary selected,
   ) {
     final colors = context.pokeMapColors;
-    final canEditConditions = widget.onAddFactCondition != null &&
-        widget.onRemoveCondition != null &&
-        !selected.conditionEditingLocked;
+    final canRemoveCondition =
+        widget.onRemoveCondition != null && !selected.conditionEditingLocked;
+    final canAddFactCondition =
+        widget.onAddFactCondition != null && canRemoveCondition;
+    final canAddEventCondition =
+        widget.onAddEventConsumedCondition != null && canRemoveCondition;
+    final eventConditionOptions = _eventConditionOptionsFor(selected);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1218,13 +1253,13 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           for (var i = 0; i < selected.conditions.length; i++)
             _ConditionDetailLine(
               condition: selected.conditions[i],
-              onRemove: canEditConditions &&
-                      _isFactConditionKind(selected.conditions[i].kind)
+              onRemove: canRemoveCondition &&
+                      _isEditableConditionKind(selected.conditions[i].kind)
                   ? () => _removeCondition(selected, i)
                   : null,
               removeKey: ValueKey('event-builder-remove-condition-$i'),
             ),
-        if (canEditConditions) ...[
+        if (canAddFactCondition) ...[
           const SizedBox(height: 8),
           if (widget.factOptions.isEmpty)
             const _DiagnosticNotice(
@@ -1309,20 +1344,111 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               ),
             ),
           ],
-          if (_conditionError != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              _conditionError!,
-              style: TextStyle(
-                color: colors.error,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+        ],
+        if (canAddEventCondition) ...[
+          const SizedBox(height: 8),
+          if (eventConditionOptions.isEmpty)
+            const _DiagnosticNotice(
+              title: 'Aucun autre événement disponible.',
+              message: 'Créez d’abord un autre événement sur cette map pour '
+                  'ajouter cette condition.',
+              tone: PokeMapTone.warning,
+              severityLabel: 'Action indisponible',
+              details: ['L’événement courant est exclu des cibles V0'],
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                PokeMapButton(
+                  key: const ValueKey(
+                    'event-builder-add-event-condition-button',
+                  ),
+                  onPressed: () => _startEventConditionChoice(),
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.link_circle),
+                  child: const Text('Ajouter une condition d’événement'),
+                ),
+                if (_isChoosingEventCondition)
+                  PokeMapButton(
+                    key: const ValueKey(
+                      'event-builder-cancel-event-condition-button',
+                    ),
+                    onPressed: _cancelEventConditionChoice,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.xmark),
+                    child: const Text('Annuler'),
+                  ),
+              ],
+            ),
+          if (_isChoosingEventCondition &&
+              eventConditionOptions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            PokeMapCard(
+              padding: const EdgeInsets.all(10),
+              borderRadius: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Événements disponibles',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final option in eventConditionOptions)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _EventConditionOptionRow(
+                        option: option,
+                        onConsumed: () => _addEventConsumedCondition(
+                          selected,
+                          option,
+                          expectedConsumed: true,
+                        ),
+                        onNotConsumed: () => _addEventConsumedCondition(
+                          selected,
+                          option,
+                          expectedConsumed: false,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ],
         ],
+        if (_conditionError != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _conditionError!,
+            style: TextStyle(
+              color: colors.error,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
       ],
     );
+  }
+
+  List<EventBuilderConditionEventOption> _eventConditionOptionsFor(
+    EventBuilderEventSummary selected,
+  ) {
+    return [
+      for (final option in widget.eventConditionOptions)
+        // L'auto-cible reste exclue en V0 : elle serait techniquement possible,
+        // mais trop ambigüe pour un workflow no-code lisible.
+        if (option.id != selected.eventId) option,
+    ];
   }
 
   Widget _buildSceneActionBlock(
@@ -1577,6 +1703,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   void _startFactConditionChoice() {
     setState(() {
       _isChoosingFactCondition = true;
+      _isChoosingEventCondition = false;
       _conditionError = null;
       _conditionFeedback = null;
     });
@@ -1585,6 +1712,22 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   void _cancelFactConditionChoice() {
     setState(() {
       _isChoosingFactCondition = false;
+      _conditionError = null;
+    });
+  }
+
+  void _startEventConditionChoice() {
+    setState(() {
+      _isChoosingEventCondition = true;
+      _isChoosingFactCondition = false;
+      _conditionError = null;
+      _conditionFeedback = null;
+    });
+  }
+
+  void _cancelEventConditionChoice() {
+    setState(() {
+      _isChoosingEventCondition = false;
       _conditionError = null;
     });
   }
@@ -1609,6 +1752,31 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     }
     setState(() {
       _isChoosingFactCondition = false;
+      _conditionError = null;
+      _conditionFeedback = 'Condition ajoutée.';
+    });
+  }
+
+  void _addEventConsumedCondition(
+    EventBuilderEventSummary selected,
+    EventBuilderConditionEventOption option, {
+    required bool expectedConsumed,
+  }) {
+    final added = widget.onAddEventConsumedCondition?.call(
+          eventId: selected.eventId,
+          targetEventId: option.id,
+          expectedConsumed: expectedConsumed,
+        ) ??
+        false;
+    if (!added) {
+      setState(() {
+        _conditionError = 'Impossible d’ajouter cette condition.';
+        _conditionFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _isChoosingEventCondition = false;
       _conditionError = null;
       _conditionFeedback = 'Condition ajoutée.';
     });
@@ -2010,13 +2178,66 @@ class _FactConditionOptionRow extends StatelessWidget {
   }
 }
 
-bool _isFactConditionKind(EventBuilderConditionKind kind) {
+class _EventConditionOptionRow extends StatelessWidget {
+  const _EventConditionOptionRow({
+    required this.option,
+    required this.onConsumed,
+    required this.onNotConsumed,
+  });
+
+  final EventBuilderConditionEventOption option;
+  final VoidCallback onConsumed;
+  final VoidCallback onNotConsumed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      borderRadius: 8,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              option.label,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: ValueKey('event-builder-event-consumed-${option.id}'),
+            onPressed: onConsumed,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.checkmark_circle),
+            child: const Text('Déjà consommé'),
+          ),
+          const SizedBox(width: 8),
+          PokeMapButton(
+            key: ValueKey('event-builder-event-not-consumed-${option.id}'),
+            onPressed: onNotConsumed,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.xmark_circle),
+            child: const Text('Pas encore consommé'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+bool _isEditableConditionKind(EventBuilderConditionKind kind) {
   return switch (kind) {
     EventBuilderConditionKind.factIsTrue ||
-    EventBuilderConditionKind.factIsFalse =>
-      true,
+    EventBuilderConditionKind.factIsFalse ||
     EventBuilderConditionKind.eventConsumed ||
-    EventBuilderConditionKind.eventNotConsumed ||
+    EventBuilderConditionKind.eventNotConsumed =>
+      true,
     EventBuilderConditionKind.storyStepCompleted ||
     EventBuilderConditionKind.storyStepNotCompleted =>
       false,

@@ -557,12 +557,16 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           ),
           sceneOptions: _buildEventBuilderSceneOptions(editor.project),
           factOptions: _buildEventBuilderFactOptions(editor.project),
+          eventConditionOptions:
+              _buildEventBuilderConditionEventOptions(editor.activeMap),
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
           onUpdateSceneAction:
               editorNotifier.updateEventBuilderEventSceneAction,
           onUpdateReusePolicy:
               editorNotifier.updateEventBuilderEventReusePolicy,
           onAddFactCondition: editorNotifier.addEventBuilderFactCondition,
+          onAddEventConsumedCondition:
+              editorNotifier.addEventBuilderEventConsumedCondition,
           onRemoveCondition: editorNotifier.removeEventBuilderConditionAt,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
@@ -718,6 +722,18 @@ List<EventBuilderFactOption> _buildEventBuilderFactOptions(
       EventBuilderFactOption(
         id: fact.id,
         label: fact.label.trim().isEmpty ? fact.id : fact.label.trim(),
+      ),
+  ];
+}
+
+List<EventBuilderConditionEventOption> _buildEventBuilderConditionEventOptions(
+  MapData? map,
+) {
+  return [
+    for (final event in map?.events ?? const <MapEventDefinition>[])
+      EventBuilderConditionEventOption(
+        id: event.id,
+        label: event.title.trim().isEmpty ? event.id : event.title.trim(),
       ),
   ];
 }

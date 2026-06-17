@@ -771,8 +771,15 @@ void main() {
     ]);
     expect(find.text('Fact "Rival battu" est faux'), findsWidgets);
 
-    await tester.tap(
+    await tester.ensureVisible(
       find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('event-builder-remove-condition-0')),
+        matching: find.text('Retirer'),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -782,8 +789,15 @@ void main() {
     expect(find.text('Fact "Départ accepté" est vrai'), findsNothing);
     expect(find.text('Condition retirée.'), findsOneWidget);
 
-    await tester.tap(
+    await tester.ensureVisible(
       find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('event-builder-remove-condition-0')),
+        matching: find.text('Retirer'),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -840,6 +854,199 @@ void main() {
     expect(find.text('Conditions verrouillées'), findsWidgets);
     expect(find.text('Condition avancée préservée'), findsWidgets);
     expect(find.text('Ajouter une condition Fact'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('NS-EVENT-14 adds and removes Event consumed conditions',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+    );
+
+    await _tapEventCard(tester, 'Événement existant');
+    expect(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Événements disponibles'), findsOneWidget);
+    expect(find.text('Rival au port'), findsWidgets);
+    expect(find.text('Garde endormi'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_existing')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+
+    var state = container.read(editorNotifierProvider);
+    var sourceEvent = state.activeMap!.events
+        .singleWhere((event) => event.id == 'evt_existing');
+    var page = sourceEvent.pages.single;
+    expect(page.condition, ScriptConditionFactory.eventIsConsumed('evt_rival'));
+    expect(page.sceneTarget?.sceneId, 'scene_existing');
+    expect(state.selectedMapEventId, 'evt_existing');
+    expect(state.statusMessage, 'Condition d’événement ajoutée');
+    expect(find.text('Événement "Rival au port" déjà consommé'), findsWidgets);
+    expect(find.text('Condition ajoutée.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('event-builder-event-not-consumed-evt_guard'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    sourceEvent = state.activeMap!.events
+        .singleWhere((event) => event.id == 'evt_existing');
+    page = sourceEvent.pages.single;
+    expect(page.condition?.type, ScriptConditionType.allOf);
+    expect(page.condition?.children, [
+      ScriptConditionFactory.eventIsConsumed('evt_rival'),
+      ScriptConditionFactory.not(
+        ScriptConditionFactory.eventIsConsumed('evt_guard'),
+      ),
+    ]);
+    expect(
+      find.text('Événement "Garde endormi" pas encore consommé'),
+      findsWidgets,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('event-builder-remove-condition-0')),
+        matching: find.text('Retirer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    sourceEvent = state.activeMap!.events
+        .singleWhere((event) => event.id == 'evt_existing');
+    page = sourceEvent.pages.single;
+    expect(
+      page.condition,
+      ScriptConditionFactory.not(
+        ScriptConditionFactory.eventIsConsumed('evt_guard'),
+      ),
+    );
+    expect(find.text('Événement "Rival au port" déjà consommé'), findsNothing);
+    expect(find.text('Condition retirée.'), findsOneWidget);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('event-builder-remove-condition-0')),
+        matching: find.text('Retirer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    sourceEvent = state.activeMap!.events
+        .singleWhere((event) => event.id == 'evt_existing');
+    page = sourceEvent.pages.single;
+    expect(page.condition, isNull);
+    expect(find.text('Aucune condition'), findsWidgets);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Créer une règle'), findsNothing);
+    expect(find.text('Modifier le déclencheur'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-14 explains that no other event target is available',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _draftReadModelWithoutScene(),
+      eventConditionOptions: const [
+        EventBuilderConditionEventOption(
+          id: 'evt_draft',
+          label: 'Nouvel événement',
+        ),
+      ],
+      onAddFactCondition: ({
+        required eventId,
+        required factId,
+        required expectedValue,
+      }) =>
+          false,
+      onAddEventConsumedCondition: ({
+        required eventId,
+        required targetEventId,
+        required expectedConsumed,
+      }) =>
+          false,
+      onRemoveCondition: ({required eventId, required conditionIndex}) => false,
+    );
+
+    expect(find.text('Aucun autre événement disponible.'), findsOneWidget);
+    expect(
+      find.text(
+        'Créez d’abord un autre événement sur cette map pour ajouter cette '
+        'condition.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Ajouter une condition d’événement'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-14 keeps locked legacy event conditions read-only',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _sampleReadModel(),
+      factOptions: _sampleFactOptions,
+      eventConditionOptions: _sampleEventConditionOptions,
+      onAddFactCondition: ({
+        required eventId,
+        required factId,
+        required expectedValue,
+      }) =>
+          false,
+      onAddEventConsumedCondition: ({
+        required eventId,
+        required targetEventId,
+        required expectedConsumed,
+      }) =>
+          false,
+      onRemoveCondition: ({required eventId, required conditionIndex}) => false,
+    );
+
+    await _tapEventCard(tester, 'Herbes médicinales');
+
+    expect(find.text('Conditions verrouillées'), findsWidgets);
+    expect(find.text('Ajouter une condition d’événement'), findsNothing);
     expect(
       find.byKey(const ValueKey('event-builder-remove-condition-0')),
       findsNothing,
@@ -1117,6 +1324,53 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
+  testWidgets('captures NS-EVENT-14 event consumed authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_14_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      activeMap: _mapWithEventConditionTargets(),
+    );
+    await _tapEventCard(tester, 'Événement existant');
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Conditions'),
+      -120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_14_event_consumed_conditions_authoring_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_04_CAPTURE_WORKSPACE')) {
       return;
@@ -1278,9 +1532,11 @@ Future<void> _pumpWorkspace(
       const EventBuilderDraftCreationGate.disabled(),
   List<EventBuilderSceneOption> sceneOptions = const [],
   List<EventBuilderFactOption> factOptions = const [],
+  List<EventBuilderConditionEventOption> eventConditionOptions = const [],
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
   EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
   EventBuilderFactConditionAddCallback? onAddFactCondition,
+  EventBuilderEventConsumedConditionAddCallback? onAddEventConsumedCondition,
   EventBuilderConditionRemoveCallback? onRemoveCondition,
 }) async {
   tester.view.physicalSize = const Size(1280, 820);
@@ -1313,9 +1569,11 @@ Future<void> _pumpWorkspace(
               draftCreationGate: draftCreationGate,
               sceneOptions: sceneOptions,
               factOptions: factOptions,
+              eventConditionOptions: eventConditionOptions,
               onUpdateSceneAction: onUpdateSceneAction,
               onUpdateReusePolicy: onUpdateReusePolicy,
               onAddFactCondition: onAddFactCondition,
+              onAddEventConsumedCondition: onAddEventConsumedCondition,
               onRemoveCondition: onRemoveCondition,
             ),
           ),
@@ -1329,6 +1587,7 @@ Future<void> _pumpWorkspace(
 Future<ProviderContainer> _pumpNarrativeEventsShell(
   WidgetTester tester, {
   String? fontFamily,
+  MapData? activeMap,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1344,7 +1603,7 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
   container.read(editorNotifierProvider.notifier).state = EditorState(
     project: _eventProject(),
     workspaceMode: EditorWorkspaceMode.events,
-    activeMap: _mapWithObjectLayer(),
+    activeMap: activeMap ?? _mapWithObjectLayer(),
     activeLayerId: 'objects',
   );
 
@@ -1408,6 +1667,15 @@ ProjectManifest _eventProject() {
 const _sampleFactOptions = [
   EventBuilderFactOption(id: 'fact_started', label: 'Départ accepté'),
   EventBuilderFactOption(id: 'fact_blocked', label: 'Rival battu'),
+];
+
+const _sampleEventConditionOptions = [
+  EventBuilderConditionEventOption(id: 'evt_draft', label: 'Coffre abandonné'),
+  EventBuilderConditionEventOption(
+    id: 'evt_existing',
+    label: 'Événement existant',
+  ),
+  EventBuilderConditionEventOption(id: 'evt_rival', label: 'Rival au port'),
 ];
 
 EventBuilderReadModel _draftReadModelWithoutScene() {
@@ -1477,6 +1745,57 @@ MapData _mapWithObjectLayer() {
   );
 }
 
+MapData _mapWithEventConditionTargets() {
+  return const MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: GridSize(width: 4, height: 3),
+    layers: [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        position: EventPosition(layerId: 'objects', x: 0, y: 0),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+      MapEventDefinition(
+        id: 'evt_rival',
+        title: 'Rival au port',
+        position: EventPosition(layerId: 'objects', x: 1, y: 0),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+      MapEventDefinition(
+        id: 'evt_guard',
+        title: 'Garde endormi',
+        position: EventPosition(layerId: 'objects', x: 2, y: 0),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
 Future<void> _tapEventCard(WidgetTester tester, String label) async {
   final eventId = _eventIdsByLabel[label];
   final finder = find.text(label);
@@ -1494,6 +1813,9 @@ Future<void> _tapEventCard(WidgetTester tester, String label) async {
 }
 
 const _eventIdsByLabel = <String, String>{
+  'Événement existant': 'evt_existing',
+  'Rival au port': 'evt_rival',
+  'Garde endormi': 'evt_guard',
   'Coffre abandonné': 'evt_draft',
   'Herbes médicinales': 'evt_legacy',
   'Messager legacy': 'evt_legacy_script',

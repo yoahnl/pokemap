@@ -3100,6 +3100,95 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  bool addEventBuilderEventConsumedCondition({
+    required String eventId,
+    required String targetEventId,
+    required bool expectedConsumed,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Aucune map active pour modifier les conditions de l’événement.',
+      );
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.pages.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Cet événement ne contient aucune page authorable.',
+      );
+      return false;
+    }
+
+    final pageNumber = _eventBuilderAuthorablePageNumber(event);
+    final contract = readEventBuilderContractFromMapEvent(
+      event,
+      pageNumber: pageNumber,
+    );
+    if (contract.legacyConditionToPreserve != null) {
+      state = state.copyWith(errorMessage: _eventBuilderConditionLockedMessage);
+      return false;
+    }
+
+    final trimmedTargetEventId = targetEventId.trim();
+    if (trimmedTargetEventId.isEmpty) {
+      state = state.copyWith(errorMessage: 'Événement cible obligatoire.');
+      return false;
+    }
+    // NS-EVENT-14 exclut volontairement l'auto-cible : en V0, une condition
+    // "cet événement est déjà consommé" sur l'événement lui-même est trop
+    // ambiguë pour une expérience no-code guidée.
+    if (trimmedTargetEventId == eventId) {
+      state = state.copyWith(
+        errorMessage:
+            'Un événement ne peut pas se cibler lui-même dans ce lot.',
+      );
+      return false;
+    }
+    final targetEvent = findMapEventById(map, trimmedTargetEventId);
+    if (targetEvent == null) {
+      state = state.copyWith(
+        errorMessage: 'Événement cible introuvable : $trimmedTargetEventId',
+      );
+      return false;
+    }
+    final condition = expectedConsumed
+        ? EventBuilderConditionBinding.eventConsumed(trimmedTargetEventId)
+        : EventBuilderConditionBinding.eventNotConsumed(trimmedTargetEventId);
+
+    try {
+      final updatedContract = addEventBuilderCondition(contract, condition);
+      final updated = _updateEventBuilderPageCondition(
+        map: map,
+        event: event,
+        pageNumber: pageNumber,
+        conditions: updatedContract.conditions,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Condition d’événement ajoutée',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter la condition d’événement : $e',
+      );
+      return false;
+    }
+  }
+
   bool removeEventBuilderConditionAt({
     required String eventId,
     required int conditionIndex,
@@ -3140,9 +3229,10 @@ class EditorNotifier extends _$EditorNotifier {
       return false;
     }
     final condition = contract.conditions[conditionIndex];
-    if (!_isEventBuilderFactConditionKind(condition.kind)) {
+    if (!_isEventBuilderEditableConditionKind(condition.kind)) {
       state = state.copyWith(
-        errorMessage: 'Seules les conditions Fact sont éditables dans ce lot.',
+        errorMessage:
+            'Seules les conditions Fact ou Événement sont éditables dans ce lot.',
       );
       return false;
     }
@@ -9028,7 +9118,8 @@ class EditorNotifier extends _$EditorNotifier {
     final compiled = compileEventBuilderConditionsToScriptCondition(conditions);
     if (compiled.hasErrors) {
       throw UnsupportedError(
-        'Event Builder conditions contain unsupported entries for NS-EVENT-13.',
+        'Event Builder conditions contain unsupported entries for the current '
+        'Event Builder authoring scope.',
       );
     }
     final pageIndex =
@@ -9050,13 +9141,13 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
-  bool _isEventBuilderFactConditionKind(EventBuilderConditionKind kind) {
+  bool _isEventBuilderEditableConditionKind(EventBuilderConditionKind kind) {
     return switch (kind) {
       EventBuilderConditionKind.factIsTrue ||
-      EventBuilderConditionKind.factIsFalse =>
-        true,
+      EventBuilderConditionKind.factIsFalse ||
       EventBuilderConditionKind.eventConsumed ||
-      EventBuilderConditionKind.eventNotConsumed ||
+      EventBuilderConditionKind.eventNotConsumed =>
+        true,
       EventBuilderConditionKind.storyStepCompleted ||
       EventBuilderConditionKind.storyStepNotCompleted =>
         false,
