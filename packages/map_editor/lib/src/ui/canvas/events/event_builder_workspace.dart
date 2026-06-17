@@ -84,6 +84,8 @@ class EventBuilderDraftCreationGate {
 class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
   String? _selectedEventId;
   GridPos? _selectedDraftPosition;
+  String? _draftCreationFeedback;
+  PokeMapTone _draftCreationFeedbackTone = PokeMapTone.success;
 
   @override
   void initState() {
@@ -102,6 +104,8 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       widget.draftCreationGate,
     )) {
       _selectedDraftPosition = null;
+      _draftCreationFeedback = null;
+      _draftCreationFeedbackTone = PokeMapTone.success;
     }
   }
 
@@ -235,13 +239,28 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
               gate: widget.draftCreationGate,
               selectedPosition: _selectedDraftPosition,
               onSelect: (position) {
-                setState(() => _selectedDraftPosition = position);
+                setState(() {
+                  _selectedDraftPosition = position;
+                  _draftCreationFeedback = null;
+                  _draftCreationFeedbackTone = PokeMapTone.success;
+                });
               },
               onClear: _selectedDraftPosition == null
                   ? null
                   : () {
-                      setState(() => _selectedDraftPosition = null);
+                      setState(() {
+                        _selectedDraftPosition = null;
+                        _draftCreationFeedback = null;
+                        _draftCreationFeedbackTone = PokeMapTone.success;
+                      });
                     },
+            ),
+          ],
+          if (_draftCreationFeedback != null) ...[
+            const SizedBox(height: 12),
+            _DraftCreationFeedbackNotice(
+              message: _draftCreationFeedback!,
+              tone: _draftCreationFeedbackTone,
             ),
           ],
           if (createDraftAction == null) ...[
@@ -323,8 +342,22 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
         EventPosition(layerId: layerId, x: position.x, y: position.y),
       );
       if (eventId != null && eventId.trim().isNotEmpty) {
-        setState(() => _selectedEventId = eventId);
+        setState(() {
+          _selectedEventId = eventId;
+          _selectedDraftPosition = null;
+          _draftCreationFeedback =
+              'Brouillon d’événement créé. Sélectionnez une nouvelle position '
+              'pour en créer un autre.';
+          _draftCreationFeedbackTone = PokeMapTone.success;
+        });
+        return;
       }
+      setState(() {
+        _draftCreationFeedback =
+            'Impossible de créer le brouillon. Vérifiez la position et la '
+            'couche, puis réessayez.';
+        _draftCreationFeedbackTone = PokeMapTone.warning;
+      });
     };
   }
 
@@ -371,16 +404,18 @@ class _EventBuilderEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return PokeMapPanel(
       expandChild: true,
-      child: PokeMapEmptyState(
-        icon: const Icon(CupertinoIcons.bolt_horizontal_circle),
-        title: 'Aucun événement sur cette map',
-        description: 'Le Builder d’événements affichera ici les déclencheurs '
-            'authorés depuis la carte active.',
-        action: PokeMapButton(
-          onPressed: onCreateDraft,
-          variant: PokeMapButtonVariant.secondary,
-          leading: const Icon(CupertinoIcons.plus),
-          child: const Text('Nouvel événement'),
+      child: SingleChildScrollView(
+        child: PokeMapEmptyState(
+          icon: const Icon(CupertinoIcons.bolt_horizontal_circle),
+          title: 'Aucun événement sur cette map',
+          description: 'Le Builder d’événements affichera ici les déclencheurs '
+              'authorés depuis la carte active.',
+          action: PokeMapButton(
+            onPressed: onCreateDraft,
+            variant: PokeMapButtonVariant.secondary,
+            leading: const Icon(CupertinoIcons.plus),
+            child: const Text('Nouvel événement'),
+          ),
         ),
       ),
     );
@@ -507,6 +542,49 @@ class _DraftPositionPickerPanel extends StatelessWidget {
   }
 }
 
+class _DraftCreationFeedbackNotice extends StatelessWidget {
+  const _DraftCreationFeedbackNotice({
+    required this.message,
+    required this.tone,
+  });
+
+  final String message;
+  final PokeMapTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final toneColors = tone.resolve(context);
+    return PokeMapPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            tone == PokeMapTone.success
+                ? CupertinoIcons.checkmark_circle
+                : CupertinoIcons.exclamationmark_triangle,
+            color: toneColors.icon,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _DraftCreationGateNotice extends StatelessWidget {
   const _DraftCreationGateNotice({required this.message});
 
@@ -573,7 +651,8 @@ class _EventListPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Lecture seule depuis le contrat Event Builder.',
+            'Création de brouillon uniquement. L’édition reste verrouillée '
+            'dans ce lot.',
             style: TextStyle(
               color: colors.textMuted,
               fontSize: 11,

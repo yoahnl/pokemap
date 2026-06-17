@@ -2,10 +2,14 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
 
 void main() {
@@ -381,6 +385,71 @@ void main() {
     expect(find.text('Position requise'), findsOneWidget);
   });
 
+  testWidgets(
+      'NS-EVENT-09 creates a draft through the narrative workspace and resets position',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.text('Position requise'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
+    expect(find.text('Position prête'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    final events = state.activeMap!.events;
+    expect(events, hasLength(2));
+    final created = events.last;
+    expect(state.selectedMapEventId, created.id);
+    expect(state.statusMessage, 'Brouillon d’événement créé');
+    expect(created.title, 'Nouvel événement');
+    expect(
+      created.position,
+      const EventPosition(layerId: 'objects', x: 2, y: 1),
+    );
+    expect(created.pages, hasLength(1));
+    expect(created.pages.single.sceneTarget, isNull);
+    expect(created.pages.single.script, isNull);
+    expect(created.pages.single.message, isNull);
+    expect(created.pages.single.condition, isNull);
+
+    expect(
+      find.byKey(ValueKey('event-builder-event-card-${created.id}')),
+      findsOneWidget,
+    );
+    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(find.text('Brouillon'), findsWidgets);
+    expect(find.text('Action principale manquante'), findsWidgets);
+    expect(find.text('ID technique'), findsWidgets);
+    expect(find.text(created.id), findsWidgets);
+    expect(
+      find.text(
+        'Brouillon d’événement créé. Sélectionnez une nouvelle position '
+        'pour en créer un autre.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.text('Position requise'), findsOneWidget);
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Sauvegarder'), findsNothing);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+        container.read(editorNotifierProvider).activeMap!.events, hasLength(2));
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -442,6 +511,36 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_08_explicit_position_picker_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-09 draft creation closure visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_09_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_09_draft_creation_flow_closure_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -647,6 +746,99 @@ Future<void> _pumpWorkspace(
     ),
   );
   await tester.pump();
+}
+
+Future<ProviderContainer> _pumpNarrativeEventsShell(
+  WidgetTester tester, {
+  String? fontFamily,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1440, 900));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  final container = ProviderContainer();
+  addTearDown(container.dispose);
+  final editorSubscription = container.listen(
+    editorNotifierProvider,
+    (_, __) {},
+  );
+  addTearDown(editorSubscription.close);
+
+  container.read(editorNotifierProvider.notifier).state = EditorState(
+    project: _eventProject(),
+    workspaceMode: EditorWorkspaceMode.events,
+    activeMap: _mapWithObjectLayer(),
+    activeLayerId: 'objects',
+  );
+
+  final theme = PokeMapTheme.dark();
+  final themedWithFont = fontFamily == null
+      ? theme
+      : theme.copyWith(
+          textTheme: theme.textTheme.apply(fontFamily: fontFamily),
+          primaryTextTheme:
+              theme.primaryTextTheme.apply(fontFamily: fontFamily),
+        );
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        theme: themedWithFont,
+        home: CupertinoPageScaffold(
+          child: SizedBox.expand(
+            child: DefaultTextStyle.merge(
+              style: TextStyle(
+                fontFamily: fontFamily,
+                decoration: TextDecoration.none,
+              ),
+              child: const NarrativeWorkspaceCanvas(),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump();
+  return container;
+}
+
+ProjectManifest _eventProject() {
+  return const ProjectManifest(
+    name: 'Event Builder test',
+    maps: [
+      ProjectMapEntry(
+        id: 'map_port',
+        name: 'Port Selbrume',
+        relativePath: 'maps/port.json',
+      ),
+    ],
+    tilesets: [],
+  );
+}
+
+MapData _mapWithObjectLayer() {
+  return const MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: GridSize(width: 4, height: 3),
+    layers: [
+      MapLayer.tile(id: 'ground', name: 'Sol'),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        position: EventPosition(layerId: 'objects', x: 0, y: 0),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 Future<void> _tapEventCard(WidgetTester tester, String label) async {
