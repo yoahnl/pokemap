@@ -176,7 +176,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         : CupertinoIcons.square_stack_3d_up;
     final title = isNarrativeWorkspace ? 'Narrative Studio' : 'World Explorer';
     final subtitle = isNarrativeWorkspace
-        ? 'Aperçu, histoire globale, étapes, cinématiques et dialogues'
+        ? 'Aperçu, storylines, scènes, événements, cinématiques et dialogues'
         : 'Cartes, tilesets, surfaces — dialogues dans Dialogue Studio';
 
     return Padding(
@@ -247,6 +247,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     return workspaceMode == EditorWorkspaceMode.narrativeOverview ||
         workspaceMode == EditorWorkspaceMode.globalStory ||
         workspaceMode == EditorWorkspaceMode.scenes ||
+        workspaceMode == EditorWorkspaceMode.events ||
         workspaceMode == EditorWorkspaceMode.step ||
         workspaceMode == EditorWorkspaceMode.cutscene ||
         workspaceMode == EditorWorkspaceMode.dialogue;
@@ -320,7 +321,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
-    final isNarrativeWorkspace = _isNarrativeWorkspace(snapshot.workspaceMode);
     final narrativeModuleCard = _buildNarrativeModuleCard(
       context,
       project,

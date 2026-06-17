@@ -33,6 +33,7 @@ enum EditorWorkspaceMode {
   narrativeOverview,
   globalStory,
   scenes,
+  events,
   step,
   cutscene,
 

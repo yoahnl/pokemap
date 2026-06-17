@@ -54,6 +54,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.scenes);
   }
 
+  EditorState selectEventsWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.events);
+  }
+
   EditorState selectStepWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.step);
   }

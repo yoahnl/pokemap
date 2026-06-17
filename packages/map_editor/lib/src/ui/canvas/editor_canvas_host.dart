@@ -26,6 +26,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.scenes ||
+      EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||

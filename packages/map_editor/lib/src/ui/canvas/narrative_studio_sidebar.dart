@@ -11,6 +11,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
     required this.onSelectOverview,
     required this.onSelectGlobal,
     required this.onSelectScenes,
+    required this.onSelectEvents,
     required this.onSelectCutscene,
     required this.onSelectDialogue,
     required this.onSelectFacts,
@@ -22,6 +23,7 @@ class NarrativeStudioSidebar extends StatelessWidget {
   final VoidCallback onSelectOverview;
   final VoidCallback onSelectGlobal;
   final VoidCallback onSelectScenes;
+  final VoidCallback onSelectEvents;
   final VoidCallback onSelectCutscene;
   final VoidCallback onSelectDialogue;
   final VoidCallback onSelectFacts;
@@ -90,6 +92,14 @@ class NarrativeStudioSidebar extends StatelessWidget {
                   subtitle: 'Builder à venir',
                   selected: workspaceMode == EditorWorkspaceMode.scenes,
                   onTap: onSelectScenes,
+                ),
+                _NarrativeSidebarItem(
+                  key: const ValueKey('narrative-studio-sidebar-events'),
+                  icon: CupertinoIcons.bolt_horizontal_circle,
+                  label: 'Événements',
+                  subtitle: 'Déclencheurs',
+                  selected: workspaceMode == EditorWorkspaceMode.events,
+                  onTap: onSelectEvents,
                 ),
                 _NarrativeSidebarItem(
                   key: const ValueKey('narrative-studio-sidebar-cutscenes'),

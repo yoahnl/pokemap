@@ -139,6 +139,7 @@ void main() {
         'Aperçu',
         'Storylines',
         'Scènes',
+        'Événements',
       ]) {
         expect(
           find.descendant(of: sidebar, matching: find.text(label)),
@@ -169,6 +170,16 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('workspace:scenes'), findsOneWidget);
+
+      await tester.tap(
+        find.descendant(of: sidebar, matching: find.text('Événements')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('workspace:events'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        findsOneWidget,
+      );
 
       await tester.tap(
         find.descendant(of: sidebar, matching: find.text('Cinématiques')),
@@ -466,7 +477,8 @@ void main() {
       expect(find.textContaining('Narrative Overview'), findsNothing);
       expect(
         find.text(
-            'Aperçu, histoire globale, étapes, cinématiques et dialogues'),
+          'Aperçu, storylines, scènes, événements, cinématiques et dialogues',
+        ),
         findsOneWidget,
       );
       expect(find.text('World Explorer'), findsNothing);
@@ -519,10 +531,16 @@ void main() {
       expect(find.text('World Maps'), findsOneWidget);
       expect(find.text('Tileset Library'), findsOneWidget);
       expect(find.text('Catalogues Pokémon'), findsOneWidget);
-      expect(find.text('Trainer Studio'), findsOneWidget);
+      final projectExplorer = find.byType(ProjectExplorerPanel);
+      expect(
+        find.descendant(
+          of: projectExplorer,
+          matching: find.text('Trainer Studio'),
+        ),
+        findsWidgets,
+      );
       expect(find.text('Path Library'), findsOneWidget);
       expect(find.text('Environment Studio'), findsWidgets);
-      final projectExplorer = find.byType(ProjectExplorerPanel);
       expect(
         find.descendant(of: projectExplorer, matching: find.text('Facts')),
         findsNothing,
@@ -629,7 +647,8 @@ void main() {
 
       expect(
         find.text(
-            'Aperçu, histoire globale, étapes, cinématiques et dialogues'),
+          'Aperçu, storylines, scènes, événements, cinématiques et dialogues',
+        ),
         findsOneWidget,
       );
       expect(find.text('World Explorer'), findsNothing);

@@ -88,6 +88,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.scenes ||
+      EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
@@ -125,6 +126,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         EditorWorkspaceMode.narrativeOverview ||
         EditorWorkspaceMode.globalStory ||
         EditorWorkspaceMode.scenes ||
+        EditorWorkspaceMode.events ||
         EditorWorkspaceMode.step ||
         EditorWorkspaceMode.cutscene ||
         EditorWorkspaceMode.dialogue ||
@@ -137,6 +139,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         EditorWorkspaceMode.narrativeOverview ||
         EditorWorkspaceMode.globalStory ||
         EditorWorkspaceMode.scenes ||
+        EditorWorkspaceMode.events ||
         EditorWorkspaceMode.step ||
         EditorWorkspaceMode.cutscene ||
         EditorWorkspaceMode.dialogue ||
@@ -482,6 +485,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   EditorWorkspaceMode.narrativeOverview => EditorChrome.islandCoolTint,
                                                   EditorWorkspaceMode.globalStory => EditorChrome.islandCoolTint,
                                                   EditorWorkspaceMode.scenes => EditorChrome.islandCoolTint,
+                                                  EditorWorkspaceMode.events => EditorChrome.islandCoolTint,
                                                   EditorWorkspaceMode.step => EditorChrome.islandWarmTint,
                                                   EditorWorkspaceMode.cutscene => EditorChrome.islandNeutralTint,
                                                   EditorWorkspaceMode.dialogue => EditorChrome.islandCoolTint,
@@ -497,6 +501,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   EditorWorkspaceMode.pokedex => const _EmptyWorkspaceInspector(),
                                                   EditorWorkspaceMode.narrativeOverview => const _EmptyWorkspaceInspector(),
                                                   EditorWorkspaceMode.scenes => const _EmptyWorkspaceInspector(),
+                                                  EditorWorkspaceMode.events => const _EmptyWorkspaceInspector(),
                                                   EditorWorkspaceMode.facts => const _EmptyWorkspaceInspector(),
                                                   EditorWorkspaceMode.worldRules => const _EmptyWorkspaceInspector(),
                                                   EditorWorkspaceMode.pathStudio => const _EmptyWorkspaceInspector(),
@@ -646,6 +651,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.scenes ||
+      EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
@@ -664,6 +670,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.scenes ||
+      EditorWorkspaceMode.events ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
@@ -681,6 +688,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Macro-Récit',
       EditorWorkspaceMode.scenes => 'Scènes',
+      EditorWorkspaceMode.events => 'Événements',
       EditorWorkspaceMode.step => 'Étapes',
       EditorWorkspaceMode.cutscene => 'Cinématiques',
       EditorWorkspaceMode.dialogue => 'Dialogue',
@@ -835,6 +843,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.narrativeOverview => CupertinoIcons.house,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.scenes => CupertinoIcons.square_stack_3d_up,
+              EditorWorkspaceMode.events =>
+                CupertinoIcons.bolt_horizontal_circle,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,

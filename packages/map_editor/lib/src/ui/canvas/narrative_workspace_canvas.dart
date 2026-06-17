@@ -13,6 +13,7 @@ import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
+import 'events/event_builder_workspace.dart';
 import 'facts_world_rules/facts_world_rules_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
@@ -89,6 +90,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     void openScenes() {
       editorNotifier.selectScenesWorkspace();
       narrativeController.openScenes();
+    }
+
+    void openEvents() {
+      editorNotifier.selectEventsWorkspace();
     }
 
     void openCutscene() {
@@ -544,6 +549,9 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
           },
         ),
+      EditorWorkspaceMode.events => EventBuilderWorkspace(
+          readModel: _buildEventBuilderWorkspaceReadModel(editor),
+        ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
           selectedStep: selectedStep,
@@ -608,6 +616,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       onSelectOverview: openOverview,
       onSelectGlobal: openGlobalStory,
       onSelectScenes: openScenes,
+      onSelectEvents: openEvents,
       onSelectCutscene: openCutscene,
       onSelectDialogue: openDialogue,
       onSelectFacts: openFacts,
@@ -615,6 +624,30 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       child: mainContent,
     );
   }
+}
+
+EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
+  EditorState editor,
+) {
+  final project = editor.project;
+  final activeMap = editor.activeMap;
+  return buildEventBuilderReadModel(
+    events: activeMap?.events ?? const <MapEventDefinition>[],
+    mapId: activeMap?.id,
+    mapTitle: activeMap?.name,
+    sceneLabels: {
+      for (final scene in project?.scenes ?? const <SceneAsset>[])
+        scene.id: scene.name,
+    },
+    factLabels: {
+      for (final fact in project?.facts ?? const <NarrativeFactDefinition>[])
+        fact.id: fact.label,
+    },
+    eventLabels: {
+      for (final event in activeMap?.events ?? const <MapEventDefinition>[])
+        event.id: event.title.trim().isEmpty ? event.id : event.title,
+    },
+  );
 }
 
 Widget _buildFactsWorldRulesWorkspace({

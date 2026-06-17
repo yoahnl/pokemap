@@ -1545,6 +1545,11 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectScenesWorkspace(state);
   }
 
+  /// Ouvre le shell central "Événements" sans mutation narrative.
+  void selectEventsWorkspace() {
+    state = _editorWorkspaceController.selectEventsWorkspace(state);
+  }
+
   /// Ouvre le workspace central "Step".
   void selectStepWorkspace() {
     state = _editorWorkspaceController.selectStepWorkspace(state);

@@ -492,6 +492,14 @@ class TopToolbar extends ConsumerWidget {
                   : null,
             ),
             ToolbarCapsuleButton(
+              icon: CupertinoIcons.bolt_horizontal_circle,
+              tooltip: 'Ouvrir le workspace Événements',
+              selected: toolbar.workspaceMode == EditorWorkspaceMode.events,
+              onPressed: toolbar.project != null
+                  ? notifier.selectEventsWorkspace
+                  : null,
+            ),
+            ToolbarCapsuleButton(
               icon: CupertinoIcons.play_rectangle,
               tooltip: 'Switch to Cutscene Studio',
               selected: toolbar.workspaceMode == EditorWorkspaceMode.cutscene,
@@ -551,6 +559,7 @@ class TopToolbar extends ConsumerWidget {
                   'Narrative Studio / Aperçu',
                 EditorWorkspaceMode.globalStory => 'Global Story',
                 EditorWorkspaceMode.scenes => 'Scenes Workspace',
+                EditorWorkspaceMode.events => 'Event Builder',
                 EditorWorkspaceMode.step => 'Step Studio',
                 EditorWorkspaceMode.cutscene => 'Cutscene Studio',
                 EditorWorkspaceMode.dialogue => 'Dialogue Studio',

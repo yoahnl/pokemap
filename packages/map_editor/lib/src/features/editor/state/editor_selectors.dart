@@ -150,6 +150,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
     EditorWorkspaceMode.scenes => 'Scenes Workspace',
+    EditorWorkspaceMode.events => 'Event Builder',
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
@@ -176,6 +177,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Progression narrative macro : arcs, jalons et branches de haut niveau.',
     EditorWorkspaceMode.scenes =>
       'Shell read-only des Scenes V1 depuis ProjectManifest.scenes.',
+    EditorWorkspaceMode.events =>
+      'Liste read-only des événements de la map active, issue du read model Event Builder.',
     EditorWorkspaceMode.step =>
       'Espace logique des étapes : règles de progression, résultats attendus, cinématiques liées.',
     EditorWorkspaceMode.cutscene =>
