@@ -956,6 +956,101 @@ void main() {
       );
     });
   });
+
+  group('NS-EVENT-15 EditorNotifier trigger type authoring', () {
+    test('updates actor object and triggerZone while preserving event fields',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapForTriggerTypeAuthoring(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final original = notifier.state.activeMap!.events.single;
+      final originalPages = original.pages;
+
+      final toObject = notifier.updateEventBuilderTriggerType(
+        eventId: 'evt_existing',
+        type: MapEventType.object,
+      );
+      var state = container.read(editorNotifierProvider);
+      var event = state.activeMap!.events.single;
+
+      expect(toObject, isTrue);
+      expect(event.type, MapEventType.object);
+      expect(event.id, original.id);
+      expect(event.title, original.title);
+      expect(event.position, original.position);
+      expect(event.metadata, original.metadata);
+      expect(event.pages, originalPages);
+      expect(event.pages.single.condition, originalPages.single.condition);
+      expect(event.pages.single.sceneTarget, originalPages.single.sceneTarget);
+      expect(event.pages.single.script, originalPages.single.script);
+      expect(event.pages.single.message, originalPages.single.message);
+      expect(event.pages.single.metadata, originalPages.single.metadata);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Déclencheur d’événement mis à jour');
+
+      final toZone = notifier.updateEventBuilderTriggerType(
+        eventId: 'evt_existing',
+        type: MapEventType.triggerZone,
+      );
+      state = container.read(editorNotifierProvider);
+      event = state.activeMap!.events.single;
+      expect(toZone, isTrue);
+      expect(event.type, MapEventType.triggerZone);
+      expect(event.pages, originalPages);
+      expect(state.selectedMapEventId, 'evt_existing');
+
+      final toActor = notifier.updateEventBuilderTriggerType(
+        eventId: 'evt_existing',
+        type: MapEventType.actor,
+      );
+      state = container.read(editorNotifierProvider);
+      event = state.activeMap!.events.single;
+      expect(toActor, isTrue);
+      expect(event.type, MapEventType.actor);
+      expect(event.pages, originalPages);
+      expect(state.selectedMapEventId, 'evt_existing');
+    });
+
+    test('rejects effect and unknown events without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapForTriggerTypeAuthoring(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final originalMap = notifier.state.activeMap;
+
+      final effect = notifier.updateEventBuilderTriggerType(
+        eventId: 'evt_existing',
+        type: MapEventType.effect,
+      );
+      var state = container.read(editorNotifierProvider);
+      expect(effect, isFalse);
+      expect(state.activeMap, originalMap);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(
+        state.errorMessage,
+        'Ce type de déclencheur n’est pas éditable dans ce lot.',
+      );
+
+      final unknown = notifier.updateEventBuilderTriggerType(
+        eventId: 'missing_event',
+        type: MapEventType.object,
+      );
+      state = container.read(editorNotifierProvider);
+      expect(unknown, isFalse);
+      expect(state.activeMap, originalMap);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Événement introuvable : missing_event');
+    });
+  });
 }
 
 ProjectManifest _projectWithScenes() {
@@ -1254,6 +1349,44 @@ MapData _mapForEventConsumedConditions({ScriptCondition? condition}) {
           MapEventPage(
             pageNumber: 0,
             sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+MapData _mapForTriggerTypeAuthoring() {
+  return MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: const GridSize(width: 4, height: 3),
+    layers: const [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        type: MapEventType.actor,
+        position: const EventPosition(layerId: 'objects', x: 0, y: 0),
+        metadata: {'scope': 'event'},
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            condition: ScriptConditionFactory.flagIsSet('fact_started'),
+            script: const ScriptRef(scriptId: 'script_legacy'),
+            message: 'Message legacy',
+            sceneTarget: const MapEventSceneTarget(sceneId: 'scene_existing'),
+            metadata: const {
+              'legacyKey': 'legacyValue',
+              EventBuilderMetadataKeys.reusePolicy: 'oneShot',
+            },
           ),
         ],
       ),

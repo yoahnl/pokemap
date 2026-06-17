@@ -2872,6 +2872,61 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  bool updateEventBuilderTriggerType({
+    required String eventId,
+    required MapEventType type,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucune map active pour modifier le déclencheur.',
+      );
+      return false;
+    }
+    // NS-EVENT-15 exposes only the MVP trigger grammar. MapEventType.effect is
+    // intentionally kept out of authoring because it mixes visual/effect intent
+    // with event launch semantics for no-code users.
+    if (!_isEventBuilderAuthorableTriggerType(type)) {
+      state = state.copyWith(
+        errorMessage: 'Ce type de déclencheur n’est pas éditable dans ce lot.',
+      );
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.type == type) {
+      return true;
+    }
+
+    try {
+      final updated = updateMapEventOnMap(
+        map,
+        eventId: eventId,
+        type: type,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Déclencheur d’événement mis à jour',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de modifier le déclencheur : $e',
+      );
+      return false;
+    }
+  }
+
   bool updateEventBuilderEventSceneAction({
     required String eventId,
     required String sceneId,
@@ -9151,6 +9206,16 @@ class EditorNotifier extends _$EditorNotifier {
       EventBuilderConditionKind.storyStepCompleted ||
       EventBuilderConditionKind.storyStepNotCompleted =>
         false,
+    };
+  }
+
+  bool _isEventBuilderAuthorableTriggerType(MapEventType type) {
+    return switch (type) {
+      MapEventType.actor ||
+      MapEventType.object ||
+      MapEventType.triggerZone =>
+        true,
+      MapEventType.effect => false,
     };
   }
 

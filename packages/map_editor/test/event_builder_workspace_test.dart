@@ -1053,6 +1053,92 @@ void main() {
     );
   });
 
+  testWidgets('NS-EVENT-15 edits trigger type with no-code labels',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Interaction avec un PNJ'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+    );
+    await tester.pumpAndSettle();
+
+    var state = container.read(editorNotifierProvider);
+    var event = state.activeMap!.events.single;
+    expect(event.type, MapEventType.object);
+    expect(event.id, 'evt_existing');
+    expect(event.title, 'Événement existant');
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(state.selectedMapEventId, 'evt_existing');
+    expect(state.statusMessage, 'Déclencheur d’événement mis à jour');
+    expect(find.text('Interaction avec un objet'), findsWidgets);
+    expect(find.text('Déclencheur mis à jour.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-zone-button')),
+    );
+    await tester.pumpAndSettle();
+    state = container.read(editorNotifierProvider);
+    event = state.activeMap!.events.single;
+    expect(event.type, MapEventType.triggerZone);
+    expect(find.text('Entrée dans une zone'), findsWidgets);
+    expect(find.text('Déclencheur mis à jour.'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-actor-button')),
+    );
+    await tester.pumpAndSettle();
+    state = container.read(editorNotifierProvider);
+    event = state.activeMap!.events.single;
+    expect(event.type, MapEventType.actor);
+    expect(find.text('Interaction avec un PNJ'), findsWidgets);
+    expect(find.text('Déclencheur mis à jour.'), findsOneWidget);
+
+    expect(find.text('effect'), findsNothing);
+    expect(find.text('MapEventType'), findsNothing);
+    expect(find.text('Modifier la position'), findsNothing);
+    expect(find.text('Changer la couche'), findsNothing);
+    expect(find.text('Taille de zone'), findsNothing);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Créer une règle'), findsNothing);
+    expect(find.text('Flow editor'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-15 keeps effect trigger type read-only',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelForEffectTriggerType(),
+      onUpdateTriggerType: ({
+        required eventId,
+        required type,
+      }) =>
+          false,
+    );
+
+    expect(find.text('Interaction / effet'), findsWidgets);
+    expect(
+      find.text('Ce type de déclencheur n’est pas éditable dans ce lot.'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+      findsNothing,
+    );
+    expect(find.text('effect'), findsNothing);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -1371,6 +1457,48 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
+  testWidgets('captures NS-EVENT-15 trigger type authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_15_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-trigger-zone-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-zone-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Déclencheur'),
+      -120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_15_trigger_type_authoring_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_04_CAPTURE_WORKSPACE')) {
       return;
@@ -1533,6 +1661,7 @@ Future<void> _pumpWorkspace(
   List<EventBuilderSceneOption> sceneOptions = const [],
   List<EventBuilderFactOption> factOptions = const [],
   List<EventBuilderConditionEventOption> eventConditionOptions = const [],
+  EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType,
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
   EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
   EventBuilderFactConditionAddCallback? onAddFactCondition,
@@ -1570,6 +1699,7 @@ Future<void> _pumpWorkspace(
               sceneOptions: sceneOptions,
               factOptions: factOptions,
               eventConditionOptions: eventConditionOptions,
+              onUpdateTriggerType: onUpdateTriggerType,
               onUpdateSceneAction: onUpdateSceneAction,
               onUpdateReusePolicy: onUpdateReusePolicy,
               onAddFactCondition: onAddFactCondition,
@@ -1588,8 +1718,9 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
   WidgetTester tester, {
   String? fontFamily,
   MapData? activeMap,
+  Size surfaceSize = const Size(1440, 900),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1440, 900));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final container = ProviderContainer();
@@ -1690,6 +1821,28 @@ EventBuilderReadModel _draftReadModelWithoutScene() {
     ],
     mapId: 'map_port',
     mapTitle: 'Port Selbrume',
+  );
+}
+
+EventBuilderReadModel _readModelForEffectTriggerType() {
+  return buildEventBuilderReadModel(
+    events: const [
+      MapEventDefinition(
+        id: 'evt_effect',
+        title: 'Effet avancé',
+        type: MapEventType.effect,
+        position: EventPosition(layerId: 'objects', x: 0, y: 0),
+        pages: [
+          MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+        ],
+      ),
+    ],
+    mapId: 'map_port',
+    mapTitle: 'Port Selbrume',
+    sceneLabels: const {'scene_existing': 'Scène existante'},
   );
 }
 

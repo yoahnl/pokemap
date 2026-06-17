@@ -9,6 +9,11 @@ typedef EventBuilderTitleRenameCallback = bool Function({
   required String title,
 });
 
+typedef EventBuilderTriggerTypeUpdateCallback = bool Function({
+  required String eventId,
+  required MapEventType type,
+});
+
 typedef EventBuilderSceneActionUpdateCallback = bool Function({
   required String eventId,
   required String sceneId,
@@ -75,6 +80,7 @@ class EventBuilderWorkspace extends StatefulWidget {
     this.factOptions = const <EventBuilderFactOption>[],
     this.eventConditionOptions = const <EventBuilderConditionEventOption>[],
     this.onRenameEventTitle,
+    this.onUpdateTriggerType,
     this.onUpdateSceneAction,
     this.onUpdateReusePolicy,
     this.onAddFactCondition,
@@ -88,6 +94,7 @@ class EventBuilderWorkspace extends StatefulWidget {
   final List<EventBuilderFactOption> factOptions;
   final List<EventBuilderConditionEventOption> eventConditionOptions;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
+  final EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
   final EventBuilderFactConditionAddCallback? onAddFactCondition;
@@ -373,6 +380,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                           factOptions: widget.factOptions,
                           eventConditionOptions: widget.eventConditionOptions,
                           onRenameTitle: widget.onRenameEventTitle,
+                          onUpdateTriggerType: widget.onUpdateTriggerType,
                           onUpdateSceneAction: widget.onUpdateSceneAction,
                           onUpdateReusePolicy: widget.onUpdateReusePolicy,
                           onAddFactCondition: widget.onAddFactCondition,
@@ -883,6 +891,7 @@ class _EventDetailsPanel extends StatefulWidget {
     required this.factOptions,
     required this.eventConditionOptions,
     required this.onRenameTitle,
+    required this.onUpdateTriggerType,
     required this.onUpdateSceneAction,
     required this.onUpdateReusePolicy,
     required this.onAddFactCondition,
@@ -895,6 +904,7 @@ class _EventDetailsPanel extends StatefulWidget {
   final List<EventBuilderFactOption> factOptions;
   final List<EventBuilderConditionEventOption> eventConditionOptions;
   final EventBuilderTitleRenameCallback? onRenameTitle;
+  final EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
   final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
   final EventBuilderFactConditionAddCallback? onAddFactCondition;
@@ -911,6 +921,8 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   bool _isEditingTitle = false;
   String? _titleError;
   String? _titleFeedback;
+  String? _triggerError;
+  String? _triggerFeedback;
   bool _isChoosingScene = false;
   String? _sceneError;
   String? _sceneFeedback;
@@ -938,6 +950,8 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _isEditingTitle = false;
       _titleError = null;
       _titleFeedback = null;
+      _triggerError = null;
+      _triggerFeedback = null;
       _isChoosingScene = false;
       _sceneError = null;
       _sceneFeedback = null;
@@ -1008,9 +1022,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               title: 'Déclencheur',
               section: sections['trigger'],
               children: [
-                _DetailLine(label: 'Type', value: selected.trigger.label),
-                _DetailLine(
-                    label: 'Source', value: selected.trigger.sourceLabel),
+                _buildTriggerBlock(context, selected),
               ],
             ),
             _DetailSection(
@@ -1218,6 +1230,84 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
         ),
         const SizedBox(height: 8),
         _TechnicalIdHint(technicalId: selected.technicalId),
+      ],
+    );
+  }
+
+  Widget _buildTriggerBlock(
+    BuildContext context,
+    EventBuilderEventSummary selected,
+  ) {
+    final colors = context.pokeMapColors;
+    final currentType = _triggerTypeForLabel(selected.trigger.label);
+    final canUpdateTrigger =
+        widget.onUpdateTriggerType != null && currentType != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DetailLine(label: 'Type', value: selected.trigger.label),
+        _DetailLine(label: 'Source', value: selected.trigger.sourceLabel),
+        if (widget.onUpdateTriggerType != null && currentType == null) ...[
+          const SizedBox(height: 8),
+          const _DiagnosticNotice(
+            title: 'Déclencheur en lecture seule',
+            message: 'Ce type de déclencheur n’est pas éditable dans ce lot.',
+            tone: PokeMapTone.warning,
+            severityLabel: 'Action indisponible',
+            details: ['Types MVP : PNJ, objet, zone'],
+          ),
+        ],
+        if (canUpdateTrigger) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _TriggerTypeButton(
+                key: const ValueKey('event-builder-trigger-actor-button'),
+                label: 'Interaction avec un PNJ',
+                icon: CupertinoIcons.person_crop_circle,
+                type: MapEventType.actor,
+                currentType: currentType,
+                onSelect: (type) => _selectTriggerType(selected, type),
+              ),
+              _TriggerTypeButton(
+                key: const ValueKey('event-builder-trigger-object-button'),
+                label: 'Interaction avec un objet',
+                icon: CupertinoIcons.cube_box,
+                type: MapEventType.object,
+                currentType: currentType,
+                onSelect: (type) => _selectTriggerType(selected, type),
+              ),
+              _TriggerTypeButton(
+                key: const ValueKey('event-builder-trigger-zone-button'),
+                label: 'Entrée dans une zone',
+                icon: CupertinoIcons.square_grid_2x2,
+                type: MapEventType.triggerZone,
+                currentType: currentType,
+                onSelect: (type) => _selectTriggerType(selected, type),
+              ),
+              if (_triggerFeedback != null)
+                PokeMapBadge(
+                  label: _triggerFeedback!,
+                  variant: PokeMapBadgeVariant.success,
+                  icon: const Icon(CupertinoIcons.checkmark_circle),
+                ),
+            ],
+          ),
+          if (_triggerError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _triggerError!,
+              style: TextStyle(
+                color: colors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -1700,6 +1790,28 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     });
   }
 
+  void _selectTriggerType(
+    EventBuilderEventSummary selected,
+    MapEventType type,
+  ) {
+    final updated = widget.onUpdateTriggerType?.call(
+          eventId: selected.eventId,
+          type: type,
+        ) ??
+        false;
+    if (!updated) {
+      setState(() {
+        _triggerError = 'Impossible de modifier ce déclencheur.';
+        _triggerFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _triggerError = null;
+      _triggerFeedback = 'Déclencheur mis à jour.';
+    });
+  }
+
   void _startFactConditionChoice() {
     setState(() {
       _isChoosingFactCondition = true;
@@ -1893,6 +2005,36 @@ class _TechnicalIdHint extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TriggerTypeButton extends StatelessWidget {
+  const _TriggerTypeButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.type,
+    required this.currentType,
+    required this.onSelect,
+  });
+
+  final String label;
+  final IconData icon;
+  final MapEventType type;
+  final MapEventType currentType;
+  final ValueChanged<MapEventType> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = currentType == type;
+    return PokeMapButton(
+      onPressed: isSelected ? null : () => onSelect(type),
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      isSelected: isSelected,
+      leading: Icon(icon),
+      child: Text(label),
     );
   }
 }
@@ -2241,6 +2383,15 @@ bool _isEditableConditionKind(EventBuilderConditionKind kind) {
     EventBuilderConditionKind.storyStepCompleted ||
     EventBuilderConditionKind.storyStepNotCompleted =>
       false,
+  };
+}
+
+MapEventType? _triggerTypeForLabel(String label) {
+  return switch (label) {
+    'Interaction avec un PNJ' => MapEventType.actor,
+    'Interaction avec un objet' => MapEventType.object,
+    'Entrée dans une zone' => MapEventType.triggerZone,
+    _ => null,
   };
 }
 

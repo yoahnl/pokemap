@@ -560,6 +560,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           eventConditionOptions:
               _buildEventBuilderConditionEventOptions(editor.activeMap),
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
+          onUpdateTriggerType: editorNotifier.updateEventBuilderTriggerType,
           onUpdateSceneAction:
               editorNotifier.updateEventBuilderEventSceneAction,
           onUpdateReusePolicy:
