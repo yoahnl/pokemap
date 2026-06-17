@@ -42,7 +42,6 @@ void main() {
     expect(find.text('Coffre abandonné'), findsWidgets);
     expect(find.text('Garde somnolent'), findsWidgets);
     expect(find.text('Rumeur cassée'), findsWidgets);
-    expect(find.text('Herbes médicinales'), findsWidgets);
     expect(find.text('Actif'), findsWidgets);
     expect(find.text('Brouillon'), findsOneWidget);
     expect(find.text('Inactif'), findsOneWidget);
@@ -52,18 +51,18 @@ void main() {
     expect(find.text('Jouer la scène "Rencontre rival"'), findsWidgets);
     expect(find.text('0 condition'), findsWidgets);
     expect(find.text('1 diagnostic'), findsWidgets);
-    expect(find.text('Action principale manquante'), findsWidgets);
-    expect(find.text('ID technique'), findsOneWidget);
-    expect(find.text('EVT_RIVAL_PORT_MEET'), findsOneWidget);
+    expect(find.text('Aucune action principale'), findsWidgets);
+    expect(find.text('ID technique'), findsWidgets);
+    expect(find.text('EVT_RIVAL_PORT_MEET'), findsWidgets);
 
-    await tester.tap(find.text('Herbes médicinales').first);
-    await tester.pumpAndSettle();
+    await _tapEventCard(tester, 'Herbes médicinales');
 
     expect(
-      find.text(
-        'Cette condition contient une partie avancée préservée. '
-        'Elle ne peut pas être éditée partiellement.',
-      ),
+      find.text('Cette condition contient une partie avancée préservée.'),
+      findsWidgets,
+    );
+    expect(
+      find.text('Elle est lisible, mais pas encore éditable partiellement.'),
       findsWidgets,
     );
     expect(find.text('Condition avancée préservée'), findsWidgets);
@@ -73,6 +72,116 @@ void main() {
     expect(find.text('Créer'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
     expect(find.text('Ajouter une condition'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-05 displays read-only sections with summaries',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(find.text('Déclencheur'), findsOneWidget);
+    expect(find.text('Conditions'), findsOneWidget);
+    expect(find.text('Action principale'), findsOneWidget);
+    expect(find.text('Comportement'), findsOneWidget);
+    expect(find.text('Changements du monde'), findsOneWidget);
+    expect(find.text('Diagnostics'), findsWidgets);
+    expect(find.text('Informations techniques'), findsOneWidget);
+
+    expect(find.text('Déclencheur configuré'), findsOneWidget);
+    expect(find.text('1 impact(s) prévisible(s)'), findsOneWidget);
+    expect(
+      find.text('Événement consommé : Rencontre rival au port'),
+      findsOneWidget,
+    );
+    expect(find.text('0 diagnostic'), findsWidgets);
+    expect(
+      find.text('Le read model ne signale aucun problème bloquant.'),
+      findsOneWidget,
+    );
+    expect(find.text('EVT_RIVAL_PORT_MEET'), findsWidgets);
+  });
+
+  testWidgets(
+      'NS-EVENT-05 shows missing action diagnostic only for draft selection',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(
+      find.text('Le read model ne signale aucun problème bloquant.'),
+      findsOneWidget,
+    );
+
+    await _tapEventCard(tester, 'Coffre abandonné');
+
+    expect(
+      find.text('Le read model ne signale aucun problème bloquant.'),
+      findsNothing,
+    );
+    expect(find.text('Action principale manquante'), findsWidgets);
+    expect(find.text('Section : Action principale'), findsOneWidget);
+    expect(find.text('1 diagnostic'), findsWidgets);
+    expect(find.text('Bloquant'), findsWidgets);
+  });
+
+  testWidgets('NS-EVENT-05 explains locked legacy conditions clearly',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    await _tapEventCard(tester, 'Herbes médicinales');
+
+    expect(
+      find.text('Cette condition contient une partie avancée préservée.'),
+      findsWidgets,
+    );
+    expect(
+      find.text('Elle est lisible, mais pas encore éditable partiellement.'),
+      findsWidgets,
+    );
+    expect(
+      find.text('La condition complète est conservée telle quelle.'),
+      findsWidgets,
+    );
+    expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
+    expect(find.text('Condition avancée préservée'), findsWidgets);
+    expect(find.text('Ajouter une condition'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-05 surfaces legacy script and message warnings',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    await _tapEventCard(tester, 'Messager legacy');
+
+    expect(find.text('Script legacy préservé'), findsOneWidget);
+    expect(find.text('Message legacy préservé'), findsOneWidget);
+    expect(find.text('Avertissement'), findsWidgets);
+    expect(find.text('Section : Action principale'), findsWidgets);
+    expect(find.text('2 diagnostics'), findsWidgets);
+  });
+
+  testWidgets('NS-EVENT-05 surfaces malformed metadata warning',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    await _tapEventCard(tester, 'Réglage cassé');
+
+    expect(find.text('Réglage Event Builder illisible'), findsOneWidget);
+    expect(find.text('Section : Comportement'), findsOneWidget);
+    expect(
+      find.text('Chemin : page.metadata.eventBuilder.reusePolicy'),
+      findsOneWidget,
+    );
+    expect(find.text('Avertissement'), findsWidgets);
+  });
+
+  testWidgets('NS-EVENT-05 keeps the workspace read-only', (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Créer'), findsNothing);
+    expect(find.text('Sauvegarder'), findsNothing);
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Supprimer'), findsNothing);
   });
 
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
@@ -90,6 +199,33 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_04_workspace_list_readonly_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-05 readonly diagnostics visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_05_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpWorkspace(
+      tester,
+      _sampleReadModel(),
+      fontFamily: _screenshotFontFamily,
+    );
+    await _tapEventCard(tester, 'Herbes médicinales');
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_05_readonly_details_diagnostics_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -162,6 +298,29 @@ EventBuilderReadModel _sampleReadModel() {
           ]),
         ),
       ),
+      _event(
+        id: 'evt_legacy_script',
+        title: 'Messager legacy',
+        x: 5,
+        page: const MapEventPage(
+          pageNumber: 0,
+          sceneTarget: MapEventSceneTarget(sceneId: 'scene_message'),
+          script: ScriptRef(scriptId: 'legacy_script'),
+          message: 'Bonjour legacy',
+        ),
+      ),
+      _event(
+        id: 'evt_malformed',
+        title: 'Réglage cassé',
+        x: 6,
+        page: const MapEventPage(
+          pageNumber: 0,
+          sceneTarget: MapEventSceneTarget(sceneId: 'scene_malformed'),
+          metadata: {
+            EventBuilderMetadataKeys.reusePolicy: 'reuse-forever',
+          },
+        ),
+      ),
     ],
     mapId: 'map_port',
     mapTitle: 'Port Selbrume',
@@ -169,6 +328,8 @@ EventBuilderReadModel _sampleReadModel() {
       'scene_rival': 'Rencontre rival',
       'scene_guard': 'Réveil du garde',
       'scene_herbs': 'Cueillir les herbes',
+      'scene_message': 'Lire le message',
+      'scene_malformed': 'Scène réglage',
     },
     factLabels: const {
       'fact_started': 'Départ accepté',
@@ -205,6 +366,17 @@ Future<void> _pumpWorkspace(
     ),
   );
   await tester.pump();
+}
+
+Future<void> _tapEventCard(WidgetTester tester, String label) async {
+  final finder = find.text(label);
+  await tester.scrollUntilVisible(
+    finder,
+    120,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.tap(finder.first);
+  await tester.pumpAndSettle();
 }
 
 MapEventDefinition _event({

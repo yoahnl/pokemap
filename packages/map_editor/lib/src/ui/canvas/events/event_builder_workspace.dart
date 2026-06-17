@@ -37,6 +37,12 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final selected = _selectedEvent();
+    final activeCount = widget.readModel.events
+        .where((event) => event.status == EventBuilderEventStatus.active)
+        .length;
+    final draftCount = widget.readModel.events
+        .where((event) => event.status == EventBuilderEventStatus.draft)
+        .length;
     return PokeMapPageSurface(
       key: const ValueKey('event-builder-workspace'),
       padding: const EdgeInsets.all(18),
@@ -97,6 +103,21 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                 value: '${widget.readModel.events.length}',
                 icon: CupertinoIcons.list_bullet,
                 tone: PokeMapTone.quest,
+              ),
+              PokeMapStatusTile(
+                label: 'Actifs',
+                value: '$activeCount',
+                icon: CupertinoIcons.checkmark_circle,
+                tone: activeCount == 0
+                    ? PokeMapTone.neutral
+                    : PokeMapTone.success,
+              ),
+              PokeMapStatusTile(
+                label: 'Brouillons',
+                value: '$draftCount',
+                icon: CupertinoIcons.pencil_ellipsis_rectangle,
+                tone:
+                    draftCount == 0 ? PokeMapTone.neutral : PokeMapTone.warning,
               ),
               PokeMapStatusTile(
                 label: 'Diagnostics',
@@ -260,6 +281,14 @@ class _EventListCard extends StatelessWidget {
     final colors = context.pokeMapColors;
     final conditionCount = event.conditions.length;
     final diagnosticCount = event.diagnostics.length;
+    final blockingCount = event.diagnostics
+        .where((diagnostic) =>
+            diagnostic.severity ==
+            EventBuilderDiagnosticReadModelSeverity.error)
+        .length;
+    final actionLabel = event.sceneAction.isMissing
+        ? 'Aucune action principale'
+        : event.sceneAction.label;
     return PokeMapCard(
       key: ValueKey('event-builder-event-card-${event.eventId}'),
       selected: selected,
@@ -299,7 +328,7 @@ class _EventListCard extends StatelessWidget {
           const SizedBox(height: 5),
           _InlineInfo(
             icon: CupertinoIcons.play_rectangle,
-            label: event.sceneAction.label,
+            label: actionLabel,
           ),
           const SizedBox(height: 9),
           Wrap(
@@ -312,11 +341,17 @@ class _EventListCard extends StatelessWidget {
                 variant: PokeMapBadgeVariant.neutral,
               ),
               PokeMapBadge(
-                label:
-                    '$diagnosticCount diagnostic${diagnosticCount > 1 ? 's' : ''}',
+                label: diagnosticCount == 0
+                    ? 'Aucun diagnostic'
+                    : '$diagnosticCount diagnostic${diagnosticCount > 1 ? 's' : ''}',
                 variant: diagnosticCount == 0
                     ? PokeMapBadgeVariant.success
-                    : PokeMapBadgeVariant.warning,
+                    : blockingCount > 0
+                        ? PokeMapBadgeVariant.error
+                        : PokeMapBadgeVariant.warning,
+                icon: diagnosticCount == 0
+                    ? const Icon(CupertinoIcons.checkmark_circle)
+                    : const Icon(CupertinoIcons.exclamationmark_triangle),
               ),
               if (event.conditionEditingLocked)
                 const PokeMapBadge(
@@ -351,128 +386,175 @@ class _EventDetailsPanel extends StatelessWidget {
       );
     }
 
+    final sections = {
+      for (final section in selected.sections) section.key: section,
+    };
     return PokeMapPanel(
       key: const ValueKey('event-builder-event-details'),
       expandChild: true,
       padding: const EdgeInsets.all(14),
-      child: ListView(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PokeMapIconTile(
-                icon: CupertinoIcons.bolt_horizontal_circle,
-                tone: PokeMapTone.quest,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selected.displayName,
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'ID technique',
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    Text(
-                      selected.technicalId,
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const PokeMapIconTile(
+                  icon: CupertinoIcons.bolt_horizontal_circle,
+                  tone: PokeMapTone.quest,
                 ),
-              ),
-              const SizedBox(width: 8),
-              PokeMapBadge(
-                label: selected.statusLabel,
-                variant: _statusVariant(selected.status),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _DetailSection(
-            title: 'Déclencheur',
-            children: [
-              _DetailLine(label: 'Type', value: selected.trigger.label),
-              _DetailLine(label: 'Source', value: selected.trigger.sourceLabel),
-            ],
-          ),
-          _DetailSection(
-            title: 'Conditions',
-            children: [
-              if (selected.conditionEditingMessage != null)
-                _DiagnosticNotice(
-                  title: 'Conditions verrouillées',
-                  message: selected.conditionEditingMessage!,
-                  tone: PokeMapTone.warning,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        selected.displayName,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'ID technique',
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      Text(
+                        selected.technicalId,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              if (selected.conditions.isEmpty)
-                const _MutedText('Aucune condition')
-              else
-                for (final condition in selected.conditions)
-                  _DetailLine(
-                    label: condition.isEditable ? 'Condition' : 'Condition lue',
-                    value: condition.label,
+                const SizedBox(width: 8),
+                PokeMapBadge(
+                  label: selected.statusLabel,
+                  variant: _statusVariant(selected.status),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            _DetailSection(
+              title: 'Déclencheur',
+              section: sections['trigger'],
+              children: [
+                _DetailLine(label: 'Type', value: selected.trigger.label),
+                _DetailLine(
+                    label: 'Source', value: selected.trigger.sourceLabel),
+              ],
+            ),
+            _DetailSection(
+              title: 'Conditions',
+              section: sections['conditions'],
+              summaryOverride: selected.conditionEditingLocked
+                  ? 'Condition avancée conservée en lecture seule'
+                  : null,
+              children: [
+                if (selected.conditionEditingLocked)
+                  const _DiagnosticNotice(
+                    title: 'Conditions verrouillées',
+                    message:
+                        'Cette condition contient une partie avancée préservée.\n'
+                        'Elle est lisible, mais pas encore éditable '
+                        'partiellement.\n'
+                        'La condition complète est conservée telle quelle.',
+                    tone: PokeMapTone.warning,
+                    severityLabel: 'Avertissement',
+                    details: ['Section : Conditions'],
                   ),
-            ],
-          ),
-          _DetailSection(
-            title: 'Action principale',
-            children: [
-              _DetailLine(label: 'Scène', value: selected.sceneAction.label),
-            ],
-          ),
-          _DetailSection(
-            title: 'Comportement',
-            children: [
-              _DetailLine(
-                  label: 'Réutilisation', value: selected.behavior.label),
-            ],
-          ),
-          _DetailSection(
-            title: 'Changements du monde',
-            children: [
-              if (selected.worldImpacts.isEmpty)
-                const _MutedText('Aucun impact monde prévisible')
-              else
-                for (final impact in selected.worldImpacts)
-                  _DetailLine(label: impact.reason, value: impact.label),
-            ],
-          ),
-          _DetailSection(
-            title: 'Diagnostics',
-            children: [
-              if (selected.diagnostics.isEmpty)
-                const _DiagnosticNotice(
-                  title: 'Aucun diagnostic',
-                  message: 'Le read model ne signale aucun problème bloquant.',
-                  tone: PokeMapTone.success,
-                )
-              else
-                for (final diagnostic in selected.diagnostics)
-                  _DiagnosticNotice(
-                    title: diagnostic.title,
-                    message: diagnostic.message,
-                    tone: _diagnosticTone(diagnostic.severity),
-                  ),
-            ],
-          ),
-        ],
+                if (selected.conditions.isEmpty)
+                  const _MutedText('Aucune condition')
+                else
+                  for (final condition in selected.conditions)
+                    _ConditionDetailLine(condition: condition),
+              ],
+            ),
+            _DetailSection(
+              title: 'Action principale',
+              section: sections['actions'],
+              children: [
+                _DetailLine(
+                  label: selected.sceneAction.isMissing ? 'État' : 'Scène',
+                  value: selected.sceneAction.label,
+                ),
+              ],
+            ),
+            _DetailSection(
+              title: 'Comportement',
+              section: sections['behavior'],
+              children: [
+                _DetailLine(
+                  label: 'Réutilisation',
+                  value: selected.behavior.label,
+                ),
+              ],
+            ),
+            _DetailSection(
+              title: 'Changements du monde',
+              section: sections['world'],
+              children: [
+                if (selected.worldImpacts.isEmpty)
+                  const _MutedText('Aucun impact monde prévisible')
+                else
+                  for (final impact in selected.worldImpacts)
+                    _DetailLine(label: impact.reason, value: impact.label),
+              ],
+            ),
+            _DetailSection(
+              title: 'Diagnostics',
+              children: [
+                if (selected.diagnostics.isEmpty)
+                  const _DiagnosticNotice(
+                    title: 'Aucun diagnostic',
+                    message:
+                        'Le read model ne signale aucun problème bloquant.',
+                    tone: PokeMapTone.success,
+                    severityLabel: 'OK',
+                    details: ['Toutes les sections sont lisibles'],
+                  )
+                else
+                  for (final diagnostic in selected.diagnostics)
+                    _DiagnosticNotice(
+                      title: diagnostic.title,
+                      message: diagnostic.message,
+                      tone: _diagnosticTone(diagnostic.severity),
+                      severityLabel: _diagnosticSeverityLabel(
+                        diagnostic.severity,
+                      ),
+                      details: [
+                        'Section : ${_diagnosticSectionLabel(diagnostic.sectionTarget)}',
+                        if (diagnostic.path.isNotEmpty)
+                          'Chemin : ${diagnostic.path}',
+                        if (diagnostic.referencedId != null)
+                          'Référence : ${diagnostic.referencedId}',
+                      ],
+                    ),
+              ],
+            ),
+            _DetailSection(
+              title: 'Informations techniques',
+              children: [
+                _DetailLine(label: 'ID technique', value: selected.technicalId),
+                _DetailLine(label: 'Groupe', value: selected.groupKey),
+                _DetailLine(
+                  label: 'Position',
+                  value: 'x ${selected.position.x}, y ${selected.position.y}',
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -515,10 +597,14 @@ class _DetailSection extends StatelessWidget {
   const _DetailSection({
     required this.title,
     required this.children,
+    this.section,
+    this.summaryOverride,
   });
 
   final String title;
   final List<Widget> children;
+  final EventBuilderSectionReadModel? section;
+  final String? summaryOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -528,15 +614,54 @@ class _DetailSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w900,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              if (section != null) ...[
+                const SizedBox(width: 8),
+                PokeMapBadge(
+                  label: section!.diagnosticCount == 0
+                      ? '0 diagnostic'
+                      : '${section!.diagnosticCount} diagnostic${section!.diagnosticCount > 1 ? 's' : ''}',
+                  variant: section!.diagnosticCount == 0
+                      ? PokeMapBadgeVariant.success
+                      : section!.hasBlockingDiagnostic
+                          ? PokeMapBadgeVariant.error
+                          : PokeMapBadgeVariant.warning,
+                ),
+                if (section!.hasBlockingDiagnostic) ...[
+                  const SizedBox(width: 6),
+                  const PokeMapBadge(
+                    label: 'Bloquant',
+                    variant: PokeMapBadgeVariant.error,
+                  ),
+                ],
+              ],
+            ],
           ),
-          const SizedBox(height: 7),
+          if (summaryOverride != null || section != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              summaryOverride ?? section!.summary,
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
           ...children,
         ],
       ),
@@ -596,16 +721,36 @@ class _DetailLine extends StatelessWidget {
   }
 }
 
+class _ConditionDetailLine extends StatelessWidget {
+  const _ConditionDetailLine({required this.condition});
+
+  final EventBuilderConditionReadModel condition;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailLine(
+      label: condition.isEditable ? 'Condition' : 'Condition lue',
+      value: condition.isSupported
+          ? condition.label
+          : '${condition.label}\nLecture seule dans ce lot',
+    );
+  }
+}
+
 class _DiagnosticNotice extends StatelessWidget {
   const _DiagnosticNotice({
     required this.title,
     required this.message,
     required this.tone,
+    this.severityLabel,
+    this.details = const <String>[],
   });
 
   final String title;
   final String message;
   final PokeMapTone tone;
+  final String? severityLabel;
+  final List<String> details;
 
   @override
   Widget build(BuildContext context) {
@@ -637,16 +782,43 @@ class _DiagnosticNotice extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: colors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      height: 1.3,
+                  if (severityLabel != null) ...[
+                    const SizedBox(height: 4),
+                    PokeMapBadge(
+                      label: severityLabel!,
+                      variant: _diagnosticBadgeVariant(tone),
                     ),
-                  ),
+                  ],
+                  const SizedBox(height: 3),
+                  for (final line in message.split('\n'))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 2),
+                      child: Text(
+                        line,
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  if (details.isNotEmpty) ...[
+                    const SizedBox(height: 7),
+                    for (final detail in details)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          detail,
+                          style: TextStyle(
+                            color: colors.textMuted,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                  ],
                 ],
               ),
             ),
@@ -690,5 +862,37 @@ PokeMapTone _diagnosticTone(EventBuilderDiagnosticReadModelSeverity severity) {
     EventBuilderDiagnosticReadModelSeverity.info => PokeMapTone.info,
     EventBuilderDiagnosticReadModelSeverity.warning => PokeMapTone.warning,
     EventBuilderDiagnosticReadModelSeverity.error => PokeMapTone.danger,
+  };
+}
+
+PokeMapBadgeVariant _diagnosticBadgeVariant(PokeMapTone tone) {
+  return switch (tone) {
+    PokeMapTone.success => PokeMapBadgeVariant.success,
+    PokeMapTone.warning => PokeMapBadgeVariant.warning,
+    PokeMapTone.danger => PokeMapBadgeVariant.error,
+    PokeMapTone.info => PokeMapBadgeVariant.info,
+    _ => PokeMapBadgeVariant.neutral,
+  };
+}
+
+String _diagnosticSeverityLabel(
+  EventBuilderDiagnosticReadModelSeverity severity,
+) {
+  return switch (severity) {
+    EventBuilderDiagnosticReadModelSeverity.info => 'Information',
+    EventBuilderDiagnosticReadModelSeverity.warning => 'Avertissement',
+    EventBuilderDiagnosticReadModelSeverity.error => 'Erreur',
+  };
+}
+
+String _diagnosticSectionLabel(String section) {
+  return switch (section) {
+    'trigger' => 'Déclencheur',
+    'conditions' => 'Conditions',
+    'actions' => 'Action principale',
+    'behavior' => 'Comportement',
+    'world' => 'Changements du monde',
+    'event' => 'Événement',
+    _ => section,
   };
 }
