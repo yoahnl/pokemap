@@ -8,12 +8,33 @@ class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
     required this.readModel,
+    this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
   });
 
   final EventBuilderReadModel readModel;
+  final EventBuilderDraftCreationGate draftCreationGate;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
+}
+
+class EventBuilderDraftCreationGate {
+  const EventBuilderDraftCreationGate.disabled({
+    this.disabledReason =
+        'Sélectionnez une position sur la carte pour créer un événement.',
+  })  : onCreateDraft = null,
+        readyLabel = 'Position requise';
+
+  const EventBuilderDraftCreationGate.enabled({
+    required this.onCreateDraft,
+    this.readyLabel = 'Position prête',
+  }) : disabledReason = null;
+
+  final VoidCallback? onCreateDraft;
+  final String? disabledReason;
+  final String readyLabel;
+
+  bool get canCreate => onCreateDraft != null;
 }
 
 class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
@@ -86,10 +107,30 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                 ),
               ),
               const SizedBox(width: 12),
-              const PokeMapBadge(
-                label: 'Lecture seule',
-                variant: PokeMapBadgeVariant.info,
-                icon: Icon(CupertinoIcons.eye),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  PokeMapButton(
+                    key: const ValueKey('event-builder-new-event-button'),
+                    onPressed: widget.draftCreationGate.onCreateDraft,
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.medium,
+                    leading: const Icon(CupertinoIcons.plus),
+                    child: const Text('Nouvel événement'),
+                  ),
+                  PokeMapBadge(
+                    label: widget.draftCreationGate.readyLabel,
+                    variant: widget.draftCreationGate.canCreate
+                        ? PokeMapBadgeVariant.success
+                        : PokeMapBadgeVariant.warning,
+                    icon: Icon(widget.draftCreationGate.canCreate
+                        ? CupertinoIcons.checkmark_circle
+                        : CupertinoIcons.location),
+                  ),
+                ],
               ),
             ],
           ),
@@ -135,10 +176,14 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
               ),
             ],
           ),
+          if (!widget.draftCreationGate.canCreate) ...[
+            const SizedBox(height: 12),
+            _DraftCreationGateNotice(gate: widget.draftCreationGate),
+          ],
           const SizedBox(height: 16),
           Expanded(
             child: widget.readModel.events.isEmpty
-                ? const _EventBuilderEmptyState()
+                ? _EventBuilderEmptyState(gate: widget.draftCreationGate)
                 : Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -190,17 +235,62 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
 }
 
 class _EventBuilderEmptyState extends StatelessWidget {
-  const _EventBuilderEmptyState();
+  const _EventBuilderEmptyState({required this.gate});
+
+  final EventBuilderDraftCreationGate gate;
 
   @override
   Widget build(BuildContext context) {
-    return const PokeMapPanel(
+    return PokeMapPanel(
       expandChild: true,
       child: PokeMapEmptyState(
-        icon: Icon(CupertinoIcons.bolt_horizontal_circle),
+        icon: const Icon(CupertinoIcons.bolt_horizontal_circle),
         title: 'Aucun événement sur cette map',
         description: 'Le Builder d’événements affichera ici les déclencheurs '
             'authorés depuis la carte active.',
+        action: PokeMapButton(
+          onPressed: gate.onCreateDraft,
+          variant: PokeMapButtonVariant.secondary,
+          leading: const Icon(CupertinoIcons.plus),
+          child: const Text('Nouvel événement'),
+        ),
+      ),
+    );
+  }
+}
+
+class _DraftCreationGateNotice extends StatelessWidget {
+  const _DraftCreationGateNotice({required this.gate});
+
+  final EventBuilderDraftCreationGate gate;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapPanel(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            CupertinoIcons.location,
+            color: colors.warning,
+            size: 16,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              gate.disabledReason ??
+                  'Sélectionnez une position sur la carte pour créer un événement.',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

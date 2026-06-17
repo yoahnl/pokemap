@@ -28,7 +28,12 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Aucun événement sur cette map'), findsOneWidget);
-    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(
+      find.text(
+          'Sélectionnez une position sur la carte pour créer un événement.'),
+      findsWidgets,
+    );
     expect(find.text('Sauvegarder'), findsNothing);
   });
 
@@ -68,7 +73,7 @@ void main() {
     expect(find.text('Condition avancée préservée'), findsWidgets);
     expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
 
-    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Nouvel événement'), findsWidgets);
     expect(find.text('Créer'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
     expect(find.text('Ajouter une condition'), findsNothing);
@@ -173,15 +178,118 @@ void main() {
     expect(find.text('Avertissement'), findsWidgets);
   });
 
-  testWidgets('NS-EVENT-05 keeps the workspace read-only', (tester) async {
+  testWidgets('NS-EVENT-05 keeps event details read-only', (tester) async {
     await _pumpWorkspace(tester, _sampleReadModel());
 
-    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(
+      find.text(
+          'Sélectionnez une position sur la carte pour créer un événement.'),
+      findsOneWidget,
+    );
     expect(find.text('Créer'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
     expect(find.text('Ajouter une condition'), findsNothing);
     expect(find.text('Ajouter une action'), findsNothing);
     expect(find.text('Supprimer'), findsNothing);
+  });
+
+  testWidgets(
+      'NS-EVENT-07 keeps draft creation blocked without explicit position',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+        findsOneWidget);
+    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(find.text('Position requise'), findsOneWidget);
+    expect(
+      find.text(
+          'Sélectionnez une position sur la carte pour créer un événement.'),
+      findsWidgets,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+        find.byKey(const ValueKey('event-builder-event-list')), findsNothing);
+    expect(find.text('Brouillon'), findsNothing);
+    expect(find.textContaining('0,0'), findsNothing);
+    expect(find.textContaining('0, 0'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-07 calls the creation entry only when gate is ready',
+      (tester) async {
+    var calls = 0;
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      draftCreationGate: EventBuilderDraftCreationGate.enabled(
+        onCreateDraft: () => calls++,
+      ),
+    );
+
+    expect(find.text('Position prête'), findsOneWidget);
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(calls, 1);
+  });
+
+  testWidgets(
+      'NS-EVENT-07 does not expose condition action or scene editing controls',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Jouer une scène'), findsNothing);
+    expect(find.text('Définir fact'), findsNothing);
+    expect(find.text('Sauvegarder'), findsNothing);
+  });
+
+  testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      fontFamily: _screenshotFontFamily,
+    );
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_07_draft_creation_ui_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
   });
 
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
@@ -341,6 +449,8 @@ Future<void> _pumpWorkspace(
   WidgetTester tester,
   EventBuilderReadModel readModel, {
   String? fontFamily,
+  EventBuilderDraftCreationGate draftCreationGate =
+      const EventBuilderDraftCreationGate.disabled(),
 }) async {
   tester.view.physicalSize = const Size(1280, 820);
   tester.view.devicePixelRatio = 1;
@@ -359,7 +469,10 @@ Future<void> _pumpWorkspace(
               fontFamily: fontFamily,
               decoration: TextDecoration.none,
             ),
-            child: EventBuilderWorkspace(readModel: readModel),
+            child: EventBuilderWorkspace(
+              readModel: readModel,
+              draftCreationGate: draftCreationGate,
+            ),
           ),
         ),
       ),
@@ -369,15 +482,27 @@ Future<void> _pumpWorkspace(
 }
 
 Future<void> _tapEventCard(WidgetTester tester, String label) async {
+  final eventId = _eventIdsByLabel[label];
   final finder = find.text(label);
+  final target = eventId == null
+      ? finder
+      : find.byKey(ValueKey('event-builder-event-card-$eventId'));
   await tester.scrollUntilVisible(
-    finder,
+    target,
     120,
     scrollable: find.byType(Scrollable).first,
   );
-  await tester.tap(finder.first);
+  await tester.pumpAndSettle();
+  await tester.tap(target.first);
   await tester.pumpAndSettle();
 }
+
+const _eventIdsByLabel = <String, String>{
+  'Coffre abandonné': 'evt_draft',
+  'Herbes médicinales': 'evt_legacy',
+  'Messager legacy': 'evt_legacy_script',
+  'Réglage cassé': 'evt_malformed',
+};
 
 MapEventDefinition _event({
   required String id,
