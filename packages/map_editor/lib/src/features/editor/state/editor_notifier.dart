@@ -2764,6 +2764,60 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  MapEventDefinition? createEventBuilderDraftEventAt({
+    required EventPosition position,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucune map active pour créer un brouillon d’événement.',
+      );
+      return null;
+    }
+    final layerId = position.layerId.trim();
+    if (layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Couche de destination obligatoire pour l’événement.',
+      );
+      return null;
+    }
+    final layer = _findLayerById(map, layerId);
+    if (layer == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Couche de destination introuvable pour l’événement : $layerId',
+      );
+      return null;
+    }
+    if (layer is! ObjectLayer) {
+      state = state.copyWith(
+        errorMessage: 'La couche de destination doit être une couche d’objets.',
+      );
+      return null;
+    }
+
+    try {
+      final result = createEventBuilderDraftEventOnMap(
+        map,
+        title: 'Nouvel événement',
+        position: position,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.updatedMap,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: result.createdEvent.id,
+        statusMessage: 'Brouillon d’événement créé',
+      );
+      return result.createdEvent;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de créer le brouillon d’événement : $e',
+      );
+      return null;
+    }
+  }
+
   void selectMapEvent(String? eventId) {
     final map = state.activeMap;
     if (map == null) return;

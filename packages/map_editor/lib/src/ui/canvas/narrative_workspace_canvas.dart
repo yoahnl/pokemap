@@ -551,6 +551,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.events => EventBuilderWorkspace(
           readModel: _buildEventBuilderWorkspaceReadModel(editor),
+          draftCreationGate: _buildEventBuilderDraftCreationGate(
+            editor,
+            editorNotifier,
+          ),
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -648,6 +652,50 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
         event.id: event.title.trim().isEmpty ? event.id : event.title,
     },
   );
+}
+
+EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
+  EditorState editor,
+  EditorNotifier editorNotifier,
+) {
+  final activeMap = editor.activeMap;
+  if (activeMap == null) {
+    return const EventBuilderDraftCreationGate.disabled(
+      disabledReason:
+          'Ouvrez une map active pour choisir la position de l’événement.',
+    );
+  }
+  final activeLayerId = editor.activeLayerId?.trim();
+  final activeLayer = activeLayerId == null || activeLayerId.isEmpty
+      ? null
+      : _findMapLayerById(activeMap, activeLayerId);
+  final layerIsValid = activeLayer is ObjectLayer;
+  final layerId = layerIsValid ? activeLayer.id : activeLayerId;
+  final layerLabel = layerIsValid
+      ? activeLayer.name
+      : activeLayer?.name ?? activeLayerId ?? 'Aucune couche';
+  return EventBuilderDraftCreationGate.positionPicker(
+    mapId: activeMap.id,
+    mapWidth: activeMap.size.width,
+    mapHeight: activeMap.size.height,
+    layerId: layerId,
+    layerLabel: layerLabel,
+    layerValid: layerIsValid,
+    onCreateDraftAt: (position) {
+      return editorNotifier
+          .createEventBuilderDraftEventAt(position: position)
+          ?.id;
+    },
+  );
+}
+
+MapLayer? _findMapLayerById(MapData map, String layerId) {
+  for (final layer in map.layers) {
+    if (layer.id == layerId) {
+      return layer;
+    }
+  }
+  return null;
 }
 
 Widget _buildFactsWorldRulesWorkspace({

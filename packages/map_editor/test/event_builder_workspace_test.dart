@@ -262,6 +262,125 @@ void main() {
     expect(find.text('Sauvegarder'), findsNothing);
   });
 
+  testWidgets(
+      'NS-EVENT-08 selected explicit position enables draft creation gate',
+      (tester) async {
+    EventPosition? createdPosition;
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      draftCreationGate: EventBuilderDraftCreationGate.positionPicker(
+        mapId: 'map_port',
+        mapWidth: 4,
+        mapHeight: 3,
+        layerId: 'objects',
+        layerLabel: 'Objets',
+        layerValid: true,
+        onCreateDraftAt: (position) {
+          createdPosition = position;
+          return 'evt_nouvel_evenement';
+        },
+      ),
+    );
+
+    expect(find.text('Position requise'), findsOneWidget);
+    expect(find.text('Couche : Objets'), findsOneWidget);
+    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
+    expect(find.text('Position prête'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(
+      createdPosition,
+      const EventPosition(layerId: 'objects', x: 2, y: 1),
+    );
+  });
+
+  testWidgets('NS-EVENT-08 invalid active layer keeps creation blocked',
+      (tester) async {
+    var calls = 0;
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      draftCreationGate: EventBuilderDraftCreationGate.positionPicker(
+        mapId: 'map_port',
+        mapWidth: 4,
+        mapHeight: 3,
+        layerId: 'ground',
+        layerLabel: 'Sol',
+        layerValid: false,
+        onCreateDraftAt: (_) {
+          calls++;
+          return 'evt_nouvel_evenement';
+        },
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-1-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Position sélectionnée : x 1, y 1'), findsOneWidget);
+    expect(find.text('Couche requise'), findsWidgets);
+    expect(
+      find.text(
+          'Sélectionnez une couche de destination pour créer un événement.'),
+      findsOneWidget,
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(calls, 0);
+  });
+
+  testWidgets('NS-EVENT-08 clearing explicit position blocks creation again',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      draftCreationGate: EventBuilderDraftCreationGate.positionPicker(
+        mapId: 'map_port',
+        mapWidth: 4,
+        mapHeight: 3,
+        layerId: 'objects',
+        layerLabel: 'Objets',
+        layerValid: true,
+        onCreateDraftAt: (_) => 'evt_nouvel_evenement',
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
+    await tester.pumpAndSettle();
+    expect(find.text('Position prête'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-clear-position')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.text('Position requise'), findsOneWidget);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -282,6 +401,47 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_07_draft_creation_ui_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-08 explicit position picker visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_08_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpWorkspace(
+      tester,
+      buildEventBuilderReadModel(
+        events: const [],
+        mapId: 'map_port',
+        mapTitle: 'Port Selbrume',
+      ),
+      fontFamily: _screenshotFontFamily,
+      draftCreationGate: EventBuilderDraftCreationGate.positionPicker(
+        mapId: 'map_port',
+        mapWidth: 4,
+        mapHeight: 3,
+        layerId: 'objects',
+        layerLabel: 'Objets',
+        layerValid: true,
+        onCreateDraftAt: (_) => 'evt_nouvel_evenement',
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_08_explicit_position_picker_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -459,9 +619,17 @@ Future<void> _pumpWorkspace(
     tester.view.resetDevicePixelRatio();
   });
 
+  final theme = PokeMapTheme.dark();
+  final themedWithFont = fontFamily == null
+      ? theme
+      : theme.copyWith(
+          textTheme: theme.textTheme.apply(fontFamily: fontFamily),
+          primaryTextTheme:
+              theme.primaryTextTheme.apply(fontFamily: fontFamily),
+        );
   await tester.pumpWidget(
     MaterialApp(
-      theme: PokeMapTheme.dark(),
+      theme: themedWithFont,
       home: CupertinoPageScaffold(
         child: SizedBox.expand(
           child: DefaultTextStyle.merge(
