@@ -631,6 +631,89 @@ void main() {
     expect(find.text('Éditer la scène'), findsNothing);
   });
 
+  testWidgets(
+      'NS-EVENT-12 changes reuse policy without changing id or scene action',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Une seule fois'), findsWidgets);
+    expect(find.text('Réutilisable'), findsWidgets);
+    expect(find.text('evt_existing'), findsWidgets);
+    expect(find.text('Jouer la scène "Scène existante"'), findsWidgets);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+    );
+    await tester.pumpAndSettle();
+
+    var state = container.read(editorNotifierProvider);
+    var event = state.activeMap!.events.single;
+    expect(event.id, 'evt_existing');
+    expect(event.title, 'Événement existant');
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(
+      event.pages.single.metadata[EventBuilderMetadataKeys.schemaVersion],
+      EventBuilderMetadataKeys.currentSchemaVersion,
+    );
+    expect(
+      event.pages.single.metadata[EventBuilderMetadataKeys.reusePolicy],
+      EventBuilderReusePolicy.reusable.name,
+    );
+    expect(state.selectedMapEventId, 'evt_existing');
+    expect(state.statusMessage, 'Comportement d’événement mis à jour');
+    expect(find.text('Réutilisation'), findsWidgets);
+    expect(find.text('Réutilisable'), findsWidgets);
+    expect(find.text('Comportement mis à jour.'), findsOneWidget);
+    expect(find.text('Jouer la scène "Scène existante"'), findsWidgets);
+    expect(find.text('eventBuilder.reusePolicy'), findsNothing);
+    expect(find.text('eventBuilder.schemaVersion'), findsNothing);
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Créer une règle'), findsNothing);
+    expect(find.text('Modifier le déclencheur'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-reuse-oneShot-button')),
+    );
+    await tester.pumpAndSettle();
+
+    state = container.read(editorNotifierProvider);
+    event = state.activeMap!.events.single;
+    expect(
+      event.pages.single.metadata[EventBuilderMetadataKeys.reusePolicy],
+      EventBuilderReusePolicy.oneShot.name,
+    );
+    expect(event.id, 'evt_existing');
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(find.text('Une seule fois'), findsWidgets);
+    expect(find.text('Comportement mis à jour.'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-12 keeps behavior read-only without update callback',
+      (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(find.text('Comportement'), findsOneWidget);
+    expect(find.text('Réutilisation'), findsOneWidget);
+    expect(find.text('Une seule fois'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-reuse-oneShot-button')),
+      findsNothing,
+    );
+    expect(find.text('eventBuilder.reusePolicy'), findsNothing);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -816,6 +899,47 @@ void main() {
     expect(screenshotFile.existsSync(), isTrue);
   });
 
+  testWidgets('captures NS-EVENT-12 behavior authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_12_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Comportement'),
+      -120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_12_behavior_authoring_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-04 workspace visual gate', (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_04_CAPTURE_WORKSPACE')) {
       return;
@@ -977,6 +1101,7 @@ Future<void> _pumpWorkspace(
       const EventBuilderDraftCreationGate.disabled(),
   List<EventBuilderSceneOption> sceneOptions = const [],
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
+  EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
 }) async {
   tester.view.physicalSize = const Size(1280, 820);
   tester.view.devicePixelRatio = 1;
@@ -1008,6 +1133,7 @@ Future<void> _pumpWorkspace(
               draftCreationGate: draftCreationGate,
               sceneOptions: sceneOptions,
               onUpdateSceneAction: onUpdateSceneAction,
+              onUpdateReusePolicy: onUpdateReusePolicy,
             ),
           ),
         ),

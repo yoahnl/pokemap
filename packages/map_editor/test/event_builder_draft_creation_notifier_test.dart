@@ -294,6 +294,138 @@ void main() {
       );
     });
   });
+
+  group('NS-EVENT-12 EditorNotifier behavior authoring', () {
+    test('updates reuse policy metadata on the lowest page only', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapForBehaviorAuthoring(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final original = notifier.state.activeMap!.events.single;
+      final originalLowestPage =
+          original.pages.singleWhere((page) => page.pageNumber == 2);
+      final originalHigherPage =
+          original.pages.singleWhere((page) => page.pageNumber == 4);
+
+      final updatedToReusable = notifier.updateEventBuilderEventReusePolicy(
+        eventId: 'evt_existing',
+        reusePolicy: EventBuilderReusePolicy.reusable,
+      );
+
+      var state = container.read(editorNotifierProvider);
+      var event = state.activeMap!.events.single;
+      var lowestPage = event.pages.singleWhere((page) => page.pageNumber == 2);
+      var higherPage = event.pages.singleWhere((page) => page.pageNumber == 4);
+      expect(state.errorMessage, isNull);
+      expect(updatedToReusable, isTrue);
+      expect(event.id, original.id);
+      expect(event.title, original.title);
+      expect(event.position, original.position);
+      expect(event.type, original.type);
+      expect(event.metadata, original.metadata);
+      expect(lowestPage.sceneTarget, originalLowestPage.sceneTarget);
+      expect(lowestPage.condition, originalLowestPage.condition);
+      expect(lowestPage.script, originalLowestPage.script);
+      expect(lowestPage.message, originalLowestPage.message);
+      expect(lowestPage.isDisabled, originalLowestPage.isDisabled);
+      expect(lowestPage.isHidden, originalLowestPage.isHidden);
+      expect(lowestPage.metadata['legacyKey'], 'legacyValue');
+      expect(
+        lowestPage.metadata[EventBuilderMetadataKeys.schemaVersion],
+        EventBuilderMetadataKeys.currentSchemaVersion,
+      );
+      expect(
+        lowestPage.metadata[EventBuilderMetadataKeys.reusePolicy],
+        EventBuilderReusePolicy.reusable.name,
+      );
+      expect(higherPage, originalHigherPage);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Comportement d’événement mis à jour');
+
+      final updatedToOneShot = notifier.updateEventBuilderEventReusePolicy(
+        eventId: 'evt_existing',
+        reusePolicy: EventBuilderReusePolicy.oneShot,
+      );
+
+      state = container.read(editorNotifierProvider);
+      event = state.activeMap!.events.single;
+      lowestPage = event.pages.singleWhere((page) => page.pageNumber == 2);
+      higherPage = event.pages.singleWhere((page) => page.pageNumber == 4);
+      expect(updatedToOneShot, isTrue);
+      expect(
+        lowestPage.metadata[EventBuilderMetadataKeys.reusePolicy],
+        EventBuilderReusePolicy.oneShot.name,
+      );
+      expect(
+        lowestPage.metadata[EventBuilderMetadataKeys.schemaVersion],
+        EventBuilderMetadataKeys.currentSchemaVersion,
+      );
+      expect(lowestPage.metadata['legacyKey'], 'legacyValue');
+      expect(lowestPage.sceneTarget, originalLowestPage.sceneTarget);
+      expect(lowestPage.condition, originalLowestPage.condition);
+      expect(lowestPage.script, originalLowestPage.script);
+      expect(lowestPage.message, originalLowestPage.message);
+      expect(higherPage, originalHigherPage);
+      expect(state.selectedMapEventId, 'evt_existing');
+    });
+
+    test('rejects an unknown event without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapForBehaviorAuthoring(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final updated = notifier.updateEventBuilderEventReusePolicy(
+        eventId: 'missing_event',
+        reusePolicy: EventBuilderReusePolicy.reusable,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final event = state.activeMap!.events.single;
+      final lowestPage =
+          event.pages.singleWhere((page) => page.pageNumber == 2);
+      expect(updated, isFalse);
+      expect(
+        lowestPage.metadata[EventBuilderMetadataKeys.reusePolicy],
+        EventBuilderReusePolicy.oneShot.name,
+      );
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Événement introuvable : missing_event');
+    });
+
+    test('rejects an event without page without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapWithoutEventPages(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_empty',
+      );
+
+      final updated = notifier.updateEventBuilderEventReusePolicy(
+        eventId: 'evt_empty',
+        reusePolicy: EventBuilderReusePolicy.reusable,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(updated, isFalse);
+      expect(state.activeMap!.events.single.pages, isEmpty);
+      expect(state.selectedMapEventId, 'evt_empty');
+      expect(
+        state.errorMessage,
+        'Cet événement ne contient aucune page authorable.',
+      );
+    });
+  });
 }
 
 ProjectManifest _projectWithScenes() {
@@ -406,6 +538,48 @@ MapData _mapForSceneAction() {
             script: const ScriptRef(scriptId: 'script_legacy'),
             message: 'Message legacy',
             metadata: {'reusePolicy': 'oneShot'},
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+MapData _mapForBehaviorAuthoring() {
+  return MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: const GridSize(width: 4, height: 3),
+    layers: const [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        position: const EventPosition(layerId: 'objects', x: 0, y: 0),
+        metadata: {'scope': 'event'},
+        pages: [
+          const MapEventPage(
+            pageNumber: 4,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+            metadata: {'untouched': 'higher'},
+          ),
+          MapEventPage(
+            pageNumber: 2,
+            condition: ScriptConditionFactory.flagIsSet('fact_started'),
+            script: const ScriptRef(scriptId: 'script_legacy'),
+            message: 'Message legacy',
+            sceneTarget: const MapEventSceneTarget(sceneId: 'scene_rival'),
+            metadata: const {
+              'legacyKey': 'legacyValue',
+              EventBuilderMetadataKeys.reusePolicy: 'oneShot',
+            },
           ),
         ],
       ),

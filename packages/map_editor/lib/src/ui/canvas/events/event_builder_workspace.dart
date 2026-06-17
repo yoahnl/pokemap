@@ -14,6 +14,11 @@ typedef EventBuilderSceneActionUpdateCallback = bool Function({
   required String sceneId,
 });
 
+typedef EventBuilderReusePolicyUpdateCallback = bool Function({
+  required String eventId,
+  required EventBuilderReusePolicy reusePolicy,
+});
+
 class EventBuilderSceneOption {
   const EventBuilderSceneOption({
     required this.id,
@@ -32,6 +37,7 @@ class EventBuilderWorkspace extends StatefulWidget {
     this.sceneOptions = const <EventBuilderSceneOption>[],
     this.onRenameEventTitle,
     this.onUpdateSceneAction,
+    this.onUpdateReusePolicy,
   });
 
   final EventBuilderReadModel readModel;
@@ -39,6 +45,7 @@ class EventBuilderWorkspace extends StatefulWidget {
   final List<EventBuilderSceneOption> sceneOptions;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
+  final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
@@ -317,6 +324,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                           sceneOptions: widget.sceneOptions,
                           onRenameTitle: widget.onRenameEventTitle,
                           onUpdateSceneAction: widget.onUpdateSceneAction,
+                          onUpdateReusePolicy: widget.onUpdateReusePolicy,
                         ),
                       ),
                     ],
@@ -820,12 +828,14 @@ class _EventDetailsPanel extends StatefulWidget {
     required this.sceneOptions,
     required this.onRenameTitle,
     required this.onUpdateSceneAction,
+    required this.onUpdateReusePolicy,
   });
 
   final EventBuilderEventSummary? event;
   final List<EventBuilderSceneOption> sceneOptions;
   final EventBuilderTitleRenameCallback? onRenameTitle;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
+  final EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy;
 
   @override
   State<_EventDetailsPanel> createState() => _EventDetailsPanelState();
@@ -839,6 +849,8 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   bool _isChoosingScene = false;
   String? _sceneError;
   String? _sceneFeedback;
+  String? _behaviorError;
+  String? _behaviorFeedback;
 
   @override
   void initState() {
@@ -860,6 +872,8 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _isChoosingScene = false;
       _sceneError = null;
       _sceneFeedback = null;
+      _behaviorError = null;
+      _behaviorFeedback = null;
       _titleController.text = next?.displayName ?? '';
       return;
     }
@@ -963,10 +977,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               title: 'Comportement',
               section: sections['behavior'],
               children: [
-                _DetailLine(
-                  label: 'Réutilisation',
-                  value: selected.behavior.label,
-                ),
+                _buildBehaviorBlock(context, selected),
               ],
             ),
             _DetailSection(
@@ -1270,6 +1281,79 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     );
   }
 
+  Widget _buildBehaviorBlock(
+    BuildContext context,
+    EventBuilderEventSummary selected,
+  ) {
+    final colors = context.pokeMapColors;
+    final canUpdateBehavior = widget.onUpdateReusePolicy != null;
+    final currentPolicy = selected.behavior.reusePolicy;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DetailLine(
+          label: 'Réutilisation',
+          value: selected.behavior.label,
+        ),
+        if (canUpdateBehavior) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('event-builder-reuse-oneShot-button'),
+                onPressed: currentPolicy == EventBuilderReusePolicy.oneShot
+                    ? null
+                    : () => _selectReusePolicy(
+                          selected,
+                          EventBuilderReusePolicy.oneShot,
+                        ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                isSelected: currentPolicy == EventBuilderReusePolicy.oneShot,
+                leading: const Icon(CupertinoIcons.checkmark_circle),
+                child: const Text('Une seule fois'),
+              ),
+              PokeMapButton(
+                key: const ValueKey('event-builder-reuse-reusable-button'),
+                onPressed: currentPolicy == EventBuilderReusePolicy.reusable
+                    ? null
+                    : () => _selectReusePolicy(
+                          selected,
+                          EventBuilderReusePolicy.reusable,
+                        ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                isSelected: currentPolicy == EventBuilderReusePolicy.reusable,
+                leading: const Icon(CupertinoIcons.repeat),
+                child: const Text('Réutilisable'),
+              ),
+              if (_behaviorFeedback != null)
+                PokeMapBadge(
+                  label: _behaviorFeedback!,
+                  variant: PokeMapBadgeVariant.success,
+                  icon: const Icon(CupertinoIcons.checkmark_circle),
+                ),
+            ],
+          ),
+          if (_behaviorError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _behaviorError!,
+              style: TextStyle(
+                color: colors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   void _startTitleEdit(EventBuilderEventSummary selected) {
     setState(() {
       _isEditingTitle = true;
@@ -1365,6 +1449,28 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _isChoosingScene = false;
       _sceneError = null;
       _sceneFeedback = 'Scène mise à jour.';
+    });
+  }
+
+  void _selectReusePolicy(
+    EventBuilderEventSummary selected,
+    EventBuilderReusePolicy reusePolicy,
+  ) {
+    final updated = widget.onUpdateReusePolicy?.call(
+          eventId: selected.eventId,
+          reusePolicy: reusePolicy,
+        ) ??
+        false;
+    if (!updated) {
+      setState(() {
+        _behaviorError = 'Impossible de modifier ce comportement.';
+        _behaviorFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _behaviorError = null;
+      _behaviorFeedback = 'Comportement mis à jour.';
     });
   }
 }

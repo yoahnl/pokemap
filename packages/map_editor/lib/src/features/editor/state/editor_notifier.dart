@@ -2944,6 +2944,71 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  bool updateEventBuilderEventReusePolicy({
+    required String eventId,
+    required EventBuilderReusePolicy reusePolicy,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Aucune map active pour modifier le comportement de l’événement.',
+      );
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.pages.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Cet événement ne contient aucune page authorable.',
+      );
+      return false;
+    }
+
+    // NS-EVENT-12 édite uniquement les metadata Event Builder de la page
+    // canonique. Les champs sceneTarget/condition/script/message restent
+    // volontairement sous la responsabilité des lots dédiés.
+    final pageNumber = _eventBuilderAuthorablePageNumber(event);
+    final pageIndex =
+        event.pages.indexWhere((page) => page.pageNumber == pageNumber);
+    final page = event.pages[pageIndex];
+    final nextMetadata = Map<String, String>.unmodifiable({
+      ...page.metadata,
+      EventBuilderMetadataKeys.schemaVersion:
+          EventBuilderMetadataKeys.currentSchemaVersion,
+      EventBuilderMetadataKeys.reusePolicy: reusePolicy.name,
+    });
+    try {
+      final updated = updatePageOnMapEvent(
+        map,
+        eventId: eventId,
+        pageIndex: pageIndex,
+        metadata: nextMetadata,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Comportement d’événement mis à jour',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible de mettre à jour le comportement de l’événement : $e',
+      );
+      return false;
+    }
+  }
+
   void selectMapEvent(String? eventId) {
     final map = state.activeMap;
     if (map == null) return;
