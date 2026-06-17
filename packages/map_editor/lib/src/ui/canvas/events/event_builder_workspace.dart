@@ -9,17 +9,36 @@ typedef EventBuilderTitleRenameCallback = bool Function({
   required String title,
 });
 
+typedef EventBuilderSceneActionUpdateCallback = bool Function({
+  required String eventId,
+  required String sceneId,
+});
+
+class EventBuilderSceneOption {
+  const EventBuilderSceneOption({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
 class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
     required this.readModel,
     this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
+    this.sceneOptions = const <EventBuilderSceneOption>[],
     this.onRenameEventTitle,
+    this.onUpdateSceneAction,
   });
 
   final EventBuilderReadModel readModel;
   final EventBuilderDraftCreationGate draftCreationGate;
+  final List<EventBuilderSceneOption> sceneOptions;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
+  final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
@@ -295,7 +314,9 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                       Expanded(
                         child: _EventDetailsPanel(
                           event: selected,
+                          sceneOptions: widget.sceneOptions,
                           onRenameTitle: widget.onRenameEventTitle,
+                          onUpdateSceneAction: widget.onUpdateSceneAction,
                         ),
                       ),
                     ],
@@ -796,11 +817,15 @@ class _EventListCard extends StatelessWidget {
 class _EventDetailsPanel extends StatefulWidget {
   const _EventDetailsPanel({
     required this.event,
+    required this.sceneOptions,
     required this.onRenameTitle,
+    required this.onUpdateSceneAction,
   });
 
   final EventBuilderEventSummary? event;
+  final List<EventBuilderSceneOption> sceneOptions;
   final EventBuilderTitleRenameCallback? onRenameTitle;
+  final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
 
   @override
   State<_EventDetailsPanel> createState() => _EventDetailsPanelState();
@@ -811,6 +836,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   bool _isEditingTitle = false;
   String? _titleError;
   String? _titleFeedback;
+  bool _isChoosingScene = false;
+  String? _sceneError;
+  String? _sceneFeedback;
 
   @override
   void initState() {
@@ -829,6 +857,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _isEditingTitle = false;
       _titleError = null;
       _titleFeedback = null;
+      _isChoosingScene = false;
+      _sceneError = null;
+      _sceneFeedback = null;
       _titleController.text = next?.displayName ?? '';
       return;
     }
@@ -925,10 +956,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               title: 'Action principale',
               section: sections['actions'],
               children: [
-                _DetailLine(
-                  label: selected.sceneAction.isMissing ? 'État' : 'Scène',
-                  value: selected.sceneAction.label,
-                ),
+                _buildSceneActionBlock(context, selected),
               ],
             ),
             _DetailSection(
@@ -1126,6 +1154,122 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     );
   }
 
+  Widget _buildSceneActionBlock(
+    BuildContext context,
+    EventBuilderEventSummary selected,
+  ) {
+    final colors = context.pokeMapColors;
+    final canUpdateScene = widget.onUpdateSceneAction != null;
+    final sceneButtonLabel = selected.sceneAction.isMissing
+        ? 'Choisir une scène'
+        : 'Changer la scène';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DetailLine(
+          label: selected.sceneAction.isMissing ? 'État' : 'Scène',
+          value: selected.sceneAction.label,
+        ),
+        if (canUpdateScene) ...[
+          const SizedBox(height: 2),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('event-builder-choose-scene-button'),
+                onPressed: () => _startSceneChoice(),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.play_rectangle),
+                child: Text(sceneButtonLabel),
+              ),
+              if (_isChoosingScene)
+                PokeMapButton(
+                  key: const ValueKey('event-builder-cancel-scene-button'),
+                  onPressed: _cancelSceneChoice,
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.xmark),
+                  child: const Text('Annuler'),
+                ),
+              if (_sceneFeedback != null)
+                PokeMapBadge(
+                  label: _sceneFeedback!,
+                  variant: PokeMapBadgeVariant.success,
+                  icon: const Icon(CupertinoIcons.checkmark_circle),
+                ),
+            ],
+          ),
+        ],
+        if (_isChoosingScene) ...[
+          const SizedBox(height: 8),
+          if (widget.sceneOptions.isEmpty)
+            const _DiagnosticNotice(
+              title: 'Aucune scène disponible.',
+              message:
+                  'Créez une scène dans le workspace Scènes avant de choisir '
+                  'l’action principale de cet événement.',
+              tone: PokeMapTone.warning,
+              severityLabel: 'Action indisponible',
+              details: ['Aucune création de scène dans ce lot'],
+            )
+          else
+            // Picker borné : les options viennent du ProjectManifest et
+            // l'utilisateur ne saisit jamais de sceneId à la main dans ce lot.
+            PokeMapCard(
+              padding: const EdgeInsets.all(10),
+              borderRadius: 8,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Scènes disponibles',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final option in widget.sceneOptions)
+                        PokeMapButton(
+                          key: ValueKey(
+                            'event-builder-scene-option-${option.id}',
+                          ),
+                          onPressed: () => _selectScene(selected, option),
+                          variant: PokeMapButtonVariant.secondary,
+                          size: PokeMapButtonSize.small,
+                          isSelected: selected.sceneAction.sceneId == option.id,
+                          leading: const Icon(CupertinoIcons.film),
+                          child: Text(option.label),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          if (_sceneError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _sceneError!,
+              style: TextStyle(
+                color: colors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
   void _startTitleEdit(EventBuilderEventSummary selected) {
     setState(() {
       _isEditingTitle = true;
@@ -1183,6 +1327,44 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       _titleError = null;
       _titleFeedback = 'Titre mis à jour.';
       _titleController.text = trimmedTitle;
+    });
+  }
+
+  void _startSceneChoice() {
+    setState(() {
+      _isChoosingScene = true;
+      _sceneError = null;
+      _sceneFeedback = null;
+    });
+  }
+
+  void _cancelSceneChoice() {
+    setState(() {
+      _isChoosingScene = false;
+      _sceneError = null;
+    });
+  }
+
+  void _selectScene(
+    EventBuilderEventSummary selected,
+    EventBuilderSceneOption option,
+  ) {
+    final updated = widget.onUpdateSceneAction?.call(
+          eventId: selected.eventId,
+          sceneId: option.id,
+        ) ??
+        false;
+    if (!updated) {
+      setState(() {
+        _sceneError = 'Impossible de choisir cette scène.';
+        _sceneFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _isChoosingScene = false;
+      _sceneError = null;
+      _sceneFeedback = 'Scène mise à jour.';
     });
   }
 }

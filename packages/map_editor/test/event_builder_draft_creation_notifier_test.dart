@@ -149,6 +149,202 @@ void main() {
       expect(state.errorMessage, 'Événement introuvable : missing_event');
     });
   });
+
+  group('NS-EVENT-11 EditorNotifier scene action authoring', () {
+    test('writes the scene target on the lowest page without changing identity',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithScenes(),
+        activeMap: _mapForSceneAction(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final original = notifier.state.activeMap!.events.single;
+      final originalLowestPage =
+          original.pages.singleWhere((page) => page.pageNumber == 2);
+      final originalHigherPage =
+          original.pages.singleWhere((page) => page.pageNumber == 4);
+
+      final updated = notifier.updateEventBuilderEventSceneAction(
+        eventId: 'evt_existing',
+        sceneId: '  scene_rival  ',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final event = state.activeMap!.events.single;
+      final lowestPage =
+          event.pages.singleWhere((page) => page.pageNumber == 2);
+      final higherPage =
+          event.pages.singleWhere((page) => page.pageNumber == 4);
+      expect(state.errorMessage, isNull);
+      expect(updated, isTrue);
+      expect(event.id, original.id);
+      expect(event.title, original.title);
+      expect(event.position, original.position);
+      expect(event.type, original.type);
+      expect(event.metadata, original.metadata);
+      expect(lowestPage.sceneTarget?.sceneId, 'scene_rival');
+      expect(lowestPage.condition, originalLowestPage.condition);
+      expect(lowestPage.script, originalLowestPage.script);
+      expect(lowestPage.message, originalLowestPage.message);
+      expect(lowestPage.metadata, originalLowestPage.metadata);
+      expect(higherPage.sceneTarget, originalHigherPage.sceneTarget);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Scène d’événement mise à jour');
+    });
+
+    test('rejects an empty scene id without mutating the event', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithScenes(),
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final updated = notifier.updateEventBuilderEventSceneAction(
+        eventId: 'evt_existing',
+        sceneId: '   ',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(updated, isFalse);
+      expect(state.activeMap!.events.single.pages.single.sceneTarget?.sceneId,
+          'scene_existing');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Scène d’événement obligatoire.');
+    });
+
+    test('rejects an unknown scene without mutating the event', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithScenes(),
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final updated = notifier.updateEventBuilderEventSceneAction(
+        eventId: 'evt_existing',
+        sceneId: 'scene_missing',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(updated, isFalse);
+      expect(state.activeMap!.events.single.pages.single.sceneTarget?.sceneId,
+          'scene_existing');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Scène introuvable : scene_missing');
+    });
+
+    test('rejects an unknown event without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithScenes(),
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final updated = notifier.updateEventBuilderEventSceneAction(
+        eventId: 'missing_event',
+        sceneId: 'scene_rival',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(updated, isFalse);
+      expect(state.activeMap!.events.single.pages.single.sceneTarget?.sceneId,
+          'scene_existing');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Événement introuvable : missing_event');
+    });
+
+    test('rejects an event without page without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        project: _projectWithScenes(),
+        activeMap: _mapWithoutEventPages(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_empty',
+      );
+
+      final updated = notifier.updateEventBuilderEventSceneAction(
+        eventId: 'evt_empty',
+        sceneId: 'scene_rival',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(updated, isFalse);
+      expect(state.activeMap!.events.single.pages, isEmpty);
+      expect(state.selectedMapEventId, 'evt_empty');
+      expect(
+        state.errorMessage,
+        'Cet événement ne contient aucune page authorable.',
+      );
+    });
+  });
+}
+
+ProjectManifest _projectWithScenes() {
+  return ProjectManifest(
+    name: 'Event Builder test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_port',
+        name: 'Port Selbrume',
+        relativePath: 'maps/port.json',
+      ),
+    ],
+    tilesets: const [],
+    scripts: const [
+      ProjectScriptEntry(
+        id: 'script_legacy',
+        name: 'Script legacy',
+        asset: ScriptAsset(
+          id: 'script_legacy',
+          nodes: [ScriptNode(id: 'start')],
+        ),
+      ),
+    ],
+    scenes: [
+      _scene('scene_existing', 'Scène existante'),
+      _scene('scene_rival', 'Rencontre rival'),
+    ],
+  );
+}
+
+SceneAsset _scene(String id, String name) {
+  return SceneAsset(
+    id: id,
+    name: name,
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_end',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+  );
 }
 
 MapData _map() {
@@ -175,6 +371,67 @@ MapData _map() {
             sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
           ),
         ],
+      ),
+    ],
+  );
+}
+
+MapData _mapForSceneAction() {
+  return MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: const GridSize(width: 4, height: 3),
+    layers: const [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_existing',
+        title: 'Événement existant',
+        position: const EventPosition(layerId: 'objects', x: 0, y: 0),
+        metadata: {'scope': 'event'},
+        pages: [
+          const MapEventPage(
+            pageNumber: 4,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_existing'),
+          ),
+          MapEventPage(
+            pageNumber: 2,
+            condition: ScriptConditionFactory.flagIsSet('fact_started'),
+            script: const ScriptRef(scriptId: 'script_legacy'),
+            message: 'Message legacy',
+            metadata: {'reusePolicy': 'oneShot'},
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+MapData _mapWithoutEventPages() {
+  return const MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: GridSize(width: 4, height: 3),
+    layers: [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+      MapLayer.object(id: 'objects', name: 'Objets'),
+    ],
+    events: [
+      MapEventDefinition(
+        id: 'evt_empty',
+        title: 'Event sans page',
+        position: EventPosition(layerId: 'objects', x: 0, y: 0),
+        pages: [],
       ),
     ],
   );

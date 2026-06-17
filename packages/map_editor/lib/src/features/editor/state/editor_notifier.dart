@@ -2869,6 +2869,81 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  bool updateEventBuilderEventSceneAction({
+    required String eventId,
+    required String sceneId,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Aucune map active pour modifier la scène de l’événement.',
+      );
+      return false;
+    }
+    final project = state.project;
+    if (project == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucun projet actif pour choisir une scène.',
+      );
+      return false;
+    }
+    final trimmedSceneId = sceneId.trim();
+    if (trimmedSceneId.isEmpty) {
+      state = state.copyWith(errorMessage: 'Scène d’événement obligatoire.');
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.pages.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Cet événement ne contient aucune page authorable.',
+      );
+      return false;
+    }
+    final sceneExists =
+        project.scenes.any((scene) => scene.id == trimmedSceneId);
+    if (!sceneExists) {
+      state = state.copyWith(
+        errorMessage: 'Scène introuvable : $trimmedSceneId',
+      );
+      return false;
+    }
+
+    // NS-EVENT-11 reste aligné avec le read model Event Builder : on écrit
+    // uniquement la page authorable canonique, sans créer de page implicite.
+    final pageNumber = _eventBuilderAuthorablePageNumber(event);
+    try {
+      final updated = setMapEventPageSceneTarget(
+        map,
+        eventId: eventId,
+        pageNumber: pageNumber,
+        sceneId: trimmedSceneId,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Scène d’événement mise à jour',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible de mettre à jour la scène de l’événement : $e',
+      );
+      return false;
+    }
+  }
+
   void selectMapEvent(String? eventId) {
     final map = state.activeMap;
     if (map == null) return;
@@ -8695,6 +8770,21 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
+  }
+
+  /// Retourne la même page cible que le contrat Event Builder.
+  ///
+  /// Les drafts actuels utilisent pageNumber 0, mais les anciens events peuvent
+  /// contenir des pages non ordonnées ; on préserve donc la règle "plus petit
+  /// pageNumber" au lieu de supposer que l'index 0 est toujours canonique.
+  int _eventBuilderAuthorablePageNumber(MapEventDefinition event) {
+    var selected = event.pages.first.pageNumber;
+    for (final page in event.pages.skip(1)) {
+      if (page.pageNumber < selected) {
+        selected = page.pageNumber;
+      }
+    }
+    return selected;
   }
 
   /// Lot Environment-22 : évite une sélection masque fantôme si le layer ou l’area disparaît.

@@ -555,7 +555,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             editor,
             editorNotifier,
           ),
+          sceneOptions: _buildEventBuilderSceneOptions(editor.project),
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
+          onUpdateSceneAction:
+              editorNotifier.updateEventBuilderEventSceneAction,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -688,6 +691,18 @@ EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
           ?.id;
     },
   );
+}
+
+List<EventBuilderSceneOption> _buildEventBuilderSceneOptions(
+  ProjectManifest? project,
+) {
+  return [
+    for (final scene in project?.scenes ?? const <SceneAsset>[])
+      EventBuilderSceneOption(
+        id: scene.id,
+        label: scene.name.trim().isEmpty ? scene.id : scene.name.trim(),
+      ),
+  ];
 }
 
 MapLayer? _findMapLayerById(MapData map, String layerId) {

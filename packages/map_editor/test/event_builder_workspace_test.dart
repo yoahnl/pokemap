@@ -544,6 +544,93 @@ void main() {
     expect(find.text('Événement existant'), findsWidgets);
   });
 
+  testWidgets(
+      'NS-EVENT-11 selects a scene action for a draft event without changing id',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    final createdBefore =
+        container.read(editorNotifierProvider).activeMap!.events.last;
+    expect(createdBefore.id, 'evt_nouvel_evenement');
+    expect(createdBefore.pages.single.sceneTarget, isNull);
+    expect(find.text('Action principale manquante'), findsWidgets);
+    expect(find.text('Brouillon'), findsWidgets);
+    expect(find.byKey(const ValueKey('event-builder-choose-scene-button')),
+        findsOneWidget);
+    expect(find.text('Choisir une scène'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-choose-scene-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scène existante'), findsOneWidget);
+    expect(
+        find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+        findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    final createdAfter = state.activeMap!.events.last;
+    expect(createdAfter.id, createdBefore.id);
+    expect(createdAfter.title, createdBefore.title);
+    expect(createdAfter.position, createdBefore.position);
+    expect(createdAfter.type, createdBefore.type);
+    expect(createdAfter.metadata, createdBefore.metadata);
+    expect(createdAfter.pages, hasLength(1));
+    expect(createdAfter.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(createdAfter.pages.single.condition, isNull);
+    expect(createdAfter.pages.single.script, isNull);
+    expect(createdAfter.pages.single.message, isNull);
+    expect(state.selectedMapEventId, createdAfter.id);
+    expect(state.statusMessage, 'Scène d’événement mise à jour');
+
+    expect(find.text('Jouer la scène "Scène existante"'), findsWidgets);
+    expect(find.text('Actif'), findsWidgets);
+    expect(find.text(createdAfter.id), findsWidgets);
+    expect(find.text('Scène mise à jour.'), findsOneWidget);
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Créer une scène'), findsNothing);
+    expect(find.text('Éditer la scène'), findsNothing);
+    expect(find.text('Sauvegarder'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-11 shows an empty scene picker message',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _draftReadModelWithoutScene(),
+      sceneOptions: const [],
+      onUpdateSceneAction: ({required eventId, required sceneId}) => false,
+    );
+
+    expect(find.text('Choisir une scène'), findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-choose-scene-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aucune scène disponible.'), findsOneWidget);
+    expect(find.text('Créer une scène'), findsNothing);
+    expect(find.text('Éditer la scène'), findsNothing);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -670,6 +757,55 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_10_draft_title_authoring_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-11 scene action authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_11_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+      160,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-choose-scene-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Action principale'),
+      -120,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_11_scene_action_authoring_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -839,6 +975,8 @@ Future<void> _pumpWorkspace(
   String? fontFamily,
   EventBuilderDraftCreationGate draftCreationGate =
       const EventBuilderDraftCreationGate.disabled(),
+  List<EventBuilderSceneOption> sceneOptions = const [],
+  EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
 }) async {
   tester.view.physicalSize = const Size(1280, 820);
   tester.view.devicePixelRatio = 1;
@@ -868,6 +1006,8 @@ Future<void> _pumpWorkspace(
             child: EventBuilderWorkspace(
               readModel: readModel,
               draftCreationGate: draftCreationGate,
+              sceneOptions: sceneOptions,
+              onUpdateSceneAction: onUpdateSceneAction,
             ),
           ),
         ),
@@ -943,6 +1083,21 @@ ProjectManifest _eventProject() {
     ],
     tilesets: const [],
     scenes: [_eventScene('scene_existing', 'Scène existante')],
+  );
+}
+
+EventBuilderReadModel _draftReadModelWithoutScene() {
+  return buildEventBuilderReadModel(
+    events: const [
+      MapEventDefinition(
+        id: 'evt_draft',
+        title: 'Nouvel événement',
+        position: EventPosition(layerId: 'objects', x: 2, y: 1),
+        pages: [MapEventPage(pageNumber: 0)],
+      ),
+    ],
+    mapId: 'map_port',
+    mapTitle: 'Port Selbrume',
   );
 }
 
