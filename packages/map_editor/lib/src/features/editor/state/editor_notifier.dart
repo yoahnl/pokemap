@@ -2818,6 +2818,57 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  bool renameEventBuilderEventTitle({
+    required String eventId,
+    required String title,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucune map active pour renommer l’événement.',
+      );
+      return false;
+    }
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) {
+      state = state.copyWith(errorMessage: 'Titre d’événement obligatoire.');
+      return false;
+    }
+    final event = findMapEventById(map, eventId);
+    if (event == null) {
+      state = state.copyWith(errorMessage: 'Événement introuvable : $eventId');
+      return false;
+    }
+    if (event.title.trim() == trimmedTitle) {
+      return true;
+    }
+
+    try {
+      final updated = updateMapEventOnMap(
+        map,
+        eventId: eventId,
+        title: trimmedTitle,
+      );
+      MapValidator.validate(
+        updated,
+        projectDialogueContext: state.project,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: state.activeLayerId,
+        preferredSelectedMapEventId: eventId,
+        statusMessage: 'Événement renommé',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de renommer l’événement : $e',
+      );
+      return false;
+    }
+  }
+
   void selectMapEvent(String? eventId) {
     final map = state.activeMap;
     if (map == null) return;

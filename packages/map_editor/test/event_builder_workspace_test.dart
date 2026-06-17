@@ -450,6 +450,100 @@ void main() {
         container.read(editorNotifierProvider).activeMap!.events, hasLength(2));
   });
 
+  testWidgets(
+      'NS-EVENT-10 renames the selected event title without changing id',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    expect(find.text('Événement existant'), findsWidgets);
+    expect(find.text('evt_existing'), findsWidgets);
+    expect(find.byKey(const ValueKey('event-builder-rename-title-button')),
+        findsOneWidget);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Titre de l’événement'), findsWidgets);
+    expect(find.byKey(const ValueKey('event-builder-title-field')),
+        findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      '  Rencontre rival au port  ',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-save-title-button')));
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    final event = state.activeMap!.events.single;
+    expect(event.id, 'evt_existing');
+    expect(event.title, 'Rencontre rival au port');
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(event.pages.single.script, isNull);
+    expect(event.pages.single.message, isNull);
+    expect(event.pages.single.condition, isNull);
+    expect(state.selectedMapEventId, 'evt_existing');
+    expect(state.statusMessage, 'Événement renommé');
+
+    expect(find.text('Rencontre rival au port'), findsWidgets);
+    expect(find.text('Événement existant'), findsNothing);
+    expect(find.text('Titre mis à jour.'), findsOneWidget);
+    expect(find.text('evt_existing'), findsWidgets);
+    expect(find.text('Ajouter une condition'), findsNothing);
+    expect(find.text('Ajouter une action'), findsNothing);
+    expect(find.text('Choisir une scène'), findsNothing);
+    expect(find.text('Sauvegarder'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-10 canceling title edit keeps event unchanged',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      'Titre annulé',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-cancel-title-button')));
+    await tester.pumpAndSettle();
+
+    final event =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(event.id, 'evt_existing');
+    expect(event.title, 'Événement existant');
+    expect(find.text('Événement existant'), findsWidgets);
+    expect(find.text('Titre annulé'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-10 empty title is refused in the details panel',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      '   ',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-save-title-button')));
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    final event = state.activeMap!.events.single;
+    expect(event.id, 'evt_existing');
+    expect(event.title, 'Événement existant');
+    expect(state.selectedMapEventId, isNull);
+    expect(find.text('Le titre est obligatoire.'), findsOneWidget);
+    expect(find.text('Événement existant'), findsWidgets);
+  });
+
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_07_CAPTURE_WORKSPACE')) {
@@ -541,6 +635,41 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_09_draft_creation_flow_closure_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-10 draft title authoring visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_10_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      'Rencontre rival au port',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-save-title-button')));
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_10_draft_title_authoring_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -803,16 +932,40 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
 }
 
 ProjectManifest _eventProject() {
-  return const ProjectManifest(
+  return ProjectManifest(
     name: 'Event Builder test',
-    maps: [
+    maps: const [
       ProjectMapEntry(
         id: 'map_port',
         name: 'Port Selbrume',
         relativePath: 'maps/port.json',
       ),
     ],
-    tilesets: [],
+    tilesets: const [],
+    scenes: [_eventScene('scene_existing', 'Scène existante')],
+  );
+}
+
+SceneAsset _eventScene(String id, String name) {
+  return SceneAsset(
+    id: id,
+    name: name,
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_end',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
   );
 }
 
@@ -822,7 +975,11 @@ MapData _mapWithObjectLayer() {
     name: 'Port Selbrume',
     size: GridSize(width: 4, height: 3),
     layers: [
-      MapLayer.tile(id: 'ground', name: 'Sol'),
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
     events: [

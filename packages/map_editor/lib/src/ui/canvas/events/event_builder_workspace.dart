@@ -4,15 +4,22 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
+typedef EventBuilderTitleRenameCallback = bool Function({
+  required String eventId,
+  required String title,
+});
+
 class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
     required this.readModel,
     this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
+    this.onRenameEventTitle,
   });
 
   final EventBuilderReadModel readModel;
   final EventBuilderDraftCreationGate draftCreationGate;
+  final EventBuilderTitleRenameCallback? onRenameEventTitle;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
@@ -286,7 +293,10 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _EventDetailsPanel(event: selected),
+                        child: _EventDetailsPanel(
+                          event: selected,
+                          onRenameTitle: widget.onRenameEventTitle,
+                        ),
                       ),
                     ],
                   ),
@@ -783,15 +793,59 @@ class _EventListCard extends StatelessWidget {
   }
 }
 
-class _EventDetailsPanel extends StatelessWidget {
-  const _EventDetailsPanel({required this.event});
+class _EventDetailsPanel extends StatefulWidget {
+  const _EventDetailsPanel({
+    required this.event,
+    required this.onRenameTitle,
+  });
 
   final EventBuilderEventSummary? event;
+  final EventBuilderTitleRenameCallback? onRenameTitle;
+
+  @override
+  State<_EventDetailsPanel> createState() => _EventDetailsPanelState();
+}
+
+class _EventDetailsPanelState extends State<_EventDetailsPanel> {
+  late final TextEditingController _titleController;
+  bool _isEditingTitle = false;
+  String? _titleError;
+  String? _titleFeedback;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.event?.displayName ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(_EventDetailsPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousId = oldWidget.event?.eventId;
+    final next = widget.event;
+    if (previousId != next?.eventId) {
+      _isEditingTitle = false;
+      _titleError = null;
+      _titleFeedback = null;
+      _titleController.text = next?.displayName ?? '';
+      return;
+    }
+    if (!_isEditingTitle && next != null) {
+      _titleController.text = next.displayName;
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    final selected = event;
+    final selected = widget.event;
     if (selected == null) {
       return const PokeMapPanel(
         expandChild: true,
@@ -822,36 +876,7 @@ class _EventDetailsPanel extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        selected.displayName,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'ID technique',
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        selected.technicalId,
-                        style: TextStyle(
-                          color: colors.textSecondary,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: _buildTitleBlock(context, selected),
                 ),
                 const SizedBox(width: 8),
                 PokeMapBadge(
@@ -972,6 +997,224 @@ class _EventDetailsPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTitleBlock(
+    BuildContext context,
+    EventBuilderEventSummary selected,
+  ) {
+    final colors = context.pokeMapColors;
+    if (_isEditingTitle) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Titre de l’événement',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          CupertinoTextField(
+            key: const ValueKey('event-builder-title-field'),
+            controller: _titleController,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _saveTitle(selected),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+            placeholder: 'Titre de l’événement',
+            placeholderStyle: TextStyle(
+              color: colors.textMuted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.controlSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: _titleError == null
+                    ? colors.borderSubtle
+                    : colors.errorBorder,
+              ),
+            ),
+          ),
+          if (_titleError != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _titleError!,
+              style: TextStyle(
+                color: colors.error,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('event-builder-cancel-title-button'),
+                onPressed: () => _cancelTitleEdit(selected),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.xmark),
+                child: const Text('Annuler'),
+              ),
+              PokeMapButton(
+                key: const ValueKey('event-builder-save-title-button'),
+                onPressed: () => _saveTitle(selected),
+                variant: PokeMapButtonVariant.success,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.checkmark),
+                child: const Text('Enregistrer'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _TechnicalIdHint(technicalId: selected.technicalId),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          selected.displayName,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (widget.onRenameTitle != null)
+              PokeMapButton(
+                key: const ValueKey('event-builder-rename-title-button'),
+                onPressed: () => _startTitleEdit(selected),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.pencil),
+                child: const Text('Renommer'),
+              ),
+            if (_titleFeedback != null)
+              PokeMapBadge(
+                label: _titleFeedback!,
+                variant: PokeMapBadgeVariant.success,
+                icon: const Icon(CupertinoIcons.checkmark_circle),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _TechnicalIdHint(technicalId: selected.technicalId),
+      ],
+    );
+  }
+
+  void _startTitleEdit(EventBuilderEventSummary selected) {
+    setState(() {
+      _isEditingTitle = true;
+      _titleError = null;
+      _titleFeedback = null;
+      _titleController.text = selected.displayName;
+      _titleController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _titleController.text.length,
+      );
+    });
+  }
+
+  void _cancelTitleEdit(EventBuilderEventSummary selected) {
+    setState(() {
+      _isEditingTitle = false;
+      _titleError = null;
+      _titleFeedback = null;
+      _titleController.text = selected.displayName;
+    });
+  }
+
+  void _saveTitle(EventBuilderEventSummary selected) {
+    final trimmedTitle = _titleController.text.trim();
+    if (trimmedTitle.isEmpty) {
+      setState(() {
+        _titleError = 'Le titre est obligatoire.';
+        _titleFeedback = null;
+      });
+      return;
+    }
+    if (trimmedTitle == selected.displayName.trim()) {
+      setState(() {
+        _isEditingTitle = false;
+        _titleError = null;
+        _titleFeedback = null;
+        _titleController.text = selected.displayName;
+      });
+      return;
+    }
+    final renamed = widget.onRenameTitle?.call(
+          eventId: selected.eventId,
+          title: trimmedTitle,
+        ) ??
+        false;
+    if (!renamed) {
+      setState(() {
+        _titleError = 'Impossible de renommer cet événement.';
+        _titleFeedback = null;
+      });
+      return;
+    }
+    setState(() {
+      _isEditingTitle = false;
+      _titleError = null;
+      _titleFeedback = 'Titre mis à jour.';
+      _titleController.text = trimmedTitle;
+    });
+  }
+}
+
+class _TechnicalIdHint extends StatelessWidget {
+  const _TechnicalIdHint({required this.technicalId});
+
+  final String technicalId;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'ID technique',
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          technicalId,
+          style: TextStyle(
+            color: colors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }

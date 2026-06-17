@@ -555,6 +555,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             editor,
             editorNotifier,
           ),
+          onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,

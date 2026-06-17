@@ -65,6 +65,90 @@ void main() {
       );
     });
   });
+
+  group('NS-EVENT-10 EditorNotifier event title authoring', () {
+    test('renames the human title without changing the technical id or page',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+      final original = notifier.state.activeMap!.events.single;
+      final originalPage = original.pages.single;
+
+      final renamed = notifier.renameEventBuilderEventTitle(
+        eventId: 'evt_existing',
+        title: '  Rencontre rival au port  ',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final event = state.activeMap!.events.single;
+      expect(state.errorMessage, isNull);
+      expect(renamed, isTrue);
+      expect(event.id, 'evt_existing');
+      expect(event.title, 'Rencontre rival au port');
+      expect(event.position, original.position);
+      expect(event.type, original.type);
+      expect(event.metadata, original.metadata);
+      expect(event.pages, hasLength(1));
+      expect(event.pages.single.sceneTarget, originalPage.sceneTarget);
+      expect(event.pages.single.script, originalPage.script);
+      expect(event.pages.single.message, originalPage.message);
+      expect(event.pages.single.condition, originalPage.condition);
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.statusMessage, 'Événement renommé');
+    });
+
+    test('rejects an empty title without mutating the event', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final renamed = notifier.renameEventBuilderEventTitle(
+        eventId: 'evt_existing',
+        title: '   ',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final event = state.activeMap!.events.single;
+      expect(renamed, isFalse);
+      expect(event.id, 'evt_existing');
+      expect(event.title, 'Événement existant');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Titre d’événement obligatoire.');
+    });
+
+    test('rejects an unknown event without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _map(),
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final renamed = notifier.renameEventBuilderEventTitle(
+        eventId: 'missing_event',
+        title: 'Rencontre rival au port',
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(renamed, isFalse);
+      expect(state.activeMap!.events.single.title, 'Événement existant');
+      expect(state.selectedMapEventId, 'evt_existing');
+      expect(state.errorMessage, 'Événement introuvable : missing_event');
+    });
+  });
 }
 
 MapData _map() {
@@ -73,7 +157,11 @@ MapData _map() {
     name: 'Port Selbrume',
     size: GridSize(width: 4, height: 3),
     layers: [
-      MapLayer.tile(id: 'ground', name: 'Sol'),
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
     events: [
