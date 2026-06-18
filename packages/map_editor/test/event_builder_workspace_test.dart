@@ -117,7 +117,13 @@ void main() {
     expect(find.text('Informations techniques'), findsOneWidget);
 
     expect(find.text('Déclencheur configuré'), findsOneWidget);
-    expect(find.text('1 impact(s) prévisible(s)'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: central,
+        matching: find.text('1 impact(s) prévisible(s)'),
+      ),
+      findsWidgets,
+    );
     expect(
       find.text('Événement consommé : Rencontre rival au port'),
       findsOneWidget,
@@ -824,6 +830,12 @@ void main() {
     expect(find.text('Créer une règle'), findsNothing);
     expect(find.text('Modifier le déclencheur'), findsNothing);
 
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-reuse-oneShot-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-reuse-oneShot-button')),
     );
@@ -1321,7 +1333,7 @@ void main() {
         findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
     expect(find.text('Informations techniques'), findsOneWidget);
-    expect(find.text('Piloté par les conséquences de scène.'), findsOneWidget);
+    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
 
     expect(find.text('Ajouter un résultat'), findsNothing);
     expect(find.text('Résultats possibles'), findsNothing);
@@ -2351,6 +2363,200 @@ void main() {
     );
   });
 
+  testWidgets('NS-EVENT-28 renders empty world impacts as read-only guidance',
+      (tester) async {
+    await _pumpWorkspace(tester, _readModelWithWorldImpacts(const []));
+
+    expect(find.text('Changements du monde'), findsOneWidget);
+    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
+    expect(find.text('Aucun changement du monde détecté'), findsOneWidget);
+    expect(
+      find.text(
+        'Les réactions et changements persistants se configurent dans la Scene ou dans les règles du monde.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Piloté par les conséquences de scène.'), findsNothing);
+    expect(find.text('Ajouter un changement'), findsNothing);
+    expect(find.text('Créer une règle monde'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-28 renders world impact categories as projections',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldImpacts(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.storyStep,
+            sourceId: 'step_port',
+            label: 'Étape : Aller au port',
+            reason: 'Progression narrative visible après la scène.',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason:
+                'A one-shot event can drive World Rules through consumed event state after the Scene succeeds.',
+          ),
+        ],
+      ),
+    );
+
+    final worldBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-world'),
+    );
+
+    expect(find.text('3 impact(s) prévisible(s)'), findsWidgets);
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text('Fait du monde'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text('Étape narrative'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text('Événement consommé'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Fact : Rival battu'), findsOneWidget);
+    expect(find.text('Étape : Aller au port'), findsOneWidget);
+    expect(
+      find.text('Événement consommé : Rencontre rival au port'),
+      findsOneWidget,
+    );
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Projection'), findsWidgets);
+    expect(find.text('Impact'), findsNothing);
+    expect(
+      find.text(
+        'A one-shot event can drive World Rules through consumed event state after the Scene succeeds.',
+      ),
+      findsNothing,
+    );
+    expect(
+      find.text('Peut influencer les règles du monde après la scène.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        'Le statut de fiabilité est détaillé dans Comportement.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NS-EVENT-28 keeps world projection free of authoring controls',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldImpacts(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason: '',
+          ),
+        ],
+      ),
+      onUpdateSceneAction: ({required eventId, required sceneId}) => false,
+      onUpdateReusePolicy: ({required eventId, required reusePolicy}) => false,
+      onAddFactCondition: ({
+        required eventId,
+        required expectedValue,
+        required factId,
+      }) =>
+          false,
+      onAddEventConsumedCondition: ({
+        required eventId,
+        required expectedConsumed,
+        required targetEventId,
+      }) =>
+          false,
+      onRemoveCondition: ({required conditionIndex, required eventId}) => false,
+    );
+
+    final worldBlock =
+        find.byKey(const ValueKey('event-builder-flow-block-world'));
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Définir un Fact')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Compléter Step')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Donner objet')),
+      findsNothing,
+    );
+
+    expect(find.text('Ajouter un changement'), findsNothing);
+    expect(find.text('Créer une règle monde'), findsNothing);
+    expect(find.text('Ajouter une réaction'), findsNothing);
+    expect(find.text('Drag/drop'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-28 keeps world library item read-only and explanatory',
+      (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final library = find.byKey(const ValueKey('event-builder-element-library'));
+    expect(
+      find.descendant(
+        of: library,
+        matching: find.text('Afficher ou masquer un élément'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: library, matching: find.text('Lecture seule')),
+      findsWidgets,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-world-element')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Cet élément se règle depuis les règles du monde.'),
+      findsOneWidget,
+    );
+    expect(find.text('Créer une règle monde'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-28 preserves NS-EVENT-27 projections', (tester) async {
+    await _pumpWorkspace(tester, _sampleReadModel());
+
+    expect(find.text('Issues de la scène liée'), findsOneWidget);
+    expect(find.text('Défini dans la scène'), findsWidgets);
+    expect(find.text('Intention non garantie au runtime.'), findsWidgets);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Ajouter une réaction'), findsNothing);
+  });
+
   testWidgets('captures NS-EVENT-27 scene outcomes lifecycle visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_27_CAPTURE_WORKSPACE')) {
@@ -2383,6 +2589,85 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_27_scene_outcomes_lifecycle_projection_ui_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-28 world changes readonly visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_28_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldImpacts(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.storyStep,
+            sourceId: 'step_port',
+            label: 'Étape : Aller au port',
+            reason: 'Progression narrative visible après la scène.',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason:
+                'A one-shot event can drive World Rules through consumed event state after the Scene succeeds.',
+          ),
+        ],
+      ),
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-flow-block-world')),
+      180,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+
+    final worldBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-world'),
+    );
+
+    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Fait du monde')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Étape narrative')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text('Événement consommé'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Projection'), findsWidgets);
+    expect(find.text('Ajouter un changement'), findsNothing);
+    expect(find.text('Créer une règle monde'), findsNothing);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_28_world_changes_readonly_projection_polish_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -3278,6 +3563,55 @@ EventBuilderReadModel _sampleReadModel() {
       'scene_message': _eventScene('scene_message', 'Lire le message'),
       'scene_malformed': _eventScene('scene_malformed', 'Scène réglage'),
     },
+  );
+}
+
+EventBuilderReadModel _readModelWithWorldImpacts(
+  List<EventBuilderWorldImpactReadModel> worldImpacts,
+) {
+  final base = _sampleReadModel();
+  final selected = base.events.first;
+  final sections = [
+    for (final section in selected.sections)
+      if (section.key == 'world')
+        EventBuilderSectionReadModel(
+          key: section.key,
+          title: section.title,
+          summary: worldImpacts.isEmpty
+              ? 'Aucun impact monde prévisible'
+              : '${worldImpacts.length} impact(s) prévisible(s)',
+          diagnosticCount: section.diagnosticCount,
+          hasBlockingDiagnostic: section.hasBlockingDiagnostic,
+        )
+      else
+        section,
+  ];
+
+  final patched = EventBuilderEventSummary(
+    eventId: selected.eventId,
+    displayName: selected.displayName,
+    technicalId: selected.technicalId,
+    status: selected.status,
+    statusLabel: selected.statusLabel,
+    groupKey: selected.groupKey,
+    position: selected.position,
+    trigger: selected.trigger,
+    conditions: selected.conditions,
+    sceneAction: selected.sceneAction,
+    behavior: selected.behavior,
+    sceneOutcomes: selected.sceneOutcomes,
+    lifecycle: selected.lifecycle,
+    worldImpacts: worldImpacts,
+    diagnostics: selected.diagnostics,
+    sections: sections,
+    conditionEditingLocked: selected.conditionEditingLocked,
+    conditionEditingMessage: selected.conditionEditingMessage,
+  );
+
+  return EventBuilderReadModel(
+    events: [patched, ...base.events.skip(1)],
+    mapId: base.mapId,
+    mapTitle: base.mapTitle,
   );
 }
 

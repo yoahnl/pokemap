@@ -114,6 +114,10 @@ class EventBuilderInspectorPanel extends StatelessWidget {
                     label: 'Lifecycle',
                     value: _lifecycleInspectorLabel(event.lifecycle),
                   ),
+                  _InspectorLine(
+                    label: 'Changements monde',
+                    value: _worldImpactsInspectorLabel(event.worldImpacts),
+                  ),
                 ],
               ),
             ),
@@ -240,4 +244,13 @@ String _lifecycleInspectorLabel(EventBuilderLifecycleProjection lifecycle) {
           .oneShotExplicitSceneConsequenceForAnotherEvent =>
       'Attention consommation autre événement',
   };
+}
+
+String _worldImpactsInspectorLabel(
+  List<EventBuilderWorldImpactReadModel> impacts,
+) {
+  if (impacts.isEmpty) {
+    return 'Aucun changement détecté';
+  }
+  return '${impacts.length} effet${impacts.length > 1 ? 's' : ''} prévisible${impacts.length > 1 ? 's' : ''}';
 }

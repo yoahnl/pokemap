@@ -1339,12 +1339,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           hasBlockingDiagnostic:
               sections['world']?.hasBlockingDiagnostic ?? false,
           children: [
-            const _MutedText('Piloté par les conséquences de scène.'),
-            if (selected.worldImpacts.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              for (final impact in selected.worldImpacts)
-                _DetailLine(label: impact.reason, value: impact.label),
-            ],
+            _WorldImpactsProjectionBlock(
+              impacts: selected.worldImpacts,
+            ),
           ],
         ),
         EventBuilderFlowBlock(
@@ -2854,6 +2851,191 @@ class _LifecycleUiInfo {
   final List<String> details;
 }
 
+class _WorldImpactsProjectionBlock extends StatelessWidget {
+  const _WorldImpactsProjectionBlock({
+    required this.impacts,
+  });
+
+  final List<EventBuilderWorldImpactReadModel> impacts;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final hasConsumedEvent = impacts.any(
+      (impact) => impact.kind == EventBuilderWorldImpactKind.consumedEvent,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Effets prévisibles en lecture seule.',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Ces changements sont déduits de l’événement, de la scène liée et des règles du monde déjà configurées.',
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 9),
+        if (impacts.isEmpty)
+          const _DiagnosticNotice(
+            title: 'Aucun changement du monde détecté',
+            message:
+                'Cet événement ne déclare pas encore d’impact visible dans le read model.\n'
+                'Les réactions et changements persistants se configurent dans la Scene ou dans les règles du monde.',
+            tone: PokeMapTone.info,
+            severityLabel: 'Lecture seule',
+          )
+        else ...[
+          Text(
+            '${impacts.length} impact(s) prévisible(s)',
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 7),
+          for (final impact in impacts)
+            _WorldImpactProjectionRow(impact: impact),
+          if (hasConsumedEvent)
+            const _DiagnosticNotice(
+              title: 'Consommation d’événement',
+              message:
+                  'La consommation d’événement est affichée ici comme effet prévisible.\n'
+                  'Le statut de fiabilité est détaillé dans Comportement.',
+              tone: PokeMapTone.warning,
+              severityLabel: 'Projection',
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _WorldImpactProjectionRow extends StatelessWidget {
+  const _WorldImpactProjectionRow({
+    required this.impact,
+  });
+
+  final EventBuilderWorldImpactReadModel impact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final category = _worldImpactCategoryLabel(impact.kind);
+    final reason = _worldImpactReadableReason(impact);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: PokeMapCard(
+        key: ValueKey('event-builder-world-impact-${impact.kind.name}'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        borderRadius: 8,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              _worldImpactIcon(impact.kind),
+              size: 15,
+              color: colors.fact,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    category,
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    impact.label,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (reason != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      reason,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 7),
+                  const Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      PokeMapBadge(
+                        label: 'Lecture seule',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      PokeMapBadge(
+                        label: 'Projection',
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _worldImpactCategoryLabel(EventBuilderWorldImpactKind kind) {
+  return switch (kind) {
+    EventBuilderWorldImpactKind.fact => 'Fait du monde',
+    EventBuilderWorldImpactKind.storyStep => 'Étape narrative',
+    EventBuilderWorldImpactKind.consumedEvent => 'Événement consommé',
+  };
+}
+
+IconData _worldImpactIcon(EventBuilderWorldImpactKind kind) {
+  return switch (kind) {
+    EventBuilderWorldImpactKind.fact => CupertinoIcons.checkmark_shield,
+    EventBuilderWorldImpactKind.storyStep => CupertinoIcons.list_bullet,
+    EventBuilderWorldImpactKind.consumedEvent => CupertinoIcons.flag,
+  };
+}
+
+String? _worldImpactReadableReason(EventBuilderWorldImpactReadModel impact) {
+  final reason = impact.reason.trim();
+  if (reason.isEmpty) {
+    return null;
+  }
+  if (reason ==
+      'A one-shot event can drive World Rules through consumed event state after the Scene succeeds.') {
+    return 'Peut influencer les règles du monde après la scène.';
+  }
+  return reason;
+}
+
 class _ConditionDetailLine extends StatelessWidget {
   const _ConditionDetailLine({
     super.key,
@@ -3161,25 +3343,6 @@ class _DiagnosticNotice extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _MutedText extends StatelessWidget {
-  const _MutedText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Text(
-      text,
-      style: TextStyle(
-        color: colors.textMuted,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
       ),
     );
   }

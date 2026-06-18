@@ -88,7 +88,8 @@ class _EventBuilderElementLibraryState
   void _activateItem(_ElementLibraryItem item) {
     if (!item.available || item.action == null) {
       setState(() {
-        _feedback = 'Cet élément arrive dans un prochain lot.';
+        _feedback = item.unavailableFeedback ??
+            'Cet élément arrive dans un prochain lot.';
       });
       return;
     }
@@ -171,7 +172,8 @@ class _ElementLibraryItemCard extends StatelessWidget {
       size: PokeMapButtonSize.small,
       leading: Icon(item.icon, color: toneColors.icon),
       trailing: PokeMapBadge(
-        label: item.available ? 'Disponible' : 'À venir',
+        label:
+            item.available ? 'Disponible' : item.unavailableLabel ?? 'À venir',
         variant: item.available
             ? PokeMapBadgeVariant.success
             : PokeMapBadgeVariant.neutral,
@@ -208,6 +210,8 @@ class _ElementLibraryItem {
     required this.tone,
     required this.available,
     this.action,
+    this.unavailableLabel,
+    this.unavailableFeedback,
   });
 
   final String id;
@@ -216,6 +220,8 @@ class _ElementLibraryItem {
   final PokeMapTone tone;
   final bool available;
   final EventBuilderLibraryAction? action;
+  final String? unavailableLabel;
+  final String? unavailableFeedback;
 }
 
 List<_ElementLibraryGroup> _libraryGroups() {
@@ -343,11 +349,14 @@ List<_ElementLibraryGroup> _libraryGroups() {
       tone: PokeMapTone.fact,
       items: [
         _ElementLibraryItem(
-          id: 'world-enable-element',
-          label: 'Activer élément',
+          id: 'world-element',
+          label: 'Afficher ou masquer un élément',
           icon: CupertinoIcons.eye,
           tone: PokeMapTone.map,
           available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Cet élément se règle depuis les règles du monde.',
         ),
       ],
     ),
