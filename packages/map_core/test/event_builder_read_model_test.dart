@@ -149,6 +149,329 @@ void main() {
       expect(model.events[1].behavior.label, 'Réutilisable');
     });
 
+    test('projects no scene target for missing action outcomes', () {
+      final model = buildEventBuilderReadModel(
+        events: [_event(page: const MapEventPage(pageNumber: 0))],
+        scenes: {'scene_rival': _scene(id: 'scene_rival')},
+      );
+
+      final projection = model.events.single.sceneOutcomes;
+
+      expect(
+        projection.status,
+        EventBuilderSceneOutcomesProjectionStatus.noSceneTarget,
+      );
+      expect(projection.outcomes, isEmpty);
+      expect(projection.label, 'Aucune scène liée');
+    });
+
+    test('projects missing linked scene outcomes without inventing results',
+        () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_missing'),
+            ),
+          ),
+        ],
+        scenes: const <String, SceneAsset>{},
+      );
+
+      final projection = model.events.single.sceneOutcomes;
+
+      expect(
+        projection.status,
+        EventBuilderSceneOutcomesProjectionStatus.missingScene,
+      );
+      expect(projection.sceneId, 'scene_missing');
+      expect(projection.outcomes, isEmpty);
+      expect(projection.label, 'Scène introuvable');
+    });
+
+    test('projects linked scene with no declared outcomes', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_quiet'),
+            ),
+          ),
+        ],
+        scenes: {'scene_quiet': _scene(id: 'scene_quiet')},
+      );
+
+      final projection = model.events.single.sceneOutcomes;
+
+      expect(
+        projection.status,
+        EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes,
+      );
+      expect(projection.sceneId, 'scene_quiet');
+      expect(projection.outcomes, isEmpty);
+      expect(projection.label, 'Aucun résultat déclaré');
+    });
+
+    test('projects linked scene declared outcomes as read-only in order', () {
+      final scene = _scene(
+        id: 'scene_rival',
+        declaredOutcomes: [
+          SceneOutcome(
+            id: 'victory',
+            label: 'Victoire',
+            description: 'Le rival est battu.',
+          ),
+          SceneOutcome(id: 'defeat', label: 'Défaite'),
+        ],
+      );
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+            ),
+          ),
+        ],
+        scenes: {'scene_rival': scene},
+      );
+
+      final projection = model.events.single.sceneOutcomes;
+
+      expect(
+        projection.status,
+        EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes,
+      );
+      expect(projection.label, '2 résultat(s) déclarés par la Scene');
+      expect(
+        projection.outcomes.map((outcome) => outcome.id),
+        ['victory', 'defeat'],
+      );
+      expect(
+        projection.outcomes.map((outcome) => outcome.label),
+        ['Victoire', 'Défaite'],
+      );
+      expect(projection.outcomes.first.description, 'Le rival est battu.');
+      expect(
+        projection.outcomes.every((outcome) => outcome.isReadOnly),
+        isTrue,
+      );
+      expect(projection.outcomes.first.sourceLabel, 'Scene déclarée');
+    });
+
+    test('does not create outcomes on the map event definition', () {
+      final event = _event(
+        page: const MapEventPage(
+          pageNumber: 0,
+          sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+        ),
+      );
+
+      buildEventBuilderReadModel(
+        events: [event],
+        scenes: {
+          'scene_rival': _scene(
+            id: 'scene_rival',
+            declaredOutcomes: [SceneOutcome(id: 'victory', label: 'Victoire')],
+          ),
+        },
+      );
+
+      expect(event.toJson().containsKey('outcomes'), isFalse);
+      expect(event.toJson().containsKey('reactions'), isFalse);
+    });
+
+    test('projects reusable lifecycle without consumption requirement', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_rival',
+          ),
+        },
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded,
+      );
+      expect(lifecycle.warningMessage, isNull);
+      expect(lifecycle.isRuntimeGuaranteed, isTrue);
+    });
+
+    test('projects one-shot without scene target as not verifiable', () {
+      final model = buildEventBuilderReadModel(
+        events: [_event(page: const MapEventPage(pageNumber: 0))],
+        mapId: 'map_port',
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget,
+      );
+      expect(lifecycle.isRuntimeGuaranteed, isFalse);
+      expect(lifecycle.warningMessage, contains('non vérifiable'));
+    });
+
+    test('projects one-shot with missing scene as not verifiable', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_missing'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: const <String, SceneAsset>{},
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus.oneShotMissingScene,
+      );
+      expect(lifecycle.isRuntimeGuaranteed, isFalse);
+      expect(lifecycle.warningMessage, contains('Scene introuvable'));
+    });
+
+    test('projects one-shot without markEventConsumed as intent only', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {'scene_rival': _scene(id: 'scene_rival')},
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus.oneShotIntentOnly,
+      );
+      expect(lifecycle.warningMessage, 'Intention non garantie au runtime.');
+      expect(lifecycle.isRuntimeGuaranteed, isFalse);
+    });
+
+    test(
+        'projects one-shot with matching markEventConsumed as explicit scene compatibility',
+        () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_rival',
+          ),
+        },
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus
+            .oneShotExplicitSceneConsequenceForThisEvent,
+      );
+      expect(lifecycle.isRuntimeGuaranteed, isTrue);
+      expect(
+        lifecycle.warningMessage,
+        'Couvert par conséquence Scene explicite - compatible, '
+        'mais fragile si la Scene est réutilisée.',
+      );
+    });
+
+    test(
+        'projects one-shot with markEventConsumed for another event as warning',
+        () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_other',
+          ),
+        },
+      );
+
+      final lifecycle = model.events.single.lifecycle;
+
+      expect(
+        lifecycle.status,
+        EventBuilderLifecycleProjectionStatus
+            .oneShotExplicitSceneConsequenceForAnotherEvent,
+      );
+      expect(lifecycle.isRuntimeGuaranteed, isFalse);
+      expect(lifecycle.warningMessage, 'La Scene consomme un autre event.');
+    });
+
+    test('setFact-only scenes do not satisfy one-shot event consumption', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_fact'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_fact': _sceneWithSetFact(id: 'scene_fact'),
+        },
+      );
+
+      expect(
+        model.events.single.lifecycle.status,
+        EventBuilderLifecycleProjectionStatus.oneShotIntentOnly,
+      );
+    });
+
     test('locks mixed legacy condition while keeping supported labels visible',
         () {
       final original = ScriptConditionFactory.allOf([
@@ -272,5 +595,62 @@ MapEventDefinition _event({
     position: EventPosition(layerId: 'events', x: x, y: y),
     type: type,
     pages: [page],
+  );
+}
+
+SceneAsset _scene({
+  required String id,
+  List<SceneOutcome> declaredOutcomes = const <SceneOutcome>[],
+  List<SceneNode> extraNodes = const <SceneNode>[],
+}) {
+  return SceneAsset(
+    id: id,
+    name: id,
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        ...extraNodes,
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+    ),
+    declaredOutcomes: declaredOutcomes,
+  );
+}
+
+SceneAsset _sceneWithMarkEventConsumed({
+  required String id,
+  required String mapId,
+  required String eventId,
+}) {
+  return _scene(
+    id: id,
+    extraNodes: [
+      SceneNode(
+        id: 'node_mark_consumed',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.markEventConsumed(
+            mapId: mapId,
+            eventId: eventId,
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+SceneAsset _sceneWithSetFact({required String id}) {
+  return _scene(
+    id: id,
+    extraNodes: [
+      SceneNode(
+        id: 'node_set_fact',
+        kind: SceneNodeKind.action,
+        payload: SceneActionPayload.consequence(
+          SceneConsequence.setFact(factId: 'fact_seen_rival', value: true),
+        ),
+      ),
+    ],
   );
 }

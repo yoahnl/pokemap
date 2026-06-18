@@ -3,6 +3,8 @@ import 'package:meta/meta.dart' show immutable;
 import '../authoring/event_builder_authoring_operations.dart';
 import '../authoring/event_builder_contract.dart';
 import '../models/map_event_definition.dart';
+import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
 
 const String _triggerSection = 'trigger';
 const String _conditionsSection = 'conditions';
@@ -32,6 +34,26 @@ enum EventBuilderDiagnosticReadModelKind {
   unsupportedStoryStepCondition,
   metadataMalformed,
   eventPageMissing,
+}
+
+enum EventBuilderSceneOutcomesProjectionStatus {
+  noSceneTarget,
+  missingScene,
+  noDeclaredOutcomes,
+  hasDeclaredOutcomes,
+}
+
+enum EventBuilderSceneOutcomeProjectionSource {
+  sceneDeclaredOutcome,
+}
+
+enum EventBuilderLifecycleProjectionStatus {
+  reusableNoConsumptionNeeded,
+  oneShotIntentOnly,
+  oneShotExplicitSceneConsequenceForThisEvent,
+  oneShotExplicitSceneConsequenceForAnotherEvent,
+  oneShotNoSceneTarget,
+  oneShotMissingScene,
 }
 
 @immutable
@@ -65,6 +87,8 @@ final class EventBuilderEventSummary {
     required List<EventBuilderConditionReadModel> conditions,
     required this.sceneAction,
     required this.behavior,
+    required this.sceneOutcomes,
+    required this.lifecycle,
     required List<EventBuilderWorldImpactReadModel> worldImpacts,
     required List<EventBuilderDiagnosticReadModel> diagnostics,
     required List<EventBuilderSectionReadModel> sections,
@@ -92,6 +116,8 @@ final class EventBuilderEventSummary {
   final List<EventBuilderConditionReadModel> conditions;
   final EventBuilderSceneActionReadModel sceneAction;
   final EventBuilderBehaviorReadModel behavior;
+  final EventBuilderSceneOutcomesProjection sceneOutcomes;
+  final EventBuilderLifecycleProjection lifecycle;
   final List<EventBuilderWorldImpactReadModel> worldImpacts;
   final List<EventBuilderDiagnosticReadModel> diagnostics;
   final List<EventBuilderSectionReadModel> sections;
@@ -178,6 +204,72 @@ final class EventBuilderBehaviorReadModel {
   final String label;
 }
 
+/// Projection read-only des outcomes déclarés par la Scene liée.
+///
+/// NS-EVENT-26 garde les outcomes Scene-owned : ce read model expose seulement
+/// la vérité utile à l'UI, sans créer de résultat côté [MapEventDefinition].
+@immutable
+final class EventBuilderSceneOutcomesProjection {
+  EventBuilderSceneOutcomesProjection({
+    required this.status,
+    required this.label,
+    required this.sceneId,
+    required this.sceneLabel,
+    required List<EventBuilderSceneOutcomeReadModel> outcomes,
+  }) : outcomes = List<EventBuilderSceneOutcomeReadModel>.unmodifiable(
+          outcomes,
+        );
+
+  final EventBuilderSceneOutcomesProjectionStatus status;
+  final String label;
+  final String? sceneId;
+  final String sceneLabel;
+  final List<EventBuilderSceneOutcomeReadModel> outcomes;
+}
+
+@immutable
+final class EventBuilderSceneOutcomeReadModel {
+  const EventBuilderSceneOutcomeReadModel({
+    required this.id,
+    required this.label,
+    required this.description,
+    required this.source,
+    required this.sourceLabel,
+    required this.isReadOnly,
+  });
+
+  final String id;
+  final String label;
+  final String? description;
+  final EventBuilderSceneOutcomeProjectionSource source;
+  final String sourceLabel;
+  final bool isReadOnly;
+}
+
+/// Projection du lifecycle Event Builder.
+///
+/// `oneShot` reste une intention authoring tant qu'un runtime lifecycle dédié
+/// ne consomme pas l'event appelant. Une conséquence Scene explicite est donc
+/// signalée comme compatibilité, pas comme nouveau contrat runtime canonique.
+@immutable
+final class EventBuilderLifecycleProjection {
+  const EventBuilderLifecycleProjection({
+    required this.status,
+    required this.label,
+    required this.reusePolicy,
+    required this.isRuntimeGuaranteed,
+    this.warningMessage,
+    this.explicitConsumedEventId,
+  });
+
+  final EventBuilderLifecycleProjectionStatus status;
+  final String label;
+  final EventBuilderReusePolicy reusePolicy;
+  final bool isRuntimeGuaranteed;
+  final String? warningMessage;
+  final String? explicitConsumedEventId;
+}
+
 @immutable
 final class EventBuilderWorldImpactReadModel {
   const EventBuilderWorldImpactReadModel({
@@ -219,6 +311,7 @@ EventBuilderReadModel buildEventBuilderReadModel({
   String? mapId,
   String? mapTitle,
   Map<String, String> sceneLabels = const <String, String>{},
+  Map<String, SceneAsset> scenes = const <String, SceneAsset>{},
   Map<String, String> factLabels = const <String, String>{},
   Map<String, String> eventLabels = const <String, String>{},
   Map<String, String> storyStepLabels = const <String, String>{},
@@ -231,8 +324,10 @@ EventBuilderReadModel buildEventBuilderReadModel({
     for (final event in events)
       _buildEventSummary(
         event,
+        mapId: mapId,
         groupKey: mapId ?? 'events',
         sceneLabels: sceneLabels,
+        scenes: scenes,
         factLabels: factLabels,
         eventLabels: eventLabelLookup,
         storyStepLabels: storyStepLabels,
@@ -248,8 +343,10 @@ EventBuilderReadModel buildEventBuilderReadModel({
 
 EventBuilderEventSummary _buildEventSummary(
   MapEventDefinition event, {
+  required String? mapId,
   required String groupKey,
   required Map<String, String> sceneLabels,
+  required Map<String, SceneAsset> scenes,
   required Map<String, String> factLabels,
   required Map<String, String> eventLabels,
   required Map<String, String> storyStepLabels,
@@ -279,6 +376,18 @@ EventBuilderEventSummary _buildEventSummary(
     sceneLabels: sceneLabels,
   );
   final behavior = _buildBehaviorReadModel(contract.behavior);
+  final sceneOutcomes = _buildSceneOutcomesProjection(
+    sceneAction: contract.sceneAction,
+    sceneLabels: sceneLabels,
+    scenes: scenes,
+  );
+  final lifecycle = _buildLifecycleProjection(
+    eventId: event.id,
+    mapId: mapId,
+    behavior: contract.behavior,
+    sceneAction: contract.sceneAction,
+    scenes: scenes,
+  );
   final worldImpacts = [
     for (final impact in contract.worldImpactPreviews)
       _buildWorldImpactReadModel(impact),
@@ -306,6 +415,8 @@ EventBuilderEventSummary _buildEventSummary(
     conditions: conditions,
     sceneAction: sceneAction,
     behavior: behavior,
+    sceneOutcomes: sceneOutcomes,
+    lifecycle: lifecycle,
     worldImpacts: worldImpacts,
     diagnostics: diagnostics,
     sections: _buildSections(
@@ -343,6 +454,20 @@ EventBuilderEventSummary _buildInvalidPageSummary(
     reusePolicy: EventBuilderReusePolicy.oneShot,
     label: 'Une seule fois',
   );
+  final sceneOutcomes = EventBuilderSceneOutcomesProjection(
+    status: EventBuilderSceneOutcomesProjectionStatus.noSceneTarget,
+    label: 'Aucune scène liée',
+    sceneId: null,
+    sceneLabel: '',
+    outcomes: const <EventBuilderSceneOutcomeReadModel>[],
+  );
+  const lifecycle = EventBuilderLifecycleProjection(
+    status: EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget,
+    label: 'Une seule fois - aucune Scene liée, consommation non vérifiable.',
+    reusePolicy: EventBuilderReusePolicy.oneShot,
+    isRuntimeGuaranteed: false,
+    warningMessage: 'Lifecycle one-shot non vérifiable sans Scene liée.',
+  );
   const diagnostics = [diagnostic];
 
   return EventBuilderEventSummary(
@@ -357,6 +482,8 @@ EventBuilderEventSummary _buildInvalidPageSummary(
     conditions: const <EventBuilderConditionReadModel>[],
     sceneAction: sceneAction,
     behavior: behavior,
+    sceneOutcomes: sceneOutcomes,
+    lifecycle: lifecycle,
     worldImpacts: const <EventBuilderWorldImpactReadModel>[],
     diagnostics: diagnostics,
     sections: _buildSections(
@@ -493,6 +620,158 @@ EventBuilderBehaviorReadModel _buildBehaviorReadModel(
     reusePolicy: behavior.reusePolicy,
     label: _reusePolicyLabel(behavior.reusePolicy),
   );
+}
+
+EventBuilderSceneOutcomesProjection _buildSceneOutcomesProjection({
+  required EventBuilderSceneActionBinding? sceneAction,
+  required Map<String, String> sceneLabels,
+  required Map<String, SceneAsset> scenes,
+}) {
+  if (sceneAction == null) {
+    return EventBuilderSceneOutcomesProjection(
+      status: EventBuilderSceneOutcomesProjectionStatus.noSceneTarget,
+      label: 'Aucune scène liée',
+      sceneId: null,
+      sceneLabel: '',
+      outcomes: const <EventBuilderSceneOutcomeReadModel>[],
+    );
+  }
+
+  final sceneLabel = sceneAction.label ??
+      sceneLabels[sceneAction.sceneId] ??
+      sceneAction.sceneId;
+  final scene = scenes[sceneAction.sceneId];
+  if (scene == null) {
+    return EventBuilderSceneOutcomesProjection(
+      status: EventBuilderSceneOutcomesProjectionStatus.missingScene,
+      label: 'Scène introuvable',
+      sceneId: sceneAction.sceneId,
+      sceneLabel: sceneLabel,
+      outcomes: const <EventBuilderSceneOutcomeReadModel>[],
+    );
+  }
+
+  if (scene.declaredOutcomes.isEmpty) {
+    return EventBuilderSceneOutcomesProjection(
+      status: EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes,
+      label: 'Aucun résultat déclaré',
+      sceneId: scene.id,
+      sceneLabel: scene.name,
+      outcomes: const <EventBuilderSceneOutcomeReadModel>[],
+    );
+  }
+
+  return EventBuilderSceneOutcomesProjection(
+    status: EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes,
+    label: '${scene.declaredOutcomes.length} résultat(s) déclarés par la Scene',
+    sceneId: scene.id,
+    sceneLabel: scene.name,
+    outcomes: [
+      for (final outcome in scene.declaredOutcomes)
+        EventBuilderSceneOutcomeReadModel(
+          id: outcome.id,
+          label: outcome.label,
+          description: outcome.description,
+          source: EventBuilderSceneOutcomeProjectionSource.sceneDeclaredOutcome,
+          sourceLabel: 'Scene déclarée',
+          isReadOnly: true,
+        ),
+    ],
+  );
+}
+
+EventBuilderLifecycleProjection _buildLifecycleProjection({
+  required String eventId,
+  required String? mapId,
+  required EventBuilderBehaviorBinding behavior,
+  required EventBuilderSceneActionBinding? sceneAction,
+  required Map<String, SceneAsset> scenes,
+}) {
+  if (behavior.reusePolicy == EventBuilderReusePolicy.reusable) {
+    return const EventBuilderLifecycleProjection(
+      status: EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded,
+      label: 'Réutilisable - aucune consommation nécessaire.',
+      reusePolicy: EventBuilderReusePolicy.reusable,
+      isRuntimeGuaranteed: true,
+    );
+  }
+
+  if (sceneAction == null) {
+    return const EventBuilderLifecycleProjection(
+      status: EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget,
+      label: 'Une seule fois - aucune Scene liée, consommation non vérifiable.',
+      reusePolicy: EventBuilderReusePolicy.oneShot,
+      isRuntimeGuaranteed: false,
+      warningMessage: 'Lifecycle one-shot non vérifiable sans Scene liée.',
+    );
+  }
+
+  final scene = scenes[sceneAction.sceneId];
+  if (scene == null) {
+    return const EventBuilderLifecycleProjection(
+      status: EventBuilderLifecycleProjectionStatus.oneShotMissingScene,
+      label: 'Une seule fois - Scene introuvable, consommation non vérifiable.',
+      reusePolicy: EventBuilderReusePolicy.oneShot,
+      isRuntimeGuaranteed: false,
+      warningMessage: 'Scene introuvable, consommation non vérifiable.',
+    );
+  }
+
+  final consumedConsequences = _markEventConsumedConsequences(scene).toList();
+  if (consumedConsequences.isEmpty) {
+    return const EventBuilderLifecycleProjection(
+      status: EventBuilderLifecycleProjectionStatus.oneShotIntentOnly,
+      label:
+          'Une seule fois - intention authoring, runtime lifecycle dédié pas encore branché.',
+      reusePolicy: EventBuilderReusePolicy.oneShot,
+      isRuntimeGuaranteed: false,
+      warningMessage: 'Intention non garantie au runtime.',
+    );
+  }
+
+  final matchesCurrentEvent = consumedConsequences.any(
+    (consequence) =>
+        consequence.eventId == eventId &&
+        mapId != null &&
+        consequence.mapId == mapId,
+  );
+  if (matchesCurrentEvent) {
+    return EventBuilderLifecycleProjection(
+      status: EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForThisEvent,
+      label: 'Une seule fois - conséquence Scene explicite trouvée.',
+      reusePolicy: EventBuilderReusePolicy.oneShot,
+      isRuntimeGuaranteed: true,
+      warningMessage: 'Couvert par conséquence Scene explicite - compatible, '
+          'mais fragile si la Scene est réutilisée.',
+      explicitConsumedEventId: eventId,
+    );
+  }
+
+  return EventBuilderLifecycleProjection(
+    status: EventBuilderLifecycleProjectionStatus
+        .oneShotExplicitSceneConsequenceForAnotherEvent,
+    label: 'Une seule fois - la Scene consomme un autre event.',
+    reusePolicy: EventBuilderReusePolicy.oneShot,
+    isRuntimeGuaranteed: false,
+    warningMessage: 'La Scene consomme un autre event.',
+    explicitConsumedEventId: consumedConsequences.first.eventId,
+  );
+}
+
+Iterable<SceneMarkEventConsumedConsequence> _markEventConsumedConsequences(
+  SceneAsset scene,
+) sync* {
+  for (final node in scene.graph.nodes) {
+    if (node.kind != SceneNodeKind.action) {
+      continue;
+    }
+    final payload = node.payload as SceneActionPayload;
+    final consequence = payload.consequence;
+    if (consequence is SceneMarkEventConsumedConsequence) {
+      yield consequence;
+    }
+  }
 }
 
 EventBuilderWorldImpactReadModel _buildWorldImpactReadModel(
