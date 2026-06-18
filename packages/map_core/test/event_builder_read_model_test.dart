@@ -738,6 +738,325 @@ void main() {
       );
     });
 
+    test('projects matching fact world rules without evaluating predicate', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_fact'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {
+          'scene_fact': _sceneWithSetFact(
+            id: 'scene_fact',
+            factId: 'fact_seen_rival',
+            value: true,
+          ),
+        },
+        factLabels: const {'fact_seen_rival': 'Rival rencontré'},
+        worldRules: [
+          _worldRule(
+            id: 'rule_show_rival',
+            label: 'Rival visible après rencontre',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_seen_rival',
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEntity,
+              mapId: 'map_port',
+              entityId: 'npc_rival',
+              label: 'Rival au port',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityVisible,
+            ),
+          ),
+          _worldRule(
+            id: 'rule_hide_rival',
+            label: 'Rival caché avant rencontre',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_seen_rival',
+              predicate: WorldRuleSourcePredicate.isFalse,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityHidden,
+              label: 'Cache le rival',
+            ),
+          ),
+        ],
+      );
+
+      final projection = model.events.single.worldRules;
+
+      expect(projection.status,
+          EventBuilderWorldRulesProjectionStatus.hasMatchingRules);
+      expect(projection.rules, hasLength(2));
+      expect(
+        projection.rules.map((rule) => rule.ruleId),
+        ['rule_show_rival', 'rule_hide_rival'],
+      );
+      expect(projection.rules.first.ruleLabel, 'Rival visible après rencontre');
+      expect(projection.rules.first.enabled, isTrue);
+      expect(projection.rules.first.sourceId, 'fact_seen_rival');
+      expect(projection.rules.first.sourceLabel, 'Rival rencontré');
+      expect(
+        projection.rules.first.predicateLabel,
+        'Fact "Rival rencontré" est vrai',
+      );
+      expect(projection.rules.first.targetLabel, 'Rival au port');
+      expect(projection.rules.first.effectLabel, 'Rend visible');
+      expect(
+        projection.rules.first.reason,
+        'Cette règle lit un fait modifié par la Scene liée.',
+      );
+      expect(projection.rules.first.isReadOnly, isTrue);
+      expect(
+        projection.rules.last.predicateLabel,
+        'Fact "Rival rencontré" est faux',
+      );
+      expect(projection.rules.last.effectLabel, 'Cache le rival');
+    });
+
+    test('projects consumed event world rules including disabled rules', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_rival',
+          ),
+        },
+        eventLabels: const {'evt_rival': 'Rencontre rival'},
+        worldRules: [
+          _worldRule(
+            id: 'rule_after_rival',
+            label: 'Après la rencontre rival',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.consumedEvent,
+              sourceId: 'evt_rival',
+              predicate: WorldRuleSourcePredicate.consumed,
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEvent,
+              mapId: 'map_port',
+              eventId: 'evt_guard',
+              label: 'Garde du port',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.eventEnabled,
+            ),
+          ),
+          _worldRule(
+            id: 'rule_before_rival_disabled',
+            label: 'Avant la rencontre rival',
+            enabled: false,
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.consumedEvent,
+              sourceId: 'evt_rival',
+              predicate: WorldRuleSourcePredicate.notConsumed,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.eventHidden,
+            ),
+          ),
+        ],
+      );
+
+      final projection = model.events.single.worldRules;
+
+      expect(projection.rules, hasLength(2));
+      expect(
+        projection.rules.map((rule) => rule.ruleId),
+        ['rule_after_rival', 'rule_before_rival_disabled'],
+      );
+      expect(projection.rules.first.sourceLabel, 'Rencontre rival');
+      expect(
+        projection.rules.first.predicateLabel,
+        'Événement "Rencontre rival" consommé',
+      );
+      expect(projection.rules.first.targetLabel, 'Garde du port');
+      expect(projection.rules.first.effectLabel, 'Active l’événement');
+      expect(projection.rules.last.enabled, isFalse);
+      expect(
+        projection.rules.last.predicateLabel,
+        'Événement "Rencontre rival" non consommé',
+      );
+      expect(
+        projection.rules.last.reason,
+        'Cette règle lit un événement consommé projeté par l’Event Builder.',
+      );
+    });
+
+    test('does not project non matching world rules', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_fact'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {
+          'scene_fact': _sceneWithSetFact(
+            id: 'scene_fact',
+            factId: 'fact_seen_rival',
+          ),
+        },
+        worldRules: [
+          _worldRule(
+            id: 'rule_other_fact',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_other',
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+          ),
+          _worldRule(
+            id: 'rule_step',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.storyStepCompletion,
+              sourceId: 'step_go_port',
+              predicate: WorldRuleSourcePredicate.completed,
+            ),
+          ),
+        ],
+      );
+
+      expect(model.events.single.worldRules.status,
+          EventBuilderWorldRulesProjectionStatus.noMatchingRules);
+      expect(model.events.single.worldRules.rules, isEmpty);
+    });
+
+    test('orders projected world rules by impacts then world rule order', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_mixed'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_mixed': _scene(
+            id: 'scene_mixed',
+            extraNodes: [
+              SceneNode(
+                id: 'node_set_fact',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                  SceneConsequence.setFact(
+                    factId: 'fact_seen_rival',
+                    value: true,
+                  ),
+                ),
+              ),
+              SceneNode(
+                id: 'node_mark_consumed',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                  SceneConsequence.markEventConsumed(
+                    mapId: 'map_port',
+                    eventId: 'evt_rival',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        },
+        worldRules: [
+          _worldRule(
+            id: 'rule_consumed',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.consumedEvent,
+              sourceId: 'evt_rival',
+              predicate: WorldRuleSourcePredicate.consumed,
+            ),
+          ),
+          _worldRule(
+            id: 'rule_fact',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_seen_rival',
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+          ),
+          _worldRule(
+            id: 'rule_fact',
+            label: 'Doublon ignoré',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_seen_rival',
+              predicate: WorldRuleSourcePredicate.isFalse,
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        model.events.single.worldRules.rules.map((rule) => rule.ruleId),
+        ['rule_fact', 'rule_consumed'],
+      );
+    });
+
+    test('reports no world rule projection when there is no world impact', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_quiet'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {'scene_quiet': _scene(id: 'scene_quiet')},
+        worldRules: [
+          _worldRule(
+            id: 'rule_fact',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.fact,
+              sourceId: 'fact_seen_rival',
+              predicate: WorldRuleSourcePredicate.isTrue,
+            ),
+          ),
+        ],
+      );
+
+      expect(model.events.single.worldRules.status,
+          EventBuilderWorldRulesProjectionStatus.noWorldImpacts);
+      expect(model.events.single.worldRules.rules, isEmpty);
+    });
+
     test('locks mixed legacy condition while keeping supported labels visible',
         () {
       final original = ScriptConditionFactory.allOf([
@@ -922,5 +1241,30 @@ SceneAsset _sceneWithSetFact({
         ),
       ),
     ],
+  );
+}
+
+WorldRuleDefinition _worldRule({
+  required String id,
+  String label = 'Règle du monde',
+  bool enabled = true,
+  required WorldRuleSource source,
+  WorldRuleTarget target = const WorldRuleTarget(
+    kind: WorldRuleTargetKind.mapEntity,
+    mapId: 'map_port',
+    entityId: 'npc_rival',
+    label: 'Rival',
+  ),
+  WorldRuleEffect effect = const WorldRuleEffect(
+    kind: WorldRuleEffectKind.entityHidden,
+  ),
+}) {
+  return WorldRuleDefinition(
+    id: id,
+    label: label,
+    enabled: enabled,
+    source: source,
+    target: target,
+    effect: effect,
   );
 }

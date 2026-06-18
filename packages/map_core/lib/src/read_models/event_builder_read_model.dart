@@ -5,6 +5,7 @@ import '../authoring/event_builder_contract.dart';
 import '../models/map_event_definition.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/world_rule.dart';
 
 const String _triggerSection = 'trigger';
 const String _conditionsSection = 'conditions';
@@ -56,6 +57,12 @@ enum EventBuilderLifecycleProjectionStatus {
   oneShotMissingScene,
 }
 
+enum EventBuilderWorldRulesProjectionStatus {
+  noWorldImpacts,
+  noMatchingRules,
+  hasMatchingRules,
+}
+
 @immutable
 final class EventBuilderReadModel {
   EventBuilderReadModel({
@@ -90,6 +97,7 @@ final class EventBuilderEventSummary {
     required this.sceneOutcomes,
     required this.lifecycle,
     required List<EventBuilderWorldImpactReadModel> worldImpacts,
+    EventBuilderWorldRulesProjection? worldRules,
     required List<EventBuilderDiagnosticReadModel> diagnostics,
     required List<EventBuilderSectionReadModel> sections,
     required this.conditionEditingLocked,
@@ -100,6 +108,8 @@ final class EventBuilderEventSummary {
         worldImpacts = List<EventBuilderWorldImpactReadModel>.unmodifiable(
           worldImpacts,
         ),
+        worldRules =
+            worldRules ?? EventBuilderWorldRulesProjection.noWorldImpacts(),
         diagnostics = List<EventBuilderDiagnosticReadModel>.unmodifiable(
           diagnostics,
         ),
@@ -119,6 +129,7 @@ final class EventBuilderEventSummary {
   final EventBuilderSceneOutcomesProjection sceneOutcomes;
   final EventBuilderLifecycleProjection lifecycle;
   final List<EventBuilderWorldImpactReadModel> worldImpacts;
+  final EventBuilderWorldRulesProjection worldRules;
   final List<EventBuilderDiagnosticReadModel> diagnostics;
   final List<EventBuilderSectionReadModel> sections;
   final bool conditionEditingLocked;
@@ -285,6 +296,89 @@ final class EventBuilderWorldImpactReadModel {
   final String reason;
 }
 
+/// Projection passive des World Rules qui observent les sources déjà exposées
+/// par les impacts monde de l'Event Builder.
+///
+/// NS-EVENT-30 ne simule pas le GameState et n'applique aucun effet : le read
+/// model signale seulement qu'une règle lit la même source d'état.
+@immutable
+final class EventBuilderWorldRulesProjection {
+  EventBuilderWorldRulesProjection({
+    required this.status,
+    required this.label,
+    required List<EventBuilderWorldRuleProjectionReadModel> rules,
+  }) : rules = List<EventBuilderWorldRuleProjectionReadModel>.unmodifiable(
+          rules,
+        );
+
+  factory EventBuilderWorldRulesProjection.noWorldImpacts() {
+    return EventBuilderWorldRulesProjection(
+      status: EventBuilderWorldRulesProjectionStatus.noWorldImpacts,
+      label: 'Aucun changement du monde projeté.',
+      rules: const <EventBuilderWorldRuleProjectionReadModel>[],
+    );
+  }
+
+  factory EventBuilderWorldRulesProjection.noMatchingRules() {
+    return EventBuilderWorldRulesProjection(
+      status: EventBuilderWorldRulesProjectionStatus.noMatchingRules,
+      label: 'Aucune règle du monde ne lit ces sources.',
+      rules: const <EventBuilderWorldRuleProjectionReadModel>[],
+    );
+  }
+
+  factory EventBuilderWorldRulesProjection.hasMatchingRules(
+    List<EventBuilderWorldRuleProjectionReadModel> rules,
+  ) {
+    return EventBuilderWorldRulesProjection(
+      status: EventBuilderWorldRulesProjectionStatus.hasMatchingRules,
+      label: '${rules.length} règle(s) du monde potentiellement concernée(s).',
+      rules: rules,
+    );
+  }
+
+  final EventBuilderWorldRulesProjectionStatus status;
+  final String label;
+  final List<EventBuilderWorldRuleProjectionReadModel> rules;
+}
+
+@immutable
+final class EventBuilderWorldRuleProjectionReadModel {
+  const EventBuilderWorldRuleProjectionReadModel({
+    required this.ruleId,
+    required this.ruleLabel,
+    required this.description,
+    required this.enabled,
+    required this.sourceKind,
+    required this.sourceId,
+    required this.sourceLabel,
+    required this.predicateLabel,
+    required this.targetKind,
+    required this.targetId,
+    required this.targetLabel,
+    required this.effectKind,
+    required this.effectLabel,
+    required this.reason,
+    required this.isReadOnly,
+  });
+
+  final String ruleId;
+  final String ruleLabel;
+  final String description;
+  final bool enabled;
+  final WorldRuleSourceKind sourceKind;
+  final String sourceId;
+  final String sourceLabel;
+  final String predicateLabel;
+  final WorldRuleTargetKind targetKind;
+  final String targetId;
+  final String targetLabel;
+  final WorldRuleEffectKind effectKind;
+  final String effectLabel;
+  final String reason;
+  final bool isReadOnly;
+}
+
 @immutable
 final class EventBuilderDiagnosticReadModel {
   const EventBuilderDiagnosticReadModel({
@@ -312,6 +406,7 @@ EventBuilderReadModel buildEventBuilderReadModel({
   String? mapTitle,
   Map<String, String> sceneLabels = const <String, String>{},
   Map<String, SceneAsset> scenes = const <String, SceneAsset>{},
+  List<WorldRuleDefinition> worldRules = const <WorldRuleDefinition>[],
   Map<String, String> factLabels = const <String, String>{},
   Map<String, String> eventLabels = const <String, String>{},
   Map<String, String> storyStepLabels = const <String, String>{},
@@ -328,6 +423,7 @@ EventBuilderReadModel buildEventBuilderReadModel({
         groupKey: mapId ?? 'events',
         sceneLabels: sceneLabels,
         scenes: scenes,
+        worldRules: worldRules,
         factLabels: factLabels,
         eventLabels: eventLabelLookup,
         storyStepLabels: storyStepLabels,
@@ -347,6 +443,7 @@ EventBuilderEventSummary _buildEventSummary(
   required String groupKey,
   required Map<String, String> sceneLabels,
   required Map<String, SceneAsset> scenes,
+  required List<WorldRuleDefinition> worldRules,
   required Map<String, String> factLabels,
   required Map<String, String> eventLabels,
   required Map<String, String> storyStepLabels,
@@ -395,6 +492,13 @@ EventBuilderEventSummary _buildEventSummary(
     eventLabels: eventLabels,
     contractPreviews: contract.worldImpactPreviews,
   );
+  final worldRulesProjection = _buildWorldRulesProjection(
+    worldImpacts: worldImpacts,
+    worldRules: worldRules,
+    factLabels: factLabels,
+    eventLabels: eventLabels,
+    storyStepLabels: storyStepLabels,
+  );
   final conditionEditingLocked = contract.legacyConditionToPreserve != null;
   final conditionEditingMessage = conditionEditingLocked
       ? 'Cette condition contient une partie avancée préservée. '
@@ -421,6 +525,7 @@ EventBuilderEventSummary _buildEventSummary(
     sceneOutcomes: sceneOutcomes,
     lifecycle: lifecycle,
     worldImpacts: worldImpacts,
+    worldRules: worldRulesProjection,
     diagnostics: diagnostics,
     sections: _buildSections(
       conditions: conditions,
@@ -871,6 +976,167 @@ String _worldImpactDedupKey(
   String sourceId,
 ) {
   return '${kind.name}|$sourceId';
+}
+
+EventBuilderWorldRulesProjection _buildWorldRulesProjection({
+  required List<EventBuilderWorldImpactReadModel> worldImpacts,
+  required List<WorldRuleDefinition> worldRules,
+  required Map<String, String> factLabels,
+  required Map<String, String> eventLabels,
+  required Map<String, String> storyStepLabels,
+}) {
+  if (worldImpacts.isEmpty) {
+    return EventBuilderWorldRulesProjection.noWorldImpacts();
+  }
+
+  final projections = <EventBuilderWorldRuleProjectionReadModel>[];
+  final seenRuleIds = <String>{};
+
+  for (final impact in worldImpacts) {
+    for (final rule in worldRules) {
+      if (!seenRuleIds.add(rule.id)) {
+        continue;
+      }
+      if (!_worldRuleReadsImpact(rule.source, impact)) {
+        seenRuleIds.remove(rule.id);
+        continue;
+      }
+      projections.add(_buildWorldRuleProjectionReadModel(
+        rule,
+        impact,
+        factLabels: factLabels,
+        eventLabels: eventLabels,
+        storyStepLabels: storyStepLabels,
+      ));
+    }
+  }
+
+  if (projections.isEmpty) {
+    return EventBuilderWorldRulesProjection.noMatchingRules();
+  }
+  return EventBuilderWorldRulesProjection.hasMatchingRules(projections);
+}
+
+bool _worldRuleReadsImpact(
+  WorldRuleSource source,
+  EventBuilderWorldImpactReadModel impact,
+) {
+  return source.sourceId == impact.sourceId &&
+      source.kind == _worldRuleSourceKindForImpact(impact.kind);
+}
+
+WorldRuleSourceKind _worldRuleSourceKindForImpact(
+  EventBuilderWorldImpactKind kind,
+) {
+  return switch (kind) {
+    EventBuilderWorldImpactKind.fact => WorldRuleSourceKind.fact,
+    EventBuilderWorldImpactKind.storyStep =>
+      WorldRuleSourceKind.storyStepCompletion,
+    EventBuilderWorldImpactKind.consumedEvent =>
+      WorldRuleSourceKind.consumedEvent,
+  };
+}
+
+EventBuilderWorldRuleProjectionReadModel _buildWorldRuleProjectionReadModel(
+  WorldRuleDefinition rule,
+  EventBuilderWorldImpactReadModel impact, {
+  required Map<String, String> factLabels,
+  required Map<String, String> eventLabels,
+  required Map<String, String> storyStepLabels,
+}) {
+  final sourceLabel = _worldRuleSourceReferenceLabel(
+    rule.source,
+    factLabels: factLabels,
+    eventLabels: eventLabels,
+    storyStepLabels: storyStepLabels,
+  );
+  return EventBuilderWorldRuleProjectionReadModel(
+    ruleId: rule.id,
+    ruleLabel: rule.label,
+    description: rule.description,
+    enabled: rule.enabled,
+    sourceKind: rule.source.kind,
+    sourceId: rule.source.sourceId,
+    sourceLabel: sourceLabel,
+    predicateLabel: _worldRulePredicateLabel(rule.source, sourceLabel),
+    targetKind: rule.target.kind,
+    targetId: _worldRuleTargetId(rule.target),
+    targetLabel: _worldRuleTargetLabel(rule.target),
+    effectKind: rule.effect.kind,
+    effectLabel: _worldRuleEffectLabel(rule.effect),
+    reason: _worldRuleProjectionReason(impact.kind),
+    isReadOnly: true,
+  );
+}
+
+String _worldRuleSourceReferenceLabel(
+  WorldRuleSource source, {
+  required Map<String, String> factLabels,
+  required Map<String, String> eventLabels,
+  required Map<String, String> storyStepLabels,
+}) {
+  return switch (source.kind) {
+    WorldRuleSourceKind.fact =>
+      factLabels[source.sourceId] ?? source.label ?? source.sourceId,
+    WorldRuleSourceKind.storyStepCompletion =>
+      storyStepLabels[source.sourceId] ?? source.label ?? source.sourceId,
+    WorldRuleSourceKind.consumedEvent =>
+      eventLabels[source.sourceId] ?? source.label ?? source.sourceId,
+  };
+}
+
+String _worldRulePredicateLabel(
+  WorldRuleSource source,
+  String sourceLabel,
+) {
+  return switch (source.predicate) {
+    WorldRuleSourcePredicate.isTrue => 'Fact "$sourceLabel" est vrai',
+    WorldRuleSourcePredicate.isFalse => 'Fact "$sourceLabel" est faux',
+    WorldRuleSourcePredicate.completed => 'Étape "$sourceLabel" terminée',
+    WorldRuleSourcePredicate.notCompleted =>
+      'Étape "$sourceLabel" non terminée',
+    WorldRuleSourcePredicate.consumed => 'Événement "$sourceLabel" consommé',
+    WorldRuleSourcePredicate.notConsumed =>
+      'Événement "$sourceLabel" non consommé',
+  };
+}
+
+String _worldRuleTargetId(WorldRuleTarget target) {
+  return switch (target.kind) {
+    WorldRuleTargetKind.mapEntity =>
+      target.entityId ?? target.eventId ?? target.mapId,
+    WorldRuleTargetKind.npcDialogue =>
+      target.entityId ?? target.eventId ?? target.mapId,
+    WorldRuleTargetKind.mapEvent =>
+      target.eventId ?? target.entityId ?? target.mapId,
+  };
+}
+
+String _worldRuleTargetLabel(WorldRuleTarget target) {
+  return target.label ?? _worldRuleTargetId(target);
+}
+
+String _worldRuleEffectLabel(WorldRuleEffect effect) {
+  return effect.label ??
+      switch (effect.kind) {
+        WorldRuleEffectKind.entityVisible => 'Rend visible',
+        WorldRuleEffectKind.entityHidden => 'Masque l’élément',
+        WorldRuleEffectKind.npcDialogueOverride => 'Change le dialogue',
+        WorldRuleEffectKind.eventEnabled => 'Active l’événement',
+        WorldRuleEffectKind.eventDisabled => 'Désactive l’événement',
+        WorldRuleEffectKind.eventHidden => 'Masque l’événement',
+      };
+}
+
+String _worldRuleProjectionReason(EventBuilderWorldImpactKind kind) {
+  return switch (kind) {
+    EventBuilderWorldImpactKind.fact =>
+      'Cette règle lit un fait modifié par la Scene liée.',
+    EventBuilderWorldImpactKind.storyStep =>
+      'Cette règle lit une étape narrative projetée.',
+    EventBuilderWorldImpactKind.consumedEvent =>
+      'Cette règle lit un événement consommé projeté par l’Event Builder.',
+  };
 }
 
 List<EventBuilderSectionReadModel> _buildSections({
