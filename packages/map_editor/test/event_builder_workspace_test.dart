@@ -54,10 +54,16 @@ void main() {
     expect(find.text('Rencontre rival au port'), findsWidgets);
     expect(find.text('Coffre abandonné'), findsWidgets);
     expect(find.text('Garde somnolent'), findsWidgets);
-    expect(find.text('Rumeur cassée'), findsWidgets);
     expect(find.text('Actif'), findsWidgets);
     expect(find.text('Brouillon'), findsOneWidget);
     expect(find.text('Inactif'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Rumeur cassée'),
+      120,
+      scrollable: _eventBuilderEventListScrollable(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Rumeur cassée'), findsWidgets);
     expect(find.text('Invalide'), findsOneWidget);
 
     expect(find.text('Interaction avec un PNJ'), findsWidgets);
@@ -90,12 +96,23 @@ void main() {
   testWidgets('NS-EVENT-05 displays read-only sections with summaries',
       (tester) async {
     await _pumpWorkspace(tester, _sampleReadModel());
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
 
-    expect(find.text('Déclencheur'), findsOneWidget);
-    expect(find.text('Conditions'), findsOneWidget);
-    expect(find.text('Action principale'), findsOneWidget);
-    expect(find.text('Comportement'), findsOneWidget);
-    expect(find.text('Changements du monde'), findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Déclencheur')),
+        findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Conditions')),
+        findsOneWidget);
+    expect(
+        find.descendant(of: central, matching: find.text('Action principale')),
+        findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Comportement')),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: central,
+          matching: find.text('Changements du monde'),
+        ),
+        findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
     expect(find.text('Informations techniques'), findsOneWidget);
 
@@ -190,11 +207,10 @@ void main() {
     await _pumpWorkspace(tester, _sampleReadModel());
 
     expect(find.text('Nouvel événement'), findsWidgets);
-    expect(
-      find.text(
-          'Sélectionnez une position sur la carte pour créer un événement.'),
-      findsOneWidget,
-    );
+    expect(find.byKey(const ValueKey('event-builder-creation-panel')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsNothing);
     expect(find.text('Créer'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
     expect(find.text('Ajouter une condition'), findsNothing);
@@ -361,10 +377,14 @@ void main() {
       'NS-EVENT-07 does not expose condition action or scene editing controls',
       (tester) async {
     await _pumpWorkspace(tester, _sampleReadModel());
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
 
     expect(find.text('Ajouter une condition'), findsNothing);
     expect(find.text('Ajouter une action'), findsNothing);
-    expect(find.text('Jouer une scène'), findsNothing);
+    expect(
+      find.descendant(of: central, matching: find.text('Ajouter une scène')),
+      findsNothing,
+    );
     expect(find.text('Définir fact'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
   });
@@ -398,6 +418,7 @@ void main() {
     expect(find.text('Couche : Objets'), findsOneWidget);
     expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
 
+    await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
 
@@ -484,6 +505,8 @@ void main() {
         .tap(find.byKey(const ValueKey('event-builder-clear-position')));
     await tester.pumpAndSettle();
 
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsOneWidget);
     expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
     expect(find.text('Position requise'), findsOneWidget);
   });
@@ -493,9 +516,18 @@ void main() {
       (tester) async {
     final container = await _pumpNarrativeEventsShell(tester);
 
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsNothing);
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsOneWidget);
     expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
     expect(find.text('Position requise'), findsOneWidget);
 
+    await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
 
@@ -539,7 +571,9 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsNothing);
+    expect(find.text('Position sélectionnée : aucune'), findsNothing);
     expect(find.text('Position requise'), findsOneWidget);
     expect(find.text('Ajouter une condition'), findsNothing);
     expect(find.text('Ajouter une action'), findsNothing);
@@ -652,6 +686,10 @@ void main() {
       (tester) async {
     final container = await _pumpNarrativeEventsShell(tester);
 
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+    await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
     await tester
@@ -671,7 +709,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-choose-scene-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester
@@ -725,6 +763,10 @@ void main() {
 
     expect(find.text('Choisir une scène'), findsOneWidget);
 
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+    );
+    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('event-builder-choose-scene-button')));
     await tester.pumpAndSettle();
@@ -747,7 +789,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -802,9 +844,11 @@ void main() {
   testWidgets('NS-EVENT-12 keeps behavior read-only without update callback',
       (tester) async {
     await _pumpWorkspace(tester, _sampleReadModel());
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
 
     expect(find.text('Comportement'), findsOneWidget);
-    expect(find.text('Réutilisation'), findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Réutilisation')),
+        findsOneWidget);
     expect(find.text('Une seule fois'), findsWidgets);
     expect(
       find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
@@ -826,26 +870,20 @@ void main() {
         find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
         findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
-      160,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('Facts disponibles'), findsOneWidget);
     expect(find.text('Départ accepté'), findsOneWidget);
     expect(find.text('Rival battu'), findsOneWidget);
     expect(find.text('fact_started'), findsNothing);
 
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
     );
-    await tester.pumpAndSettle();
 
     var state = container.read(editorNotifierProvider);
     var page = state.activeMap!.events.single.pages.single;
@@ -856,14 +894,14 @@ void main() {
     expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
     expect(find.text('Condition ajoutée.'), findsOneWidget);
 
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-fact-false-fact_blocked')),
     );
-    await tester.pumpAndSettle();
 
     state = container.read(editorNotifierProvider);
     page = state.activeMap!.events.single.pages.single;
@@ -976,16 +1014,10 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('event-builder-add-event-condition-button')),
-      160,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-add-event-condition-button')),
     );
-    await tester.pumpAndSettle();
 
     expect(find.text('Événements disponibles'), findsOneWidget);
     expect(find.text('Rival au port'), findsWidgets);
@@ -995,10 +1027,10 @@ void main() {
       findsNothing,
     );
 
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
     );
-    await tester.pumpAndSettle();
 
     var state = container.read(editorNotifierProvider);
     var sourceEvent = state.activeMap!.events
@@ -1011,16 +1043,16 @@ void main() {
     expect(find.text('Événement "Rival au port" déjà consommé'), findsWidgets);
     expect(find.text('Condition ajoutée.'), findsOneWidget);
 
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(const ValueKey('event-builder-add-event-condition-button')),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(
+    await _tapCentralBuilderTarget(
+      tester,
       find.byKey(
         const ValueKey('event-builder-event-not-consumed-evt_guard'),
       ),
     );
-    await tester.pumpAndSettle();
 
     state = container.read(editorNotifierProvider);
     sourceEvent = state.activeMap!.events
@@ -1169,7 +1201,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-trigger-object-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -1198,6 +1230,15 @@ void main() {
     expect(find.text('Entrée dans une zone'), findsWidgets);
     expect(find.text('Déclencheur mis à jour.'), findsOneWidget);
 
+    await tester.pump(const Duration(seconds: 1));
+    await tester.drag(_eventBuilderCentralScrollable(), const Offset(0, 120));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-trigger-actor-button')),
+      80,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-trigger-actor-button')),
     );
@@ -1260,12 +1301,24 @@ void main() {
     );
 
     expect(find.text('Builder d’événement'), findsOneWidget);
-    expect(find.text('Identité'), findsOneWidget);
-    expect(find.text('Déclencheur'), findsOneWidget);
-    expect(find.text('Conditions'), findsOneWidget);
-    expect(find.text('Action principale'), findsOneWidget);
-    expect(find.text('Comportement'), findsOneWidget);
-    expect(find.text('Changements du monde'), findsOneWidget);
+    expect(find.text('Événement existant'), findsWidgets);
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+    expect(central, findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Déclencheur')),
+        findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Conditions')),
+        findsOneWidget);
+    expect(
+        find.descendant(of: central, matching: find.text('Action principale')),
+        findsOneWidget);
+    expect(find.descendant(of: central, matching: find.text('Comportement')),
+        findsOneWidget);
+    expect(
+        find.descendant(
+          of: central,
+          matching: find.text('Changements du monde'),
+        ),
+        findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
     expect(find.text('Informations techniques'), findsOneWidget);
     expect(find.text('Piloté par les conséquences de scène.'), findsOneWidget);
@@ -1276,6 +1329,785 @@ void main() {
     expect(find.text('Créer une règle'), findsNothing);
     expect(find.text('Flow editor'), findsNothing);
     expect(find.text('Drag/drop'), findsNothing);
+  });
+
+  testWidgets(
+      'NS-EVENT-18 keeps creation compact for a selected event until requested',
+      (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    expect(find.byKey(const ValueKey('event-builder-creation-panel')),
+        findsOneWidget);
+    expect(find.text('Créer un événement'), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsNothing);
+    expect(find.text('Position sélectionnée : aucune'), findsNothing);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsOneWidget);
+    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-19 shows central flow blocks in canonical order',
+      (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    expect(find.byKey(const ValueKey('event-builder-central-flow')),
+        findsOneWidget);
+
+    final trigger = find.byKey(
+      const ValueKey('event-builder-flow-block-trigger'),
+    );
+    final conditions = find.byKey(
+      const ValueKey('event-builder-flow-block-conditions'),
+    );
+    final actions = find.byKey(
+      const ValueKey('event-builder-flow-block-actions'),
+    );
+    final behavior = find.byKey(
+      const ValueKey('event-builder-flow-block-behavior'),
+    );
+    final world = find.byKey(
+      const ValueKey('event-builder-flow-block-world'),
+    );
+    final diagnostics = find.byKey(
+      const ValueKey('event-builder-flow-block-diagnostics'),
+    );
+
+    expect(trigger, findsOneWidget);
+    expect(conditions, findsOneWidget);
+    expect(actions, findsOneWidget);
+    expect(behavior, findsOneWidget);
+    expect(world, findsOneWidget);
+    expect(diagnostics, findsOneWidget);
+
+    double top(Finder finder) => tester.getTopLeft(finder).dy;
+    expect(top(trigger), lessThan(top(conditions)));
+    expect(top(conditions), lessThan(top(actions)));
+    expect(top(actions), lessThan(top(behavior)));
+    expect(top(behavior), lessThan(top(world)));
+    expect(top(world), lessThan(top(diagnostics)));
+
+    expect(find.text('Quand'), findsWidgets);
+    expect(find.text('Si'), findsWidgets);
+    expect(find.text('Alors'), findsWidgets);
+    expect(find.text('Puis'), findsWidgets);
+  });
+
+  testWidgets('NS-EVENT-19 keeps trigger authoring working from the block',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+    final triggerBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-trigger'),
+    );
+
+    expect(
+      find.descendant(
+        of: triggerBlock,
+        matching: find.byKey(
+          const ValueKey('event-builder-trigger-object-button'),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final event =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(event.type, MapEventType.object);
+    expect(find.text('Déclencheur mis à jour.'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-19 keeps condition authoring working from the block',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+    final conditionsBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-conditions'),
+    );
+
+    expect(
+      find.descendant(
+        of: conditionsBlock,
+        matching: find.byKey(
+          const ValueKey('event-builder-add-fact-condition-button'),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+    );
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+
+    final page = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .events
+        .single
+        .pages
+        .single;
+    expect(page.condition, ScriptConditionFactory.flagIsSet('fact_started'));
+    expect(find.text('Condition ajoutée.'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-19 keeps scene action authoring working from the block',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+    final actionsBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-actions'),
+    );
+
+    expect(
+      find.descendant(
+        of: actionsBlock,
+        matching: find.byKey(
+          const ValueKey('event-builder-choose-scene-button'),
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+
+    final page = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .events
+        .single
+        .pages
+        .single;
+    expect(page.sceneTarget?.sceneId, 'scene_existing');
+    expect(find.text('Scène mise à jour.'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-19 still hides results and reactions authoring',
+      (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+    expect(central, findsOneWidget);
+    expect(
+      find.descendant(of: central, matching: find.text('Résultats possibles')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: central, matching: find.text('Ajouter un résultat')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: central, matching: find.text('Réactions')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: central, matching: find.text('Ajouter une réaction')),
+      findsNothing,
+    );
+    expect(find.text('Drag/drop'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-20 shows event inspector on the right', (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    final list = find.byKey(const ValueKey('event-builder-event-list'));
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+    final inspector = find.byKey(
+      const ValueKey('event-builder-inspector-panel'),
+    );
+
+    expect(list, findsOneWidget);
+    expect(central, findsOneWidget);
+    expect(inspector, findsOneWidget);
+    expect(find.text('Inspecteur d’événement'), findsOneWidget);
+
+    double left(Finder finder) => tester.getTopLeft(finder).dx;
+    expect(left(list), lessThan(left(central)));
+    expect(left(central), lessThan(left(inspector)));
+  });
+
+  testWidgets('NS-EVENT-20 keeps technical id secondary in inspector',
+      (tester) async {
+    await _pumpNarrativeEventsShell(tester);
+
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+    final inspector = find.byKey(
+      const ValueKey('event-builder-inspector-panel'),
+    );
+
+    expect(
+      find.descendant(
+        of: inspector,
+        matching: find.text('Informations techniques'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: inspector, matching: find.text('ID technique')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: inspector, matching: find.text('evt_existing')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(
+        of: central,
+        matching: find.text('Informations techniques'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: central, matching: find.text('ID technique')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'NS-EVENT-20 title trigger scene behavior still update selected event',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(tester);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      'Rencontre test inspecteur',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-save-title-button')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-object-button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-choose-scene-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+      -160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final event =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(event.title, 'Rencontre test inspecteur');
+    expect(event.type, MapEventType.object);
+    expect(
+      event.pages.single.metadata[EventBuilderMetadataKeys.reusePolicy],
+      EventBuilderReusePolicy.reusable.name,
+    );
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(
+      event.pages.single.condition,
+      ScriptConditionFactory.flagIsSet('fact_started'),
+    );
+    expect(find.text('Rencontre test inspecteur'), findsWidgets);
+    expect(find.text('Interaction avec un objet'), findsWidgets);
+    expect(find.text('Jouer la scène "Scène existante"'), findsWidgets);
+    expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
+    expect(find.text('Réutilisable'), findsWidgets);
+  });
+
+  testWidgets('NS-EVENT-21 shows read-only element library groups',
+      (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final list = find.byKey(const ValueKey('event-builder-event-list'));
+    final library = find.byKey(const ValueKey('event-builder-element-library'));
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+
+    expect(list, findsOneWidget);
+    expect(library, findsOneWidget);
+    expect(central, findsOneWidget);
+    expect(find.text('Bibliothèque d’éléments'), findsOneWidget);
+
+    for (final group in [
+      'Déclencheurs',
+      'Conditions',
+      'Actions',
+      'Résultats',
+      'Réactions',
+      'Monde',
+    ]) {
+      expect(find.descendant(of: library, matching: find.text(group)),
+          findsOneWidget);
+    }
+
+    double left(Finder finder) => tester.getTopLeft(finder).dx;
+    expect(left(list), lessThan(left(library)));
+    expect(left(library), lessThan(left(central)));
+  });
+
+  testWidgets('NS-EVENT-21 marks unsupported elements as coming later',
+      (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final library = find.byKey(const ValueKey('event-builder-element-library'));
+
+    expect(
+      find.descendant(of: library, matching: find.text('Disponible')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: library, matching: find.text('À venir')),
+      findsWidgets,
+    );
+    expect(find.descendant(of: library, matching: find.text('Combat')),
+        findsOneWidget);
+    expect(find.descendant(of: library, matching: find.text('Victoire')),
+        findsOneWidget);
+    expect(find.descendant(of: library, matching: find.text('Définir un Fact')),
+        findsOneWidget);
+  });
+
+  testWidgets(
+      'NS-EVENT-21 clicking read-only library item does not mutate event',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final before =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    final beforeSelected =
+        container.read(editorNotifierProvider).selectedMapEventId;
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-action-scene')),
+    );
+    await tester.pumpAndSettle();
+
+    final after =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(after.id, before.id);
+    expect(after.title, before.title);
+    expect(after.type, before.type);
+    expect(after.position, before.position);
+    expect(after.metadata, before.metadata);
+    expect(after.pages, before.pages);
+    expect(
+      container.read(editorNotifierProvider).selectedMapEventId,
+      beforeSelected,
+    );
+    expect(find.text('Condition ajoutée.'), findsNothing);
+    expect(find.text('Scène mise à jour.'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-21 does not expose raw metadata keys', (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final library = find.byKey(const ValueKey('event-builder-element-library'));
+
+    expect(
+      find.descendant(of: library, matching: find.text('eventBuilder')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: library, matching: find.text('reusePolicy')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: library, matching: find.text('MapEventType')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: library, matching: find.text('ScriptCondition')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+      'NS-EVENT-22 clicking Fact condition library item opens fact choice',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Facts disponibles'), findsOneWidget);
+    expect(find.text('Départ accepté'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+      findsOneWidget,
+    );
+
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+
+    final event =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(
+      event.pages.single.condition,
+      ScriptConditionFactory.flagIsSet('fact_started'),
+    );
+    expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
+  });
+
+  testWidgets(
+      'NS-EVENT-22 clicking Event condition library item opens event choice',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await _tapEventCard(tester, 'Événement existant');
+    await tester.tap(
+      find.byKey(
+        const ValueKey('event-builder-library-item-condition-event-consumed'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Événements disponibles'), findsOneWidget);
+    expect(find.text('Rival au port'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+      findsOneWidget,
+    );
+
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+
+    final event = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .events
+        .singleWhere((event) => event.id == 'evt_existing');
+    expect(
+      event.pages.single.condition,
+      ScriptConditionFactory.eventIsConsumed('evt_rival'),
+    );
+    expect(
+      find.text('Événement "Rival au port" déjà consommé'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets(
+      'NS-EVENT-22 clicking Scene action library item focuses scene action',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: const MapData(
+        id: 'map_port',
+        name: 'Port Selbrume',
+        size: GridSize(width: 4, height: 3),
+        layers: [
+          MapLayer.tile(
+            id: 'ground',
+            name: 'Sol',
+            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+          MapLayer.object(id: 'objects', name: 'Objets'),
+        ],
+        events: [
+          MapEventDefinition(
+            id: 'evt_missing_scene',
+            title: 'Sans scène',
+            position: EventPosition(layerId: 'objects', x: 0, y: 0),
+            pages: [MapEventPage(pageNumber: 0)],
+          ),
+        ],
+      ),
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-action-scene')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scènes disponibles'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+      findsOneWidget,
+    );
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+
+    final event =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(find.text('Scène mise à jour.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'NS-EVENT-22 unsupported library item shows not available message',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+    final before =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-action-battle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+        find.text('Cet élément arrive dans un prochain lot.'), findsOneWidget);
+    final after =
+        container.read(editorNotifierProvider).activeMap!.events.single;
+    expect(after.id, before.id);
+    expect(after.title, before.title);
+    expect(after.type, before.type);
+    expect(after.position, before.position);
+    expect(after.metadata, before.metadata);
+    expect(after.pages, before.pages);
+    expect(find.text('Scène mise à jour.'), findsNothing);
+    expect(find.text('Condition ajoutée.'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-23 condition rows remain removable', (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await _tapEventCard(tester, 'Événement existant');
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('event-builder-library-item-condition-event-consumed'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+
+    final factRow = find.byKey(const ValueKey('event-builder-condition-row-0'));
+    final eventRow =
+        find.byKey(const ValueKey('event-builder-condition-row-1'));
+    expect(factRow, findsOneWidget);
+    expect(eventRow, findsOneWidget);
+    expect(find.descendant(of: factRow, matching: find.text('Fact')),
+        findsOneWidget);
+    expect(find.descendant(of: eventRow, matching: find.text('Événement')),
+        findsOneWidget);
+    expect(
+      find.descendant(
+        of: factRow,
+        matching: find.text('Fact "Départ accepté" est vrai'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: eventRow,
+        matching: find.text('Événement "Rival au port" déjà consommé'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-remove-condition-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const ValueKey('event-builder-remove-condition-0')),
+        matching: find.text('Retirer'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final event = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .events
+        .singleWhere((event) => event.id == 'evt_existing');
+    expect(event.pages.single.condition,
+        ScriptConditionFactory.eventIsConsumed('evt_rival'));
+    expect(find.text('Condition retirée.'), findsOneWidget);
+  });
+
+  testWidgets(
+      'NS-EVENT-23 empty condition slot is visible without promising drag/drop',
+      (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final emptySlot =
+        find.byKey(const ValueKey('event-builder-empty-condition-slot'));
+    expect(emptySlot, findsOneWidget);
+    expect(
+        find.descendant(of: emptySlot, matching: find.text('Aucune condition')),
+        findsOneWidget);
+    expect(
+      find.descendant(
+        of: emptySlot,
+        matching: find.text(
+          'Ajoutez une condition depuis la bibliothèque ou les boutons ci-dessous.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Déposez'), findsNothing);
+    expect(find.text('Drag/drop'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-23 scene action block remains no-code', (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final actionsBlock = find.byKey(
+      const ValueKey('event-builder-flow-block-actions'),
+    );
+    final sceneSlot =
+        find.byKey(const ValueKey('event-builder-scene-action-slot'));
+
+    expect(sceneSlot, findsOneWidget);
+    expect(
+        find.descendant(of: sceneSlot, matching: find.text('Jouer une scène')),
+        findsOneWidget);
+    expect(
+        find.descendant(of: sceneSlot, matching: find.text('Scène existante')),
+        findsOneWidget);
+    expect(
+      find.descendant(of: actionsBlock, matching: find.text('scene_existing')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: actionsBlock, matching: find.text('sceneTarget')),
+      findsNothing,
+    );
   });
 
   testWidgets('captures NS-EVENT-07 draft creation position gate visual gate',
@@ -1433,7 +2265,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-choose-scene-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester
@@ -1446,7 +2278,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Action principale'),
       -120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
 
@@ -1477,7 +2309,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -1487,7 +2319,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Comportement'),
       -120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
 
@@ -1518,7 +2350,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-add-fact-condition-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -1532,7 +2364,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Conditions'),
       -120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
 
@@ -1565,7 +2397,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-add-event-condition-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -1579,7 +2411,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Conditions'),
       -120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
 
@@ -1611,7 +2443,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-trigger-zone-button')),
       160,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
     await tester.tap(
@@ -1621,7 +2453,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Déclencheur'),
       -120,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: _eventBuilderCentralScrollable(),
     );
     await tester.pumpAndSettle();
 
@@ -1680,6 +2512,324 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_16_map_activation_creation_availability_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-18 creation panel compact visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_18_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    expect(find.byKey(const ValueKey('event-builder-creation-panel')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+        findsNothing);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_18_creation_panel_compact_collapsible_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-19 central blocks layout visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_19_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    expect(find.byKey(const ValueKey('event-builder-central-flow')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-flow-block-trigger')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-flow-block-conditions')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-flow-block-actions')),
+        findsOneWidget);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_19_event_builder_central_blocks_layout_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-20 inspector split visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_20_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    expect(
+        find.byKey(const ValueKey('event-builder-event-list')), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-central-flow')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
+        findsOneWidget);
+    expect(find.text('Inspecteur d’événement'), findsOneWidget);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_20_event_inspector_split_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-21 element library read-only visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_21_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    expect(
+        find.byKey(const ValueKey('event-builder-event-list')), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-element-library')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-central-flow')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
+        findsOneWidget);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_21_element_library_readonly_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-22 add-by-click library visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_22_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('event-builder-element-library')),
+        findsOneWidget);
+    expect(find.text('Facts disponibles'), findsOneWidget);
+    expect(find.text('Bloc ouvert dans le builder.'), findsOneWidget);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_22_add_by_click_from_library_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets(
+      'captures NS-EVENT-23 actions conditions block polish visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_23_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await _tapEventCard(tester, 'Événement existant');
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('event-builder-library-item-condition-event-consumed'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('event-builder-condition-row-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-condition-row-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-scene-action-slot')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-condition-row-0')),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_23_actions_conditions_block_polish_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-24 MVP UX closure visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_24_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await _tapEventCard(tester, 'Événement existant');
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('event-builder-event-list')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-element-library')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-central-flow')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-inspector-panel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-creation-panel')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-condition-row-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('event-builder-scene-action-slot')),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-condition-row-0')),
+    );
+    await tester.pumpAndSettle();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_24_mvp_ux_closure_visual_gate.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -1752,6 +2902,27 @@ Future<void> _loadScreenshotFont() async {
   final loader = FontLoader(_screenshotFontFamily)
     ..addFont(Future<ByteData>.value(ByteData.sublistView(fontBytes)));
   await loader.load();
+}
+
+Finder _eventBuilderCentralScrollable() {
+  return find.descendant(
+    of: find.byKey(const ValueKey('event-builder-central-flow')),
+    matching: find.byType(Scrollable),
+  );
+}
+
+Finder _eventBuilderEventListScrollable() {
+  return find.descendant(
+    of: find.byKey(const ValueKey('event-builder-event-list')),
+    matching: find.byType(Scrollable),
+  );
+}
+
+Future<void> _scrollDraftPositionIntoView(WidgetTester tester) async {
+  await tester.ensureVisible(
+    find.byKey(const ValueKey('event-builder-position-2-1')),
+  );
+  await tester.pumpAndSettle();
 }
 
 EventBuilderReadModel _sampleReadModel() {
@@ -2180,6 +3351,20 @@ Future<void> _tapEventCard(WidgetTester tester, String label) async {
   );
   await tester.pumpAndSettle();
   await tester.tap(target.first);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _tapCentralBuilderTarget(
+  WidgetTester tester,
+  Finder finder,
+) async {
+  await tester.scrollUntilVisible(
+    finder,
+    160,
+    scrollable: _eventBuilderCentralScrollable(),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
   await tester.pumpAndSettle();
 }
 
