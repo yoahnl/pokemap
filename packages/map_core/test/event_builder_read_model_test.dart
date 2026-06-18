@@ -472,6 +472,272 @@ void main() {
       );
     });
 
+    test('projects linked scene setFact true as fact world impact', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_fact'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {
+          'scene_fact': _sceneWithSetFact(
+            id: 'scene_fact',
+            factId: 'fact_seen_rival',
+            value: true,
+          ),
+        },
+        factLabels: const {'fact_seen_rival': 'Rival rencontré'},
+      );
+
+      expect(
+        model.events.single.worldImpacts.map((impact) => impact.kind),
+        [EventBuilderWorldImpactKind.fact],
+      );
+      expect(
+          model.events.single.worldImpacts.single.sourceId, 'fact_seen_rival');
+      expect(model.events.single.worldImpacts.single.label,
+          'Fact : Rival rencontré');
+      expect(model.events.single.worldImpacts.single.reason,
+          'Fact modifié par la Scene liée.');
+    });
+
+    test('projects linked scene setFact false with factId fallback', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_fact'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {
+          'scene_fact': _sceneWithSetFact(
+            id: 'scene_fact',
+            factId: 'fact_gate_open',
+            value: false,
+          ),
+        },
+      );
+
+      expect(
+        model.events.single.worldImpacts.map((impact) => impact.kind),
+        [EventBuilderWorldImpactKind.fact],
+      );
+      expect(
+          model.events.single.worldImpacts.single.sourceId, 'fact_gate_open');
+      expect(model.events.single.worldImpacts.single.label,
+          'Fact : fact_gate_open');
+      expect(model.events.single.worldImpacts.single.reason,
+          'Fact modifié par la Scene liée.');
+    });
+
+    test('projects linked scene markEventConsumed as consumed world impact',
+        () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_rival',
+          ),
+        },
+        eventLabels: const {'evt_rival': 'Rencontre rival'},
+      );
+
+      expect(
+        model.events.single.worldImpacts.map((impact) => impact.kind),
+        [EventBuilderWorldImpactKind.consumedEvent],
+      );
+      expect(model.events.single.worldImpacts.single.sourceId, 'evt_rival');
+      expect(model.events.single.worldImpacts.single.label,
+          'Événement consommé : Rencontre rival');
+      expect(model.events.single.worldImpacts.single.reason,
+          'La Scene liée marque cet événement comme joué.');
+    });
+
+    test('projects linked scene markEventConsumed for another event', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_route',
+            eventId: 'evt_other',
+          ),
+        },
+      );
+
+      expect(
+        model.events.single.worldImpacts.map((impact) => impact.kind),
+        [EventBuilderWorldImpactKind.consumedEvent],
+      );
+      expect(model.events.single.worldImpacts.single.sourceId, 'evt_other');
+      expect(model.events.single.worldImpacts.single.label,
+          'Événement consommé : evt_other');
+      expect(model.events.single.worldImpacts.single.reason,
+          'La Scene liée marque cet événement comme joué.');
+    });
+
+    test('deduplicates one-shot preview when scene marks same event consumed',
+        () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_rival'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_rival': _sceneWithMarkEventConsumed(
+            id: 'scene_rival',
+            mapId: 'map_port',
+            eventId: 'evt_rival',
+          ),
+        },
+      );
+
+      expect(
+        model.events.single.worldImpacts.where((impact) =>
+            impact.kind == EventBuilderWorldImpactKind.consumedEvent &&
+            impact.sourceId == 'evt_rival'),
+        hasLength(1),
+      );
+      expect(model.events.single.worldImpacts.single.reason,
+          'La Scene liée marque cet événement comme joué.');
+    });
+
+    test('orders scene consequences before event builder previews', () {
+      final model = buildEventBuilderReadModel(
+        events: [
+          _event(
+            id: 'evt_rival',
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_mixed'),
+            ),
+          ),
+        ],
+        mapId: 'map_port',
+        scenes: {
+          'scene_mixed': _scene(
+            id: 'scene_mixed',
+            extraNodes: [
+              SceneNode(
+                id: 'node_set_fact',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                  SceneConsequence.setFact(
+                    factId: 'fact_seen_rival',
+                    value: true,
+                  ),
+                ),
+              ),
+              SceneNode(
+                id: 'node_mark_other_consumed',
+                kind: SceneNodeKind.action,
+                payload: SceneActionPayload.consequence(
+                  SceneConsequence.markEventConsumed(
+                    mapId: 'map_port',
+                    eventId: 'evt_other',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        },
+      );
+
+      expect(
+        model.events.single.worldImpacts.map((impact) => impact.sourceId),
+        ['fact_seen_rival', 'evt_other', 'evt_rival'],
+      );
+    });
+
+    test('does not invent world impacts from missing scene or outcomes only',
+        () {
+      final missingSceneModel = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_missing'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: const <String, SceneAsset>{},
+      );
+      final outcomesOnlyModel = buildEventBuilderReadModel(
+        events: [
+          _event(
+            page: const MapEventPage(
+              pageNumber: 0,
+              sceneTarget: MapEventSceneTarget(sceneId: 'scene_outcomes'),
+              metadata: {
+                EventBuilderMetadataKeys.reusePolicy: 'reusable',
+              },
+            ),
+          ),
+        ],
+        scenes: {
+          'scene_outcomes': _scene(
+            id: 'scene_outcomes',
+            declaredOutcomes: [SceneOutcome(id: 'victory', label: 'Victoire')],
+          ),
+        },
+      );
+
+      expect(missingSceneModel.events.single.worldImpacts, isEmpty);
+      expect(outcomesOnlyModel.events.single.worldImpacts, isEmpty);
+      expect(
+        outcomesOnlyModel.events.single.worldImpacts.map(
+          (impact) => impact.kind,
+        ),
+        isNot(contains(EventBuilderWorldImpactKind.storyStep)),
+      );
+    });
+
     test('locks mixed legacy condition while keeping supported labels visible',
         () {
       final original = ScriptConditionFactory.allOf([
@@ -640,7 +906,11 @@ SceneAsset _sceneWithMarkEventConsumed({
   );
 }
 
-SceneAsset _sceneWithSetFact({required String id}) {
+SceneAsset _sceneWithSetFact({
+  required String id,
+  String factId = 'fact_seen_rival',
+  bool value = true,
+}) {
   return _scene(
     id: id,
     extraNodes: [
@@ -648,7 +918,7 @@ SceneAsset _sceneWithSetFact({required String id}) {
         id: 'node_set_fact',
         kind: SceneNodeKind.action,
         payload: SceneActionPayload.consequence(
-          SceneConsequence.setFact(factId: 'fact_seen_rival', value: true),
+          SceneConsequence.setFact(factId: factId, value: value),
         ),
       ),
     ],

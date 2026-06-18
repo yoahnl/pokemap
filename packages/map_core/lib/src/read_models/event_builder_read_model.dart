@@ -388,10 +388,13 @@ EventBuilderEventSummary _buildEventSummary(
     sceneAction: contract.sceneAction,
     scenes: scenes,
   );
-  final worldImpacts = [
-    for (final impact in contract.worldImpactPreviews)
-      _buildWorldImpactReadModel(impact),
-  ];
+  final worldImpacts = _buildWorldImpactsProjection(
+    sceneAction: contract.sceneAction,
+    scenes: scenes,
+    factLabels: factLabels,
+    eventLabels: eventLabels,
+    contractPreviews: contract.worldImpactPreviews,
+  );
   final conditionEditingLocked = contract.legacyConditionToPreserve != null;
   final conditionEditingMessage = conditionEditingLocked
       ? 'Cette condition contient une partie avancée préservée. '
@@ -762,16 +765,93 @@ EventBuilderLifecycleProjection _buildLifecycleProjection({
 Iterable<SceneMarkEventConsumedConsequence> _markEventConsumedConsequences(
   SceneAsset scene,
 ) sync* {
+  for (final consequence in _sceneActionConsequences(scene)) {
+    if (consequence is SceneMarkEventConsumedConsequence) {
+      yield consequence;
+    }
+  }
+}
+
+Iterable<SceneConsequence> _sceneActionConsequences(SceneAsset scene) sync* {
   for (final node in scene.graph.nodes) {
     if (node.kind != SceneNodeKind.action) {
       continue;
     }
     final payload = node.payload as SceneActionPayload;
     final consequence = payload.consequence;
-    if (consequence is SceneMarkEventConsumedConsequence) {
+    if (consequence != null) {
       yield consequence;
     }
   }
+}
+
+List<EventBuilderWorldImpactReadModel> _buildWorldImpactsProjection({
+  required EventBuilderSceneActionBinding? sceneAction,
+  required Map<String, SceneAsset> scenes,
+  required Map<String, String> factLabels,
+  required Map<String, String> eventLabels,
+  required List<EventBuilderWorldImpactPreview> contractPreviews,
+}) {
+  final impacts = <EventBuilderWorldImpactReadModel>[];
+  final seenKeys = <String>{};
+  void add(EventBuilderWorldImpactReadModel impact) {
+    final key = _worldImpactDedupKey(impact.kind, impact.sourceId);
+    if (seenKeys.add(key)) {
+      impacts.add(impact);
+    }
+  }
+
+  final scene = sceneAction == null ? null : scenes[sceneAction.sceneId];
+  if (scene != null) {
+    // NS-EVENT-29: this projection is intentionally static and read-only.
+    // It only reads typed Scene-owned consequences from action nodes; it does
+    // not simulate Scene branches, outcomes, runtime execution, or World Rules.
+    for (final consequence in _sceneActionConsequences(scene)) {
+      final impact = _buildSceneConsequenceWorldImpact(
+        consequence,
+        factLabels: factLabels,
+        eventLabels: eventLabels,
+      );
+      if (impact != null) {
+        add(impact);
+      }
+    }
+  }
+
+  for (final preview in contractPreviews) {
+    add(_buildWorldImpactReadModel(preview));
+  }
+
+  return List<EventBuilderWorldImpactReadModel>.unmodifiable(impacts);
+}
+
+EventBuilderWorldImpactReadModel? _buildSceneConsequenceWorldImpact(
+  SceneConsequence consequence, {
+  required Map<String, String> factLabels,
+  required Map<String, String> eventLabels,
+}) {
+  return switch (consequence) {
+    SceneSetFactConsequence(:final factId) => EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.fact,
+        sourceId: factId,
+        label: _worldImpactLabel(
+          EventBuilderWorldImpactKind.fact,
+          factLabels[factId] ?? factId,
+        ),
+        reason: 'Fact modifié par la Scene liée.',
+      ),
+    SceneMarkEventConsumedConsequence(:final eventId) =>
+      EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.consumedEvent,
+        sourceId: eventId,
+        label: _worldImpactLabel(
+          EventBuilderWorldImpactKind.consumedEvent,
+          eventLabels[eventId] ?? eventId,
+        ),
+        reason: 'La Scene liée marque cet événement comme joué.',
+      ),
+    _ => null,
+  };
 }
 
 EventBuilderWorldImpactReadModel _buildWorldImpactReadModel(
@@ -784,6 +864,13 @@ EventBuilderWorldImpactReadModel _buildWorldImpactReadModel(
     label: _worldImpactLabel(impact.kind, label),
     reason: impact.reason ?? '',
   );
+}
+
+String _worldImpactDedupKey(
+  EventBuilderWorldImpactKind kind,
+  String sourceId,
+) {
+  return '${kind.name}|$sourceId';
 }
 
 List<EventBuilderSectionReadModel> _buildSections({
