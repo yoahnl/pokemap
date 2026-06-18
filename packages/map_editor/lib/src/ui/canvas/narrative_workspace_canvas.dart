@@ -666,6 +666,10 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
       for (final scene in project?.scenes ?? const <SceneAsset>[])
         scene.id: scene.name,
     },
+    scenes: {
+      for (final scene in project?.scenes ?? const <SceneAsset>[])
+        scene.id: scene,
+    },
     factLabels: {
       for (final fact in project?.facts ?? const <NarrativeFactDefinition>[])
         fact.id: fact.label.trim().isEmpty ? fact.id : fact.label.trim(),

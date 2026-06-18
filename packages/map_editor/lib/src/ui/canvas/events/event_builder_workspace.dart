@@ -1844,6 +1844,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SceneActionSlot(sceneAction: selected.sceneAction),
+        _SceneOutcomesProjectionSlot(
+          projection: selected.sceneOutcomes,
+        ),
         if (canUpdateScene) ...[
           const SizedBox(height: 2),
           Wrap(
@@ -1958,6 +1961,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           label: 'Réutilisation',
           value: selected.behavior.label,
         ),
+        _LifecycleProjectionNotice(lifecycle: selected.lifecycle),
         if (canUpdateBehavior) ...[
           const SizedBox(height: 8),
           Wrap(
@@ -2571,6 +2575,283 @@ class _SceneActionSlot extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SceneOutcomesProjectionSlot extends StatelessWidget {
+  const _SceneOutcomesProjectionSlot({
+    required this.projection,
+  });
+
+  final EventBuilderSceneOutcomesProjection projection;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: PokeMapCard(
+        key: const ValueKey('event-builder-scene-outcomes-projection'),
+        padding: const EdgeInsets.all(10),
+        borderRadius: 8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  CupertinoIcons.flag_circle,
+                  size: 16,
+                  color: colors.info,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Issues de la scène liée',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Les résultats appartiennent à la Scene liée.',
+                        style: TextStyle(
+                          color: colors.textMuted,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const PokeMapBadge(
+                  label: 'Lecture seule',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+              ],
+            ),
+            const SizedBox(height: 9),
+            _buildProjectionBody(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProjectionBody(BuildContext context) {
+    return switch (projection.status) {
+      EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes =>
+        _SceneOutcomeRows(projection: projection),
+      EventBuilderSceneOutcomesProjectionStatus.noSceneTarget =>
+        const _DiagnosticNotice(
+          title: 'Aucune scène liée',
+          message: 'Choisissez une scène pour voir ses résultats possibles.',
+          tone: PokeMapTone.info,
+          severityLabel: 'À compléter',
+        ),
+      EventBuilderSceneOutcomesProjectionStatus.missingScene =>
+        const _DiagnosticNotice(
+          title: 'Scène introuvable',
+          message: 'La scène liée n’existe pas dans le projet.',
+          tone: PokeMapTone.warning,
+          severityLabel: 'À corriger',
+        ),
+      EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes =>
+        const _DiagnosticNotice(
+          title: 'Aucun résultat déclaré',
+          message: 'Cette scène ne déclare pas encore de résultat.',
+          tone: PokeMapTone.info,
+          severityLabel: 'Lecture seule',
+        ),
+    };
+  }
+}
+
+class _SceneOutcomeRows extends StatelessWidget {
+  const _SceneOutcomeRows({
+    required this.projection,
+  });
+
+  final EventBuilderSceneOutcomesProjection projection;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          projection.label,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 7),
+        for (final outcome in projection.outcomes)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: PokeMapCard(
+              key: ValueKey('event-builder-scene-outcome-${outcome.id}'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              borderRadius: 8,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    CupertinoIcons.checkmark_seal,
+                    size: 15,
+                    color: colors.success,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          outcome.label,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if ((outcome.description ?? '').trim().isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            outcome.description!.trim(),
+                            style: TextStyle(
+                              color: colors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              height: 1.25,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 7),
+                        const Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            PokeMapBadge(
+                              label: 'Lecture seule',
+                              variant: PokeMapBadgeVariant.neutral,
+                            ),
+                            PokeMapBadge(
+                              label: 'Défini dans la scène',
+                              variant: PokeMapBadgeVariant.info,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _LifecycleProjectionNotice extends StatelessWidget {
+  const _LifecycleProjectionNotice({
+    required this.lifecycle,
+  });
+
+  final EventBuilderLifecycleProjection lifecycle;
+
+  @override
+  Widget build(BuildContext context) {
+    final info = _lifecycleUiInfo(lifecycle);
+    return _DiagnosticNotice(
+      title: info.title,
+      message: info.message,
+      tone: info.tone,
+      severityLabel: info.severityLabel,
+      details: info.details,
+    );
+  }
+}
+
+_LifecycleUiInfo _lifecycleUiInfo(EventBuilderLifecycleProjection lifecycle) {
+  return switch (lifecycle.status) {
+    EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded =>
+      const _LifecycleUiInfo(
+        title: 'Réutilisable',
+        message: 'Aucune consommation d’événement nécessaire.',
+        tone: PokeMapTone.success,
+        severityLabel: 'OK',
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget =>
+      const _LifecycleUiInfo(
+        title: 'Une seule fois',
+        message: 'Aucune scène liée, l’activation unique n’est pas vérifiable.',
+        tone: PokeMapTone.warning,
+        severityLabel: 'À vérifier',
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotMissingScene =>
+      const _LifecycleUiInfo(
+        title: 'Une seule fois',
+        message: 'Scène introuvable, l’activation unique n’est pas vérifiable.',
+        tone: PokeMapTone.warning,
+        severityLabel: 'À corriger',
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotIntentOnly =>
+      const _LifecycleUiInfo(
+        title: 'Une seule fois',
+        message: 'Intention non garantie au runtime.',
+        tone: PokeMapTone.warning,
+        severityLabel: 'À vérifier',
+      ),
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForThisEvent =>
+      const _LifecycleUiInfo(
+        title: 'Consommation explicite trouvée dans la Scene.',
+        message: 'Compatible, mais fragile si cette Scene est réutilisée.',
+        tone: PokeMapTone.warning,
+        severityLabel: 'Compatible',
+        details: ['La scène marque cet événement comme joué.'],
+      ),
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForAnotherEvent =>
+      _LifecycleUiInfo(
+        title: 'Attention : la Scene consomme un autre événement.',
+        message:
+            lifecycle.warningMessage ?? 'La Scene consomme un autre event.',
+        tone: PokeMapTone.danger,
+        severityLabel: 'À corriger',
+        details: [
+          if ((lifecycle.explicitConsumedEventId ?? '').trim().isNotEmpty)
+            'Événement consommé : ${lifecycle.explicitConsumedEventId}',
+        ],
+      ),
+  };
+}
+
+class _LifecycleUiInfo {
+  const _LifecycleUiInfo({
+    required this.title,
+    required this.message,
+    required this.tone,
+    required this.severityLabel,
+    this.details = const <String>[],
+  });
+
+  final String title;
+  final String message;
+  final PokeMapTone tone;
+  final String severityLabel;
+  final List<String> details;
 }
 
 class _ConditionDetailLine extends StatelessWidget {

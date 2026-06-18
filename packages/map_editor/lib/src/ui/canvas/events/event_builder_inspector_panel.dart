@@ -106,6 +106,14 @@ class EventBuilderInspectorPanel extends StatelessWidget {
                         ? 'Aucune condition'
                         : '${event.conditions.length} condition${event.conditions.length > 1 ? 's' : ''}',
                   ),
+                  _InspectorLine(
+                    label: 'Résultats Scene',
+                    value: _sceneOutcomesInspectorLabel(event.sceneOutcomes),
+                  ),
+                  _InspectorLine(
+                    label: 'Lifecycle',
+                    value: _lifecycleInspectorLabel(event.lifecycle),
+                  ),
                 ],
               ),
             ),
@@ -199,5 +207,37 @@ PokeMapBadgeVariant _statusVariant(EventBuilderEventStatus status) {
     EventBuilderEventStatus.draft => PokeMapBadgeVariant.warning,
     EventBuilderEventStatus.inactive => PokeMapBadgeVariant.neutral,
     EventBuilderEventStatus.invalid => PokeMapBadgeVariant.error,
+  };
+}
+
+String _sceneOutcomesInspectorLabel(
+  EventBuilderSceneOutcomesProjection projection,
+) {
+  return switch (projection.status) {
+    EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes =>
+      projection.label,
+    EventBuilderSceneOutcomesProjectionStatus.noSceneTarget =>
+      'Aucune scène liée',
+    EventBuilderSceneOutcomesProjectionStatus.missingScene =>
+      'Scène introuvable',
+    EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes =>
+      'Aucun résultat déclaré',
+  };
+}
+
+String _lifecycleInspectorLabel(EventBuilderLifecycleProjection lifecycle) {
+  return switch (lifecycle.status) {
+    EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded =>
+      'Réutilisable',
+    EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget ||
+    EventBuilderLifecycleProjectionStatus.oneShotMissingScene ||
+    EventBuilderLifecycleProjectionStatus.oneShotIntentOnly =>
+      'Une seule fois à vérifier',
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForThisEvent =>
+      'Une seule fois compatible Scene',
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForAnotherEvent =>
+      'Attention consommation autre événement',
   };
 }

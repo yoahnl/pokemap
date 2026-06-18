@@ -1512,15 +1512,18 @@ void main() {
     expect(find.text('Scène mise à jour.'), findsOneWidget);
   });
 
-  testWidgets('NS-EVENT-19 still hides results and reactions authoring',
+  testWidgets('NS-EVENT-19 keeps results and reactions read-only',
       (tester) async {
     await _pumpNarrativeEventsShell(tester);
 
     final central = find.byKey(const ValueKey('event-builder-central-flow'));
     expect(central, findsOneWidget);
     expect(
-      find.descendant(of: central, matching: find.text('Résultats possibles')),
-      findsNothing,
+      find.descendant(
+        of: central,
+        matching: find.text('Issues de la scène liée'),
+      ),
+      findsOneWidget,
     );
     expect(
       find.descendant(of: central, matching: find.text('Ajouter un résultat')),
@@ -2130,6 +2133,256 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_07_draft_creation_ui_gate_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('NS-EVENT-27 renders Scene outcomes as read-only projection',
+      (tester) async {
+    final readModel = buildEventBuilderReadModel(
+      events: [
+        _event(
+          id: 'evt_projection',
+          title: 'Événement avec issues',
+          x: 0,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_projection'),
+          ),
+        ),
+      ],
+      mapId: 'map_port',
+      mapTitle: 'Port Selbrume',
+      sceneLabels: const {'scene_projection': 'Rencontre rival'},
+      scenes: {
+        'scene_projection': _eventScene(
+          'scene_projection',
+          'Rencontre rival',
+          declaredOutcomes: [
+            SceneOutcome(
+              id: 'victory',
+              label: 'Victoire',
+              description: 'Le rival laisse passer le joueur.',
+            ),
+            SceneOutcome(id: 'defeat', label: 'Défaite'),
+          ],
+        ),
+      },
+    );
+
+    await _pumpWorkspace(tester, readModel);
+
+    expect(find.text('Issues de la scène liée'), findsOneWidget);
+    expect(find.text('2 résultat(s) déclarés par la Scene'), findsWidgets);
+    expect(find.text('Victoire'), findsWidgets);
+    expect(find.text('Défaite'), findsWidgets);
+    expect(find.text('Le rival laisse passer le joueur.'), findsOneWidget);
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Défini dans la scène'), findsWidgets);
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Modifier le résultat'), findsNothing);
+    expect(find.text('Ajouter une réaction'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-27 renders no Scene target projection', (tester) async {
+    await _pumpWorkspace(tester, _draftReadModelWithoutScene());
+
+    expect(find.text('Issues de la scène liée'), findsOneWidget);
+    expect(find.text('Aucune scène liée'), findsWidgets);
+    expect(
+      find.text('Choisissez une scène pour voir ses résultats possibles.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NS-EVENT-27 renders missing Scene projection', (tester) async {
+    final readModel = buildEventBuilderReadModel(
+      events: [
+        _event(
+          id: 'evt_missing_scene',
+          title: 'Scène perdue',
+          x: 0,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_missing'),
+          ),
+        ),
+      ],
+      mapId: 'map_port',
+      mapTitle: 'Port Selbrume',
+      sceneLabels: const {'scene_missing': 'Scène supprimée'},
+    );
+
+    await _pumpWorkspace(tester, readModel);
+
+    expect(find.text('Scène introuvable'), findsWidgets);
+    expect(
+      find.text('La scène liée n’existe pas dans le projet.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NS-EVENT-27 renders no declared outcomes projection',
+      (tester) async {
+    final readModel = buildEventBuilderReadModel(
+      events: [
+        _event(
+          id: 'evt_no_outcome',
+          title: 'Scène sans issue',
+          x: 0,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_no_outcome'),
+          ),
+        ),
+      ],
+      mapId: 'map_port',
+      mapTitle: 'Port Selbrume',
+      scenes: {
+        'scene_no_outcome': _eventScene(
+          'scene_no_outcome',
+          'Scène sans issue',
+        ),
+      },
+    );
+
+    await _pumpWorkspace(tester, readModel);
+
+    expect(find.text('Aucun résultat déclaré'), findsWidgets);
+    expect(
+      find.text('Cette scène ne déclare pas encore de résultat.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NS-EVENT-27 renders lifecycle states without runtime claims',
+      (tester) async {
+    final readModel = buildEventBuilderReadModel(
+      events: [
+        _event(
+          id: 'evt_once',
+          title: 'Une seule activation',
+          x: 0,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_once'),
+          ),
+        ),
+        _event(
+          id: 'evt_reusable',
+          title: 'Rejouable',
+          x: 1,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_reusable'),
+            metadata: {
+              EventBuilderMetadataKeys.reusePolicy: 'reusable',
+            },
+          ),
+        ),
+        _event(
+          id: 'evt_consumed',
+          title: 'Consommé par sa scène',
+          x: 2,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_consumed'),
+          ),
+        ),
+        _event(
+          id: 'evt_other_consumed',
+          title: 'Consomme ailleurs',
+          x: 3,
+          page: const MapEventPage(
+            pageNumber: 0,
+            sceneTarget: MapEventSceneTarget(sceneId: 'scene_other_consumed'),
+          ),
+        ),
+      ],
+      mapId: 'map_port',
+      mapTitle: 'Port Selbrume',
+      scenes: {
+        'scene_once': _eventScene('scene_once', 'Scène simple'),
+        'scene_reusable': _eventScene('scene_reusable', 'Scène rejouable'),
+        'scene_consumed': _eventScene(
+          'scene_consumed',
+          'Scène qui consomme',
+          consumedEventId: 'evt_consumed',
+        ),
+        'scene_other_consumed': _eventScene(
+          'scene_other_consumed',
+          'Scène autre event',
+          consumedEventId: 'evt_elsewhere',
+        ),
+      },
+    );
+
+    await _pumpWorkspace(tester, readModel);
+
+    expect(find.text('Intention non garantie au runtime.'), findsWidgets);
+    expect(find.textContaining('garanti au runtime'), findsNothing);
+
+    await _tapEventCard(tester, 'Rejouable');
+    expect(
+      find.text('Aucune consommation d’événement nécessaire.'),
+      findsWidgets,
+    );
+
+    await _tapEventCard(tester, 'Consommé par sa scène');
+    expect(
+      find.text('Consommation explicite trouvée dans la Scene.'),
+      findsWidgets,
+    );
+    expect(
+      find.text('Compatible, mais fragile si cette Scene est réutilisée.'),
+      findsWidgets,
+    );
+
+    await _tapEventCard(tester, 'Consomme ailleurs');
+    expect(
+      find.text('Attention : la Scene consomme un autre événement.'),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('captures NS-EVENT-27 scene outcomes lifecycle visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_27_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-scene-outcomes-projection')),
+      180,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Issues de la scène liée'), findsOneWidget);
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Défini dans la scène'), findsWidgets);
+    expect(
+      find.text('Consommation explicite trouvée dans la Scene.'),
+      findsWidgets,
+    );
+    expect(find.text('Ajouter un résultat'), findsNothing);
+    expect(find.text('Ajouter une réaction'), findsNothing);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_27_scene_outcomes_lifecycle_projection_ui_v0.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -3011,6 +3264,20 @@ EventBuilderReadModel _sampleReadModel() {
     factLabels: const {
       'fact_started': 'Départ accepté',
     },
+    scenes: {
+      'scene_rival': _eventScene(
+        'scene_rival',
+        'Rencontre rival',
+        declaredOutcomes: [
+          SceneOutcome(id: 'victory', label: 'Victoire'),
+          SceneOutcome(id: 'defeat', label: 'Défaite'),
+        ],
+      ),
+      'scene_guard': _eventScene('scene_guard', 'Réveil du garde'),
+      'scene_herbs': _eventScene('scene_herbs', 'Cueillir les herbes'),
+      'scene_message': _eventScene('scene_message', 'Lire le message'),
+      'scene_malformed': _eventScene('scene_malformed', 'Scène réglage'),
+    },
   );
 }
 
@@ -3153,7 +3420,16 @@ ProjectManifest _eventProject() {
       ),
     ],
     tilesets: const [],
-    scenes: [_eventScene('scene_existing', 'Scène existante')],
+    scenes: [
+      _eventScene(
+        'scene_existing',
+        'Scène existante',
+        declaredOutcomes: [
+          SceneOutcome(id: 'completed', label: 'Terminé'),
+        ],
+        consumedEventId: 'evt_existing',
+      ),
+    ],
     facts: [
       NarrativeFactDefinition(
         id: 'fact_started',
@@ -3218,14 +3494,32 @@ EventBuilderReadModel _readModelForEffectTriggerType() {
   );
 }
 
-SceneAsset _eventScene(String id, String name) {
+SceneAsset _eventScene(
+  String id,
+  String name, {
+  List<SceneOutcome> declaredOutcomes = const [],
+  String? consumedEventId,
+}) {
+  final hasConsequence = consumedEventId != null;
   return SceneAsset(
     id: id,
     name: name,
+    declaredOutcomes: declaredOutcomes,
     graph: SceneGraph(
       startNodeId: 'node_start',
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        if (hasConsequence)
+          SceneNode(
+            id: 'node_mark_consumed',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.markEventConsumed(
+                mapId: 'map_port',
+                eventId: consumedEventId,
+              ),
+            ),
+          ),
         SceneNode(id: 'node_end', kind: SceneNodeKind.end),
       ],
       edges: [
@@ -3233,9 +3527,17 @@ SceneAsset _eventScene(String id, String name) {
           id: 'edge_start_end',
           fromNodeId: 'node_start',
           fromPortId: 'completed',
-          toNodeId: 'node_end',
+          toNodeId: hasConsequence ? 'node_mark_consumed' : 'node_end',
           kind: SceneEdgeKind.defaultFlow,
         ),
+        if (hasConsequence)
+          SceneEdge(
+            id: 'edge_consumed_end',
+            fromNodeId: 'node_mark_consumed',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
       ],
     ),
   );
