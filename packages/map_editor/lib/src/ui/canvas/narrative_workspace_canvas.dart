@@ -670,6 +670,7 @@ EventBuilderReadModel _buildEventBuilderWorkspaceReadModel(
       for (final scene in project?.scenes ?? const <SceneAsset>[])
         scene.id: scene,
     },
+    worldRules: project?.worldRules ?? const <WorldRuleDefinition>[],
     factLabels: {
       for (final fact in project?.facts ?? const <NarrativeFactDefinition>[])
         fact.id: fact.label.trim().isEmpty ? fact.id : fact.label.trim(),

@@ -1341,6 +1341,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           children: [
             _WorldImpactsProjectionBlock(
               impacts: selected.worldImpacts,
+              worldRules: selected.worldRules,
             ),
           ],
         ),
@@ -2854,9 +2855,11 @@ class _LifecycleUiInfo {
 class _WorldImpactsProjectionBlock extends StatelessWidget {
   const _WorldImpactsProjectionBlock({
     required this.impacts,
+    required this.worldRules,
   });
 
   final List<EventBuilderWorldImpactReadModel> impacts;
+  final EventBuilderWorldRulesProjection worldRules;
 
   @override
   Widget build(BuildContext context) {
@@ -2877,7 +2880,7 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Ces changements sont déduits de l’événement, de la scène liée et des règles du monde déjà configurées.',
+          'Ces sources sont déduites de l’événement et de la scène liée. Les règles ci-dessous indiquent seulement ce qui les observe.',
           style: TextStyle(
             color: colors.textMuted,
             fontSize: 11,
@@ -2917,7 +2920,233 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
               severityLabel: 'Projection',
             ),
         ],
+        const SizedBox(height: 12),
+        _WorldRulesProjectionBlock(projection: worldRules),
       ],
+    );
+  }
+}
+
+class _WorldRulesProjectionBlock extends StatelessWidget {
+  const _WorldRulesProjectionBlock({
+    required this.projection,
+  });
+
+  final EventBuilderWorldRulesProjection projection;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      key: const ValueKey('event-builder-world-rules-projection'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Règles du monde concernées',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Projection passive : le Builder liste les règles qui observent les mêmes sources. Il ne simule pas la partie et n’applique aucun effet.',
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 9),
+        switch (projection.status) {
+          EventBuilderWorldRulesProjectionStatus.noWorldImpacts =>
+            const _DiagnosticNotice(
+              title: 'Aucune source d’état projetée',
+              message:
+                  'Aucune règle du monde ne peut être reliée tant qu’aucun changement d’état n’est visible.',
+              tone: PokeMapTone.info,
+              severityLabel: 'Lecture seule',
+            ),
+          EventBuilderWorldRulesProjectionStatus.noMatchingRules =>
+            const _DiagnosticNotice(
+              title: 'Aucune règle du monde liée',
+              message:
+                  'Aucune règle du monde ne lit les sources d’état affichées ci-dessus.\n'
+                  'Ce n’est pas une erreur.',
+              tone: PokeMapTone.info,
+              severityLabel: 'Projection passive',
+            ),
+          EventBuilderWorldRulesProjectionStatus.hasMatchingRules => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  projection.label,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                for (final rule in projection.rules)
+                  _WorldRuleProjectionRow(rule: rule),
+              ],
+            ),
+        },
+      ],
+    );
+  }
+}
+
+class _WorldRuleProjectionRow extends StatelessWidget {
+  const _WorldRuleProjectionRow({
+    required this.rule,
+  });
+
+  final EventBuilderWorldRuleProjectionReadModel rule;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: PokeMapCard(
+        key: ValueKey('event-builder-world-rule-${rule.ruleId}'),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        borderRadius: 8,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              CupertinoIcons.scope,
+              size: 15,
+              color: colors.fact,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    rule.ruleLabel,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      height: 1.25,
+                    ),
+                  ),
+                  if (rule.description.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      rule.description,
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      PokeMapBadge(
+                        label: rule.enabled ? 'Activée' : 'Désactivée',
+                        variant: rule.enabled
+                            ? PokeMapBadgeVariant.success
+                            : PokeMapBadgeVariant.warning,
+                      ),
+                      const PokeMapBadge(
+                        label: 'Lecture seule',
+                        variant: PokeMapBadgeVariant.neutral,
+                      ),
+                      const PokeMapBadge(
+                        label: 'Projection passive',
+                        variant: PokeMapBadgeVariant.info,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _WorldRuleProjectionLine(
+                    label: 'Condition observée',
+                    value: rule.predicateLabel,
+                  ),
+                  _WorldRuleProjectionLine(
+                    label: 'Cible',
+                    value: rule.targetLabel,
+                  ),
+                  _WorldRuleProjectionLine(
+                    label: 'Effet déclaré',
+                    value: rule.effectLabel,
+                  ),
+                  _WorldRuleProjectionLine(
+                    label: 'Note',
+                    value: rule.reason,
+                  ),
+                  if (!rule.enabled) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ne produit pas d’effet tant qu’elle reste inactive.',
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WorldRuleProjectionLine extends StatelessWidget {
+  const _WorldRuleProjectionLine({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            value,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

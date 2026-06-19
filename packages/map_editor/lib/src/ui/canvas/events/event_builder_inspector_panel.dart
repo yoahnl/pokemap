@@ -118,6 +118,10 @@ class EventBuilderInspectorPanel extends StatelessWidget {
                     label: 'Changements monde',
                     value: _worldImpactsInspectorLabel(event.worldImpacts),
                   ),
+                  _InspectorLine(
+                    label: 'Règles monde',
+                    value: _worldRulesInspectorLabel(event.worldRules),
+                  ),
                 ],
               ),
             ),
@@ -253,4 +257,15 @@ String _worldImpactsInspectorLabel(
     return 'Aucun changement détecté';
   }
   return '${impacts.length} effet${impacts.length > 1 ? 's' : ''} prévisible${impacts.length > 1 ? 's' : ''}';
+}
+
+String _worldRulesInspectorLabel(EventBuilderWorldRulesProjection projection) {
+  return switch (projection.status) {
+    EventBuilderWorldRulesProjectionStatus.noWorldImpacts =>
+      'Aucune source d’état',
+    EventBuilderWorldRulesProjectionStatus.noMatchingRules =>
+      'Aucune règle liée',
+    EventBuilderWorldRulesProjectionStatus.hasMatchingRules =>
+      '${projection.rules.length} règle${projection.rules.length > 1 ? 's' : ''} potentiellement concernée${projection.rules.length > 1 ? 's' : ''}',
+  };
 }
