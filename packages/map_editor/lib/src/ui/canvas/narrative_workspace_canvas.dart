@@ -551,6 +551,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.events => EventBuilderWorkspace(
           readModel: _buildEventBuilderWorkspaceReadModel(editor),
+          selectedEventId: editor.selectedMapEventId,
           draftCreationGate: _buildEventBuilderDraftCreationGate(
             editor,
             editorNotifier,
@@ -568,6 +569,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             await editorNotifier.loadMap(entry.relativePath);
             editorNotifier.selectEventsWorkspace();
           },
+          onSelectEvent: editorNotifier.selectMapEvent,
           onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
           onUpdateTriggerType: editorNotifier.updateEventBuilderTriggerType,
           onUpdateSceneAction:

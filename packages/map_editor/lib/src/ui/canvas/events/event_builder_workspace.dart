@@ -48,6 +48,8 @@ typedef EventBuilderConditionRemoveCallback = bool Function({
 
 typedef EventBuilderMapOpenCallback = Future<void> Function(String mapId);
 
+typedef EventBuilderEventSelectCallback = void Function(String eventId);
+
 class EventBuilderMapOption {
   const EventBuilderMapOption({
     required this.id,
@@ -92,12 +94,14 @@ class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
     required this.readModel,
+    this.selectedEventId,
     this.draftCreationGate = const EventBuilderDraftCreationGate.disabled(),
     this.sceneOptions = const <EventBuilderSceneOption>[],
     this.factOptions = const <EventBuilderFactOption>[],
     this.eventConditionOptions = const <EventBuilderConditionEventOption>[],
     this.mapOptions = const <EventBuilderMapOption>[],
     this.onOpenMap,
+    this.onSelectEvent,
     this.onRenameEventTitle,
     this.onUpdateTriggerType,
     this.onUpdateSceneAction,
@@ -108,12 +112,14 @@ class EventBuilderWorkspace extends StatefulWidget {
   });
 
   final EventBuilderReadModel readModel;
+  final String? selectedEventId;
   final EventBuilderDraftCreationGate draftCreationGate;
   final List<EventBuilderSceneOption> sceneOptions;
   final List<EventBuilderFactOption> factOptions;
   final List<EventBuilderConditionEventOption> eventConditionOptions;
   final List<EventBuilderMapOption> mapOptions;
   final EventBuilderMapOpenCallback? onOpenMap;
+  final EventBuilderEventSelectCallback? onSelectEvent;
   final EventBuilderTitleRenameCallback? onRenameEventTitle;
   final EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType;
   final EventBuilderSceneActionUpdateCallback? onUpdateSceneAction;
@@ -207,7 +213,8 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
   @override
   void didUpdateWidget(EventBuilderWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.readModel != widget.readModel) {
+    if (oldWidget.readModel != widget.readModel ||
+        oldWidget.selectedEventId != widget.selectedEventId) {
       _syncSelection();
     }
     if (_positionPickerContextChanged(
@@ -386,6 +393,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                                 events: widget.readModel.events,
                                 selectedEventId: selected?.eventId,
                                 onSelect: (eventId) {
+                                  widget.onSelectEvent?.call(eventId);
                                   setState(() => _selectedEventId = eventId);
                                 },
                               ),
@@ -484,6 +492,13 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
     final events = widget.readModel.events;
     if (events.isEmpty) {
       _selectedEventId = null;
+      return;
+    }
+    final externalSelection = widget.selectedEventId?.trim();
+    if (externalSelection != null &&
+        externalSelection.isNotEmpty &&
+        events.any((event) => event.eventId == externalSelection)) {
+      _selectedEventId = externalSelection;
       return;
     }
     final selectedStillExists =

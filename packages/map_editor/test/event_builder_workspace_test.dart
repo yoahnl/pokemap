@@ -3052,6 +3052,252 @@ void main() {
     );
   });
 
+  testWidgets('NS-EVENT-33 honors canonical selected map event on entry',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      selectedMapEventId: 'evt_rival',
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    final central = find.byKey(const ValueKey('event-builder-central-flow'));
+    final inspector =
+        find.byKey(const ValueKey('event-builder-inspector-panel'));
+
+    expect(container.read(editorNotifierProvider).selectedMapEventId,
+        'evt_rival');
+    expect(
+      find.descendant(of: central, matching: find.text('Rival au port')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: inspector, matching: find.text('Rival au port')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: inspector, matching: find.text('evt_rival')),
+      findsWidgets,
+    );
+  });
+
+  testWidgets('NS-EVENT-33 completes MVP authoring flow without forbidden actions',
+      (tester) async {
+    final container = await _pumpNarrativeEventsShell(
+      tester,
+      activeMap: _mapWithEventConditionTargets(),
+      project: _eventProjectWithWorldRules(),
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+    await _scrollDraftPositionIntoView(tester);
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
+    await tester.pumpAndSettle();
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+
+    final createdId =
+        container.read(editorNotifierProvider).selectedMapEventId!;
+    expect(createdId, isNotEmpty);
+
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-rename-title-button')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('event-builder-title-field')),
+      'Rencontre MVP au port',
+    );
+    await tester
+        .tap(find.byKey(const ValueKey('event-builder-save-title-button')));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-trigger-zone-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-trigger-zone-button')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('event-builder-library-item-condition-event-consumed'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+    await tester.pumpAndSettle();
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-event-consumed-evt_rival')),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-action-scene')),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-scene-option-scene_existing')),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+      160,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-reuse-reusable-button')),
+    );
+    await tester.pumpAndSettle();
+
+    final state = container.read(editorNotifierProvider);
+    final event = state.activeMap!.events.singleWhere(
+      (event) => event.id == createdId,
+    );
+    expect(state.selectedMapEventId, createdId);
+    expect(event.id, createdId);
+    expect(event.title, 'Rencontre MVP au port');
+    expect(event.type, MapEventType.triggerZone);
+    expect(event.position,
+        const EventPosition(layerId: 'objects', x: 3, y: 2));
+    expect(event.metadata, isEmpty);
+    expect(event.pages, hasLength(1));
+    expect(event.pages.single.sceneTarget?.sceneId, 'scene_existing');
+    expect(event.pages.single.script, isNull);
+    expect(event.pages.single.message, isNull);
+    expect(
+      event.pages.single.metadata[EventBuilderMetadataKeys.reusePolicy],
+      EventBuilderReusePolicy.reusable.name,
+    );
+    expect(
+      event.pages.single.condition,
+      ScriptConditionFactory.allOf([
+        ScriptConditionFactory.flagIsSet('fact_started'),
+        ScriptConditionFactory.eventIsConsumed('evt_rival'),
+      ]),
+    );
+
+    expect(find.text('Rencontre MVP au port'), findsWidgets);
+    expect(find.text('Entrée dans une zone'), findsWidgets);
+    expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
+    expect(
+      find.text('Événement "Rival au port" déjà consommé'),
+      findsWidgets,
+    );
+    expect(find.text('Jouer la scène "Scène existante"'), findsWidgets);
+    expect(find.text('Réutilisable'), findsWidgets);
+    expect(find.text('Issues de la scène liée'), findsOneWidget);
+    expect(find.text('Terminé'), findsWidgets);
+    expect(find.text('Sources projetées'), findsOneWidget);
+    expect(find.text('Fact : Départ accepté'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règle port observé'), findsOneWidget);
+    expect(find.text('Diagnostics'), findsWidgets);
+    expect(find.text('Inspecteur d’événement'), findsOneWidget);
+    expect(find.text('ID technique'), findsWidgets);
+    expect(find.text(createdId), findsWidgets);
+    _expectNoForbiddenEventOwnedAuthoringControls();
+  });
+
+  testWidgets('NS-EVENT-33 exposes no forbidden Event-owned authoring',
+      (tester) async {
+    await _pumpNarrativeEventsShell(
+      tester,
+      project: _eventProjectWithWorldRules(),
+      surfaceSize: const Size(1440, 1100),
+    );
+
+    _expectNoForbiddenEventOwnedAuthoringControls();
+  });
+
+  testWidgets('captures NS-EVENT-33 event builder MVP closure visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_33_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpNarrativeEventsShell(
+      tester,
+      project: _eventProjectWithWorldRules(),
+      fontFamily: _screenshotFontFamily,
+      surfaceSize: const Size(1440, 1100),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-library-item-condition-fact')),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.pumpAndSettle();
+    await _tapCentralBuilderTarget(
+      tester,
+      find.byKey(const ValueKey('event-builder-fact-true-fact_started')),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-world-rules-projection')),
+      180,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('event-builder-event-list')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-element-library')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-central-flow')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
+        findsOneWidget);
+    expect(find.text('Sources projetées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règle port observé'), findsOneWidget);
+    _expectNoForbiddenEventOwnedAuthoringControls();
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_33_event_builder_mvp_closure_readiness_gate.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
   testWidgets('captures NS-EVENT-27 scene outcomes lifecycle visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_27_CAPTURE_WORKSPACE')) {
@@ -4119,6 +4365,26 @@ Finder _eventBuilderEventListScrollable() {
   );
 }
 
+void _expectNoForbiddenEventOwnedAuthoringControls() {
+  for (final label in [
+    'Ajouter un résultat',
+    'Modifier résultat',
+    'Modifier le résultat',
+    'Ajouter une réaction',
+    'Créer une règle monde',
+    'Ajouter une règle',
+    'Éditer règle',
+    'Modifier effet',
+    'Drag/drop',
+    'Créer consequence',
+    'SceneConsequence',
+  ]) {
+    expect(find.text(label), findsNothing, reason: 'Forbidden label: $label');
+  }
+  expect(find.textContaining('Déposez'), findsNothing);
+  expect(find.textContaining('Déposer'), findsNothing);
+}
+
 Future<void> _scrollDraftPositionIntoView(WidgetTester tester) async {
   await tester.ensureVisible(
     find.byKey(const ValueKey('event-builder-position-2-1')),
@@ -4330,7 +4596,9 @@ Future<void> _pumpWorkspace(
   List<EventBuilderFactOption> factOptions = const [],
   List<EventBuilderConditionEventOption> eventConditionOptions = const [],
   List<EventBuilderMapOption> mapOptions = const [],
+  String? selectedEventId,
   EventBuilderMapOpenCallback? onOpenMap,
+  EventBuilderEventSelectCallback? onSelectEvent,
   EventBuilderTriggerTypeUpdateCallback? onUpdateTriggerType,
   EventBuilderSceneActionUpdateCallback? onUpdateSceneAction,
   EventBuilderReusePolicyUpdateCallback? onUpdateReusePolicy,
@@ -4365,12 +4633,14 @@ Future<void> _pumpWorkspace(
             ),
             child: EventBuilderWorkspace(
               readModel: readModel,
+              selectedEventId: selectedEventId,
               draftCreationGate: draftCreationGate,
               sceneOptions: sceneOptions,
               factOptions: factOptions,
               eventConditionOptions: eventConditionOptions,
               mapOptions: mapOptions,
               onOpenMap: onOpenMap,
+              onSelectEvent: onSelectEvent,
               onUpdateTriggerType: onUpdateTriggerType,
               onUpdateSceneAction: onUpdateSceneAction,
               onUpdateReusePolicy: onUpdateReusePolicy,
@@ -4393,6 +4663,7 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
   bool startWithoutActiveMap = false,
   String? projectRootPath,
   ProjectManifest? project,
+  String? selectedMapEventId,
   List<Override> providerOverrides = const [],
   Size surfaceSize = const Size(1440, 900),
 }) async {
@@ -4414,6 +4685,7 @@ Future<ProviderContainer> _pumpNarrativeEventsShell(
     activeMap:
         startWithoutActiveMap ? null : activeMap ?? _mapWithObjectLayer(),
     activeLayerId: startWithoutActiveMap ? null : 'objects',
+    selectedMapEventId: selectedMapEventId,
   );
 
   final theme = PokeMapTheme.dark();
