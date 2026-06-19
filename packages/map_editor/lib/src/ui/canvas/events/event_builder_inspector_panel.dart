@@ -254,9 +254,9 @@ String _worldImpactsInspectorLabel(
   List<EventBuilderWorldImpactReadModel> impacts,
 ) {
   if (impacts.isEmpty) {
-    return 'Aucun changement détecté';
+    return 'Aucune source projetée';
   }
-  return '${impacts.length} effet${impacts.length > 1 ? 's' : ''} prévisible${impacts.length > 1 ? 's' : ''}';
+  return '${impacts.length} source${impacts.length > 1 ? 's' : ''} projetée${impacts.length > 1 ? 's' : ''}';
 }
 
 String _worldRulesInspectorLabel(EventBuilderWorldRulesProjection projection) {
@@ -266,6 +266,6 @@ String _worldRulesInspectorLabel(EventBuilderWorldRulesProjection projection) {
     EventBuilderWorldRulesProjectionStatus.noMatchingRules =>
       'Aucune règle liée',
     EventBuilderWorldRulesProjectionStatus.hasMatchingRules =>
-      '${projection.rules.length} règle${projection.rules.length > 1 ? 's' : ''} potentiellement concernée${projection.rules.length > 1 ? 's' : ''}',
+      '${projection.rules.length} règle${projection.rules.length > 1 ? 's' : ''} concernée${projection.rules.length > 1 ? 's' : ''}',
   };
 }

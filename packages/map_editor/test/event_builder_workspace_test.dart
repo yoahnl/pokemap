@@ -120,7 +120,7 @@ void main() {
     expect(
       find.descendant(
         of: central,
-        matching: find.text('1 impact(s) prévisible(s)'),
+        matching: find.text('1 source projetée'),
       ),
       findsWidgets,
     );
@@ -1333,7 +1333,7 @@ void main() {
         findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
     expect(find.text('Informations techniques'), findsOneWidget);
-    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
+    expect(find.text('Sources projetées'), findsOneWidget);
 
     expect(find.text('Ajouter un résultat'), findsNothing);
     expect(find.text('Résultats possibles'), findsNothing);
@@ -2368,13 +2368,17 @@ void main() {
     await _pumpWorkspace(tester, _readModelWithWorldImpacts(const []));
 
     expect(find.text('Changements du monde'), findsOneWidget);
-    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
-    expect(find.text('Aucun changement du monde détecté'), findsOneWidget);
+    expect(find.text('Sources projetées'), findsOneWidget);
+    expect(find.text('Aucune source d’état projetée'), findsWidgets);
+    expect(
+      find.text('Aucun changement d’état visible pour l’instant.'),
+      findsOneWidget,
+    );
     expect(
       find.text(
         'Les réactions et changements persistants se configurent dans la Scene ou dans les règles du monde.',
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Piloté par les conséquences de scène.'), findsNothing);
     expect(find.text('Ajouter un changement'), findsNothing);
@@ -2414,7 +2418,7 @@ void main() {
       const ValueKey('event-builder-flow-block-world'),
     );
 
-    expect(find.text('3 impact(s) prévisible(s)'), findsWidgets);
+    expect(find.text('3 sources projetées'), findsWidgets);
     expect(
       find.descendant(
         of: worldBlock,
@@ -2572,11 +2576,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Règles du monde concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
     expect(find.text('Règle port observé'), findsOneWidget);
-    expect(find.text('Fact "Départ accepté" est vrai'), findsOneWidget);
-    expect(find.text('Rival au port'), findsOneWidget);
-    expect(find.text('Rend visible'), findsOneWidget);
+    expect(
+        find.textContaining('Fact "Départ accepté" est vrai'), findsOneWidget);
+    expect(find.textContaining('Rival au port'), findsOneWidget);
+    expect(find.textContaining('Rend visible'), findsOneWidget);
     expect(find.text('Projection passive'), findsWidgets);
     expect(find.text('Lecture seule'), findsWidgets);
   });
@@ -2584,11 +2589,11 @@ void main() {
   testWidgets('NS-EVENT-31 renders no world impacts state', (tester) async {
     await _pumpWorkspace(tester, _readModelWithWorldImpacts(const []));
 
-    expect(find.text('Règles du monde concernées'), findsOneWidget);
-    expect(find.text('Aucune source d’état projetée'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Aucune source d’état projetée'), findsWidgets);
     expect(
       find.text(
-        'Aucune règle du monde ne peut être reliée tant qu’aucun changement d’état n’est visible.',
+        'Aucune règle ne peut être reliée tant qu’aucun changement d’état n’est visible.',
       ),
       findsOneWidget,
     );
@@ -2613,11 +2618,11 @@ void main() {
       ),
     );
 
-    expect(find.text('Règles du monde concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
     expect(find.text('Aucune règle du monde liée'), findsOneWidget);
     expect(
       find.text(
-        'Aucune règle du monde ne lit les sources d’état affichées ci-dessus.',
+        'Aucune règle ne lit les sources affichées ci-dessus.',
       ),
       findsOneWidget,
     );
@@ -2690,8 +2695,7 @@ void main() {
       const ValueKey('event-builder-world-rules-projection'),
     );
 
-    expect(find.text('2 règle(s) du monde potentiellement concernée(s).'),
-        findsWidgets);
+    expect(find.text('2 règles concernées'), findsWidgets);
     expect(
       find.descendant(
         of: worldRules,
@@ -2709,18 +2713,18 @@ void main() {
     expect(find.text('Activée'), findsOneWidget);
     expect(find.text('Désactivée'), findsOneWidget);
     expect(
-      find.text('Ne produit pas d’effet tant qu’elle reste inactive.'),
+      find.text('Désactivée : listée pour contexte, sans effet produit.'),
       findsOneWidget,
     );
-    expect(find.text('Fact "Rival battu" est vrai'), findsOneWidget);
+    expect(find.textContaining('Fact "Rival battu" est vrai'), findsOneWidget);
     expect(
-      find.text('Événement "Rencontre rival au port" non consommé'),
+      find.textContaining('Événement "Rencontre rival au port" non consommé'),
       findsOneWidget,
     );
-    expect(find.text('Rival au port'), findsOneWidget);
-    expect(find.text('Garde du port'), findsOneWidget);
-    expect(find.text('Rend visible'), findsOneWidget);
-    expect(find.text('Masque l’événement'), findsOneWidget);
+    expect(find.textContaining('Rival au port'), findsOneWidget);
+    expect(find.textContaining('Garde du port'), findsOneWidget);
+    expect(find.textContaining('Rend visible'), findsOneWidget);
+    expect(find.textContaining('Masque l’événement'), findsOneWidget);
     expect(find.text('Cette règle sera active'), findsNothing);
     expect(find.text('Effet appliqué'), findsNothing);
     expect(find.text('Créer une règle monde'), findsNothing);
@@ -2775,8 +2779,275 @@ void main() {
     expect(
       find.descendant(
         of: inspector,
-        matching: find.text('1 règle potentiellement concernée'),
+        matching: find.text('1 règle concernée'),
       ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('NS-EVENT-32 distinguishes projected sources and related rules',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldRules(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason: '',
+          ),
+        ],
+        EventBuilderWorldRulesProjection.hasMatchingRules(
+          [
+            _worldRuleProjection(
+              ruleId: 'rule_rival_visible',
+              ruleLabel: 'Rival visible après victoire',
+              predicateLabel: 'Fact "Rival battu" est vrai',
+              targetLabel: 'Rival au port',
+              effectLabel: 'Rend visible',
+            ),
+            _worldRuleProjection(
+              ruleId: 'rule_rival_intro_disabled',
+              ruleLabel: 'Intro rival avant rencontre',
+              enabled: false,
+              predicateLabel:
+                  'Événement "Rencontre rival au port" non consommé',
+              targetLabel: 'Garde du port',
+              effectLabel: 'Masque l’événement',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final worldBlock =
+        find.byKey(const ValueKey('event-builder-flow-block-world'));
+
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Sources projetées')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text(
+          'Ce que l’événement ou la scène peut modifier dans l’état du jeu.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+          of: worldBlock, matching: find.text('2 sources projetées')),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(of: worldBlock, matching: find.text('Règles concernées')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text(
+          'Les règles ci-dessous observent ces sources. Elles ne sont pas simulées ici.',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+          of: worldBlock, matching: find.text('2 règles concernées')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.textContaining('Condition observée · Fact'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.textContaining('Cible · Rival au port'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.textContaining('Effet déclaré · Rend visible'),
+      ),
+      findsOneWidget,
+    );
+    final inspector =
+        find.byKey(const ValueKey('event-builder-inspector-panel'));
+    expect(
+      find.descendant(
+        of: inspector,
+        matching: find.text('2 sources projetées'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: inspector,
+        matching: find.text('2 règles concernées'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text(
+          'Projection passive : le Builder liste les règles qui observent les mêmes sources. Il ne simule pas la partie et n’applique aucun effet.',
+        ),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.textContaining('read model'),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('NS-EVENT-32 keeps empty states concise', (tester) async {
+    await _pumpWorkspace(tester, _readModelWithWorldImpacts(const []));
+
+    final worldBlock =
+        find.byKey(const ValueKey('event-builder-flow-block-world'));
+
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text('Aucune source d’état projetée'),
+      ),
+      findsWidgets,
+    );
+    expect(
+      find.descendant(
+        of: worldBlock,
+        matching: find.text(
+          'Aucune règle ne peut être reliée tant qu’aucun changement d’état n’est visible.',
+        ),
+      ),
+      findsOneWidget,
+    );
+
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldRules(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+        ],
+        EventBuilderWorldRulesProjection.noMatchingRules(),
+      ),
+    );
+
+    expect(find.text('Aucune règle du monde liée'), findsOneWidget);
+    expect(
+      find.text('Aucune règle ne lit les sources affichées ci-dessus.'),
+      findsOneWidget,
+    );
+    expect(find.text('Ce n’est pas une erreur.'), findsOneWidget);
+  });
+
+  testWidgets('NS-EVENT-32 keeps no-authoring wording guardrails',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldRules(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason: '',
+          ),
+        ],
+        EventBuilderWorldRulesProjection.hasMatchingRules(
+          [
+            _worldRuleProjection(
+              ruleId: 'rule_guard_hidden',
+              ruleLabel: 'Garde masqué après rencontre',
+              enabled: false,
+              predicateLabel: 'Événement "Rencontre rival au port" consommé',
+              targetLabel: 'Garde du port',
+              effectLabel: 'Masque l’événement',
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Projection passive'), findsWidgets);
+    expect(find.text('Activée'), findsNothing);
+    expect(find.text('Désactivée'), findsOneWidget);
+    expect(
+      find.text('Désactivée : listée pour contexte, sans effet produit.'),
+      findsOneWidget,
+    );
+    expect(find.text('Créer une règle monde'), findsNothing);
+    expect(find.text('Ajouter une règle'), findsNothing);
+    expect(find.text('Éditer règle'), findsNothing);
+    expect(find.text('Modifier effet'), findsNothing);
+    expect(find.text('Cette règle sera active'), findsNothing);
+    expect(find.text('Effet appliqué'), findsNothing);
+    expect(find.text('Drag/drop'), findsNothing);
+  });
+
+  testWidgets('NS-EVENT-32 keeps several passive rules readable',
+      (tester) async {
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldRules(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+        ],
+        EventBuilderWorldRulesProjection.hasMatchingRules(
+          [
+            for (var index = 1; index <= 5; index += 1)
+              _worldRuleProjection(
+                ruleId: 'rule_dense_$index',
+                ruleLabel: 'Règle passive $index',
+                predicateLabel: 'Fact "Rival battu" est vrai',
+                targetLabel: 'Cible lisible $index',
+                effectLabel: 'Effet déclaré $index',
+              ),
+          ],
+        ),
+      ),
+    );
+
+    final exception = tester.takeException();
+    expect(exception, isNull);
+    expect(find.text('5 règles concernées'), findsWidgets);
+    expect(find.text('Règle passive 1'), findsOneWidget);
+    expect(find.text('Règle passive 5'), findsOneWidget);
+    expect(find.textContaining('Cible · Cible lisible 5'), findsOneWidget);
+    expect(
+      find.textContaining('Effet déclaré · Effet déclaré 5'),
       findsOneWidget,
     );
   });
@@ -2868,7 +3139,7 @@ void main() {
       const ValueKey('event-builder-flow-block-world'),
     );
 
-    expect(find.text('Effets prévisibles en lecture seule.'), findsOneWidget);
+    expect(find.text('Sources projetées'), findsOneWidget);
     expect(
       find.descendant(of: worldBlock, matching: find.text('Fait du monde')),
       findsOneWidget,
@@ -2976,7 +3247,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Règles du monde concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
     expect(find.text('Rival visible après victoire'), findsOneWidget);
     expect(find.text('Intro rival avant rencontre'), findsOneWidget);
     expect(find.text('Projection passive'), findsWidgets);
@@ -2985,6 +3256,81 @@ void main() {
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
       'ns_event_31_passive_world_rules_projection_ui_v0.png',
+    );
+    screenshotFile.parent.createSync(recursive: true);
+    await expectLater(
+      find.byKey(const ValueKey('event-builder-workspace')),
+      matchesGoldenFile(screenshotFile.absolute.path),
+    );
+
+    expect(screenshotFile.existsSync(), isTrue);
+  });
+
+  testWidgets('captures NS-EVENT-32 world rules UX closure visual gate',
+      (tester) async {
+    if (!const bool.fromEnvironment('NS_EVENT_32_CAPTURE_WORKSPACE')) {
+      return;
+    }
+
+    await _loadScreenshotFont();
+    await _pumpWorkspace(
+      tester,
+      _readModelWithWorldRules(
+        const [
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.fact,
+            sourceId: 'fact_rival_battu',
+            label: 'Fact : Rival battu',
+            reason: '',
+          ),
+          EventBuilderWorldImpactReadModel(
+            kind: EventBuilderWorldImpactKind.consumedEvent,
+            sourceId: 'evt_rival_port',
+            label: 'Événement consommé : Rencontre rival au port',
+            reason: '',
+          ),
+        ],
+        EventBuilderWorldRulesProjection.hasMatchingRules(
+          [
+            _worldRuleProjection(
+              ruleId: 'rule_rival_visible',
+              ruleLabel: 'Rival visible après victoire',
+              predicateLabel: 'Fact "Rival battu" est vrai',
+              targetLabel: 'Rival au port',
+              effectLabel: 'Rend visible',
+            ),
+            _worldRuleProjection(
+              ruleId: 'rule_rival_intro_disabled',
+              ruleLabel: 'Intro rival avant rencontre',
+              enabled: false,
+              predicateLabel:
+                  'Événement "Rencontre rival au port" non consommé',
+              targetLabel: 'Garde du port',
+              effectLabel: 'Masque l’événement',
+            ),
+          ],
+        ),
+      ),
+      fontFamily: _screenshotFontFamily,
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('event-builder-world-rules-projection')),
+      180,
+      scrollable: _eventBuilderCentralScrollable(),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sources projetées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Rival visible après victoire'), findsOneWidget);
+    expect(find.text('Intro rival avant rencontre'), findsOneWidget);
+    expect(find.text('Lecture seule'), findsWidgets);
+    expect(find.text('Projection passive'), findsWidgets);
+    expect(find.text('Créer une règle monde'), findsNothing);
+
+    final screenshotFile = File(
+      '../../reports/narrativeStudio/events/screenshots/'
+      'ns_event_32_world_rules_projection_ux_closure_validation_gate.png',
     );
     screenshotFile.parent.createSync(recursive: true);
     await expectLater(
@@ -3907,8 +4253,10 @@ EventBuilderReadModel _readModelWithWorldRules(
           key: section.key,
           title: section.title,
           summary: worldImpacts.isEmpty
-              ? 'Aucun impact monde prévisible'
-              : '${worldImpacts.length} impact(s) prévisible(s)',
+              ? 'Aucune source projetée'
+              : worldImpacts.length == 1
+                  ? '1 source projetée'
+                  : '${worldImpacts.length} sources projetées',
           diagnosticCount: section.diagnosticCount,
           hasBlockingDiagnostic: section.hasBlockingDiagnostic,
         )
@@ -3942,6 +4290,33 @@ EventBuilderReadModel _readModelWithWorldRules(
     events: [patched, ...base.events.skip(1)],
     mapId: base.mapId,
     mapTitle: base.mapTitle,
+  );
+}
+
+EventBuilderWorldRuleProjectionReadModel _worldRuleProjection({
+  required String ruleId,
+  required String ruleLabel,
+  required String predicateLabel,
+  required String targetLabel,
+  required String effectLabel,
+  bool enabled = true,
+}) {
+  return EventBuilderWorldRuleProjectionReadModel(
+    ruleId: ruleId,
+    ruleLabel: ruleLabel,
+    description: '',
+    enabled: enabled,
+    sourceKind: WorldRuleSourceKind.fact,
+    sourceId: 'fact_rival_battu',
+    sourceLabel: 'Rival battu',
+    predicateLabel: predicateLabel,
+    targetKind: WorldRuleTargetKind.mapEntity,
+    targetId: 'npc_rival',
+    targetLabel: targetLabel,
+    effectKind: WorldRuleEffectKind.entityVisible,
+    effectLabel: effectLabel,
+    reason: 'Cette règle observe une source projetée par l’Event Builder.',
+    isReadOnly: true,
   );
 }
 

@@ -1334,7 +1334,9 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           title: 'Changements du monde',
           icon: CupertinoIcons.globe,
           tone: PokeMapTone.fact,
-          summary: sections['world']?.summary,
+          summary: selected.worldImpacts.isEmpty
+              ? 'Aucune source projetée'
+              : _sourceCountLabel(selected.worldImpacts.length),
           diagnosticCount: sections['world']?.diagnosticCount,
           hasBlockingDiagnostic:
               sections['world']?.hasBlockingDiagnostic ?? false,
@@ -2871,7 +2873,7 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Effets prévisibles en lecture seule.',
+          'Sources projetées',
           style: TextStyle(
             color: colors.textPrimary,
             fontSize: 12,
@@ -2880,7 +2882,7 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Ces sources sont déduites de l’événement et de la scène liée. Les règles ci-dessous indiquent seulement ce qui les observe.',
+          'Ce que l’événement ou la scène peut modifier dans l’état du jeu.',
           style: TextStyle(
             color: colors.textMuted,
             fontSize: 11,
@@ -2891,16 +2893,14 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
         const SizedBox(height: 9),
         if (impacts.isEmpty)
           const _DiagnosticNotice(
-            title: 'Aucun changement du monde détecté',
-            message:
-                'Cet événement ne déclare pas encore d’impact visible dans le read model.\n'
-                'Les réactions et changements persistants se configurent dans la Scene ou dans les règles du monde.',
+            title: 'Aucune source d’état projetée',
+            message: 'Aucun changement d’état visible pour l’instant.',
             tone: PokeMapTone.info,
             severityLabel: 'Lecture seule',
           )
         else ...[
           Text(
-            '${impacts.length} impact(s) prévisible(s)',
+            _sourceCountLabel(impacts.length),
             style: TextStyle(
               color: colors.textMuted,
               fontSize: 10.5,
@@ -2942,7 +2942,7 @@ class _WorldRulesProjectionBlock extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Règles du monde concernées',
+          'Règles concernées',
           style: TextStyle(
             color: colors.textPrimary,
             fontSize: 12,
@@ -2951,7 +2951,7 @@ class _WorldRulesProjectionBlock extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Projection passive : le Builder liste les règles qui observent les mêmes sources. Il ne simule pas la partie et n’applique aucun effet.',
+          'Les règles ci-dessous observent ces sources. Elles ne sont pas simulées ici.',
           style: TextStyle(
             color: colors.textMuted,
             fontSize: 11,
@@ -2965,15 +2965,14 @@ class _WorldRulesProjectionBlock extends StatelessWidget {
             const _DiagnosticNotice(
               title: 'Aucune source d’état projetée',
               message:
-                  'Aucune règle du monde ne peut être reliée tant qu’aucun changement d’état n’est visible.',
+                  'Aucune règle ne peut être reliée tant qu’aucun changement d’état n’est visible.',
               tone: PokeMapTone.info,
               severityLabel: 'Lecture seule',
             ),
           EventBuilderWorldRulesProjectionStatus.noMatchingRules =>
             const _DiagnosticNotice(
               title: 'Aucune règle du monde liée',
-              message:
-                  'Aucune règle du monde ne lit les sources d’état affichées ci-dessus.\n'
+              message: 'Aucune règle ne lit les sources affichées ci-dessus.\n'
                   'Ce n’est pas une erreur.',
               tone: PokeMapTone.info,
               severityLabel: 'Projection passive',
@@ -2982,7 +2981,7 @@ class _WorldRulesProjectionBlock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  projection.label,
+                  _worldRuleCountLabel(projection.rules.length),
                   style: TextStyle(
                     color: colors.textMuted,
                     fontSize: 10.5,
@@ -3091,7 +3090,7 @@ class _WorldRuleProjectionRow extends StatelessWidget {
                   if (!rule.enabled) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Ne produit pas d’effet tant qu’elle reste inactive.',
+                      'Désactivée : listée pour contexte, sans effet produit.',
                       style: TextStyle(
                         color: colors.textSecondary,
                         fontSize: 11,
@@ -3110,6 +3109,14 @@ class _WorldRuleProjectionRow extends StatelessWidget {
   }
 }
 
+String _sourceCountLabel(int count) {
+  return '$count source${count > 1 ? 's' : ''} projetée${count > 1 ? 's' : ''}';
+}
+
+String _worldRuleCountLabel(int count) {
+  return '$count règle${count > 1 ? 's' : ''} concernée${count > 1 ? 's' : ''}';
+}
+
 class _WorldRuleProjectionLine extends StatelessWidget {
   const _WorldRuleProjectionLine({
     required this.label,
@@ -3124,28 +3131,14 @@ class _WorldRuleProjectionLine extends StatelessWidget {
     final colors = context.pokeMapColors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 1),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-            ),
-          ),
-        ],
+      child: Text(
+        '$label · $value',
+        style: TextStyle(
+          color: colors.textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.25,
+        ),
       ),
     );
   }
