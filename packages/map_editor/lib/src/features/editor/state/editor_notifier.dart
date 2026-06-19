@@ -2821,6 +2821,47 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  String? ensureEventBuilderObjectLayer() {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucune map active pour préparer la couche d’événements.',
+      );
+      return null;
+    }
+
+    for (final layer in map.layers) {
+      if (layer is ObjectLayer) {
+        state = state.copyWith(
+          activeLayerId: layer.id,
+          statusMessage: 'Couche d’événements prête',
+          errorMessage: null,
+        );
+        return layer.id;
+      }
+    }
+
+    try {
+      final result = ref.read(addMapLayerUseCaseProvider).execute(
+            map,
+            kind: MapLayerKind.object,
+            name: 'Événements',
+          );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layer.id,
+        statusMessage: 'Couche d’événements créée',
+      );
+      return result.layer.id;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de créer la couche d’événements : $e',
+      );
+      return null;
+    }
+  }
+
   bool renameEventBuilderEventTitle({
     required String eventId,
     required String title,

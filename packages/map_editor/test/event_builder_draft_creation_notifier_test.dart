@@ -6,6 +6,29 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
   group('NS-EVENT-08 EditorNotifier draft event creation', () {
+    test('prepares a default object layer when a real imported map has none',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        activeMap: _mapWithoutObjectLayer(),
+        activeLayerId: 'ground',
+      );
+
+      final layerId = notifier.ensureEventBuilderObjectLayer();
+
+      final state = container.read(editorNotifierProvider);
+      final layer = state.activeMap!.layers.whereType<ObjectLayer>().single;
+      expect(layerId, layer.id);
+      expect(layer.name, 'Événements');
+      expect(state.activeLayerId, layer.id);
+      expect(state.selectedMapEventId, isNull);
+      expect(state.activeMap!.events, isEmpty);
+      expect(state.statusMessage, 'Couche d’événements créée');
+      expect(state.errorMessage, isNull);
+    });
+
     test('creates a draft event from an explicit position and valid layer', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -1415,5 +1438,21 @@ MapData _mapWithoutEventPages() {
         pages: [],
       ),
     ],
+  );
+}
+
+MapData _mapWithoutObjectLayer() {
+  return const MapData(
+    id: 'map_port',
+    name: 'Port Selbrume',
+    size: GridSize(width: 4, height: 3),
+    layers: [
+      MapLayer.tile(
+        id: 'ground',
+        name: 'Sol',
+        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      ),
+    ],
+    events: [],
   );
 }

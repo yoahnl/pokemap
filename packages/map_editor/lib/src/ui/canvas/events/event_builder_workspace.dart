@@ -49,6 +49,7 @@ typedef EventBuilderConditionRemoveCallback = bool Function({
 typedef EventBuilderMapOpenCallback = Future<void> Function(String mapId);
 
 typedef EventBuilderEventSelectCallback = void Function(String eventId);
+typedef EventBuilderDestinationLayerCreateCallback = void Function();
 
 class EventBuilderMapOption {
   const EventBuilderMapOption({
@@ -90,6 +91,16 @@ class EventBuilderConditionEventOption {
   final String label;
 }
 
+class EventBuilderDestinationLayerOption {
+  const EventBuilderDestinationLayerOption({
+    required this.id,
+    required this.label,
+  });
+
+  final String id;
+  final String label;
+}
+
 class EventBuilderWorkspace extends StatefulWidget {
   const EventBuilderWorkspace({
     super.key,
@@ -109,6 +120,7 @@ class EventBuilderWorkspace extends StatefulWidget {
     this.onAddFactCondition,
     this.onAddEventConsumedCondition,
     this.onRemoveCondition,
+    this.onCreateDestinationLayer,
   });
 
   final EventBuilderReadModel readModel;
@@ -128,6 +140,7 @@ class EventBuilderWorkspace extends StatefulWidget {
   final EventBuilderEventConsumedConditionAddCallback?
       onAddEventConsumedCondition;
   final EventBuilderConditionRemoveCallback? onRemoveCondition;
+  final EventBuilderDestinationLayerCreateCallback? onCreateDestinationLayer;
 
   @override
   State<EventBuilderWorkspace> createState() => _EventBuilderWorkspaceState();
@@ -144,6 +157,8 @@ class EventBuilderDraftCreationGate {
         mapHeight = null,
         layerId = null,
         layerLabel = null,
+        destinationLayerOptions = const <EventBuilderDestinationLayerOption>[],
+        autoResolvedLayer = false,
         layerValid = false,
         readyLabel = 'Position requise';
 
@@ -157,6 +172,8 @@ class EventBuilderDraftCreationGate {
         mapHeight = null,
         layerId = null,
         layerLabel = null,
+        destinationLayerOptions = const <EventBuilderDestinationLayerOption>[],
+        autoResolvedLayer = false,
         layerValid = false;
 
   const EventBuilderDraftCreationGate.positionPicker({
@@ -167,6 +184,8 @@ class EventBuilderDraftCreationGate {
     required this.layerLabel,
     required this.layerValid,
     required this.onCreateDraftAt,
+    this.destinationLayerOptions = const <EventBuilderDestinationLayerOption>[],
+    this.autoResolvedLayer = false,
     this.disabledReason =
         'Sélectionnez une position sur la carte pour créer un événement.',
   })  : onCreateDraft = null,
@@ -181,6 +200,8 @@ class EventBuilderDraftCreationGate {
   final int? mapHeight;
   final String? layerId;
   final String? layerLabel;
+  final List<EventBuilderDestinationLayerOption> destinationLayerOptions;
+  final bool autoResolvedLayer;
   final bool layerValid;
 
   bool get canCreate => onCreateDraft != null;
@@ -198,6 +219,7 @@ class EventBuilderDraftCreationGate {
 
 class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
   String? _selectedEventId;
+  String? _selectedDraftLayerId;
   GridPos? _selectedDraftPosition;
   String? _draftCreationFeedback;
   PokeMapTone _draftCreationFeedbackTone = PokeMapTone.success;
@@ -221,6 +243,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       oldWidget.draftCreationGate,
       widget.draftCreationGate,
     )) {
+      _selectedDraftLayerId = null;
       _selectedDraftPosition = null;
       _draftCreationFeedback = null;
       _draftCreationFeedbackTone = PokeMapTone.success;
@@ -519,6 +542,29 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
         : widget.readModel.events.first;
   }
 
+  EventBuilderDestinationLayerOption? _effectiveDestinationLayer() {
+    final selectedLayerId = _selectedDraftLayerId?.trim();
+    if (selectedLayerId != null && selectedLayerId.isNotEmpty) {
+      for (final option in widget.draftCreationGate.destinationLayerOptions) {
+        if (option.id == selectedLayerId) {
+          return option;
+        }
+      }
+    }
+    if (widget.draftCreationGate.layerValid) {
+      final id = widget.draftCreationGate.layerId?.trim();
+      if (id != null && id.isNotEmpty) {
+        return EventBuilderDestinationLayerOption(
+          id: id,
+          label: widget.draftCreationGate.layerLabel?.trim().isNotEmpty == true
+              ? widget.draftCreationGate.layerLabel!.trim()
+              : id,
+        );
+      }
+    }
+    return null;
+  }
+
   List<Widget> _creationControlWidgets(VoidCallback? createDraftAction) {
     final controls = <Widget>[];
     void append(Widget control) {
@@ -528,10 +574,33 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       controls.add(control);
     }
 
+    final destinationLayer = _effectiveDestinationLayer();
+
     if (widget.draftCreationGate.hasPositionPicker) {
+      append(
+        _DraftDestinationLayerPanel(
+          gate: widget.draftCreationGate,
+          selectedLayer: destinationLayer,
+          selectedLayerId: _selectedDraftLayerId,
+          onCreateLayer: widget.onCreateDestinationLayer,
+          onSelectLayer: (layerId) {
+            setState(() {
+              _selectedDraftLayerId = layerId;
+              _selectedDraftPosition = null;
+              _draftCreationFeedback = null;
+              _draftCreationFeedbackTone = PokeMapTone.success;
+            });
+          },
+        ),
+      );
+    }
+
+    if (widget.draftCreationGate.hasPositionPicker &&
+        destinationLayer != null) {
       append(
         _DraftPositionPickerPanel(
           gate: widget.draftCreationGate,
+          layerLabel: destinationLayer.label,
           selectedPosition: _selectedDraftPosition,
           onSelect: (position) {
             setState(() {
@@ -570,7 +639,8 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
     }
     if (createDraftAction == null &&
         (!widget.draftCreationGate.hasPositionPicker ||
-            !widget.draftCreationGate.layerValid)) {
+            (destinationLayer == null &&
+                widget.draftCreationGate.destinationLayerOptions.isNotEmpty))) {
       append(_DraftCreationGateNotice(message: _creationDisabledReason));
     }
     return controls;
@@ -583,13 +653,13 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       return legacyAction;
     }
     final position = _selectedDraftPosition;
-    final layerId = gate.layerId?.trim();
+    final destinationLayer = _effectiveDestinationLayer();
+    final layerId = destinationLayer?.id.trim();
     final create = gate.onCreateDraftAt;
     if (!gate.hasPositionPicker ||
         position == null ||
         layerId == null ||
         layerId.isEmpty ||
-        !gate.layerValid ||
         create == null) {
       return null;
     }
@@ -623,16 +693,24 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       return 'Position prête';
     }
     final gate = widget.draftCreationGate;
+    if (gate.hasPositionPicker && _effectiveDestinationLayer() == null) {
+      return gate.destinationLayerOptions.isEmpty
+          ? 'Couche objet absente'
+          : 'Couche à choisir';
+    }
     if (gate.hasPositionPicker && _selectedDraftPosition != null) {
-      return gate.layerValid ? gate.readyLabel : 'Couche requise';
+      return gate.readyLabel;
     }
     return gate.readyLabel;
   }
 
   String get _creationDisabledReason {
     final gate = widget.draftCreationGate;
-    if (gate.hasPositionPicker && !gate.layerValid) {
-      return 'Sélectionnez une couche de destination pour créer un événement.';
+    if (gate.hasPositionPicker && _effectiveDestinationLayer() == null) {
+      if (gate.destinationLayerOptions.isEmpty) {
+        return 'Créez une couche dédiée ici, puis choisissez une position.';
+      }
+      return 'Choisissez une couche objet de destination pour créer un événement.';
     }
     if (gate.hasPositionPicker && _selectedDraftPosition == null) {
       return 'Sélectionnez une position stable sur la carte pour créer un événement.';
@@ -653,7 +731,26 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
     return previous.mapId != next.mapId ||
         previous.mapWidth != next.mapWidth ||
         previous.mapHeight != next.mapHeight ||
-        previous.layerId != next.layerId;
+        previous.layerId != next.layerId ||
+        !_sameLayerOptions(
+          previous.destinationLayerOptions,
+          next.destinationLayerOptions,
+        );
+  }
+
+  bool _sameLayerOptions(
+    List<EventBuilderDestinationLayerOption> previous,
+    List<EventBuilderDestinationLayerOption> next,
+  ) {
+    if (previous.length != next.length) {
+      return false;
+    }
+    for (var i = 0; i < previous.length; i++) {
+      if (previous[i].id != next[i].id || previous[i].label != next[i].label) {
+        return false;
+      }
+    }
+    return true;
   }
 }
 
@@ -781,15 +878,151 @@ class _MapActivationPanel extends StatelessWidget {
   }
 }
 
+class _DraftDestinationLayerPanel extends StatelessWidget {
+  const _DraftDestinationLayerPanel({
+    required this.gate,
+    required this.selectedLayer,
+    required this.selectedLayerId,
+    required this.onCreateLayer,
+    required this.onSelectLayer,
+  });
+
+  final EventBuilderDraftCreationGate gate;
+  final EventBuilderDestinationLayerOption? selectedLayer;
+  final String? selectedLayerId;
+  final VoidCallback? onCreateLayer;
+  final ValueChanged<String> onSelectLayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final options = gate.destinationLayerOptions;
+    final selected = selectedLayer;
+    final hasOptions = options.isNotEmpty;
+    return PokeMapPanel(
+      key: const ValueKey('event-builder-destination-layer-panel'),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                CupertinoIcons.layers_alt,
+                color: colors.brandPrimary,
+                size: 16,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selected == null
+                          ? 'Couche de destination'
+                          : 'Couche de destination : ${selected.label}',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _destinationMessage(hasOptions, selected),
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              PokeMapBadge(
+                label: selected == null
+                    ? hasOptions
+                        ? 'À choisir'
+                        : 'Indisponible'
+                    : 'Prête',
+                variant: selected == null
+                    ? PokeMapBadgeVariant.warning
+                    : PokeMapBadgeVariant.success,
+                icon: Icon(selected == null
+                    ? CupertinoIcons.exclamationmark_triangle
+                    : CupertinoIcons.checkmark_circle),
+              ),
+            ],
+          ),
+          if (options.length > 1) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final option in options)
+                  PokeMapButton(
+                    key: ValueKey('event-builder-layer-option-${option.id}'),
+                    onPressed: () => onSelectLayer(option.id),
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    isSelected: selectedLayerId == option.id,
+                    leading: const Icon(CupertinoIcons.layers_alt),
+                    child: Text(option.label),
+                  ),
+              ],
+            ),
+          ],
+          if (!hasOptions && onCreateLayer != null) ...[
+            const SizedBox(height: 12),
+            PokeMapButton(
+              key: const ValueKey(
+                'event-builder-create-destination-layer',
+              ),
+              onPressed: onCreateLayer,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.plus_square_on_square),
+              child: const Text('Créer la couche Événements'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _destinationMessage(
+    bool hasOptions,
+    EventBuilderDestinationLayerOption? selected,
+  ) {
+    if (!hasOptions) {
+      return 'Aucune couche objet disponible sur cette map.\n'
+          'Créez une couche dédiée ici, puis choisissez une position.';
+    }
+    if (gate.autoResolvedLayer && selected != null) {
+      return 'Couche objet détectée automatiquement';
+    }
+    if (selected != null) {
+      return 'Les événements créés seront rangés sur cette couche objet.';
+    }
+    return 'Choisissez où ranger cet événement sur la map.';
+  }
+}
+
 class _DraftPositionPickerPanel extends StatelessWidget {
   const _DraftPositionPickerPanel({
     required this.gate,
+    required this.layerLabel,
     required this.selectedPosition,
     required this.onSelect,
     required this.onClear,
   });
 
   final EventBuilderDraftCreationGate gate;
+  final String layerLabel;
   final GridPos? selectedPosition;
   final ValueChanged<GridPos> onSelect;
   final VoidCallback? onClear;
@@ -828,15 +1061,9 @@ class _DraftPositionPickerPanel extends StatelessWidget {
                 ),
               ),
               PokeMapBadge(
-                label: gate.layerValid
-                    ? 'Couche : ${gate.layerLabel ?? gate.layerId}'
-                    : 'Couche requise',
-                variant: gate.layerValid
-                    ? PokeMapBadgeVariant.success
-                    : PokeMapBadgeVariant.warning,
-                icon: Icon(gate.layerValid
-                    ? CupertinoIcons.checkmark_circle
-                    : CupertinoIcons.layers),
+                label: 'Couche : $layerLabel',
+                variant: PokeMapBadgeVariant.success,
+                icon: const Icon(CupertinoIcons.checkmark_circle),
               ),
             ],
           ),

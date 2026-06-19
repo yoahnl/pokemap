@@ -580,6 +580,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onAddEventConsumedCondition:
               editorNotifier.addEventBuilderEventConsumedCondition,
           onRemoveCondition: editorNotifier.removeEventBuilderConditionAt,
+          onCreateDestinationLayer:
+              editorNotifier.ensureEventBuilderObjectLayer,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,
@@ -699,18 +701,25 @@ EventBuilderDraftCreationGate _buildEventBuilderDraftCreationGate(
   final activeLayer = activeLayerId == null || activeLayerId.isEmpty
       ? null
       : _findMapLayerById(activeMap, activeLayerId);
-  final layerIsValid = activeLayer is ObjectLayer;
-  final layerId = layerIsValid ? activeLayer.id : activeLayerId;
-  final layerLabel = layerIsValid
-      ? activeLayer.name
-      : activeLayer?.name ?? activeLayerId ?? 'Aucune couche';
+  final destinationLayers = _buildEventDestinationLayerOptions(activeMap);
+  final activeObjectLayer = activeLayer is ObjectLayer
+      ? EventBuilderDestinationLayerOption(
+          id: activeLayer.id,
+          label: _mapLayerLabel(activeLayer),
+        )
+      : null;
+  final autoResolvedLayer = destinationLayers.length == 1;
+  final resolvedLayer = activeObjectLayer ??
+      (autoResolvedLayer ? destinationLayers.single : null);
   return EventBuilderDraftCreationGate.positionPicker(
     mapId: activeMap.id,
     mapWidth: activeMap.size.width,
     mapHeight: activeMap.size.height,
-    layerId: layerId,
-    layerLabel: layerLabel,
-    layerValid: layerIsValid,
+    layerId: resolvedLayer?.id,
+    layerLabel: resolvedLayer?.label,
+    layerValid: resolvedLayer != null,
+    destinationLayerOptions: destinationLayers,
+    autoResolvedLayer: autoResolvedLayer,
     onCreateDraftAt: (position) {
       return editorNotifier
           .createEventBuilderDraftEventAt(position: position)
@@ -787,6 +796,24 @@ MapLayer? _findMapLayerById(MapData map, String layerId) {
     }
   }
   return null;
+}
+
+List<EventBuilderDestinationLayerOption> _buildEventDestinationLayerOptions(
+  MapData map,
+) {
+  return [
+    for (final layer in map.layers)
+      if (layer is ObjectLayer)
+        EventBuilderDestinationLayerOption(
+          id: layer.id,
+          label: _mapLayerLabel(layer),
+        ),
+  ];
+}
+
+String _mapLayerLabel(MapLayer layer) {
+  final label = layer.name.trim();
+  return label.isEmpty ? layer.id : label;
 }
 
 Widget _buildFactsWorldRulesWorkspace({
