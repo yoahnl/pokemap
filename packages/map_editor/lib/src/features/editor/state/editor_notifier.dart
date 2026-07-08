@@ -2810,12 +2810,12 @@ class EditorNotifier extends _$EditorNotifier {
         updatedMap: result.updatedMap,
         preferredActiveLayerId: state.activeLayerId,
         preferredSelectedMapEventId: result.createdEvent.id,
-        statusMessage: 'Brouillon d’événement créé',
+        statusMessage: 'Événement créé',
       );
       return result.createdEvent;
     } catch (e) {
       state = state.copyWith(
-        errorMessage: 'Impossible de créer le brouillon d’événement : $e',
+        errorMessage: 'Impossible de créer l’événement : $e',
       );
       return null;
     }

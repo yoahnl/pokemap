@@ -261,12 +261,10 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
         .where((event) => event.status == EventBuilderEventStatus.draft)
         .length;
     final createDraftAction = _createDraftAction;
-    final newEventAction = _newEventAction(createDraftAction);
-    final creationBadgeLabel = _creationBadgeLabel;
     final creationControls = _creationControlWidgets(createDraftAction);
-    final creationBadgeVariant = createDraftAction != null
-        ? PokeMapBadgeVariant.success
-        : PokeMapBadgeVariant.warning;
+    final showCreationShortcut = widget.readModel.events.isNotEmpty &&
+        !_isCreationPanelExpanded &&
+        creationControls.isNotEmpty;
     return PokeMapPageSurface(
       key: const ValueKey('event-builder-workspace'),
       padding: const EdgeInsets.all(18),
@@ -316,21 +314,15 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                 alignment: WrapAlignment.end,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  PokeMapButton(
-                    key: const ValueKey('event-builder-new-event-button'),
-                    onPressed: newEventAction,
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.medium,
-                    leading: const Icon(CupertinoIcons.plus),
-                    child: const Text('Nouvel événement'),
-                  ),
-                  PokeMapBadge(
-                    label: creationBadgeLabel,
-                    variant: creationBadgeVariant,
-                    icon: Icon(createDraftAction != null
-                        ? CupertinoIcons.checkmark_circle
-                        : CupertinoIcons.location),
-                  ),
+                  if (showCreationShortcut)
+                    PokeMapButton(
+                      key: const ValueKey('event-builder-new-event-button'),
+                      onPressed: _openCreationPanelAction,
+                      variant: PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.medium,
+                      leading: const Icon(CupertinoIcons.plus),
+                      child: const Text('Préparer un événement'),
+                    ),
                 ],
               ),
             ],
@@ -396,7 +388,6 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: _EventBuilderEmptyState(
-                          onCreateDraft: createDraftAction,
                           hasActiveMap: widget.readModel.mapId != null,
                         ),
                       ),
@@ -495,13 +486,12 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
     _eventDetailsKey.currentState?.activateLibraryAction(action);
   }
 
-  VoidCallback? _newEventAction(VoidCallback? createDraftAction) {
-    if (createDraftAction != null) {
-      return createDraftAction;
+  VoidCallback? get _openCreationPanelAction {
+    if (_requiresMapActivation || _isCreationPanelExpanded) {
+      return null;
     }
-    if (_requiresMapActivation ||
-        _isCreationPanelExpanded ||
-        !widget.draftCreationGate.hasPositionPicker) {
+    if (!widget.draftCreationGate.hasPositionPicker &&
+        !widget.draftCreationGate.canCreate) {
       return null;
     }
     return () {
@@ -600,7 +590,6 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       append(
         _DraftPositionPickerPanel(
           gate: widget.draftCreationGate,
-          layerLabel: destinationLayer.label,
           selectedPosition: _selectedDraftPosition,
           onSelect: (position) {
             setState(() {
@@ -629,6 +618,12 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
         ),
       );
     }
+    append(
+      _DraftCreationActionPanel(
+        onCreate: createDraftAction,
+        disabledReason: _creationDisabledReason,
+      ),
+    );
     if (_draftCreationFeedback != null) {
       append(
         _DraftCreationFeedbackNotice(
@@ -636,12 +631,6 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
           tone: _draftCreationFeedbackTone,
         ),
       );
-    }
-    if (createDraftAction == null &&
-        (!widget.draftCreationGate.hasPositionPicker ||
-            (destinationLayer == null &&
-                widget.draftCreationGate.destinationLayerOptions.isNotEmpty))) {
-      append(_DraftCreationGateNotice(message: _creationDisabledReason));
     }
     return controls;
   }
@@ -673,50 +662,37 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
           _selectedDraftPosition = null;
           _isCreationPanelExpanded = false;
           _draftCreationFeedback =
-              'Brouillon d’événement créé. Sélectionnez une nouvelle position '
-              'pour en créer un autre.';
+              'Événement créé. Il est sélectionné dans la liste. Choisissez '
+              'une autre case pour en créer un nouveau.';
           _draftCreationFeedbackTone = PokeMapTone.success;
         });
         return;
       }
       setState(() {
         _draftCreationFeedback =
-            'Impossible de créer le brouillon. Vérifiez la position et la '
-            'couche, puis réessayez.';
+            'Impossible de créer l’événement. Vérifiez la destination et la '
+            'position, puis réessayez.';
         _draftCreationFeedbackTone = PokeMapTone.warning;
       });
     };
   }
 
-  String get _creationBadgeLabel {
-    if (_createDraftAction != null) {
-      return 'Position prête';
-    }
-    final gate = widget.draftCreationGate;
-    if (gate.hasPositionPicker && _effectiveDestinationLayer() == null) {
-      return gate.destinationLayerOptions.isEmpty
-          ? 'Couche objet absente'
-          : 'Couche à choisir';
-    }
-    if (gate.hasPositionPicker && _selectedDraftPosition != null) {
-      return gate.readyLabel;
-    }
-    return gate.readyLabel;
-  }
-
   String get _creationDisabledReason {
     final gate = widget.draftCreationGate;
+    if (_requiresMapActivation) {
+      return 'Ouvrez une map active pour choisir où placer l’événement.';
+    }
     if (gate.hasPositionPicker && _effectiveDestinationLayer() == null) {
       if (gate.destinationLayerOptions.isEmpty) {
-        return 'Créez une couche dédiée ici, puis choisissez une position.';
+        return 'Créez la couche Événements pour choisir une position.';
       }
-      return 'Choisissez une couche objet de destination pour créer un événement.';
+      return 'Choisissez une destination avant de placer l’événement.';
     }
     if (gate.hasPositionPicker && _selectedDraftPosition == null) {
-      return 'Sélectionnez une position stable sur la carte pour créer un événement.';
+      return 'Cliquez sur une case de la carte pour activer la création.';
     }
     return gate.disabledReason ??
-        'Sélectionnez une position sur la carte pour créer un événement.';
+        'Choisissez une position avant de créer l’événement.';
   }
 
   bool get _requiresMapActivation {
@@ -756,11 +732,9 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
 
 class _EventBuilderEmptyState extends StatelessWidget {
   const _EventBuilderEmptyState({
-    required this.onCreateDraft,
     required this.hasActiveMap,
   });
 
-  final VoidCallback? onCreateDraft;
   final bool hasActiveMap;
 
   @override
@@ -772,15 +746,9 @@ class _EventBuilderEmptyState extends StatelessWidget {
           icon: const Icon(CupertinoIcons.bolt_horizontal_circle),
           title: hasActiveMap ? 'Aucun événement sur cette map' : 'Map requise',
           description: hasActiveMap
-              ? 'Le Builder d’événements affichera ici les déclencheurs '
-                  'authorés depuis la carte active.'
-              : 'Choisissez une map du projet avant de placer un brouillon.',
-          action: PokeMapButton(
-            onPressed: onCreateDraft,
-            variant: PokeMapButtonVariant.secondary,
-            leading: const Icon(CupertinoIcons.plus),
-            child: const Text('Nouvel événement'),
-          ),
+              ? 'Utilisez le panneau de gauche pour choisir une position et '
+                  'créer votre premier événement.'
+              : 'Choisissez une map du projet avant de placer un événement.',
         ),
       ),
     );
@@ -899,63 +867,35 @@ class _DraftDestinationLayerPanel extends StatelessWidget {
     final options = gate.destinationLayerOptions;
     final selected = selectedLayer;
     final hasOptions = options.isNotEmpty;
-    return PokeMapPanel(
+    return _GuidedCreationStep(
       key: const ValueKey('event-builder-destination-layer-panel'),
-      padding: const EdgeInsets.all(12),
+      number: 1,
+      title: 'Destination',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                CupertinoIcons.layers_alt,
-                color: colors.brandPrimary,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      selected == null
-                          ? 'Couche de destination'
-                          : 'Couche de destination : ${selected.label}',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _destinationMessage(hasOptions, selected),
-                      style: TextStyle(
-                        color: colors.textMuted,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              PokeMapBadge(
-                label: selected == null
-                    ? hasOptions
-                        ? 'À choisir'
-                        : 'Indisponible'
-                    : 'Prête',
-                variant: selected == null
-                    ? PokeMapBadgeVariant.warning
-                    : PokeMapBadgeVariant.success,
-                icon: Icon(selected == null
-                    ? CupertinoIcons.exclamationmark_triangle
-                    : CupertinoIcons.checkmark_circle),
-              ),
-            ],
+          Text(
+            selected == null
+                ? hasOptions
+                    ? 'Couche utilisée : à choisir'
+                    : 'Aucune couche d’événements sur cette map.'
+                : 'Couche utilisée : ${selected.label}',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            _destinationMessage(hasOptions, selected),
+            style: TextStyle(
+              color: colors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.3,
+            ),
           ),
           if (options.length > 1) ...[
             const SizedBox(height: 12),
@@ -999,30 +939,27 @@ class _DraftDestinationLayerPanel extends StatelessWidget {
     EventBuilderDestinationLayerOption? selected,
   ) {
     if (!hasOptions) {
-      return 'Aucune couche objet disponible sur cette map.\n'
-          'Créez une couche dédiée ici, puis choisissez une position.';
+      return 'Créez-la ici pour placer vos événements.';
     }
     if (gate.autoResolvedLayer && selected != null) {
-      return 'Couche objet détectée automatiquement';
+      return 'Destination choisie automatiquement.';
     }
     if (selected != null) {
-      return 'Les événements créés seront rangés sur cette couche objet.';
+      return 'Les événements créés seront placés ici.';
     }
-    return 'Choisissez où ranger cet événement sur la map.';
+    return 'Choisissez où placer cet événement.';
   }
 }
 
 class _DraftPositionPickerPanel extends StatelessWidget {
   const _DraftPositionPickerPanel({
     required this.gate,
-    required this.layerLabel,
     required this.selectedPosition,
     required this.onSelect,
     required this.onClear,
   });
 
   final EventBuilderDraftCreationGate gate;
-  final String layerLabel;
   final GridPos? selectedPosition;
   final ValueChanged<GridPos> onSelect;
   final VoidCallback? onClear;
@@ -1034,42 +971,18 @@ class _DraftPositionPickerPanel extends StatelessWidget {
     final height = gate.mapHeight ?? 0;
     final selected = selectedPosition;
     final positionLabel = selected == null
-        ? 'Position sélectionnée : aucune'
-        : 'Position sélectionnée : x ${selected.x}, y ${selected.y}';
+        ? 'Aucune position choisie'
+        : 'Position choisie : x ${selected.x}, y ${selected.y}';
     final crossAxisCount = width.clamp(1, 8).toInt();
-    return PokeMapPanel(
-      padding: const EdgeInsets.all(12),
+    return _GuidedCreationStep(
+      number: 2,
+      title: 'Position',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(
-                CupertinoIcons.map_pin_ellipse,
-                color: colors.brandPrimary,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Position de création',
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              PokeMapBadge(
-                label: 'Couche : $layerLabel',
-                variant: PokeMapBadgeVariant.success,
-                icon: const Icon(CupertinoIcons.checkmark_circle),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
           Text(
-            'Choisissez une position stable, puis utilisez le builder guidé.',
+            'Cliquez sur une case de la carte pour choisir où placer '
+            'l’événement.',
             style: TextStyle(
               color: colors.textMuted,
               fontSize: 11,
@@ -1090,15 +1003,17 @@ class _DraftPositionPickerPanel extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              PokeMapButton(
-                key: const ValueKey('event-builder-clear-position'),
-                onPressed: onClear,
-                variant: PokeMapButtonVariant.ghost,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(CupertinoIcons.xmark),
-                child: const Text('Effacer'),
-              ),
+              if (selected != null) ...[
+                const SizedBox(width: 8),
+                PokeMapButton(
+                  key: const ValueKey('event-builder-clear-position'),
+                  onPressed: onClear,
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  leading: const Icon(CupertinoIcons.xmark),
+                  child: const Text('Effacer'),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 10),
@@ -1120,13 +1035,17 @@ class _DraftPositionPickerPanel extends StatelessWidget {
                   final x = index % width;
                   final y = index ~/ width;
                   final isSelected = selected?.x == x && selected?.y == y;
-                  return PokeMapButton(
-                    key: ValueKey('event-builder-position-$x-$y'),
-                    onPressed: () => onSelect(GridPos(x: x, y: y)),
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    isSelected: isSelected,
-                    child: Text('$x,$y'),
+                  return Semantics(
+                    label: 'Case x $x, y $y',
+                    selected: isSelected,
+                    child: PokeMapButton(
+                      key: ValueKey('event-builder-position-$x-$y'),
+                      onPressed: () => onSelect(GridPos(x: x, y: y)),
+                      variant: PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.small,
+                      isSelected: isSelected,
+                      child: Text(isSelected ? 'Ici' : '${index + 1}'),
+                    ),
                   );
                 },
               ),
@@ -1134,6 +1053,82 @@ class _DraftPositionPickerPanel extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DraftCreationActionPanel extends StatelessWidget {
+  const _DraftCreationActionPanel({
+    required this.onCreate,
+    required this.disabledReason,
+  });
+
+  final VoidCallback? onCreate;
+  final String disabledReason;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final isReady = onCreate != null;
+    return _GuidedCreationStep(
+      number: 3,
+      title: 'Création',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            isReady ? 'Destination et position choisies.' : disabledReason,
+            style: TextStyle(
+              color: isReady ? colors.textSecondary : colors.warning,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 10),
+          PokeMapButton(
+            key: const ValueKey('event-builder-create-event-button'),
+            onPressed: onCreate,
+            variant: PokeMapButtonVariant.primary,
+            size: PokeMapButtonSize.medium,
+            leading: const Icon(CupertinoIcons.checkmark_circle),
+            child: const Text('Créer l’événement'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GuidedCreationStep extends StatelessWidget {
+  const _GuidedCreationStep({
+    super.key,
+    required this.number,
+    required this.title,
+    required this.child,
+  });
+
+  final int number;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '$number. $title',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
     );
   }
 }
@@ -1161,42 +1156,6 @@ class _DraftCreationFeedbackNotice extends StatelessWidget {
                 ? CupertinoIcons.checkmark_circle
                 : CupertinoIcons.exclamationmark_triangle,
             color: toneColors.icon,
-            size: 16,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              message,
-              style: TextStyle(
-                color: colors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DraftCreationGateNotice extends StatelessWidget {
-  const _DraftCreationGateNotice({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapPanel(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            CupertinoIcons.location,
-            color: colors.warning,
             size: 16,
           ),
           const SizedBox(width: 8),

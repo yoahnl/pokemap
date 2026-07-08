@@ -36,11 +36,14 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Aucun événement sur cette map'), findsOneWidget);
-    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+        findsNothing);
+    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Créer l’événement'), findsOneWidget);
     expect(
       find.text(
           'Sélectionnez une position sur la carte pour créer un événement.'),
-      findsWidgets,
+      findsOneWidget,
     );
     expect(find.text('Sauvegarder'), findsNothing);
   });
@@ -87,7 +90,7 @@ void main() {
     expect(find.text('Condition avancée préservée'), findsWidgets);
     expect(find.text('Fact "Départ accepté" est vrai'), findsWidgets);
 
-    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(find.text('Préparer un événement'), findsOneWidget);
     expect(find.text('Créer'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
     expect(find.text('Ajouter une condition'), findsNothing);
@@ -212,7 +215,7 @@ void main() {
   testWidgets('NS-EVENT-05 keeps event details read-only', (tester) async {
     await _pumpWorkspace(tester, _sampleReadModel());
 
-    expect(find.text('Nouvel événement'), findsWidgets);
+    expect(find.text('Préparer un événement'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-creation-panel')),
         findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
@@ -237,17 +240,18 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('event-builder-new-event-button')),
-        findsOneWidget);
-    expect(find.text('Nouvel événement'), findsWidgets);
-    expect(find.text('Position requise'), findsOneWidget);
+        findsNothing);
+    expect(find.text('Nouvel événement'), findsNothing);
+    expect(find.text('Créer l’événement'), findsOneWidget);
     expect(
       find.text(
           'Sélectionnez une position sur la carte pour créer un événement.'),
-      findsWidgets,
+      findsOneWidget,
     );
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -283,15 +287,9 @@ void main() {
     );
     expect(find.text('Ouvrir “Port Selbrume”'), findsOneWidget);
     expect(find.text('Map active'), findsNothing);
-    expect(find.text('Position requise'), findsOneWidget);
-    expect(
-      tester
-          .widget<PokeMapButton>(
-            find.byKey(const ValueKey('event-builder-new-event-button')),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(find.text('Créer l’événement'), findsOneWidget);
+    expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+        findsNothing);
 
     await tester.tap(find.text('Ouvrir “Port Selbrume”'));
     await tester.pumpAndSettle();
@@ -351,7 +349,7 @@ void main() {
     expect(repo.loadedPaths, ['/project/maps/port.json']);
     expect(state.activeMap?.id, 'map_port');
     expect(state.workspaceMode, EditorWorkspaceMode.events);
-    expect(find.text('Couche : Objets'), findsOneWidget);
+    expect(find.text('Couche utilisée : Objets'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
   });
@@ -371,9 +369,10 @@ void main() {
       ),
     );
 
-    expect(find.text('Position prête'), findsOneWidget);
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    expect(find.text('Destination et position choisies.'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(calls, 1);
@@ -420,19 +419,19 @@ void main() {
       ),
     );
 
-    expect(find.text('Position requise'), findsOneWidget);
-    expect(find.text('Couche : Objets'), findsOneWidget);
-    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.text('Couche utilisée : Objets'), findsOneWidget);
+    expect(find.text('Aucune position choisie'), findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+    expect(find.text('Destination et position choisies.'), findsOneWidget);
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(
@@ -469,15 +468,15 @@ void main() {
       find.byKey(const ValueKey('event-builder-position-1-1')),
       findsNothing,
     );
-    expect(find.text('Position sélectionnée : x 1, y 1'), findsNothing);
-    expect(find.text('Couche objet absente'), findsWidgets);
+    expect(find.text('Position choisie : x 1, y 1'), findsNothing);
     expect(
-      find.textContaining('Aucune couche objet disponible sur cette map.'),
+      find.text('Aucune couche d’événements sur cette map.'),
       findsOneWidget,
     );
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     expect(calls, 0);
@@ -505,7 +504,7 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
     await tester.pumpAndSettle();
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Position choisie : x 3, y 2'), findsOneWidget);
 
     await tester
         .tap(find.byKey(const ValueKey('event-builder-clear-position')));
@@ -513,8 +512,11 @@ void main() {
 
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
-    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
-    expect(find.text('Position requise'), findsOneWidget);
+    expect(find.text('Aucune position choisie'), findsOneWidget);
+    expect(
+      find.text('Cliquez sur une case de la carte pour activer la création.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -530,18 +532,22 @@ void main() {
 
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
-    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
-    expect(find.text('Position requise'), findsOneWidget);
+    expect(find.text('Aucune position choisie'), findsOneWidget);
+    expect(
+      find.text('Cliquez sur une case de la carte pour activer la création.'),
+      findsOneWidget,
+    );
 
     await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+    expect(find.text('Destination et position choisies.'), findsOneWidget);
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final state = container.read(editorNotifierProvider);
@@ -549,7 +555,7 @@ void main() {
     expect(events, hasLength(2));
     final created = events.last;
     expect(state.selectedMapEventId, created.id);
-    expect(state.statusMessage, 'Brouillon d’événement créé');
+    expect(state.statusMessage, 'Événement créé');
     expect(created.title, 'Nouvel événement');
     expect(
       created.position,
@@ -572,15 +578,15 @@ void main() {
     expect(find.text(created.id), findsWidgets);
     expect(
       find.text(
-        'Brouillon d’événement créé. Sélectionnez une nouvelle position '
-        'pour en créer un autre.',
+        'Événement créé. Il est sélectionné dans la liste. Choisissez une '
+        'autre case pour en créer un nouveau.',
       ),
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsNothing);
-    expect(find.text('Position sélectionnée : aucune'), findsNothing);
-    expect(find.text('Position requise'), findsOneWidget);
+    expect(find.text('Aucune position choisie'), findsNothing);
+    expect(find.text('Préparer un événement'), findsOneWidget);
     expect(find.text('Ajouter une condition'), findsNothing);
     expect(find.text('Ajouter une action'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
@@ -608,8 +614,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Couche requise'), findsNothing);
-    expect(find.text('Couche de destination : Objets'), findsOneWidget);
-    expect(find.text('Couche objet détectée automatiquement'), findsOneWidget);
+    expect(find.text('Couche utilisée : Objets'), findsOneWidget);
+    expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
 
@@ -617,11 +623,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final state = container.read(editorNotifierProvider);
@@ -655,14 +661,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Couche requise'), findsNothing);
-    expect(find.text('Couche de destination : Objets'), findsOneWidget);
-    expect(find.text('Couche objet détectée automatiquement'), findsOneWidget);
+    expect(find.text('Couche utilisée : Objets'), findsOneWidget);
+    expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-1-1')));
     await tester.pumpAndSettle();
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final created =
@@ -682,18 +689,10 @@ void main() {
       activeLayerId: null,
     );
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.textContaining('Aucune couche objet disponible sur cette map.'),
-        findsOneWidget);
     expect(
-      find.textContaining(
-        'Créez une couche dédiée ici, puis choisissez une position.',
-      ),
-      findsOneWidget,
-    );
+        find.text('Aucune couche d’événements sur cette map.'), findsOneWidget);
+    expect(
+        find.text('Créez-la ici pour placer vos événements.'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsNothing);
     expect(find.text('Couche requise'), findsNothing);
@@ -703,18 +702,19 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Couche de destination : Événements'), findsOneWidget);
-    expect(find.text('Couche objet détectée automatiquement'), findsOneWidget);
+    expect(find.text('Couche utilisée : Événements'), findsOneWidget);
+    expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester, x: 2, y: 1);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final state = container.read(editorNotifierProvider);
@@ -739,11 +739,7 @@ void main() {
       activeLayerId: null,
     );
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Couche de destination'), findsWidgets);
+    expect(find.text('Couche utilisée : à choisir'), findsOneWidget);
     expect(find.text('Objets gameplay'), findsOneWidget);
     expect(find.text('Objets décor'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
@@ -756,15 +752,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Couche de destination : Objets décor'), findsOneWidget);
+    expect(find.text('Couche utilisée : Objets décor'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester, x: 3, y: 1);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-3-1')));
     await tester.pumpAndSettle();
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final state = container.read(editorNotifierProvider);
@@ -774,6 +771,245 @@ void main() {
       created.position,
       const EventPosition(layerId: 'decoration_objects', x: 3, y: 1),
     );
+  });
+
+  group('NS-EVENT-37 first-event creation UX', () {
+    testWidgets(
+        'empty state points to the creation panel without competing CTA',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+      );
+
+      expect(find.byKey(const ValueKey('event-builder-creation-panel')),
+          findsOneWidget);
+      expect(find.text('Aucun événement sur cette map'), findsOneWidget);
+      expect(
+        find.text(
+          'Utilisez le panneau de gauche pour choisir une position et créer '
+          'votre premier événement.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+          findsNothing);
+      expect(find.text('Nouvel événement'), findsNothing);
+      expect(find.text('Créer un événement'), findsOneWidget);
+      expect(find.text('1. Destination'), findsOneWidget);
+      expect(find.text('Couche utilisée : Objets'), findsOneWidget);
+      expect(find.text('2. Position'), findsOneWidget);
+      expect(find.text('Aucune position choisie'), findsOneWidget);
+      expect(find.text('3. Création'), findsOneWidget);
+
+      final createButton = find.byKey(
+        const ValueKey('event-builder-create-event-button'),
+      );
+      expect(createButton, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(createButton).onPressed, isNull);
+    });
+
+    testWidgets('guided creation flow creates and selects a draft',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+      );
+
+      expect(find.text('1. Destination'), findsOneWidget);
+      expect(find.text('2. Position'), findsOneWidget);
+      expect(find.text('3. Création'), findsOneWidget);
+      expect(find.text('Couche utilisée : Objets'), findsOneWidget);
+      expect(find.text('Aucune position choisie'), findsOneWidget);
+
+      var createButton = find.byKey(
+        const ValueKey('event-builder-create-event-button'),
+      );
+      expect(tester.widget<PokeMapButton>(createButton).onPressed, isNull);
+
+      await _scrollDraftPositionIntoView(tester);
+      await tester
+          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+      createButton = find.byKey(
+        const ValueKey('event-builder-create-event-button'),
+      );
+      expect(tester.widget<PokeMapButton>(createButton).onPressed, isNotNull);
+
+      await tester.tap(createButton);
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final created = state.activeMap!.events.single;
+      expect(state.selectedMapEventId, created.id);
+      expect(created.title, 'Nouvel événement');
+      expect(
+        created.position,
+        const EventPosition(layerId: 'objects', x: 2, y: 1),
+      );
+      expect(created.pages, hasLength(1));
+      expect(created.pages.single.sceneTarget, isNull);
+      expect(created.pages.single.script, isNull);
+      expect(created.pages.single.message, isNull);
+      expect(created.pages.single.condition, isNull);
+      expect(find.byKey(const ValueKey('event-builder-event-list')),
+          findsOneWidget);
+      expect(
+        find.byKey(ValueKey('event-builder-event-card-${created.id}')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-central-flow')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
+          findsOneWidget);
+    });
+
+    testWidgets('missing event layer exposes one clear preparation action',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithoutObjectLayer(),
+        activeLayerId: null,
+      );
+
+      expect(find.text('Aucune couche d’événements sur cette map.'),
+          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-create-destination-layer')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+          findsNothing);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('event-builder-create-event-button')),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-destination-layer')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Couche utilisée : Événements'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsOneWidget);
+
+      await _scrollDraftPositionIntoView(tester);
+      await tester
+          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final objectLayer =
+          state.activeMap!.layers.whereType<ObjectLayer>().single;
+      final created = state.activeMap!.events.single;
+      expect(objectLayer.name, 'Événements');
+      expect(
+        created.position,
+        EventPosition(layerId: objectLayer.id, x: 2, y: 1),
+      );
+      expect(state.selectedMapEventId, created.id);
+    });
+
+    testWidgets('multiple event layers use an explicit destination choice',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithMultipleObjectLayers(),
+        activeLayerId: null,
+      );
+
+      expect(find.text('Choisissez où placer cet événement.'), findsOneWidget);
+      expect(find.text('Objets gameplay'), findsOneWidget);
+      expect(find.text('Objets décor'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('event-builder-layer-option-decoration_objects'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Couche utilisée : Objets décor'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsOneWidget);
+
+      await _scrollDraftPositionIntoView(tester, x: 3, y: 1);
+      await tester
+          .tap(find.byKey(const ValueKey('event-builder-position-3-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final created = state.activeMap!.events.single;
+      expect(state.selectedMapEventId, created.id);
+      expect(
+        created.position,
+        const EventPosition(layerId: 'decoration_objects', x: 3, y: 1),
+      );
+    });
+
+    testWidgets('captures first event creation UX visual gate', (tester) async {
+      if (!const bool.fromEnvironment('NS_EVENT_37_CAPTURE_WORKSPACE')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithoutObjectLayer(),
+        activeLayerId: null,
+        fontFamily: _screenshotFontFamily,
+        surfaceSize: const Size(1440, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-destination-layer')),
+      );
+      await tester.pumpAndSettle();
+      await _scrollDraftPositionIntoView(tester);
+      await tester
+          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aucun événement sur cette map'), findsOneWidget);
+      expect(find.text('Couche utilisée : Événements'), findsOneWidget);
+      expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+      expect(find.text('Créer l’événement'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+          findsNothing);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_37_first_event_creation_ux_simplification_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    });
   });
 
   testWidgets('captures NS-EVENT-36 manual creation availability visual gate',
@@ -791,9 +1027,6 @@ void main() {
       surfaceSize: const Size(1440, 1100),
     );
 
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
-    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-destination-layer')),
     );
@@ -803,10 +1036,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Couche requise'), findsNothing);
-    expect(find.text('Couche de destination : Événements'), findsOneWidget);
-    expect(find.text('Couche objet détectée automatiquement'), findsOneWidget);
-    expect(find.text('Position sélectionnée : x 2, y 1'), findsOneWidget);
-    expect(find.text('Position prête'), findsOneWidget);
+    expect(find.text('Couche utilisée : Événements'), findsOneWidget);
+    expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
+    expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+    expect(find.text('Destination et position choisies.'), findsOneWidget);
 
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
@@ -926,8 +1159,9 @@ void main() {
     await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final createdBefore =
@@ -1581,7 +1815,7 @@ void main() {
     expect(find.text('Créer un événement'), findsOneWidget);
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsNothing);
-    expect(find.text('Position sélectionnée : aucune'), findsNothing);
+    expect(find.text('Aucune position choisie'), findsNothing);
 
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
@@ -1589,7 +1823,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('event-builder-position-grid')),
         findsOneWidget);
-    expect(find.text('Position sélectionnée : aucune'), findsOneWidget);
+    expect(find.text('Aucune position choisie'), findsOneWidget);
   });
 
   testWidgets('NS-EVENT-19 shows central flow blocks in canonical order',
@@ -3325,8 +3559,9 @@ void main() {
     await _scrollDraftPositionIntoView(tester);
     await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
     await tester.pumpAndSettle();
-    await tester
-        .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final createdId =
@@ -3867,10 +4102,14 @@ void main() {
       tester,
       fontFamily: _screenshotFontFamily,
     );
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
 
     final screenshotFile = File(
@@ -3932,10 +4171,14 @@ void main() {
       tester,
       fontFamily: _screenshotFontFamily,
     );
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('event-builder-create-event-button')),
+    );
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-choose-scene-button')),

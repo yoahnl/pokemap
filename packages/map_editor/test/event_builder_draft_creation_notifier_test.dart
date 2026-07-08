@@ -50,7 +50,7 @@ void main() {
         'evt_nouvel_evenement',
       ]);
       expect(state.selectedMapEventId, 'evt_nouvel_evenement');
-      expect(state.statusMessage, 'Brouillon d’événement créé');
+      expect(state.statusMessage, 'Événement créé');
 
       final draft = events.last;
       expect(draft.title, 'Nouvel événement');

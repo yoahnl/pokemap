@@ -54,7 +54,8 @@ class EventBuilderCreationPanel extends StatelessWidget {
                     if (isExpanded) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Choisissez une position, puis créez un brouillon.',
+                        'Choisissez la destination, la position, puis créez '
+                        'l’événement.',
                         style: TextStyle(
                           color: colors.textMuted,
                           fontSize: 11,
@@ -66,19 +67,21 @@ class EventBuilderCreationPanel extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              PokeMapButton(
-                key: const ValueKey('event-builder-creation-panel-toggle'),
-                onPressed: controls.isEmpty ? null : onToggle,
-                variant: PokeMapButtonVariant.secondary,
-                size: PokeMapButtonSize.small,
-                leading: Icon(
-                  isExpanded
-                      ? CupertinoIcons.chevron_up
-                      : CupertinoIcons.chevron_down,
+              if (onToggle != null) ...[
+                const SizedBox(width: 8),
+                PokeMapButton(
+                  key: const ValueKey('event-builder-creation-panel-toggle'),
+                  onPressed: controls.isEmpty ? null : onToggle,
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.small,
+                  leading: Icon(
+                    isExpanded
+                        ? CupertinoIcons.chevron_up
+                        : CupertinoIcons.chevron_down,
+                  ),
+                  child: Text(isExpanded ? 'Replier' : 'Préparer'),
                 ),
-                child: Text(isExpanded ? 'Replier' : 'Préparer'),
-              ),
+              ],
             ],
           ),
           if (isExpanded && controls.isNotEmpty) ...[
