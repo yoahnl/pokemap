@@ -12,6 +12,7 @@ import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -350,7 +351,7 @@ void main() {
     expect(state.activeMap?.id, 'map_port');
     expect(state.workspaceMode, EditorWorkspaceMode.events);
     expect(find.text('Couche utilisée : Objets'), findsOneWidget);
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
   });
 
@@ -423,8 +424,6 @@ void main() {
     expect(find.text('Aucune position choisie'), findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
 
     expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
     expect(find.text('Destination et position choisies.'), findsOneWidget);
@@ -501,20 +500,19 @@ void main() {
         onCreateDraftAt: (_) => 'evt_nouvel_evenement',
       ),
     );
-
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
-    await tester.pumpAndSettle();
+    await _scrollDraftPositionIntoView(tester, x: 3, y: 2);
     expect(find.text('Position choisie : x 3, y 2'), findsOneWidget);
 
     await tester
         .tap(find.byKey(const ValueKey('event-builder-clear-position')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
     expect(find.text('Aucune position choisie'), findsOneWidget);
     expect(
-      find.text('Cliquez sur une case de la carte pour activer la création.'),
+      find.text(
+          'Choisissez une position sur la carte pour activer la création.'),
       findsOneWidget,
     );
   });
@@ -530,17 +528,16 @@ void main() {
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
     expect(find.text('Aucune position choisie'), findsOneWidget);
     expect(
-      find.text('Cliquez sur une case de la carte pour activer la création.'),
+      find.text(
+          'Choisissez une position sur la carte pour activer la création.'),
       findsOneWidget,
     );
 
     await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
 
     expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
     expect(find.text('Destination et position choisies.'), findsOneWidget);
@@ -587,8 +584,10 @@ void main() {
         findsNothing);
     expect(find.text('Aucune position choisie'), findsNothing);
     expect(find.text('Préparer un événement'), findsOneWidget);
-    expect(find.text('Ajouter une condition'), findsNothing);
-    expect(find.text('Ajouter une action'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('event-builder-element-library-collapsed')),
+      findsOneWidget,
+    );
     expect(find.text('Sauvegarder'), findsNothing);
 
     await tester
@@ -616,12 +615,10 @@ void main() {
     expect(find.text('Couche requise'), findsNothing);
     expect(find.text('Couche utilisée : Objets'), findsOneWidget);
     expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
 
     expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
 
@@ -664,9 +661,7 @@ void main() {
     expect(find.text('Couche utilisée : Objets'), findsOneWidget);
     expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
 
-    await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-1-1')));
-    await tester.pumpAndSettle();
+    await _scrollDraftPositionIntoView(tester, x: 1, y: 1);
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
     );
@@ -704,12 +699,10 @@ void main() {
 
     expect(find.text('Couche utilisée : Événements'), findsOneWidget);
     expect(find.text('Destination choisie automatiquement.'), findsOneWidget);
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester, x: 2, y: 1);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
     expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
 
     await tester.tap(
@@ -753,12 +746,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Couche utilisée : Objets décor'), findsOneWidget);
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
 
     await _scrollDraftPositionIntoView(tester, x: 3, y: 1);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-3-1')));
-    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
     );
@@ -788,8 +779,8 @@ void main() {
       expect(find.text('Aucun événement sur cette map'), findsOneWidget);
       expect(
         find.text(
-          'Utilisez le panneau de gauche pour choisir une position et créer '
-          'votre premier événement.',
+          'Cliquez sur “Choisir sur la carte”, puis cliquez sur la carte '
+          'pour placer votre premier événement.',
         ),
         findsOneWidget,
       );
@@ -830,9 +821,6 @@ void main() {
       expect(tester.widget<PokeMapButton>(createButton).onPressed, isNull);
 
       await _scrollDraftPositionIntoView(tester);
-      await tester
-          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-      await tester.pumpAndSettle();
 
       expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
       createButton = find.byKey(
@@ -864,7 +852,8 @@ void main() {
       );
       expect(find.byKey(const ValueKey('event-builder-central-flow')),
           findsOneWidget);
-      expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
+      expect(
+          find.byKey(const ValueKey('event-builder-inspector-summary-panel')),
           findsOneWidget);
     });
 
@@ -901,13 +890,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Couche utilisée : Événements'), findsOneWidget);
-      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+      expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
           findsOneWidget);
 
       await _scrollDraftPositionIntoView(tester);
-      await tester
-          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('event-builder-create-event-button')),
       );
@@ -947,13 +933,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Couche utilisée : Objets décor'), findsOneWidget);
-      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+      expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
           findsOneWidget);
 
       await _scrollDraftPositionIntoView(tester, x: 3, y: 1);
-      await tester
-          .tap(find.byKey(const ValueKey('event-builder-position-3-1')));
-      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey('event-builder-create-event-button')),
       );
@@ -987,9 +970,6 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _scrollDraftPositionIntoView(tester);
-      await tester
-          .tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-      await tester.pumpAndSettle();
 
       expect(find.text('Aucun événement sur cette map'), findsOneWidget);
       expect(find.text('Couche utilisée : Événements'), findsOneWidget);
@@ -1009,6 +989,321 @@ void main() {
       );
 
       expect(screenshotFile.existsSync(), isTrue);
+    });
+  });
+
+  group('NS-EVENT-38 map placement and guided setup UX', () {
+    testWidgets('empty state explains map placement without competing CTA',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+      );
+
+      expect(find.byKey(const ValueKey('event-builder-creation-panel')),
+          findsOneWidget);
+      expect(find.text('Aucun événement sur cette map'), findsOneWidget);
+      expect(
+        find.text(
+          'Cliquez sur “Choisir sur la carte”, puis cliquez sur la carte '
+          'pour placer votre premier événement.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-new-event-button')),
+          findsNothing);
+      expect(find.text('Préparer un événement'), findsNothing);
+      expect(find.text('Choisir sur la carte'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+
+      final createButton = find.byKey(
+        const ValueKey('event-builder-create-event-button'),
+      );
+      expect(createButton, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(createButton).onPressed, isNull);
+    });
+
+    testWidgets('lets user choose event position from the real map canvas',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        surfaceSize: const Size(1440, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mode placement actif'), findsOneWidget);
+      expect(find.byType(MapCanvas), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+
+      expect(find.text('Position choisie : x 2, y 1'), findsOneWidget);
+      expect(find.text('Destination et position choisies.'), findsOneWidget);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const ValueKey('event-builder-create-event-button')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final created = state.activeMap!.events.single;
+      expect(state.selectedMapEventId, created.id);
+      expect(
+        created.position,
+        const EventPosition(layerId: 'objects', x: 2, y: 1),
+      );
+      expect(
+        find.byKey(ValueKey('event-builder-event-card-${created.id}')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'newly created event opens guided setup instead of cockpit layout',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        surfaceSize: const Size(1440, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final createdId =
+          container.read(editorNotifierProvider).selectedMapEventId!;
+      expect(createdId, isNotEmpty);
+
+      final guidedSetup = find.byKey(
+        const ValueKey('event-builder-guided-setup-panel'),
+      );
+      expect(guidedSetup, findsOneWidget);
+      expect(find.text('Configurer l’événement'), findsOneWidget);
+      expect(
+        find.descendant(of: guidedSetup, matching: find.text('À faire')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: guidedSetup,
+          matching: find.text('Renommer l’événement'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: guidedSetup,
+          matching: find.text('Choisir le déclencheur'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: guidedSetup,
+          matching: find.text('Choisir une scène'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: guidedSetup,
+          matching: find.text('Vérifier le comportement'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-element-library')),
+          findsNothing);
+      expect(
+        find.byKey(const ValueKey('event-builder-element-library-collapsed')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('event-builder-inspector-summary-panel')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+    });
+
+    testWidgets('keeps forbidden authoring absent after guided creation',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        surfaceSize: const Size(1440, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      _expectNoForbiddenEventOwnedAuthoringControls();
+      expect(find.text('Sauvegarder'), findsNothing);
+      expect(find.text('Ajouter un résultat'), findsNothing);
+      expect(find.text('Ajouter une réaction'), findsNothing);
+      expect(find.text('Créer une règle monde'), findsNothing);
+      expect(find.textContaining('Drag'), findsNothing);
+      expect(find.textContaining('Déposez'), findsNothing);
+      expect(find.textContaining('SceneConsequence'), findsNothing);
+      expect(find.textContaining('MapEventDefinition'), findsNothing);
+      expect(find.textContaining('ObjectLayer'), findsNothing);
+      expect(find.textContaining('metadata'), findsNothing);
+      expect(find.textContaining('runtime'), findsNothing);
+    });
+
+    testWidgets('missing event layer stays guided before map placement',
+        (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithoutObjectLayer(),
+        activeLayerId: null,
+      );
+
+      expect(find.text('Aucune couche d’événements sur cette map.'),
+          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-create-destination-layer')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('event-builder-choose-on-map-button'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-destination-layer')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final objectLayer =
+          state.activeMap!.layers.whereType<ObjectLayer>().single;
+      final created = state.activeMap!.events.single;
+      expect(objectLayer.name, 'Événements');
+      expect(
+        created.position,
+        EventPosition(layerId: objectLayer.id, x: 2, y: 1),
+      );
+      expect(state.selectedMapEventId, created.id);
+    });
+
+    testWidgets('captures map placement and guided setup visual gate',
+        (tester) async {
+      if (!const bool.fromEnvironment('NS_EVENT_38_CAPTURE_WORKSPACE')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        fontFamily: _screenshotFontFamily,
+        surfaceSize: const Size(1440, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Mode placement actif'), findsOneWidget);
+      expect(find.byType(MapCanvas), findsOneWidget);
+      final placementScreenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_38_creation_placement_v0.png',
+      );
+      placementScreenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(placementScreenshotFile.absolute.path),
+      );
+      expect(placementScreenshotFile.existsSync(), isTrue);
+
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configurer l’événement'), findsOneWidget);
+      expect(find.text('À faire'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-element-library-collapsed')),
+        findsOneWidget,
+      );
+
+      final postCreationScreenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_38_post_creation_guided_setup_v0.png',
+      );
+      postCreationScreenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(postCreationScreenshotFile.absolute.path),
+      );
+      expect(postCreationScreenshotFile.existsSync(), isTrue);
+
+      final combinedScreenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_38_map_placement_post_creation_guided_setup_v0.png',
+      );
+      combinedScreenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(combinedScreenshotFile.absolute.path),
+      );
+
+      expect(combinedScreenshotFile.existsSync(), isTrue);
     });
   });
 
@@ -1032,8 +1327,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
 
     expect(find.text('Couche requise'), findsNothing);
     expect(find.text('Couche utilisée : Événements'), findsOneWidget);
@@ -1157,8 +1450,6 @@ void main() {
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
     await tester.pumpAndSettle();
     await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
     );
@@ -1172,7 +1463,7 @@ void main() {
     expect(find.text('Brouillon'), findsWidgets);
     expect(find.byKey(const ValueKey('event-builder-choose-scene-button')),
         findsOneWidget);
-    expect(find.text('Choisir une scène'), findsOneWidget);
+    expect(find.text('Choisir une scène'), findsWidgets);
 
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('event-builder-choose-scene-button')),
@@ -1213,8 +1504,10 @@ void main() {
     expect(find.text('Actif'), findsWidgets);
     expect(find.text(createdAfter.id), findsWidgets);
     expect(find.text('Scène mise à jour.'), findsOneWidget);
-    expect(find.text('Ajouter une condition'), findsNothing);
-    expect(find.text('Ajouter une action'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('event-builder-element-library-collapsed')),
+      findsOneWidget,
+    );
     expect(find.text('Créer une scène'), findsNothing);
     expect(find.text('Éditer la scène'), findsNothing);
     expect(find.text('Sauvegarder'), findsNothing);
@@ -1821,7 +2114,7 @@ void main() {
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('event-builder-position-grid')),
+    expect(find.byKey(const ValueKey('event-builder-choose-on-map-button')),
         findsOneWidget);
     expect(find.text('Aucune position choisie'), findsOneWidget);
   });
@@ -3556,9 +3849,7 @@ void main() {
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
     await tester.pumpAndSettle();
-    await _scrollDraftPositionIntoView(tester);
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-3-2')));
-    await tester.pumpAndSettle();
+    await _scrollDraftPositionIntoView(tester, x: 3, y: 2);
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
     );
@@ -4075,8 +4366,6 @@ void main() {
         onCreateDraftAt: (_) => 'evt_nouvel_evenement',
       ),
     );
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
-    await tester.pumpAndSettle();
 
     final screenshotFile = File(
       '../../reports/narrativeStudio/events/screenshots/'
@@ -4104,8 +4393,6 @@ void main() {
     );
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
@@ -4173,8 +4460,6 @@ void main() {
     );
     await tester
         .tap(find.byKey(const ValueKey('event-builder-new-event-button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('event-builder-position-2-1')));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('event-builder-create-event-button')),
@@ -4822,6 +5107,22 @@ Future<void> _loadScreenshotFont() async {
   await loader.load();
 }
 
+Future<void> _tapEventBuilderMapPlacementCanvas(
+  WidgetTester tester, {
+  required int x,
+  required int y,
+}) async {
+  final canvasFinder =
+      find.byKey(const ValueKey('event-builder-map-placement-canvas'));
+  await tester.ensureVisible(canvasFinder);
+  await tester.pumpAndSettle();
+  final canvasRect = tester.getRect(canvasFinder);
+  await tester.tapAt(
+    canvasRect.topLeft + Offset(x * 32.0 + 16.0, y * 32.0 + 16.0),
+  );
+  await tester.pumpAndSettle();
+}
+
 Finder _eventBuilderCentralScrollable() {
   return find.descendant(
     of: find.byKey(const ValueKey('event-builder-central-flow')),
@@ -4862,9 +5163,61 @@ Future<void> _scrollDraftPositionIntoView(
   int y = 1,
 }) async {
   await tester.ensureVisible(
-    find.byKey(ValueKey('event-builder-position-$x-$y')),
+    find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+  );
+  await tester.tap(
+    find.byKey(const ValueKey('event-builder-choose-on-map-button')),
   );
   await tester.pumpAndSettle();
+  await _tapEventBuilderMapPlacementCanvas(tester, x: x, y: y);
+  await tester.pumpAndSettle();
+}
+
+class _TestEditorNotifier extends EditorNotifier {
+  _TestEditorNotifier(this._initialState);
+
+  final EditorState _initialState;
+
+  @override
+  EditorState build() => _initialState;
+}
+
+EditorState _workspaceEditorState(
+  EventBuilderReadModel readModel,
+  EventBuilderDraftCreationGate gate,
+) {
+  final activeMap = _workspaceMap(readModel, gate);
+  return EditorState(
+    activeMap: activeMap,
+    activeLayerId: gate.layerId ?? activeMap.layers.first.id,
+    workspaceMode: EditorWorkspaceMode.events,
+  );
+}
+
+MapData _workspaceMap(
+  EventBuilderReadModel readModel,
+  EventBuilderDraftCreationGate gate,
+) {
+  final width = gate.mapWidth ?? 4;
+  final height = gate.mapHeight ?? 3;
+  final layerId = gate.layerId ?? 'objects';
+  final layerLabel = gate.layerLabel ?? 'Objets';
+  final layers = <MapLayer>[
+    MapLayer.tile(
+      id: 'ground',
+      name: 'Sol',
+      tiles: List<int>.filled(width * height, 0),
+    ),
+    if (gate.layerValid || gate.layerId == null)
+      MapLayer.object(id: layerId, name: layerLabel),
+  ];
+  return MapData(
+    id: gate.mapId ?? readModel.mapId ?? 'map_port',
+    name: readModel.mapTitle ?? 'Port Selbrume',
+    size: GridSize(width: width, height: height),
+    layers: layers,
+    events: const [],
+  );
 }
 
 EventBuilderReadModel _sampleReadModel() {
@@ -5097,31 +5450,40 @@ Future<void> _pumpWorkspace(
               theme.primaryTextTheme.apply(fontFamily: fontFamily),
         );
   await tester.pumpWidget(
-    MaterialApp(
-      theme: themedWithFont,
-      home: CupertinoPageScaffold(
-        child: SizedBox.expand(
-          child: DefaultTextStyle.merge(
-            style: TextStyle(
-              fontFamily: fontFamily,
-              decoration: TextDecoration.none,
-            ),
-            child: EventBuilderWorkspace(
-              readModel: readModel,
-              selectedEventId: selectedEventId,
-              draftCreationGate: draftCreationGate,
-              sceneOptions: sceneOptions,
-              factOptions: factOptions,
-              eventConditionOptions: eventConditionOptions,
-              mapOptions: mapOptions,
-              onOpenMap: onOpenMap,
-              onSelectEvent: onSelectEvent,
-              onUpdateTriggerType: onUpdateTriggerType,
-              onUpdateSceneAction: onUpdateSceneAction,
-              onUpdateReusePolicy: onUpdateReusePolicy,
-              onAddFactCondition: onAddFactCondition,
-              onAddEventConsumedCondition: onAddEventConsumedCondition,
-              onRemoveCondition: onRemoveCondition,
+    ProviderScope(
+      overrides: [
+        editorNotifierProvider.overrideWith(
+          () => _TestEditorNotifier(
+            _workspaceEditorState(readModel, draftCreationGate),
+          ),
+        ),
+      ],
+      child: MaterialApp(
+        theme: themedWithFont,
+        home: CupertinoPageScaffold(
+          child: SizedBox.expand(
+            child: DefaultTextStyle.merge(
+              style: TextStyle(
+                fontFamily: fontFamily,
+                decoration: TextDecoration.none,
+              ),
+              child: EventBuilderWorkspace(
+                readModel: readModel,
+                selectedEventId: selectedEventId,
+                draftCreationGate: draftCreationGate,
+                sceneOptions: sceneOptions,
+                factOptions: factOptions,
+                eventConditionOptions: eventConditionOptions,
+                mapOptions: mapOptions,
+                onOpenMap: onOpenMap,
+                onSelectEvent: onSelectEvent,
+                onUpdateTriggerType: onUpdateTriggerType,
+                onUpdateSceneAction: onUpdateSceneAction,
+                onUpdateReusePolicy: onUpdateReusePolicy,
+                onAddFactCondition: onAddFactCondition,
+                onAddEventConsumedCondition: onAddEventConsumedCondition,
+                onRemoveCondition: onRemoveCondition,
+              ),
             ),
           ),
         ),

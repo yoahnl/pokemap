@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart' show kSecondaryButton, kTertiaryButton;
-import 'package:flutter/material.dart' show Colors;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -53,7 +52,14 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
 }
 
 class MapCanvas extends ConsumerStatefulWidget {
-  const MapCanvas({super.key});
+  const MapCanvas({
+    super.key,
+    this.onEventBuilderPositionChosen,
+  });
+
+  /// Scoped Event Builder bridge: when supplied, a primary map tap selects a
+  /// position for the Event Builder instead of applying the global map tool.
+  final ValueChanged<GridPos>? onEventBuilderPositionChosen;
 
   @override
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
@@ -353,6 +359,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos == null) return;
+
+              final eventBuilderPositionChosen =
+                  widget.onEventBuilderPositionChosen;
+              if (eventBuilderPositionChosen != null) {
+                eventBuilderPositionChosen(gridPos);
+                return;
+              }
 
               // Mode secondaire explicite: placement visuel de waypoint NPC.
               // Tant qu'il est actif, le clic map est routé vers l'ajout d'un
