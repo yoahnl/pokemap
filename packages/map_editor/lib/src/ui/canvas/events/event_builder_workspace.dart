@@ -399,97 +399,120 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                       ),
                     ],
                   )
-                : Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(
-                        width: 280,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              flex: _isCreationPanelExpanded ? 1 : 3,
-                              child: _EventListPanel(
-                                events: widget.readModel.events,
-                                selectedEventId: selected?.eventId,
-                                onSelect: (eventId) {
-                                  widget.onSelectEvent?.call(eventId);
-                                  setState(() {
-                                    _selectedEventId = eventId;
-                                    _draftCreationFeedback = null;
-                                    _isMapPlacementActive = false;
-                                  });
-                                },
+                : KeyedSubtree(
+                    key: const ValueKey('event-builder-reference-body'),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          key: const ValueKey(
+                            'event-builder-reference-list-column',
+                          ),
+                          width: 280,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                flex: _isCreationPanelExpanded ? 1 : 3,
+                                child: _EventListPanel(
+                                  events: widget.readModel.events,
+                                  selectedEventId: selected?.eventId,
+                                  onSelect: (eventId) {
+                                    widget.onSelectEvent?.call(eventId);
+                                    setState(() {
+                                      _selectedEventId = eventId;
+                                      _draftCreationFeedback = null;
+                                      _isMapPlacementActive = false;
+                                    });
+                                  },
+                                ),
                               ),
-                            ),
-                            if (creationControls.isNotEmpty) ...[
-                              const SizedBox(height: 12),
-                              if (_isCreationPanelExpanded)
-                                Expanded(
-                                  flex: 2,
-                                  child: EventBuilderCreationPanel(
+                              if (creationControls.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                if (_isCreationPanelExpanded)
+                                  Expanded(
+                                    flex: 2,
+                                    child: EventBuilderCreationPanel(
+                                      key: const ValueKey(
+                                        'event-builder-creation-panel',
+                                      ),
+                                      isExpanded: true,
+                                      controls: creationControls,
+                                      compactMessage: _draftCreationFeedback,
+                                      onToggle: () {
+                                        setState(() {
+                                          _isCreationPanelExpanded = false;
+                                        });
+                                      },
+                                    ),
+                                  )
+                                else
+                                  EventBuilderCreationPanel(
                                     key: const ValueKey(
                                       'event-builder-creation-panel',
                                     ),
-                                    isExpanded: true,
+                                    isExpanded: false,
                                     controls: creationControls,
                                     compactMessage: _draftCreationFeedback,
                                     onToggle: () {
                                       setState(() {
-                                        _isCreationPanelExpanded = false;
+                                        _isCreationPanelExpanded = true;
                                       });
                                     },
                                   ),
-                                )
-                              else
-                                EventBuilderCreationPanel(
-                                  key: const ValueKey(
-                                    'event-builder-creation-panel',
-                                  ),
-                                  isExpanded: false,
-                                  controls: creationControls,
-                                  compactMessage: _draftCreationFeedback,
-                                  onToggle: () {
-                                    setState(() {
-                                      _isCreationPanelExpanded = true;
-                                    });
-                                  },
-                                ),
+                              ],
                             ],
-                          ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: showGuidedPostCreation ? 220 : 260,
-                        child: showGuidedPostCreation
-                            ? _CollapsedElementLibraryPanel(
-                                onActivate: _activateLibraryAction,
-                              )
-                            : EventBuilderElementLibrary(
-                                onActivate: _activateLibraryAction,
-                              ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _EventDetailsPanel(
-                          key: _eventDetailsKey,
-                          event: selected,
-                          sceneOptions: widget.sceneOptions,
-                          factOptions: widget.factOptions,
-                          eventConditionOptions: widget.eventConditionOptions,
-                          onRenameTitle: widget.onRenameEventTitle,
-                          onUpdateTriggerType: widget.onUpdateTriggerType,
-                          onUpdateSceneAction: widget.onUpdateSceneAction,
-                          onUpdateReusePolicy: widget.onUpdateReusePolicy,
-                          onAddFactCondition: widget.onAddFactCondition,
-                          onAddEventConsumedCondition:
-                              widget.onAddEventConsumedCondition,
-                          onRemoveCondition: widget.onRemoveCondition,
-                          showGuidedSetup: showGuidedPostCreation,
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          key: const ValueKey(
+                            'event-builder-reference-library-column',
+                          ),
+                          width: showGuidedPostCreation ? 220 : 260,
+                          child: showGuidedPostCreation
+                              ? _CollapsedElementLibraryPanel(
+                                  onActivate: _activateLibraryAction,
+                                )
+                              : EventBuilderElementLibrary(
+                                  onActivate: _activateLibraryAction,
+                                ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          key: const ValueKey(
+                            'event-builder-reference-flow-column',
+                          ),
+                          child: _EventDetailsPanel(
+                            key: _eventDetailsKey,
+                            event: selected,
+                            sceneOptions: widget.sceneOptions,
+                            factOptions: widget.factOptions,
+                            eventConditionOptions: widget.eventConditionOptions,
+                            onRenameTitle: widget.onRenameEventTitle,
+                            onUpdateTriggerType: widget.onUpdateTriggerType,
+                            onUpdateSceneAction: widget.onUpdateSceneAction,
+                            onUpdateReusePolicy: widget.onUpdateReusePolicy,
+                            onAddFactCondition: widget.onAddFactCondition,
+                            onAddEventConsumedCondition:
+                                widget.onAddEventConsumedCondition,
+                            onRemoveCondition: widget.onRemoveCondition,
+                            showGuidedSetup: showGuidedPostCreation,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          key: const ValueKey(
+                            'event-builder-reference-inspector-column',
+                          ),
+                          width: showGuidedPostCreation ? 300 : 320,
+                          child: _inspectorPanelFor(
+                            selected,
+                            showGuidedPostCreation,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
           ),
         ],
@@ -499,6 +522,31 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
 
   void _activateLibraryAction(EventBuilderLibraryAction action) {
     _eventDetailsKey.currentState?.activateLibraryAction(action);
+  }
+
+  Widget _inspectorPanelFor(
+    EventBuilderEventSummary? selected,
+    bool showGuidedPostCreation,
+  ) {
+    if (selected == null) {
+      return const PokeMapPanel(
+        expandChild: true,
+        child: PokeMapEmptyState(
+          icon: Icon(CupertinoIcons.sidebar_right),
+          title: 'Sélectionnez un événement',
+        ),
+      );
+    }
+    final inspector = EventBuilderInspectorPanel(event: selected);
+    if (!showGuidedPostCreation) {
+      return inspector;
+    }
+    // NS-EVENT-38 asserted that a freshly created event exposes a secondary
+    // summary. NS-EVENT-39 keeps that contract while using the richer inspector.
+    return KeyedSubtree(
+      key: const ValueKey('event-builder-inspector-summary-panel'),
+      child: inspector,
+    );
   }
 
   VoidCallback? get _openCreationPanelAction {
@@ -1279,7 +1327,7 @@ class _DraftCreationFeedbackNotice extends StatelessWidget {
   }
 }
 
-class _EventListPanel extends StatelessWidget {
+class _EventListPanel extends StatefulWidget {
   const _EventListPanel({
     required this.events,
     required this.selectedEventId,
@@ -1291,8 +1339,34 @@ class _EventListPanel extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   @override
+  State<_EventListPanel> createState() => _EventListPanelState();
+}
+
+class _EventListPanelState extends State<_EventListPanel> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final query = _searchController.text.trim().toLowerCase();
+    final filteredEvents = widget.events.where((event) {
+      if (query.isEmpty) {
+        return true;
+      }
+      return event.displayName.toLowerCase().contains(query) ||
+          event.technicalId.toLowerCase().contains(query) ||
+          event.statusLabel.toLowerCase().contains(query);
+    }).toList(growable: false);
+    final groupedEvents = <String, List<EventBuilderEventSummary>>{};
+    for (final event in filteredEvents) {
+      groupedEvents.putIfAbsent(event.groupKey, () => []).add(event);
+    }
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(12),
@@ -1316,23 +1390,121 @@ class _EventListPanel extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
+          const SizedBox(height: 10),
+          CupertinoTextField(
+            key: const ValueKey('event-builder-event-search-field'),
+            controller: _searchController,
+            onChanged: (_) => setState(() {}),
+            prefix: Padding(
+              padding: const EdgeInsets.only(left: 10),
+              child: Icon(
+                CupertinoIcons.search,
+                size: 15,
+                color: colors.textMuted,
+              ),
+            ),
+            placeholder: 'Rechercher un événement...',
+            placeholderStyle: TextStyle(
+              color: colors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            decoration: BoxDecoration(
+              color: colors.controlSurface,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.borderSubtle),
+            ),
+          ),
           const SizedBox(height: 12),
           Expanded(
-            child: ListView.separated(
+            child: ListView(
               key: const ValueKey('event-builder-event-list'),
-              itemCount: events.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final event = events[index];
-                return _EventListCard(
-                  event: event,
-                  selected: event.eventId == selectedEventId,
-                  onTap: () => onSelect(event.eventId),
-                );
-              },
+              children: [
+                if (filteredEvents.isEmpty)
+                  const _EventListEmptyResult()
+                else
+                  for (final group in groupedEvents.entries) ...[
+                    _EventListGroupHeader(
+                      label: group.key,
+                      count: group.value.length,
+                    ),
+                    const SizedBox(height: 8),
+                    for (final event in group.value) ...[
+                      _EventListCard(
+                        event: event,
+                        selected: event.eventId == widget.selectedEventId,
+                        onTap: () => widget.onSelect(event.eventId),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EventListGroupHeader extends StatelessWidget {
+  const _EventListGroupHeader({
+    required this.label,
+    required this.count,
+  });
+
+  final String label;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
+        PokeMapBadge(
+          label: '$count',
+          variant: PokeMapBadgeVariant.neutral,
+        ),
+      ],
+    );
+  }
+}
+
+class _EventListEmptyResult extends StatelessWidget {
+  const _EventListEmptyResult();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.all(12),
+      borderRadius: 8,
+      child: Text(
+        'Aucun événement ne correspond à cette recherche.',
+        style: TextStyle(
+          color: colors.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          height: 1.3,
+        ),
       ),
     );
   }
@@ -1698,115 +1870,6 @@ class _GuidedSetupStep extends StatelessWidget {
   }
 }
 
-class _EventInspectorSummaryPanel extends StatelessWidget {
-  const _EventInspectorSummaryPanel({
-    required this.event,
-  });
-
-  final EventBuilderEventSummary event;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return PokeMapPanel(
-      key: const ValueKey('event-builder-inspector-summary-panel'),
-      expandChild: true,
-      padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Inspecteur d’événement',
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Résumé secondaire pendant la configuration.',
-              style: TextStyle(
-                color: colors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                height: 1.3,
-              ),
-            ),
-            const SizedBox(height: 12),
-            PokeMapBadge(
-              label: event.statusLabel,
-              variant: _statusVariant(event.status),
-            ),
-            const SizedBox(height: 10),
-            _SummaryLine(label: 'Nom', value: event.displayName),
-            _SummaryLine(label: 'Déclencheur', value: event.trigger.label),
-            _SummaryLine(label: 'Action', value: event.sceneAction.label),
-            _SummaryLine(label: 'Comportement', value: event.behavior.label),
-            const SizedBox(height: 8),
-            Text(
-              'Détails techniques',
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 12,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 6),
-            _SummaryLine(label: 'ID technique', value: event.technicalId),
-            _SummaryLine(
-              label: 'Position',
-              value: 'x ${event.position.x}, y ${event.position.y}',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SummaryLine extends StatelessWidget {
-  const _SummaryLine({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              height: 1.25,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _EventDetailsPanel extends StatefulWidget {
   const _EventDetailsPanel({
     super.key,
@@ -1918,12 +1981,10 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       for (final section in selected.sections) section.key: section,
     };
     final centralFlow = EventBuilderCentralFlow(
-      title: widget.showGuidedSetup
-          ? 'Configuration guidée'
-          : 'Builder d’événement',
+      title: 'Éditeur d’événement',
       subtitle: widget.showGuidedSetup
-          ? 'Suivez les prochaines étapes sans ouvrir toute l’architecture.'
-          : 'Composez le Quand / Si / Alors sans ouvrir de script libre.',
+          ? 'Complétez le nom, le déclencheur, la scène et le comportement.'
+          : 'Suivez le flux Déclencheur, Conditions, Action, Projections.',
       eventHeader: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -1998,36 +2059,31 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               sections['actions']?.hasBlockingDiagnostic ?? false,
           children: [
             _buildSceneActionBlock(context, selected),
+            _FlowSubsection(
+              title: 'Comportement',
+              icon: CupertinoIcons.repeat,
+              tone: PokeMapTone.warning,
+              child: _buildBehaviorBlock(context, selected),
+            ),
           ],
         ),
         EventBuilderFlowBlock(
-          key: const ValueKey('event-builder-flow-block-behavior'),
+          key: const ValueKey('event-builder-flow-block-consequences'),
           phaseLabel: 'Puis',
-          title: 'Comportement',
-          icon: CupertinoIcons.repeat,
+          title: 'Conséquences projetées',
+          icon: CupertinoIcons.scope,
           tone: PokeMapTone.warning,
-          summary: sections['behavior']?.summary,
-          diagnosticCount: sections['behavior']?.diagnosticCount,
-          hasBlockingDiagnostic:
-              sections['behavior']?.hasBlockingDiagnostic ?? false,
-          children: [
-            _buildBehaviorBlock(context, selected),
-          ],
-        ),
-        EventBuilderFlowBlock(
-          key: const ValueKey('event-builder-flow-block-world'),
-          phaseLabel: 'Puis',
-          title: 'Changements du monde',
-          icon: CupertinoIcons.globe,
-          tone: PokeMapTone.fact,
           summary: selected.worldImpacts.isEmpty
               ? 'Aucune source projetée'
               : _sourceCountLabel(selected.worldImpacts.length),
-          diagnosticCount: sections['world']?.diagnosticCount,
+          diagnosticCount: (sections['behavior']?.diagnosticCount ?? 0) +
+              (sections['world']?.diagnosticCount ?? 0),
           hasBlockingDiagnostic:
-              sections['world']?.hasBlockingDiagnostic ?? false,
+              (sections['behavior']?.hasBlockingDiagnostic ?? false) ||
+                  (sections['world']?.hasBlockingDiagnostic ?? false),
           children: [
-            _WorldImpactsProjectionBlock(
+            _ProjectedConsequencesBlock(
+              sceneOutcomes: selected.sceneOutcomes,
               impacts: selected.worldImpacts,
               worldRules: selected.worldRules,
             ),
@@ -2074,19 +2130,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
         ),
       ],
     );
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(child: centralFlow),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 260,
-          child: widget.showGuidedSetup
-              ? _EventInspectorSummaryPanel(event: selected)
-              : EventBuilderInspectorPanel(event: selected),
-        ),
-      ],
-    );
+    return centralFlow;
   }
 
   Widget _buildTitleBlock(
@@ -2532,9 +2576,6 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SceneActionSlot(sceneAction: selected.sceneAction),
-        _SceneOutcomesProjectionSlot(
-          projection: selected.sceneOutcomes,
-        ),
         if (canUpdateScene) ...[
           const SizedBox(height: 2),
           Wrap(
@@ -3112,6 +3153,56 @@ class _InlineInfo extends StatelessWidget {
   }
 }
 
+class _FlowSubsection extends StatelessWidget {
+  const _FlowSubsection({
+    required this.title,
+    required this.icon,
+    required this.tone,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final PokeMapTone tone;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final toneColors = tone.resolve(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: PokeMapCard(
+        padding: const EdgeInsets.all(10),
+        borderRadius: 8,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 15, color: toneColors.icon),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DetailLine extends StatelessWidget {
   const _DetailLine({
     required this.label,
@@ -3497,7 +3588,7 @@ _LifecycleUiInfo _lifecycleUiInfo(EventBuilderLifecycleProjection lifecycle) {
     EventBuilderLifecycleProjectionStatus.oneShotIntentOnly =>
       const _LifecycleUiInfo(
         title: 'Une seule fois',
-        message: 'Intention non garantie au runtime.',
+        message: 'Intention à vérifier côté jeu.',
         tone: PokeMapTone.warning,
         severityLabel: 'À vérifier',
       ),
@@ -3610,6 +3701,37 @@ class _WorldImpactsProjectionBlock extends StatelessWidget {
         ],
         const SizedBox(height: 12),
         _WorldRulesProjectionBlock(projection: worldRules),
+      ],
+    );
+  }
+}
+
+class _ProjectedConsequencesBlock extends StatelessWidget {
+  const _ProjectedConsequencesBlock({
+    required this.sceneOutcomes,
+    required this.impacts,
+    required this.worldRules,
+  });
+
+  final EventBuilderSceneOutcomesProjection sceneOutcomes;
+  final List<EventBuilderWorldImpactReadModel> impacts;
+  final EventBuilderWorldRulesProjection worldRules;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SceneOutcomesProjectionSlot(projection: sceneOutcomes),
+        KeyedSubtree(
+          // Older lots named this section "world". It remains addressable for
+          // regression tests, while NS-EVENT-39 promotes the user-facing frame.
+          key: const ValueKey('event-builder-flow-block-world'),
+          child: _WorldImpactsProjectionBlock(
+            impacts: impacts,
+            worldRules: worldRules,
+          ),
+        ),
       ],
     );
   }
@@ -3967,48 +4089,51 @@ class _ConditionDetailLine extends StatelessWidget {
       child: PokeMapCard(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         borderRadius: 8,
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 116,
-              child: Text(
-                category,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color:
-                      condition.isEditable ? colors.textMuted : colors.warning,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: condition.isEditable
+                          ? colors.textMuted
+                          : colors.warning,
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
+                if (onRemove != null) ...[
+                  const SizedBox(width: 8),
+                  PokeMapButton(
+                    key: removeKey,
+                    onPressed: onRemove,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.trash),
+                    child: const Text('Retirer'),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 5),
+            Text(
+              condition.isSupported
+                  ? condition.label
+                  : '${condition.label}\nLecture seule dans ce lot',
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                condition.isSupported
-                    ? condition.label
-                    : '${condition.label}\nLecture seule dans ce lot',
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  height: 1.25,
-                ),
-              ),
-            ),
-            if (onRemove != null) ...[
-              const SizedBox(width: 8),
-              PokeMapButton(
-                key: removeKey,
-                onPressed: onRemove,
-                variant: PokeMapButtonVariant.ghost,
-                size: PokeMapButtonSize.small,
-                leading: const Icon(CupertinoIcons.trash),
-                child: const Text('Retirer'),
-              ),
-            ],
           ],
         ),
       ),

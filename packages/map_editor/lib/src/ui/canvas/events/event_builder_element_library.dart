@@ -163,25 +163,35 @@ class _ElementLibraryItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final toneColors = item.tone.resolve(context);
-    return PokeMapButton(
-      key: ValueKey('event-builder-library-item-${item.id}'),
-      onPressed: onActivate,
-      variant: item.available
-          ? PokeMapButtonVariant.secondary
-          : PokeMapButtonVariant.ghost,
-      size: PokeMapButtonSize.small,
-      leading: Icon(item.icon, color: toneColors.icon),
-      trailing: PokeMapBadge(
-        label:
-            item.available ? 'Disponible' : item.unavailableLabel ?? 'À venir',
-        variant: item.available
-            ? PokeMapBadgeVariant.success
-            : PokeMapBadgeVariant.neutral,
-      ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(item.label),
-      ),
+    final statusLabel =
+        item.available ? 'Disponible' : item.unavailableLabel ?? 'À venir';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PokeMapButton(
+          key: ValueKey('event-builder-library-item-${item.id}'),
+          onPressed: onActivate,
+          variant: item.available
+              ? PokeMapButtonVariant.secondary
+              : PokeMapButtonVariant.ghost,
+          size: PokeMapButtonSize.small,
+          leading: Icon(item.icon, color: toneColors.icon),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(item.label),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerRight,
+          child: PokeMapBadge(
+            label: statusLabel,
+            variant: item.available
+                ? PokeMapBadgeVariant.success
+                : PokeMapBadgeVariant.neutral,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -286,6 +296,7 @@ List<_ElementLibraryGroup> _libraryGroups() {
           icon: CupertinoIcons.list_bullet,
           tone: PokeMapTone.narrative,
           available: false,
+          unavailableLabel: 'À venir',
         ),
       ],
     ),
@@ -309,6 +320,7 @@ List<_ElementLibraryGroup> _libraryGroups() {
           icon: CupertinoIcons.shield,
           tone: PokeMapTone.danger,
           available: false,
+          unavailableLabel: 'À venir',
         ),
       ],
     ),
@@ -324,6 +336,29 @@ List<_ElementLibraryGroup> _libraryGroups() {
           icon: CupertinoIcons.rosette,
           tone: PokeMapTone.success,
           available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Les résultats se définissent dans la scène liée.',
+        ),
+        _ElementLibraryItem(
+          id: 'result-defeat',
+          label: 'Défaite',
+          icon: CupertinoIcons.xmark_seal,
+          tone: PokeMapTone.danger,
+          available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Les résultats se définissent dans la scène liée.',
+        ),
+        _ElementLibraryItem(
+          id: 'result-failure',
+          label: 'Échec',
+          icon: CupertinoIcons.circle_grid_hex,
+          tone: PokeMapTone.warning,
+          available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Les résultats se définissent dans la scène liée.',
         ),
       ],
     ),
@@ -339,6 +374,19 @@ List<_ElementLibraryGroup> _libraryGroups() {
           icon: CupertinoIcons.checkmark_alt_circle,
           tone: PokeMapTone.fact,
           available: false,
+          unavailableLabel: 'Défini dans la scène',
+          unavailableFeedback:
+              'Les réactions restent définies dans la scène liée.',
+        ),
+        _ElementLibraryItem(
+          id: 'reaction-unlock-quest',
+          label: 'Débloquer une quête',
+          icon: CupertinoIcons.lock_open,
+          tone: PokeMapTone.quest,
+          available: false,
+          unavailableLabel: 'Défini dans la scène',
+          unavailableFeedback:
+              'Les réactions restent définies dans la scène liée.',
         ),
       ],
     ),
@@ -349,14 +397,34 @@ List<_ElementLibraryGroup> _libraryGroups() {
       tone: PokeMapTone.fact,
       items: [
         _ElementLibraryItem(
-          id: 'world-element',
-          label: 'Afficher ou masquer un élément',
+          id: 'world-fact',
+          label: 'Fact du monde',
+          icon: CupertinoIcons.checkmark_shield,
+          tone: PokeMapTone.fact,
+          available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Les faits du monde sont projetés depuis la scène.',
+        ),
+        _ElementLibraryItem(
+          id: 'world-rule',
+          label: 'Règle du monde',
+          icon: CupertinoIcons.scope,
+          tone: PokeMapTone.fact,
+          available: false,
+          unavailableLabel: 'Lecture seule',
+          unavailableFeedback:
+              'Les règles se configurent dans le workspace Facts.',
+        ),
+        _ElementLibraryItem(
+          id: 'world-visibility',
+          label: 'Source projetée',
           icon: CupertinoIcons.eye,
           tone: PokeMapTone.map,
           available: false,
           unavailableLabel: 'Lecture seule',
           unavailableFeedback:
-              'Cet élément se règle depuis les règles du monde.',
+              'Cette source est affichée comme conséquence projetée.',
         ),
       ],
     ),

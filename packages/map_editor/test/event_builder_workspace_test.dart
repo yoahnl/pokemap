@@ -114,11 +114,11 @@ void main() {
     expect(
         find.descendant(
           of: central,
-          matching: find.text('Changements du monde'),
+          matching: find.text('Conséquences projetées'),
         ),
         findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
-    expect(find.text('Informations techniques'), findsOneWidget);
+    expect(find.text('ID technique'), findsWidgets);
 
     expect(find.text('Déclencheur configuré'), findsOneWidget);
     expect(
@@ -1307,6 +1307,310 @@ void main() {
     });
   });
 
+  group('NS-EVENT-39 reference UI redesign', () {
+    testWidgets('renders reference four-column event builder layout',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      final body = find.byKey(
+        const ValueKey('event-builder-reference-body'),
+      );
+      final listColumn = find.byKey(
+        const ValueKey('event-builder-reference-list-column'),
+      );
+      final libraryColumn = find.byKey(
+        const ValueKey('event-builder-reference-library-column'),
+      );
+      final flowColumn = find.byKey(
+        const ValueKey('event-builder-reference-flow-column'),
+      );
+      final inspectorColumn = find.byKey(
+        const ValueKey('event-builder-reference-inspector-column'),
+      );
+
+      expect(body, findsOneWidget);
+      expect(listColumn, findsOneWidget);
+      expect(libraryColumn, findsOneWidget);
+      expect(flowColumn, findsOneWidget);
+      expect(inspectorColumn, findsOneWidget);
+      expect(
+        find.descendant(
+          of: body,
+          matching: find.byKey(const ValueKey('event-builder-event-list')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: body,
+          matching: find.byKey(const ValueKey('event-builder-element-library')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: body,
+          matching: find.byKey(const ValueKey('event-builder-central-flow')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: body,
+          matching: find.byKey(const ValueKey('event-builder-inspector-panel')),
+        ),
+        findsOneWidget,
+      );
+
+      double left(Finder finder) => tester.getTopLeft(finder).dx;
+      expect(left(listColumn), lessThan(left(libraryColumn)));
+      expect(left(libraryColumn), lessThan(left(flowColumn)));
+      expect(left(flowColumn), lessThan(left(inspectorColumn)));
+
+      expect(find.text('Liste d’événements'), findsOneWidget);
+      expect(find.text('Bibliothèque d’éléments'), findsOneWidget);
+      expect(find.text('Éditeur d’événement'), findsOneWidget);
+      expect(find.text('Inspecteur d’événement'), findsOneWidget);
+      expect(find.text('Préparer un événement'), findsOneWidget);
+    });
+
+    testWidgets('renders central flow blocks in expected order',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      final trigger = find.byKey(
+        const ValueKey('event-builder-flow-block-trigger'),
+      );
+      final conditions = find.byKey(
+        const ValueKey('event-builder-flow-block-conditions'),
+      );
+      final actions = find.byKey(
+        const ValueKey('event-builder-flow-block-actions'),
+      );
+      final consequences = find.byKey(
+        const ValueKey('event-builder-flow-block-consequences'),
+      );
+      final diagnostics = find.byKey(
+        const ValueKey('event-builder-flow-block-diagnostics'),
+      );
+
+      expect(trigger, findsOneWidget);
+      expect(conditions, findsOneWidget);
+      expect(actions, findsOneWidget);
+      expect(consequences, findsOneWidget);
+      expect(diagnostics, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-flow-block-behavior')),
+        findsNothing,
+      );
+
+      double top(Finder finder) => tester.getTopLeft(finder).dy;
+      expect(top(trigger), lessThan(top(conditions)));
+      expect(top(conditions), lessThan(top(actions)));
+      expect(top(actions), lessThan(top(consequences)));
+      expect(top(consequences), lessThan(top(diagnostics)));
+
+      final central = find.byKey(const ValueKey('event-builder-central-flow'));
+      expect(
+        find.descendant(of: central, matching: find.text('Déclencheur')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: central, matching: find.text('Conditions')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: central, matching: find.text('Action principale')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: central,
+          matching: find.text('Conséquences projetées'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: central, matching: find.text('Diagnostics')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('keeps Scene outcomes and world consequences read-only',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('event-builder-flow-block-consequences')),
+        180,
+        scrollable: _eventBuilderCentralScrollable(),
+      );
+      await tester.pumpAndSettle();
+
+      final consequences = find.byKey(
+        const ValueKey('event-builder-flow-block-consequences'),
+      );
+      expect(
+          find.descendant(
+              of: consequences, matching: find.text('Lecture seule')),
+          findsWidgets);
+      expect(
+        find.descendant(
+          of: consequences,
+          matching: find.text('Défini dans la scène'),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: consequences,
+          matching: find.text('Projection passive'),
+        ),
+        findsWidgets,
+      );
+      expect(find.text('Ajouter un résultat'), findsNothing);
+      expect(find.text('Ajouter une réaction'), findsNothing);
+      expect(find.text('Créer une règle monde'), findsNothing);
+    });
+
+    testWidgets('keeps forbidden Event-owned authoring absent', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      _expectNoForbiddenEventOwnedAuthoringControls();
+      expect(find.textContaining('Drag'), findsNothing);
+      expect(find.textContaining('MapEventDefinition'), findsNothing);
+      expect(find.textContaining('ObjectLayer'), findsNothing);
+      expect(find.textContaining('metadata'), findsNothing);
+      expect(find.textContaining('runtime'), findsNothing);
+    });
+
+    testWidgets('keeps map placement creation flow working', (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final created =
+          container.read(editorNotifierProvider).activeMap!.events.single;
+      expect(container.read(editorNotifierProvider).selectedMapEventId,
+          created.id);
+      expect(
+        created.position,
+        const EventPosition(layerId: 'objects', x: 2, y: 1),
+      );
+      expect(find.text('Configurer l’événement'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('event-builder-reference-flow-column')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('event-builder-reference-inspector-column')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+    });
+
+    testWidgets('renders inspector summary with event facts', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      final inspector = find.byKey(
+        const ValueKey('event-builder-inspector-panel'),
+      );
+      expect(inspector, findsOneWidget);
+      for (final label in [
+        'Nom',
+        'ID technique',
+        'Statut',
+        'Type de déclencheur',
+        'Cible',
+        'Portée',
+        'Conditions',
+        'Scène liée',
+        'Comportement',
+        'Position sur la carte',
+        'Issues de la scène',
+        'Changements du monde',
+        'Règles concernées',
+      ]) {
+        expect(
+          find.descendant(of: inspector, matching: find.text(label)),
+          findsOneWidget,
+          reason: 'Missing inspector fact: $label',
+        );
+      }
+      expect(
+        find.descendant(
+            of: inspector, matching: find.text('Voir sur la carte')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('captures reference UI visual gate', (tester) async {
+      if (!const bool.fromEnvironment('NS_EVENT_39_CAPTURE_WORKSPACE')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithEventConditionTargets(),
+        project: _eventProjectWithWorldRules(),
+        fontFamily: _screenshotFontFamily,
+        surfaceSize: const Size(1680, 980),
+      );
+
+      expect(find.byKey(const ValueKey('event-builder-reference-body')),
+          findsOneWidget);
+      expect(find.text('Éditeur d’événement'), findsOneWidget);
+      expect(find.text('Conséquences projetées'), findsOneWidget);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_39_event_builder_reference_ui_redesign_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+    });
+  });
+
   testWidgets('captures NS-EVENT-36 manual creation availability visual gate',
       (tester) async {
     if (!const bool.fromEnvironment('NS_EVENT_36_CAPTURE_WORKSPACE')) {
@@ -1613,7 +1917,7 @@ void main() {
     await _pumpWorkspace(tester, _sampleReadModel());
     final central = find.byKey(const ValueKey('event-builder-central-flow'));
 
-    expect(find.text('Comportement'), findsOneWidget);
+    expect(find.text('Comportement'), findsWidgets);
     expect(find.descendant(of: central, matching: find.text('Réutilisation')),
         findsOneWidget);
     expect(find.text('Une seule fois'), findsWidgets);
@@ -2067,7 +2371,7 @@ void main() {
       findsNothing,
     );
 
-    expect(find.text('Builder d’événement'), findsOneWidget);
+    expect(find.text('Éditeur d’événement'), findsOneWidget);
     expect(find.text('Événement existant'), findsWidgets);
     final central = find.byKey(const ValueKey('event-builder-central-flow'));
     expect(central, findsOneWidget);
@@ -2083,11 +2387,11 @@ void main() {
     expect(
         find.descendant(
           of: central,
-          matching: find.text('Changements du monde'),
+          matching: find.text('Conséquences projetées'),
         ),
         findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
-    expect(find.text('Informations techniques'), findsOneWidget);
+    expect(find.text('ID technique'), findsWidgets);
     expect(find.text('Sources projetées'), findsOneWidget);
 
     expect(find.text('Ajouter un résultat'), findsNothing);
@@ -2135,8 +2439,8 @@ void main() {
     final actions = find.byKey(
       const ValueKey('event-builder-flow-block-actions'),
     );
-    final behavior = find.byKey(
-      const ValueKey('event-builder-flow-block-behavior'),
+    final consequences = find.byKey(
+      const ValueKey('event-builder-flow-block-consequences'),
     );
     final world = find.byKey(
       const ValueKey('event-builder-flow-block-world'),
@@ -2148,16 +2452,19 @@ void main() {
     expect(trigger, findsOneWidget);
     expect(conditions, findsOneWidget);
     expect(actions, findsOneWidget);
-    expect(behavior, findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('event-builder-flow-block-behavior')),
+      findsNothing,
+    );
+    expect(consequences, findsOneWidget);
     expect(world, findsOneWidget);
     expect(diagnostics, findsOneWidget);
 
     double top(Finder finder) => tester.getTopLeft(finder).dy;
     expect(top(trigger), lessThan(top(conditions)));
     expect(top(conditions), lessThan(top(actions)));
-    expect(top(actions), lessThan(top(behavior)));
-    expect(top(behavior), lessThan(top(world)));
-    expect(top(world), lessThan(top(diagnostics)));
+    expect(top(actions), lessThan(top(consequences)));
+    expect(top(consequences), lessThan(top(diagnostics)));
 
     expect(find.text('Quand'), findsWidgets);
     expect(find.text('Si'), findsWidgets);
@@ -2338,7 +2645,7 @@ void main() {
     expect(
       find.descendant(
         of: inspector,
-        matching: find.text('Informations techniques'),
+        matching: find.text('Nom'),
       ),
       findsOneWidget,
     );
@@ -2353,7 +2660,7 @@ void main() {
     expect(
       find.descendant(
         of: central,
-        matching: find.text('Informations techniques'),
+        matching: find.text('Nom'),
       ),
       findsNothing,
     );
@@ -2478,12 +2785,20 @@ void main() {
       'Conditions',
       'Actions',
       'Résultats',
-      'Réactions',
-      'Monde',
     ]) {
       expect(find.descendant(of: library, matching: find.text(group)),
           findsOneWidget);
     }
+    await tester.scrollUntilVisible(
+      find.text('Monde'),
+      180,
+      scrollable: _eventBuilderLibraryScrollable(),
+    );
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: library, matching: find.text('Réactions')),
+        findsOneWidget);
+    expect(find.descendant(of: library, matching: find.text('Monde')),
+        findsOneWidget);
 
     double left(Finder finder) => tester.getTopLeft(finder).dx;
     expect(left(list), lessThan(left(library)));
@@ -3092,7 +3407,7 @@ void main() {
 
     await _pumpWorkspace(tester, readModel);
 
-    expect(find.text('Intention non garantie au runtime.'), findsWidgets);
+    expect(find.text('Intention à vérifier côté jeu.'), findsWidgets);
     expect(find.textContaining('garanti au runtime'), findsNothing);
 
     await _tapEventCard(tester, 'Rejouable');
@@ -3282,10 +3597,17 @@ void main() {
     );
 
     final library = find.byKey(const ValueKey('event-builder-element-library'));
+    await tester.scrollUntilVisible(
+      find.text('Source projetée'),
+      180,
+      scrollable: _eventBuilderLibraryScrollable(),
+    );
+    await tester.pumpAndSettle();
+
     expect(
       find.descendant(
         of: library,
-        matching: find.text('Afficher ou masquer un élément'),
+        matching: find.text('Source projetée'),
       ),
       findsOneWidget,
     );
@@ -3295,12 +3617,12 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey('event-builder-library-item-world-element')),
+      find.byKey(const ValueKey('event-builder-library-item-world-visibility')),
     );
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Cet élément se règle depuis les règles du monde.'),
+      find.text('Cette source est affichée comme conséquence projetée.'),
       findsOneWidget,
     );
     expect(find.text('Créer une règle monde'), findsNothing);
@@ -3311,7 +3633,7 @@ void main() {
 
     expect(find.text('Issues de la scène liée'), findsOneWidget);
     expect(find.text('Défini dans la scène'), findsWidgets);
-    expect(find.text('Intention non garantie au runtime.'), findsWidgets);
+    expect(find.text('Intention à vérifier côté jeu.'), findsWidgets);
     expect(find.text('Ajouter un résultat'), findsNothing);
     expect(find.text('Ajouter une réaction'), findsNothing);
   });
@@ -3331,7 +3653,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Règle port observé'), findsOneWidget);
     expect(
         find.textContaining('Fact "Départ accepté" est vrai'), findsOneWidget);
@@ -3344,7 +3666,7 @@ void main() {
   testWidgets('NS-EVENT-31 renders no world impacts state', (tester) async {
     await _pumpWorkspace(tester, _readModelWithWorldImpacts(const []));
 
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Aucune source d’état projetée'), findsWidgets);
     expect(
       find.text(
@@ -3373,7 +3695,7 @@ void main() {
       ),
     );
 
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Aucune règle du monde liée'), findsOneWidget);
     expect(
       find.text(
@@ -3528,7 +3850,7 @@ void main() {
     final inspector =
         find.byKey(const ValueKey('event-builder-inspector-panel'));
     expect(
-      find.descendant(of: inspector, matching: find.text('Règles monde')),
+      find.descendant(of: inspector, matching: find.text('Règles concernées')),
       findsOneWidget,
     );
     expect(
@@ -3974,7 +4296,7 @@ void main() {
     expect(find.text('Terminé'), findsWidgets);
     expect(find.text('Sources projetées'), findsOneWidget);
     expect(find.text('Fact : Départ accepté'), findsOneWidget);
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Règle port observé'), findsOneWidget);
     expect(find.text('Diagnostics'), findsWidgets);
     expect(find.text('Inspecteur d’événement'), findsOneWidget);
@@ -4035,7 +4357,7 @@ void main() {
     expect(find.byKey(const ValueKey('event-builder-inspector-panel')),
         findsOneWidget);
     expect(find.text('Sources projetées'), findsOneWidget);
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Règle port observé'), findsOneWidget);
     _expectNoForbiddenEventOwnedAuthoringControls();
 
@@ -4247,7 +4569,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Rival visible après victoire'), findsOneWidget);
     expect(find.text('Intro rival avant rencontre'), findsOneWidget);
     expect(find.text('Projection passive'), findsWidgets);
@@ -4321,7 +4643,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sources projetées'), findsOneWidget);
-    expect(find.text('Règles concernées'), findsOneWidget);
+    expect(find.text('Règles concernées'), findsWidgets);
     expect(find.text('Rival visible après victoire'), findsOneWidget);
     expect(find.text('Intro rival avant rencontre'), findsOneWidget);
     expect(find.text('Lecture seule'), findsWidgets);
@@ -5137,6 +5459,13 @@ Finder _eventBuilderEventListScrollable() {
   );
 }
 
+Finder _eventBuilderLibraryScrollable() {
+  return find.descendant(
+    of: find.byKey(const ValueKey('event-builder-element-library')),
+    matching: find.byType(Scrollable),
+  );
+}
+
 void _expectNoForbiddenEventOwnedAuthoringControls() {
   for (final label in [
     'Ajouter un résultat',
@@ -5907,11 +6236,12 @@ Future<void> _tapEventCard(WidgetTester tester, String label) async {
   final target = eventId == null
       ? finder
       : find.byKey(ValueKey('event-builder-event-card-$eventId'));
-  await tester.scrollUntilVisible(
-    target,
-    120,
-    scrollable: find.byType(Scrollable).first,
-  );
+  final list = find.byKey(const ValueKey('event-builder-event-list'));
+  for (var attempt = 0; attempt < 8 && target.evaluate().isEmpty; attempt++) {
+    await tester.drag(list, const Offset(0, -180));
+    await tester.pumpAndSettle();
+  }
+  await tester.ensureVisible(target.first);
   await tester.pumpAndSettle();
   await tester.tap(target.first);
   await tester.pumpAndSettle();

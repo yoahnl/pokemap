@@ -15,6 +15,12 @@ class EventBuilderInspectorPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final sceneLabel = event.sceneAction.isMissing
+        ? 'Aucune scène choisie'
+        : event.sceneAction.sceneLabel;
+    final conditionsLabel = event.conditions.isEmpty
+        ? 'Aucune condition'
+        : '${event.conditions.length} condition${event.conditions.length > 1 ? 's' : ''}';
     return PokeMapPanel(
       key: const ValueKey('event-builder-inspector-panel'),
       expandChild: true,
@@ -65,98 +71,104 @@ class EventBuilderInspectorPanel extends StatelessWidget {
               borderRadius: 8,
               padding: const EdgeInsets.all(12),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          event.displayName,
-                          style: TextStyle(
-                            color: colors.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      PokeMapBadge(
-                        label: event.statusLabel,
-                        variant: _statusVariant(event.status),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  _InspectorLine(
-                    label: 'Déclencheur',
-                    value: event.trigger.label,
-                  ),
-                  _InspectorLine(
-                    label: 'Action',
-                    value: event.sceneAction.label,
-                  ),
-                  _InspectorLine(
-                    label: 'Réutilisation',
-                    value: event.behavior.label,
-                  ),
-                  _InspectorLine(
-                    label: 'Conditions',
-                    value: event.conditions.isEmpty
-                        ? 'Aucune condition'
-                        : '${event.conditions.length} condition${event.conditions.length > 1 ? 's' : ''}',
-                  ),
-                  _InspectorLine(
-                    label: 'Résultats Scene',
-                    value: _sceneOutcomesInspectorLabel(event.sceneOutcomes),
-                  ),
-                  _InspectorLine(
-                    label: 'Lifecycle',
-                    value: _lifecycleInspectorLabel(event.lifecycle),
-                  ),
-                  _InspectorLine(
-                    label: 'Changements monde',
-                    value: _worldImpactsInspectorLabel(event.worldImpacts),
-                  ),
-                  _InspectorLine(
-                    label: 'Règles monde',
-                    value: _worldRulesInspectorLabel(event.worldRules),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            PokeMapCard(
-              borderRadius: 8,
-              padding: const EdgeInsets.all(12),
-              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Informations techniques',
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  _InspectorLine(label: 'Nom', value: event.displayName),
                   _InspectorLine(
                     label: 'ID technique',
                     value: event.technicalId,
                     secondary: true,
                   ),
                   _InspectorLine(
-                    label: 'Groupe',
-                    value: event.groupKey,
-                    secondary: true,
+                    label: 'Statut',
+                    value: event.statusLabel,
                   ),
-                  _InspectorLine(
-                    label: 'Position',
-                    value: 'x ${event.position.x}, y ${event.position.y}',
-                    secondary: true,
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: PokeMapBadge(
+                      label: event.statusLabel,
+                      variant: _statusVariant(event.status),
+                    ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            PokeMapCard(
+              borderRadius: 8,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _InspectorLine(
+                    label: 'Type de déclencheur',
+                    value: event.trigger.label,
+                  ),
+                  _InspectorLine(
+                    label: 'Cible',
+                    value: event.trigger.sourceLabel,
+                  ),
+                  _InspectorLine(
+                    label: 'Portée',
+                    value: event.groupKey,
+                  ),
+                  _InspectorLine(
+                    label: 'Conditions',
+                    value: conditionsLabel,
+                  ),
+                  _InspectorLine(
+                    label: 'Scène liée',
+                    value: sceneLabel,
+                  ),
+                  _InspectorLine(
+                    label: 'Comportement',
+                    value: event.behavior.label,
+                  ),
+                  _InspectorLine(
+                    label: 'Position sur la carte',
+                    value: 'x ${event.position.x}, y ${event.position.y}',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            PokeMapCard(
+              borderRadius: 8,
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _InspectorLine(
+                    label: 'Issues de la scène',
+                    value: _sceneOutcomesInspectorLabel(event.sceneOutcomes),
+                  ),
+                  _InspectorLine(
+                    label: 'Changements du monde',
+                    value: _worldImpactsInspectorLabel(event.worldImpacts),
+                  ),
+                  _InspectorLine(
+                    label: 'Règles concernées',
+                    value: _worldRulesInspectorLabel(event.worldRules),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            const PokeMapButton(
+              onPressed: null,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.medium,
+              leading: Icon(CupertinoIcons.location),
+              child: Text('Voir sur la carte'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'La navigation carte reste secondaire dans ce lot.',
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
               ),
             ),
           ],
@@ -230,23 +242,6 @@ String _sceneOutcomesInspectorLabel(
       'Scène introuvable',
     EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes =>
       'Aucun résultat déclaré',
-  };
-}
-
-String _lifecycleInspectorLabel(EventBuilderLifecycleProjection lifecycle) {
-  return switch (lifecycle.status) {
-    EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded =>
-      'Réutilisable',
-    EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget ||
-    EventBuilderLifecycleProjectionStatus.oneShotMissingScene ||
-    EventBuilderLifecycleProjectionStatus.oneShotIntentOnly =>
-      'Une seule fois à vérifier',
-    EventBuilderLifecycleProjectionStatus
-          .oneShotExplicitSceneConsequenceForThisEvent =>
-      'Une seule fois compatible Scene',
-    EventBuilderLifecycleProjectionStatus
-          .oneShotExplicitSceneConsequenceForAnotherEvent =>
-      'Attention consommation autre événement',
   };
 }
 

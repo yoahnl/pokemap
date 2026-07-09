@@ -68,10 +68,45 @@ class EventBuilderCentralFlow extends StatelessWidget {
             const SizedBox(height: 12),
             eventHeader,
             const SizedBox(height: 12),
-            for (final block in blocks) ...[
-              block,
-              if (block != blocks.last) const SizedBox(height: 10),
+            for (var index = 0; index < blocks.length; index++) ...[
+              blocks[index],
+              if (index < blocks.length - 1) const _FlowConnector(),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FlowConnector extends StatelessWidget {
+  const _FlowConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return SizedBox(
+      height: 22,
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(width: 1, height: 22, color: colors.borderSubtle),
+            Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: colors.controlSurface,
+                border: Border.all(color: colors.borderSubtle),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                CupertinoIcons.plus,
+                size: 12,
+                color: colors.textMuted,
+              ),
+            ),
           ],
         ),
       ),
