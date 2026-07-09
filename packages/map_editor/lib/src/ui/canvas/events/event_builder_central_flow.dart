@@ -23,7 +23,7 @@ class EventBuilderCentralFlow extends StatelessWidget {
     return PokeMapPanel(
       key: const ValueKey('event-builder-central-flow'),
       expandChild: true,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,10 +34,10 @@ class EventBuilderCentralFlow extends StatelessWidget {
                 const PokeMapIconTile(
                   icon: CupertinoIcons.flowchart,
                   tone: PokeMapTone.quest,
-                  size: 40,
-                  iconSize: 20,
+                  size: 36,
+                  iconSize: 18,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 9),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,16 +46,16 @@ class EventBuilderCentralFlow extends StatelessWidget {
                         title,
                         style: TextStyle(
                           color: colors.textPrimary,
-                          fontSize: 16,
+                          fontSize: 15.5,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Text(
                         subtitle,
                         style: TextStyle(
                           color: colors.textMuted,
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                           height: 1.3,
                         ),
@@ -65,9 +65,9 @@ class EventBuilderCentralFlow extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             eventHeader,
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             for (var index = 0; index < blocks.length; index++) ...[
               blocks[index],
               if (index < blocks.length - 1) const _FlowConnector(),
@@ -86,15 +86,16 @@ class _FlowConnector extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return SizedBox(
-      height: 22,
+      key: const ValueKey('event-builder-flow-connector'),
+      height: 18,
       child: Center(
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Container(width: 1, height: 22, color: colors.borderSubtle),
+            Container(width: 1, height: 18, color: colors.borderSubtle),
             Container(
-              width: 22,
-              height: 22,
+              width: 18,
+              height: 18,
               decoration: BoxDecoration(
                 color: colors.controlSurface,
                 border: Border.all(color: colors.borderSubtle),
@@ -103,7 +104,7 @@ class _FlowConnector extends StatelessWidget {
               alignment: Alignment.center,
               child: Icon(
                 CupertinoIcons.plus,
-                size: 12,
+                size: 10,
                 color: colors.textMuted,
               ),
             ),

@@ -47,7 +47,7 @@ class EventBuilderFlowBlock extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -57,10 +57,10 @@ class EventBuilderFlowBlock extends StatelessWidget {
                         PokeMapIconTile(
                           icon: icon,
                           tone: tone,
-                          size: 34,
-                          iconSize: 17,
+                          size: 30,
+                          iconSize: 15,
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 9),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,16 +69,16 @@ class EventBuilderFlowBlock extends StatelessWidget {
                                 phaseLabel,
                                 style: TextStyle(
                                   color: toneColors.icon,
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              const SizedBox(height: 3),
+                              const SizedBox(height: 2),
                               Text(
                                 title,
                                 style: TextStyle(
                                   color: colors.textPrimary,
-                                  fontSize: 13.5,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -88,7 +88,7 @@ class EventBuilderFlowBlock extends StatelessWidget {
                       ],
                     ),
                     if (diagnosticCount != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 7),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -112,18 +112,18 @@ class EventBuilderFlowBlock extends StatelessWidget {
                       ),
                     ],
                     if (summary != null) ...[
-                      const SizedBox(height: 7),
+                      const SizedBox(height: 6),
                       Text(
                         summary!,
                         style: TextStyle(
                           color: colors.textMuted,
-                          fontSize: 11,
+                          fontSize: 10.5,
                           fontWeight: FontWeight.w700,
                           height: 1.25,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     ...children,
                   ],
                 ),

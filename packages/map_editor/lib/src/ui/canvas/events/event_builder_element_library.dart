@@ -165,32 +165,47 @@ class _ElementLibraryItemCard extends StatelessWidget {
     final toneColors = item.tone.resolve(context);
     final statusLabel =
         item.available ? 'Disponible' : item.unavailableLabel ?? 'À venir';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final button = PokeMapButton(
+      key: ValueKey('event-builder-library-item-${item.id}'),
+      onPressed: onActivate,
+      variant: item.available
+          ? PokeMapButtonVariant.secondary
+          : PokeMapButtonVariant.ghost,
+      size: PokeMapButtonSize.small,
+      leading: Icon(item.icon, color: toneColors.icon),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          item.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+    final badge = PokeMapBadge(
+      label: statusLabel,
+      variant: item.available
+          ? PokeMapBadgeVariant.success
+          : PokeMapBadgeVariant.neutral,
+    );
+    if (!item.available) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          button,
+          const SizedBox(height: 3),
+          Align(
+            alignment: Alignment.centerRight,
+            child: badge,
+          ),
+        ],
+      );
+    }
+    return Row(
       children: [
-        PokeMapButton(
-          key: ValueKey('event-builder-library-item-${item.id}'),
-          onPressed: onActivate,
-          variant: item.available
-              ? PokeMapButtonVariant.secondary
-              : PokeMapButtonVariant.ghost,
-          size: PokeMapButtonSize.small,
-          leading: Icon(item.icon, color: toneColors.icon),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(item.label),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapBadge(
-            label: statusLabel,
-            variant: item.available
-                ? PokeMapBadgeVariant.success
-                : PokeMapBadgeVariant.neutral,
-          ),
-        ),
+        Expanded(child: button),
+        const SizedBox(width: 6),
+        badge,
       ],
     );
   }

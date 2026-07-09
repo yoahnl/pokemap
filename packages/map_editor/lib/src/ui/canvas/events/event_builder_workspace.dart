@@ -52,6 +52,17 @@ typedef EventBuilderMapOpenCallback = Future<void> Function(String mapId);
 typedef EventBuilderEventSelectCallback = void Function(String eventId);
 typedef EventBuilderDestinationLayerCreateCallback = void Function();
 
+// NS-EVENT-40 keeps the visual reference tuning local to Event Builder. The
+// numbers below intentionally describe the four-column shell without changing
+// Narrative Studio's global chrome or any event-authoring contract.
+const _eventBuilderShellPadding = 12.0;
+const _eventBuilderColumnGap = 10.0;
+const _eventBuilderListColumnWidth = 264.0;
+const _eventBuilderLibraryColumnWidth = 244.0;
+const _eventBuilderGuidedLibraryColumnWidth = 216.0;
+const _eventBuilderInspectorColumnWidth = 340.0;
+const _eventBuilderGuidedInspectorColumnWidth = 306.0;
+
 class EventBuilderMapOption {
   const EventBuilderMapOption({
     required this.id,
@@ -255,7 +266,6 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
     final selected = _selectedEvent();
     final activeCount = widget.readModel.events
         .where((event) => event.status == EventBuilderEventStatus.active)
@@ -273,109 +283,20 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
         creationControls.isNotEmpty;
     return PokeMapPageSurface(
       key: const ValueKey('event-builder-workspace'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(_eventBuilderShellPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const PokeMapIconTile(
-                icon: CupertinoIcons.bolt_horizontal_circle,
-                tone: PokeMapTone.quest,
-                size: 44,
-                iconSize: 22,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Événements',
-                      style: TextStyle(
-                        color: colors.textPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Déclenchez des scènes depuis la carte, sous conditions, '
-                      'puis suivez leurs conséquences.',
-                      style: TextStyle(
-                        color: colors.textSecondary,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.end,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  if (showCreationShortcut)
-                    PokeMapButton(
-                      key: const ValueKey('event-builder-new-event-button'),
-                      onPressed: _openCreationPanelAction,
-                      variant: PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.medium,
-                      leading: const Icon(CupertinoIcons.plus),
-                      child: const Text('Préparer un événement'),
-                    ),
-                ],
-              ),
-            ],
+          _EventBuilderShellHeader(
+            totalCount: widget.readModel.events.length,
+            activeCount: activeCount,
+            draftCount: draftCount,
+            diagnosticCount: widget.readModel.diagnostics.length,
+            mapTitle: widget.readModel.mapTitle ?? 'Aucune map',
+            showCreationShortcut: showCreationShortcut,
+            onCreateShortcut: _openCreationPanelAction,
           ),
-          const SizedBox(height: 16),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              PokeMapStatusTile(
-                label: 'Total',
-                value: '${widget.readModel.events.length}',
-                icon: CupertinoIcons.list_bullet,
-                tone: PokeMapTone.quest,
-              ),
-              PokeMapStatusTile(
-                label: 'Actifs',
-                value: '$activeCount',
-                icon: CupertinoIcons.checkmark_circle,
-                tone: activeCount == 0
-                    ? PokeMapTone.neutral
-                    : PokeMapTone.success,
-              ),
-              PokeMapStatusTile(
-                label: 'Brouillons',
-                value: '$draftCount',
-                icon: CupertinoIcons.pencil_ellipsis_rectangle,
-                tone:
-                    draftCount == 0 ? PokeMapTone.neutral : PokeMapTone.warning,
-              ),
-              PokeMapStatusTile(
-                label: 'Diagnostics',
-                value: '${widget.readModel.diagnostics.length}',
-                icon: CupertinoIcons.exclamationmark_triangle,
-                tone: widget.readModel.diagnostics.isEmpty
-                    ? PokeMapTone.success
-                    : PokeMapTone.warning,
-              ),
-              PokeMapStatusTile(
-                label: 'Portée',
-                value: widget.readModel.mapTitle ?? 'Aucune map',
-                icon: CupertinoIcons.map,
-                tone: PokeMapTone.map,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Expanded(
             child: widget.readModel.events.isEmpty
                 ? Row(
@@ -391,7 +312,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                           compactMessage: _draftCreationFeedback,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: _eventBuilderColumnGap),
                       Expanded(
                         child: _EventBuilderEmptyState(
                           hasActiveMap: widget.readModel.mapId != null,
@@ -408,7 +329,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                           key: const ValueKey(
                             'event-builder-reference-list-column',
                           ),
-                          width: 280,
+                          width: _eventBuilderListColumnWidth,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
@@ -464,12 +385,14 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: _eventBuilderColumnGap),
                         SizedBox(
                           key: const ValueKey(
                             'event-builder-reference-library-column',
                           ),
-                          width: showGuidedPostCreation ? 220 : 260,
+                          width: showGuidedPostCreation
+                              ? _eventBuilderGuidedLibraryColumnWidth
+                              : _eventBuilderLibraryColumnWidth,
                           child: showGuidedPostCreation
                               ? _CollapsedElementLibraryPanel(
                                   onActivate: _activateLibraryAction,
@@ -478,7 +401,7 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                                   onActivate: _activateLibraryAction,
                                 ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: _eventBuilderColumnGap),
                         Expanded(
                           key: const ValueKey(
                             'event-builder-reference-flow-column',
@@ -500,12 +423,14 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
                             showGuidedSetup: showGuidedPostCreation,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: _eventBuilderColumnGap),
                         SizedBox(
                           key: const ValueKey(
                             'event-builder-reference-inspector-column',
                           ),
-                          width: showGuidedPostCreation ? 300 : 320,
+                          width: showGuidedPostCreation
+                              ? _eventBuilderGuidedInspectorColumnWidth
+                              : _eventBuilderInspectorColumnWidth,
                           child: _inspectorPanelFor(
                             selected,
                             showGuidedPostCreation,
@@ -808,6 +733,171 @@ class _EventBuilderWorkspaceState extends State<EventBuilderWorkspace> {
       }
     }
     return true;
+  }
+}
+
+class _EventBuilderShellHeader extends StatelessWidget {
+  const _EventBuilderShellHeader({
+    required this.totalCount,
+    required this.activeCount,
+    required this.draftCount,
+    required this.diagnosticCount,
+    required this.mapTitle,
+    required this.showCreationShortcut,
+    required this.onCreateShortcut,
+  });
+
+  final int totalCount;
+  final int activeCount;
+  final int draftCount;
+  final int diagnosticCount;
+  final String mapTitle;
+  final bool showCreationShortcut;
+  final VoidCallback? onCreateShortcut;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final titleCluster = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const PokeMapIconTile(
+          icon: CupertinoIcons.bolt_horizontal_circle,
+          tone: PokeMapTone.quest,
+          size: 40,
+          iconSize: 20,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Événements',
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 21,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                'Déclenchez des scènes depuis la carte, ajoutez des '
+                'conditions, puis suivez les conséquences.',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final metrics = Wrap(
+      key: const ValueKey('event-builder-polished-metrics-row'),
+      spacing: 6,
+      runSpacing: 6,
+      alignment: WrapAlignment.end,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        PokeMapStatusTile(
+          label: 'Total',
+          value: '$totalCount',
+          icon: CupertinoIcons.list_bullet,
+          tone: PokeMapTone.quest,
+        ),
+        PokeMapStatusTile(
+          label: 'Actifs',
+          value: '$activeCount',
+          icon: CupertinoIcons.checkmark_circle,
+          tone: activeCount == 0 ? PokeMapTone.neutral : PokeMapTone.success,
+        ),
+        PokeMapStatusTile(
+          label: 'Brouillons',
+          value: '$draftCount',
+          icon: CupertinoIcons.pencil_ellipsis_rectangle,
+          tone: draftCount == 0 ? PokeMapTone.neutral : PokeMapTone.warning,
+        ),
+        PokeMapStatusTile(
+          label: 'Diagnostics',
+          value: '$diagnosticCount',
+          icon: CupertinoIcons.exclamationmark_triangle,
+          tone:
+              diagnosticCount == 0 ? PokeMapTone.success : PokeMapTone.warning,
+        ),
+        PokeMapStatusTile(
+          label: 'Portée',
+          value: mapTitle,
+          icon: CupertinoIcons.map,
+          tone: PokeMapTone.map,
+        ),
+      ],
+    );
+    final createButton = showCreationShortcut
+        ? PokeMapButton(
+            key: const ValueKey('event-builder-new-event-button'),
+            onPressed: onCreateShortcut,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.medium,
+            leading: const Icon(CupertinoIcons.plus),
+            child: const Text('Préparer un événement'),
+          )
+        : null;
+
+    return KeyedSubtree(
+      key: const ValueKey('event-builder-polished-shell-header'),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 1180;
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: titleCluster),
+                    if (createButton != null) ...[
+                      const SizedBox(width: 10),
+                      createButton,
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: metrics,
+                ),
+              ],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 4, child: titleCluster),
+              const SizedBox(width: 14),
+              Expanded(
+                flex: 5,
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: metrics,
+                ),
+              ),
+              if (createButton != null) ...[
+                const SizedBox(width: 10),
+                createButton,
+              ],
+            ],
+          );
+        },
+      ),
+    );
   }
 }
 
@@ -2086,6 +2176,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
               sceneOutcomes: selected.sceneOutcomes,
               impacts: selected.worldImpacts,
               worldRules: selected.worldRules,
+              stacked: widget.showGuidedSetup,
             ),
           ],
         ),
@@ -3385,36 +3476,34 @@ class _SceneOutcomesProjectionSlot extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Issues de la scène liée',
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Les résultats appartiennent à la Scene liée.',
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'Issues de la scène liée',
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                const PokeMapBadge(
-                  label: 'Lecture seule',
-                  variant: PokeMapBadgeVariant.neutral,
-                ),
               ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Les résultats appartiennent à la Scene liée.',
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: PokeMapBadge(
+                label: 'Lecture seule',
+                variant: PokeMapBadgeVariant.neutral,
+              ),
             ),
             const SizedBox(height: 9),
             _buildProjectionBody(context),
@@ -3711,28 +3800,50 @@ class _ProjectedConsequencesBlock extends StatelessWidget {
     required this.sceneOutcomes,
     required this.impacts,
     required this.worldRules,
+    required this.stacked,
   });
 
   final EventBuilderSceneOutcomesProjection sceneOutcomes;
   final List<EventBuilderWorldImpactReadModel> impacts;
   final EventBuilderWorldRulesProjection worldRules;
+  final bool stacked;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _SceneOutcomesProjectionSlot(projection: sceneOutcomes),
-        KeyedSubtree(
-          // Older lots named this section "world". It remains addressable for
-          // regression tests, while NS-EVENT-39 promotes the user-facing frame.
-          key: const ValueKey('event-builder-flow-block-world'),
-          child: _WorldImpactsProjectionBlock(
-            impacts: impacts,
-            worldRules: worldRules,
-          ),
+    final sceneSlot = _SceneOutcomesProjectionSlot(projection: sceneOutcomes);
+    final worldSlot = KeyedSubtree(
+      // Older lots named this section "world". It remains addressable for
+      // regression tests, while NS-EVENT-39/40 promote the user-facing
+      // read-only projection frame.
+      key: const ValueKey('event-builder-flow-block-world'),
+      child: _WorldImpactsProjectionBlock(
+        impacts: impacts,
+        worldRules: worldRules,
+      ),
+    );
+    if (stacked) {
+      return KeyedSubtree(
+        key: const ValueKey('event-builder-polished-consequences-grid'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            sceneSlot,
+            const SizedBox(height: 10),
+            worldSlot,
+          ],
         ),
-      ],
+      );
+    }
+    return KeyedSubtree(
+      key: const ValueKey('event-builder-polished-consequences-grid'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: sceneSlot),
+          const SizedBox(width: 10),
+          Expanded(child: worldSlot),
+        ],
+      ),
     );
   }
 }

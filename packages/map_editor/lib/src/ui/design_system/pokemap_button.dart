@@ -169,6 +169,8 @@ class _PokeMapButtonState extends State<PokeMapButton> {
       }
     }
 
+    final inheritedTextStyle = DefaultTextStyle.of(context).style;
+
     return Semantics(
       button: true,
       enabled: !isDisabled,
@@ -236,7 +238,7 @@ class _PokeMapButtonState extends State<PokeMapButton> {
                 ],
                 Flexible(
                   child: DefaultTextStyle(
-                    style: TextStyle(
+                    style: inheritedTextStyle.copyWith(
                       color: fg,
                       fontSize: fontSize,
                       fontWeight: FontWeight.w600,

@@ -31,8 +31,8 @@ void main() {
     expect(find.text('Événements'), findsOneWidget);
     expect(
       find.text(
-        'Déclenchez des scènes depuis la carte, sous conditions, puis '
-        'suivez leurs conséquences.',
+        'Déclenchez des scènes depuis la carte, ajoutez des conditions, '
+        'puis suivez les conséquences.',
       ),
       findsOneWidget,
     );
@@ -1608,6 +1608,266 @@ void main() {
       );
 
       expect(screenshotFile.existsSync(), isTrue);
+    });
+  });
+
+  group('NS-EVENT-40 shell pixel polish visual QA', () {
+    testWidgets('keeps reference layout shell visible', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      expect(
+        find.byKey(const ValueKey('event-builder-polished-shell-header')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('event-builder-polished-metrics-row')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
+          findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('event-builder-polished-shell-header')),
+          matching: find.text('Événements'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Préparer un événement'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-reference-body')),
+          findsOneWidget);
+
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps event builder columns aligned and sized',
+        (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      final body = tester.getRect(
+        find.byKey(const ValueKey('event-builder-reference-body')),
+      );
+      final list = tester.getRect(
+        find.byKey(const ValueKey('event-builder-reference-list-column')),
+      );
+      final library = tester.getRect(
+        find.byKey(const ValueKey('event-builder-reference-library-column')),
+      );
+      final flow = tester.getRect(
+        find.byKey(const ValueKey('event-builder-reference-flow-column')),
+      );
+      final inspector = tester.getRect(
+        find.byKey(const ValueKey('event-builder-reference-inspector-column')),
+      );
+
+      for (final column in [list, library, flow, inspector]) {
+        expect(column.top, closeTo(body.top, 0.5));
+        expect(column.bottom, closeTo(body.bottom, 0.5));
+      }
+      expect(list.width, inInclusiveRange(250, 272));
+      expect(library.width, inInclusiveRange(232, 252));
+      expect(flow.width, greaterThanOrEqualTo(600));
+      expect(inspector.width, inInclusiveRange(330, 350));
+      expect(library.left - list.right, closeTo(10, 0.5));
+      expect(flow.left - library.right, closeTo(10, 0.5));
+      expect(inspector.left - flow.right, closeTo(10, 0.5));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps central flow visually ordered', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      final trigger = find.byKey(
+        const ValueKey('event-builder-flow-block-trigger'),
+      );
+      final conditions = find.byKey(
+        const ValueKey('event-builder-flow-block-conditions'),
+      );
+      final actions = find.byKey(
+        const ValueKey('event-builder-flow-block-actions'),
+      );
+      final consequences = find.byKey(
+        const ValueKey('event-builder-flow-block-consequences'),
+      );
+      final diagnostics = find.byKey(
+        const ValueKey('event-builder-flow-block-diagnostics'),
+      );
+
+      expect(find.byKey(const ValueKey('event-builder-flow-connector')),
+          findsNWidgets(4));
+      expect(trigger, findsOneWidget);
+      expect(conditions, findsOneWidget);
+      expect(actions, findsOneWidget);
+      expect(consequences, findsOneWidget);
+      expect(diagnostics, findsOneWidget);
+
+      double top(Finder finder) => tester.getTopLeft(finder).dy;
+      expect(top(trigger), lessThan(top(conditions)));
+      expect(top(conditions), lessThan(top(actions)));
+      expect(top(actions), lessThan(top(consequences)));
+      expect(top(consequences), lessThan(top(diagnostics)));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps read-only projections honest', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('event-builder-flow-block-consequences')),
+        180,
+        scrollable: _eventBuilderCentralScrollable(),
+      );
+      await tester.pumpAndSettle();
+
+      final consequences = find.byKey(
+        const ValueKey('event-builder-flow-block-consequences'),
+      );
+      expect(
+        find.byKey(const ValueKey('event-builder-polished-consequences-grid')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: consequences, matching: find.text('Lecture seule')),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: consequences,
+          matching: find.text('Défini dans la scène'),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: consequences,
+          matching: find.text('Projection passive'),
+        ),
+        findsWidgets,
+      );
+      _expectNoForbiddenEventOwnedAuthoringControls();
+    });
+
+    testWidgets('keeps map placement flow working', (tester) async {
+      final container = await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithObjectLayerFirst(),
+        activeLayerId: null,
+        surfaceSize: const Size(1680, 1100),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-choose-on-map-button')),
+      );
+      await tester.pumpAndSettle();
+      await _tapEventBuilderMapPlacementCanvas(tester, x: 2, y: 1);
+      await tester.tap(
+        find.byKey(const ValueKey('event-builder-create-event-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final created =
+          container.read(editorNotifierProvider).activeMap!.events.single;
+      expect(container.read(editorNotifierProvider).selectedMapEventId,
+          created.id);
+      expect(
+        created.position,
+        const EventPosition(layerId: 'objects', x: 2, y: 1),
+      );
+      expect(find.text('Configurer l’événement'), findsOneWidget);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+    });
+
+    testWidgets('keeps forbidden authoring absent', (tester) async {
+      await _pumpNarrativeEventsShell(
+        tester,
+        project: _eventProjectWithWorldRules(),
+        surfaceSize: const Size(1680, 980),
+      );
+
+      _expectNoForbiddenEventOwnedAuthoringControls();
+      expect(find.text('Créer une règle monde'), findsNothing);
+      expect(find.textContaining('Event-owned'), findsNothing);
+      expect(find.textContaining('runtime'), findsNothing);
+      expect(find.textContaining('map_core'), findsNothing);
+      expect(find.textContaining('Drag/drop'), findsNothing);
+      expect(find.byKey(const ValueKey('event-builder-position-grid')),
+          findsNothing);
+    });
+
+    testWidgets('captures polished real-reference visual gate', (tester) async {
+      if (!const bool.fromEnvironment('NS_EVENT_40_CAPTURE_WORKSPACE')) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithEventConditionTargets(),
+        project: _eventProjectWithWorldRules(),
+        fontFamily: _screenshotFontFamily,
+        surfaceSize: const Size(1680, 980),
+      );
+
+      expect(
+        find.byKey(const ValueKey('event-builder-polished-shell-header')),
+        findsOneWidget,
+      );
+      expect(find.text('Conséquences projetées'), findsOneWidget);
+      expect(find.text('Inspecteur d’événement'), findsOneWidget);
+      await tester.drag(
+        _eventBuilderCentralScrollable(),
+        const Offset(0, -920),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Conséquences projetées'), findsOneWidget);
+      expect(find.text('Diagnostics'), findsWidgets);
+
+      final screenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_40_event_builder_pixel_polish_v0.png',
+      );
+      screenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(screenshotFile.absolute.path),
+      );
+
+      expect(screenshotFile.existsSync(), isTrue);
+
+      await tester.drag(
+        _eventBuilderCentralScrollable(),
+        const Offset(0, -360),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Diagnostics'), findsWidgets);
+
+      final diagnosticsScreenshotFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_40_event_builder_diagnostics_pixel_polish_v0.png',
+      );
+      diagnosticsScreenshotFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(diagnosticsScreenshotFile.absolute.path),
+      );
+
+      expect(diagnosticsScreenshotFile.existsSync(), isTrue);
     });
   });
 
