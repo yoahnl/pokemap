@@ -74,43 +74,24 @@ class EventBuilderInspectorPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InspectorLine(label: 'Nom', value: event.displayName),
-                  _InspectorLine(
-                    label: 'ID technique',
-                    value: event.technicalId,
-                    secondary: true,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: _InspectorLine(
+                          label: 'Statut',
+                          value: event.statusLabel,
+                        ),
+                      ),
+                      PokeMapBadge(
+                        label: event.statusLabel,
+                        variant: _statusVariant(event.status),
+                      ),
+                    ],
                   ),
-                  _InspectorLine(
-                    label: 'Statut',
-                    value: event.statusLabel,
-                  ),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: PokeMapBadge(
-                      label: event.statusLabel,
-                      variant: _statusVariant(event.status),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            PokeMapCard(
-              borderRadius: 8,
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
                   _InspectorLine(
                     label: 'Type de déclencheur',
                     value: event.trigger.label,
-                  ),
-                  _InspectorLine(
-                    label: 'Cible',
-                    value: event.trigger.sourceLabel,
-                  ),
-                  _InspectorLine(
-                    label: 'Portée',
-                    value: event.groupKey,
                   ),
                   _InspectorLine(
                     label: 'Conditions',
@@ -139,15 +120,11 @@ class EventBuilderInspectorPanel extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _InspectorLine(
-                    label: 'Issues de la scène',
-                    value: _sceneOutcomesInspectorLabel(event.sceneOutcomes),
-                  ),
-                  _InspectorLine(
-                    label: 'Changements du monde',
+                    label: 'Résumé projeté',
                     value: _worldImpactsInspectorLabel(event.worldImpacts),
                   ),
                   _InspectorLine(
-                    label: 'Règles concernées',
+                    label: 'Règles liées',
                     value: _worldRulesInspectorLabel(event.worldRules),
                   ),
                 ],
@@ -182,12 +159,10 @@ class _InspectorLine extends StatelessWidget {
   const _InspectorLine({
     required this.label,
     required this.value,
-    this.secondary = false,
   });
 
   final String label;
   final String value;
-  final bool secondary;
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +184,7 @@ class _InspectorLine extends StatelessWidget {
           Text(
             value,
             style: TextStyle(
-              color: secondary ? colors.textSecondary : colors.textPrimary,
+              color: colors.textPrimary,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               height: 1.25,
@@ -227,21 +202,6 @@ PokeMapBadgeVariant _statusVariant(EventBuilderEventStatus status) {
     EventBuilderEventStatus.draft => PokeMapBadgeVariant.warning,
     EventBuilderEventStatus.inactive => PokeMapBadgeVariant.neutral,
     EventBuilderEventStatus.invalid => PokeMapBadgeVariant.error,
-  };
-}
-
-String _sceneOutcomesInspectorLabel(
-  EventBuilderSceneOutcomesProjection projection,
-) {
-  return switch (projection.status) {
-    EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes =>
-      projection.label,
-    EventBuilderSceneOutcomesProjectionStatus.noSceneTarget =>
-      'Aucune scène liée',
-    EventBuilderSceneOutcomesProjectionStatus.missingScene =>
-      'Scène introuvable',
-    EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes =>
-      'Aucun résultat déclaré',
   };
 }
 

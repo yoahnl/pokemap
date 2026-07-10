@@ -24,56 +24,63 @@ class EventBuilderCentralFlow extends StatelessWidget {
       key: const ValueKey('event-builder-central-flow'),
       expandChild: true,
       padding: const EdgeInsets.all(12),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PokeMapIconTile(
-                  icon: CupertinoIcons.flowchart,
-                  tone: PokeMapTone.quest,
-                  size: 36,
-                  iconSize: 18,
-                ),
-                const SizedBox(width: 9),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w900,
-                        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.flowchart,
+                tone: PokeMapTone.quest,
+                size: 36,
+                iconSize: 18,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w900,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: colors.textMuted,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          height: 1.3,
-                        ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: colors.textMuted,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        height: 1.3,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            eventHeader,
-            const SizedBox(height: 10),
-            for (var index = 0; index < blocks.length; index++) ...[
-              blocks[index],
-              if (index < blocks.length - 1) const _FlowConnector(),
+              ),
             ],
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          eventHeader,
+          const SizedBox(height: 10),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var index = 0; index < blocks.length; index++) ...[
+                    blocks[index],
+                    if (index < blocks.length - 1) const _FlowConnector(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -87,15 +94,15 @@ class _FlowConnector extends StatelessWidget {
     final colors = context.pokeMapColors;
     return SizedBox(
       key: const ValueKey('event-builder-flow-connector'),
-      height: 18,
+      height: 12,
       child: Center(
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Container(width: 1, height: 18, color: colors.borderSubtle),
+            Container(width: 1, height: 12, color: colors.borderSubtle),
             Container(
-              width: 18,
-              height: 18,
+              width: 14,
+              height: 14,
               decoration: BoxDecoration(
                 color: colors.controlSurface,
                 border: Border.all(color: colors.borderSubtle),
