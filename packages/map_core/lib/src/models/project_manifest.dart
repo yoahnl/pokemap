@@ -6,6 +6,7 @@ import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
 import 'cinematic_asset.dart';
+import 'narrative_event_registry.dart';
 import 'narrative_fact.dart';
 import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
@@ -363,6 +364,7 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _worldRulesToJson,
     )
     List<WorldRuleDefinition> worldRules,
+    @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
     @Default([])
     @JsonKey(
       name: 'scenes',

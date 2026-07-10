@@ -3,10 +3,15 @@ import 'dart:convert';
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/map_data.dart';
+import '../models/narrative_event_source_ref.dart'
+    show NarrativeEventSourceKind;
 import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
+
+export '../models/narrative_event_source_ref.dart'
+    show NarrativeEventSourceKind;
 
 const String _actionEmitOutcome = 'emitoutcome';
 const String _actionSourceOutcome = 'sourceoutcome';
@@ -27,13 +32,6 @@ enum NarrativeBattleOutcomeKind {
 enum NarrativeStoryStepPickerSource {
   stepStudio,
   legacyMetadata,
-}
-
-enum NarrativeEventSourceKind {
-  mapEnter,
-  triggerEnter,
-  entityInteract,
-  outcomeReceived,
 }
 
 enum NarrativePredicateReferenceKind {

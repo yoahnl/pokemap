@@ -246,11 +246,14 @@ Ledger normatif, rapport de clôture, roadmap phase-based et Entry Gate B.
 
 ---
 
-# Phase B — Domain Contracts
+# Phase B — Domain Contracts — CLOSED / ACCEPTED
 
 ```text
-Mission status : READY
+Mission : NS-EVENT-V2 - PHASE B
+Lifecycle : CLOSED
 Gate d'entrée : ACCEPTED par Phase A
+Gate de sortie : ACCEPTED
+Date : 2026-07-10
 Jalons : V2-01 à V2-04
 ```
 
@@ -283,7 +286,7 @@ UI.
 
 ## Jalons internes
 
-### NS-EVENT-V2-01 — Canonical Narrative Event Source Ref Contract V0
+### NS-EVENT-V2-01 — Canonical Narrative Event Source Ref Contract V0 — PASS
 
 - **Type :** core.
 - **Objectif :** introduire l’union typée des quatre sources V0.
@@ -306,7 +309,7 @@ UI.
 - **Taille :** S.
 - **Bloquant :** oui.
 
-### NS-EVENT-V2-02 — Canonical Narrative Event Definition & Record Contract V0
+### NS-EVENT-V2-02 — Canonical Narrative Event Definition & Record Contract V0 — PASS
 
 - **Type :** core.
 - **Objectif :** créer l’Event fin et séparer record draft/configured.
@@ -329,7 +332,7 @@ UI.
 - **Taille :** M.
 - **Bloquant :** oui.
 
-### NS-EVENT-V2-03 — Project Manifest Event Registry, Mode & Claims Schema V0
+### NS-EVENT-V2-03 — Project Manifest Event Registry, Mode & Claims Schema V0 — PASS
 
 - **Type :** core.
 - **Objectif :** stocker records, mode d'autorité et claims legacy avec version indépendante.
@@ -352,7 +355,7 @@ UI.
 - **Taille :** M.
 - **Bloquant :** oui.
 
-### NS-EVENT-V2-04 — Structural Event Source Index Contract
+### NS-EVENT-V2-04 — Structural Event Source Index Contract — PASS
 
 - **Type :** core.
 - **Objectif :** compiler un index structurel pur source → records configurés.
@@ -375,6 +378,25 @@ UI.
 - **Taille :** M.
 - **Bloquant :** oui.
 
+## Clôture de mission
+
+La Phase B livre les quatre contrats purs dans `packages/map_core` : sources et
+outcomes qualifiés, records draft/configured avec UUIDv7, registry schema `1`
+et preflight fail-closed, claims JCS/SHA-256, puis index structurel immuable.
+
+Preuves de sortie :
+
+- B1, B2, B3 et B4 : `PASS` après reviews R1/R2 ;
+- suite complète `map_core` : `2652` tests passés ;
+- `dart analyze` : aucune issue ;
+- deux runs `build_runner` successifs : `0 outputs` ;
+- aucun consumer runtime/editor et aucune donnée projet migrée ;
+- baseline de performance B4 documentée dans l’Evidence Pack.
+
+Le check global Dart 3.12 signale 67 fichiers historiques hors Phase B qui
+seraient reformatés. Les 19 fichiers manuscrits du lot passent le même check
+ciblé sans changement ; aucun churn historique n’est inclus.
+
 ## Risques
 
 - modèle trop large ;
@@ -396,7 +418,8 @@ Contrat Event V2 pur, versionné, indexable et encore sans consumer.
 # Phase C — Legacy Compatibility & Migration
 
 ```text
-Mission status : PLANNED
+Mission status : READY
+Gate d'entrée : ACCEPTED par Phase B le 2026-07-10
 Jalons : V2-05 à V2-08
 ```
 
@@ -407,7 +430,7 @@ et les sources Scenario existantes.
 
 ## Entry criteria
 
-- Phase B validée.
+- Phase B `CLOSED / ACCEPTED`.
 - corpus legacy figé.
 - politique collisions IDs et unknown JSON décidée.
 
