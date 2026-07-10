@@ -1677,6 +1677,29 @@ class _EventListCard extends StatelessWidget {
   }
 }
 
+enum _GuidedStepStatus {
+  complete,
+  attention,
+  incomplete,
+  blocking,
+}
+
+class _GuidedStepInfo {
+  const _GuidedStepInfo({
+    required this.id,
+    required this.number,
+    required this.label,
+    required this.detail,
+    required this.status,
+  });
+
+  final String id;
+  final int number;
+  final String label;
+  final String detail;
+  final _GuidedStepStatus status;
+}
+
 class _GuidedConfigurationStepper extends StatelessWidget {
   const _GuidedConfigurationStepper({
     required this.event,
@@ -1686,6 +1709,22 @@ class _GuidedConfigurationStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final sections = {
+      for (final section in event.sections) section.key: section,
+    };
+    final steps = [
+      _GuidedStepInfo(
+        id: 'position',
+        number: 1,
+        label: 'Position choisie',
+        detail: 'x ${event.position.x}, y ${event.position.y}',
+        status: _GuidedStepStatus.complete,
+      ),
+      _triggerStep(event, sections['trigger']),
+      _conditionsStep(event, sections['conditions']),
+      _actionStep(event, sections['actions']),
+      _behaviorStep(event, sections['behavior']),
+    ];
     return PokeMapCard(
       key: const ValueKey('event-builder-guided-configuration-stepper'),
       borderRadius: 8,
@@ -1693,119 +1732,318 @@ class _GuidedConfigurationStepper extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: _GuidedStepperTile(
-              complete: true,
-              number: 1,
-              label: 'Position choisie',
-              detail: 'x ${event.position.x}, y ${event.position.y}',
+          for (var index = 0; index < steps.length; index++) ...[
+            if (index > 0) const SizedBox(width: 8),
+            Expanded(
+              child: _GuidedStepperTile(
+                key: ValueKey('event-builder-guided-step-${steps[index].id}'),
+                step: steps[index],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _GuidedStepperTile(
-              complete: event.trigger.label.trim().isNotEmpty,
-              number: 2,
-              label: 'Déclencheur',
-              detail: event.trigger.label,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _GuidedStepperTile(
-              complete: true,
-              number: 3,
-              label: 'Conditions',
-              detail:
-                  '${event.conditions.length} condition${event.conditions.length > 1 ? 's' : ''}',
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _GuidedStepperTile(
-              complete: !event.sceneAction.isMissing,
-              number: 4,
-              label: 'Action',
-              detail: event.sceneAction.isMissing
-                  ? 'Scène à choisir'
-                  : event.sceneAction.sceneLabel,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _GuidedStepperTile(
-              complete: event.behavior.label.trim().isNotEmpty,
-              number: 5,
-              label: 'Comportement',
-              detail: event.behavior.label,
-            ),
-          ),
+          ],
         ],
       ),
     );
   }
 }
 
+_GuidedStepInfo _triggerStep(
+  EventBuilderEventSummary event,
+  EventBuilderSectionReadModel? section,
+) {
+  final hasTrigger = event.trigger.label.trim().isNotEmpty;
+  final baseStatus =
+      hasTrigger ? _GuidedStepStatus.complete : _GuidedStepStatus.incomplete;
+  final sectionStatus = _sectionStepStatus(section);
+  final status = _mostSevereStepStatus(baseStatus, sectionStatus);
+  return _GuidedStepInfo(
+    id: 'trigger',
+    number: 2,
+    label: 'Déclencheur',
+    detail: sectionStatus == _GuidedStepStatus.complete ||
+            _stepSeverity(baseStatus) >= _stepSeverity(sectionStatus)
+        ? (hasTrigger ? event.trigger.label : 'Déclencheur à choisir')
+        : _sectionDiagnosticDetail(event, 'trigger', section?.summary),
+    status: status,
+  );
+}
+
+_GuidedStepInfo _conditionsStep(
+  EventBuilderEventSummary event,
+  EventBuilderSectionReadModel? section,
+) {
+  final sectionStatus = _sectionStepStatus(section);
+  final lockStatus = event.conditionEditingLocked
+      ? _GuidedStepStatus.attention
+      : _GuidedStepStatus.complete;
+  final status = _mostSevereStepStatus(sectionStatus, lockStatus);
+  final detail = switch (status) {
+    _GuidedStepStatus.blocking =>
+      _sectionDiagnosticDetail(event, 'conditions', section?.summary),
+    _GuidedStepStatus.attention when event.conditionEditingLocked =>
+      'Condition avancée en lecture seule',
+    _GuidedStepStatus.attention =>
+      _sectionDiagnosticDetail(event, 'conditions', section?.summary),
+    _ when event.conditions.isEmpty => 'Aucune condition — optionnel',
+    _ =>
+      '${event.conditions.length} condition${event.conditions.length > 1 ? 's' : ''}',
+  };
+  return _GuidedStepInfo(
+    id: 'conditions',
+    number: 3,
+    label: 'Conditions',
+    detail: detail,
+    status: status,
+  );
+}
+
+_GuidedStepInfo _actionStep(
+  EventBuilderEventSummary event,
+  EventBuilderSectionReadModel? section,
+) {
+  final missingLinkedScene = event.sceneOutcomes.status ==
+          EventBuilderSceneOutcomesProjectionStatus.missingScene ||
+      event.lifecycle.status ==
+          EventBuilderLifecycleProjectionStatus.oneShotMissingScene;
+  final hasOtherBlockingDiagnostic = event.diagnostics.any(
+    (diagnostic) =>
+        diagnostic.severity == EventBuilderDiagnosticReadModelSeverity.error &&
+        (diagnostic.kind ==
+                EventBuilderDiagnosticReadModelKind.eventPageMissing ||
+            (diagnostic.sectionTarget == 'actions' &&
+                diagnostic.kind !=
+                    EventBuilderDiagnosticReadModelKind.missingSceneAction)),
+  );
+
+  // A missing action is an incomplete authoring step, despite its legacy error
+  // diagnostic. Every other blocking action inconsistency remains blocking.
+  final status = missingLinkedScene || hasOtherBlockingDiagnostic
+      ? _GuidedStepStatus.blocking
+      : event.sceneAction.isMissing
+          ? _GuidedStepStatus.incomplete
+          : _sectionStepStatus(section);
+  final detail = switch (status) {
+    _GuidedStepStatus.blocking when missingLinkedScene => 'Scène introuvable',
+    _GuidedStepStatus.blocking ||
+    _GuidedStepStatus.attention =>
+      _sectionDiagnosticDetail(event, 'actions', section?.summary),
+    _GuidedStepStatus.incomplete => 'Scène à choisir',
+    _ => event.sceneAction.sceneLabel,
+  };
+  return _GuidedStepInfo(
+    id: 'action',
+    number: 4,
+    label: 'Action',
+    detail: detail,
+    status: status,
+  );
+}
+
+_GuidedStepInfo _behaviorStep(
+  EventBuilderEventSummary event,
+  EventBuilderSectionReadModel? section,
+) {
+  final lifecycle = event.lifecycle;
+  final base = switch (lifecycle.status) {
+    EventBuilderLifecycleProjectionStatus.reusableNoConsumptionNeeded =>
+      _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: event.behavior.label,
+        status: _GuidedStepStatus.complete,
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotIntentOnly =>
+      const _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: 'Intention non garantie',
+        status: _GuidedStepStatus.attention,
+      ),
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForThisEvent =>
+      const _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: 'Compatible mais fragile si la scène est réutilisée',
+        status: _GuidedStepStatus.attention,
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotNoSceneTarget =>
+      const _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: 'Aucune scène liée',
+        status: _GuidedStepStatus.incomplete,
+      ),
+    EventBuilderLifecycleProjectionStatus.oneShotMissingScene =>
+      const _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: 'Scène introuvable',
+        status: _GuidedStepStatus.blocking,
+      ),
+    EventBuilderLifecycleProjectionStatus
+          .oneShotExplicitSceneConsequenceForAnotherEvent =>
+      const _GuidedStepInfo(
+        id: 'behavior',
+        number: 5,
+        label: 'Comportement',
+        detail: 'Un autre événement est consommé',
+        status: _GuidedStepStatus.blocking,
+      ),
+  };
+  final sectionStatus = _sectionStepStatus(section);
+  final status = _mostSevereStepStatus(base.status, sectionStatus);
+  return _GuidedStepInfo(
+    id: base.id,
+    number: base.number,
+    label: base.label,
+    detail: _stepSeverity(sectionStatus) > _stepSeverity(base.status)
+        ? _sectionDiagnosticDetail(event, 'behavior', section?.summary)
+        : base.detail,
+    status: status,
+  );
+}
+
+_GuidedStepStatus _sectionStepStatus(EventBuilderSectionReadModel? section) {
+  if (section == null) {
+    return _GuidedStepStatus.incomplete;
+  }
+  if (section.hasBlockingDiagnostic) {
+    return _GuidedStepStatus.blocking;
+  }
+  if (section.diagnosticCount > 0) {
+    return _GuidedStepStatus.attention;
+  }
+  return _GuidedStepStatus.complete;
+}
+
+_GuidedStepStatus _mostSevereStepStatus(
+  _GuidedStepStatus first,
+  _GuidedStepStatus second,
+) {
+  return _stepSeverity(first) >= _stepSeverity(second) ? first : second;
+}
+
+int _stepSeverity(_GuidedStepStatus status) {
+  return switch (status) {
+    _GuidedStepStatus.complete => 0,
+    _GuidedStepStatus.attention => 1,
+    _GuidedStepStatus.incomplete => 2,
+    _GuidedStepStatus.blocking => 3,
+  };
+}
+
+String _sectionDiagnosticDetail(
+  EventBuilderEventSummary event,
+  String sectionKey,
+  String? fallback,
+) {
+  for (final severity in [
+    EventBuilderDiagnosticReadModelSeverity.error,
+    EventBuilderDiagnosticReadModelSeverity.warning,
+    EventBuilderDiagnosticReadModelSeverity.info,
+  ]) {
+    for (final diagnostic in event.diagnostics) {
+      if (diagnostic.sectionTarget == sectionKey &&
+          diagnostic.severity == severity) {
+        return diagnostic.title;
+      }
+    }
+  }
+  final summary = fallback?.trim();
+  return summary == null || summary.isEmpty ? 'À vérifier' : summary;
+}
+
 class _GuidedStepperTile extends StatelessWidget {
   const _GuidedStepperTile({
-    required this.complete,
-    required this.number,
-    required this.label,
-    required this.detail,
+    super.key,
+    required this.step,
   });
 
-  final bool complete;
-  final int number;
-  final String label;
-  final String detail;
+  final _GuidedStepInfo step;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        complete
-            ? Icon(
+    final statusLabel = switch (step.status) {
+      _GuidedStepStatus.attention => 'À vérifier',
+      _GuidedStepStatus.blocking => 'À corriger',
+      _ => null,
+    };
+    return KeyedSubtree(
+      key: ValueKey(
+        'event-builder-guided-step-${step.id}-${step.status.name}',
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          switch (step.status) {
+            _GuidedStepStatus.complete => Icon(
                 CupertinoIcons.checkmark_circle_fill,
                 color: colors.success,
                 size: 15,
-              )
-            : PokeMapBadge(
-                label: '$number',
-                variant: PokeMapBadgeVariant.info,
               ),
-        const SizedBox(width: 7),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w900,
+            _GuidedStepStatus.attention => Icon(
+                CupertinoIcons.exclamationmark_triangle_fill,
+                color: colors.warning,
+                size: 15,
+              ),
+            _GuidedStepStatus.blocking => Icon(
+                CupertinoIcons.xmark_circle_fill,
+                color: colors.error,
+                size: 15,
+              ),
+            _GuidedStepStatus.incomplete => PokeMapBadge(
+                label: '${step.number}',
+                variant: PokeMapBadgeVariant.neutral,
+              ),
+          },
+          const SizedBox(width: 7),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  step.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                detail,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textMuted,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  height: 1.25,
+                const SizedBox(height: 2),
+                Text(
+                  step.detail,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1.25,
+                  ),
                 ),
-              ),
-            ],
+                if (statusLabel != null) ...[
+                  const SizedBox(height: 4),
+                  PokeMapBadge(
+                    label: statusLabel,
+                    variant: step.status == _GuidedStepStatus.blocking
+                        ? PokeMapBadgeVariant.error
+                        : PokeMapBadgeVariant.warning,
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1824,6 +2062,7 @@ class _GuidedProjectedConsequencesSummary extends StatelessWidget {
             diagnostic.severity ==
             EventBuilderDiagnosticReadModelSeverity.error)
         .length;
+    final diagnosticCount = event.diagnostics.length;
     return Wrap(
       key: const ValueKey('event-builder-guided-consequences-summary'),
       spacing: 8,
@@ -1835,8 +2074,8 @@ class _GuidedProjectedConsequencesSummary extends StatelessWidget {
           title: event.worldImpacts.isEmpty
               ? 'Aucune source projetée'
               : _sourceCountLabel(event.worldImpacts.length),
-          subtitle: 'Lecture seule',
-          badge: 'Défini dans la scène',
+          subtitle: 'Projection en lecture seule',
+          badge: 'Lecture seule',
         ),
         _GuidedSummaryTile(
           icon: CupertinoIcons.globe,
@@ -1846,17 +2085,20 @@ class _GuidedProjectedConsequencesSummary extends StatelessWidget {
           badge: 'Lecture seule',
         ),
         _GuidedSummaryTile(
-          icon: CupertinoIcons.checkmark_shield,
-          tone: blockingDiagnosticCount == 0
-              ? PokeMapTone.success
-              : PokeMapTone.warning,
-          title: blockingDiagnosticCount == 0
-              ? 'Aucun diagnostic bloquant'
-              : '$blockingDiagnosticCount diagnostic bloquant',
-          subtitle: event.diagnostics.isEmpty
-              ? 'Prêt à être utilisé'
-              : '${event.diagnostics.length} diagnostic${event.diagnostics.length > 1 ? 's' : ''} au total',
-          badge: blockingDiagnosticCount == 0 ? 'OK' : 'À vérifier',
+          icon: diagnosticCount == 0
+              ? CupertinoIcons.checkmark_shield
+              : CupertinoIcons.exclamationmark_triangle,
+          tone:
+              diagnosticCount == 0 ? PokeMapTone.success : PokeMapTone.warning,
+          title: blockingDiagnosticCount > 0
+              ? '$blockingDiagnosticCount diagnostic${blockingDiagnosticCount > 1 ? 's' : ''} bloquant${blockingDiagnosticCount > 1 ? 's' : ''}'
+              : diagnosticCount > 0
+                  ? '$diagnosticCount diagnostic${diagnosticCount > 1 ? 's' : ''} à vérifier'
+                  : 'Aucun diagnostic bloquant',
+          subtitle: diagnosticCount == 0
+              ? 'Aucun diagnostic Event Builder'
+              : 'Consultez le détail avant utilisation',
+          badge: diagnosticCount == 0 ? 'Contrat sans erreur' : 'À vérifier',
         ),
       ],
     );
@@ -1937,6 +2179,533 @@ class _GuidedSummaryTile extends StatelessWidget {
   }
 }
 
+class _AdvancedProjectionDetails extends StatelessWidget {
+  const _AdvancedProjectionDetails({required this.event});
+
+  final EventBuilderEventSummary event;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      key: const ValueKey('event-builder-advanced-projection-details'),
+      borderRadius: 8,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.doc_text_search,
+                tone: PokeMapTone.info,
+                size: 28,
+                iconSize: 14,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Détails avancés',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const PokeMapBadge(
+                label: 'Lecture seule',
+                variant: PokeMapBadgeVariant.neutral,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _AdvancedProjectionGroup(
+            key: const ValueKey('event-builder-scene-outcomes-projection'),
+            title: 'Issues de la scène',
+            description: 'Résultats déclarés par la scène liée.',
+            child: _sceneOutcomeDetails(context),
+          ),
+          _AdvancedProjectionDivider(color: colors.divider),
+          _AdvancedProjectionGroup(
+            title: 'Sources projetées',
+            description: 'Sources d’état observées sans appliquer leur effet.',
+            child: _worldImpactDetails(context),
+          ),
+          _AdvancedProjectionDivider(color: colors.divider),
+          _AdvancedProjectionGroup(
+            key: const ValueKey('event-builder-world-rules-projection'),
+            title: 'Règles concernées',
+            description: 'Règles passives reliées aux sources projetées.',
+            child: _worldRuleDetails(context),
+          ),
+          _AdvancedProjectionDivider(color: colors.divider),
+          _AdvancedProjectionGroup(
+            title: 'Diagnostics',
+            description: 'État détaillé de l’événement sélectionné.',
+            child: _diagnosticDetails(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sceneOutcomeDetails(BuildContext context) {
+    final projection = event.sceneOutcomes;
+    final sceneId = projection.sceneId?.trim();
+    final sceneLabel = projection.sceneLabel.trim();
+    final linkedScene = sceneLabel.isNotEmpty
+        ? sceneLabel
+        : sceneId == null || sceneId.isEmpty
+            ? 'Aucune scène liée'
+            : sceneId;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ProjectionDetailLine(
+          label: 'Statut',
+          value: _sceneOutcomesStatusLabel(projection),
+        ),
+        _ProjectionDetailLine(label: 'Scène liée', value: linkedScene),
+        _ProjectionDetailLine(
+          label: 'Résultats déclarés',
+          value: '${projection.outcomes.length}',
+        ),
+        if (projection.outcomes.isEmpty)
+          const _ProjectionEmptyText(
+            label: 'Aucun résultat détaillé à afficher.',
+          )
+        else
+          for (final outcome in projection.outcomes)
+            _AdvancedProjectionItem(
+              key: ValueKey('event-builder-scene-outcome-${outcome.id}'),
+              title: outcome.label,
+              description: outcome.description,
+              fields: const [
+                _ProjectionDetailLine(
+                  label: 'Source',
+                  value: 'Scène déclarée',
+                ),
+              ],
+              badges: [
+                if (outcome.isReadOnly)
+                  const PokeMapBadge(
+                    label: 'Lecture seule',
+                    variant: PokeMapBadgeVariant.neutral,
+                  ),
+                const PokeMapBadge(
+                  label: 'Défini dans la scène',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
+            ),
+      ],
+    );
+  }
+
+  Widget _worldImpactDetails(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ProjectionDetailLine(
+          label: 'Nombre de sources',
+          value: '${event.worldImpacts.length}',
+        ),
+        if (event.worldImpacts.isEmpty)
+          const _ProjectionEmptyText(
+            label: 'Aucune source d’état projetée.',
+          )
+        else
+          for (final impact in event.worldImpacts)
+            _AdvancedProjectionItem(
+              key: ValueKey(
+                'event-builder-world-impact-${impact.kind.name}-${impact.sourceId}',
+              ),
+              title: impact.label,
+              fields: [
+                _ProjectionDetailLine(
+                  label: 'Type',
+                  value: _worldImpactKindLabel(impact.kind),
+                ),
+                _ProjectionDetailLine(
+                  label: 'Raison',
+                  value: _worldImpactReasonLabel(impact),
+                ),
+              ],
+              badges: const [
+                PokeMapBadge(
+                  label: 'Lecture seule',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+                PokeMapBadge(
+                  label: 'Projection',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
+            ),
+      ],
+    );
+  }
+
+  Widget _worldRuleDetails(BuildContext context) {
+    final projection = event.worldRules;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _ProjectionDetailLine(
+          label: 'Statut',
+          value: _guidedWorldRulesSummaryLabel(projection),
+        ),
+        _ProjectionDetailLine(
+          label: 'Nombre de règles',
+          value: '${projection.rules.length}',
+        ),
+        if (projection.rules.isEmpty)
+          const _ProjectionEmptyText(
+            label: 'Aucune règle du monde liée.',
+          )
+        else
+          for (final rule in projection.rules)
+            _AdvancedProjectionItem(
+              key: ValueKey('event-builder-world-rule-${rule.ruleId}'),
+              title: rule.ruleLabel,
+              description:
+                  rule.description.trim().isEmpty ? null : rule.description,
+              fields: [
+                _ProjectionDetailLine(
+                  label: 'Source',
+                  value: rule.sourceLabel,
+                ),
+                _ProjectionDetailLine(
+                  label: 'Condition observée',
+                  value: rule.predicateLabel,
+                ),
+                _ProjectionDetailLine(
+                  label: 'Cible',
+                  value: rule.targetLabel,
+                ),
+                _ProjectionDetailLine(
+                  label: 'Effet déclaré',
+                  value: rule.effectLabel,
+                ),
+                _ProjectionDetailLine(label: 'Note', value: rule.reason),
+              ],
+              badges: [
+                PokeMapBadge(
+                  label: rule.enabled ? 'Activée' : 'Désactivée',
+                  variant: rule.enabled
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.warning,
+                ),
+                const PokeMapBadge(
+                  label: 'Lecture seule',
+                  variant: PokeMapBadgeVariant.neutral,
+                ),
+                const PokeMapBadge(
+                  label: 'Projection passive',
+                  variant: PokeMapBadgeVariant.info,
+                ),
+              ],
+            ),
+      ],
+    );
+  }
+
+  Widget _diagnosticDetails(BuildContext context) {
+    if (event.diagnostics.isEmpty) {
+      final colors = context.pokeMapColors;
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          const PokeMapBadge(
+            label: 'OK',
+            variant: PokeMapBadgeVariant.success,
+          ),
+          Text(
+            'Aucun diagnostic bloquant',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (var index = 0; index < event.diagnostics.length; index++)
+          _AdvancedProjectionItem(
+            key: ValueKey('event-builder-projection-diagnostic-$index'),
+            title: event.diagnostics[index].title,
+            description: event.diagnostics[index].message,
+            fields: [
+              _ProjectionDetailLine(
+                label: 'Section',
+                value: event.diagnostics[index].sectionTarget,
+              ),
+              _ProjectionDetailLine(
+                label: 'Chemin',
+                value: event.diagnostics[index].path,
+              ),
+              if ((event.diagnostics[index].referencedId ?? '')
+                  .trim()
+                  .isNotEmpty)
+                _ProjectionDetailLine(
+                  label: 'Référence',
+                  value: event.diagnostics[index].referencedId!,
+                ),
+            ],
+            badges: [
+              PokeMapBadge(
+                label: _diagnosticSeverityLabel(
+                  event.diagnostics[index].severity,
+                ),
+                variant: _diagnosticSeverityVariant(
+                  event.diagnostics[index].severity,
+                ),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _AdvancedProjectionGroup extends StatelessWidget {
+  const _AdvancedProjectionGroup({
+    super.key,
+    required this.title,
+    required this.description,
+    required this.child,
+  });
+
+  final String title;
+  final String description;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          description,
+          style: TextStyle(
+            color: colors.textMuted,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _AdvancedProjectionDivider extends StatelessWidget {
+  const _AdvancedProjectionDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Container(height: 1, color: color),
+    );
+  }
+}
+
+class _AdvancedProjectionItem extends StatelessWidget {
+  const _AdvancedProjectionItem({
+    super.key,
+    required this.title,
+    required this.fields,
+    required this.badges,
+    this.description,
+  });
+
+  final String title;
+  final String? description;
+  final List<Widget> fields;
+  final List<Widget> badges;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if ((description ?? '').trim().isNotEmpty) ...[
+            const SizedBox(height: 3),
+            Text(
+              description!.trim(),
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w600,
+                height: 1.25,
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
+          ...fields,
+          if (badges.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Wrap(spacing: 6, runSpacing: 6, children: badges),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectionDetailLine extends StatelessWidget {
+  const _ProjectionDetailLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 118,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                height: 1.25,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProjectionEmptyText extends StatelessWidget {
+  const _ProjectionEmptyText({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Text(
+      label,
+      style: TextStyle(
+        color: colors.textMuted,
+        fontSize: 10.5,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+}
+
+String _worldImpactKindLabel(EventBuilderWorldImpactKind kind) {
+  return switch (kind) {
+    EventBuilderWorldImpactKind.fact => 'Fait du monde',
+    EventBuilderWorldImpactKind.storyStep => 'Étape narrative',
+    EventBuilderWorldImpactKind.consumedEvent => 'Événement consommé',
+  };
+}
+
+String _sceneOutcomesStatusLabel(
+  EventBuilderSceneOutcomesProjection projection,
+) {
+  return switch (projection.status) {
+    EventBuilderSceneOutcomesProjectionStatus.noSceneTarget =>
+      'Aucune scène liée',
+    EventBuilderSceneOutcomesProjectionStatus.missingScene =>
+      'Scène introuvable',
+    EventBuilderSceneOutcomesProjectionStatus.noDeclaredOutcomes =>
+      'Aucune issue déclarée',
+    EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes =>
+      projection.outcomes.length == 1
+          ? '1 issue déclarée'
+          : '${projection.outcomes.length} issues déclarées',
+  };
+}
+
+String _worldImpactReasonLabel(EventBuilderWorldImpactReadModel impact) {
+  final reason = impact.reason.trim();
+  if (reason.isEmpty) {
+    return 'Aucune raison fournie';
+  }
+  if (reason ==
+      'A one-shot event can drive World Rules through consumed event state after the Scene succeeds.') {
+    return 'Peut influencer les règles du monde après la scène.';
+  }
+  return reason;
+}
+
+String _diagnosticSeverityLabel(
+  EventBuilderDiagnosticReadModelSeverity severity,
+) {
+  return switch (severity) {
+    EventBuilderDiagnosticReadModelSeverity.info => 'Information',
+    EventBuilderDiagnosticReadModelSeverity.warning => 'Avertissement',
+    EventBuilderDiagnosticReadModelSeverity.error => 'Erreur',
+  };
+}
+
+PokeMapBadgeVariant _diagnosticSeverityVariant(
+  EventBuilderDiagnosticReadModelSeverity severity,
+) {
+  return switch (severity) {
+    EventBuilderDiagnosticReadModelSeverity.info => PokeMapBadgeVariant.info,
+    EventBuilderDiagnosticReadModelSeverity.warning =>
+      PokeMapBadgeVariant.warning,
+    EventBuilderDiagnosticReadModelSeverity.error => PokeMapBadgeVariant.error,
+  };
+}
+
 String _guidedWorldRulesSummaryLabel(
   EventBuilderWorldRulesProjection projection,
 ) {
@@ -1987,6 +2756,7 @@ class _EventDetailsPanel extends StatefulWidget {
 
 class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   late final TextEditingController _titleController;
+  bool _showAdvancedProjectionDetails = false;
   bool _isEditingTitle = false;
   String? _titleError;
   String? _titleFeedback;
@@ -2013,9 +2783,12 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
   @override
   void didUpdateWidget(_EventDetailsPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final previousId = oldWidget.event?.eventId;
+    final previous = oldWidget.event;
     final next = widget.event;
-    if (previousId != next?.eventId) {
+    final selectionChanged = previous?.eventId != next?.eventId ||
+        previous?.groupKey != next?.groupKey;
+    if (selectionChanged) {
+      _showAdvancedProjectionDetails = false;
       _isEditingTitle = false;
       _titleError = null;
       _titleFeedback = null;
@@ -2062,7 +2835,7 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
     };
     final centralFlow = EventBuilderCentralFlow(
       title: 'Configurer l’événement',
-      subtitle: 'Complétez les étapes pour créer un événement valide.',
+      subtitle: 'Complétez les étapes principales et vérifiez les alertes.',
       eventHeader: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -2178,13 +2951,41 @@ class _EventDetailsPanelState extends State<_EventDetailsPanel> {
           summary: selected.worldImpacts.isEmpty
               ? 'Aucune source projetée'
               : _sourceCountLabel(selected.worldImpacts.length),
-          diagnosticCount: (sections['behavior']?.diagnosticCount ?? 0) +
-              (sections['world']?.diagnosticCount ?? 0),
-          hasBlockingDiagnostic:
-              (sections['behavior']?.hasBlockingDiagnostic ?? false) ||
-                  (sections['world']?.hasBlockingDiagnostic ?? false),
+          diagnosticCount: selected.diagnostics.length,
+          hasBlockingDiagnostic: selected.diagnostics.any(
+            (diagnostic) =>
+                diagnostic.severity ==
+                EventBuilderDiagnosticReadModelSeverity.error,
+          ),
+          trailing: PokeMapButton(
+            key: const ValueKey(
+              'event-builder-projection-details-toggle',
+            ),
+            onPressed: () {
+              setState(() {
+                _showAdvancedProjectionDetails =
+                    !_showAdvancedProjectionDetails;
+              });
+            },
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: Icon(
+              _showAdvancedProjectionDetails
+                  ? CupertinoIcons.chevron_up
+                  : CupertinoIcons.chevron_down,
+            ),
+            child: Text(
+              _showAdvancedProjectionDetails
+                  ? 'Masquer le détail'
+                  : 'Voir le détail',
+            ),
+          ),
           children: [
             _GuidedProjectedConsequencesSummary(event: selected),
+            if (_showAdvancedProjectionDetails) ...[
+              const SizedBox(height: 10),
+              _AdvancedProjectionDetails(event: selected),
+            ],
           ],
         ),
       ],

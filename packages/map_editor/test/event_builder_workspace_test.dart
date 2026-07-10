@@ -176,11 +176,22 @@ void main() {
 
     await _tapEventCard(tester, 'Messager legacy');
 
-    expect(find.text('Script legacy préservé'), findsNothing);
+    expect(find.text('Script legacy préservé'), findsOneWidget);
     expect(find.text('Message legacy préservé'), findsNothing);
-    expect(find.text('Aucun diagnostic bloquant'), findsWidgets);
-    expect(find.text('2 diagnostics au total'), findsOneWidget);
+    expect(find.text('2 diagnostics à vérifier'), findsOneWidget);
+    expect(find.text('Consultez le détail avant utilisation'), findsOneWidget);
+    expect(find.text('Contrat sans erreur'), findsNothing);
     expect(find.text('2 diagnostics'), findsWidgets);
+
+    final toggle = find.byKey(
+      const ValueKey('event-builder-projection-details-toggle'),
+    );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Script legacy préservé'), findsWidgets);
+    expect(find.text('Message legacy préservé'), findsOneWidget);
   });
 
   testWidgets('NS-EVENT-05 surfaces malformed metadata warning',
@@ -195,7 +206,31 @@ void main() {
       find.text('Chemin : page.metadata.eventBuilder.reusePolicy'),
       findsNothing,
     );
-    expect(find.text('1 diagnostic au total'), findsOneWidget);
+    expect(find.text('1 diagnostic à vérifier'), findsOneWidget);
+
+    final toggle = find.byKey(
+      const ValueKey('event-builder-projection-details-toggle'),
+    );
+    await tester.ensureVisible(toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    final details = find.byKey(
+      const ValueKey('event-builder-advanced-projection-details'),
+    );
+    for (final label in [
+      'Réglage Event Builder illisible',
+      'Un réglage Event Builder est illisible. Une valeur sûre est utilisée.',
+      'behavior',
+      'page.metadata.eventBuilder.reusePolicy',
+      'Avertissement',
+    ]) {
+      expect(
+        find.descendant(of: details, matching: find.text(label)),
+        findsOneWidget,
+        reason: 'Missing malformed metadata detail: $label',
+      );
+    }
   });
 
   testWidgets('NS-EVENT-05 keeps event details read-only', (tester) async {
@@ -1465,7 +1500,7 @@ void main() {
       expect(
         find.descendant(
           of: consequences,
-          matching: find.text('Défini dans la scène'),
+          matching: find.text('Projection en lecture seule'),
         ),
         findsWidgets,
       );
@@ -1743,7 +1778,7 @@ void main() {
       expect(
         find.descendant(
           of: consequences,
-          matching: find.text('Défini dans la scène'),
+          matching: find.text('Projection en lecture seule'),
         ),
         findsWidgets,
       );
@@ -1924,7 +1959,9 @@ void main() {
       );
       expect(find.text('Configurer l’événement'), findsOneWidget);
       expect(
-        find.text('Complétez les étapes pour créer un événement valide.'),
+        find.text(
+          'Complétez les étapes principales et vérifiez les alertes.',
+        ),
         findsOneWidget,
       );
       expect(stepper, findsOneWidget);
@@ -2008,8 +2045,12 @@ void main() {
         find.descendant(of: summary, matching: find.text('Projection passive')),
         findsWidgets,
       );
-      expect(find.byKey(const ValueKey('event-builder-world-impact-fact')),
-          findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-world-impact-fact-fact_started'),
+        ),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('event-builder-world-rule-rule_port')),
           findsNothing);
       _expectNoForbiddenEventOwnedAuthoringControls();
@@ -2156,6 +2197,748 @@ void main() {
       );
 
       expect(screenshotFile.existsSync(), isTrue);
+    });
+  });
+
+  group('NS-EVENT-41-bis truthful stepper and secondary details', () {
+    testWidgets(
+        'NS-EVENT-41-bis marks a valid reusable lifecycle step complete',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.reusable,
+        ),
+      );
+
+      final behavior = find.byKey(
+        const ValueKey('event-builder-guided-step-behavior'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-complete'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsOneWidget,
+      );
+      expect(find.descendant(of: behavior, matching: find.text('Réutilisable')),
+          findsOneWidget);
+      expect(
+        find.descendant(of: behavior, matching: find.text('À vérifier')),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis marks oneShot intent-only lifecycle as attention',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.oneShot,
+        ),
+      );
+
+      final behavior = find.byKey(
+        const ValueKey('event-builder-guided-step-behavior'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-attention'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsNothing,
+      );
+      expect(find.descendant(of: behavior, matching: find.text('À vérifier')),
+          findsOneWidget);
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.textContaining('Intention non garantie'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis marks matching explicit consumption as attention',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.oneShot,
+          consumedEventId: 'evt_guided',
+        ),
+      );
+
+      final behavior = find.byKey(
+        const ValueKey('event-builder-guided-step-behavior'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-attention'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsNothing,
+      );
+      expect(find.descendant(of: behavior, matching: find.text('À vérifier')),
+          findsOneWidget);
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.textContaining('Compatible mais fragile'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('NS-EVENT-41-bis marks another-event consumption as blocking',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.oneShot,
+          consumedEventId: 'evt_elsewhere',
+        ),
+      );
+
+      final behavior = find.byKey(
+        const ValueKey('event-builder-guided-step-behavior'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-blocking'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsNothing,
+      );
+      expect(find.descendant(of: behavior, matching: find.text('À corriger')),
+          findsOneWidget);
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.textContaining('Un autre événement est consommé'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: behavior,
+          matching: find.textContaining('evt_elsewhere'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.text('Événement consommé : evt_elsewhere'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis treats zero valid conditions as complete and optional',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.reusable,
+        ),
+      );
+
+      final conditions = find.byKey(
+        const ValueKey('event-builder-guided-step-conditions'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-conditions-complete'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: conditions,
+          matching: find.text('Aucune condition — optionnel'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: conditions, matching: find.text('À corriger')),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis marks preserved advanced conditions as attention',
+        (tester) async {
+      await _pumpWorkspace(tester, _sampleReadModel());
+      await _tapEventCard(tester, 'Herbes médicinales');
+
+      final conditions = find.byKey(
+        const ValueKey('event-builder-guided-step-conditions'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-conditions-attention'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: conditions,
+          matching: find.text('Condition avancée en lecture seule'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: conditions, matching: find.text('À vérifier')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: conditions,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('NS-EVENT-41-bis marks missing scene action incomplete',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.oneShot,
+          includeSceneTarget: false,
+        ),
+      );
+
+      final action = find.byKey(
+        const ValueKey('event-builder-guided-step-action'),
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-action-incomplete'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: action,
+          matching: find.byIcon(CupertinoIcons.checkmark_circle_fill),
+        ),
+        findsNothing,
+      );
+      expect(
+          find.descendant(of: action, matching: find.text('Scène à choisir')),
+          findsOneWidget);
+    });
+
+    testWidgets('NS-EVENT-41-bis marks a missing linked scene as blocking',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.oneShot,
+          includeScene: false,
+        ),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-action-blocking'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-blocking'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('À corriger'), findsWidgets);
+      expect(find.textContaining('Scène introuvable'), findsWidgets);
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis keeps advanced projection details collapsed by default',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      expect(
+        find.byKey(const ValueKey('event-builder-guided-consequences-summary')),
+        findsOneWidget,
+      );
+      expect(find.text('Voir le détail'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsNothing,
+      );
+      expect(
+          find.byKey(const ValueKey('event-builder-scene-outcomes-projection')),
+          findsNothing);
+      expect(find.byKey(const ValueKey('event-builder-world-rule-rule_port')),
+          findsNothing);
+      expect(
+        find.byKey(const ValueKey('event-builder-simplified-body')),
+        findsOneWidget,
+      );
+      expect(find.text('Bibliothèque d’éléments'), findsNothing);
+    });
+
+    testWidgets('NS-EVENT-41-bis opens and closes read-only projection details',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Masquer le détail'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsOneWidget,
+      );
+      final advancedDetails = find.byKey(
+        const ValueKey('event-builder-advanced-projection-details'),
+      );
+      for (final label in [
+        'Issues de la scène',
+        'Sources projetées',
+        'Règles concernées',
+        'Diagnostics',
+      ]) {
+        expect(
+          find.descendant(of: advancedDetails, matching: find.text(label)),
+          findsOneWidget,
+          reason: 'Missing $label',
+        );
+      }
+      expect(find.text('Lecture seule'), findsWidgets);
+
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Voir le détail'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('NS-EVENT-41-bis exposes complete read-only projection details',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      final advancedDetails = find.byKey(
+        const ValueKey('event-builder-advanced-projection-details'),
+      );
+      final sceneOutcome = find.byKey(
+        const ValueKey('event-builder-scene-outcome-victory'),
+      );
+      expect(
+        find.descendant(of: sceneOutcome, matching: find.text('Victoire')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: sceneOutcome,
+          matching: find.text('Le rival laisse passer le joueur.'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: sceneOutcome,
+          matching: find.text('Défini dans la scène'),
+        ),
+        findsOneWidget,
+      );
+
+      final startedImpact = find.byKey(
+        const ValueKey('event-builder-world-impact-fact-fact_started'),
+      );
+      final blockedImpact = find.byKey(
+        const ValueKey('event-builder-world-impact-fact-fact_blocked'),
+      );
+      expect(startedImpact, findsOneWidget);
+      expect(blockedImpact, findsOneWidget);
+      expect(
+        find.descendant(
+          of: startedImpact,
+          matching: find.text('Départ accepté = vrai'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: blockedImpact,
+          matching: find.text('Rival battu = faux'),
+        ),
+        findsOneWidget,
+      );
+      for (final impact in [startedImpact, blockedImpact]) {
+        expect(
+          find.descendant(of: impact, matching: find.text('Fait du monde')),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: impact, matching: find.text('Lecture seule')),
+          findsOneWidget,
+        );
+      }
+
+      final worldRule = find.byKey(
+        const ValueKey('event-builder-world-rule-rule_port'),
+      );
+      for (final label in [
+        'Règle du port',
+        'Départ accepté est vrai',
+        'Rival au port',
+        'Visible',
+        'Cette règle observe une source projetée par l’Event Builder.',
+        'Activée',
+        'Projection passive',
+      ]) {
+        expect(
+          find.descendant(of: worldRule, matching: find.text(label)),
+          findsOneWidget,
+          reason: 'Missing world rule detail: $label',
+        );
+      }
+      expect(
+        find.descendant(
+          of: advancedDetails,
+          matching: find.text('Nombre de sources'),
+        ),
+        findsOneWidget,
+      );
+
+      await _tapEventCard(tester, 'Messager legacy');
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsNothing,
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      final legacyDetails = find.byKey(
+        const ValueKey('event-builder-advanced-projection-details'),
+      );
+      for (final label in [
+        'Script legacy préservé',
+        'Message legacy préservé',
+        'Le script legacy reste conservé, mais il ne fait pas partie du flux Event Builder MVP.',
+        'Le message legacy reste conservé, mais il ne fait pas partie du flux Event Builder MVP.',
+        'actions',
+        'page.script',
+        'page.message',
+        'legacy_script',
+      ]) {
+        expect(
+          find.descendant(of: legacyDetails, matching: find.text(label)),
+          findsWidgets,
+          reason: 'Missing diagnostic detail: $label',
+        );
+      }
+      expect(
+        find.descendant(
+          of: legacyDetails,
+          matching: find.text('Avertissement'),
+        ),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis presents non-blocking diagnostics as attention',
+        (tester) async {
+      await _pumpWorkspace(tester, _sampleReadModel());
+      await _tapEventCard(tester, 'Messager legacy');
+
+      final summary = find.byKey(
+        const ValueKey('event-builder-guided-consequences-summary'),
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.text('2 diagnostics à vérifier'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.text('Consultez le détail avant utilisation'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: summary, matching: find.text('À vérifier')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.byIcon(CupertinoIcons.exclamationmark_triangle),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.text('Contrat sans erreur'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis resets advanced details when selected event changes',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Masquer le détail'), findsOneWidget);
+
+      await _tapEventCard(tester, 'Coffre abandonné');
+
+      expect(find.text('Voir le détail'), findsOneWidget);
+      expect(find.text('Masquer le détail'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Coffre abandonné'), findsWidgets);
+    });
+
+    testWidgets(
+        'NS-EVENT-41-bis resets details across maps sharing an event id',
+        (tester) async {
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.reusable,
+          mapId: 'map_port',
+          mapTitle: 'Port Selbrume',
+        ),
+      );
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('Masquer le détail'), findsOneWidget);
+
+      await _pumpWorkspace(
+        tester,
+        _guidedLifecycleReadModel(
+          reusePolicy: EventBuilderReusePolicy.reusable,
+          mapId: 'map_forest',
+          mapTitle: 'Forêt Brumeuse',
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Voir le détail'), findsOneWidget);
+      expect(find.text('Masquer le détail'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-advanced-projection-details'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Forêt Brumeuse'), findsWidgets);
+    });
+
+    testWidgets('NS-EVENT-41-bis uses truthful projection ownership wording',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      final summary = find.byKey(
+        const ValueKey('event-builder-guided-consequences-summary'),
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.text('Projection en lecture seule'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: summary,
+          matching: find.text('Défini dans la scène'),
+        ),
+        findsNothing,
+      );
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Défini dans la scène'), findsWidgets);
+      expect(find.text('Projection passive'), findsWidgets);
+    });
+
+    testWidgets('NS-EVENT-41-bis keeps advanced details strictly read-only',
+        (tester) async {
+      await _pumpWorkspace(tester, _guidedProjectionReadModel());
+
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.ensureVisible(toggle);
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      _expectNoForbiddenEventOwnedAuthoringControls();
+      for (final label in [
+        'Modifier un résultat',
+        'Modifier une règle monde',
+        'Appliquer l’effet',
+        'Simuler',
+      ]) {
+        expect(find.text(label), findsNothing,
+            reason: 'Forbidden label: $label');
+      }
+      expect(find.byKey(const ValueKey('event-builder-element-library')),
+          findsNothing);
+    });
+
+    testWidgets('NS-EVENT-41-bis captures collapsed and expanded visual gates',
+        (tester) async {
+      if (!const bool.fromEnvironment(
+        'NS_EVENT_41_BIS_CAPTURE_WORKSPACE',
+      )) {
+        return;
+      }
+
+      await _loadScreenshotFont();
+      await _pumpNarrativeEventsShell(
+        tester,
+        activeMap: _mapWithEventConditionTargets(),
+        project: _eventProjectWithWorldRules(),
+        fontFamily: _screenshotFontFamily,
+        surfaceSize: const Size(1680, 1400),
+      );
+
+      expect(
+        find.byKey(
+          const ValueKey('event-builder-guided-step-behavior-attention'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Voir le détail'), findsOneWidget);
+
+      final collapsedFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_41_bis_truthful_stepper_collapsed_v0.png',
+      );
+      collapsedFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(collapsedFile.absolute.path),
+      );
+      expect(collapsedFile.existsSync(), isTrue);
+
+      await tester.binding.setSurfaceSize(const Size(1680, 1500));
+      await tester.pumpAndSettle();
+      final toggle = find.byKey(
+        const ValueKey('event-builder-projection-details-toggle'),
+      );
+      await tester.scrollUntilVisible(
+        toggle,
+        260,
+        scrollable: _eventBuilderCentralScrollable(),
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      final advancedDetails = find.byKey(
+        const ValueKey('event-builder-advanced-projection-details'),
+      );
+      await tester.scrollUntilVisible(
+        advancedDetails,
+        300,
+        scrollable: _eventBuilderCentralScrollable(),
+      );
+      await tester.pumpAndSettle();
+      for (final label in [
+        'Issues de la scène',
+        'Sources projetées',
+        'Règles concernées',
+        'Diagnostics',
+      ]) {
+        expect(
+          find.descendant(of: advancedDetails, matching: find.text(label)),
+          findsOneWidget,
+        );
+      }
+
+      final expandedFile = File(
+        '../../reports/narrativeStudio/events/screenshots/'
+        'ns_event_41_bis_secondary_details_expanded_v0.png',
+      );
+      expandedFile.parent.createSync(recursive: true);
+      await expectLater(
+        find.byKey(const ValueKey('event-builder-workspace')),
+        matchesGoldenFile(expandedFile.absolute.path),
+      );
+      expect(expandedFile.existsSync(), isTrue);
     });
   });
 
@@ -3772,7 +4555,7 @@ void main() {
     expect(find.text('Défaite'), findsNothing);
     expect(find.text('Le rival laisse passer le joueur.'), findsNothing);
     expect(find.text('Lecture seule'), findsWidgets);
-    expect(find.text('Défini dans la scène'), findsWidgets);
+    expect(find.text('Projection en lecture seule'), findsWidgets);
     expect(find.text('Ajouter un résultat'), findsNothing);
     expect(find.text('Modifier le résultat'), findsNothing);
     expect(find.text('Ajouter une réaction'), findsNothing);
@@ -3783,7 +4566,8 @@ void main() {
 
     expect(find.text('Conséquences projetées'), findsOneWidget);
     expect(find.text('Issues de la scène liée'), findsNothing);
-    expect(find.text('Aucune scène liée'), findsNothing);
+    expect(find.text('Aucune scène liée'), findsOneWidget);
+    expect(find.text('Scène à choisir'), findsOneWidget);
     expect(
       find.text('Choisissez une scène pour voir ses résultats possibles.'),
       findsNothing,
@@ -3810,7 +4594,7 @@ void main() {
 
     await _pumpWorkspace(tester, readModel);
 
-    expect(find.text('Scène introuvable'), findsNothing);
+    expect(find.text('Scène introuvable'), findsWidgets);
     expect(
       find.text('La scène liée n’existe pas dans le projet.'),
       findsNothing,
@@ -4122,7 +4906,7 @@ void main() {
 
     expect(find.text('Conséquences projetées'), findsOneWidget);
     expect(find.text('1 source projetée'), findsWidgets);
-    expect(find.text('Défini dans la scène'), findsWidgets);
+    expect(find.text('Projection en lecture seule'), findsWidgets);
     expect(find.text('Lecture seule'), findsWidgets);
     expect(find.text('Ajouter un résultat'), findsNothing);
     expect(find.text('Ajouter une réaction'), findsNothing);
@@ -5853,6 +6637,20 @@ Future<void> _loadScreenshotFont() async {
   final loader = FontLoader(_screenshotFontFamily)
     ..addFont(Future<ByteData>.value(ByteData.sublistView(fontBytes)));
   await loader.load();
+
+  // Golden tests do not load package icon assets automatically. Loading the
+  // real Cupertino font keeps the visual gate faithful instead of rendering
+  // every product icon as a placeholder square.
+  final iconFontBytes = await rootBundle.load(
+    'packages/cupertino_icons/assets/CupertinoIcons.ttf',
+  );
+  final effectiveIconFamily = const TextStyle(
+    fontFamily: CupertinoIcons.iconFont,
+    package: CupertinoIcons.iconFontPackage,
+  ).fontFamily!;
+  final iconLoader = FontLoader(effectiveIconFamily)
+    ..addFont(Future<ByteData>.value(iconFontBytes));
+  await iconLoader.load();
 }
 
 Future<void> _tapEventBuilderMapPlacementCanvas(
@@ -6084,8 +6882,9 @@ EventBuilderReadModel _readModelWithWorldImpacts(
 
 EventBuilderReadModel _readModelWithWorldRules(
   List<EventBuilderWorldImpactReadModel> worldImpacts,
-  EventBuilderWorldRulesProjection worldRules,
-) {
+  EventBuilderWorldRulesProjection worldRules, {
+  EventBuilderSceneOutcomesProjection? sceneOutcomes,
+}) {
   final base = _sampleReadModel();
   final selected = base.events.first;
   final sections = [
@@ -6118,7 +6917,7 @@ EventBuilderReadModel _readModelWithWorldRules(
     conditions: selected.conditions,
     sceneAction: selected.sceneAction,
     behavior: selected.behavior,
-    sceneOutcomes: selected.sceneOutcomes,
+    sceneOutcomes: sceneOutcomes ?? selected.sceneOutcomes,
     lifecycle: selected.lifecycle,
     worldImpacts: worldImpacts,
     worldRules: worldRules,
@@ -6132,6 +6931,90 @@ EventBuilderReadModel _readModelWithWorldRules(
     events: [patched, ...base.events.skip(1)],
     mapId: base.mapId,
     mapTitle: base.mapTitle,
+  );
+}
+
+EventBuilderReadModel _guidedLifecycleReadModel({
+  required EventBuilderReusePolicy reusePolicy,
+  bool includeSceneTarget = true,
+  bool includeScene = true,
+  String? consumedEventId,
+  String mapId = 'map_port',
+  String mapTitle = 'Port Selbrume',
+}) {
+  const eventId = 'evt_guided';
+  const sceneId = 'scene_guided';
+  final page = MapEventPage(
+    pageNumber: 0,
+    sceneTarget:
+        includeSceneTarget ? const MapEventSceneTarget(sceneId: sceneId) : null,
+    metadata: {
+      EventBuilderMetadataKeys.reusePolicy: reusePolicy.name,
+    },
+  );
+  return buildEventBuilderReadModel(
+    events: [
+      _event(
+        id: eventId,
+        title: 'Événement guidé',
+        x: 0,
+        page: page,
+      ),
+    ],
+    mapId: mapId,
+    mapTitle: mapTitle,
+    scenes: {
+      if (includeSceneTarget && includeScene)
+        sceneId: _eventScene(
+          sceneId,
+          'Scène guidée',
+          consumedEventId: consumedEventId,
+        ),
+    },
+  );
+}
+
+EventBuilderReadModel _guidedProjectionReadModel() {
+  return _readModelWithWorldRules(
+    const [
+      EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.fact,
+        sourceId: 'fact_started',
+        label: 'Départ accepté = vrai',
+        reason: 'La scène peut définir ce fait après son exécution.',
+      ),
+      EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.fact,
+        sourceId: 'fact_blocked',
+        label: 'Rival battu = faux',
+        reason: 'Cette source reste une projection secondaire.',
+      ),
+    ],
+    EventBuilderWorldRulesProjection.hasMatchingRules([
+      _worldRuleProjection(
+        ruleId: 'rule_port',
+        ruleLabel: 'Règle du port',
+        predicateLabel: 'Départ accepté est vrai',
+        targetLabel: 'Rival au port',
+        effectLabel: 'Visible',
+      ),
+    ]),
+    sceneOutcomes: EventBuilderSceneOutcomesProjection(
+      status: EventBuilderSceneOutcomesProjectionStatus.hasDeclaredOutcomes,
+      label: '1 résultat déclaré par la scène',
+      sceneId: 'scene_rival',
+      sceneLabel: 'Rencontre rival',
+      outcomes: const [
+        EventBuilderSceneOutcomeReadModel(
+          id: 'victory',
+          label: 'Victoire',
+          description: 'Le rival laisse passer le joueur.',
+          source: EventBuilderSceneOutcomeProjectionSource.sceneDeclaredOutcome,
+          sourceLabel: 'Scène déclarée',
+          isReadOnly: true,
+        ),
+      ],
+    ),
   );
 }
 
