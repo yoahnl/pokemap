@@ -196,16 +196,25 @@ diagnostic
 Les cartes ne sont pas imbriquées pour la décoration. Une carte interne existe
 uniquement si elle représente une unité métier répétable ou interactive.
 
+### 8.1 Liste Events project-level
+
+La colonne Events est une vue de tout le projet. Les titres de maps/zones vus
+dans la north star sont des regroupements et facettes de filtre, jamais des
+owners. La map active ne réduit pas implicitement la liste. Les Events
+`outcomeReceived`, les drafts sans source et les sources cassées restent
+accessibles dans des groupes dédiés.
+
 ## 9. Bibliothèque
 
 La Bibliothèque est permanente à la largeur cible. Elle sépare visuellement ce
 que l'Event peut modifier de ce qui appartient à la Scene liée :
 
 ```text
-AJOUTER À L'ÉVÉNEMENT
+CONFIGURER L'ÉVÉNEMENT
 Déclencheurs
 Conditions
-Actions
+Scene liée
+Comportement
 
 DANS LA SCENE LIÉE
 Résultats
@@ -259,13 +268,16 @@ obligatoire :
 
 ```text
 3 événements utilisent cette source
-Événement exécuté en premier : Rencontre Lysa au port
+Premier candidat évalué selon l'ordre actuel : Rencontre Lysa au port
+L'exécution dépendra des conditions, de la consommation et des exécutions en cours.
 [Gérer l'ordre de déclenchement]
 ```
 
 Le réglage no-code expose une `Priorité de déclenchement`. L'`order` stable et
-le tie-break par ID restent des détails internes. La publication est bloquée si
-deux candidats actifs ne peuvent pas être expliqués de manière déterministe.
+le tie-break par ID restent des détails internes. Publier produit toujours un
+Event configuré inactif. Un conflit `(priority, order)` avec un autre Event
+actif autorise cette publication mais bloque l'action séparée `Activer` jusqu'à
+réparation. `Désactiver` reste disponible sur un Event actif.
 
 Le centre n’est pas un graph libre. Les connecteurs servent la lecture d’un
 ordre connu. Les branches visibles proviennent des outcomes de la Scene liée ;
@@ -298,8 +310,10 @@ source non spatiale, aucun CTA carte n’est rendu. Pour une source cassée,
 `Rebrancher la source` remplace la navigation.
 
 La section concurrence affiche les autres Events actifs, leur priorité humaine,
-le gagnant projeté et une action `Gérer l'ordre de déclenchement`. Elle est
-absente lorsqu'une source n'a qu'un seul Event actif.
+le premier candidat évalué pour le snapshot courant et une action `Gérer
+l'ordre de déclenchement`. Elle précise qu'un candidat suivant peut être choisi
+si le précédent est inéligible. Elle est absente lorsqu'une source n'a qu'un
+seul Event actif.
 
 ## 12. États
 
@@ -308,7 +322,7 @@ absente lorsqu'une source n'a qu'un seul Event actif.
 - Event sélectionné / non sélectionné ;
 - actif, brouillon, inactif ;
 - prêt, à configurer, à corriger ;
-- source choisie, manquante, supprimée, non supportée ;
+- source non choisie, choisie, manquante, supprimée, non supportée ;
 - source spatiale / non spatiale ;
 - liste vide, recherche vide, catégorie vide ;
 - lecture seule Scene-owned ;
@@ -318,6 +332,12 @@ absente lorsqu'une source n'a qu'un seul Event actif.
 
 Les états ne reposent jamais uniquement sur la couleur : icône, texte et
 semantics sont obligatoires.
+
+`Source non choisie` affiche `Aucun élément déclencheur choisi`, une commande
+`Choisir un élément déclencheur`, aucun CTA carte et une publication bloquée.
+Cet état de draft est persisté au reload et reste distinct d'une référence
+cassée. Une source cassée conserve sa référence exacte et affiche une erreur
+bloquante avec `Rebrancher` ou `Détacher` explicite.
 
 ## 13. Scrolls
 
@@ -329,9 +349,9 @@ semantics sont obligatoires.
 - Une sélection ne doit pas modifier le scroll des colonnes non concernées.
 - Changer d’Event replace le centre sur le premier bloc en erreur ou le début.
 - Le focus clavier doit faire défiler uniquement la colonne propriétaire.
-- À largeur réduite, la Bibliothèque s'ouvre en panneau modal non bloquant au-
-  dessus du workspace, rend le focus au bouton d'ouverture à la fermeture et se
-  ferme avec `Escape`.
+- À largeur réduite, la Bibliothèque s'ouvre en side sheet modale au-dessus du
+  workspace. Le fond devient inerte, Tab/Shift+Tab restent dans la sheet,
+  `Escape` la ferme et le focus revient au bouton d'ouverture.
 - La fermeture/réouverture conserve scroll et catégorie active pendant la
   session ; un changement de projet les réinitialise.
 - Pour 3 outcomes ou plus, les branches passent en liste verticale compacte ;
@@ -350,7 +370,8 @@ Nouvel événement
 → Conditions
 → Scene
 → Comportement
-→ Validation
+→ Publier (configuré inactif)
+→ Activer (action séparée, soumise aux conflits)
 ```
 
 Matrice de sélection et de persistance :
@@ -360,11 +381,17 @@ Matrice de sélection et de persistance :
 | `Parler ou examiner` | Lieu → personnage/objet | libellé + kind + aperçu map | `entityInteract(mapId, entityId)` | map et entity existantes |
 | `Entrer dans une zone` | Lieu → zone | nom + footprint aperçu | `triggerEnter(mapId, triggerId)` | map et trigger existants |
 | `Arriver sur une carte` | carte | nom et aperçu de la carte | `mapEnter(mapId)` | map existante |
-| `Après un résultat` | résultat | origine Scene/Yarn/Battle + libellé | `outcomeReceived(producerKind, producerId, outcomeId)` | producteur et résultat existants/émettables |
+| `Après un résultat` | résultat | origine Scene/Battle ou bridge Scenario legacy + libellé | `outcomeReceived(NarrativeOutcomeRef)` | producteur public stable et résultat existants/émettables |
 
 Chaque variante doit couvrir le test : choisir → sauvegarder → fermer → rouvrir
-→ retrouver la même source. Une source supprimée devient un brouillon à corriger
-et n'est jamais remplacée par une correspondance de nom ou de position.
+→ retrouver la même source. Yarn apparaît seulement comme contexte sous la
+Scene qui le réémet ; il persiste `producerKind = scene`. Un dialogue hors Scene
+reste legacy et non sélectionnable V2.
+
+Une suppression externe conserve le record configuré et la référence cassée,
+affiche un diagnostic bloquant et n'effectue aucune mutation au chargement.
+Seule l'action explicite `Détacher`, après impact preview, transforme le record
+en draft sans source. Aucune correspondance de nom ou de position n'est admise.
 
 ### Création Map Editor
 
@@ -430,15 +457,15 @@ Référence stricte : cinq panneaux visibles et mesures ci-dessus.
 ### 1280–1479 px
 
 - navigation réductible par commande explicite si le budget l'exige ;
-- Bibliothèque devient un panneau escamotable avec bouton, focus retour et
-  `Escape`, pas une disparition silencieuse ;
+- Bibliothèque devient une side sheet modale avec bouton, fond inerte, focus
+  trap, focus retour et `Escape`, pas une disparition silencieuse ;
 - Inspecteur reste accessible en panneau droit ;
 - aucun texte ou bouton ne doit déborder ;
 - à 1280 px, budget cible hors Bibliothèque : `168 navigation + 220 Events +
   480 centre + 320 Inspecteur + 24 gaps + 16 marges = 1228 px`.
 
-Sous 1280 px : état desktop non supporté V0 avec message clair ou layout adapté
-dans un lot ultérieur. Aucun font-size ne varie directement avec la largeur.
+Sous 1280 px : état desktop non supporté V0 qui préserve l'état de l'éditeur et
+le focus précédent. Aucun font-size ne varie directement avec la largeur.
 
 ## 16. Écarts fonctionnels volontaires
 

@@ -5,58 +5,131 @@
 ```text
 Roadmap vivante : V0
 Lot fondateur : NS-EVENT-RESET-00
-Phases : 12
-Lots : 44 au total, dont 1 lot documentaire courant et 43 lots futurs
+Mode d'execution : missions par phase, anciens lots conserves comme jalons
+Macro-phases : 12 (A a L)
+Missions executables : 13 (A, B, C, D, E, F1, F2, G, H, I, J, K, L)
+Jalons traces : 44 au total, RESET-00 + V2-01 a V2-43
 Architecture : hybride projet + ancres de map
-Prochain lot : NS-EVENT-V2-01
+Phase A : CLOSED / ACCEPTED le 2026-07-10
+Prochaine mission : PHASE B - Domain Contracts
 ```
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
 map-local. Elle ne supprime aucun projet existant et ne change pas le statut des
 lots gameplay `FG-*` sans preuves fraîches.
 
-## Décisions fondatrices
+Le registre normatif des décisions est :
+
+```text
+MVP Selbrume/event_builder_v2_architecture_decisions.md
+```
+
+L'audit RESET-00 reste une preuve historique. En cas d'écart, le ledger
+`ADR-EV2-*` ratifié en Phase A est prioritaire.
+
+## Modèle d'exécution par phases
+
+```text
+1 phase = 1 mission principale Ultra
+1 ancien lot = 1 jalon interne de phase
+1 jalon = code borné + tests ciblés + review locale
+1 phase = 1 rapport principal + 1 Evidence Pack
+```
+
+Chaque mission suit :
+
+```text
+Gate 0
+-> audit de fraîcheur
+-> jalon N
+-> tests ciblés puis cumulés
+-> review locale
+-> jalon suivant
+-> vérifications complètes
+-> reviews contradictoires
+-> Evidence Pack
+-> rapport et verdict de phase
+```
+
+Les jalons V2-01 à V2-43 ne sont plus des prompts indépendants. Ils restent les
+checklists, dépendances, scopes et preuves internes de leur mission parente.
+
+## Modèle de statut
+
+| Objet | Valeurs autorisées |
+|---|---|
+| Mission | `PLANNED`, `READY`, `IN_PROGRESS`, `CLOSED`, `BLOCKED`, `ROLLED_BACK` |
+| Gate | `PENDING`, `ACCEPTED`, `REJECTED` |
+| Jalon | `PLANNED`, `IN_PROGRESS`, `PASS`, `BLOCKED`, `WAIVED` |
+
+Un jalon `WAIVED` exige un ADR accepté et ne peut pas supprimer une capacité du
+Gate de sortie.
+
+## Evidence Pack et stop-on-blocker
+
+Chaque Evidence Pack contient : baseline Git/SHA et drifts, inventaire des
+fichiers/symboles, ledger des jalons, commandes et résultats exacts, tests de
+compatibilité/rollback, reviews, risques résiduels et état Git final.
+
+Si un jalon invalide un ADR de Phase A, rencontre une migration ambiguë, échoue
+une vérification obligatoire ou perd sa preuve de rollback :
+
+1. arrêter immédiatement la mission ;
+2. marquer jalon et mission `BLOCKED` ;
+3. préserver l'état et ne pas improviser un nouveau contrat ;
+4. produire un Blocker Report avec preuves ;
+5. obtenir un nouvel ADR et repasser le Gate d'entrée avant reprise.
+
+## Décisions fondatrices ratifiées
 
 1. `NarrativeEventDefinition` est l’Event configuré canonique, fin et
    project-level.
 2. `NarrativeEventRecord` sépare `draft` incomplet de `configured` valide ;
-   seuls les records `configured + active` entrent dans le runtime.
+   `enabled` appartient au variant configured et seuls `configured + enabled`
+   entrent dans le runtime.
 3. Un Event configuré possède exactement une source typée V0 ; une source peut
    être référencée par plusieurs Events.
 4. L’Event ne possède pas de position. `MapEntity`, `MapTrigger` ou la map
    possèdent la géométrie.
-5. Les IDs Event sont uniques au niveau projet et immuables après publication.
+5. Les IDs Event sont uniques au niveau projet et immuables dès la création du draft.
 6. `MapEventDefinition` devient legacy read/adapter/migration input ; aucun write
    V2 normal ne le cible.
 7. Les sources de `ScenarioAsset` deviennent un bridge legacy ; le V2 ne les
    étend pas comme modèle Event.
-8. L’Event cible une `SceneAsset`. Outcomes, branches et conséquences restent
+8. L’Event configuré cible exactement une `SceneAsset`. Outcomes, branches et conséquences restent
    Scene-owned et read-only dans l’Event Builder.
 9. V0 couvre `entityInteract`, `triggerEnter`, `mapEnter` et
    `outcomeReceived`.
 10. Résolution V0 : candidats éligibles, priorité explicite, ordre explicite,
-   `eventId` comme dernier tie-breaker, un seul gagnant.
+    `eventId` comme dernier tie-breaker, un seul candidat sélectionné pour le
+    snapshot runtime.
    L'UI expose la priorité lorsqu'une source a plusieurs Events actifs ; l'ordre
    stable et le tie-break technique restent internes mais sont expliqués par le
    diagnostic de conflit.
 11. `oneShot` est consommé après réussite complète de la Scene ; `reusable` ne
-    l’est pas ; reset durable hors V0.
+    l’est pas ; save/load est refusé pendant une Scene active non checkpointable.
 12. Migration : dual-read temporaire, single-write V2, preview non destructive,
     opt-in et rollback.
 13. La north star 1672 × 941 est la cible visuelle, avec écarts volontaires pour
     protéger Event ≠ Scene.
 14. `outcomeReceived` stocke une référence qualifiée
-    `(producerKind, producerId, outcomeId)` ; les IDs locaux de Scene/Yarn/Battle
-    ne sont jamais dédupliqués globalement par hasard.
+    `(producerKind, producerId, outcomeId)` avec producteurs V0 `scene`,
+    `battle`, `legacyScenario`. Yarn est qualifié par sa Scene.
 15. `NarrativeEventRegistry` porte son propre `schemaVersion`, le mode
     `legacyOnly | dualRead | v2Only` et des `LegacySourceClaim`. Il ne modifie pas
     l'enum `ProjectVersion` partagé avec les maps.
 16. Un coordinateur de dispatch unique consulte mode et claims. Un Event V2
     revendiqué mais inéligible bloque le fallback legacy.
-17. La progression V2 stocke des IDs Event globaux dans un namespace séparé du
-    legacy `consumedEventIds`.
+17. La progression V2 stocke des IDs Event globaux et une outbox d'outcomes dans
+    un namespace séparé du legacy `consumedEventIds`.
+18. Les conditions V0 sont un AND ordonné de `fact` et
+    `narrativeEventConsumed`; Story Step reste exclu tant que son identité n'est
+    pas globalement qualifiée.
+19. Les IDs Event suivent `evt_<uuid-v7>` et sont immuables dès la création du
+    draft.
+20. Aucun feature flag indépendant ne concurrence `EventSystemMode`.
 
-## Règles communes aux lots
+## Règles communes aux jalons
 
 - Toute donnée legacy est lue avant d’être migrée.
 - Aucun lot ne combine modèle, migration, runtime et UI dans un seul diff.
@@ -81,12 +154,19 @@ MVP Selbrume/selbrume.md
 ```
 
 Les noms de fichiers introduits par `nouveau` ou décrits sans chemin complet
-sont des destinations probables à confirmer au début du lot concerné, pas des
-liens prétendument existants.
+sont des destinations proposées. Une mission peut choisir un autre chemin dans
+le même package si elle documente ce choix sans changer le contrat ratifié.
 
 ---
 
-# Phase A — Canonical Architecture Decisions
+# Phase A — Canonical Architecture Decisions — CLOSED / ACCEPTED
+
+```text
+Mission : NS-EVENT-V2 - PHASE A
+Lifecycle : CLOSED
+Gate de sortie : ACCEPTED
+Date : 2026-07-10
+```
 
 ## Objectif
 
@@ -102,12 +182,15 @@ toute implémentation.
 
 ## Exit criteria
 
-- architecture D recommandée ;
-- ownership de la position décidé ;
-- V0 source-first défini ;
-- roadmap, audit et spécification visuelle créés.
+- ADR-EV2-001 à ADR-EV2-020 acceptés ;
+- architecture D, contrats publics, ownership et runtime semantics ratifiés ;
+- ledger et rapport de clôture créés ;
+- roadmap convertie en missions par phases ;
+- Phase F scindée en F1/F2 ;
+- reviewers architecture et produit sans blocker ;
+- Entry Gate de Phase B accepté.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-RESET-00 — Canonical Event Sources & Event Builder V2 Ultra Roadmap
 
@@ -128,9 +211,23 @@ toute implémentation.
 - **Critères d’acceptation :** trois documents complets, prochain lot exact.
 - **Evidence Pack :** Gate 0/final, MCP Dart, inventaire, sous-agents.
 - **Rollback :** supprimer uniquement les trois documents avant commit.
-- **Impact suivant :** débloque B à L.
+- **Impact suivant :** débloque la ratification détaillée de Phase A.
 - **Taille :** L.
 - **Bloquant :** oui.
+
+## Clôture de mission
+
+La mission Phase A a produit :
+
+```text
+MVP Selbrume/event_builder_v2_architecture_decisions.md
+reports/narrativeStudio/events/ns_event_v2_phase_a_architecture_ratification_closure_v0.md
+MVP Selbrume/road_map_event_builder_v2.md
+```
+
+RESET-00 est confirmé comme baseline fraîche. Ses décisions ouvertes sont
+surclassées par les ADRs ratifiés ; aucune erreur factuelle importante n'exige
+d'addendum à l'audit et la spécification visuelle reste compatible.
 
 ## Risques
 
@@ -140,15 +237,22 @@ toute implémentation.
 
 ## Gate de validation
 
-Review architecture + review UX contradictoires, `git diff --check`, anti-scope.
+`ACCEPTED` : reviews architecture + UX contradictoires sans blocker après
+corrections, 20 ADRs présents, validations documentaires et anti-scope verts.
 
 ## Livrable final
 
-Audit décisionnel, roadmap vivante et spécification visuelle V0.
+Ledger normatif, rapport de clôture, roadmap phase-based et Entry Gate B.
 
 ---
 
 # Phase B — Domain Contracts
+
+```text
+Mission status : READY
+Gate d'entrée : ACCEPTED par Phase A
+Jalons : V2-01 à V2-04
+```
 
 ## Objectif
 
@@ -157,9 +261,18 @@ UI.
 
 ## Entry criteria
 
-- Phase A validée.
-- Décisions ouvertes de RESET-00 arbitrées.
-- stratégie de version de schema acceptée.
+- Phase A `CLOSED / ACCEPTED` et aucun nouvel ADR supersédant le ledger.
+- `NarrativeEventSourceRef` avec quatre variants exacts.
+- `NarrativeOutcomeRef` et producers `scene`, `battle`, `legacyScenario`.
+- IDs `evt_<uuid-v7>` globaux et immuables.
+- `NarrativeEventCondition` limité à Fact et Event V2 consommé, AND ordonné.
+- champs exacts draft/definition/record et publication désactivée par défaut.
+- `eventRegistry` nullable, schema `1`, JSON strict/fail-closed.
+- modes et truth table d'autorité ratifiés.
+- claims qualifiés avec cohortes, empreintes et receipt.
+- absence de position et politique Event -> exactement une Scene.
+- lifecycle, progression/outbox et compatibilité JSON ratifiés.
+- Gate 0 Phase B confirme un worktree sans drift de production non attribué.
 
 ## Exit criteria
 
@@ -168,7 +281,7 @@ UI.
 - registry manifest versionné indépendamment ;
 - index structurel déterministe, sans `GameState`.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-01 — Canonical Narrative Event Source Ref Contract V0
 
@@ -178,7 +291,7 @@ UI.
 - **Dépendances :** RESET-00.
 - **Packages concernés :** `packages/map_core`.
 - **Fichiers probables :** nouveau `lib/src/models/narrative_event_source_ref.dart`, barrel, tests.
-- **Contrats créés/modifiés :** `NarrativeEventSourceRef`, `NarrativeOutcomeRef(producerKind, producerId, outcomeId)`, kind, clé d’index dérivée.
+- **Contrats créés/modifiés :** `NarrativeEventSourceRef` avec `outcomeReceived(outcome: NarrativeOutcomeRef)`, `NarrativeOutcomeRef`, `NarrativeOutcomeProducerKind(scene, battle, legacyScenario)`, kind et clé structurelle.
 - **Non-objectifs :** Event complet, manifest, runtime, UI.
 - **Risques :** duplication des enums Scenario existantes.
 - **Compatibilité :** adapter de conversion conceptuel seulement ; aucune donnée V1 écrite.
@@ -201,12 +314,12 @@ UI.
 - **Dépendances :** V2-01.
 - **Packages concernés :** `packages/map_core`.
 - **Fichiers probables :** nouveau `narrative_event_definition.dart`, tests, barrel.
-- **Contrats créés/modifiés :** `NarrativeEventDefinition`, `NarrativeEventDraft`, `NarrativeEventRecord`, status active/inactive, behavior, priority/order, Scene ref.
+- **Contrats créés/modifiés :** `NarrativeEventDefinition(id,name,source,conditions,sceneId,reusePolicy,priority,order)`, `NarrativeEventDraft`, `NarrativeEventRecord.draft/configured`, `enabled` sur configured.
 - **Non-objectifs :** stockage manifest, migration, exécution.
 - **Risques :** réintroduire des actions Scene-owned.
 - **Compatibilité :** modèle opt-in non consommé.
-- **Tests ciblés :** invariants ID/source/Scene, draft incomplet round-trip, compile draft→configured, active/inactive, oneShot/reusable, JSON.
-- **Régressions :** SceneAsset, ScriptCondition, WorldRule serialization.
+- **Tests ciblés :** ID `evt_<uuid-v7>`, invariants source/Scene, draft incomplet round-trip, publication configured disabled, activation, oneShot/reusable, conditions V0 et JSON.
+- **Régressions :** SceneAsset, EventBuilder V1 et WorldRule serialization.
 - **Analyse/build :** `dart test`, `dart analyze`, build_runner map_core.
 - **Visual Gate :** non.
 - **Critères d’acceptation :** configured = une source/une Scene/zéro position ; draft incomplet jamais publiable ni indexable ; zéro outcome-owned.
@@ -224,17 +337,17 @@ UI.
 - **Dépendances :** V2-02.
 - **Packages concernés :** `packages/map_core`.
 - **Fichiers probables :** `project_manifest.dart`, nouveau registry/claims codec, generated, tests.
-- **Contrats créés/modifiés :** `ProjectManifest.eventRegistry`, registry `schemaVersion`, `EventSystemMode`, `LegacySourceClaim(provenance, targetEventIds)`; aucun nouveau `ProjectVersion`.
+- **Contrats créés/modifiés :** `ProjectManifest.eventRegistry?`, registry schema `1`, `EventSystemMode`, `LegacySourceRef`, `LegacySourceClaimMember`, `LegacySourceClaim(cohortId,source,members,cohortFingerprint,targetEventIds,migrationReceiptId)` ; aucun nouveau `ProjectVersion`.
 - **Non-objectifs :** migrer un projet réel, modifier les maps.
 - **Risques :** perte de clés JSON inconnues lors du save.
 - **Compatibilité :** registry absent = `legacyOnly`; encode registry seulement sur opt-in.
-- **Tests ciblés :** registry absent/present, draft/configured, trois modes, claim MapEvent/Scenario vers un ou plusieurs Events, target absent, future registry version refusée, unknown fields policy.
+- **Tests ciblés :** registry absent/null/present, ordre de listes préservé, draft/configured, trois modes, JSON canonique des unions, membres/targets triés, matrice invalid/unsupported/contextual claims, duplicate cohort/source/member, target absent ou de source différente, préimages RFC 8785 avec digests goldens connus, future registry version et champs inconnus fail-closed sans réécriture/runtime.
 - **Régressions :** manifest scenes/scenarios/facts/worldRules.
 - **Analyse/build :** map_core tests/analyze/build_runner.
 - **Visual Gate :** non.
 - **Critères d’acceptation :** round-trip sémantique ; mode/claims persistés ; aucune modification du schema de map ni de `ProjectVersion`.
 - **Evidence Pack :** fixtures V1/V2, diff JSON.
-- **Rollback :** feature flag lecteur V1 ; aucun projet migré.
+- **Rollback :** mode `legacyOnly` et lecteur V1 conservé ; aucun projet migré.
 - **Impact suivant :** débloque registry, repositories et migration.
 - **Taille :** M.
 - **Bloquant :** oui.
@@ -251,13 +364,13 @@ UI.
 - **Non-objectifs :** `GameState`, conditions, consumed, effets runtime, Scene execution.
 - **Risques :** priorité incompatible avec données legacy.
 - **Compatibilité :** tie-break documenté ; adapters alimenteront le même index.
-- **Tests ciblés :** zéro/un/plusieurs records, draft/inactive exclus, source qualifiée, priorité/order/ID structurels.
+- **Tests ciblés :** zéro/un/plusieurs records, draft/disabled exclus, source qualifiée, priorité/order/ID structurels, deux enabled en conflit tous deux indexés et triés par eventId avec diagnostic.
 - **Régressions :** serialization Event et ordre Scenario existant ; aucun import `map_gameplay`.
 - **Analyse/build :** tests/analyze des packages touchés.
 - **Visual Gate :** non.
-- **Critères d’acceptation :** lookup déterministe et complexité mesurée ; aucune décision d'éligibilité ou de gagnant stateful.
+- **Critères d’acceptation :** lookup déterministe et complexité mesurée ; conflit importé reste indexé défensivement ; aucune décision d'éligibilité stateful.
 - **Evidence Pack :** matrices et micro-benchmark baseline.
-- **Rollback :** garder scan ancien derrière flag.
+- **Rollback :** garder le scan legacy disponible tant que `dualRead` est supporté.
 - **Impact suivant :** débloque runtime et diagnostics de conflits.
 - **Taille :** M.
 - **Bloquant :** oui.
@@ -280,7 +393,12 @@ Contrat Event V2 pur, versionné, indexable et encore sans consumer.
 
 ---
 
-# Phase C — Legacy Adapters & Migration
+# Phase C — Legacy Compatibility & Migration
+
+```text
+Mission status : PLANNED
+Jalons : V2-05 à V2-08
+```
 
 ## Objectif
 
@@ -300,7 +418,7 @@ et les sources Scenario existantes.
 - mappings du graphe de références et claims produits ;
 - protocole de commit/récupération défini sans write réel.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-05 — Legacy Event Corpus & Characterization Gate
 
@@ -314,7 +432,7 @@ et les sources Scenario existantes.
 - **Non-objectifs :** conversion ou écriture.
 - **Risques :** corpus non représentatif.
 - **Compatibilité :** hash byte-for-byte de chaque entrée.
-- **Tests ciblés :** decode et comportement actuel de chaque fixture, ordre first-valid multi-page, consommation explicite et collisions inter-map.
+- **Tests ciblés :** decode et comportement actuel de chaque fixture, ordre first-valid multi-page, consommation explicite, collisions inter-map, préimages/digests goldens MapEvent et ScenarioAsset complets, calcul des cohortes complètes et détection de membre manquant/stale.
 - **Régressions :** Event Builder V1, repositories.
 - **Analyse/build :** tests/analyze map_core.
 - **Visual Gate :** non.
@@ -383,7 +501,7 @@ et les sources Scenario existantes.
 - **Non-objectifs :** write filesystem, UI complète ou migration Selbrume réelle.
 - **Risques :** collision d’IDs consommés irréversible.
 - **Compatibilité :** dry-run uniquement ; BLOCKED sur ambiguïté ; original intact.
-- **Tests ciblés :** plan déterministe/idempotent, split multi-page accepté/refusé, mappings progression/références, claims, unknown keys et préconditions recovery.
+- **Tests ciblés :** plan déterministe/idempotent, split multi-page accepté/refusé, mappings progression/références, claim/receipt/cohort exacts, membre/page stale ou partiel, unknown keys et préconditions recovery.
 - **Régressions :** serializers manifest/map et diagnostics legacy.
 - **Analyse/build :** tests/analyze map_core.
 - **Visual Gate :** non.
@@ -415,6 +533,11 @@ Couche de compatibilité et plan de migration sûr, encore sans write utilisateu
 
 # Phase D — Source Catalogs & Read Models
 
+```text
+Mission status : PLANNED
+Jalons : V2-09 à V2-12
+```
+
 ## Objectif
 
 Construire les catalogues projet, libellés humains, diagnostics et projections
@@ -432,7 +555,7 @@ nécessaires à l’authoring source-first.
 - liste Events projet unifiée ;
 - navigation et diagnostics sans vocabulaire technique.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-09 — Spatial Event Source Catalog V0
 
@@ -460,7 +583,7 @@ nécessaires à l’authoring source-first.
 ### NS-EVENT-V2-10 — Outcome Event Source Catalog V0
 
 - **Type :** core.
-- **Objectif :** cataloguer outcomes Scene/Yarn/Battle normalisés.
+- **Objectif :** cataloguer outcomes Scene/Battle et Scenario legacy qualifiés ; Yarn est exposé par l'outcome Scene qui l'orchestre.
 - **Problème traité :** sources non spatiales sans registre unifié.
 - **Dépendances :** V2-01, contrats outcomes existants.
 - **Packages concernés :** `map_core`.
@@ -469,7 +592,7 @@ nécessaires à l’authoring source-first.
 - **Non-objectifs :** créer de nouveaux outcomes depuis Event Builder.
 - **Risques :** provenance perdue lors d'une émission runtime legacy.
 - **Compatibilité :** outcomes Scenario non qualifiés conservés sous provenance legacy explicite.
-- **Tests ciblés :** Scene declared, emitted, battle, Yarn, même ID cross-producer distinct, source legacy unqualified, missing producer.
+- **Tests ciblés :** Scene declared/emitted, battle public ref, Yarn normalisé par Scene, même ID cross-producer distinct, source legacy unqualified, missing producer, battle sans ref stable exclue.
 - **Régressions :** Scene outcome diagnostics et projections.
 - **Analyse/build :** map_core test/analyze.
 - **Visual Gate :** non.
@@ -498,7 +621,7 @@ nécessaires à l’authoring source-first.
 - **Visual Gate :** non.
 - **Critères d’acceptation :** vue globale, truthful status, stabilité snapshots.
 - **Evidence Pack :** snapshot Selbrume synthétique.
-- **Rollback :** conserver read model V1 derrière flag.
+- **Rollback :** conserver le read model V1 tant que `dualRead` est supporté.
 - **Impact suivant :** UI V2.
 - **Taille :** L.
 - **Bloquant :** oui.
@@ -546,6 +669,11 @@ Catalogue source-first et read model projet consommables par l’éditeur.
 
 # Phase E — Authoring Operations
 
+```text
+Mission status : PLANNED
+Jalons : V2-13 à V2-16
+```
+
 ## Objectif
 
 Fournir des opérations pures, no-code et réversibles pour créer/configurer un
@@ -564,7 +692,7 @@ Event V2 sans UI.
 - conditions, Scene et behavior authorables ;
 - single-write V2 persistant et undoable.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-13 — Event Draft Creation Operations V0
 
@@ -605,7 +733,7 @@ Event V2 sans UI.
 - **Régressions :** narrative source authoring operations.
 - **Analyse/build :** map_core tests/analyze.
 - **Visual Gate :** non.
-- **Critères d’acceptation :** ID Event, conditions, Scene et behavior inchangés.
+- **Critères d’acceptation :** ID Event, conditions, Scene et `reusePolicy` inchangés ; detach explicite produit un draft sans source.
 - **Evidence Pack :** property preservation matrix.
 - **Rollback :** undo via previous immutable definition.
 - **Impact suivant :** source-first UI.
@@ -620,12 +748,12 @@ Event V2 sans UI.
 - **Dépendances :** V2-13, V2-14.
 - **Packages concernés :** `map_core`.
 - **Fichiers probables :** authoring ops, validator, tests.
-- **Contrats créés/modifiés :** condition subset AND (vide=true, ordre stable), Scene ref, oneShot/reusable, priority/order, compile draft→configured.
+- **Contrats créés/modifiés :** `NarrativeEventCondition.fact` et `.narrativeEventConsumed`, AND (vide=true, ordre stable), Scene ref, `NarrativeEventReusePolicy`, priority/order, publication draft→configured disabled.
 - **Non-objectifs :** outcome/reaction/consequence authoring.
 - **Risques :** promettre oneShot avant runtime.
 - **Compatibilité :** legacy conditions opaques restent verrouillées via adapter.
-- **Tests ciblés :** add/remove condition, AND/vide/ordre, set Scene, behavior, priority, compile/refuse draft, invalid refs, immutable.
-- **Régressions :** ScriptCondition and Event Builder V1 operations.
+- **Tests ciblés :** Fact true/false, Event consumed/not, Story Step/OR/raw flag refusés, AND/vide/ordre, set Scene, reusePolicy, conflit priority/order qui autorise publication disabled mais refuse activation, désactivation, invalid refs, immutable.
+- **Régressions :** ScriptCondition et opérations Event Builder V1 restent inchangés.
 - **Analyse/build :** map_core tests/analyze.
 - **Visual Gate :** non.
 - **Critères d’acceptation :** aucun champ Scene-owned ; priorité explicable ; ordre/tie-break déterministes ; diagnostics truthful.
@@ -646,7 +774,7 @@ Event V2 sans UI.
 - **Contrats créés/modifiés :** save result, revision token, recovery journal `prepared/committed/recovered`, undo entry.
 - **Non-objectifs :** UI V2 complète ou migration automatique.
 - **Risques :** overwrite concurrent, journal stale et unknown JSON.
-- **Compatibilité :** feature flag write V2 ; maps/Scenarios legacy inchangés ; claims les rendent read-only sans réécriture.
+- **Compatibilité :** single-write registry V2 ; maps/Scenarios legacy inchangés ; claims les rendent read-only sans réécriture.
 - **Tests ciblés :** stage/rename success, crash avant/après rename, recovery, stale revision, undo, unknown fields, claim persistence.
 - **Régressions :** file repositories et editor notifier persistence.
 - **Analyse/build :** editor tests/analyze, macOS debug.
@@ -672,31 +800,38 @@ undo verts ; aucun widget encore requis.
 
 ## Livrable final
 
-API d’authoring V2 complète et sûre sous feature flag.
+API d’authoring V2 complète, journalée et gardée par la validation du registry.
 
 ---
 
-# Phase F — Runtime Dispatch
+# Phase F1 — Runtime Authority & Progress
+
+```text
+Mission status : PLANNED
+Jalons : V2-17 à V2-18
+```
 
 ## Objectif
 
-Router les quatre occurrences V0 vers les Events V2, exécuter la Scene et
-appliquer lifecycle/persistance de façon déterministe.
+Créer l'autorité pure de dispatch, la progression V2 et les semantics de
+lifecycle/persistance avant de brancher une source production.
 
 ## Entry criteria
 
-- Phases B, C et E validées.
-- index source disponible.
-- matrice semantics occurrence/réarmement/reset approuvée.
+- Phases B, C et E `CLOSED`.
+- index structurel V2-04 disponible.
+- conditions et authoring V2-15 stables.
+- truth table mode/claims et ADR-EV2-013/014 inchangés.
 
 ## Exit criteria
 
-- quatre hooks production V2 ;
-- oneShot/reusable réels ;
-- save/load stable ;
-- dual-read arbitré sans double exécution.
+- planner `handled/claimedButIneligible/noMatch` pur et déterministe ;
+- claims et ordre multi-Events entièrement testés ;
+- progression/outbox save round-trip ;
+- oneShot/reusable et refus de save pendant Scene active prouvés ;
+- aucun bridge source production encore requis.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-17 — Unified Event Dispatch Authority & Eligibility Planner V0
 
@@ -710,11 +845,11 @@ appliquer lifecycle/persistance de façon déterministe.
 - **Non-objectifs :** Flame, Scene execution, mutation GameState.
 - **Risques :** claim ignoré ou fallback réactivé après oneShot consommé.
 - **Compatibilité :** MapEvent/Scenario passent par cette autorité ; aucun hook ne choisit seul son fallback.
-- **Tests ciblés :** trois modes, claimed eligible/ineligible/consumed, unclaimed noMatch, conditions AND, priority, inactive, draft, errors.
+- **Tests ciblés :** trois modes, `ValidatedLegacyClaimIndex` globalConflict qui bloque dualRead, tombstone per-source `claimedButIneligible` sans bloquer les autres sources, claim valide avec target eligible/ineligible, target ineligible mais Event non-target de même source eligible, aucun candidat de source eligible, unclaimed noMatch, registry invalid qui n'atteint pas le planner, conditions AND, priority, inactive, draft, errors.
 - **Régressions :** ScriptConditionEvaluator.
 - **Analyse/build :** dart test/analyze core/gameplay.
 - **Visual Gate :** non.
-- **Critères d’acceptation :** décision pure/déterministe ; claim persistant bloque fallback même sans gagnant ; aucun wildcard vide.
+- **Critères d’acceptation :** décision pure/déterministe ; claim persistant bloque fallback même sans candidat ; aucun wildcard vide.
 - **Evidence Pack :** truth table et perf p95.
 - **Rollback :** mode registry `legacyOnly` avant toute donnée V2-only.
 - **Impact suivant :** V2-18 à V2-22.
@@ -729,20 +864,69 @@ appliquer lifecycle/persistance de façon déterministe.
 - **Dépendances :** V2-02, V2-03, V2-05, V2-08, V2-15.
 - **Packages concernés :** `map_core`, `map_gameplay`, `map_runtime` persistence.
 - **Fichiers probables :** GameState event V2 progress, codecs, mutations, reference adapters, tests.
-- **Contrats créés/modifiés :** namespace `consumedNarrativeEventIds`, pending Scene execution record, progress view, stable save gate.
+- **Contrats créés/modifiés :** `NarrativeEventProgress`, namespace `consumedNarrativeEventIds`, delivery outbox avec correlation/depth/attempts, progress view, stable save busy gate.
 - **Non-objectifs :** hooks source, reset calendar/weather ou fan-out.
 - **Risques :** consommation prématurée, référence legacy oubliée et save pendant flow.
 - **Compatibilité :** `consumedEventIds` reste legacy ; mappings qualifiés bloquent sur collisions ambiguës.
-- **Tests ciblés :** success/fail/cancel, oneShot/reusable, migration refs condition/rule/command/consequence, new game, save/reload, pending flow.
+- **Tests ciblés :** success/fail/cancel, oneShot/reusable, save refusé pendant Scene active/dispatching, migration refs, new game, save/reload, pending/delivered, noMatch/ineligible terminaux, retry infrastructure x3, consumer failure terminal, profondeur 8/9.
 - **Régressions :** GameState codec, Scene consequence markEventConsumed, World Rules et save persistence.
 - **Analyse/build :** all touched package tests/analyze, runtime host smoke.
 - **Visual Gate :** non.
-- **Critères d’acceptation :** namespace séparé ; consume seulement après Scene success ; save stable ; graphe de références couvert.
-- **Evidence Pack :** lifecycle matrix, mapping references et save round-trip.
+- **Critères d’acceptation :** namespace séparé ; consume seulement après Scene success ; aucun faux checkpoint running ; outbox idempotente ; graphe de références couvert.
+- **Evidence Pack :** lifecycle matrix, mapping references, save busy proof et outbox round-trip.
 - **Rollback :** progression V2 ignorée seulement avant publication V2-only.
 - **Impact suivant :** débloque les quatre bridges production.
 - **Taille :** L.
 - **Bloquant :** oui.
+
+## Risques
+
+- fallback réactivé malgré claim ;
+- consommation prématurée ;
+- save accepté pendant une Scene non checkpointable ;
+- outbox outcome non idempotente ;
+- référence legacy évaluée dans le namespace V2.
+
+## Gate de validation
+
+Truth table des trois modes, ordre multi-Events, lifecycle complet, codec de
+progression et save/outbox entièrement verts. Rollback `legacyOnly` prouvé avant
+la première donnée V2 non représentable en legacy.
+
+## Livrable final
+
+Autorité et progression V2 prêtes pour les bridges, sans hook production.
+
+---
+
+# Phase F2 — Runtime Source Bridges
+
+```text
+Mission status : PLANNED
+Jalons : V2-19 à V2-22
+```
+
+## Objectif
+
+Brancher `mapEnter`, `entityInteract`, `triggerEnter` et `outcomeReceived` sur
+l'autorité F1, puis exécuter la Scene sans double dispatch legacy.
+
+## Entry criteria
+
+- Phase F1 `CLOSED`.
+- catalogs D stables, dont outcomes qualifiées V2-10.
+- source fingerprints/claims C valides.
+- aucune source production ne contourne le coordinateur.
+
+## Exit criteria
+
+- quatre hooks production V2 ;
+- raisons map activation et outbox outcome qualifiées ;
+- aucune occurrence perdue ou doublée ;
+- claim inéligible sans fallback ;
+- traces de rollback legacy positives.
+
+## Jalons internes
 
 ### NS-EVENT-V2-19 — Map Enter Production Dispatch Bridge V0
 
@@ -816,21 +1000,21 @@ appliquer lifecycle/persistance de façon déterministe.
 ### NS-EVENT-V2-22 — Qualified Outcome Received Dispatch & Reentrancy V0
 
 - **Type :** runtime.
-- **Objectif :** router chaque émission Scene/Yarn/Battle qualifiée vers l'autorité V2.
+- **Objectif :** router chaque émission Scene/Battle qualifiée et chaque bridge Scenario legacy vers l'autorité V2 ; Yarn réémet par la Scene.
 - **Problème traité :** outcome ID local, récursion Scenario et confusion flag durable/livraison.
 - **Dépendances :** V2-10, V2-17, V2-18.
-- **Packages concernés :** `map_runtime`, ponts Scene/Battle/Yarn, `map_core` occurrence.
+- **Packages concernés :** `map_runtime`, ponts Scene/Battle/Scenario, `map_core` occurrence.
 - **Fichiers probables :** qualified outcome bus/adapter, correlation queue, tests.
-- **Contrats créés/modifiés :** occurrence outcome qualifiée, correlation/depth, delivered marker si nécessaire.
-- **Non-objectifs :** replay automatique au load ou fan-out multi-Events.
+- **Contrats créés/modifiés :** occurrence outcome qualifiée, correlation/depth, outbox pending/delivered obligatoire.
+- **Non-objectifs :** producteur Yarn autonome, replay d'une delivery déjà delivered ou fan-out multi-Events.
 - **Risques :** boucle outcome→Event→Scene→outcome et provenance perdue dans adapter legacy.
 - **Compatibilité :** flag/outcome legacy conservé sous provenance `legacyScenario`; livraison V2 non rejouée.
-- **Tests ciblés :** Scene/Battle/Yarn mêmes IDs distincts, legacy unqualified, mismatch, recursion bound, duplicate emission, save/reload no replay.
+- **Tests ciblés :** Scene/Battle mêmes IDs distincts, battle autonome après write-back, battle hébergée avec write-back seulement dans le state de travail puis commit parent, parent Scene fail qui abandonne state Battle et outcome global, ordre FIFO Battle puis Scene, Yarn normalisé par Scene, legacy unqualified, mismatch, recursion bound, duplicate emission, pending replay et delivered no replay après save/load.
 - **Régressions :** P3 outcome continuation, Scene outcomes et battle handoff.
 - **Analyse/build :** runtime/core tests/analyze, runtime host smoke.
 - **Visual Gate :** non.
 - **Critères d’acceptation :** une occurrence qualifiée par émission, boucle bornée, aucune collision cross-producer, aucun replay au load.
-- **Evidence Pack :** correlation/provenance traces et save round-trip.
+- **Evidence Pack :** correlation/provenance traces, outbox et save round-trip.
 - **Rollback :** mode `legacyOnly` avant publication V2-only.
 - **Impact suivant :** Golden Lysa branches.
 - **Taille :** L.
@@ -841,21 +1025,27 @@ appliquer lifecycle/persistance de façon déterministe.
 - double dispatch ;
 - occurrence perdue ;
 - boucle outcome ;
-- save instable ;
+- outbox perdue ou rejouée ;
 - performance sans index.
 
 ## Gate de validation
 
-Matrice quatre sources, lifecycle, reentrance et save/load entièrement verte ;
-aucun bridge legacy ne double le V2.
+Matrice quatre sources, raisons map activation, reentrance et outbox save/load
+entièrement vertes ; aucun bridge legacy ne double le V2 et aucun claim ne
+fallback.
 
 ## Livrable final
 
-Dispatcher Event V2 production derrière feature flag.
+Quatre bridges production derrière l'autorité persistée `EventSystemMode`.
 
 ---
 
 # Phase G — Map Editor Integration
+
+```text
+Mission status : PLANNED
+Jalons : V2-23 à V2-25
+```
 
 ## Objectif
 
@@ -863,7 +1053,7 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 
 ## Entry criteria
 
-- Phases D à F validées.
+- Phases D, E et F2 validées.
 - navigation intents disponibles.
 - source IDs immuables ou migration de rename définie.
 
@@ -873,7 +1063,7 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 - focus/retour carte réel ;
 - création explicite d’une source manquante sans Event abstrait.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-23 — Map Selection to Event Creation Bridge V0
 
@@ -964,6 +1154,12 @@ Pont bidirectionnel Map Editor ↔ Event Builder V2.
 
 # Phase H — Event Builder V2 UI
 
+```text
+Mission status : PLANNED
+Jalons : V2-26 à V2-30
+North star : 1672 x 941, SHA-256 2072679b3b861a63c068628450705d39e70ad59dc5067e0a0bf91c0bcbe8c885
+```
+
 ## Objectif
 
 Livrer le workflow source-first dans la composition cinq panneaux de la north
@@ -972,7 +1168,7 @@ star, sans authoring Scene-owned trompeur.
 ## Entry criteria
 
 - Phases D, E et G validées.
-- runtime V2 au moins sous flag.
+- runtime V2 contrôlé par `EventSystemMode`.
 - design system tokens disponibles.
 
 ## Exit criteria
@@ -982,7 +1178,7 @@ star, sans authoring Scene-owned trompeur.
 - états vides/erreur/read-only ;
 - navigation carte fonctionnelle.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-26 — V2 Shell, Project Event List & Filters V0
 
@@ -997,7 +1193,7 @@ star, sans authoring Scene-owned trompeur.
 - **Risques :** densité et performance des listes.
 - **Compatibilité :** badge ancien format et filtre origine sans terme technique ; en `v2Only`, workspace V1 read-only et aucun CTA de création legacy.
 - **Tests ciblés :** groups map/outcome/unconfigured, search, filters, selection, three registry modes, no legacy create in v2Only.
-- **Régressions :** Narrative shell and Event Builder V1 feature flag.
+- **Régressions :** Narrative shell et workspace Event Builder V1 en mode `legacyOnly`.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, 1672×941 liste.
 - **Critères d’acceptation :** Events globaux visibles sans map active.
@@ -1010,7 +1206,7 @@ star, sans authoring Scene-owned trompeur.
 ### NS-EVENT-V2-27 — Source-First Event Creation UX V0
 
 - **Type :** editor.
-- **Objectif :** implémenter Nom → type → map → source → Scene → behavior.
+- **Objectif :** implémenter Nom → type → map → source → Scene → `reusePolicy`.
 - **Problème traité :** position/layer obligatoires.
 - **Dépendances :** V2-13, V2-14, V2-16, V2-26.
 - **Packages concernés :** `map_editor`.
@@ -1019,8 +1215,8 @@ star, sans authoring Scene-owned trompeur.
 - **Non-objectifs :** drag/drop ou création source inline complexe.
 - **Risques :** wizard long et état brouillon perdu.
 - **Compatibilité :** `Décider plus tard` crée un brouillon non publiable.
-- **Tests ciblés :** quatre kinds avec matrice picker, source missing/deleted, conflit existant, cancel/resume, save/close/reopen.
-- **Régressions :** NS-EVENT-36/38 placement under V1 flag.
+- **Tests ciblés :** quatre kinds avec matrice picker, source missing/deleted, publier vers configured disabled, activer/désactiver, conflit existant qui bloque seulement activation, cancel/resume, save/close/reopen.
+- **Régressions :** placement NS-EVENT-36/38 dans le workspace V1 `legacyOnly`.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, empty/create/error.
 - **Critères d’acceptation :** aucun mini-damier ; source réelle obligatoire pour publier ; référence typée identique après réouverture ; conflit multi-Events expliqué avant validation.
@@ -1042,7 +1238,7 @@ star, sans authoring Scene-owned trompeur.
 - **Non-objectifs :** raw IDs, coordinates, metadata.
 - **Risques :** source stale et CTA carte invalide.
 - **Compatibilité :** résumé ancien format read-only avec action `Voir le diagnostic de conversion`; aucune mutation avant V2-33.
-- **Tests ciblés :** entity/trigger/map/outcome/missing, change, see map, diagnostic conversion sans write.
+- **Tests ciblés :** source non choisie persistée avec publication bloquée et aucun CTA map ; entity/trigger/map/outcome ; source cassée distincte ; change, see map, diagnostic conversion sans write.
 - **Régressions :** Event Builder inspector tests.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui.
@@ -1065,13 +1261,13 @@ star, sans authoring Scene-owned trompeur.
 - **Non-objectifs :** authoring outcomes/reactions/consequences/World Rules.
 - **Risques :** copier les contrôles décoratifs de la north star.
 - **Compatibilité :** legacy conditions locked, scripts/messages warning.
-- **Tests ciblés :** add/remove condition, choose Scene, lifecycle, catégories `Ajouter à l'événement` / `Dans la Scene liée`, absence grips/drop, read-only guards.
+- **Tests ciblés :** add/remove condition, choose/create/open Scene, lifecycle, catégories `Configurer l'événement` / `Dans la Scene liée`, absence grips/drop, read-only guards.
 - **Régressions :** NS-EVENT-41-bis truthfulness and Scene projections.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, full flow.
 - **Critères d’acceptation :** Event≠Scene visible ; oneShot runtime-backed ; aucune ligne Scene-owned ne paraît ajoutable ; aucun drop target sans drag/drop fonctionnel.
 - **Evidence Pack :** ownership assertion pack.
-- **Rollback :** feature flag V1 workspace.
+- **Rollback :** workspace V1 conservé en `legacyOnly` tant que `dualRead` est supporté.
 - **Impact suivant :** V2-30 and visual closure.
 - **Taille :** L.
 - **Bloquant :** oui.
@@ -1088,7 +1284,7 @@ star, sans authoring Scene-owned trompeur.
 - **Non-objectifs :** nouveau design system global.
 - **Risques :** état couleur-only ou texte technique.
 - **Compatibilité :** legacy/missing distincts.
-- **Tests ciblés :** empty/filter empty/missing/stale revision/error/warning/info, multi-Events source conflict, gagnant projeté, priority action, keyboard.
+- **Tests ciblés :** empty/filter empty/unselected/missing/stale revision/error/warning/info, multi-Events source conflict, premier candidat selon snapshot, candidat suivant quand le premier est inéligible, priority action, keyboard.
 - **Régressions :** shell and navigation tests.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, matrice états.
@@ -1113,11 +1309,16 @@ aucun overflow aux dimensions desktop supportées.
 
 ## Livrable final
 
-Event Builder V2 fonctionnel sous feature flag, avant validation/polish final.
+Event Builder V2 fonctionnel sous l'autorité `EventSystemMode`, avant validation/polish final.
 
 ---
 
 # Phase I — Validator & Diagnostics
+
+```text
+Mission status : PLANNED
+Jalons : V2-31 à V2-33
+```
 
 ## Objectif
 
@@ -1137,7 +1338,7 @@ avec des codes stables et des destinations éditeur.
 - navigation vers correction ;
 - validation incrémentale budgétée.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-31 — Source & Reference Integrity Validator V0
 
@@ -1228,6 +1429,11 @@ Validator Event V2 central prêt pour Selbrume.
 
 # Phase J — Selbrume Golden Slice
 
+```text
+Mission status : PLANNED
+Jalons : V2-34 à V2-37
+```
+
 ## Objectif
 
 Prouver authoring, disque, reload, runtime, Scene, lifecycle, diagnostics et
@@ -1246,7 +1452,7 @@ navigation sur trois vraies sources, puis sur le flux Lysa complet.
 - runtime source-first ;
 - Golden Lysa end-to-end et save/load verts.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-34 — Selbrume Three-Source Authoring Slice
 
@@ -1312,7 +1518,7 @@ navigation sur trois vraies sources, puis sur le flux Lysa complet.
 - **Visual Gate :** capture runtime ciblée si UI visible.
 - **Critères d’acceptation :** chaque Event lance la bonne Scene une fois selon policy.
 - **Evidence Pack :** runtime logs and state snapshots.
-- **Rollback :** feature flag V2 off.
+- **Rollback :** recovery receipt et mode `legacyOnly` seulement avant le point de non-retour.
 - **Impact suivant :** V2-37.
 - **Taille :** L.
 - **Bloquant :** oui.
@@ -1359,6 +1565,12 @@ Preuve Selbrume source-first end-to-end.
 
 # Phase K — Pixel-Perfect Visual Closure
 
+```text
+Mission status : PLANNED
+Jalons : V2-38 à V2-40
+North star : 1672 x 941, référence hashée de Phase A
+```
+
 ## Objectif
 
 Atteindre la composition, densité et hiérarchie de la north star 1672 × 941
@@ -1377,7 +1589,7 @@ après stabilisation fonctionnelle.
 - desktop responsive sans overflow ;
 - écarts métier documentés.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-38 — Reference Grid & Five-Panel Pixel Alignment
 
@@ -1436,14 +1648,14 @@ après stabilisation fonctionnelle.
 - **Contrats créés/modifiés :** aucun métier.
 - **Non-objectifs :** mobile/tablet.
 - **Risques :** panneaux cachés sans contrôle.
-- **Compatibilité :** bibliothèque escamotable explicitement sous 1480, avec focus retour et `Escape`.
-- **Tests ciblés :** empty/error/legacy/long IDs/dense lists/text scale/keyboard, budget largeur, scroll conservé, panneau escamotable.
+- **Compatibilité :** bibliothèque en side sheet modale explicite sous 1480, avec fond inerte, focus trap, focus retour et `Escape`.
+- **Tests ciblés :** empty/error/legacy/long IDs/dense lists/text scale/keyboard, budget largeur, scroll/catégorie conservés, Tab/Shift+Tab contenus, fond inerte, Escape et focus restauré.
 - **Régressions :** all Event Builder widget groups.
 - **Analyse/build :** full editor tests/analyze/macos.
 - **Visual Gate :** obligatoire multi-viewport.
 - **Critères d’acceptation :** aucun overflow et accès à chaque zone.
 - **Evidence Pack :** viewport matrix and accessibility audit.
-- **Rollback :** conserver layout 1672-only derrière flag interne.
+- **Rollback :** revenir au dernier layout style-only prouvé sans toucher aux contrats.
 - **Impact suivant :** readiness final.
 - **Taille :** M.
 - **Bloquant :** oui.
@@ -1468,6 +1680,11 @@ Event Builder V2 visuellement clos et robuste sur desktop.
 
 # Phase L — Final Readiness Gate
 
+```text
+Mission status : PLANNED
+Jalons : V2-41 à V2-43
+```
+
 ## Objectif
 
 Prouver compatibilité, performance, rollback et readiness release sans feature
@@ -1486,7 +1703,7 @@ flag obligatoire.
 - suites et builds verts ;
 - décision release explicite.
 
-## Lots
+## Jalons internes
 
 ### NS-EVENT-V2-41 — Legacy Corpus, Migration & Performance Readiness Gate
 
@@ -1529,7 +1746,7 @@ flag obligatoire.
 - **Visual Gate :** re-run baselines V2.
 - **Critères d’acceptation :** zéro failure, zéro diff généré inattendu.
 - **Evidence Pack :** commands exactes and outputs.
-- **Rollback :** no release, feature flag stays.
+- **Rollback :** no release ; mode courant et readers legacy conservés.
 - **Impact suivant :** V2-43.
 - **Taille :** L.
 - **Bloquant :** oui.
@@ -1540,7 +1757,7 @@ flag obligatoire.
 - **Objectif :** décider activation par défaut, mode `v2Only` et calendrier V1.
 - **Problème traité :** coexistence indéfinie de deux pipelines.
 - **Dépendances :** V2-42.
-- **Packages concernés :** documentaire ; flags/config si GO dans lot séparé ou très borné.
+- **Packages concernés :** documentaire ; mode/config si GO dans un jalon séparé ou très borné.
 - **Fichiers probables :** final readiness report/deprecation notice.
 - **Contrats créés/modifiés :** décision de support, pas de modèle.
 - **Non-objectifs :** suppression immédiate des lecteurs/importeurs legacy.
@@ -1552,7 +1769,7 @@ flag obligatoire.
 - **Visual Gate :** référence finale.
 - **Critères d’acceptation :** décision explicite, blockers zéro, mode/claims prouvés, aucun nouvel authoring legacy en V2, rollback documenté sans promesse après point de non-retour.
 - **Evidence Pack :** index de toutes preuves.
-- **Rollback :** V2 non activé ou retour flag si aucune donnée V2-only publiée.
+- **Rollback :** V2 non activé ou restauration par receipt si aucune donnée V2-only non représentable n'a été publiée.
 - **Impact suivant :** lots de dépréciation V1 futurs.
 - **Taille :** M.
 - **Bloquant :** oui.
@@ -1566,7 +1783,7 @@ flag obligatoire.
 
 ## Gate de validation
 
-Go/No-Go signé avec Evidence Pack complet, feature flag et fenêtre de support.
+Go/No-Go signé avec Evidence Pack complet, `EventSystemMode` et fenêtre de support.
 
 ## Livrable final
 
@@ -1585,31 +1802,34 @@ RESET-00
 → V2-09 → V2-10 → V2-11 → V2-12
 → V2-13 → V2-14 → V2-15 → V2-16
 → V2-17 → V2-18 → V2-19 → V2-20 → V2-21 → V2-22
-→ V2-23 → V2-24 → [V2-25 si source Golden absente]
+→ V2-23 → V2-24 → V2-25
 → V2-26 → V2-27 → V2-28 → V2-29 → V2-30
-→ V2-31 → V2-32
+→ V2-31 → V2-32 → V2-33
 → V2-34 → V2-35 → V2-36 → V2-37
 ```
 
-V2-25 n'est exécuté que si `npc_lysa`, `zone_port_entry` ou
-`clue_glass_object` n'existe pas comme source éligible. Cette trajectoire ne
-supprime aucun legacy et reporte la migration complète et le pixel polish. Elle
-ne peut pas être release finale.
+V2-25 prouve la capacité de matérialisation explicite même si les trois sources
+Golden existent déjà ; le jalon ne peut pas être omis silencieusement. V2-33
+ferme la migration UX avant contenu réel. Cette trajectoire ne supprime aucun
+legacy et reporte le pixel polish ; elle ne peut pas être release finale.
 
 ## Trajectoire complète Event Builder V2
 
 ```text
 Phase A → B → C
-Phase D et E en partie parallélisables
-Phase F et G après contrats/authoring
-Phase H après read models + Map bridge
-Phase I avant contenu réel
-Phase J Golden Slice
-Phase K pixel closure
-Phase L readiness
+B + C → D
+C + D → E
+B + C + E → F1
+D + F1 → F2
+D + E + F2 → G
+D + E + F2 + G → H
+F1 + H → I
+F2 + G + H + I → J
+J → K
+B..K → L
 ```
 
-## Lots parallélisables
+## Jalons internes parallélisables
 
 - V2-09 spatial et V2-10 outcome après V2-01/03 ;
 - V2-18 progression peut avancer avec V2-17 après contrats/mappings ;
@@ -1619,34 +1839,34 @@ Phase L readiness
 
 ## Points de non-retour
 
-1. première écriture `ProjectManifest.eventRegistry` dans un projet réel ;
-2. migration du graphe de références et de `consumedEventIds` collisionnés ;
-3. publication d’une donnée V2-only ;
+1. première progression ou référence V2 persistée qui ne peut pas être
+   représentée exactement en legacy ;
+2. résolution manuelle irréversible d'une collision `consumedEventIds` ;
+3. passage d'un projet réel en `v2Only` ;
 4. désactivation du dispatch Scenario/MapEvent legacy ;
-5. suppression d’un lecteur legacy.
+5. suppression d’un lecteur/importer legacy.
 
-## Décisions utilisateur obligatoires
+La première écriture d'un registry vide ou d'un draft reste réversible tant que
+le backup, les revisions et le receipt sont inchangés.
 
-- confirmer `ProjectManifest.eventRegistry` et son schema/mode/claims ;
-- confirmer l'union record `draft/configured` ;
-- confirmer la référence outcome qualifiée ;
-- confirmer IDs Event globalement uniques ;
-- choisir la politique pour collisions legacy consommées ;
-- confirmer un seul Event gagnant par occurrence en V0 ;
-- confirmer `mapEnter` au loadGame réussi ;
-- confirmer la fenêtre de support V1 ;
-- confirmer la bibliothèque permanente de la north star à partir de Phase H.
+## Décisions ratifiées et règle de contestation
 
-# Synthèse des lots
+Les décisions utilisateur A-01 à A-20 sont ratifiées dans
+`MVP Selbrume/event_builder_v2_architecture_decisions.md`. Une mission future ne
+les confirme pas de nouveau. Elle les applique ou s'arrête avec un Blocker
+Report et demande un ADR de remplacement.
 
-| Phase | Lots | Nombre | Gate principal |
+# Synthèse des missions et jalons
+
+| Mission | Jalons | Nombre | Gate principal |
 |---|---|---:|---|
-| A | RESET-00 | 1 | décision documentaire |
+| A `CLOSED` | RESET-00 | 1 | 20 ADRs + Entry Gate B |
 | B | V2-01 à V2-04 | 4 | contrats/JSON/index |
 | C | V2-05 à V2-08 | 4 | adapters/plan/claims |
 | D | V2-09 à V2-12 | 4 | catalogs/read models |
 | E | V2-13 à V2-16 | 4 | authoring/single-write |
-| F | V2-17 à V2-22 | 6 | quatre sources/lifecycle |
+| F1 | V2-17 à V2-18 | 2 | autorité/progression/outbox |
+| F2 | V2-19 à V2-22 | 4 | quatre source bridges |
 | G | V2-23 à V2-25 | 3 | Map Editor bridge |
 | H | V2-26 à V2-30 | 5 | UI V2 |
 | I | V2-31 à V2-33 | 3 | validator |
@@ -1655,12 +1875,15 @@ Phase L readiness
 | L | V2-41 à V2-43 | 3 | readiness |
 | **Total** | **RESET-00 + V2-01…43** | **44** | **Go/No-Go** |
 
-# Prochain lot exact
+# Prochaine mission exécutable
 
 ```text
-NS-EVENT-V2-01 — Canonical Narrative Event Source Ref Contract V0
+PHASE B — Domain Contracts
+Jalons internes : V2-01 à V2-04
+Gate d'entrée : ACCEPTED
 ```
 
-Entry gate : RESET-00 approuvé et décisions registry, record draft/configured,
-référence outcome qualifiée et IDs Event globaux confirmées. Aucun Event
-complet, runtime, migration ou UI ne doit être ajouté dans ce premier lot.
+Phase B doit exécuter ses quatre jalons dans une seule mission avec tests
+cumulés, reviews locales, Evidence Pack et rapport de phase. Elle peut considérer
+immuables les 13 éléments du `Entry Gate normatif de Phase B` du ledger. Elle
+ne doit ajouter ni runtime, ni migration de projet, ni UI.
