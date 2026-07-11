@@ -1,0 +1,703 @@
+{
+  "schemaVersion": 1,
+  "maps": [
+    {
+      "id": "c1_map_a",
+      "name": "Legacy corpus map A",
+      "size": {"width": 8, "height": 8},
+      "layers": [
+        {
+          "runtimeType": "object",
+          "id": "events",
+          "name": "Events"
+        }
+      ],
+      "entities": [
+        {
+          "id": "npc_actor",
+          "name": "Actor candidate",
+          "kind": "npc",
+          "pos": {"x": 1, "y": 1}
+        },
+        {
+          "id": "near_entity",
+          "name": "Near candidate",
+          "kind": "custom",
+          "pos": {"x": 5, "y": 6}
+        },
+        {
+          "id": "overlap_a",
+          "name": "Overlap A",
+          "kind": "custom",
+          "pos": {"x": 6, "y": 1}
+        },
+        {
+          "id": "overlap_b",
+          "name": "Overlap B",
+          "kind": "custom",
+          "pos": {"x": 6, "y": 1}
+        }
+      ],
+      "triggers": [
+        {
+          "id": "evt_trigger_script",
+          "name": "Legacy trigger",
+          "type": "event",
+          "area": {
+            "pos": {"x": 3, "y": 1},
+            "size": {"width": 1, "height": 1}
+          }
+        },
+        {
+          "id": "overlap_trigger",
+          "name": "Overlap trigger",
+          "type": "event",
+          "area": {
+            "pos": {"x": 6, "y": 1},
+            "size": {"width": 1, "height": 1}
+          }
+        }
+      ],
+      "events": [
+        {
+          "id": "evt_actor_scene",
+          "title": "Actor with Scene",
+          "type": "actor",
+          "position": {"layerId": "events", "x": 1, "y": 1},
+          "metadata": {"legacy.note": "same footprint is only a hint"},
+          "pages": [
+            {
+              "pageNumber": 0,
+              "sceneTarget": {"sceneId": "scene_intro"},
+              "metadata": {
+                "eventBuilder.schemaVersion": "1",
+                "eventBuilder.reusePolicy": "reusable"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evt_object_message",
+          "title": "Standalone object message",
+          "type": "object",
+          "position": {"layerId": "events", "x": 2, "y": 1},
+          "pages": [
+            {"pageNumber": 0, "message": "A legacy message."}
+          ]
+        },
+        {
+          "id": "evt_trigger_script",
+          "title": "Trigger zone script",
+          "type": "triggerZone",
+          "position": {"layerId": "events", "x": 3, "y": 1},
+          "pages": [
+            {
+              "pageNumber": 0,
+              "script": {"scriptId": "script_legacy", "startNode": "start"}
+            }
+          ]
+        },
+        {
+          "id": "evt_effect_mixed",
+          "title": "Effect with mixed payload",
+          "type": "effect",
+          "position": {"layerId": "events", "x": 4, "y": 1},
+          "pages": [
+            {
+              "pageNumber": 0,
+              "script": {"scriptId": "script_legacy"},
+              "message": "Opaque mixed behavior.",
+              "metadata": {
+                "eventBuilder.schemaVersion": "1",
+                "eventBuilder.reusePolicy": "reuse-forever"
+              }
+            }
+          ]
+        },
+        {
+          "id": "evt_page_order",
+          "title": "First-valid page order",
+          "type": "actor",
+          "position": {"layerId": "events", "x": 1, "y": 3},
+          "pages": [
+            {
+              "pageNumber": 30,
+              "condition": {
+                "type": "flagIsSet",
+                "params": {"flagName": "flagA"}
+              },
+              "isHidden": true,
+              "message": "First page"
+            },
+            {
+              "pageNumber": 20,
+              "condition": {
+                "type": "flagIsSet",
+                "params": {"flagName": "flagB"}
+              },
+              "isDisabled": true,
+              "message": "Second page"
+            },
+            {"pageNumber": 10, "message": "Fallback page"}
+          ]
+        },
+        {
+          "id": "evt_near",
+          "title": "Near but not linked",
+          "type": "actor",
+          "position": {"layerId": "events", "x": 5, "y": 5},
+          "pages": [{"pageNumber": 0, "message": "Near entity"}]
+        },
+        {
+          "id": "evt_overlap",
+          "title": "Ambiguous overlap",
+          "type": "actor",
+          "position": {"layerId": "events", "x": 6, "y": 1},
+          "pages": [{"pageNumber": 0, "message": "Many candidates"}]
+        },
+        {
+          "id": "evt_shared",
+          "title": "Shared ID on map A",
+          "type": "object",
+          "position": {"layerId": "events", "x": 2, "y": 4},
+          "pages": [
+            {
+              "pageNumber": 0,
+              "condition": {
+                "type": "eventIsConsumed",
+                "params": {"eventId": "evt_shared"}
+              },
+              "sceneTarget": {"sceneId": "scene_shared_a"},
+              "metadata": {"opaque.eventId": "evt_shared"}
+            }
+          ]
+        },
+        {
+          "id": "evt_missing_layer",
+          "title": "Unknown layer",
+          "type": "object",
+          "position": {"layerId": "missing", "x": 2, "y": 5},
+          "pages": [{"pageNumber": 0}]
+        },
+        {
+          "id": "evt_out_of_bounds",
+          "title": "Out of bounds",
+          "type": "object",
+          "position": {"layerId": "events", "x": 99, "y": 99},
+          "pages": [{"pageNumber": 0}]
+        },
+        {
+          "id": "evt_duplicate_position_a",
+          "title": "Duplicate position A",
+          "type": "object",
+          "position": {"layerId": "events", "x": 7, "y": 7},
+          "pages": [{"pageNumber": 0}]
+        },
+        {
+          "id": "evt_duplicate_position_b",
+          "title": "Duplicate position B",
+          "type": "object",
+          "position": {"layerId": "events", "x": 7, "y": 7},
+          "pages": [{"pageNumber": 0}]
+        }
+      ]
+    },
+    {
+      "id": "c1_map_b",
+      "name": "Legacy corpus map B",
+      "size": {"width": 4, "height": 4},
+      "layers": [
+        {
+          "runtimeType": "object",
+          "id": "events",
+          "name": "Events"
+        }
+      ],
+      "events": [
+        {
+          "id": "evt_shared",
+          "title": "Shared ID on map B",
+          "type": "actor",
+          "position": {"layerId": "events", "x": 1, "y": 1},
+          "pages": [
+            {
+              "pageNumber": 0,
+              "sceneTarget": {"sceneId": "scene_shared_b"}
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "scn_map_enter",
+      "name": "Map enter source",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"},
+          "metadata": {"eventV2.sceneId": "scene_map_enter"}
+        },
+        {
+          "id": "dialogue",
+          "type": "dialogue",
+          "binding": {"dialogueId": "dialogue_map_enter"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "dialogue"},
+        {"id": "e2", "fromNodeId": "dialogue", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_trigger_enter",
+      "name": "Trigger enter source",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a", "triggerId": "evt_trigger_script"},
+          "payload": {"actionKind": "sourceTriggerEnter"},
+          "metadata": {"eventV2.sceneId": "scene_trigger_enter"}
+        },
+        {
+          "id": "dialogue",
+          "type": "dialogue",
+          "binding": {"dialogueId": "dialogue_trigger"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "dialogue"},
+        {"id": "e2", "fromNodeId": "dialogue", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_entity_a",
+      "name": "Entity source A",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a", "entityId": "npc_actor"},
+          "payload": {"actionKind": "sourceEntityInteract"},
+          "metadata": {"eventV2.sceneId": "scene_entity"}
+        },
+        {
+          "id": "dialogue",
+          "type": "dialogue",
+          "binding": {"dialogueId": "dialogue_entity"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "dialogue"},
+        {"id": "e2", "fromNodeId": "dialogue", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_entity_b",
+      "name": "Entity source B",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a", "entityId": "npc_actor"},
+          "payload": {"actionKind": "sourceEntityInteract"},
+          "metadata": {"eventV2.sceneId": "scene_entity"}
+        },
+        {
+          "id": "dialogue",
+          "type": "dialogue",
+          "binding": {"dialogueId": "dialogue_entity"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "dialogue"},
+        {"id": "e2", "fromNodeId": "dialogue", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_outcome",
+      "name": "Outcome source",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"outcomeId": "victory"},
+          "payload": {"actionKind": "sourceOutcome"},
+          "metadata": {"eventV2.sceneId": "scene_outcome"}
+        },
+        {
+          "id": "dialogue",
+          "type": "dialogue",
+          "binding": {"dialogueId": "dialogue_outcome"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "dialogue"},
+        {"id": "e2", "fromNodeId": "dialogue", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_multi_source",
+      "name": "Multiple source nodes",
+      "entryNodeId": "source_a",
+      "nodes": [
+        {
+          "id": "source_a",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {
+          "id": "source_b",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {"id": "message_a", "type": "action", "payload": {"actionKind": "showMessage", "message": "A"}},
+        {"id": "message_b", "type": "action", "payload": {"actionKind": "showMessage", "message": "B"}},
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source_a", "toNodeId": "message_a"},
+        {"id": "e2", "fromNodeId": "source_b", "toNodeId": "message_b"},
+        {"id": "e3", "fromNodeId": "message_a", "toNodeId": "end"},
+        {"id": "e4", "fromNodeId": "message_b", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_complex",
+      "name": "Complex branching graph",
+      "entryNodeId": "source",
+      "activationCondition": {"type": "flagIsSet", "params": {"flagName": "quest_open"}},
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {
+          "id": "condition",
+          "type": "condition",
+          "payload": {"condition": {"type": "flagIsSet", "params": {"flagName": "branch"}}}
+        },
+        {"id": "set", "type": "action", "payload": {"actionKind": "setFlag", "params": {"flagName": "done"}}},
+        {"id": "clear", "type": "action", "payload": {"actionKind": "clearFlag", "params": {"flagName": "done"}}},
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "condition"},
+        {"id": "e2", "fromNodeId": "condition", "toNodeId": "set", "kind": "trueBranch"},
+        {"id": "e3", "fromNodeId": "condition", "toNodeId": "clear", "kind": "falseBranch"},
+        {"id": "e4", "fromNodeId": "set", "toNodeId": "end"},
+        {"id": "e5", "fromNodeId": "clear", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_choice",
+      "name": "Unsupported choice",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {"id": "choice", "type": "choice", "payload": {"choiceLabels": ["A", "B"]}},
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "choice"},
+        {"id": "e2", "fromNodeId": "choice", "toNodeId": "end", "kind": "choice"}
+      ]
+    },
+    {
+      "id": "scn_malformed",
+      "name": "Malformed entity source",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceEntityInteract"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_wildcard",
+      "name": "Legacy empty map wildcard",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": ""},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "end"}
+      ]
+    },
+    {
+      "id": "scn_command",
+      "name": "Scenario event command reference",
+      "entryNodeId": "source",
+      "nodes": [
+        {
+          "id": "source",
+          "type": "reference",
+          "binding": {"mapId": "c1_map_a"},
+          "payload": {"actionKind": "sourceMapEnter"}
+        },
+        {
+          "id": "command",
+          "type": "action",
+          "binding": {"mapId": "c1_map_a", "eventId": "evt_shared"},
+          "payload": {"actionKind": "markEventConsumed"}
+        },
+        {"id": "end", "type": "end"}
+      ],
+      "edges": [
+        {"id": "e1", "fromNodeId": "source", "toNodeId": "command"},
+        {"id": "e2", "fromNodeId": "command", "toNodeId": "end"}
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene_map_enter",
+      "name": "Map enter equivalent Scene",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {"id": "start", "kind": "start"},
+          {"id": "dialogue", "kind": "yarnDialogue", "payload": {"kind": "yarnDialogue", "dialogueId": "dialogue_map_enter"}},
+          {"id": "end", "kind": "end"}
+        ],
+        "edges": [
+          {"id": "e1", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "dialogue", "kind": "default"},
+          {"id": "e2", "fromNodeId": "dialogue", "fromPortId": "completed", "toNodeId": "end", "kind": "default"}
+        ]
+      }
+    },
+    {
+      "id": "scene_trigger_enter",
+      "name": "Trigger enter equivalent Scene",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {"id": "start", "kind": "start"},
+          {"id": "dialogue", "kind": "yarnDialogue", "payload": {"kind": "yarnDialogue", "dialogueId": "dialogue_trigger"}},
+          {"id": "end", "kind": "end"}
+        ],
+        "edges": [
+          {"id": "e1", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "dialogue", "kind": "default"},
+          {"id": "e2", "fromNodeId": "dialogue", "fromPortId": "completed", "toNodeId": "end", "kind": "default"}
+        ]
+      }
+    },
+    {
+      "id": "scene_entity",
+      "name": "Entity equivalent Scene",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {"id": "start", "kind": "start"},
+          {"id": "dialogue", "kind": "yarnDialogue", "payload": {"kind": "yarnDialogue", "dialogueId": "dialogue_entity"}},
+          {"id": "end", "kind": "end"}
+        ],
+        "edges": [
+          {"id": "e1", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "dialogue", "kind": "default"},
+          {"id": "e2", "fromNodeId": "dialogue", "fromPortId": "completed", "toNodeId": "end", "kind": "default"}
+        ]
+      }
+    },
+    {
+      "id": "scene_outcome",
+      "name": "Outcome equivalent Scene",
+      "graph": {
+        "startNodeId": "start",
+        "nodes": [
+          {"id": "start", "kind": "start"},
+          {"id": "dialogue", "kind": "yarnDialogue", "payload": {"kind": "yarnDialogue", "dialogueId": "dialogue_outcome"}},
+          {"id": "end", "kind": "end"}
+        ],
+        "edges": [
+          {"id": "e1", "fromNodeId": "start", "fromPortId": "completed", "toNodeId": "dialogue", "kind": "default"},
+          {"id": "e2", "fromNodeId": "dialogue", "fromPortId": "completed", "toNodeId": "end", "kind": "default"}
+        ]
+      }
+    }
+  ],
+  "gameStates": [
+    {
+      "saveId": "save_c1",
+      "consumedEventIds": ["evt_shared"],
+      "metadata": {"fixture": "save_v1"}
+    }
+  ],
+  "worldRules": [
+    {
+      "id": "rule_consumed",
+      "label": "Shared event consumed",
+      "source": {"kind": "consumedEvent", "sourceId": "evt_shared", "predicate": "consumed"},
+      "target": {"kind": "mapEntity", "mapId": "c1_map_a", "entityId": "npc_actor"},
+      "effect": {"kind": "entityVisible"}
+    },
+    {
+      "id": "rule_visibility",
+      "label": "Shared event visibility",
+      "source": {"kind": "fact", "sourceId": "fact_ready", "predicate": "isTrue"},
+      "target": {"kind": "mapEvent", "mapId": "c1_map_a", "eventId": "evt_shared"},
+      "effect": {"kind": "eventHidden"}
+    }
+  ],
+  "sceneConsequences": [
+    {
+      "kind": "markEventConsumed",
+      "mapId": "c1_map_a",
+      "eventId": "evt_shared",
+      "label": "Consume shared map event"
+    }
+  ],
+  "scripts": [
+    {
+      "id": "script_legacy",
+      "defaultStartNode": "start",
+      "nodes": [
+        {
+          "id": "start",
+          "commands": [
+            {"type": "markEventConsumed", "params": {"eventId": "evt_shared"}},
+            {"type": "end"}
+          ]
+        }
+      ],
+      "metadata": {"relatedEventId": "evt_shared"}
+    }
+  ],
+  "decodeProbes": [
+    {
+      "id": "event_position_without_layer",
+      "kind": "MapEventDefinition",
+      "expected": "decodeFailure",
+      "json": {
+        "id": "evt_missing_layer_field",
+        "pages": [{"pageNumber": 0}],
+        "position": {"x": 1, "y": 1}
+      }
+    },
+    {
+      "id": "unknown_legacy_payload",
+      "kind": "unknownJson",
+      "expected": "preservedOrBlocked",
+      "expectedCanonicalSha256": "f22dbb03c59079484616d870df8f3b3133ef5c0324f835c3e2e81a74382decae",
+      "json": {"futureBehavior": {"opcode": 91, "payload": [1, 2, 3]}}
+    }
+  ],
+  "cases": [
+    {"id": "ME_ACTOR_SCENE", "subject": "mapEvent:c1_map_a:evt_actor_scene", "classification": "ASSISTED", "decodeBehavior": "MapEventDefinition decodes without normalization of the raw fixture.", "runtimeBehavior": "The active page can target scene_intro when interaction is dispatched.", "sourceOfTruth": "MapEventDefinition pages and EventPosition.", "outgoingReferences": ["scene_intro"], "incomingReferences": [], "conversionPossibility": "One entity shares the footprint, but confirmation is required because position is not identity.", "lossRisk": "Selecting the wrong entity would redirect the trigger.", "features": ["actor", "sceneTarget", "validEventBuilderMetadata", "exactSingleFootprintHint"]},
+    {"id": "ME_OBJECT_MESSAGE", "subject": "mapEvent:c1_map_a:evt_object_message", "classification": "BLOCKED", "decodeBehavior": "MapEventDefinition decodes the message page.", "runtimeBehavior": "Interaction shows the legacy message without a Scene.", "sourceOfTruth": "MapEventDefinition message payload.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "A source and Scene must be selected explicitly.", "lossRisk": "Message behavior would disappear if converted as an empty Event.", "features": ["object", "message", "noScene", "standalone"]},
+    {"id": "ME_TRIGGER_SCRIPT", "subject": "mapEvent:c1_map_a:evt_trigger_script", "classification": "LEGACY_ONLY", "decodeBehavior": "MapEventDefinition decodes the script reference.", "runtimeBehavior": "The current MapEvent triggerZone path does not dispatch on zone entry.", "sourceOfTruth": "MapEventDefinition script and current runtime handler.", "outgoingReferences": ["script_legacy"], "incomingReferences": [], "conversionPossibility": "Keep under the legacy adapter until runtime semantics are proven.", "lossRisk": "Claiming it now could hide the only legacy handler.", "features": ["triggerZone", "script", "sameIdTrigger", "runtimeTriggerZonePartial"]},
+    {"id": "ME_EFFECT_MIXED", "subject": "mapEvent:c1_map_a:evt_effect_mixed", "classification": "UNSUPPORTED", "decodeBehavior": "MapEventDefinition preserves script, message and malformed metadata values.", "runtimeBehavior": "Legacy effect semantics combine opaque payloads outside Event V2 V0.", "sourceOfTruth": "Complete MapEventDefinition raw JSON.", "outgoingReferences": ["script_legacy"], "incomingReferences": [], "conversionPossibility": "No V0 source or equivalent Scene is known.", "lossRisk": "Flattening would drop at least one payload.", "features": ["effect", "scriptAndMessage", "malformedEventBuilderMetadata"]},
+    {"id": "ME_PAGE_ORDER", "subject": "mapEvent:c1_map_a:evt_page_order", "classification": "BLOCKED", "decodeBehavior": "Pages remain in list order 30, 20, 10.", "runtimeBehavior": "EventPageResolver selects the first condition-valid page and ignores hidden/disabled flags.", "sourceOfTruth": "MapEventDefinition page list order and gameplay resolver.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Several records may be needed; no flattening is allowed.", "lossRisk": "Reordering or filtering pages changes observable behavior.", "features": ["multiplePages", "firstValid", "fallbackPage", "hiddenPage", "disabledPage", "conditions"]},
+    {"id": "ME_NEAR_ENTITY", "subject": "mapEvent:c1_map_a:evt_near", "classification": "BLOCKED", "decodeBehavior": "MapEventDefinition decodes with a valid position.", "runtimeBehavior": "The Event remains autonomous; proximity creates no identity link.", "sourceOfTruth": "MapEventDefinition and MapEntity geometry remain separate.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "A source must be chosen or materialized explicitly.", "lossRisk": "Nearest-neighbor inference can bind the wrong actor.", "features": ["nearEntity", "positionOnly"]},
+    {"id": "ME_AMBIGUOUS_OVERLAP", "subject": "mapEvent:c1_map_a:evt_overlap", "classification": "BLOCKED", "decodeBehavior": "MapEventDefinition decodes despite overlapping sources.", "runtimeBehavior": "The legacy Event owns its position independently.", "sourceOfTruth": "MapEventDefinition, two MapEntities and one MapTrigger.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "User choice is mandatory among multiple candidates.", "lossRisk": "Any automatic source choice is ambiguous.", "features": ["multipleEntitiesSameFootprint", "entityAndTriggerOverlap"]},
+    {"id": "ME_ID_COLLISION_A", "subject": "mapEvent:c1_map_a:evt_shared", "classification": "BLOCKED", "decodeBehavior": "The map-local ID decodes normally.", "runtimeBehavior": "Bare references and consumed state fan out to two map-local definitions.", "sourceOfTruth": "Qualified mapId plus eventId and the reference inventory.", "outgoingReferences": ["evt_shared", "scene_shared_a"], "incomingReferences": ["save_c1", "rule_consumed", "rule_visibility", "sceneConsequence", "script_legacy", "scn_command"], "conversionPossibility": "An explicit collision resolution is required.", "lossRisk": "Selecting the first map changes progression and visibility.", "features": ["duplicateIdAcrossMaps", "eventReferencedByCondition", "alreadyConsumed", "worldRuleReference", "sceneConsequenceReference"]},
+    {"id": "ME_ID_COLLISION_B", "subject": "mapEvent:c1_map_b:evt_shared", "classification": "BLOCKED", "decodeBehavior": "The second map-local ID decodes normally.", "runtimeBehavior": "The same bare consumed bit can address this Event too.", "sourceOfTruth": "Qualified mapId plus eventId.", "outgoingReferences": ["scene_shared_b"], "incomingReferences": ["save_c1", "rule_consumed", "script_legacy"], "conversionPossibility": "An explicit collision resolution is required.", "lossRisk": "Dropping this candidate loses a reachable legacy behavior.", "features": ["duplicateIdAcrossMaps"]},
+    {"id": "ME_MISSING_LAYER", "subject": "mapEvent:c1_map_a:evt_missing_layer", "classification": "BLOCKED", "decodeBehavior": "JSON decodes but semantic map validation rejects the unknown layer.", "runtimeBehavior": "No valid placement layer exists.", "sourceOfTruth": "MapData layer catalog and EventPosition.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Repair the layer or choose a source explicitly.", "lossRisk": "Ignoring the invalid layer hides a placement defect.", "features": ["unknownLayer"]},
+    {"id": "ME_OUT_OF_BOUNDS", "subject": "mapEvent:c1_map_a:evt_out_of_bounds", "classification": "BLOCKED", "decodeBehavior": "JSON decodes but semantic map validation rejects the position.", "runtimeBehavior": "The placement lies outside the map bounds.", "sourceOfTruth": "MapData size and EventPosition.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Repair placement before migration.", "lossRisk": "Clamping silently changes location.", "features": ["outOfBounds"]},
+    {"id": "ME_DUPLICATE_POSITION", "subject": "mapEvent:c1_map_a:evt_duplicate_position_a", "classification": "BLOCKED", "decodeBehavior": "Both Events decode at the same coordinate.", "runtimeBehavior": "They remain distinct legacy handlers.", "sourceOfTruth": "Qualified map-local Event identities.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "No source can be inferred from the shared coordinate.", "lossRisk": "Merging them would drop a handler.", "features": ["multipleEventsSamePosition"]},
+    {"id": "ME_DUPLICATE_POSITION_B", "subject": "mapEvent:c1_map_a:evt_duplicate_position_b", "classification": "BLOCKED", "decodeBehavior": "The second Event decodes at the same coordinate as its sibling.", "runtimeBehavior": "It remains a distinct legacy handler.", "sourceOfTruth": "Qualified map-local Event identities.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "No source can be inferred from the shared coordinate.", "lossRisk": "Omitting this sibling would make a future claim incomplete.", "features": ["multipleEventsSamePosition"]},
+    {"id": "SC_MAP_ENTER", "subject": "scenarioSourceNode:scn_map_enter:source", "classification": "AUTO_SAFE", "decodeBehavior": "ScenarioAsset and its referenced SceneAsset decode.", "runtimeBehavior": "mapEnter reaches exactly one dialogue then end.", "sourceOfTruth": "Scenario graph plus structurally equivalent Scene graph.", "outgoingReferences": ["scene_map_enter", "dialogue_map_enter"], "incomingReferences": [], "conversionPossibility": "The one-dialogue trace is structurally identical and requires no choice.", "lossRisk": "None while the source and full Scenario fingerprint remain stable.", "features": ["mapEnter", "singleSource", "singleSceneCandidate"]},
+    {"id": "SC_TRIGGER_ENTER", "subject": "scenarioSourceNode:scn_trigger_enter:source", "classification": "AUTO_SAFE", "decodeBehavior": "ScenarioAsset and its referenced SceneAsset decode.", "runtimeBehavior": "triggerEnter reaches exactly one dialogue then end.", "sourceOfTruth": "Scenario graph plus structurally equivalent Scene graph.", "outgoingReferences": ["scene_trigger_enter", "dialogue_trigger"], "incomingReferences": [], "conversionPossibility": "The one-dialogue trace is structurally identical and requires no choice.", "lossRisk": "None while the source and full Scenario fingerprint remain stable.", "features": ["triggerEnter", "singleSource", "singleSceneCandidate"]},
+    {"id": "SC_ENTITY_A", "subject": "scenarioSourceNode:scn_entity_a:source", "classification": "AUTO_SAFE", "decodeBehavior": "ScenarioAsset and scene_entity decode.", "runtimeBehavior": "entityInteract reaches exactly one dialogue then end.", "sourceOfTruth": "Scenario graph plus structurally equivalent Scene graph.", "outgoingReferences": ["scene_entity", "dialogue_entity"], "incomingReferences": [], "conversionPossibility": "The source and one-dialogue trace are explicit.", "lossRisk": "None only when both same-source Scenario handlers are claimed together.", "features": ["entityInteract", "singleSource", "singleSceneCandidate", "claimedSource"]},
+    {"id": "SC_ENTITY_B", "subject": "scenarioSourceNode:scn_entity_b:source", "classification": "AUTO_SAFE", "decodeBehavior": "ScenarioAsset and scene_entity decode.", "runtimeBehavior": "entityInteract reaches exactly one dialogue then end.", "sourceOfTruth": "Scenario graph plus structurally equivalent Scene graph.", "outgoingReferences": ["scene_entity", "dialogue_entity"], "incomingReferences": [], "conversionPossibility": "The source and one-dialogue trace are explicit.", "lossRisk": "None only when both same-source Scenario handlers are claimed together.", "features": ["entityInteract", "singleSource", "singleSceneCandidate", "claimedSource"]},
+    {"id": "SC_OUTCOME", "subject": "scenarioSourceNode:scn_outcome:source", "classification": "ASSISTED", "decodeBehavior": "ScenarioAsset and scene_outcome decode.", "runtimeBehavior": "The raw outcome reaches one dialogue then end.", "sourceOfTruth": "ScenarioAsset raw outcome binding and producer inventory.", "outgoingReferences": ["scene_outcome", "dialogue_outcome", "victory"], "incomingReferences": [], "conversionPossibility": "A producer must be selected to qualify the outcome.", "lossRisk": "A wrong producer changes event identity.", "features": ["outcomeReceived", "unqualifiedOutcome", "singleSceneCandidate"]},
+    {"id": "SC_MULTI_SOURCE", "subject": "scenario:scn_multi_source", "classification": "BLOCKED", "decodeBehavior": "Both source nodes and action branches decode.", "runtimeBehavior": "First matching Scenario/source order can select different messages.", "sourceOfTruth": "Complete ScenarioAsset node and edge order.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Split only after proving complete source cohorts.", "lossRisk": "Claiming one source node can hide the sibling handler.", "features": ["multipleSourceNodes", "multipleActions"]},
+    {"id": "SC_COMPLEX", "subject": "scenario:scn_complex", "classification": "LEGACY_ONLY", "decodeBehavior": "Activation condition, branch and actions decode.", "runtimeBehavior": "The condition chooses true or false action paths.", "sourceOfTruth": "Complete ScenarioAsset graph.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Remain under the legacy adapter; Event V2 must not absorb orchestration.", "lossRisk": "Flattening loses branch and action order.", "features": ["activationCondition", "complexGraph", "branches", "multipleActions"]},
+    {"id": "SC_CHOICE", "subject": "scenario:scn_choice", "classification": "UNSUPPORTED", "decodeBehavior": "The choice graph decodes.", "runtimeBehavior": "ScenarioRuntimeExecutor blocks explicitly on choice.", "sourceOfTruth": "Complete ScenarioAsset graph and runtime executor.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "No V0 conversion is available.", "lossRisk": "Flattening discards player choice.", "features": ["choice", "nonConvertibleAction"]},
+    {"id": "SC_MALFORMED", "subject": "scenarioSourceNode:scn_malformed:source", "classification": "BLOCKED", "decodeBehavior": "The permissive legacy codec decodes a missing entityId.", "runtimeBehavior": "The source cannot match a valid entity interaction.", "sourceOfTruth": "Raw ScenarioNodeBinding and runtime matcher.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Repair the binding explicitly.", "lossRisk": "Guessing an entity redirects behavior.", "features": ["malformedBinding"]},
+    {"id": "SC_WILDCARD", "subject": "scenarioSourceNode:scn_wildcard:source", "classification": "BLOCKED", "decodeBehavior": "The permissive legacy codec preserves the empty mapId.", "runtimeBehavior": "Legacy matching may treat the empty map as a wildcard.", "sourceOfTruth": "Raw ScenarioNodeBinding and runtime matcher.", "outgoingReferences": [], "incomingReferences": [], "conversionPossibility": "Choose an explicit map before conversion.", "lossRisk": "Picking one map narrows legacy reachability.", "features": ["emptyMapIdWildcard"]},
+    {"id": "SC_COMMAND", "subject": "scenario:scn_command", "classification": "LEGACY_ONLY", "decodeBehavior": "ScenarioNodeBinding preserves the qualified map event reference.", "runtimeBehavior": "The legacy action kind remains outside Event V2 V0.", "sourceOfTruth": "Complete ScenarioAsset graph.", "outgoingReferences": ["c1_map_a:evt_shared"], "incomingReferences": [], "conversionPossibility": "Keep the orchestration legacy and map the reference later.", "lossRisk": "Dropping the command changes consumed progression.", "features": ["scenarioEventReference", "nonConvertibleAction"]}
+  ],
+  "pageOrders": {
+    "mapEvent:c1_map_a:evt_actor_scene": [0],
+    "mapEvent:c1_map_a:evt_object_message": [0],
+    "mapEvent:c1_map_a:evt_trigger_script": [0],
+    "mapEvent:c1_map_a:evt_effect_mixed": [0],
+    "mapEvent:c1_map_a:evt_page_order": [30, 20, 10],
+    "mapEvent:c1_map_a:evt_near": [0],
+    "mapEvent:c1_map_a:evt_overlap": [0],
+    "mapEvent:c1_map_a:evt_shared": [0],
+    "mapEvent:c1_map_b:evt_shared": [0],
+    "mapEvent:c1_map_a:evt_missing_layer": [0],
+    "mapEvent:c1_map_a:evt_out_of_bounds": [0],
+    "mapEvent:c1_map_a:evt_duplicate_position_a": [0],
+    "mapEvent:c1_map_a:evt_duplicate_position_b": [0],
+    "scenarioSourceNode:scn_map_enter:source": [],
+    "scenarioSourceNode:scn_trigger_enter:source": [],
+    "scenarioSourceNode:scn_entity_a:source": [],
+    "scenarioSourceNode:scn_entity_b:source": [],
+    "scenarioSourceNode:scn_outcome:source": [],
+    "scenario:scn_multi_source": [],
+    "scenario:scn_complex": [],
+    "scenario:scn_choice": [],
+    "scenarioSourceNode:scn_malformed:source": [],
+    "scenarioSourceNode:scn_wildcard:source": [],
+    "scenario:scn_command": []
+  },
+  "references": [
+    {"kind": "GameState.consumedEventIds", "path": "gameStates.save_c1.consumedEventIds[0]", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]},
+    {"kind": "ScriptCondition", "path": "maps.c1_map_a.events.evt_shared.pages[0].condition", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]},
+    {"kind": "WorldRuleDefinition.source", "path": "worldRules.rule_consumed.source", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]},
+    {"kind": "WorldRuleDefinition.target", "path": "worldRules.rule_visibility.target", "rawId": "evt_shared", "mapId": "c1_map_a", "candidates": ["c1_map_a:evt_shared"]},
+    {"kind": "EventSceneLinkDiagnostic", "path": "diagnostics.eventSceneLinks[0]", "rawId": "evt_actor_scene", "mapId": "c1_map_a", "candidates": ["c1_map_a:evt_actor_scene"]},
+    {"kind": "EventSceneLinkDiagnostic", "path": "diagnostics.eventSceneLinks[1]", "rawId": "evt_shared", "mapId": "c1_map_a", "candidates": ["c1_map_a:evt_shared"]},
+    {"kind": "EventSceneLinkDiagnostic", "path": "diagnostics.eventSceneLinks[2]", "rawId": "evt_shared", "mapId": "c1_map_b", "candidates": ["c1_map_b:evt_shared"]},
+    {"kind": "SceneConsequence", "path": "sceneConsequences[0]", "rawId": "evt_shared", "mapId": "c1_map_a", "candidates": ["c1_map_a:evt_shared"]},
+    {"kind": "ScenarioNodeBinding", "path": "scenarios.scn_command.nodes.command.binding", "rawId": "evt_shared", "mapId": "c1_map_a", "candidates": ["c1_map_a:evt_shared"]},
+    {"kind": "ScriptCommand", "path": "scripts.script_legacy.nodes.start.commands[0]", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]},
+    {"kind": "metadata", "path": "maps.c1_map_a.events.evt_shared.pages[0].metadata.opaque.eventId", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]},
+    {"kind": "metadata", "path": "scripts.script_legacy.metadata.relatedEventId", "rawId": "evt_shared", "candidates": ["c1_map_a:evt_shared", "c1_map_b:evt_shared"]}
+  ],
+  "cohorts": [
+    {
+      "id": "entity_actor_complete",
+      "source": {"kind": "entityInteract", "mapId": "c1_map_a", "entityId": "npc_actor"},
+      "members": [
+        {"kind": "scenarioSourceNode", "scenarioId": "scn_entity_a", "nodeId": "source"},
+        {"kind": "scenarioSourceNode", "scenarioId": "scn_entity_b", "nodeId": "source"}
+      ]
+    }
+  ],
+  "goldens": {
+    "mapEventFingerprint": "sha256:b37cfbf34d95a6723c771e56db5f5bfaaa9c76864259f82043bf77115edb4530",
+    "scenarioFingerprintA": "sha256:655b19d6f9ae64d409d37908e50ca90f346a45e7cbc3986a1417603f857f41bf",
+    "scenarioFingerprintB": "sha256:b4419149ccbd6f72a7f37297aa63a6b91118c63512a2bf2c074abc1fb7053ca3",
+    "cohortId": "lsc_c0030af572aefe602d6441f0f4582c6243e68d777a71938eea296906483d1163",
+    "cohortFingerprint": "sha256:2abf064b57b6b9539bc093257691665269c7e32c7d23f026b2ca115944c4fb5d"
+  }
+}

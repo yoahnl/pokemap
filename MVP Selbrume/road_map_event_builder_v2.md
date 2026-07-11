@@ -418,8 +418,9 @@ Contrat Event V2 pur, versionné, indexable et encore sans consumer.
 # Phase C — Legacy Compatibility & Migration
 
 ```text
-Mission status : READY
+Mission status : CLOSED / ACCEPTED le 2026-07-11
 Gate d'entrée : ACCEPTED par Phase B le 2026-07-10
+Gate de sortie : ACCEPTED — C0 à C4 PASS, aucun write legacy
 Jalons : V2-05 à V2-08
 ```
 
@@ -445,6 +446,7 @@ et les sources Scenario existantes.
 
 ### NS-EVENT-V2-05 — Legacy Event Corpus & Characterization Gate
 
+- **Statut :** PASS — corpus figé et hashé le 2026-07-11.
 - **Type :** migration.
 - **Objectif :** figer comportements, données et graphe de références legacy avant conversion.
 - **Problème traité :** absence de corpus exhaustif, références dispersées et migrations no-op.
@@ -468,6 +470,7 @@ et les sources Scenario existantes.
 
 ### NS-EVENT-V2-06 — MapEventDefinition Read-Only Compatibility Adapter V0
 
+- **Statut :** PASS — adapter read-only validé le 2026-07-11.
 - **Type :** migration.
 - **Objectif :** projeter un MapEvent legacy vers un candidat Event V2 sans write.
 - **Problème traité :** map-local, position et pages incompatibles avec le canon.
@@ -491,6 +494,7 @@ et les sources Scenario existantes.
 
 ### NS-EVENT-V2-07 — Scenario Source Compatibility & Authoring Freeze V0
 
+- **Statut :** PASS — projection et authoring freeze validés le 2026-07-11.
 - **Type :** migration.
 - **Objectif :** lire les nodes source Scenario et verrouiller ceux revendiqués par V2 sans promouvoir ScenarioAsset en Event.
 - **Problème traité :** second pipeline actif et encore modifiable après claim V2.
@@ -514,6 +518,7 @@ et les sources Scenario existantes.
 
 ### NS-EVENT-V2-08 — Migration Plan, Reference Mapping & Recovery Receipt V0
 
+- **Statut :** PASS — dry-run déterministe et receipt validés le 2026-07-11.
 - **Type :** migration.
 - **Objectif :** produire un plan de migration pur, complet et réversible sans écrire.
 - **Problème traité :** références dispersées, claims absents et promesse impossible de transaction multi-fichiers atomique.
@@ -557,7 +562,8 @@ Couche de compatibilité et plan de migration sûr, encore sans write utilisateu
 # Phase D — Source Catalogs & Read Models
 
 ```text
-Mission status : PLANNED
+Mission status : READY
+Gate d'entrée : ACCEPTED par Phase C le 2026-07-11
 Jalons : V2-09 à V2-12
 ```
 

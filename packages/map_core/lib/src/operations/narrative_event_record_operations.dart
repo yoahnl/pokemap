@@ -1,6 +1,12 @@
 import '../models/narrative_event_definition.dart';
 
-NarrativeEventRecord publishNarrativeEventRecord(NarrativeEventRecord record) {
+/// Compiles a complete draft into a disabled configured record.
+///
+/// This operation checks only record structure. Phase E owns contextual
+/// publication against source, Scene, Fact, Event, and conflict catalogs.
+NarrativeEventRecord compileNarrativeEventDraftStructurally(
+  NarrativeEventRecord record,
+) {
   final draft = record.draftOrNull;
   if (draft == null) {
     throw ArgumentError.value(record, 'record', 'must be a draft record');
@@ -10,7 +16,7 @@ NarrativeEventRecord publishNarrativeEventRecord(NarrativeEventRecord record) {
         'A Narrative Event draft must be complete before publication.');
   }
 
-  return NarrativeEventRecord.configured(
+  return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
       id: draft.id,
       name: draft.name,
@@ -25,19 +31,19 @@ NarrativeEventRecord publishNarrativeEventRecord(NarrativeEventRecord record) {
   );
 }
 
-NarrativeEventRecord activateNarrativeEventRecord(NarrativeEventRecord record) {
+/// Changes the structural enabled flag without contextual validation.
+///
+/// This deliberately explicit helper is not the Phase E activation gate.
+NarrativeEventRecord setNarrativeEventRecordEnabledStructurallyUnchecked(
+  NarrativeEventRecord record, {
+  required bool enabled,
+}) {
   final definition = record.definitionOrNull;
   if (definition == null) {
     throw ArgumentError.value(record, 'record', 'must be configured');
   }
-  return NarrativeEventRecord.configured(definition, enabled: true);
-}
-
-NarrativeEventRecord deactivateNarrativeEventRecord(
-    NarrativeEventRecord record) {
-  final definition = record.definitionOrNull;
-  if (definition == null) {
-    throw ArgumentError.value(record, 'record', 'must be configured');
-  }
-  return NarrativeEventRecord.configured(definition, enabled: false);
+  return NarrativeEventRecord.configuredStructurallyUnchecked(
+    definition,
+    enabled: enabled,
+  );
 }

@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -76,7 +78,15 @@ void main() {
         throwsFormatException,
       );
       expect(
-        () => canonicalizeNarrativeEventJson(9007199254740992),
+        canonicalizeNarrativeEventJson(9007199254740992),
+        '9007199254740992',
+      );
+      expect(
+        canonicalizeNarrativeEventJson(-9007199254740992),
+        '-9007199254740992',
+      );
+      expect(
+        () => canonicalizeNarrativeEventJson(9007199254740993),
         throwsFormatException,
       );
       expect(
@@ -85,6 +95,31 @@ void main() {
       );
       expect(
         () => canonicalizeNarrativeEventJson({1: 'not a string key'}),
+        throwsFormatException,
+      );
+      for (final noncharacter in [
+        0xfdd0,
+        0xfffe,
+        0xffff,
+        0x1fffe,
+        0x10ffff,
+      ]) {
+        final value = String.fromCharCode(noncharacter);
+        expect(
+          () => canonicalizeNarrativeEventJson(value),
+          throwsFormatException,
+          reason: 'U+${noncharacter.toRadixString(16)}',
+        );
+        expect(
+          () => canonicalizeNarrativeEventJson({value: true}),
+          throwsFormatException,
+          reason: 'key U+${noncharacter.toRadixString(16)}',
+        );
+      }
+      expect(
+        () => canonicalizeNarrativeEventJsonText(
+          r'{"a":1,"\u0061":2}',
+        ),
         throwsFormatException,
       );
     });
@@ -161,4 +196,194 @@ void main() {
       );
     });
   });
+
+  group('committed JCS reproducibility pack', () {
+    late Map<String, dynamic> vectors;
+
+    setUpAll(() {
+      vectors = jsonDecode(
+        File('test/fixtures/narrative_event_jcs/vectors.json')
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect(vectors['schemaVersion'], 1);
+    });
+
+    test('replays canonical outputs and SHA-256 vectors offline', () {
+      for (final value in vectors['canonicalCases'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        expect(
+          canonicalizeNarrativeEventJson(vector['input']),
+          vector['canonical'],
+          reason: vector['id'] as String,
+        );
+        expect(
+          narrativeEventCanonicalSha256(vector['input']),
+          vector['sha256'],
+          reason: vector['id'] as String,
+        );
+        expect(vector['provenance'], isNotEmpty);
+      }
+    });
+
+    test('matches all six pinned upstream corpus outputs byte for byte', () {
+      final corpus = vectors['officialCorpus'] as Map<String, dynamic>;
+      expect(corpus['upstreamCommit'], hasLength(40));
+      expect(corpus['provenance'], isNotEmpty);
+      for (final caseName in corpus['cases'] as List<dynamic>) {
+        final input = File(
+          'test/fixtures/narrative_event_jcs/official/input/$caseName.json',
+        ).readAsStringSync();
+        final expectedHex = File(
+          'test/fixtures/narrative_event_jcs/official/outhex/$caseName.txt',
+        ).readAsStringSync().trim();
+        final expectedBytes = expectedHex
+            .split(RegExp(r'\s+'))
+            .map((value) => int.parse(value, radix: 16))
+            .toList();
+
+        expect(
+          canonicalizeNarrativeEventJsonUtf8(
+            decodeNarrativeEventJsonStrict(input),
+          ),
+          expectedBytes,
+          reason: caseName as String,
+        );
+      }
+    });
+
+    test('matches every finite RFC 8785 Appendix B number vector', () {
+      for (final value in vectors['numberCases'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        final number = _doubleFromIeee754Hex(
+          vector['ieee754Hex'] as String,
+        );
+        expect(
+          canonicalizeNarrativeEventJson(number),
+          vector['canonical'],
+          reason: vector['ieee754Hex'] as String,
+        );
+        expect(
+          narrativeEventCanonicalSha256(number),
+          vector['sha256'],
+          reason: vector['ieee754Hex'] as String,
+        );
+      }
+      for (final value in vectors['rejectedNumberCases'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        final number = _doubleFromIeee754Hex(
+          vector['ieee754Hex'] as String,
+        );
+        expect(
+          () => canonicalizeNarrativeEventJson(number),
+          throwsFormatException,
+          reason: vector['reason'] as String,
+        );
+      }
+    });
+
+    test('rejects invalid Unicode numbers and duplicate registry keys', () {
+      for (final value in vectors['invalidRawCases'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        final rawJson = vector['rawJson'] as String;
+        switch (vector['operation']) {
+          case 'canonicalizeDecoded':
+            expect(
+              () => canonicalizeNarrativeEventJson(jsonDecode(rawJson)),
+              throwsFormatException,
+              reason: vector['id'] as String,
+            );
+          case 'canonicalizeText':
+            expect(
+              () => canonicalizeNarrativeEventJsonText(rawJson),
+              throwsFormatException,
+              reason: vector['id'] as String,
+            );
+          case 'preflightProject':
+            final result = preflightProjectManifestJson(utf8.encode(rawJson));
+            final expected = vector['expectedDiagnosticContains'] as String;
+            expect(
+              result.eventRegistry.when(
+                absent: () => false,
+                decoded: (_) => false,
+                unsupported: (_, __) => false,
+                invalid: (_, diagnostics) =>
+                    diagnostics.any((message) => message.contains(expected)),
+              ),
+              isTrue,
+              reason: vector['id'] as String,
+            );
+          default:
+            fail('Unknown raw vector operation ${vector['operation']}');
+        }
+      }
+    });
+
+    test('pins Phase B source and claim preimages and hashes', () {
+      for (final value in vectors['phaseBHashes'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        final preimage = vector['preimage'] as String;
+        final decoded = jsonDecode(preimage);
+        expect(
+          canonicalizeNarrativeEventJson(decoded),
+          preimage,
+          reason: vector['id'] as String,
+        );
+        expect(
+          narrativeEventCanonicalSha256(decoded),
+          vector['sha256'],
+          reason: vector['id'] as String,
+        );
+      }
+
+      for (final value in vectors['claimCases'] as List<dynamic>) {
+        final vector = value as Map<String, dynamic>;
+        final source = NarrativeEventSourceRef.fromJson(vector['source']);
+        final provenances = (vector['provenances'] as List<dynamic>)
+            .map(LegacySourceRef.fromJson)
+            .toList()
+          ..sort(compareLegacySourceRefs);
+        final members = (vector['members'] as List<dynamic>)
+            .map(LegacySourceClaimMember.fromJson)
+            .toList()
+          ..sort((left, right) {
+            final provenance = compareLegacySourceRefs(
+              left.provenance,
+              right.provenance,
+            );
+            if (provenance != 0) return provenance;
+            return compareNarrativeEventUtf16(
+              left.sourceFingerprint,
+              right.sourceFingerprint,
+            );
+          });
+        final cohortPreimage = canonicalizeNarrativeEventJson({
+          'source': source.toJson(),
+          'provenances': [
+            for (final provenance in provenances) provenance.toJson(),
+          ],
+        });
+        final cohortId = computeLegacySourceCohortId(source, provenances);
+        final fingerprintPreimage = canonicalizeNarrativeEventJson({
+          'cohortId': cohortId,
+          'members': [for (final member in members) member.toJson()],
+        });
+
+        expect(cohortPreimage, vector['cohortPreimage']);
+        expect(cohortId, vector['cohortId']);
+        expect(fingerprintPreimage, vector['fingerprintPreimage']);
+        expect(
+          computeLegacySourceCohortFingerprint(cohortId, members),
+          vector['cohortFingerprint'],
+        );
+      }
+    });
+  });
+}
+
+double _doubleFromIeee754Hex(String hex) {
+  final bits = BigInt.parse(hex, radix: 16);
+  final data = ByteData(8)
+    ..setUint32(0, (bits >> 32).toInt(), Endian.big)
+    ..setUint32(4, (bits & BigInt.from(0xffffffff)).toInt(), Endian.big);
+  return data.getFloat64(0, Endian.big);
 }

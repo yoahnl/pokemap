@@ -57,6 +57,10 @@ class CreateProjectScenarioUseCase {
     if (project.scenarios.any((entry) => entry.id == id)) {
       throw EditorConflictException('Scenario id already exists: $id');
     }
+    _ensureScenarioAuthoringAllowed(
+      project,
+      proposedScenario: scenario,
+    );
 
     final updated = project.copyWith(
       scenarios: <ScenarioAsset>[...project.scenarios, scenario],
@@ -104,6 +108,12 @@ class UpdateProjectScenarioUseCase {
         project.scenarios.any((entry) => entry.id == targetId)) {
       throw EditorConflictException('Scenario id already exists: $targetId');
     }
+    final currentScenario = project.scenarios[index];
+    _ensureScenarioAuthoringAllowed(
+      project,
+      existingScenario: currentScenario,
+      proposedScenario: nextScenario,
+    );
 
     final nextList = List<ScenarioAsset>.from(project.scenarios);
     nextList[index] = nextScenario;
@@ -129,10 +139,14 @@ class DeleteProjectScenarioUseCase {
     if (id.isEmpty) {
       throw const EditorValidationException('Scenario id cannot be empty');
     }
-    final exists = project.scenarios.any((entry) => entry.id == id);
-    if (!exists) {
+    final index = project.scenarios.indexWhere((entry) => entry.id == id);
+    if (index < 0) {
       throw EditorNotFoundException('Scenario not found: $id');
     }
+    _ensureScenarioAuthoringAllowed(
+      project,
+      existingScenario: project.scenarios[index],
+    );
 
     final updated = project.copyWith(
       scenarios: project.scenarios.where((entry) => entry.id != id).toList(),
@@ -140,5 +154,22 @@ class DeleteProjectScenarioUseCase {
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
     return updated;
+  }
+}
+
+void _ensureScenarioAuthoringAllowed(
+  ProjectManifest project, {
+  ScenarioAsset? existingScenario,
+  ScenarioAsset? proposedScenario,
+}) {
+  final registry = project.eventRegistry;
+  if (registry == null) return;
+  final result = evaluateScenarioAuthoringClaimGuard(
+    claimIndex: buildValidatedLegacyClaimIndex(registry),
+    existingScenario: existingScenario,
+    proposedScenario: proposedScenario,
+  );
+  if (result.blocked) {
+    throw EditorInvalidOperationException(result.message!);
   }
 }

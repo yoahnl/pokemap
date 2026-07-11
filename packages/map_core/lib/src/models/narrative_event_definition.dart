@@ -420,7 +420,8 @@ sealed class NarrativeEventRecord {
   factory NarrativeEventRecord.draft(NarrativeEventDraft draft) =
       _NarrativeEventDraftRecord;
 
-  factory NarrativeEventRecord.configured(
+  /// Builds the configured wire state without contextual claim validation.
+  factory NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition definition, {
     required bool enabled,
   }) = _NarrativeEventConfiguredRecord;
@@ -456,7 +457,7 @@ sealed class NarrativeEventRecord {
           path: 'record',
           knownFields: _recordWireFields,
         );
-        return NarrativeEventRecord.configured(
+        return NarrativeEventRecord.configuredStructurallyUnchecked(
           NarrativeEventDefinition.fromJson(
             NarrativeEventWire.requiredObject(
               object,

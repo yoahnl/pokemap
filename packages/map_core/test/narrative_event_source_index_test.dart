@@ -289,7 +289,7 @@ NarrativeEventRecord _configured(
   int order = 0,
   List<NarrativeEventCondition> conditions = const [],
 }) =>
-    NarrativeEventRecord.configured(
+    NarrativeEventRecord.configuredStructurallyUnchecked(
       NarrativeEventDefinition(
         id: id,
         name: id,

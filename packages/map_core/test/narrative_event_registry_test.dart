@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 
 const _eventA = 'evt_019abcde-0000-7000-8000-000000000001';
 const _eventB = 'evt_019abcde-0000-7000-8000-000000000002';
+const _eventC = 'evt_019abcde-0000-7000-8000-000000000003';
 const _fingerprintA =
     'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 const _fingerprintB =
@@ -178,9 +179,10 @@ void main() {
         'accepts disabled configured targets but rejects absent draft and source mismatch',
         () {
       final source = NarrativeEventSourceRef.mapEnter('map_port');
+      final provenance = LegacySourceRef.mapEvent('map_port', 'valid');
       final valid = _claim(
         source: source,
-        provenance: LegacySourceRef.mapEvent('map_port', 'valid'),
+        provenance: provenance,
         targetIds: [_eventA],
       );
       final validIndex = buildValidatedLegacyClaimIndex(
@@ -193,6 +195,21 @@ void main() {
       );
       expect(validIndex.canStartDualRead, isTrue);
       expect(validIndex.validBySource[source], valid);
+      expect(validIndex.validByProvenance[provenance], same(valid));
+      expect(
+        validIndex
+            .validByProvenance[LegacySourceRef.mapEvent('map_port', 'valid')],
+        same(valid),
+      );
+      expect(validIndex.validByProvenance.values, everyElement(same(valid)));
+      final absent = LegacySourceRef.mapEvent('map_port', 'absent');
+      expect(validIndex.validByProvenance[absent], isNull);
+      expect(validIndex.invalidByProvenance[absent], isNull);
+      expect(() => validIndex.validBySource.clear(), throwsUnsupportedError);
+      expect(
+        () => validIndex.validByProvenance.clear(),
+        throwsUnsupportedError,
+      );
 
       final invalidCases = <NarrativeEventRecord?>[
         null,
@@ -214,7 +231,52 @@ void main() {
         );
         expect(index.canStartDualRead, isFalse);
         expect(index.invalidBySource[source], isNotEmpty);
+        expect(index.invalidByProvenance[provenance], isNotEmpty);
+        expect(index.validBySource[source], isNull);
+        expect(index.validByProvenance[provenance], isNull);
+        expect(() => index.invalidBySource.clear(), throwsUnsupportedError);
+        expect(
+          () => index.invalidBySource[source]!.clear(),
+          throwsUnsupportedError,
+        );
       }
+    });
+
+    test('maps every valid member provenance to the same claim and cohort', () {
+      final source = NarrativeEventSourceRef.mapEnter('map_port');
+      final mapMember = LegacySourceClaimMember(
+        provenance: LegacySourceRef.mapEvent('map_port', 'legacy'),
+        sourceFingerprint: _fingerprintA,
+      );
+      final scenarioMember = LegacySourceClaimMember(
+        provenance: LegacySourceRef.scenarioSourceNode(
+          'scenario_arrival',
+          'source',
+        ),
+        sourceFingerprint: _fingerprintB,
+      );
+      final claim = _claimFromParts(
+        source,
+        [mapMember, scenarioMember],
+        [_eventA],
+      );
+      final index = buildValidatedLegacyClaimIndex(
+        NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.dualRead,
+          records: [_configured(_eventA, enabled: false, source: source)],
+          legacyClaims: [claim],
+        ),
+      );
+
+      expect(index.validBySource[source], same(claim));
+      for (final member in claim.members) {
+        final byProvenance = index.validByProvenance[member.provenance];
+        expect(byProvenance, same(claim));
+        expect(byProvenance!.cohortId, claim.cohortId);
+      }
+      expect(index.invalidBySource, isEmpty);
+      expect(index.invalidByProvenance, isEmpty);
     });
 
     test('reports global duplicate source cohort and provenance conflicts', () {
@@ -244,7 +306,68 @@ void main() {
       expect(index.canStartDualRead, isFalse);
       expect(index.globalConflicts, isNotEmpty);
       expect(index.invalidBySource[source], isNotEmpty);
+      expect(index.validBySource[source], isNull);
+      for (final claim in [first, second]) {
+        for (final member in claim.members) {
+          expect(index.validByProvenance[member.provenance], isNull);
+          expect(index.invalidByProvenance[member.provenance], isNotEmpty);
+        }
+      }
       expect(() => index.globalConflicts.clear(), throwsUnsupportedError);
+      expect(
+        () => index.validByProvenance.clear(),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => index.invalidByProvenance.clear(),
+        throwsUnsupportedError,
+      );
+      expect(
+        () =>
+            index.invalidByProvenance[first.members.single.provenance]!.clear(),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('makes every claim unusable when any global conflict exists', () {
+      final conflictedSource = NarrativeEventSourceRef.mapEnter('map_port');
+      final independentSource = NarrativeEventSourceRef.mapEnter('map_forest');
+      final first = _claim(
+        source: conflictedSource,
+        provenance: LegacySourceRef.mapEvent('map_port', 'legacy_a'),
+        targetIds: [_eventA],
+      );
+      final second = _claim(
+        source: conflictedSource,
+        provenance: LegacySourceRef.mapEvent('map_port', 'legacy_b'),
+        targetIds: [_eventB],
+      );
+      final independent = _claim(
+        source: independentSource,
+        provenance: LegacySourceRef.mapEvent('map_forest', 'legacy_c'),
+        targetIds: [_eventC],
+      );
+      final index = buildValidatedLegacyClaimIndex(
+        NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.dualRead,
+          records: [
+            _configured(_eventA, enabled: false, source: conflictedSource),
+            _configured(_eventB, enabled: false, source: conflictedSource),
+            _configured(_eventC, enabled: false, source: independentSource),
+          ],
+          legacyClaims: [first, second, independent],
+        ),
+      );
+
+      expect(index.canStartDualRead, isFalse);
+      expect(index.validBySource, isEmpty);
+      expect(index.validByProvenance, isEmpty);
+      expect(index.invalidBySource[independentSource], isNotEmpty);
+      expect(
+        index.invalidByProvenance[independent.members.single.provenance],
+        isNotEmpty,
+      );
     });
 
     test(
@@ -293,6 +416,13 @@ void main() {
         ),
       );
       expect(provenanceIndex.canStartDualRead, isFalse);
+      expect(provenanceIndex.validBySource[sourceA], isNull);
+      expect(provenanceIndex.validBySource[sourceB], isNull);
+      expect(provenanceIndex.validByProvenance[sharedProvenance], isNull);
+      expect(
+        provenanceIndex.invalidByProvenance[sharedProvenance],
+        isNotEmpty,
+      );
       expect(
         provenanceIndex.globalConflicts.where(
           (diagnostic) => diagnostic.startsWith('provenance '),
@@ -315,7 +445,7 @@ NarrativeEventRecord _configured(
   required bool enabled,
   NarrativeEventSourceRef? source,
 }) =>
-    NarrativeEventRecord.configured(
+    NarrativeEventRecord.configuredStructurallyUnchecked(
       NarrativeEventDefinition(
         id: id,
         name: id,

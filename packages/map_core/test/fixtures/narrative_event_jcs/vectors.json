@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "canonicalCases": [
+    {
+      "id": "rfc-8785-number-and-literal-sample",
+      "provenance": "RFC 8785 section 3.2.2",
+      "input": {
+        "numbers": [333333333.33333329, 1e30, 4.50, 2e-3, 1e-27, -0.0],
+        "literals": [null, true, false]
+      },
+      "canonical": "{\"literals\":[null,true,false],\"numbers\":[333333333.3333333,1e+30,4.5,0.002,1e-27,0]}",
+      "sha256": "e873ca5542a5ce5f9a3ebe9860957bfcf875d9136ed379ab4e31f9f6af0d4a13"
+    },
+    {
+      "id": "rfc-8785-utf16-property-order",
+      "provenance": "RFC 8785 section 3.2.3",
+      "input": {
+        "€": "Euro Sign",
+        "\r": "Carriage Return",
+        "דּ": "Hebrew Letter Dalet With Dagesh",
+        "1": "One",
+        "😀": "Emoji: Grinning Face",
+        "": "Control",
+        "ö": "Latin Small Letter O With Diaeresis"
+      },
+      "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+      "sha256": "5e321556d22018a9656991a9e94f77ec175fa193e52a2429d312f8419ec8b08c"
+    },
+    {
+      "id": "rfc-8785-string-escaping",
+      "provenance": "RFC 8785 section 3.2.2.2",
+      "input": {
+        "z": [3, 2, 1],
+        "a": {
+          "quote": "\"",
+          "slash": "/",
+          "backslash": "\\",
+          "line": "\n"
+        }
+      },
+      "canonical": "{\"a\":{\"backslash\":\"\\\\\",\"line\":\"\\n\",\"quote\":\"\\\"\",\"slash\":\"/\"},\"z\":[3,2,1]}",
+      "sha256": "1b4c01086097d0e13de5deaad09016bb9f8657ef4e2bdaddceb2590d8904718a"
+    },
+    {
+      "id": "i-json-safe-integers-and-negative-zero",
+      "provenance": "RFC 8785 section 3.2.2.3 and RFC 7493 section 2.2",
+      "input": {
+        "negativeZero": -0.0,
+        "max": 9007199254740991,
+        "min": -9007199254740991
+      },
+      "canonical": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"negativeZero\":0}",
+      "sha256": "7728d06946509ad2a5102e01f0f4ce2089ca70337167807bfae8965174236dae"
+    }
+  ],
+  "officialCorpus": {
+    "provenance": "cyberphone/json-canonicalization testdata",
+    "upstreamCommit": "19d51d7fe467d4706a3ff08adf8a748f29fc21e0",
+    "cases": ["arrays", "french", "structures", "unicode", "values", "weird"]
+  },
+  "numberCases": [
+    {"ieee754Hex": "0000000000000000", "canonical": "0", "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"},
+    {"ieee754Hex": "8000000000000000", "canonical": "0", "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"},
+    {"ieee754Hex": "0000000000000001", "canonical": "5e-324", "sha256": "c46e7ca1be4c8734f373a56530787288fa2058d73d07855e9247e949f811a42a"},
+    {"ieee754Hex": "8000000000000001", "canonical": "-5e-324", "sha256": "046f4049d09944fcb2efbf2ddb0ea8f05e0204591d6d02c9106efc88190fa7f9"},
+    {"ieee754Hex": "7fefffffffffffff", "canonical": "1.7976931348623157e+308", "sha256": "c2784e1abd6317452708f3fbf9641c16b959561bc621a1d408c23a20aa2cb585"},
+    {"ieee754Hex": "ffefffffffffffff", "canonical": "-1.7976931348623157e+308", "sha256": "f0347276b171ff0c36491c912285a2833de7313d1a103a4b1be0274bfe7c021f"},
+    {"ieee754Hex": "4340000000000000", "canonical": "9007199254740992", "sha256": "c681da39d7273a6a24c15c9cac3a75526ff2ecf8ba4ee60346a0c70c8163bdb2"},
+    {"ieee754Hex": "c340000000000000", "canonical": "-9007199254740992", "sha256": "83e109bfd7fb4984b47a46f363627c18dbbd7e57e36b05a04cd162d304df72e9"},
+    {"ieee754Hex": "4430000000000000", "canonical": "295147905179352830000", "sha256": "7933ef1b34c194c7a327ef424e54282dd2872bc7bda27812f9edf7882ca340c0"},
+    {"ieee754Hex": "44b52d02c7e14af5", "canonical": "9.999999999999997e+22", "sha256": "143eadc1fc2fe10a563df313c717399d1835652d710fa189119ff2e1d5cde33d"},
+    {"ieee754Hex": "44b52d02c7e14af6", "canonical": "1e+23", "sha256": "0b1af6b73e932475817f8eb620deecf21ad7570df3400a23db5c79a9001597f7"},
+    {"ieee754Hex": "44b52d02c7e14af7", "canonical": "1.0000000000000001e+23", "sha256": "de7cb5db5ee06bf7ef5b74ebcf94cd9d7efda28125905f7ff590724953173c7b"},
+    {"ieee754Hex": "444b1ae4d6e2ef4e", "canonical": "999999999999999700000", "sha256": "dcabf7269f6bb6ec5ba8b9530825cd7ffe215d4dd26e0a237f9d753513792c07"},
+    {"ieee754Hex": "444b1ae4d6e2ef4f", "canonical": "999999999999999900000", "sha256": "914b4f8b4bbe2f6e7c36ad7791fc842a7516d149e694b3a71b78cee465ff6d7a"},
+    {"ieee754Hex": "444b1ae4d6e2ef50", "canonical": "1e+21", "sha256": "241c4643fa70b1dcde1205b71be4e3bebb17e9f880c8e1a33d0ead6c27271d3c"},
+    {"ieee754Hex": "3eb0c6f7a0b5ed8c", "canonical": "9.999999999999997e-7", "sha256": "2ace34b29d30d300aeacd4f2bb83367fa186f11a3f02ed461f35f00fd741a242"},
+    {"ieee754Hex": "3eb0c6f7a0b5ed8d", "canonical": "0.000001", "sha256": "159fb29a827ad04b260aa6c8ab6d8637f8f2b38af5c4f3cb49d6a21205e040f8"},
+    {"ieee754Hex": "41b3de4355555553", "canonical": "333333333.3333332", "sha256": "0fdb7bafaf219ccaf278cd0c0a580473db01c774a0baafe72a07d01230ac5c6d"},
+    {"ieee754Hex": "41b3de4355555554", "canonical": "333333333.33333325", "sha256": "bcbe1777b7d3c91c19c7f90100c595a9b3f1d9b395567da4258baf7ac655d403"},
+    {"ieee754Hex": "41b3de4355555555", "canonical": "333333333.3333333", "sha256": "6bd9be1c141028789cc35db62f1b43e80d5d4ee24d6d542e775deb16799ff4c7"},
+    {"ieee754Hex": "41b3de4355555556", "canonical": "333333333.3333334", "sha256": "1e099031ca0cb3cf4054688f7e2e8c95fc72828de5fa7605ce3f729e6cf79d43"},
+    {"ieee754Hex": "41b3de4355555557", "canonical": "333333333.33333343", "sha256": "cf68ab5e198a77538aafd967fb122a305ba1df95c9348b1fe3dff453c7f7215f"},
+    {"ieee754Hex": "becbf647612f3696", "canonical": "-0.0000033333333333333333", "sha256": "4e703d4e0928e4f339d03e1fb5454ddc33db657ad735b02530d98123b4fd4b61"},
+    {"ieee754Hex": "43143ff3c1cb0959", "canonical": "1424953923781206.2", "sha256": "e1547479d27f057e3197d49417a1dcbe19dd8781b34fa9f83b789925943d00cb"}
+  ],
+  "rejectedNumberCases": [
+    {"ieee754Hex": "7fffffffffffffff", "reason": "NaN"},
+    {"ieee754Hex": "7ff0000000000000", "reason": "Infinity"}
+  ],
+  "invalidRawCases": [
+    {
+      "id": "i-json-unpaired-high-surrogate",
+      "provenance": "RFC 8785 section 3.2.2.2",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\ud800\""
+    },
+    {
+      "id": "i-json-unpaired-low-surrogate",
+      "provenance": "RFC 8785 section 3.2.2.2",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\udc00\""
+    },
+    {
+      "id": "i-json-inexact-binary64-integer",
+      "provenance": "RFC 8785 section 3.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "9007199254740993"
+    },
+    {
+      "id": "i-json-noncharacter-fdd0",
+      "provenance": "RFC 7493 section 2.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\ufdd0\""
+    },
+    {
+      "id": "i-json-noncharacter-fffe",
+      "provenance": "RFC 7493 section 2.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\ufffe\""
+    },
+    {
+      "id": "i-json-noncharacter-ffff",
+      "provenance": "RFC 7493 section 2.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\uffff\""
+    },
+    {
+      "id": "i-json-noncharacter-plane-1",
+      "provenance": "RFC 7493 section 2.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\ud83f\\udffe\""
+    },
+    {
+      "id": "i-json-noncharacter-plane-16",
+      "provenance": "RFC 7493 section 2.1",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "\"\\udbff\\udfff\""
+    },
+    {
+      "id": "i-json-surrogate-key",
+      "provenance": "RFC 8785 section 3.2.2.2",
+      "operation": "canonicalizeDecoded",
+      "rawJson": "{\"\\ud800\":1}"
+    },
+    {
+      "id": "i-json-duplicate-literal-key",
+      "provenance": "RFC 7493 section 2.3",
+      "operation": "canonicalizeText",
+      "rawJson": "{\"a\":1,\"a\":2}"
+    },
+    {
+      "id": "i-json-duplicate-escaped-key",
+      "provenance": "RFC 7493 section 2.3",
+      "operation": "canonicalizeText",
+      "rawJson": "{\"a\":1,\"\\u0061\":2}"
+    },
+    {
+      "id": "i-json-duplicate-event-registry-key",
+      "provenance": "RFC 7493 section 2.3",
+      "operation": "preflightProject",
+      "rawJson": "{\"eventRegistry\":{\"schemaVersion\":1,\"schemaVersion\":1,\"mode\":\"legacyOnly\",\"records\":[],\"legacyClaims\":[]}}",
+      "expectedDiagnosticContains": "Duplicate JSON key at $.eventRegistry.schemaVersion"
+    }
+  ],
+  "phaseBHashes": [
+    {
+      "id": "phase-b-map-event-source",
+      "provenance": "NS-EVENT-V2 Phase B committed golden",
+      "preimage": "{\"event\":{\"id\":\"legacy\",\"metadata\":{},\"pages\":[{\"condition\":null,\"isDisabled\":false,\"isHidden\":false,\"message\":null,\"metadata\":{},\"pageNumber\":0,\"script\":null,\"spriteId\":null}],\"position\":{\"layerId\":\"events\",\"x\":2,\"y\":1},\"title\":\"\",\"type\":\"actor\"},\"kind\":\"mapEvent\",\"mapId\":\"map_port\"}",
+      "sha256": "6ea5956cc0973bd2b6ce93cef2ac703dd61035c6b530dac02f08610239b548db"
+    },
+    {
+      "id": "phase-b-scenario-source",
+      "provenance": "NS-EVENT-V2 Phase B committed golden",
+      "preimage": "{\"kind\":\"scenarioSourceNode\",\"nodeId\":\"source\",\"scenario\":{\"activationCondition\":null,\"declaredOutcomes\":[],\"description\":\"\",\"edges\":[],\"entryNodeId\":\"source\",\"id\":\"scenario\",\"metadata\":{},\"name\":\"Scenario\",\"nodes\":[],\"scope\":\"localEventFlow\"},\"scenarioId\":\"scenario\"}",
+      "sha256": "e8e4b2a3a69a8b291f9e29497c94d054847d5474d2860bd86d9e90dba446a93e"
+    }
+  ],
+  "claimCases": [
+    {
+      "id": "phase-b-single-map-event-cohort",
+      "provenance": "NS-EVENT-V2 Phase B committed claim golden",
+      "source": {
+        "kind": "mapEnter",
+        "mapId": "map_port"
+      },
+      "provenances": [
+        {
+          "kind": "mapEvent",
+          "mapId": "map_port",
+          "eventId": "lysa"
+        }
+      ],
+      "members": [
+        {
+          "provenance": {
+            "kind": "mapEvent",
+            "mapId": "map_port",
+            "eventId": "lysa"
+          },
+          "sourceFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "cohortPreimage": "{\"provenances\":[{\"eventId\":\"lysa\",\"kind\":\"mapEvent\",\"mapId\":\"map_port\"}],\"source\":{\"kind\":\"mapEnter\",\"mapId\":\"map_port\"}}",
+      "cohortId": "lsc_f33795b3ad4a0b7522087062de7b7fe3d0bfee38c2c8920172821baa13e4e6c5",
+      "fingerprintPreimage": "{\"cohortId\":\"lsc_f33795b3ad4a0b7522087062de7b7fe3d0bfee38c2c8920172821baa13e4e6c5\",\"members\":[{\"provenance\":{\"eventId\":\"lysa\",\"kind\":\"mapEvent\",\"mapId\":\"map_port\"},\"sourceFingerprint\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}",
+      "cohortFingerprint": "sha256:8e7c6e870ef25acf92eebf9f2641f198c2f2bd774920099b42f0e1bf16d14e9d"
+    },
+    {
+      "id": "phase-b-two-member-reversed-input-cohort",
+      "provenance": "NS-EVENT-V2 Phase C deterministic multi-member golden",
+      "source": {
+        "kind": "mapEnter",
+        "mapId": "map_port"
+      },
+      "provenances": [
+        {
+          "kind": "scenarioSourceNode",
+          "scenarioId": "scenario_arrival",
+          "nodeId": "source"
+        },
+        {
+          "kind": "mapEvent",
+          "mapId": "map_port",
+          "eventId": "lysa"
+        }
+      ],
+      "members": [
+        {
+          "provenance": {
+            "kind": "scenarioSourceNode",
+            "scenarioId": "scenario_arrival",
+            "nodeId": "source"
+          },
+          "sourceFingerprint": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "provenance": {
+            "kind": "mapEvent",
+            "mapId": "map_port",
+            "eventId": "lysa"
+          },
+          "sourceFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      ],
+      "cohortPreimage": "{\"provenances\":[{\"eventId\":\"lysa\",\"kind\":\"mapEvent\",\"mapId\":\"map_port\"},{\"kind\":\"scenarioSourceNode\",\"nodeId\":\"source\",\"scenarioId\":\"scenario_arrival\"}],\"source\":{\"kind\":\"mapEnter\",\"mapId\":\"map_port\"}}",
+      "cohortId": "lsc_65e30267a6ef9fe6e351b4a3789377d563a35b7b8e3ccb47f7bc34f3499dcda3",
+      "fingerprintPreimage": "{\"cohortId\":\"lsc_65e30267a6ef9fe6e351b4a3789377d563a35b7b8e3ccb47f7bc34f3499dcda3\",\"members\":[{\"provenance\":{\"eventId\":\"lysa\",\"kind\":\"mapEvent\",\"mapId\":\"map_port\"},\"sourceFingerprint\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},{\"provenance\":{\"kind\":\"scenarioSourceNode\",\"nodeId\":\"source\",\"scenarioId\":\"scenario_arrival\"},\"sourceFingerprint\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}]}",
+      "cohortFingerprint": "sha256:f24177958517d13922af29bc3e8a8b18cee0e4649ad6323144f61b45bb5fdb2f"
+    }
+  ]
+}

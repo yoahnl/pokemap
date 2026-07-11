@@ -194,19 +194,28 @@ final class ValidatedLegacyClaimIndex {
   ValidatedLegacyClaimIndex._({
     required this.canStartDualRead,
     required Map<NarrativeEventSourceRef, LegacySourceClaim> validBySource,
+    required Map<LegacySourceRef, LegacySourceClaim> validByProvenance,
     required Map<NarrativeEventSourceRef, List<String>> invalidBySource,
+    required Map<LegacySourceRef, List<String>> invalidByProvenance,
     required List<String> globalConflicts,
   })  : validBySource = Map.unmodifiable(validBySource),
+        validByProvenance = Map.unmodifiable(validByProvenance),
         invalidBySource =
             Map<NarrativeEventSourceRef, List<String>>.unmodifiable({
           for (final entry in invalidBySource.entries)
+            entry.key: List<String>.unmodifiable(entry.value),
+        }),
+        invalidByProvenance = Map<LegacySourceRef, List<String>>.unmodifiable({
+          for (final entry in invalidByProvenance.entries)
             entry.key: List<String>.unmodifiable(entry.value),
         }),
         globalConflicts = List<String>.unmodifiable(globalConflicts);
 
   final bool canStartDualRead;
   final Map<NarrativeEventSourceRef, LegacySourceClaim> validBySource;
+  final Map<LegacySourceRef, LegacySourceClaim> validByProvenance;
   final Map<NarrativeEventSourceRef, List<String>> invalidBySource;
+  final Map<LegacySourceRef, List<String>> invalidByProvenance;
   final List<String> globalConflicts;
 }
 
@@ -265,13 +274,20 @@ ValidatedLegacyClaimIndex buildValidatedLegacyClaimIndex(
   );
 
   final validBySource = <NarrativeEventSourceRef, LegacySourceClaim>{};
+  final validByProvenance = <LegacySourceRef, LegacySourceClaim>{};
   final invalidBySource = <NarrativeEventSourceRef, List<String>>{};
+  final invalidByProvenance = <LegacySourceRef, List<String>>{};
   for (var index = 0; index < claims.length; index++) {
     final claim = claims[index];
     final diagnostics = <String>[];
-    if (conflictedClaims.contains(index)) {
+    if (globalConflicts.isNotEmpty) {
       diagnostics.add(
-          'Claim participates in a global cohort/source/provenance conflict.');
+        conflictedClaims.contains(index)
+            ? 'Claim participates in a global '
+                'cohort/source/provenance conflict.'
+            : 'Claim is unusable while the claim index contains a global '
+                'cohort/source/provenance conflict.',
+      );
     }
     for (final targetId in claim.targetEventIds) {
       final target = recordsById[targetId];
@@ -288,8 +304,16 @@ ValidatedLegacyClaimIndex buildValidatedLegacyClaimIndex(
     }
     if (diagnostics.isEmpty) {
       validBySource[claim.source] = claim;
+      for (final member in claim.members) {
+        validByProvenance[member.provenance] = claim;
+      }
     } else {
       invalidBySource.putIfAbsent(claim.source, () => []).addAll(diagnostics);
+      for (final member in claim.members) {
+        invalidByProvenance
+            .putIfAbsent(member.provenance, () => [])
+            .addAll(diagnostics);
+      }
     }
   }
 
@@ -297,7 +321,9 @@ ValidatedLegacyClaimIndex buildValidatedLegacyClaimIndex(
   return ValidatedLegacyClaimIndex._(
     canStartDualRead: globalConflicts.isEmpty && invalidBySource.isEmpty,
     validBySource: validBySource,
+    validByProvenance: validByProvenance,
     invalidBySource: invalidBySource,
+    invalidByProvenance: invalidByProvenance,
     globalConflicts: globalConflicts,
   );
 }
@@ -339,7 +365,7 @@ ProjectManifestEventRegistryPreflightResult preflightProjectManifestJson(
   late List<String> duplicateJsonKeys;
   try {
     final jsonSource = utf8.decode(jsonBytes);
-    duplicateJsonKeys = _JsonDuplicateKeyScanner(jsonSource).scan();
+    duplicateJsonKeys = findDuplicateNarrativeEventJsonKeys(jsonSource);
     decoded = jsonDecode(jsonSource);
   } on Object catch (error) {
     diagnostics.add('Project JSON decode failed: $error');
@@ -373,21 +399,23 @@ ProjectManifestEventRegistryPreflightResult preflightProjectManifestJson(
     root[entry.key as String] = entry.value;
   }
 
-  final registryDuplicates = duplicateJsonKeys
-      .where(
-        (path) =>
-            path == r'$.eventRegistry' || path.startsWith(r'$.eventRegistry.'),
-      )
-      .toList();
-  final registryResult = registryDuplicates.isEmpty
-      ? decodeNarrativeEventRegistry(root['eventRegistry'])
-      : EventRegistryDecodeResult.invalid(
-          root['eventRegistry'],
-          [
-            for (final path in registryDuplicates)
-              'Duplicate JSON key at $path is not valid I-JSON.',
-          ],
-        );
+  if (duplicateJsonKeys.isNotEmpty) {
+    diagnostics.addAll([
+      for (final path in duplicateJsonKeys)
+        'Duplicate JSON key at $path is not valid I-JSON.',
+    ]);
+    return ProjectManifestEventRegistryPreflightResult._(
+      originalJsonBytes: jsonBytes,
+      eventRegistry: EventRegistryDecodeResult.invalid(
+        root['eventRegistry'],
+        diagnostics,
+      ),
+      manifest: null,
+      diagnostics: diagnostics,
+    );
+  }
+
+  final registryResult = decodeNarrativeEventRegistry(root['eventRegistry']);
   final manifestJson = Map<String, dynamic>.from(root);
   if (!registryResult.writable) {
     manifestJson.remove('eventRegistry');
@@ -424,137 +452,4 @@ Object? _freezeJson(Object? value) {
     });
   }
   return value;
-}
-
-final class _JsonDuplicateKeyScanner {
-  _JsonDuplicateKeyScanner(this.source);
-
-  final String source;
-  final List<String> _duplicates = <String>[];
-  int _index = 0;
-
-  List<String> scan() {
-    _skipWhitespace();
-    _parseValue(r'$');
-    _skipWhitespace();
-    if (_index != source.length) {
-      throw FormatException('Unexpected JSON content at offset $_index.');
-    }
-    return List<String>.unmodifiable(_duplicates);
-  }
-
-  void _parseValue(String path) {
-    _skipWhitespace();
-    if (_index >= source.length) {
-      throw const FormatException('Unexpected end of JSON input.');
-    }
-    switch (source.codeUnitAt(_index)) {
-      case 0x7b:
-        _parseObject(path);
-      case 0x5b:
-        _parseArray(path);
-      case 0x22:
-        _parseString();
-      default:
-        _parsePrimitive();
-    }
-  }
-
-  void _parseObject(String path) {
-    _expect(0x7b);
-    _skipWhitespace();
-    if (_consumeIf(0x7d)) return;
-    final keys = <String>{};
-    while (true) {
-      _skipWhitespace();
-      final key = _parseString();
-      final keyPath = '$path.$key';
-      if (!keys.add(key)) _duplicates.add(keyPath);
-      _skipWhitespace();
-      _expect(0x3a);
-      _parseValue(keyPath);
-      _skipWhitespace();
-      if (_consumeIf(0x7d)) return;
-      _expect(0x2c);
-    }
-  }
-
-  void _parseArray(String path) {
-    _expect(0x5b);
-    _skipWhitespace();
-    if (_consumeIf(0x5d)) return;
-    var itemIndex = 0;
-    while (true) {
-      _parseValue('$path[$itemIndex]');
-      itemIndex++;
-      _skipWhitespace();
-      if (_consumeIf(0x5d)) return;
-      _expect(0x2c);
-    }
-  }
-
-  String _parseString() {
-    _skipWhitespace();
-    final start = _index;
-    _expect(0x22);
-    var escaped = false;
-    while (_index < source.length) {
-      final unit = source.codeUnitAt(_index++);
-      if (escaped) {
-        escaped = false;
-        continue;
-      }
-      if (unit == 0x5c) {
-        escaped = true;
-      } else if (unit == 0x22) {
-        final token = source.substring(start, _index);
-        final decoded = jsonDecode(token);
-        if (decoded is! String) {
-          throw FormatException('Invalid JSON string at offset $start.');
-        }
-        return decoded;
-      }
-    }
-    throw FormatException('Unterminated JSON string at offset $start.');
-  }
-
-  void _parsePrimitive() {
-    final start = _index;
-    while (_index < source.length) {
-      final unit = source.codeUnitAt(_index);
-      if (unit == 0x2c || unit == 0x7d || unit == 0x5d || _isWhitespace(unit)) {
-        break;
-      }
-      _index++;
-    }
-    if (_index == start) {
-      throw FormatException('Invalid JSON value at offset $start.');
-    }
-  }
-
-  void _skipWhitespace() {
-    while (_index < source.length && _isWhitespace(source.codeUnitAt(_index))) {
-      _index++;
-    }
-  }
-
-  bool _consumeIf(int unit) {
-    if (_index < source.length && source.codeUnitAt(_index) == unit) {
-      _index++;
-      return true;
-    }
-    return false;
-  }
-
-  void _expect(int unit) {
-    if (!_consumeIf(unit)) {
-      throw FormatException(
-        'Expected ${String.fromCharCode(unit)} at offset $_index.',
-      );
-    }
-  }
-
-  bool _isWhitespace(int unit) {
-    return unit == 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d;
-  }
 }

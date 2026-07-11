@@ -217,13 +217,28 @@ void main() {
       final bytes = utf8.encode(json);
       final preflight = preflightProjectManifestJson(bytes);
 
-      expect(preflight.manifest?.name, 'Legacy project');
+      expect(preflight.manifest, isNull);
       expect(_decodeState(preflight.eventRegistry), 'invalid');
       expect(preflight.writable, isFalse);
       expect(preflight.originalJsonBytes, bytes);
       expect(
         preflight.eventRegistry.diagnostics.single,
         contains(r'$.eventRegistry.schemaVersion'),
+      );
+    });
+
+    test('rejects duplicate keys anywhere in the raw project JSON', () {
+      const json = '{"name":"first","name":"second","maps":[],"tilesets":[]}';
+      final bytes = utf8.encode(json);
+      final preflight = preflightProjectManifestJson(bytes);
+
+      expect(preflight.manifest, isNull);
+      expect(_decodeState(preflight.eventRegistry), 'invalid');
+      expect(preflight.writable, isFalse);
+      expect(preflight.originalJsonBytes, bytes);
+      expect(
+        preflight.eventRegistry.diagnostics.single,
+        contains(r'$.name'),
       );
     });
 

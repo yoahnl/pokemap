@@ -12,8 +12,10 @@ void main() {
     test('encodes the exact definition, conditions, and configured record JSON',
         () {
       final definition = _definition();
-      final record =
-          NarrativeEventRecord.configured(definition, enabled: false);
+      final record = NarrativeEventRecord.configuredStructurallyUnchecked(
+        definition,
+        enabled: false,
+      );
 
       expect(
         jsonEncode(definition.toJson()),
@@ -234,29 +236,45 @@ void main() {
       expect(_draft().toJson().keys.toSet().intersection(forbidden), isEmpty);
     });
 
-    test(
-        'publishes only complete drafts inactive, then toggles configured records',
-        () {
+    test('keeps raw Phase B transitions structurally explicit', () {
       expect(
-        () => publishNarrativeEventRecord(NarrativeEventRecord.draft(_draft())),
+        () => compileNarrativeEventDraftStructurally(
+          NarrativeEventRecord.draft(_draft()),
+        ),
         throwsStateError,
       );
       expect(
-        () =>
-            activateNarrativeEventRecord(NarrativeEventRecord.draft(_draft())),
+        () => setNarrativeEventRecordEnabledStructurallyUnchecked(
+          NarrativeEventRecord.draft(_draft()),
+          enabled: true,
+        ),
         throwsArgumentError,
       );
 
-      final configured = publishNarrativeEventRecord(
+      final configured = compileNarrativeEventDraftStructurally(
         NarrativeEventRecord.draft(_draft(
             source: NarrativeEventSourceRef.mapEnter('map_port'),
             sceneId: 'scene_arrival',
             reusePolicy: NarrativeEventReusePolicy.reusable)),
       );
       expect(configured.definitionOrNull, isNotNull);
+      expect(configured.id, _eventId);
+      expect(configured.definitionOrNull!.order, 3);
       expect(configured.enabledOrNull, isFalse);
-      expect(activateNarrativeEventRecord(configured).enabledOrNull, isTrue);
-      expect(deactivateNarrativeEventRecord(configured).enabledOrNull, isFalse);
+      expect(
+        setNarrativeEventRecordEnabledStructurallyUnchecked(
+          configured,
+          enabled: true,
+        ).enabledOrNull,
+        isTrue,
+      );
+      expect(
+        setNarrativeEventRecordEnabledStructurallyUnchecked(
+          configured,
+          enabled: false,
+        ).enabledOrNull,
+        isFalse,
+      );
     });
 
     test(
@@ -267,8 +285,10 @@ void main() {
         rawUuidFactory: () =>
             ++calls <= 16 ? _eventId.substring(4) : _secondEventId.substring(4),
       );
-      final existing =
-          NarrativeEventRecord.configured(_definition(), enabled: false);
+      final existing = NarrativeEventRecord.configuredStructurallyUnchecked(
+        _definition(),
+        enabled: false,
+      );
 
       expect(generator.generate(existingRecords: [existing]), _secondEventId);
       expect(calls, 17);
