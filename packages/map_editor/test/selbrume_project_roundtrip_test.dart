@@ -202,12 +202,53 @@ void main() {
         '/tmp/selbrume',
         '--through',
         'task4',
-        '--write',
+        '--write-historical',
       ],
     );
     expect(options.projectRoot.path, p.normalize('/tmp/selbrume'));
     expect(options.through, 'task4');
     expect(options.write, isTrue);
+
+    final authored = parseSelbrumeGeneratorOptions(
+      <String>[
+        '--project-root',
+        '/tmp/selbrume',
+        '--validate-authored',
+      ],
+    );
+    expect(authored.validateAuthored, isTrue);
+    expect(authored.write, isFalse);
+
+    expect(
+      () => parseSelbrumeGeneratorOptions(
+        <String>[
+          '--project-root',
+          '/tmp/selbrume',
+          '--validate-authored',
+          '--write-historical',
+        ],
+      ),
+      throwsFormatException,
+    );
+
+    expect(
+      () => parseSelbrumeGeneratorOptions(
+        <String>[
+          '--project-root',
+          '/tmp/selbrume',
+          '--through',
+          'task4',
+          '--write',
+        ],
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('--write-historical'),
+        ),
+      ),
+    );
 
     final task5 = parseSelbrumeGeneratorOptions(
       <String>[
@@ -6043,6 +6084,124 @@ void main() {
     );
     expect(_snapshotFiles(fixture), before);
   });
+
+  test('validate-authored reads canonical maps without rewriting composition',
+      () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final before = _snapshotFiles(fixture);
+
+    final result = await generateSelbrumeCanonicalMaps(
+      SelbrumeGeneratorOptions(
+        projectRoot: fixture,
+        validateAuthored: true,
+      ),
+    );
+
+    expect(result.exitCode, 0);
+    expect(result.divergentRelativePaths, isEmpty);
+    expect(_snapshotFiles(fixture), before);
+  });
+
+  test('validate-authored accepts an additional valid decorative tree',
+      () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final forestFile = File(
+      p.join(fixture.path, 'maps', 'map_bois_chaise_brume.json'),
+    );
+    final forest = _readJson(forestFile);
+    final placements = forest['placedElements'] as List<dynamic>;
+    final sourceTree = placements
+        .cast<Map<String, dynamic>>()
+        .singleWhere((placed) => placed['id'] == 'pe_bois_pin_petit_001');
+    final decorativeTree =
+        (jsonDecode(jsonEncode(sourceTree)) as Map).cast<String, dynamic>()
+          ..['id'] = 'pe_bois_pin_petit_authored_extra'
+          ..['pos'] = <String, dynamic>{'x': 30, 'y': 3};
+    placements.add(decorativeTree);
+    forestFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(forest)}\n',
+    );
+    final authoredBytes = forestFile.readAsBytesSync();
+
+    final result = await generateSelbrumeCanonicalMaps(
+      SelbrumeGeneratorOptions(
+        projectRoot: fixture,
+        validateAuthored: true,
+      ),
+    );
+
+    expect(result.exitCode, 0);
+    expect(forestFile.readAsBytesSync(), authoredBytes);
+  });
+
+  test('validate-authored rejects removal of a required landmark', () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final bourgFile = File(
+      p.join(fixture.path, 'maps', 'map_bourg_selbrume.json'),
+    );
+    final bourg = _readJson(bourgFile);
+    (bourg['placedElements'] as List<dynamic>).removeWhere(
+      (placed) => (placed as Map<String, dynamic>)['id'] == 'pe_bourg_puits',
+    );
+    bourgFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(bourg)}\n',
+    );
+
+    await expectLater(
+      () => generateSelbrumeCanonicalMaps(
+        SelbrumeGeneratorOptions(
+          projectRoot: fixture,
+          validateAuthored: true,
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.toString(),
+          'message',
+          allOf(contains('map_bourg_selbrume'), contains('pe_bourg_puits')),
+        ),
+      ),
+    );
+  });
+
+  test('validate-authored rejects removal of a required connection', () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final bourgFile = File(
+      p.join(fixture.path, 'maps', 'map_bourg_selbrume.json'),
+    );
+    final bourg = _readJson(bourgFile);
+    (bourg['connections'] as List<dynamic>).removeWhere(
+      (connection) =>
+          (connection as Map<String, dynamic>)['targetMapId'] ==
+          'map_port_brisants',
+    );
+    bourgFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(bourg)}\n',
+    );
+
+    await expectLater(
+      () => generateSelbrumeCanonicalMaps(
+        SelbrumeGeneratorOptions(
+          projectRoot: fixture,
+          validateAuthored: true,
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.toString(),
+          'message',
+          allOf(
+            contains('map_bourg_selbrume'),
+            contains('connection'),
+          ),
+        ),
+      ),
+    );
+  });
 }
 
 final class _ForestElementContract {
@@ -7975,6 +8134,31 @@ Directory _copySelbrumeFixture() {
   ]) {
     File(p.join(source.path, 'assets', 'tilesets', fileName))
         .copySync(p.join(targetTilesets.path, fileName));
+  }
+  return target;
+}
+
+Directory _copyAuthoredSelbrumeFixture() {
+  final repositoryRoot = _findRepositoryRoot();
+  final source = Directory(p.join(repositoryRoot.path, 'selbrume'));
+  final parent = Directory.systemTemp.createTempSync('selbrume_authored_');
+  final target = Directory(p.join(parent.path, 'selbrume'))..createSync();
+  final targetMaps = Directory(p.join(target.path, 'maps'))..createSync();
+  final targetProject = File(p.join(target.path, 'project.json'));
+  File(p.join(source.path, 'project.json')).copySync(targetProject.path);
+  for (final mapId in canonicalSelbrumeMapIds) {
+    File(p.join(source.path, 'maps', '$mapId.json')).copySync(
+      p.join(targetMaps.path, '$mapId.json'),
+    );
+  }
+
+  final manifest = _readJson(targetProject);
+  for (final rawTileset in manifest['tilesets'] as List<dynamic>) {
+    final tileset = (rawTileset as Map).cast<String, dynamic>();
+    final relativePath = tileset['relativePath'] as String;
+    final targetAsset = File(p.join(target.path, relativePath));
+    targetAsset.parent.createSync(recursive: true);
+    targetAsset.createSync();
   }
   return target;
 }

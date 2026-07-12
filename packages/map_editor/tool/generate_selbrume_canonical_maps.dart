@@ -48,6 +48,400 @@ const List<String> canonicalSelbrumeMapIds = <String>[
   'map_maison_joueur',
 ];
 
+const Map<String, GridSize> _authoredMapSizes = <String, GridSize>{
+  'map_bourg_selbrume': GridSize(width: 55, height: 55),
+  'map_port_brisants': GridSize(width: 45, height: 45),
+  'map_bois_chaise_brume': GridSize(width: 45, height: 45),
+  'map_marais_salants': GridSize(width: 45, height: 45),
+  'map_passage_dames': GridSize(width: 60, height: 24),
+  'map_phare_exterieur': GridSize(width: 45, height: 45),
+  'map_phare_interieur': GridSize(width: 36, height: 45),
+  'map_sommet_phare': GridSize(width: 24, height: 24),
+  'map_cabane_gardien': GridSize(width: 20, height: 16),
+  'map_maison_joueur': GridSize(width: 20, height: 16),
+};
+
+const Map<String, List<(MapConnectionDirection, String, int)>>
+    _authoredConnections =
+    <String, List<(MapConnectionDirection, String, int)>>{
+  'map_bourg_selbrume': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.south, 'map_port_brisants', 0),
+    (MapConnectionDirection.east, 'map_bois_chaise_brume', 0),
+  ],
+  'map_port_brisants': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.north, 'map_bourg_selbrume', 0),
+  ],
+  'map_bois_chaise_brume': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.west, 'map_bourg_selbrume', 0),
+    (MapConnectionDirection.east, 'map_marais_salants', 0),
+  ],
+  'map_marais_salants': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.west, 'map_bois_chaise_brume', 0),
+    (MapConnectionDirection.south, 'map_passage_dames', 0),
+  ],
+  'map_passage_dames': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.north, 'map_marais_salants', 0),
+    (MapConnectionDirection.east, 'map_phare_exterieur', 0),
+  ],
+  'map_phare_exterieur': <(MapConnectionDirection, String, int)>[
+    (MapConnectionDirection.west, 'map_passage_dames', 0),
+  ],
+};
+
+const Map<String, List<(String, GridPos, String, GridPos)>> _authoredWarps =
+    <String, List<(String, GridPos, String, GridPos)>>{
+  'map_bourg_selbrume': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_bourg_to_maison',
+      GridPos(x: 13, y: 23),
+      'map_maison_joueur',
+      GridPos(x: 10, y: 13),
+    ),
+  ],
+  'map_phare_exterieur': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_phare_ext_to_interieur',
+      GridPos(x: 23, y: 18),
+      'map_phare_interieur',
+      GridPos(x: 18, y: 42),
+    ),
+    (
+      'warp_phare_ext_to_cabane',
+      GridPos(x: 8, y: 33),
+      'map_cabane_gardien',
+      GridPos(x: 10, y: 13),
+    ),
+  ],
+  'map_phare_interieur': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_phare_interieur_to_exterieur',
+      GridPos(x: 18, y: 44),
+      'map_phare_exterieur',
+      GridPos(x: 23, y: 19),
+    ),
+    (
+      'warp_phare_interieur_to_sommet',
+      GridPos(x: 18, y: 1),
+      'map_sommet_phare',
+      GridPos(x: 12, y: 22),
+    ),
+  ],
+  'map_sommet_phare': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_sommet_to_phare_interieur',
+      GridPos(x: 12, y: 23),
+      'map_phare_interieur',
+      GridPos(x: 18, y: 2),
+    ),
+  ],
+  'map_cabane_gardien': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_cabane_to_phare_exterieur',
+      GridPos(x: 10, y: 15),
+      'map_phare_exterieur',
+      GridPos(x: 8, y: 34),
+    ),
+    (
+      'warp_cabane_to_passage',
+      GridPos(x: 19, y: 8),
+      'map_passage_dames',
+      GridPos(x: 50, y: 10),
+    ),
+  ],
+  'map_maison_joueur': <(String, GridPos, String, GridPos)>[
+    (
+      'warp_maison_to_bourg',
+      GridPos(x: 10, y: 15),
+      'map_bourg_selbrume',
+      GridPos(x: 13, y: 24),
+    ),
+  ],
+};
+
+const Map<String, List<(String, String, String, GridPos, bool)>>
+    _authoredLandmarks =
+    <String, List<(String, String, String, GridPos, bool)>>{
+  'map_bourg_selbrume': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_bourg_maison_joueur_facade',
+      'selbrum_maison_1',
+      'l_tile_structures',
+      GridPos(x: 10, y: 18),
+      true,
+    ),
+    (
+      'pe_bourg_centre_facade',
+      'selbrume_centre_pok_mon',
+      'l_tile_structures',
+      GridPos(x: 29, y: 22),
+      true,
+    ),
+    (
+      'pe_bourg_puits',
+      'le_puits',
+      'l_tile_structures',
+      GridPos(x: 23, y: 27),
+      true,
+    ),
+    (
+      'pe_bourg_kiosque',
+      'kiosque_l_gumes',
+      'l_tile_structures',
+      GridPos(x: 36, y: 35),
+      true,
+    ),
+  ],
+  'map_port_brisants': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_port_bateau',
+      'el_selbrume_port_bateau',
+      'l_tile_structures',
+      GridPos(x: 3, y: 30),
+      true,
+    ),
+    (
+      'pe_port_nid_goelise',
+      'el_selbrume_port_nid_vide',
+      'l_tile_ground',
+      GridPos(x: 6, y: 5),
+      false,
+    ),
+  ],
+  'map_bois_chaise_brume': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_bois_panneau_001',
+      'el_selbrume_bois_panneau',
+      'l_tile_structures',
+      GridPos(x: 3, y: 21),
+      true,
+    ),
+    (
+      'pe_bois_tronc_tombe_001',
+      'el_selbrume_bois_tronc_tombe',
+      'l_tile_structures',
+      GridPos(x: 18, y: 36),
+      true,
+    ),
+  ],
+  'map_marais_salants': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_marais_cabane_paludier',
+      'el_selbrume_marais_cabane_paludier',
+      'l_tile_structures',
+      GridPos(x: 4, y: 14),
+      true,
+    ),
+    (
+      'pe_marais_ecluse',
+      'el_selbrume_marais_ecluse_fermee',
+      'l_tile_structures',
+      GridPos(x: 27, y: 18),
+      true,
+    ),
+    (
+      'pe_marais_indice_verre',
+      'el_selbrume_indice_verre',
+      'l_tile_ground',
+      GridPos(x: 8, y: 32),
+      false,
+    ),
+    (
+      'pe_marais_indice_traces_electriques',
+      'el_selbrume_indice_traces_electriques',
+      'l_tile_fx',
+      GridPos(x: 32, y: 10),
+      false,
+    ),
+    (
+      'pe_marais_indice_repere_lentille',
+      'el_selbrume_indice_repere_lentille',
+      'l_tile_ground',
+      GridPos(x: 34, y: 34),
+      false,
+    ),
+  ],
+  'map_passage_dames': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_passage_barriere',
+      'el_selbrume_passage_barriere_fermee',
+      'l_tile_structures',
+      GridPos(x: 32, y: 3),
+      true,
+    ),
+    (
+      'pe_passage_marches',
+      'el_selbrume_passage_marches',
+      'l_tile_ground',
+      GridPos(x: 56, y: 13),
+      false,
+    ),
+    (
+      'pe_passage_banc_brume',
+      'el_selbrume_passage_banc_brume',
+      'l_tile_fx',
+      GridPos(x: 42, y: 10),
+      false,
+    ),
+  ],
+  'map_phare_exterieur': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_phare_batiment',
+      'el_selbrume_phare_batiment',
+      'l_tile_structures',
+      GridPos(x: 19, y: 8),
+      true,
+    ),
+    (
+      'pe_phare_cabane_facade',
+      'el_selbrume_cabane_facade',
+      'l_tile_structures',
+      GridPos(x: 6, y: 28),
+      true,
+    ),
+    (
+      'pe_phare_porte_ouverte',
+      'el_selbrume_phare_porte_ouverte',
+      'l_tile_structures',
+      GridPos(x: 22, y: 16),
+      false,
+    ),
+    (
+      'pe_phare_cabane_porte_ouverte',
+      'el_selbrume_cabane_porte_ouverte',
+      'l_tile_structures',
+      GridPos(x: 7, y: 32),
+      false,
+    ),
+  ],
+  'map_phare_interieur': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_phare_escalier_haut',
+      'el_selbrume_phare_escalier_haut',
+      'l_tile_floor',
+      GridPos(x: 17, y: 0),
+      false,
+    ),
+    (
+      'pe_phare_escalier_bas',
+      'el_selbrume_phare_escalier_bas',
+      'l_tile_floor',
+      GridPos(x: 17, y: 42),
+      false,
+    ),
+    (
+      'pe_phare_note_ancien_gardien',
+      'el_selbrume_phare_bureau_note',
+      'l_tile_furniture',
+      GridPos(x: 10, y: 24),
+      true,
+    ),
+    (
+      'pe_phare_mecanisme',
+      'el_selbrume_phare_mecanisme',
+      'l_tile_furniture',
+      GridPos(x: 25, y: 23),
+      true,
+    ),
+  ],
+  'map_sommet_phare': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_sommet_plateforme',
+      'el_selbrume_sommet_plateforme',
+      'l_tile_floor',
+      GridPos(x: 9, y: 7),
+      false,
+    ),
+    (
+      'pe_sommet_lanterne',
+      'el_selbrume_sommet_lanterne',
+      'l_tile_furniture',
+      GridPos(x: 10, y: 0),
+      true,
+    ),
+    (
+      'pe_sommet_lumiere_eteinte',
+      'el_selbrume_fx_lumiere_eteinte',
+      'l_tile_fx',
+      GridPos(x: 10, y: 0),
+      false,
+    ),
+  ],
+  'map_cabane_gardien': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_cabane_table',
+      'el_selbrume_cabane_table_carnet_ferme',
+      'l_tile_furniture',
+      GridPos(x: 6, y: 5),
+      true,
+    ),
+    (
+      'pe_cabane_journal',
+      'el_selbrume_cabane_table_carnet_ouvert',
+      'l_tile_furniture',
+      GridPos(x: 6, y: 5),
+      false,
+    ),
+    (
+      'pe_cabane_cle',
+      'el_selbrume_cabane_cle',
+      'l_tile_floor',
+      GridPos(x: 14, y: 9),
+      false,
+    ),
+    (
+      'pe_cabane_porte_principale',
+      'el_selbrume_cabane_porte_principale',
+      'l_tile_walls',
+      GridPos(x: 9, y: 13),
+      false,
+    ),
+    (
+      'pe_cabane_porte_secondaire',
+      'el_selbrume_cabane_porte_secondaire_fermee',
+      'l_tile_walls',
+      GridPos(x: 18, y: 6),
+      false,
+    ),
+  ],
+  'map_maison_joueur': <(String, String, String, GridPos, bool)>[
+    (
+      'pe_maison_lit',
+      'el_selbrume_maison_lit',
+      'l_tile_furniture',
+      GridPos(x: 2, y: 3),
+      true,
+    ),
+    (
+      'pe_maison_bureau',
+      'el_selbrume_maison_bureau',
+      'l_tile_furniture',
+      GridPos(x: 14, y: 4),
+      true,
+    ),
+    (
+      'pe_maison_tapis',
+      'el_selbrume_maison_tapis',
+      'l_tile_floor',
+      GridPos(x: 8, y: 8),
+      false,
+    ),
+    (
+      'pe_maison_etagere',
+      'el_selbrume_cabane_etagere',
+      'l_tile_furniture',
+      GridPos(x: 16, y: 3),
+      true,
+    ),
+    (
+      'pe_maison_porte',
+      'el_selbrume_cabane_porte_principale',
+      'l_tile_walls',
+      GridPos(x: 9, y: 13),
+      false,
+    ),
+  ],
+};
+
 const List<String> canonicalSelbrumeGroupIds = <String>[
   'group_selbrume_bourg',
   'group_selbrume_port',
@@ -57,6 +451,102 @@ const List<String> canonicalSelbrumeGroupIds = <String>[
   'group_selbrume_interiors',
 ];
 
+const Set<String> _authoredExteriorMapIds = <String>{
+  'map_bourg_selbrume',
+  'map_port_brisants',
+  'map_bois_chaise_brume',
+  'map_marais_salants',
+  'map_passage_dames',
+  'map_phare_exterieur',
+};
+
+const Set<String> _authoredExteriorLayerIds = <String>{
+  'l_terrain',
+  'l_path_primary',
+  'l_path_secondary',
+  'l_tile_ground',
+  'l_tile_structures',
+  'l_tile_overhead',
+  'l_tile_fx',
+  'l_collisions',
+};
+
+const Set<String> _authoredRoomLayerIds = <String>{
+  'l_terrain',
+  'l_tile_floor',
+  'l_tile_walls',
+  'l_tile_furniture',
+  'l_tile_overhead',
+  'l_tile_fx',
+  'l_collisions',
+};
+
+const Map<String, Set<String>> _authoredRequiredEntities =
+    <String, Set<String>>{
+  'map_bourg_selbrume': <String>{'spawn', 'p6_03_intro_sign', 'npc'},
+  'map_port_brisants': <String>{
+    'anchor_port_lysa',
+    'anchor_port_soline',
+    'anchor_port_pecheurs',
+  },
+  'map_marais_salants': <String>{'grant', 'anchor_marais_mado'},
+  'map_maison_joueur': <String>{'spawn_maison_joueur'},
+};
+
+const Map<String, Set<String>> _authoredRequiredTriggers =
+    <String, Set<String>>{
+  'map_port_brisants': <String>{
+    'zone_port_entry',
+    'zone_port_center',
+    'tr_port_rival_scene',
+    'tr_port_nest',
+  },
+  'map_marais_salants': <String>{
+    'zone_marais_entry',
+    'tr_marais_indice_verre',
+    'tr_marais_indice_traces_electriques',
+    'tr_marais_indice_repere_lentille',
+    'tr_marais_cristal_1',
+    'tr_marais_cristal_2',
+    'tr_marais_cristal_3',
+  },
+  'map_passage_dames': <String>{'zone_passage_entry'},
+  'map_phare_exterieur': <String>{'zone_lighthouse_entry'},
+  'map_phare_interieur': <String>{'tr_phare_note'},
+  'map_sommet_phare': <String>{
+    'tr_sommet_confrontation',
+    'tr_lighthouse_top',
+  },
+  'map_cabane_gardien': <String>{'tr_cabane_journal', 'tr_cabane_cle'},
+  'map_maison_joueur': <String>{'zone_player_house_exit'},
+};
+
+const Map<String, Set<String>> _authoredRequiredZones = <String, Set<String>>{
+  'map_port_brisants': <String>{'zone_port_entry', 'zone_port_center'},
+  'map_bois_chaise_brume': <String>{
+    'zone_bois_herbe_1',
+    'zone_bois_herbe_2',
+    'zone_bois_herbe_3',
+    'zone_bois_herbe_4',
+  },
+  'map_marais_salants': <String>{
+    'zone',
+    'zone_1',
+    'zone_2',
+    'zone_3',
+    'zone_4',
+    'zone_marais_entry',
+  },
+  'map_passage_dames': <String>{'zone_passage_entry'},
+  'map_phare_exterieur': <String>{'zone_lighthouse_entry'},
+  'map_phare_interieur': <String>{
+    'zone_lighthouse_floor_1',
+    'zone_lighthouse_top_access',
+  },
+  'map_sommet_phare': <String>{'zone_lighthouse_top'},
+  'map_maison_joueur': <String>{'zone_player_house_exit'},
+};
+
 const JsonEncoder _prettyJson = JsonEncoder.withIndent('  ');
 
 final class SelbrumeGeneratorOptions {
@@ -64,11 +554,13 @@ final class SelbrumeGeneratorOptions {
     required Directory projectRoot,
     this.write = false,
     this.through = _defaultThrough,
+    this.validateAuthored = false,
   }) : projectRoot = Directory(p.normalize(p.absolute(projectRoot.path)));
 
   final Directory projectRoot;
   final bool write;
   final String through;
+  final bool validateAuthored;
 }
 
 final class SelbrumeGeneratorResult {
@@ -85,6 +577,7 @@ SelbrumeGeneratorOptions parseSelbrumeGeneratorOptions(List<String> arguments) {
   Directory? projectRoot;
   var write = false;
   var through = _defaultThrough;
+  var validateAuthored = false;
 
   for (var index = 0; index < arguments.length; index++) {
     final argument = arguments[index];
@@ -101,11 +594,19 @@ SelbrumeGeneratorOptions parseSelbrumeGeneratorOptions(List<String> arguments) {
         }
         through = arguments[index].trim();
         break;
-      case '--write':
+      case '--write-historical':
         write = true;
         break;
+      case '--write':
+        throw const FormatException(
+          '--write is disabled for authored maps; use --write-historical '
+          'only for an explicit legacy recovery/migration run.',
+        );
       case '--check':
         write = false;
+        break;
+      case '--validate-authored':
+        validateAuthored = true;
         break;
       case '--help':
       case '-h':
@@ -125,16 +626,31 @@ SelbrumeGeneratorOptions parseSelbrumeGeneratorOptions(List<String> arguments) {
       'task14, task15, or task16.',
     );
   }
+  if (validateAuthored && write) {
+    throw const FormatException(
+      '--validate-authored is read-only and cannot be combined with '
+      '--write-historical.',
+    );
+  }
   return SelbrumeGeneratorOptions(
     projectRoot: projectRoot,
     write: write,
     through: through,
+    validateAuthored: validateAuthored,
   );
 }
 
 Future<SelbrumeGeneratorResult> generateSelbrumeCanonicalMaps(
   SelbrumeGeneratorOptions options,
 ) async {
+  if (options.validateAuthored) {
+    if (options.write) {
+      throw ArgumentError(
+        'Authored-map validation is read-only and cannot write files.',
+      );
+    }
+    return _validateAuthoredSelbrumeProject(options.projectRoot);
+  }
   if (!_supportedThrough.contains(options.through)) {
     throw ArgumentError.value(
       options.through,
@@ -563,6 +1079,413 @@ Future<SelbrumeGeneratorResult> generateSelbrumeCanonicalMaps(
   );
 }
 
+Future<SelbrumeGeneratorResult> _validateAuthoredSelbrumeProject(
+  Directory requestedRoot,
+) async {
+  final projectRoot = await _validatedAuthoredProjectRoot(requestedRoot);
+  final projectFile = File(p.join(projectRoot.path, 'project.json'));
+  final projectJson = _decodeJsonObject(
+    await projectFile.readAsString(),
+    projectFile.path,
+  );
+  final manifest = ProjectManifest.fromJson(projectJson);
+  ProjectValidator.validate(manifest);
+
+  final activeMapIds = manifest.maps.map((entry) => entry.id).toList();
+  if (activeMapIds.length != canonicalSelbrumeMapIds.length ||
+      activeMapIds.toSet().length != canonicalSelbrumeMapIds.length ||
+      !activeMapIds.toSet().containsAll(canonicalSelbrumeMapIds)) {
+    throw StateError(
+      'Authored Selbrume map catalog must contain exactly the ten canonical '
+      'map IDs.',
+    );
+  }
+
+  final tilesetById = <String, ProjectTilesetEntry>{
+    for (final tileset in manifest.tilesets) tileset.id: tileset,
+  };
+  for (final tileset in manifest.tilesets) {
+    await _validateAuthoredReferencedFile(
+      projectRoot: projectRoot,
+      relativePath: tileset.relativePath,
+      label: 'Tileset ${tileset.id}',
+    );
+  }
+  for (final atlas in manifest.surfaceCatalog.atlases) {
+    if (!tilesetById.containsKey(atlas.tilesetId)) {
+      throw StateError(
+        'Surface atlas ${atlas.id} references unknown tileset '
+        '${atlas.tilesetId}.',
+      );
+    }
+  }
+
+  final elementIds = manifest.elements.map((element) => element.id).toSet();
+  final environmentPresetById = <String, EnvironmentPreset>{
+    for (final preset in manifest.environmentPresets) preset.id: preset,
+  };
+  for (final preset in manifest.environmentPresets) {
+    for (final paletteItem in preset.palette) {
+      if (!elementIds.contains(paletteItem.elementId)) {
+        throw StateError(
+          'Environment preset ${preset.id} references unknown element '
+          '${paletteItem.elementId}.',
+        );
+      }
+    }
+  }
+
+  final mapById = <String, MapData>{};
+  for (final mapId in canonicalSelbrumeMapIds) {
+    final entries = manifest.maps.where((entry) => entry.id == mapId);
+    if (entries.length != 1) {
+      throw StateError('Canonical map $mapId must be registered exactly once.');
+    }
+    final entry = entries.single;
+    final expectedPath = p.posix.join('maps', '$mapId.json');
+    if (p.posix.normalize(entry.relativePath.replaceAll(r'\', '/')) !=
+        expectedPath) {
+      throw StateError(
+        'Canonical map $mapId must reference $expectedPath, got '
+        '${entry.relativePath}.',
+      );
+    }
+    final mapFile = await _validateAuthoredReferencedFile(
+      projectRoot: projectRoot,
+      relativePath: entry.relativePath,
+      label: 'Map $mapId',
+    );
+    final raw = _decodeJsonObject(await mapFile.readAsString(), mapFile.path);
+    final map = MapData.fromJson(raw);
+    if (map.id != mapId) {
+      throw StateError(
+        'Map file ${entry.relativePath} contains id ${map.id}, expected '
+        '$mapId.',
+      );
+    }
+    MapValidator.validate(map, projectDialogueContext: manifest);
+    _validateAuthoredMapContract(
+      map,
+      manifest: manifest,
+      tilesetById: tilesetById,
+      environmentPresetById: environmentPresetById,
+    );
+    mapById[mapId] = map;
+  }
+  _validateAuthoredTopology(mapById);
+
+  return const SelbrumeGeneratorResult(
+    exitCode: 0,
+    divergentRelativePaths: <String>[],
+  );
+}
+
+void _validateAuthoredMapContract(
+  MapData map, {
+  required ProjectManifest manifest,
+  required Map<String, ProjectTilesetEntry> tilesetById,
+  required Map<String, EnvironmentPreset> environmentPresetById,
+}) {
+  final expectedSize = _authoredMapSizes[map.id];
+  if (expectedSize == null || map.size != expectedSize) {
+    throw StateError(
+      '${map.id} authored dimensions must be '
+      '${expectedSize?.width}x${expectedSize?.height}; got '
+      '${map.size.width}x${map.size.height}.',
+    );
+  }
+
+  final layerById = <String, MapLayer>{
+    for (final layer in map.layers) layer.id: layer,
+  };
+  final requiredLayerIds = _authoredRequiredLayerIds(map.id);
+  for (final layerId in requiredLayerIds) {
+    final layer = layerById[layerId];
+    if (layer == null || !_isAuthoredLayerTypeValid(layerId, layer)) {
+      throw StateError(
+        '${map.id} is missing required layer $layerId with its canonical type.',
+      );
+    }
+  }
+  final collisionLayers = map.layers.whereType<CollisionLayer>();
+  if (collisionLayers.length != 1 ||
+      collisionLayers.single.id != 'l_collisions') {
+    throw StateError(
+      '${map.id} must expose exactly one canonical l_collisions layer.',
+    );
+  }
+
+  final mapTilesetId = map.tilesetId.trim();
+  if (mapTilesetId.isNotEmpty && !tilesetById.containsKey(mapTilesetId)) {
+    throw StateError('${map.id} references unknown tileset $mapTilesetId.');
+  }
+  final pathPresetById = <String, ProjectPathPreset>{
+    for (final preset in manifest.pathPresets) preset.id: preset,
+  };
+  for (final layer in map.layers) {
+    if (layer case TileLayer(:final tilesetId)) {
+      final id = (tilesetId ?? map.tilesetId).trim();
+      if (id.isNotEmpty && !tilesetById.containsKey(id)) {
+        throw StateError(
+          '${map.id}/${layer.id} references unknown tileset $id.',
+        );
+      }
+    } else if (layer case PathLayer(:final presetId, :final cells)) {
+      final id = presetId.trim();
+      if (id.isEmpty) {
+        if (cells.contains(true)) {
+          throw StateError(
+              '${map.id}/${layer.id} has cells but no path preset.');
+        }
+        continue;
+      }
+      final preset = pathPresetById[id];
+      if (preset == null) {
+        throw StateError(
+          '${map.id}/${layer.id} references unknown path preset $id.',
+        );
+      }
+    } else if (layer case SurfaceLayer(:final placements)) {
+      for (final placement in placements) {
+        if (!manifest.surfaceCatalog.containsPreset(
+          placement.surfacePresetId,
+        )) {
+          throw StateError(
+            '${map.id}/${layer.id} references unknown surface preset '
+            '${placement.surfacePresetId}.',
+          );
+        }
+      }
+    } else if (layer case EnvironmentLayer(:final content)) {
+      final placementIds =
+          map.placedElements.map((placed) => placed.id).toSet();
+      for (final area in content.areas) {
+        if (!environmentPresetById.containsKey(area.presetId)) {
+          throw StateError(
+            '${map.id}/${layer.id}/${area.id} references unknown environment '
+            'preset ${area.presetId}.',
+          );
+        }
+        for (final generatedId in area.generatedPlacementIds) {
+          if (!placementIds.contains(generatedId)) {
+            throw StateError(
+              '${map.id}/${layer.id}/${area.id} references missing generated '
+              'placement $generatedId.',
+            );
+          }
+        }
+      }
+    }
+  }
+
+  final placedById = <String, MapPlacedElement>{
+    for (final placed in map.placedElements) placed.id: placed,
+  };
+  for (final contract in _authoredLandmarks[map.id] ??
+      const <(String, String, String, GridPos, bool)>[]) {
+    final placed = placedById[contract.$1];
+    if (placed == null ||
+        placed.elementId != contract.$2 ||
+        placed.layerId != contract.$3 ||
+        placed.pos != contract.$4 ||
+        placed.applyCollision != contract.$5) {
+      throw StateError(
+        '${map.id} required landmark ${contract.$1} is missing or changed.',
+      );
+    }
+  }
+  _requireAuthoredIds(
+    map.id,
+    'entity',
+    map.entities.map((entity) => entity.id).toSet(),
+    _authoredRequiredEntities[map.id] ?? const <String>{},
+  );
+  _requireAuthoredIds(
+    map.id,
+    'trigger',
+    map.triggers.map((trigger) => trigger.id).toSet(),
+    _authoredRequiredTriggers[map.id] ?? const <String>{},
+  );
+  _requireAuthoredIds(
+    map.id,
+    'gameplay zone',
+    map.gameplayZones.map((zone) => zone.id).toSet(),
+    _authoredRequiredZones[map.id] ?? const <String>{},
+  );
+}
+
+void _validateAuthoredTopology(Map<String, MapData> maps) {
+  for (final map in maps.values) {
+    final expectedConnections = _authoredConnections[map.id] ??
+        const <(MapConnectionDirection, String, int)>[];
+    if (map.connections.length != expectedConnections.length ||
+        expectedConnections.any(
+          (expected) => !map.connections.any(
+            (connection) =>
+                connection.direction == expected.$1 &&
+                connection.targetMapId == expected.$2 &&
+                connection.offset == expected.$3,
+          ),
+        )) {
+      throw StateError('${map.id} required connection topology changed.');
+    }
+    for (final connection in map.connections) {
+      final target = maps[connection.targetMapId];
+      if (target == null) {
+        throw StateError(
+          '${map.id} connection targets unknown map '
+          '${connection.targetMapId}.',
+        );
+      }
+      final reciprocal = target.connections.where(
+        (candidate) =>
+            candidate.targetMapId == map.id &&
+            candidate.direction == connection.direction.opposite &&
+            candidate.offset == -connection.offset,
+      );
+      if (reciprocal.length != 1) {
+        throw StateError(
+          '${map.id} ${connection.direction.name} connection has no exact '
+          'reciprocal on ${target.id}.',
+        );
+      }
+      if (!_hasWalkableAuthoredConnectionEdge(map, connection.direction)) {
+        throw StateError(
+          '${map.id} ${connection.direction.name} connection edge is fully '
+          'blocked.',
+        );
+      }
+    }
+
+    final expectedWarps =
+        _authoredWarps[map.id] ?? const <(String, GridPos, String, GridPos)>[];
+    if (map.warps.length != expectedWarps.length ||
+        expectedWarps.any(
+          (expected) => !map.warps.any(
+            (warp) =>
+                warp.id == expected.$1 &&
+                warp.pos == expected.$2 &&
+                warp.targetMapId == expected.$3 &&
+                warp.targetPos == expected.$4,
+          ),
+        )) {
+      throw StateError('${map.id} required warp topology changed.');
+    }
+    for (final warp in map.warps) {
+      final target = maps[warp.targetMapId];
+      if (target == null) {
+        throw StateError('${map.id}/${warp.id} targets an unknown map.');
+      }
+      if (warp.targetPos.x < 0 ||
+          warp.targetPos.y < 0 ||
+          warp.targetPos.x >= target.size.width ||
+          warp.targetPos.y >= target.size.height) {
+        throw StateError('${map.id}/${warp.id} target is out of bounds.');
+      }
+      if (_isStaticallyBlocked(target, warp.targetPos)) {
+        throw StateError('${map.id}/${warp.id} target is statically blocked.');
+      }
+    }
+  }
+}
+
+Set<String> _authoredRequiredLayerIds(String mapId) {
+  if (_authoredExteriorMapIds.contains(mapId)) {
+    return _authoredExteriorLayerIds;
+  }
+  if (mapId == 'map_cabane_gardien' ||
+      mapId == 'map_maison_joueur' ||
+      mapId == 'map_phare_interieur' ||
+      mapId == 'map_sommet_phare') {
+    return _authoredRoomLayerIds;
+  }
+  throw StateError('No authored layer contract for $mapId.');
+}
+
+bool _isAuthoredLayerTypeValid(String id, MapLayer layer) {
+  if (id == 'l_terrain') return layer is TerrainLayer;
+  if (id == 'l_collisions') return layer is CollisionLayer;
+  if (id.startsWith('l_path_')) return layer is PathLayer;
+  return layer is TileLayer;
+}
+
+void _requireAuthoredIds(
+  String mapId,
+  String label,
+  Set<String> actual,
+  Set<String> required,
+) {
+  final missing = required.difference(actual).toList()..sort();
+  if (missing.isNotEmpty) {
+    throw StateError(
+        '$mapId is missing required $label IDs: ${missing.join(', ')}.');
+  }
+}
+
+bool _hasWalkableAuthoredConnectionEdge(
+  MapData map,
+  MapConnectionDirection direction,
+) {
+  final collision = map.layers
+      .whereType<CollisionLayer>()
+      .singleWhere((layer) => layer.id == 'l_collisions');
+  final positions = switch (direction) {
+    MapConnectionDirection.north => <GridPos>[
+        for (var x = 0; x < map.size.width; x++) GridPos(x: x, y: 0),
+      ],
+    MapConnectionDirection.south => <GridPos>[
+        for (var x = 0; x < map.size.width; x++)
+          GridPos(x: x, y: map.size.height - 1),
+      ],
+    MapConnectionDirection.west => <GridPos>[
+        for (var y = 0; y < map.size.height; y++) GridPos(x: 0, y: y),
+      ],
+    MapConnectionDirection.east => <GridPos>[
+        for (var y = 0; y < map.size.height; y++)
+          GridPos(x: map.size.width - 1, y: y),
+      ],
+  };
+  return positions.any(
+    (pos) => !collision.collisions[pos.y * map.size.width + pos.x],
+  );
+}
+
+Future<Directory> _validatedAuthoredProjectRoot(Directory requested) async {
+  if (!await requested.exists()) {
+    throw FileSystemException('Project root does not exist.', requested.path);
+  }
+  final resolved = Directory(await requested.resolveSymbolicLinks());
+  final projectFile = File(p.join(resolved.path, 'project.json'));
+  if (!await projectFile.exists()) {
+    throw FileSystemException('Missing project.json.', projectFile.path);
+  }
+  final resolvedProjectFile = await projectFile.resolveSymbolicLinks();
+  if (!p.isWithin(resolved.path, resolvedProjectFile)) {
+    throw FileSystemException(
+      'project.json escapes the project root.',
+      projectFile.path,
+    );
+  }
+  await _validatedMapsDirectory(resolved);
+  return resolved;
+}
+
+Future<File> _validateAuthoredReferencedFile({
+  required Directory projectRoot,
+  required String relativePath,
+  required String label,
+}) async {
+  final file = File(p.join(projectRoot.path, relativePath));
+  if (!await file.exists()) {
+    throw FileSystemException('$label file is missing.', file.path);
+  }
+  final resolvedPath = await file.resolveSymbolicLinks();
+  if (!p.isWithin(projectRoot.path, resolvedPath)) {
+    throw FileSystemException('$label escapes the project root.', file.path);
+  }
+  return File(resolvedPath);
+}
+
 Future<void> main(List<String> arguments) async {
   try {
     final options = parseSelbrumeGeneratorOptions(arguments);
@@ -572,12 +1495,16 @@ Future<void> main(List<String> arguments) async {
       for (final path in result.divergentRelativePaths) {
         stderr.writeln('  $path');
       }
-      stderr.writeln('Run again with --write to materialize these files.');
+      stderr.writeln(
+        'Run again with --write-historical to materialize these legacy files.',
+      );
     } else {
       stdout.writeln(
-        options.write
-            ? 'Selbrume ${options.through} output is materialized and valid.'
-            : 'Selbrume ${options.through} output is up to date.',
+        options.validateAuthored
+            ? 'Selbrume authored maps are valid.'
+            : options.write
+                ? 'Selbrume ${options.through} output is materialized and valid.'
+                : 'Selbrume ${options.through} output is up to date.',
       );
     }
     exitCode = result.exitCode;
@@ -11179,5 +12106,6 @@ List<GridPos> _fullGridCells(int width, int height) => <GridPos>[
 const String _usage = 'Usage: dart run '
     'tool/generate_selbrume_canonical_maps.dart '
     '--project-root <selbrume-directory> '
-    '[--through task4|task5|task6|task7|task8|task9|task10|task11|task12|task13|task14|task15] '
-    '[--check|--write]';
+    '[--validate-authored | '
+    '--through task4|task5|task6|task7|task8|task9|task10|task11|task12|task13|task14|task15|task16 '
+    '[--check|--write-historical]]';
