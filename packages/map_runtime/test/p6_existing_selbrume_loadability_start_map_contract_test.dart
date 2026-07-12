@@ -10,7 +10,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'P6-01 loads repo-local Selbrume and builds New Game from explicit Selbrume spawn',
+    'P6-01 loads canonical Selbrume maps and builds New Game from explicit spawn',
     () async {
       final repoRoot = _findRepoRoot();
       final projectFilePath = p.join(repoRoot.path, 'selbrume', 'project.json');
@@ -19,11 +19,11 @@ void main() {
 
       final selbrumeBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
-        mapId: 'Selbrume',
+        mapId: 'map_bourg_selbrume',
       );
       final routeBundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
-        mapId: 'route 1',
+        mapId: 'map_marais_salants',
       );
 
       expect(selbrumeBundle.projectRootDirectory,
@@ -31,12 +31,15 @@ void main() {
       expect(selbrumeBundle.manifest.name, 'Selbrume');
       expect(
         selbrumeBundle.manifest.maps.map((map) => map.id),
-        containsAll(<String>['route 1', 'Selbrume']),
+        containsAll(<String>[
+          'map_bourg_selbrume',
+          'map_marais_salants',
+        ]),
       );
-      expect(selbrumeBundle.manifest.maps.first.id, 'route 1');
+      expect(selbrumeBundle.manifest.maps.first.id, 'map_bourg_selbrume');
 
-      expect(selbrumeBundle.map.id, 'Selbrume');
-      expect(routeBundle.map.id, 'route 1');
+      expect(selbrumeBundle.map.id, 'map_bourg_selbrume');
+      expect(routeBundle.map.id, 'map_marais_salants');
       final grant = routeBundle.map.entities.singleWhere(
         (entity) => entity.id == 'grant',
       );
@@ -48,7 +51,7 @@ void main() {
       );
 
       final startMap = selbrumeBundle.map;
-      expect(startMap.mapMetadata.defaultSpawnId, isNull);
+      expect(startMap.mapMetadata.defaultSpawnId, 'spawn');
 
       final spawn = startMap.entities.singleWhere(
         (entity) => entity.id == 'spawn',
@@ -75,7 +78,7 @@ void main() {
       );
 
       expect(state.saveId, 'p6_01_selbrume_new_game');
-      expect(state.currentMapId, 'Selbrume');
+      expect(state.currentMapId, 'map_bourg_selbrume');
       expect(state.playerPosition, const GridPos(x: 17, y: 24));
       expect(state.playerFacing, EntityFacing.south);
       expect(state.party.members, isEmpty);

@@ -7,7 +7,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
+const _startMapId = 'map_bourg_selbrume';
 const _spawnId = 'spawn';
 const _saveId = 'p6_02_selbrume_initial_party_bag';
 const _initialSpeciesId = 'pidgeotto';

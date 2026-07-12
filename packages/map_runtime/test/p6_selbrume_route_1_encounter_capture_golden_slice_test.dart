@@ -8,8 +8,9 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
-const _routeMapId = 'route 1';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
+const _forestMapId = 'map_bois_chaise_brume';
 const _saveId = 'p6_04_selbrume_route_1_encounter_capture';
 const _encounterTableId = 'grass_path_route_1';
 const _capturedSpeciesId = 'pidgeotto';
@@ -52,10 +53,10 @@ void main() {
         containsAll(<String>[_startMapId, _routeMapId]),
       );
 
-      final connectsBackToSelbrume = routeBundle.map.connections.any(
-        (connection) => connection.targetMapId == _startMapId,
+      final connectsBackToForest = routeBundle.map.connections.any(
+        (connection) => connection.targetMapId == _forestMapId,
       );
-      expect(connectsBackToSelbrume, isTrue);
+      expect(connectsBackToForest, isTrue);
 
       final table = routeBundle.manifest.encounterTables.singleWhere(
         (candidate) => candidate.id == _encounterTableId,

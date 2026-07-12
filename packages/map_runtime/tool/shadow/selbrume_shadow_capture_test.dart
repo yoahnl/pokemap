@@ -19,7 +19,7 @@ const _defaultRepoRoot = '/Users/karim/Project/pokemonProject';
 const _defaultOutputDir =
     '/Users/karim/Project/pokemonProject/reports/shadows/screenshots';
 const _defaultPrefix = 'shadow65';
-const _mapId = 'Selbrume';
+const _mapId = 'map_bourg_selbrume';
 const _overviewScale = 0.25;
 const _contactCropWidth = 900;
 const _contactCropHeight = 650;

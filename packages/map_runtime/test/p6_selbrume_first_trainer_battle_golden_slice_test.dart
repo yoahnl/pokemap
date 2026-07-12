@@ -10,8 +10,8 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
-const _routeMapId = 'route 1';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
 const _saveId = 'p6_05_selbrume_first_trainer_battle';
 const _trainerId = 'grant';
 const _trainerDefeatedFlag = 'trainer_defeated:grant';
@@ -162,7 +162,10 @@ void main() {
       expect(request, isNotNull);
       expect(request!.kind, RuntimeBattleKind.trainer);
       expect(request.source, RuntimeBattleSourceKind.trainerInteraction);
-      expect(request.requestId, 'trainer:route 1:grant:grant:1');
+      expect(
+        request.requestId,
+        'trainer:map_marais_salants:grant:grant:1',
+      );
       expect(request.trainerId, _trainerId);
       expect(request.npcEntityId, _grantNpcId);
       expect(request.mapId, _routeMapId);

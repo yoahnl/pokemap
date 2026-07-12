@@ -6,8 +6,8 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
-const _routeMapId = 'route 1';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
 const _spawnId = 'spawn';
 const _initialSpeciesId = 'pidgeotto';
 const _initialMoves = <String>['gust', 'tackle'];

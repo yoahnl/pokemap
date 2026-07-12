@@ -5,6 +5,16 @@ enum _EditorMapTileRenderPass {
   foreground,
 }
 
+const _bottomToTopTileLayerOrder = 'bottom_to_top';
+
+bool _usesBottomToTopTileLayerOrder(MapData map) {
+  // L'opt-in est volontairement exact et limité à la map. Les projets
+  // existants ont été composés avec la traversée inverse historique de
+  // l'éditeur : une valeur inconnue ou mal formée doit donc conserver ce
+  // comportement legacy, sans modifier silencieusement leur empilement.
+  return map.properties['tileLayerOrder'] == _bottomToTopTileLayerOrder;
+}
+
 /// Rejoue côté éditeur la même séparation "fond / avant-plan" que la runtime.
 ///
 /// Pourquoi cette logique existe :
@@ -137,6 +147,8 @@ bool _isExplicitForegroundTileLayerForEditor({
     'front',
     'roof',
     'toit',
+    'overhead',
+    'occlusion',
   };
 
   bool containsMarker(String value) {
@@ -264,6 +276,10 @@ class MapGridPainter extends CustomPainter {
     final gridHeight = map.size.height * tileHeight;
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
+    final visibleTileLayers = visibleLayers.whereType<TileLayer>().toList();
+    final tileLayersInPaintOrder = _usesBottomToTopTileLayerOrder(map)
+        ? visibleTileLayers
+        : visibleTileLayers.reversed;
     final foregroundTileCellIndicesByLayerId =
         buildEditorForegroundTileCellIndicesByLayerId(
       map: map,
@@ -302,17 +318,13 @@ class MapGridPainter extends CustomPainter {
       }
     }
 
-    for (var index = visibleLayers.length - 1; index >= 0; index--) {
-      final layer = visibleLayers[index];
-      if (layer is TileLayer) {
-        _paintTileLayer(
-          canvas,
-          layer,
-          renderPass: _EditorMapTileRenderPass.background,
-          foregroundTileCellIndicesByLayerId:
-              foregroundTileCellIndicesByLayerId,
-        );
-      }
+    for (final layer in tileLayersInPaintOrder) {
+      _paintTileLayer(
+        canvas,
+        layer,
+        renderPass: _EditorMapTileRenderPass.background,
+        foregroundTileCellIndicesByLayerId: foregroundTileCellIndicesByLayerId,
+      );
     }
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
@@ -342,15 +354,12 @@ class MapGridPainter extends CustomPainter {
       staticShadowPreviewInstructions,
     );
 
-    for (var index = visibleLayers.length - 1; index >= 0; index--) {
-      final layer = visibleLayers[index];
-      if (layer is TileLayer) {
-        _paintPlacedElementsForLayer(
-          canvas,
-          layer,
-          renderPass: _EditorMapTileRenderPass.background,
-        );
-      }
+    for (final layer in tileLayersInPaintOrder) {
+      _paintPlacedElementsForLayer(
+        canvas,
+        layer,
+        renderPass: _EditorMapTileRenderPass.background,
+      );
     }
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
@@ -417,22 +426,18 @@ class MapGridPainter extends CustomPainter {
       canvas,
       foregroundPass: false,
     );
-    for (var index = visibleLayers.length - 1; index >= 0; index--) {
-      final layer = visibleLayers[index];
-      if (layer is TileLayer) {
-        _paintTileLayer(
-          canvas,
-          layer,
-          renderPass: _EditorMapTileRenderPass.foreground,
-          foregroundTileCellIndicesByLayerId:
-              foregroundTileCellIndicesByLayerId,
-        );
-        _paintPlacedElementsForLayer(
-          canvas,
-          layer,
-          renderPass: _EditorMapTileRenderPass.foreground,
-        );
-      }
+    for (final layer in tileLayersInPaintOrder) {
+      _paintTileLayer(
+        canvas,
+        layer,
+        renderPass: _EditorMapTileRenderPass.foreground,
+        foregroundTileCellIndicesByLayerId: foregroundTileCellIndicesByLayerId,
+      );
+      _paintPlacedElementsForLayer(
+        canvas,
+        layer,
+        renderPass: _EditorMapTileRenderPass.foreground,
+      );
     }
     _paintEntities(
       canvas,
@@ -1802,6 +1807,14 @@ class MapGridPainter extends CustomPainter {
     if (elementById.isEmpty) {
       return;
     }
+    final explicitForeground = _isExplicitForegroundTileLayerForEditor(
+      layerId: layer.id,
+      layerName: layer.name,
+    );
+    if (explicitForeground &&
+        renderPass == _EditorMapTileRenderPass.background) {
+      return;
+    }
     final layerId = layer.id.trim();
     for (final instance in map.placedElements) {
       if (instance.layerId.trim() != layerId) {
@@ -1813,6 +1826,10 @@ class MapGridPainter extends CustomPainter {
         elementById: elementById,
         renderPass: renderPass,
         highlight: instance.id == environmentGeneratedDeletePreviewId,
+        // Une couche explicitement au premier plan possède tout le visuel de
+        // ses instances. Les autres couches conservent le split historique
+        // collision/facade, indispensable aux tables et arbres multi-cellules.
+        ignoreRenderPassSplit: explicitForeground,
       );
     }
   }

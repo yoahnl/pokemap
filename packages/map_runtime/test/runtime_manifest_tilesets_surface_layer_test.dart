@@ -3,7 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
-  group('runtime manifest tileset collection with SurfaceLayer', () {
+  group('runtime manifest tileset collection', () {
     test('collects Surface atlas tilesets through the runtime manifest path',
         () {
       const map = MapData(
@@ -103,7 +103,7 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       tilesetId: 'water-fx',
                       source: TilesetSourceRect(x: 3, y: 2),
                     ),
@@ -119,6 +119,100 @@ void main() {
       expect(
         collectAllRuntimeTilesetIds(map, manifest),
         containsAll(<String>{'base-world', 'water-fx'}),
+      );
+    });
+
+    test('collects placed-element frame tilesets once in encounter order', () {
+      const map = MapData(
+        id: 'placed-elements',
+        name: 'Placed Elements',
+        tilesetId: 'base-world',
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.object(id: 'props', name: 'Props'),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'prop-a',
+            layerId: 'props',
+            elementId: 'port-prop',
+            pos: GridPos(x: 0, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'prop-b',
+            layerId: 'props',
+            elementId: 'port-prop',
+            pos: GridPos(x: 1, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'missing',
+            layerId: 'props',
+            elementId: 'missing-element',
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      const manifest = ProjectManifest(
+        name: 'Placed Element Runtime',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'base-world',
+            name: 'Base world',
+            relativePath: 'tilesets/base.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'prop-base',
+            name: 'Prop base',
+            relativePath: 'tilesets/prop_base.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'prop-override',
+            name: 'Prop override',
+            relativePath: 'tilesets/prop_override.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'unused-tileset',
+            name: 'Unused tileset',
+            relativePath: 'tilesets/unused.png',
+          ),
+        ],
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'port-prop',
+            name: 'Port prop',
+            tilesetId: 'prop-base',
+            categoryId: 'props',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+              ),
+              TilesetVisualFrame(
+                tilesetId: 'prop-override',
+                source: TilesetSourceRect(x: 1, y: 0),
+              ),
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 2, y: 0),
+              ),
+            ],
+          ),
+          ProjectElementEntry(
+            id: 'unused-prop',
+            name: 'Unused prop',
+            tilesetId: 'unused-tileset',
+            categoryId: 'props',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        collectAllRuntimeTilesetIds(map, manifest).toList(growable: false),
+        <String>['base-world', 'prop-base', 'prop-override'],
       );
     });
   });

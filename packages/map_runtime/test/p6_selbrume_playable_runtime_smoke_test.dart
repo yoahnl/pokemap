@@ -7,8 +7,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
-const _routeMapId = 'route 1';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
 const _saveId = 'p6_08_selbrume_playable_runtime_smoke';
 const _initialSpeciesId = 'pidgeotto';
 const _initialAbilityId = 'keen_eye';

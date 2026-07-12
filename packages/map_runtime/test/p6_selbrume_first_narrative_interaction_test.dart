@@ -6,7 +6,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
 const _spawnId = 'spawn';
 const _saveId = 'p6_03_selbrume_first_narrative_interaction';
 const _scenarioId = 'p6_03_first_interaction';
@@ -41,10 +42,10 @@ void main() {
 
       expect(bundle.projectRootDirectory, p.normalize(projectRoot.path));
       expect(bundle.map.id, _startMapId);
-      expect(bundle.manifest.maps.first.id, 'route 1');
+      expect(bundle.manifest.maps.first.id, _startMapId);
       expect(
         bundle.manifest.maps.map((entry) => entry.id),
-        containsAll(<String>['route 1', _startMapId]),
+        containsAll(<String>[_startMapId, _routeMapId]),
       );
 
       final spawn = bundle.map.entities.singleWhere(

@@ -10,8 +10,8 @@ import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:path/path.dart' as p;
 
-const _startMapId = 'Selbrume';
-const _routeMapId = 'route 1';
+const _startMapId = 'map_bourg_selbrume';
+const _routeMapId = 'map_marais_salants';
 const _saveId = 'p6_06_selbrume_save_load_golden_slice';
 const _trainerId = 'grant';
 const _trainerDefeatedFlag = 'trainer_defeated:grant';

@@ -147,6 +147,28 @@ void addEntityVisualTilesetIds(
   }
 }
 
+void addPlacedElementVisualTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final elementById = <String, ProjectElementEntry>{
+    for (final element in manifest.elements) element.id: element,
+  };
+  for (final placed in map.placedElements) {
+    final elementId = placed.elementId.trim();
+    if (elementId.isEmpty) continue;
+    final element = elementById[elementId];
+    if (element == null || element.frames.isEmpty) continue;
+    for (final frame in element.frames) {
+      final frameTilesetId = frame.tilesetId.trim();
+      final tilesetId =
+          frameTilesetId.isEmpty ? element.tilesetId.trim() : frameTilesetId;
+      if (tilesetId.isNotEmpty) ids.add(tilesetId);
+    }
+  }
+}
+
 void addCharacterTilesetIds(
   Set<String> ids,
   MapData map,
@@ -178,5 +200,8 @@ Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   );
   addEntityVisualTilesetIds(ids, map, manifest);
   addCharacterTilesetIds(ids, map, manifest);
+  // Append placed-element visuals after the established sources so their
+  // relative insertion order remains unchanged while the set deduplicates.
+  addPlacedElementVisualTilesetIds(ids, map, manifest);
   return ids;
 }

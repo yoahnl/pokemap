@@ -60,6 +60,57 @@ void main() {
 
       expect(await pixelAt(image, 16, 16), rgba(41, 179, 74, 255));
     });
+
+    test('does not render a placed element whose instance opacity is zero',
+        () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: const MapData(
+            id: 'hidden-placed-element-map',
+            name: 'Hidden Placed Element Map',
+            size: GridSize(width: 1, height: 1),
+            layers: [
+              MapLayer.tile(
+                id: 'decor',
+                name: 'Decor',
+                tilesetId: 'base',
+                tiles: [1],
+              ),
+            ],
+            placedElements: [
+              MapPlacedElement(
+                id: 'reserved-state',
+                layerId: 'decor',
+                elementId: 'tree',
+                pos: GridPos(x: 0, y: 0),
+                opacity: 0,
+              ),
+            ],
+          ),
+          elements: const [
+            ProjectElementEntry(
+              id: 'tree',
+              name: 'Tree',
+              tilesetId: 'entity',
+              categoryId: 'nature',
+              frames: [
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+        tileImagesByTilesetId: {
+          'base': await runtimeTilesetImage(const [Color(0xFF3156A4)]),
+          'entity': await runtimeTilesetImage(const [Color(0xFF29B34A)]),
+        },
+      );
+
+      final image = await _renderComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(49, 86, 164, 255));
+    });
   });
 }
 

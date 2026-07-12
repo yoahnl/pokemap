@@ -110,6 +110,12 @@ class MapLayersComponent extends PositionComponent {
   /// Cache de la liste des layers visibles — invalidé quand le bundle change.
   List<MapLayer>? _cachedVisibleLayers;
 
+  /// Les projets historiques stockent les couches visuelles de haut en bas et
+  /// restent donc peints en ordre inverse. Les maps qui déclarent explicitement
+  /// `tileLayerOrder: bottom_to_top` suivent le contrat cartographique moderne
+  /// et sont peintes dans l'ordre sérialisé, sans modifier le rendu legacy.
+  List<TileLayer>? _cachedVisibleTileLayersInPaintOrder;
+
   /// Met à jour le rectangle visible **en coordonnées locales** du composant.
   ///
   /// Le game doit appeler cette méthode chaque frame après la mise à jour
@@ -298,25 +304,23 @@ class MapLayersComponent extends PositionComponent {
     super.render(canvas);
     final visible = _cachedVisibleLayers ??=
         bundle.map.layers.where((l) => l.isVisible).toList(growable: false);
+    final visibleTileLayers = _cachedVisibleTileLayersInPaintOrder ??=
+        _visibleTileLayersInPaintOrder(visible);
     if (renderPass == MapLayerRenderPass.foreground) {
-      for (var i = visible.length - 1; i >= 0; i--) {
-        visible[i].whenOrNull(
-          tile: (id, name, tilesetId, v, o, tiles) {
-            _paintTileLayer(
-              canvas,
-              layerId: id,
-              layerName: name,
-              tilesetId: tilesetId,
-              tiles: tiles,
-              opacity: o,
-            );
-            _paintPlacedElementsForLayer(
-              canvas,
-              layerId: id,
-              layerName: name,
-              opacity: o,
-            );
-          },
+      for (final layer in visibleTileLayers) {
+        _paintTileLayer(
+          canvas,
+          layerId: layer.id,
+          layerName: layer.name,
+          tilesetId: layer.tilesetId,
+          tiles: layer.tiles,
+          opacity: layer.opacity,
+        );
+        _paintPlacedElementsForLayer(
+          canvas,
+          layerId: layer.id,
+          layerName: layer.name,
+          opacity: layer.opacity,
         );
       }
       _paintEntities(canvas);
@@ -342,24 +346,20 @@ class MapLayersComponent extends PositionComponent {
       }
     }
     _paintShadows(canvas);
-    for (var i = visible.length - 1; i >= 0; i--) {
-      visible[i].whenOrNull(
-        tile: (id, name, tilesetId, v, o, tiles) {
-          _paintTileLayer(
-            canvas,
-            layerId: id,
-            layerName: name,
-            tilesetId: tilesetId,
-            tiles: tiles,
-            opacity: o,
-          );
-          _paintPlacedElementsForLayer(
-            canvas,
-            layerId: id,
-            layerName: name,
-            opacity: o,
-          );
-        },
+    for (final layer in visibleTileLayers) {
+      _paintTileLayer(
+        canvas,
+        layerId: layer.id,
+        layerName: layer.name,
+        tilesetId: layer.tilesetId,
+        tiles: layer.tiles,
+        opacity: layer.opacity,
+      );
+      _paintPlacedElementsForLayer(
+        canvas,
+        layerId: layer.id,
+        layerName: layer.name,
+        opacity: layer.opacity,
       );
     }
     _paintEntities(canvas);
@@ -372,6 +372,14 @@ class MapLayersComponent extends PositionComponent {
       }
       _paintPlacedElementsCollisionOverlay(canvas);
     }
+  }
+
+  List<TileLayer> _visibleTileLayersInPaintOrder(List<MapLayer> visible) {
+    final layers = visible.whereType<TileLayer>().toList(growable: false);
+    if (bundle.map.properties['tileLayerOrder'] == 'bottom_to_top') {
+      return layers;
+    }
+    return layers.reversed.toList(growable: false);
   }
 
   void _paintShadows(Canvas canvas) {
@@ -705,15 +713,18 @@ class MapLayersComponent extends PositionComponent {
     final paint = Paint()
       ..isAntiAlias = false
       ..filterQuality = FilterQuality.none;
-    if (opacity < 1) {
-      paint.color = Color.fromRGBO(255, 255, 255, opacity);
-    }
     final visibleRect = _visibleLocalRect;
 
     for (final instance in bundle.map.placedElements) {
       if (instance.layerId.trim() != layerId) {
         continue;
       }
+      final effectiveOpacity =
+          (opacity * instance.opacity).clamp(0.0, 1.0).toDouble();
+      if (effectiveOpacity <= 0) {
+        continue;
+      }
+      paint.color = Color.fromRGBO(255, 255, 255, effectiveOpacity);
       final entry = _elementById[instance.elementId.trim()];
       if (entry == null || entry.frames.isEmpty) {
         continue;
@@ -779,6 +790,8 @@ class MapLayersComponent extends PositionComponent {
       'front',
       'roof',
       'toit',
+      'overhead',
+      'occlusion',
     };
     bool containsMarker(String value) {
       for (final marker in markers) {
