@@ -26311,7 +26311,7 @@ Future<ui.Image> _renderTwoLayerMap(
 }
 ===== END FILE: packages/map_runtime/test/selbrume_interior_layer_contract_test.dart =====
 
-===== BEGIN FILE: packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart (53821 bytes) =====
+===== BEGIN FILE: packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart (55430 bytes) =====
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -27840,6 +27840,25 @@ void main() {
     );
   });
 
+  test('accepts the decomposed spelling of a frozen Unicode legacy filename',
+      () {
+    final temp = Directory.systemTemp.createTempSync(
+      'selbrume_decomposed_legacy_',
+    );
+    addTearDown(() => temp.delete(recursive: true));
+    File(p.join(temp.path, 'poke\u0301mon center.json'))
+        .writeAsStringSync('{}');
+
+    expect(
+      () => _validateLegacyMapFiles(
+        mapsDirectory: temp,
+        referencedAbsolutePaths: const <String>{},
+        expectedLegacyFileNames: const <String>{'pokémon center.json'},
+      ),
+      returnsNormally,
+    );
+  });
+
   test('rejects an unreferenced JSON outside the legacy allowlist', () {
     final temp = Directory.systemTemp.createTempSync(
       'selbrume_unexpected_legacy_',
@@ -27958,14 +27977,21 @@ void _validateLegacyMapFiles({
   required Set<String> referencedAbsolutePaths,
   required Set<String> expectedLegacyFileNames,
 }) {
+  final mapJsonFiles = mapsDirectory
+      .listSync(recursive: true, followLinks: false)
+      .whereType<File>()
+      .where((file) => p.extension(file.path).toLowerCase() == '.json')
+      .toList(growable: false);
+  final canonicalExpectedFileNames =
+      expectedLegacyFileNames.map(_canonicalLegacyFileName).toSet();
   final expectedLegacyPaths = <String>{
-    for (final fileName in expectedLegacyFileNames)
+    for (final fileName in canonicalExpectedFileNames)
       p.normalize(p.join(mapsDirectory.absolute.path, fileName)),
   };
-  final activeLegacyPaths = referencedAbsolutePaths
-      .map(p.normalize)
-      .toSet()
-      .intersection(expectedLegacyPaths);
+  final canonicalReferencedPaths =
+      referencedAbsolutePaths.map(_canonicalLegacyPath).toSet();
+  final activeLegacyPaths =
+      canonicalReferencedPaths.intersection(expectedLegacyPaths);
   if (activeLegacyPaths.isNotEmpty) {
     throw StateError(
       'Legacy allowlist files must not be referenced by an active map entry: '
@@ -27973,36 +27999,57 @@ void _validateLegacyMapFiles({
     );
   }
 
+  final existingCanonicalFileNames = mapJsonFiles
+      .map((file) => _canonicalLegacyFileName(p.basename(file.path)))
+      .toSet();
   for (final fileName in expectedLegacyFileNames) {
-    final expectedFile = File(p.join(mapsDirectory.absolute.path, fileName));
-    if (!expectedFile.existsSync()) {
+    if (!existingCanonicalFileNames.contains(
+      _canonicalLegacyFileName(fileName),
+    )) {
       throw StateError(
-          'Expected legacy map file is missing: ${expectedFile.path}');
+        'Expected legacy map file is missing: '
+        '${p.join(mapsDirectory.absolute.path, fileName)}',
+      );
     }
   }
 
-  final mapJsonFiles = mapsDirectory
-      .listSync(recursive: true, followLinks: false)
-      .whereType<File>()
-      .where((file) => p.extension(file.path).toLowerCase() == '.json');
-
   for (final file in mapJsonFiles) {
     final absolutePath = p.normalize(file.absolute.path);
-    if (referencedAbsolutePaths.contains(absolutePath)) {
+    final canonicalAbsolutePath = _canonicalLegacyPath(absolutePath);
+    if (canonicalReferencedPaths.contains(canonicalAbsolutePath)) {
       continue;
     }
-    final expectedLegacyPath = p.normalize(
-      p.join(mapsDirectory.absolute.path, p.basename(absolutePath)),
-    );
-    if (absolutePath != expectedLegacyPath) {
+    if (p.dirname(absolutePath) != p.normalize(mapsDirectory.absolute.path)) {
       throw StateError(
         'Legacy map JSON files must remain directly under maps/: $absolutePath',
       );
     }
-    if (!expectedLegacyFileNames.contains(p.basename(absolutePath))) {
+    if (!canonicalExpectedFileNames.contains(
+      _canonicalLegacyFileName(p.basename(absolutePath)),
+    )) {
       throw StateError('Unexpected unreferenced map JSON: $absolutePath');
     }
   }
+}
+
+String _canonicalLegacyPath(String path) {
+  final normalized = p.normalize(path);
+  return p.normalize(
+    p.join(
+      p.dirname(normalized),
+      _canonicalLegacyFileName(p.basename(normalized)),
+    ),
+  );
+}
+
+String _canonicalLegacyFileName(String fileName) {
+  // The frozen project contains one filename whose accented `é` can be
+  // surfaced as either NFC or NFD depending on the checkout filesystem. Keep
+  // this compatibility local to the legacy allowlist instead of normalizing
+  // arbitrary project identifiers.
+  return fileName
+      .replaceAll('e\u0301', '\u00e9')
+      .replaceAll('E\u0301', '\u00c9');
 }
 ===== END FILE: packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart =====
 

@@ -196,17 +196,17 @@ manifeste `project.json`, pas d'une refonte des packages.
 
 ## 8. Fichiers créés — inventaire contenu-adressé
 
-Les 34 fichiers texte créés hors rapport/annexe représentent 167 845 lignes et
-3 129 131 octets. Leur contenu UTF-8 intégral est concaténé, avec marqueurs et
+Les 34 fichiers texte créés hors rapport/annexe représentent 167 892 lignes et
+3 130 740 octets. Leur contenu UTF-8 intégral est concaténé, avec marqueurs et
 taille source, dans
 `reports/gameplay/evidence/fg_181_selbrume_maps/created_text_files_full_content.txt`.
 Le rapport et cette annexe restent eux-mêmes directement lisibles. Les 66 PNG
 sont fournis byte pour byte ; les dix atlas sont hashés en section 6 et les 56
 captures dans `capture_manifest.json`.
 
-Annexe intégrale : 34 fichiers embarqués, 167 950 lignes, 3 135 042 octets,
+Annexe intégrale : 34 fichiers embarqués, 167 997 lignes, 3 136 651 octets,
 SHA-256
-`fd367c70ef7c2da8c9d78b52611dcf01ccc95bde2250c39f655c5c82218c1494`.
+`21641754a147a9fd9f8d6f439d8c8120f7da9f565df535ea784ba646231abdc4`.
 
 ### 8.1 Code, tests, outils et documentation
 
@@ -225,7 +225,7 @@ SHA-256
 | `packages/map_editor/tool/normalize_tileset_asset.dart` | 265 | 8 126 | `ed8c7afb8a1b116637f092d5b789a63fb38e2d88c3848d61634c08ad220f389d` |
 | `packages/map_runtime/test/selbrume_asset_integrity_contract_test.dart` | 3 491 | 117 584 | `3c4bb977914aefc9a87c4d92379bff9facec6667276e80ad7fa712ed46c5e665` |
 | `packages/map_runtime/test/selbrume_interior_layer_contract_test.dart` | 198 | 6 950 | `54e3e30cf13776ef1f196cf571c39bc659e38162de692f13e2859d420c4e6e66` |
-| `packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart` | 1 692 | 53 821 | `7dc8f4fe6682fa122806809d6e92123099c47930df1e81979bc5c304ec76897f` |
+| `packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart` | 1 739 | 55 430 | `a9cadf90d4ba6c349419c6a2b238dc26a4aec7542a3854d6cde3d9a3d0e6fa7e` |
 | `packages/map_runtime/test/selbrume_map_navigation_contract_test.dart` | 2 112 | 67 111 | `bf3f80a299e32d43f691f7cc16b84755d36f3ccabf96d375dcc1fca634c40be4` |
 | `packages/map_runtime/test/selbrume_map_render_smoke_test.dart` | 1 041 | 34 892 | `5c3c8949ca7f5810dc565dd0b9fe1d2a9d17b5d7a87217ae37feba46270d3aa6` |
 | `packages/map_runtime/test/support/selbrume_map_test_fixture.dart` | 253 | 8 953 | `41036bb6258498f4eb9b79d4a58f320dc86a00b7109595176fb19be49c02886d` |
@@ -281,7 +281,9 @@ image indécodable.
 Garde-fous/non-régressions : seeds fingerprintées, écritures
 atomic/manifest-last, aucun underlay interdit, aucun bord de carte ouvert sans
 connexion, opacité d'instance, frame override de tileset, fichiers legacy
-byte-identiques, comportement d'ordre historique inchangé sans opt-in.
+byte-identiques, comportement d'ordre historique inchangé sans opt-in. La
+liste blanche legacy normalise aussi les formes Unicode NFC/NFD afin qu'un nom
+historique accentué soit reconnu de façon portable sans élargir le catalogue.
 
 Le vrai round-trip éditeur utilise `FileProjectRepository` et
 `FileMapRepository` sur une copie temporaire : charge, sauvegarde et recharge
@@ -338,7 +340,7 @@ cd packages/map_runtime && flutter test --no-pub \
   test/selbrume_map_render_smoke_test.dart
 ```
 
-Exit `0`, `+84`, `All tests passed!`
+Exit `0`, `+85`, `All tests passed!`
 
 ```bash
 cd packages/map_runtime && flutter test --no-pub \
