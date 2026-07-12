@@ -1,0 +1,1509 @@
+{
+  "schemaVersion": 1,
+  "sourceCorpus": "chatGPT_user_supplied_2026-07-12",
+  "licenseDecision": "user_supplied_project_owner_approved",
+  "referenceImagesUsedAsUnderlays": false,
+  "tileSize": 32,
+  "atlasRelativePath": "assets/tilesets/v2/selbrume_v2_world.png",
+  "atlasWidthCells": 32,
+  "atlasHeightCells": 28,
+  "atlasSha256": "9981d6f1805c036c6401ef92a34fa5b2a6363f5675a54362ef701b1890ad70d0",
+  "entries": [
+    {
+      "id": "el_selbrume_v2_village_house_house_01_white_orange_roof",
+      "name": "house 01 white orange roof",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_01_white_orange_roof.png",
+      "sourceSha256": "9da406d5e3a4b8afb39c07d877311536075c6a9479efe0267d666a2ce9011c8b",
+      "normalizedSha256": "6c5ceeb275a251fd9be87df74fb1e4acb3d9e7f855afafd0a966ea094b500de6",
+      "sourcePixelSize": {
+        "width": 194,
+        "height": 125
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 0,
+        "y": 0,
+        "width": 7,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_house_house_02_large_blue_roof",
+      "name": "house 02 large blue roof",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_02_large_blue_roof.png",
+      "sourceSha256": "c30f9a1475ebce67ed633c18fdc985d4757eec8b0949b3beae290c174881dfbd",
+      "normalizedSha256": "97332a754d79f2676a3c29676d5c22257a0eab84e45d76be1331423fdcbd91dc",
+      "sourcePixelSize": {
+        "width": 252,
+        "height": 153
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 7,
+        "y": 0,
+        "width": 8,
+        "height": 5
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_house_house_03_wooden_shed",
+      "name": "house 03 wooden shed",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_03_wooden_shed.png",
+      "sourceSha256": "58773ea4539488bf01a2e022d32756677acf15ce8bf83fca1ec9b56c7bcfb957",
+      "normalizedSha256": "423c20bc6eaf9fba8fe465832272d5598a8aa0cdccebd5e2215defb626d6c3db",
+      "sourcePixelSize": {
+        "width": 177,
+        "height": 125
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 15,
+        "y": 0,
+        "width": 6,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_house_house_04_blue_roof_clinic",
+      "name": "house 04 blue roof clinic",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_04_blue_roof_clinic.png",
+      "sourceSha256": "821791af1d97a3769c2e2c847f80a7e4a373606d0c2fd66cccd0ba2226cc1113",
+      "normalizedSha256": "a4fc17db3333476f06efa21cf9896dd4d064306375a0a96763afdc97282c62f5",
+      "sourcePixelSize": {
+        "width": 203,
+        "height": 154
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 21,
+        "y": 0,
+        "width": 7,
+        "height": 5
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_house_house_05_blue_roof_shop",
+      "name": "house 05 blue roof shop",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_05_blue_roof_shop.png",
+      "sourceSha256": "98ceb487c92e8ed69fc83524ffe04dd75490fbe40f713736efa0514aeca02d90",
+      "normalizedSha256": "366ca7c3d4a414c96361186f76f5741b8a42a47fe5495a489e527a41ae7023ab",
+      "sourcePixelSize": {
+        "width": 195,
+        "height": 144
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 0,
+        "y": 5,
+        "width": 7,
+        "height": 5
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_house_house_06_wide_orange_roof",
+      "name": "house 06 wide orange roof",
+      "category": "houses",
+      "sourceRelativePath": "assets/sources/v2/houses/house_06_wide_orange_roof.png",
+      "sourceSha256": "f3dcac1f8b76861642141659d5f4ba9832be20a300aec5f780b880243b790a53",
+      "normalizedSha256": "e88860b5ec765645c38bbb50347efbe30c15c1d675bc7c982d5860e394ea5553",
+      "sourcePixelSize": {
+        "width": 301,
+        "height": 169
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_building_footprint_with_authored_door_access",
+      "source": {
+        "x": 7,
+        "y": 5,
+        "width": 10,
+        "height": 6
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_01_arbre_1",
+      "name": "arbre 1",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/01_arbre_1.png",
+      "sourceSha256": "d6a733e599e0cf016b0925cfd47fad279d2dabab9c1a9d44aca799e6da9ef6e1",
+      "normalizedSha256": "d1986594d8d0685b3e069cb3f04498186a8cbfc560d08cb92a96e0ecd66f4ca2",
+      "sourcePixelSize": {
+        "width": 89,
+        "height": 109
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_overhead",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 17,
+        "y": 5,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_02_arbre_2",
+      "name": "arbre 2",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/02_arbre_2.png",
+      "sourceSha256": "d95bc2c2783c094fea4d5a6f549a488e9575aa799ba1c2057b15579e598bc334",
+      "normalizedSha256": "f792e8acb1a9201454cd5ae5294fc3bc8d9e95f506f96d22ebcfeffbc2dd8285",
+      "sourcePixelSize": {
+        "width": 72,
+        "height": 102
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_overhead",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 20,
+        "y": 5,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_03_arbre_jaune",
+      "name": "arbre jaune",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/03_arbre_jaune.png",
+      "sourceSha256": "c6638e2133362223fe33ec9f7cb459550c90a033128ef294805db6551c3aad94",
+      "normalizedSha256": "09d65c301cd515f363d7078a14fb549463290b09201a50816a591593004c969b",
+      "sourcePixelSize": {
+        "width": 92,
+        "height": 107
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_overhead",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 23,
+        "y": 5,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_04_arbre_sec",
+      "name": "arbre sec",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/04_arbre_sec.png",
+      "sourceSha256": "2c7e7ff70513f592e61953ebcd0bc6a2700cd402a1c13e4413453c0074bcda5a",
+      "normalizedSha256": "30d9946398b22d01a612b20a6a6cd8888036db5d0fac9cefe1b0dc038aff4ce5",
+      "sourcePixelSize": {
+        "width": 89,
+        "height": 103
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_overhead",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 26,
+        "y": 5,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_05_buisson",
+      "name": "buisson",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/05_buisson.png",
+      "sourceSha256": "8daa4cd357e518c9836f66008975dc0d9050e0d0eee9e76401b751f9b8c3dc46",
+      "normalizedSha256": "0d945a6b488dea32dffe07866918b9e59cabae1a5790d95c327abd77757eabb3",
+      "sourcePixelSize": {
+        "width": 64,
+        "height": 57
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 29,
+        "y": 5,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_06_herbes_hautes_1",
+      "name": "herbes hautes 1",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/06_herbes_hautes_1.png",
+      "sourceSha256": "ec97d626123a21829eae00c91465214f21287d369aca250dd278c3b96db80fd4",
+      "normalizedSha256": "8c5f0e27e5608a8c0c42a24df04e4a843499febcad51ffacf004af37eec74e88",
+      "sourcePixelSize": {
+        "width": 65,
+        "height": 56
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 0,
+        "y": 11,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_07_herbes_hautes_2",
+      "name": "herbes hautes 2",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/07_herbes_hautes_2.png",
+      "sourceSha256": "ad588a3a21942e40e162fd8567a81b24993d235367529ba37d0e62b3de815276",
+      "normalizedSha256": "9940446af28f5860836678bbffe9bc79c5e7bfede00d67f87911f8ed7cb860b0",
+      "sourcePixelSize": {
+        "width": 50,
+        "height": 54
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 3,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_08_fleurs_violettes",
+      "name": "fleurs violettes",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/08_fleurs_violettes.png",
+      "sourceSha256": "79227f0a920fdde1ca0351fc93d458990fe103bf6728515de0a88ab53aef5f94",
+      "normalizedSha256": "4ec1022a71af5f8dc751db857505294381df8fa0d7eed5f018fccebeca60c0f0",
+      "sourcePixelSize": {
+        "width": 53,
+        "height": 57
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 5,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_09_roseaux",
+      "name": "roseaux",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/09_roseaux.png",
+      "sourceSha256": "94bd3e7ebd14511ac947bccf439eb91d9d387a4c42b8922f5b7899530b625572",
+      "normalizedSha256": "46549b07b9df168af2a2eb80199356470c7495fd1b023d63c29127c13bdd1943",
+      "sourcePixelSize": {
+        "width": 50,
+        "height": 57
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 7,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_10_fleurs_1",
+      "name": "fleurs 1",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/10_fleurs_1.png",
+      "sourceSha256": "9f53e75e76bb781b8db05e0737801789bc8a143fcd9c3919da642cf56aaf77ef",
+      "normalizedSha256": "904a02f7581102b02ed568720372ce3a64ce3e4535675c54b1ad3643950a1d0e",
+      "sourcePixelSize": {
+        "width": 48,
+        "height": 41
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 9,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_11_fleurs_2",
+      "name": "fleurs 2",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/11_fleurs_2.png",
+      "sourceSha256": "f7dc5a7e49d4a2f60a327305d1c68dd4c22e761f49105df195e82a9d5a5ca1f0",
+      "normalizedSha256": "4f89951ee7db07f799b5bebcc6828e06dc040a6a28c3b12e92a34b8b4ebd3211",
+      "sourcePixelSize": {
+        "width": 49,
+        "height": 43
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 11,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_12_fleurs_blanches_1",
+      "name": "fleurs blanches 1",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/12_fleurs_blanches_1.png",
+      "sourceSha256": "c689507d7fd31f64e6dd2c520a6743d6482dbc50f57c106d28355f2a831c2456",
+      "normalizedSha256": "1f4095d8b8c2055e5f8bbd6707adb7a7eac41ad63331af3e178b5166d2db3960",
+      "sourcePixelSize": {
+        "width": 46,
+        "height": 41
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 13,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_13_fleurs_rouges",
+      "name": "fleurs rouges",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/13_fleurs_rouges.png",
+      "sourceSha256": "e13fca0d4f52f7dade736e03deb6ddefb1f6dce8f64bd3ec82f4c92c84d32035",
+      "normalizedSha256": "b21a4b50dd21a6c257e3751ef29d1ff0b758a3d086f56f22322664ba470f5b16",
+      "sourcePixelSize": {
+        "width": 46,
+        "height": 35
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 15,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_nature_14_fleurs_blanches_2",
+      "name": "fleurs blanches 2",
+      "category": "vegetation",
+      "sourceRelativePath": "assets/sources/v2/vegetation/14_fleurs_blanches_2.png",
+      "sourceSha256": "3e0c9ed18467018b7cda17220636e45572e36781558892bc2b9f6de6b0db071e",
+      "normalizedSha256": "4e4a94b2a17df85a17fbd76b2552e863d90bd3030a7ed8ea11977df5a3bfe822",
+      "sourcePixelSize": {
+        "width": 50,
+        "height": 39
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "decorative_by_default_tree_trunks_authored_per_map",
+      "source": {
+        "x": 17,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_01_puits",
+      "name": "puits",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/01_puits.png",
+      "sourceSha256": "4df10e40a425c3a46dd403cb72d5ebefe2115aa548d66bb4bb6167a6d95c92cb",
+      "normalizedSha256": "9465b6c298f29a4ad853274d4ad221265feab9f97b0e8a7c9e1d021d837d05ba",
+      "sourcePixelSize": {
+        "width": 79,
+        "height": 102
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 19,
+        "y": 11,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_02_velo",
+      "name": "velo",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/02_velo.png",
+      "sourceSha256": "576d72dee399c2c9585ee8c2758d5f6a3ae7f2c512f13a55266e105c14694b16",
+      "normalizedSha256": "93b44d86bd5fba2bb61904e72493fef8ea5619039df298b7e0e539fabfbaedf1",
+      "sourcePixelSize": {
+        "width": 70,
+        "height": 54
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 22,
+        "y": 11,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_03_panneau_carte",
+      "name": "panneau carte",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/03_panneau_carte.png",
+      "sourceSha256": "c9ee9fce761fb0571398ddc980d1bf15acdacbad8a49e6f444b0ccaee75fb579",
+      "normalizedSha256": "b4fe1f10b67fdec7a99e2664b54953a0c21c07407ec50f88eabe009e61306264",
+      "sourcePixelSize": {
+        "width": 54,
+        "height": 63
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 25,
+        "y": 11,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_04_panneau_gois_marees",
+      "name": "panneau gois marees",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/04_panneau_gois_marees.png",
+      "sourceSha256": "1ca83017f432af621658236fbb0cdef06dc64ac1bfbdd2a15b17d47082d66262",
+      "normalizedSha256": "29f45b6bf8f6d1ebd840fa7ed6a2b21896a046a6368b54ed54806071e1a555b6",
+      "sourcePixelSize": {
+        "width": 84,
+        "height": 67
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 27,
+        "y": 11,
+        "width": 3,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_05_lampadaire_1",
+      "name": "lampadaire 1",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/05_lampadaire_1.png",
+      "sourceSha256": "f1f35ba7b14dbdea6392ca765c6b31513a5c37c74bdb3baef2f7a8fa38865808",
+      "normalizedSha256": "e7d2edd1563d63c93cef618ffda5cd00d28899ce2bc4fe620e9c9a2961508538",
+      "sourcePixelSize": {
+        "width": 28,
+        "height": 90
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 30,
+        "y": 11,
+        "width": 1,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_06_lampadaire_2",
+      "name": "lampadaire 2",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/06_lampadaire_2.png",
+      "sourceSha256": "d2d76979002b0b59f57907faa1542de72885f656cfb7ebf33718eb5b2fa56a1a",
+      "normalizedSha256": "dbf6b7ef8924e600c46e9501353b255d50c8cad2293233fb0bf904c3088a6131",
+      "sourcePixelSize": {
+        "width": 27,
+        "height": 80
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 31,
+        "y": 11,
+        "width": 1,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_07_panneau_affichage",
+      "name": "panneau affichage",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/07_panneau_affichage.png",
+      "sourceSha256": "e9305f6c1b57662d27173dbffadb5f67cc0fe10ba09a4b366368e521f9df9de3",
+      "normalizedSha256": "a241daf474f3c37b8197bc2163e3424f7075fe06cd285a1a70c5fac928d8965e",
+      "sourcePixelSize": {
+        "width": 76,
+        "height": 76
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 0,
+        "y": 15,
+        "width": 3,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_08_caisse",
+      "name": "caisse",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/08_caisse.png",
+      "sourceSha256": "801cda75b7f67a4458777d7920b585ef56ee04f097e06c1c48c8f8281c4f4ff7",
+      "normalizedSha256": "8c4732b6a9e490ccf4774ccf3329069bcfcc8969262bab30084709dff8189db7",
+      "sourcePixelSize": {
+        "width": 42,
+        "height": 41
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 3,
+        "y": 15,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_09_jardiniere_basse",
+      "name": "jardiniere basse",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/09_jardiniere_basse.png",
+      "sourceSha256": "417e315b92b5f297eaed13790b8dd146368a550e7e3b887c9825182a21b31117",
+      "normalizedSha256": "e869d4af37c70e597644960bc2c8930fb57a064993196a723e13f92797048809",
+      "sourcePixelSize": {
+        "width": 51,
+        "height": 50
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 5,
+        "y": 15,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_10_banc",
+      "name": "banc",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/10_banc.png",
+      "sourceSha256": "fd26d16e46ccb2b17388501faf739b43514a84f15e2f78c60d61e3081405eeec",
+      "normalizedSha256": "58f208d862cf90c8b0e1fda2b0c9e8740ff729d1506e7f375339ba7f0de57ec4",
+      "sourcePixelSize": {
+        "width": 75,
+        "height": 42
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 7,
+        "y": 15,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_11_jardiniere_haute",
+      "name": "jardiniere haute",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/11_jardiniere_haute.png",
+      "sourceSha256": "cd0c9f9e348e4750653d1d7e700ba5baf155db6727b57749fecde83fa6b4761e",
+      "normalizedSha256": "efb64411efed504345bd682799599e4588b16d253d416f0ca0e999141683130b",
+      "sourcePixelSize": {
+        "width": 74,
+        "height": 59
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 10,
+        "y": 15,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_12_borne_bois",
+      "name": "borne bois",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/12_borne_bois.png",
+      "sourceSha256": "40139f8f8cfe1757bdfb61e402a2a5aba9eb63c376b70234637154aef4182967",
+      "normalizedSha256": "b81021f17759e76abdd39ed467d2186d2fe7a6a001cf55db28f36b48ff3c43e2",
+      "sourcePixelSize": {
+        "width": 59,
+        "height": 95
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 13,
+        "y": 15,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_13_baril_haut",
+      "name": "baril haut",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/13_baril_haut.png",
+      "sourceSha256": "1bdea128a748968afc1c3c31c1d97006b584171106bc14772a5e6540c92d04f7",
+      "normalizedSha256": "36f24eb9c832501bd47f7a5200a4ee17d54187ef118f08ac364feaa2977b070d",
+      "sourcePixelSize": {
+        "width": 40,
+        "height": 47
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 15,
+        "y": 15,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_14_baril_bas_1",
+      "name": "baril bas 1",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/14_baril_bas_1.png",
+      "sourceSha256": "b7d12631e7dcef8b0e423eba5ccdade101018606fbbfa6794a006f0de1cd2302",
+      "normalizedSha256": "7d5963a7062b0d07cbbceae0881b06262c949b46bb716e11817b0698fc9d18bf",
+      "sourcePixelSize": {
+        "width": 40,
+        "height": 47
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 17,
+        "y": 15,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_15_tas_sel",
+      "name": "tas sel",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/15_tas_sel.png",
+      "sourceSha256": "2611c0eac0f12898dbf7bdbbb2d088b25736fb5f27709d4a832a87d8a2cd8922",
+      "normalizedSha256": "bc3a18c40a575859548c89d392c91e7d6c5b8db19bb8ab95840a34719bb97f7c",
+      "sourcePixelSize": {
+        "width": 78,
+        "height": 54
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 19,
+        "y": 15,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_16_barque",
+      "name": "barque",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/16_barque.png",
+      "sourceSha256": "130edcc7674c35424f1d308289d3006558883b8a6117da28b39c56a103eee5ac",
+      "normalizedSha256": "d39faebbb21334925c63e90ace1bb8b59c597cc04a2eee439dc976dd7e928abb",
+      "sourcePixelSize": {
+        "width": 106,
+        "height": 83
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 22,
+        "y": 15,
+        "width": 4,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_17_coffre",
+      "name": "coffre",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/17_coffre.png",
+      "sourceSha256": "b247d853a15fab03565a8ba591eba4908b2c923877e5a1b04d8b6c6802c30c3c",
+      "normalizedSha256": "b584abee97f80a8d4314b159f6460db56f64b3f192cd91a6dbf9adb9b8712db8",
+      "sourcePixelSize": {
+        "width": 85,
+        "height": 68
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 26,
+        "y": 15,
+        "width": 3,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_18_poteau_goeland",
+      "name": "poteau goeland",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/18_poteau_goeland.png",
+      "sourceSha256": "68d44572cd65088d7d0e074d4bf1326a54973886cd325faaa3e054ac1f5b9f0a",
+      "normalizedSha256": "a6f78640c19d92abc53fd921e66b26ce2cfb42f5e7849f8963bebcb4c785140c",
+      "sourcePixelSize": {
+        "width": 35,
+        "height": 76
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 29,
+        "y": 15,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_19_bouee",
+      "name": "bouee",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/19_bouee.png",
+      "sourceSha256": "06772453991bbf68d69034dd24aab7a67351e1857b2afb8e0ae804bb096e2edb",
+      "normalizedSha256": "69fbbdd6cbcd5394e0f6163530e03f0e42658f51574f44d49d2fa175280ec949",
+      "sourcePixelSize": {
+        "width": 42,
+        "height": 79
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 0,
+        "y": 18,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_20_cabine_plage_verte",
+      "name": "cabine plage verte",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/20_cabine_plage_verte.png",
+      "sourceSha256": "1cce9ddeb45ba7e897e0eff196099c01107642e94a1d4b1101d667e1194c9c2e",
+      "normalizedSha256": "bede56f16994650130777becbc45df3ec213260591603fbfbd259dc9ceae5566",
+      "sourcePixelSize": {
+        "width": 60,
+        "height": 80
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 2,
+        "y": 18,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_21_cabine_plage_bleue_1",
+      "name": "cabine plage bleue 1",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/21_cabine_plage_bleue_1.png",
+      "sourceSha256": "78106e2cf3442f4c5685abc1f29b091cafaad2451f0a20f21204da9a369dd967",
+      "normalizedSha256": "04531c8aad03818054bd5e49a77fca07f21f66170ba3297b0832c269308747fc",
+      "sourcePixelSize": {
+        "width": 60,
+        "height": 81
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 4,
+        "y": 18,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_22_cabine_plage_bleue_2",
+      "name": "cabine plage bleue 2",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/22_cabine_plage_bleue_2.png",
+      "sourceSha256": "cdc310d0b925d4e90b1c78e1e51c95f69fabb1d125ab604b7f93f687a4383739",
+      "normalizedSha256": "4cf37d1a82aafae3924e3a07a73d4445ef0c47cf6086806c835497d3729ad0c7",
+      "sourcePixelSize": {
+        "width": 59,
+        "height": 81
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 6,
+        "y": 18,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_village_prop_23_cabine_plage_blanche",
+      "name": "cabine plage blanche",
+      "category": "props",
+      "sourceRelativePath": "assets/sources/v2/props/23_cabine_plage_blanche.png",
+      "sourceSha256": "5b1bced9c1cdda190a7c1e7e79e942298e0656f88dbd1d1669c5e33e9df40d96",
+      "normalizedSha256": "c78fb22e7af1e6b67c5a0d49d2a6b1ccff11c95d460adea0519eb9037864967b",
+      "sourcePixelSize": {
+        "width": 60,
+        "height": 80
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "small_solid_prop_unless_authored_as_ground_decor",
+      "source": {
+        "x": 8,
+        "y": 18,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_01",
+      "name": "rocher decor 01",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_01.png",
+      "sourceSha256": "1ad5d15bd20a91cd6c444fd2cded7cc3bbdeafd145d146eff90b61e22dc4abf2",
+      "normalizedSha256": "420145534c7ffe955b73f3fd01c925b5c6ea23d63653c0c933b4ba9b9bcf779b",
+      "sourcePixelSize": {
+        "width": 76,
+        "height": 50
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 10,
+        "y": 18,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_02",
+      "name": "rocher decor 02",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_02.png",
+      "sourceSha256": "08c7852134e82ff8c2b0af9846c819d01f22494af43f7d47b4a91b045dc4355f",
+      "normalizedSha256": "25cdc365f7dcbbe2de69abc2608f21a3421c8f4c3be48d0207d675029595bd18",
+      "sourcePixelSize": {
+        "width": 91,
+        "height": 49
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 13,
+        "y": 18,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_03",
+      "name": "rocher decor 03",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_03.png",
+      "sourceSha256": "a2591eb375c9be6bc5256ebe79f9bb26f697153e7b9bbd315fa813786093e1c6",
+      "normalizedSha256": "26994891ae46c18a32d0607fc8d40c5088a97b38241aba9be49bac37f43ba86f",
+      "sourcePixelSize": {
+        "width": 49,
+        "height": 46
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 16,
+        "y": 18,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_04",
+      "name": "rocher decor 04",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_04.png",
+      "sourceSha256": "ee36e64c681d17004a98c3987020edf49f12ba90af1161446a605236df6dfeb1",
+      "normalizedSha256": "c49744efe03c632b86afa25547e0c760364f471482de2c089f958f7bc7d37bf2",
+      "sourcePixelSize": {
+        "width": 61,
+        "height": 49
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 18,
+        "y": 18,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_05",
+      "name": "rocher decor 05",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_05.png",
+      "sourceSha256": "1882bd71ddb6817f14924dcbfa17992e94220b5b82b955739929a0eb59dd97a0",
+      "normalizedSha256": "abc3825b315d3ad1f5c2ced3169021b77a12a7e9661a524e75c4de3f3b5c7446",
+      "sourcePixelSize": {
+        "width": 46,
+        "height": 29
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 20,
+        "y": 18,
+        "width": 2,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_06",
+      "name": "rocher decor 06",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_06.png",
+      "sourceSha256": "f380aee110a1cfa317b2437153386269357657340a4ed5bb9db7e6b599d17c39",
+      "normalizedSha256": "9ead03639239371f1aa480d62e2ddb3200edcbe8c538f469c1a10e2d7f2d2d27",
+      "sourcePixelSize": {
+        "width": 32,
+        "height": 24
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 22,
+        "y": 18,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_07",
+      "name": "rocher decor 07",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_07.png",
+      "sourceSha256": "a60c24a2022e9fc8d270ba46015bdcdc2af6e90395554da61461a1f973e20df6",
+      "normalizedSha256": "16233548b66e5cb3ee9062700f2724b689caf479c79b0d0ea9d843ab7313fe54",
+      "sourcePixelSize": {
+        "width": 24,
+        "height": 17
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 23,
+        "y": 18,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_08",
+      "name": "rocher decor 08",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_08.png",
+      "sourceSha256": "b676ca418d12268196474a0666085ead62936061ef0c166137f64de3bf3b76be",
+      "normalizedSha256": "a9bd7c8fdc2294a01624e1e08f6ec305f2f4b31acdd405b19a8b71f587f55200",
+      "sourcePixelSize": {
+        "width": 47,
+        "height": 30
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 24,
+        "y": 18,
+        "width": 2,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_09",
+      "name": "rocher decor 09",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_09.png",
+      "sourceSha256": "50d7f71028d799744192363f78a83f401099388d4d32bfb76252addb61ecfa76",
+      "normalizedSha256": "4c5271ef6dcf69f517dc56355cbf9f1793b1413e9d7e45488e2d9934f310e98b",
+      "sourcePixelSize": {
+        "width": 32,
+        "height": 33
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 26,
+        "y": 18,
+        "width": 1,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_10",
+      "name": "rocher decor 10",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_10.png",
+      "sourceSha256": "658234c56baf49e0f3b7a4db9bfbb7ab55319e3df75346bb95c8b5991fb957bf",
+      "normalizedSha256": "4189b8d6ab087515830200f279a31712a4f65a0473570534ae2e65f479bd8e7e",
+      "sourcePixelSize": {
+        "width": 28,
+        "height": 21
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 27,
+        "y": 18,
+        "width": 1,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_coast_rock_rocher_decor_11",
+      "name": "rocher decor 11",
+      "category": "rocks",
+      "sourceRelativePath": "assets/sources/v2/rocks/rocher_decor_11.png",
+      "sourceSha256": "7ede4037c16851afde87e41cfe5eb068a20e29e390e36d4ed1a3fecef7ec1193",
+      "normalizedSha256": "69b322c2a55016cfeababde569453bea2eb42d8dbada864903c971b85e9de872",
+      "sourcePixelSize": {
+        "width": 36,
+        "height": 26
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_natural_obstacle",
+      "source": {
+        "x": 28,
+        "y": 18,
+        "width": 2,
+        "height": 1
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_01_quai_bois_grand",
+      "name": "quai bois grand",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/01_quai_bois_grand.png",
+      "sourceSha256": "ffccab0a57c3820755397916fcae42189077ffb5503278fefe105962bae1e8f2",
+      "normalizedSha256": "810f3efece184292dfc4f13f4d9132e5c8646345d5da03806a1239c485612f6d",
+      "sourcePixelSize": {
+        "width": 86,
+        "height": 106
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 0,
+        "y": 21,
+        "width": 3,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_02_pont_bois_sur_eau",
+      "name": "pont bois sur eau",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/02_pont_bois_sur_eau.png",
+      "sourceSha256": "2a318be984b0976b558cafe396cdb761d527cd8d1d9a24a5fd6da75ec6d396f3",
+      "normalizedSha256": "92b227a389e490e590c6f6bb4a83a27ef2970f562f186b1c1af02d0d629c9599",
+      "sourcePixelSize": {
+        "width": 124,
+        "height": 105
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 3,
+        "y": 21,
+        "width": 4,
+        "height": 4
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_03_caisses_port",
+      "name": "caisses port",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/03_caisses_port.png",
+      "sourceSha256": "a78b8d3f3e734fe0d1e782beaa118b2733d36b98cc2da03b81528bfdf67306a2",
+      "normalizedSha256": "86e9f47702b47c8d37067a4a9bb62619f939f6506c1e84896b80f9c12c4becfe",
+      "sourcePixelSize": {
+        "width": 104,
+        "height": 51
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 7,
+        "y": 21,
+        "width": 4,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_04_poteau_1",
+      "name": "poteau 1",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/04_poteau_1.png",
+      "sourceSha256": "897b75eed50c783b93504d5ad0498e50a6b0fea5fc72fc578fa7e4c2f794f852",
+      "normalizedSha256": "96d5c39cdb0bf3bfed76c4d4c26ac020d99ccd3519ce795ae64a85cdedcf0c58",
+      "sourcePixelSize": {
+        "width": 24,
+        "height": 44
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 11,
+        "y": 21,
+        "width": 1,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_05_poteau_2",
+      "name": "poteau 2",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/05_poteau_2.png",
+      "sourceSha256": "6061786e35202f03335d324ab598b702a0fd93a67a70e7c25b921ca3ff05030e",
+      "normalizedSha256": "26bca8c5c1ecb04c241d9693a4a938ab0c2eeef644fded6d14ac26a918f67b83",
+      "sourcePixelSize": {
+        "width": 25,
+        "height": 44
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 12,
+        "y": 21,
+        "width": 1,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_port_module_06_caisse_simple",
+      "name": "caisse simple",
+      "category": "port",
+      "sourceRelativePath": "assets/sources/v2/port/06_caisse_simple.png",
+      "sourceSha256": "121deb5c3ba3c1a54612bf80657ee7eea67bd464898ae9165b542c94f586ce59",
+      "normalizedSha256": "9e070cc5f00a87ab338f8e630275f398ba41fa680bd27283bbfc0f692158abef",
+      "sourcePixelSize": {
+        "width": 41,
+        "height": 44
+      },
+      "hasRealAlpha": true,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_structures",
+      "collisionIntent": "solid_port_structure_with_authored_walkable_decks",
+      "source": {
+        "x": 13,
+        "y": 21,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_01_bassin_haut_gauche",
+      "name": "bassin haut gauche",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/01_bassin_haut_gauche.png",
+      "sourceSha256": "3d4dc7d11f72ae4162e53c9ae60ddfb7111b9e6e3a0bf42bde6ec0d908038e3e",
+      "normalizedSha256": "30f8b759662e20d797ba0311cab328e23876a6a668a6ef0b236bd5d2decfa37e",
+      "sourcePixelSize": {
+        "width": 62,
+        "height": 55
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 15,
+        "y": 21,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_02_bassin_haut_centre",
+      "name": "bassin haut centre",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/02_bassin_haut_centre.png",
+      "sourceSha256": "1ac36a9b73c6230391fb7333557937b01e6b121c2bfbdca1f67b26d914964d84",
+      "normalizedSha256": "8777d8757cd1c8731a6cee47b75b59f1345f5436f11352c300c156a2137a5f53",
+      "sourcePixelSize": {
+        "width": 70,
+        "height": 57
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 17,
+        "y": 21,
+        "width": 3,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_03_bassin_haut_large",
+      "name": "bassin haut large",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/03_bassin_haut_large.png",
+      "sourceSha256": "d67a7295b43c102cbf7b420f9690a4c96e4dec707e812cbfedf30b8797f01002",
+      "normalizedSha256": "e670b67d02b2bfd68c84bf4cd3a60da88a5d99e191af26d9f638158ff5177422",
+      "sourcePixelSize": {
+        "width": 107,
+        "height": 57
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 20,
+        "y": 21,
+        "width": 4,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_04_bassin_haut_droit",
+      "name": "bassin haut droit",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/04_bassin_haut_droit.png",
+      "sourceSha256": "a8738f634ffbaa4a475bf7191aa662b9cf0cd93b5650e2d473ee219617ba64aa",
+      "normalizedSha256": "ae8bf025e2943a66c98a9111f01cba08c44794b34750958706eb155bed86883d",
+      "sourcePixelSize": {
+        "width": 44,
+        "height": 56
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 24,
+        "y": 21,
+        "width": 2,
+        "height": 2
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_05_bassin_bas_large",
+      "name": "bassin bas large",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/05_bassin_bas_large.png",
+      "sourceSha256": "51236d3e787050ab5d2d2676f70686500bc5df44594c09c6fceea62089d5bab8",
+      "normalizedSha256": "8db185cf14aedfaaef6121f2b8418488338b715ebfd02dc86a6da7bab696bf84",
+      "sourcePixelSize": {
+        "width": 132,
+        "height": 74
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 26,
+        "y": 21,
+        "width": 5,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_06_roseaux_marais",
+      "name": "roseaux marais",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/06_roseaux_marais.png",
+      "sourceSha256": "b695c75ef6a76d4400fa5c44c4a9673fa251a8a57baa5e750d315255c17a5e51",
+      "normalizedSha256": "55fa12393ea079760130a82898766ead4d7aeffd4acb22f53cefafbd330ecc1a",
+      "sourcePixelSize": {
+        "width": 46,
+        "height": 74
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 0,
+        "y": 25,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_07_passerelle_bois",
+      "name": "passerelle bois",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/07_passerelle_bois.png",
+      "sourceSha256": "be956c9c1befc8aa8d2c38ffdbb5fbf3c5f95156ef540744cbaad877bb4e7e6f",
+      "normalizedSha256": "cb874a8f2b2b5f892c2f4ad3319607689be86f536294bf61f7d80b78c22027b2",
+      "sourcePixelSize": {
+        "width": 44,
+        "height": 74
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 2,
+        "y": 25,
+        "width": 2,
+        "height": 3
+      }
+    },
+    {
+      "id": "el_selbrume_v2_marsh_module_08_tas_sel_marais",
+      "name": "tas sel marais",
+      "category": "marsh",
+      "sourceRelativePath": "assets/sources/v2/marsh/08_tas_sel_marais.png",
+      "sourceSha256": "bc1ca20a58b6ed84cc38bb0ca3c218f5ba214f13ac3702211c3e719db9bc6ddf",
+      "normalizedSha256": "30a30fd6038c1c38cac0d41a0f494f8726d5e5c8fe775588a4f31e2d9a401974",
+      "sourcePixelSize": {
+        "width": 64,
+        "height": 75
+      },
+      "hasRealAlpha": false,
+      "anchor": "bottom_center",
+      "recommendedLayerId": "l_tile_ground",
+      "collisionIntent": "authored_per_module_water_or_walkable_deck",
+      "source": {
+        "x": 4,
+        "y": 25,
+        "width": 2,
+        "height": 3
+      }
+    }
+  ]
+}
