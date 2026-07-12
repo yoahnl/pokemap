@@ -153,6 +153,39 @@ void main() {
         const {_originKey: 'tile_index', 'custom': 'keep'},
       );
     });
+
+    test('resize keeps in-bounds authored and environment ownership', () {
+      final authored = _placement(
+        id: 'authored',
+        x: 0,
+        properties: const {_originKey: 'authored'},
+      );
+      final environment = _placement(
+        id: 'environment',
+        x: 1,
+        properties: const {_originKey: 'environment'},
+      );
+      final derived = _placement(
+        id: 'derived',
+        x: 2,
+        properties: const {_originKey: 'tile_index'},
+      );
+      final map = _map(
+        width: 3,
+        tiles: const [0, 0, 1],
+        placedElements: [authored, environment, derived],
+        environmentGeneratedIds: const ['environment'],
+      );
+
+      final resized = resizeMapData(map, width: 2, height: 1);
+      final synced = const PlacedElementInstanceIndexer().syncAllTileLayers(
+        map: resized,
+        project: _manifest(),
+      );
+
+      expect(synced.placedElements, [authored, environment]);
+      expect(synced.size, const GridSize(width: 2, height: 1));
+    });
   });
 }
 
