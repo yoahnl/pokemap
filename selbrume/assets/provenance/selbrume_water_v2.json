@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "family": "selbrume_water_v2",
+  "method": "deterministic_procedural_pixel_art",
+  "referenceCorpus": "SELBRUME_REFERENCE_ROOT",
+  "referenceUsage": "palette_and_visual_direction_only",
+  "referenceImagesUsedAsUnderlays": false,
+  "generator": {
+    "path": "packages/map_editor/tool/generate_selbrume_water_v2.dart",
+    "sha256": "adb23a75d5cdd6b57b46c1c5d4e4dfd38dd7b28c81ac96f3a6415324ec7a5ade"
+  },
+  "outputs": [
+    {
+      "role": "open_sea",
+      "path": "assets/tilesets/v2/selbrume_open_sea_v2.png",
+      "sha256": "7a738e5a95348864b68341ab51d891b2bf23c365b1712f2c2ae3fd21beb2a045",
+      "width": 4096,
+      "height": 128,
+      "frameCount": 32,
+      "frameWidth": 128,
+      "frameHeight": 128,
+      "frameDurationMs": 100,
+      "alpha": "opaque",
+      "spatialLoop": true,
+      "temporalLoop": true
+    },
+    {
+      "role": "coast_and_foam",
+      "path": "assets/tilesets/v2/selbrume_coast_v2.png",
+      "sha256": "38c398a64554de5192d7e46edea51d6474ecacc8efcbe316ea2092bc97e3e55e",
+      "width": 480,
+      "height": 128,
+      "variantCount": 15,
+      "frameCount": 4,
+      "frameDurationMs": 100,
+      "alpha": "real_transparency_and_partial_foam"
+    },
+    {
+      "role": "marsh_water_and_banks",
+      "path": "assets/tilesets/v2/selbrume_marsh_water_v2.png",
+      "sha256": "4ff674fc62672367aa80c2c463cff3d12c979dba8103ca86048bce89de9ecade",
+      "width": 512,
+      "height": 256,
+      "centerFrameCount": 4,
+      "variantCount": 15,
+      "boundaryFrameCount": 4,
+      "frameDurationMs": 100,
+      "alpha": "opaque_center_transparent_banks"
+    }
+  ]
+}
