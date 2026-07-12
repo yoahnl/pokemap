@@ -1,5 +1,10 @@
 import 'package:map_core/map_core.dart';
 
+const pokemapPlacementOriginProperty = 'pokemapPlacementOrigin';
+const pokemapPlacementOriginAuthored = 'authored';
+const pokemapPlacementOriginTileIndex = 'tile_index';
+const pokemapPlacementOriginEnvironment = 'environment';
+
 class PlacedElementInstanceIndexer {
   const PlacedElementInstanceIndexer();
 
@@ -26,25 +31,20 @@ class PlacedElementInstanceIndexer {
     required ProjectManifest project,
     required String layerId,
   }) {
-    final preservedGenerated =
-        _environmentGeneratedPlacedElementsForLayer(map, layerId);
+    final protectedPlacements = _protectedPlacedElementsForLayer(map, layerId);
     final layer = map.layers
         .whereType<TileLayer>()
         .where((entry) => entry.id == layerId)
         .firstOrNull;
     if (layer == null) {
-      return replaceMapPlacedElementsForLayer(
-        map,
-        layerId: layerId,
-        instances: const [],
-      );
+      return map;
     }
     final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
     if (layerTilesetId.isEmpty) {
       return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        preservedGenerated: preservedGenerated,
+        protectedPlacements: protectedPlacements,
         indexedInstances: const [],
       );
     }
@@ -76,7 +76,7 @@ class PlacedElementInstanceIndexer {
       return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        preservedGenerated: preservedGenerated,
+        protectedPlacements: protectedPlacements,
         indexedInstances: const [],
       );
     }
@@ -87,7 +87,7 @@ class PlacedElementInstanceIndexer {
       return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        preservedGenerated: preservedGenerated,
+        protectedPlacements: protectedPlacements,
         indexedInstances: const [],
       );
     }
@@ -108,7 +108,7 @@ class PlacedElementInstanceIndexer {
     final existingByKey = <String, MapPlacedElement>{};
     final existingByPos = <String, MapPlacedElement>{};
     for (final existing in map.placedElements) {
-      if (existing.layerId != layerId) {
+      if (existing.layerId != layerId || !_isTileIndexed(existing)) {
         continue;
       }
       existingByKey[_keyFor(
@@ -124,7 +124,7 @@ class PlacedElementInstanceIndexer {
         List<bool>.filled(mapWidth * mapHeight, false, growable: false);
     final instances = <MapPlacedElement>[];
     final preservedPositions = <String>{};
-    for (final instance in preservedGenerated) {
+    for (final instance in protectedPlacements) {
       preservedPositions.add(
         _keyForPos(layerId: instance.layerId, pos: instance.pos),
       );
@@ -214,6 +214,9 @@ class PlacedElementInstanceIndexer {
               elementId: matched.id,
               pos: pos,
               applyCollision: true,
+              properties: const {
+                pokemapPlacementOriginProperty: pokemapPlacementOriginTileIndex,
+              },
             );
         instances.add(
           existing == null
@@ -222,6 +225,11 @@ class PlacedElementInstanceIndexer {
                   layerId: layerId,
                   elementId: matched.id,
                   pos: pos,
+                  properties: {
+                    ...instance.properties,
+                    pokemapPlacementOriginProperty:
+                        pokemapPlacementOriginTileIndex,
+                  },
                 ),
         );
         _markCellsAsCovered(
@@ -250,12 +258,12 @@ class PlacedElementInstanceIndexer {
     return _replaceLayerPlacedElements(
       map,
       layerId: layerId,
-      preservedGenerated: preservedGenerated,
+      protectedPlacements: protectedPlacements,
       indexedInstances: instances,
     );
   }
 
-  List<MapPlacedElement> _environmentGeneratedPlacedElementsForLayer(
+  List<MapPlacedElement> _protectedPlacedElementsForLayer(
     MapData map,
     String layerId,
   ) {
@@ -270,30 +278,41 @@ class PlacedElementInstanceIndexer {
         }
       }
     }
-    if (generatedIds.isEmpty) {
-      return const <MapPlacedElement>[];
-    }
     return map.placedElements
         .where(
           (entry) =>
-              entry.layerId == layerId && generatedIds.contains(entry.id),
+              entry.layerId == layerId &&
+              (generatedIds.contains(entry.id) || !_isTileIndexed(entry)),
         )
         .toList(growable: false);
   }
 
+  bool _isTileIndexed(MapPlacedElement entry) =>
+      entry.properties[pokemapPlacementOriginProperty] ==
+      pokemapPlacementOriginTileIndex;
+
   MapData _replaceLayerPlacedElements(
     MapData map, {
     required String layerId,
-    required List<MapPlacedElement> preservedGenerated,
+    required List<MapPlacedElement> protectedPlacements,
     required List<MapPlacedElement> indexedInstances,
   }) {
-    final preservedIds = preservedGenerated.map((entry) => entry.id).toSet();
+    final protectedIds = protectedPlacements.map((entry) => entry.id).toSet();
+    final protectedPositions = protectedPlacements
+        .map((entry) => _keyForPos(layerId: entry.layerId, pos: entry.pos))
+        .toSet();
     return replaceMapPlacedElementsForLayer(
       map,
       layerId: layerId,
       instances: [
-        ...preservedGenerated,
-        ...indexedInstances.where((entry) => !preservedIds.contains(entry.id)),
+        ...protectedPlacements,
+        ...indexedInstances.where(
+          (entry) =>
+              !protectedIds.contains(entry.id) &&
+              !protectedPositions.contains(
+                _keyForPos(layerId: entry.layerId, pos: entry.pos),
+              ),
+        ),
       ],
     );
   }

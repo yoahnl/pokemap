@@ -8,6 +8,99 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
+  group('EditorNotifier.loadMap', () {
+    test('preserves placedElements exactly and opens a clean snapshot',
+        () async {
+      const placement = MapPlacedElement(
+        id: 'authored-house',
+        layerId: 'decor',
+        elementId: 'house',
+        pos: GridPos(x: 1, y: 0),
+        applyCollision: false,
+        opacity: 0.75,
+        properties: <String, String>{
+          'pokemapPlacementOrigin': 'authored',
+          'designerNote': 'must survive load',
+        },
+      );
+      const loadedMap = MapData(
+        id: 'town',
+        name: 'Town',
+        size: GridSize(width: 2, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'decor',
+            name: 'Decor',
+            tilesetId: 'nature',
+            tiles: <int>[0, 0],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[placement],
+      );
+      final repo = _FakeMapRepository(
+        mapsByPath: <String, MapData>{
+          '/project/maps/town.json': loadedMap,
+        },
+      );
+      const workspaceFactory = _FakeWorkspaceFactory(
+        workspace: _FakeWorkspace(projectRoot: '/project'),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          mapRepositoryProvider.overrideWith((ref) => repo),
+          projectWorkspaceFactoryProvider
+              .overrideWith((ref) => workspaceFactory),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = const EditorState(
+        projectRootPath: '/project',
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
+          name: 'demo',
+          maps: <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'town',
+              name: 'Town',
+              relativePath: 'maps/town.json',
+            ),
+          ],
+          tilesets: <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'nature',
+              name: 'Nature',
+              relativePath: 'tilesets/nature.png',
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'house',
+              name: 'House',
+              tilesetId: 'nature',
+              categoryId: 'building',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await notifier.loadMap('maps/town.json');
+
+      expect(notifier.state.activeMap, same(loadedMap));
+      expect(notifier.state.activeMap!.placedElements, const [placement]);
+      expect(notifier.state.savedMapSnapshot, same(loadedMap));
+      expect(notifier.state.isDirty, isFalse);
+      expect(notifier.state.mapUndoStack, isEmpty);
+      expect(notifier.state.mapRedoStack, isEmpty);
+    });
+  });
+
   group('EditorNotifier.loadMapSnapshotById', () {
     test('returns activeMap when requested map is already active', () async {
       const active = MapData(
@@ -31,7 +124,8 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/project',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(
@@ -76,7 +170,8 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/project',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(

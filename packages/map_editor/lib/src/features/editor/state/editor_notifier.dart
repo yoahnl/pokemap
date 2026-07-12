@@ -623,12 +623,11 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(loadMapUseCaseProvider);
       final project = state.project;
       final loadedMap = await useCase.execute(fs, relativePath);
-      final map = project == null
-          ? loadedMap
-          : _placedElementInstanceIndexer.syncAllTileLayers(
-              map: loadedMap,
-              project: project,
-            );
+      // Loading is a byte-faithful document operation, not an implicit
+      // migration/reindex command. Derived tile instances are synchronized by
+      // explicit authoring mutations; persisted authored placements must never
+      // disappear merely because their TileLayer contains zeroes.
+      final map = loadedMap;
       final presetSelection = project == null
           ? _currentTerrainPresetSelection()
           : _terrainPresetSelectionCoordinator.normalize(
