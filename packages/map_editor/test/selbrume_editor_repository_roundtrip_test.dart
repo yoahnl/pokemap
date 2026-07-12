@@ -1,7 +1,10 @@
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 
@@ -22,6 +25,19 @@ final _fixtureRelativePaths = <String>[
   'project.json',
   ..._canonicalMapRelativePaths.values,
 ];
+
+const _canonicalPlacementCounts = <String, int>{
+  'map_bourg_selbrume': 306,
+  'map_port_brisants': 21,
+  'map_bois_chaise_brume': 12,
+  'map_marais_salants': 22,
+  'map_passage_dames': 13,
+  'map_phare_exterieur': 10,
+  'map_phare_interieur': 175,
+  'map_sommet_phare': 23,
+  'map_cabane_gardien': 50,
+  'map_maison_joueur': 43,
+};
 
 void main() {
   group('Selbrume editor file repositories round-trip', () {
@@ -147,6 +163,79 @@ void main() {
               .name,
           isNot(temporaryMapName),
         );
+      },
+    );
+
+    test(
+      'real EditorNotifier sessions retain all 675 placements after an edit',
+      () async {
+        final sourceRoot = _resolveSelbrumeSourceRoot();
+        final sourceSnapshot = await _snapshotFixtureFiles(sourceRoot);
+        final fixture = await _copyRepositoryFixture(sourceRoot);
+        _protectSourceAndDeleteFixtureAfterTest(
+          sourceRoot: sourceRoot,
+          sourceSnapshot: sourceSnapshot,
+          fixture: fixture,
+        );
+
+        final projectRepository = FileProjectRepository();
+        final manifestPath = p.join(fixture.root.path, 'project.json');
+        final manifest = await projectRepository.loadProject(manifestPath);
+
+        for (final entry in manifest.maps) {
+          final firstSession = ProviderContainer();
+          final notifier = firstSession.read(editorNotifierProvider.notifier);
+          notifier.state = EditorState(
+            projectRootPath: fixture.root.path,
+            project: manifest,
+          );
+          await notifier.loadMap(entry.relativePath);
+          final loaded = notifier.state.activeMap!;
+          final expectedCount = _canonicalPlacementCounts[entry.id];
+          expect(expectedCount, isNotNull, reason: entry.id);
+          expect(loaded.placedElements, hasLength(expectedCount!));
+
+          final pathLayers = loaded.layers.whereType<PathLayer>().toList();
+          if (pathLayers.isNotEmpty) {
+            final pathLayer = pathLayers.first;
+            notifier.setPathLayerAnimationMode(
+              layerId: pathLayer.id,
+              mode: pathLayer.animationMode == PathAnimationMode.alwaysActive
+                  ? PathAnimationMode.triggered
+                  : PathAnimationMode.alwaysActive,
+            );
+          } else {
+            final layer = loaded.layers.first;
+            notifier.setMapLayerOpacity(
+              layer.id,
+              layer.opacity == 1 ? 0.99 : 1,
+            );
+          }
+          await notifier.saveActiveMap();
+          expect(notifier.state.errorMessage, isNull, reason: entry.id);
+          firstSession.dispose();
+
+          final secondSession = ProviderContainer();
+          final verifier = secondSession.read(editorNotifierProvider.notifier);
+          verifier.state = EditorState(
+            projectRootPath: fixture.root.path,
+            project: manifest,
+          );
+          await verifier.loadMap(entry.relativePath);
+          expect(
+            verifier.state.activeMap!.placedElements,
+            loaded.placedElements,
+            reason: entry.id,
+          );
+          expect(verifier.state.isDirty, isFalse, reason: entry.id);
+          secondSession.dispose();
+        }
+
+        expect(
+          _canonicalPlacementCounts.values.reduce((a, b) => a + b),
+          675,
+        );
+        expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
       },
     );
   });

@@ -9114,7 +9114,7 @@
         true
       ],
       "properties": {},
-      "animationMode": "triggered",
+      "animationMode": "always_active",
       "animationTriggers": [],
       "runtimeType": "path"
     },
