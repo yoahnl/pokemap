@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -114,29 +115,19 @@ void main() {
     );
   });
 
-  test('registered legacy Selbrume assets', () async {
+  test('registered shared open-sea compatibility asset', () async {
     final manifest = await SelbrumeMapTestFixture.loadManifest();
     expect(() => ProjectValidator.validate(manifest), returnsNormally);
 
     final tilesetsById = <String, ProjectTilesetEntry>{
       for (final tileset in manifest.tilesets) tileset.id: tileset,
     };
-    final boatTileset = tilesetsById['ts_selbrume_boat']!;
     final seaTileset = tilesetsById['ts_selbrume_open_sea_loop']!;
-    expect(boatTileset.relativePath, 'assets/tilesets/selbrume_boat.png');
     expect(
       seaTileset.relativePath,
       'assets/tilesets/selbrume_open_sea_loop.png',
     );
 
-    final boatImage = img.decodePng(
-      await File(
-        p.join(
-          SelbrumeMapTestFixture.projectRoot.path,
-          boatTileset.relativePath,
-        ),
-      ).readAsBytes(),
-    )!;
     final seaImage = img.decodePng(
       await File(
         p.join(
@@ -145,82 +136,8 @@ void main() {
         ),
       ).readAsBytes(),
     )!;
-    expect((boatImage.width, boatImage.height, boatImage.numChannels),
-        (160, 224, 4));
     expect(
         (seaImage.width, seaImage.height, seaImage.numChannels), (2048, 64, 4));
-
-    final boats = manifest.elements.where(
-      (element) => element.id == 'el_selbrume_port_bateau',
-    );
-    expect(boats, hasLength(1));
-    final boat = boats.single;
-    expect(boat.tilesetId, 'ts_selbrume_boat');
-    expect(boat.recommendedLayerId, 'l_tile_structures');
-    expect(boat.frames, hasLength(1));
-    expect(
-      boat.frames.single.source,
-      const TilesetSourceRect(x: 0, y: 0, width: 5, height: 7),
-    );
-    expect(boat.frames.single.durationMs, isNull);
-
-    final profile = boat.collisionProfile!;
-    expect(profile.source, ElementCollisionProfileSource.manual);
-    expect(profile.shapeCells, profile.cells);
-    expect(profile.cells, isNotEmpty);
-    expect(profile.cells.every((cell) => cell.y >= 5), isTrue);
-    final visualMask = profile.visualMask!;
-    final collisionMask = profile.collisionMask!;
-    final occlusionMask = profile.occlusionMask!;
-    for (final mask in <ElementCollisionPixelMask>[
-      visualMask,
-      collisionMask,
-      occlusionMask,
-    ]) {
-      expect((mask.widthPx, mask.heightPx), (160, 224));
-    }
-    final visualBits = ElementCollisionMaskCodec.decodePackedBits(
-      widthPx: 160,
-      heightPx: 224,
-      dataBase64: visualMask.dataBase64,
-    );
-    final collisionBits = ElementCollisionMaskCodec.decodePackedBits(
-      widthPx: 160,
-      heightPx: 224,
-      dataBase64: collisionMask.dataBase64,
-    );
-    final occlusionBits = ElementCollisionMaskCodec.decodePackedBits(
-      widthPx: 160,
-      heightPx: 224,
-      dataBase64: occlusionMask.dataBase64,
-    );
-    for (var y = 0; y < boatImage.height; y += 1) {
-      for (var x = 0; x < boatImage.width; x += 1) {
-        final index = y * boatImage.width + x;
-        final visible = boatImage.getPixel(x, y).a.toInt() > 24;
-        expect(visualBits[index], visible, reason: 'visual ($x,$y)');
-        expect(
-          collisionBits[index],
-          visible && y >= 160,
-          reason: 'collision ($x,$y)',
-        );
-        expect(
-          occlusionBits[index],
-          visible && y < 160,
-          reason: 'occlusion ($x,$y)',
-        );
-      }
-    }
-    expect(
-      profile.cells,
-      ElementCollisionMaskCodec.cellsFromPixelMask(
-        mask: collisionMask,
-        tileWidth: 32,
-        tileHeight: 32,
-        sourceWidthInTiles: 5,
-        sourceHeightInTiles: 7,
-      ),
-    );
 
     final seaPatterns = manifest.pathPatternPresets.where(
       (pattern) => pattern.basePathPresetId == 'nouveau-chemin',
@@ -256,8 +173,152 @@ void main() {
     expect(sourceYs, <int>{0, 1});
   });
 
-  test('port asset atlas and sixteen element contracts are runtime-ready',
-      () async {
+  test('port reference v3 atlases and provenance are runtime-ready', () async {
+    final manifest = await SelbrumeMapTestFixture.loadManifest();
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: SelbrumeMapTestFixture.projectFilePath,
+      mapId: 'map_port_brisants',
+    );
+    const expectedAtlases =
+        <String, ({String relativePath, int width, int height})>{
+      'ts_selbrume_port_reference_v3': (
+        relativePath:
+            'assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png',
+        width: 1536,
+        height: 1408,
+      ),
+      'ts_selbrume_port_ground_v3': (
+        relativePath:
+            'assets/tilesets/port_reference_v3/selbrume_port_ground_v3.png',
+        width: 2112,
+        height: 32,
+      ),
+      'ts_selbrume_port_water_v3': (
+        relativePath:
+            'assets/tilesets/port_reference_v3/selbrume_port_water_v3.png',
+        width: 2048,
+        height: 256,
+      ),
+    };
+    final tilesetsById = <String, ProjectTilesetEntry>{
+      for (final tileset in manifest.tilesets) tileset.id: tileset,
+    };
+    for (final contract in expectedAtlases.entries) {
+      final tileset = tilesetsById[contract.key];
+      expect(tileset, isNotNull, reason: contract.key);
+      expect(tileset!.relativePath, contract.value.relativePath);
+      final image = img.decodePng(
+        await File(
+          p.join(
+            SelbrumeMapTestFixture.projectRoot.path,
+            contract.value.relativePath,
+          ),
+        ).readAsBytes(),
+      );
+      expect(image, isNotNull, reason: contract.key);
+      expect(
+        (image!.width, image.height, image.numChannels),
+        (contract.value.width, contract.value.height, 4),
+        reason: contract.key,
+      );
+    }
+
+    final provenanceFile = File(
+      p.join(
+        SelbrumeMapTestFixture.projectRoot.path,
+        'assets',
+        'provenance',
+        'selbrume_port_reference_v3.json',
+      ),
+    );
+    final provenance = (jsonDecode(await provenanceFile.readAsString()) as Map)
+        .cast<String, dynamic>();
+    expect(provenance['status'], 'candidate_pending_owner_approval');
+    expect(
+      ((provenance['referenceOnlySource'] as Map)['runtimeUnderlay']),
+      isFalse,
+    );
+    final entries = (provenance['entries'] as List)
+        .cast<Map>()
+        .map((entry) => entry.cast<String, dynamic>())
+        .toList(growable: false);
+    expect(entries, hasLength(35));
+    final provenanceIds = <String>{
+      for (final entry in entries) entry['id'] as String,
+    };
+    final portElements = <String, ProjectElementEntry>{
+      for (final element in manifest.elements)
+        if (element.id.startsWith('el_port_ref_')) element.id: element,
+    };
+    expect(portElements.keys, unorderedEquals(provenanceIds));
+    for (final entry in entries) {
+      final id = entry['id'] as String;
+      final source = (entry['source'] as Map).cast<String, dynamic>();
+      final element = portElements[id]!;
+      expect(element.tilesetId, 'ts_selbrume_port_reference_v3', reason: id);
+      expect(element.frames, hasLength(1), reason: id);
+      expect(
+        element.frames.single.source,
+        TilesetSourceRect(
+          x: source['x'] as int,
+          y: source['y'] as int,
+          width: source['width'] as int,
+          height: source['height'] as int,
+        ),
+        reason: id,
+      );
+      expect(
+        element.recommendedLayerId,
+        entry['recommendedLayerId'],
+        reason: id,
+      );
+    }
+    expect(
+      bundle.map.placedElements
+          .map((placed) => placed.elementId)
+          .where((id) => id.startsWith('el_port_ref_'))
+          .toSet(),
+      unorderedEquals(provenanceIds),
+    );
+    expect(
+      manifest.tilesets.where(
+        (tileset) => const <String>{
+          'ts_selbrume_boat',
+          'ts_selbrume_port_props',
+        }.contains(tileset.id),
+      ),
+      isEmpty,
+    );
+    expect(
+      manifest.elements.map((element) => element.id),
+      isNot(contains('el_selbrume_port_bateau')),
+    );
+
+    final waterPattern = manifest.pathPatternPresets.singleWhere(
+      (pattern) => pattern.id == 'pattern_selbrume_port_water_v3',
+    );
+    expect(
+      (
+        waterPattern.centerPattern.size.width,
+        waterPattern.centerPattern.size.height,
+      ),
+      (8, 8),
+    );
+    expect(waterPattern.centerPattern.cells, hasLength(64));
+    for (final cell in waterPattern.centerPattern.cells) {
+      expect(cell.frames, hasLength(8));
+      expect(
+        cell.frames.every(
+          (frame) =>
+              frame.tilesetId == 'ts_selbrume_port_water_v3' &&
+              frame.durationMs == 180,
+        ),
+        isTrue,
+      );
+    }
+  });
+
+  test('legacy Task6 port atlas contract remains documented', () async {
     final manifest = await SelbrumeMapTestFixture.loadManifest();
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: SelbrumeMapTestFixture.projectFilePath,
@@ -490,7 +551,7 @@ void main() {
       ),
     );
     expect(usedElementIds, isNot(contains('el_selbrume_port_nid_brillant')));
-  });
+  }, skip: 'Superseded by the active port_reference_v3 contract above.');
 
   test('bourg asset resolution covers every preserved seed placement atlas',
       () async {

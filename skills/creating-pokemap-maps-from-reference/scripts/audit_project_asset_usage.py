@@ -204,12 +204,16 @@ def _manifest_asset_references(
     return references
 
 
-def _text_references(root: Path, asset_paths: list[str]) -> dict[str, set[str]]:
+def _text_references(
+    root: Path, asset_paths: list[str], *, excluded_paths: frozenset[Path]
+) -> dict[str, set[str]]:
     references: dict[str, set[str]] = defaultdict(set)
     if not root.exists():
         return references
     needles = {path: (path, Path(path).name) for path in asset_paths}
     for source in sorted(path for path in root.rglob("*") if path.is_file()):
+        if source.resolve() in excluded_paths:
+            continue
         if source.stat().st_size > 5 * 1024 * 1024:
             continue
         try:
@@ -223,7 +227,9 @@ def _text_references(root: Path, asset_paths: list[str]) -> dict[str, set[str]]:
     return references
 
 
-def _scan_root_fingerprint(root: Path) -> dict[str, Any]:
+def _scan_root_fingerprint(
+    root: Path, *, excluded_paths: frozenset[Path]
+) -> dict[str, Any]:
     if not root.is_dir() or root.is_symlink():
         raise SystemExit(f"error: scan root must be a real directory: {root}")
     digest = hashlib.sha256()
@@ -232,6 +238,8 @@ def _scan_root_fingerprint(root: Path) -> dict[str, Any]:
         if path.is_symlink():
             raise SystemExit(f"error: symlinks are forbidden in scan roots: {path}")
         if not path.is_file():
+            continue
+        if path.resolve() in excluded_paths:
             continue
         relative = path.relative_to(root).as_posix()
         digest.update(relative.encode("utf-8"))
@@ -280,6 +288,7 @@ def build_manifest(
     asset_root: Path,
     test_roots: list[Path],
     reference_roots: list[Path],
+    excluded_paths: frozenset[Path] = frozenset(),
 ) -> dict[str, Any]:
     files = _all_asset_files(asset_root)
     relative_paths = [path.relative_to(asset_root).as_posix() for path in files]
@@ -288,15 +297,23 @@ def build_manifest(
     atlas_names, layout_label = _atlas_source_names(asset_root)
     test_refs: dict[str, set[str]] = defaultdict(set)
     reference_refs: dict[str, set[str]] = defaultdict(set)
-    test_root_evidence = [_scan_root_fingerprint(root) for root in test_roots]
+    test_root_evidence = [
+        _scan_root_fingerprint(root, excluded_paths=excluded_paths)
+        for root in test_roots
+    ]
     reference_root_evidence = [
-        _scan_root_fingerprint(root) for root in reference_roots
+        _scan_root_fingerprint(root, excluded_paths=excluded_paths)
+        for root in reference_roots
     ]
     for root in test_roots:
-        for asset, refs in _text_references(root, relative_paths).items():
+        for asset, refs in _text_references(
+            root, relative_paths, excluded_paths=excluded_paths
+        ).items():
             test_refs[asset].update(f"{root.name}:{ref}" for ref in refs)
     for root in reference_roots:
-        for asset, refs in _text_references(root, relative_paths).items():
+        for asset, refs in _text_references(
+            root, relative_paths, excluded_paths=excluded_paths
+        ).items():
             reference_refs[asset].update(f"{root.name}:{ref}" for ref in refs)
 
     entries: list[dict[str, Any]] = []
@@ -306,13 +323,19 @@ def build_manifest(
         if relative in runtime_refs:
             classification = "runtime-used"
             references.update(runtime_refs[relative])
-        elif "source" in Path(relative).parts and path.name in atlas_names:
+        elif (
+            {"source", "sources"}.intersection(Path(relative).parts)
+            and path.name in atlas_names
+        ):
             classification = "atlas-source-used"
             if layout_label:
                 references.add(layout_label)
         elif relative == "ATLAS_LAYOUTS.json":
             classification = "atlas-source-used"
             references.add("atlas build root")
+        elif "provenance" in Path(relative).parts and path.suffix.lower() == ".json":
+            classification = "reference-retained"
+            references.add("asset provenance metadata")
         elif relative in test_refs:
             classification = "test-only"
             references.update(test_refs[relative])
@@ -405,6 +428,7 @@ def _apply_manifest(
         asset_root=asset_root,
         test_roots=test_roots,
         reference_roots=reference_roots,
+        excluded_paths=frozenset({manifest_path}),
     )
     if current.get("scanRoots") != manifest.get("scanRoots"):
         raise SystemExit(
@@ -499,6 +523,7 @@ def main() -> int:
         asset_root=asset_root,
         test_roots=[path.expanduser().resolve() for path in args.test_root],
         reference_roots=[path.expanduser().resolve() for path in args.reference_root],
+        excluded_paths=frozenset({manifest_path}),
     )
     _write_manifest(manifest_path, manifest, args.force)
     deletions = [

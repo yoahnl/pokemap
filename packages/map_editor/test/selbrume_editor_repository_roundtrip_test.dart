@@ -28,7 +28,7 @@ final _fixtureRelativePaths = <String>[
 
 const _canonicalPlacementCounts = <String, int>{
   'map_bourg_selbrume': 306,
-  'map_port_brisants': 21,
+  'map_port_brisants': 68,
   'map_bois_chaise_brume': 12,
   'map_marais_salants': 22,
   'map_passage_dames': 13,
@@ -167,7 +167,7 @@ void main() {
     );
 
     test(
-      'real EditorNotifier sessions retain all 675 placements after an edit',
+      'real EditorNotifier sessions retain all 722 placements after an edit',
       () async {
         final sourceRoot = _resolveSelbrumeSourceRoot();
         final sourceSnapshot = await _snapshotFixtureFiles(sourceRoot);
@@ -233,7 +233,7 @@ void main() {
 
         expect(
           _canonicalPlacementCounts.values.reduce((a, b) => a + b),
-          675,
+          722,
         );
         expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
       },

@@ -277,9 +277,10 @@ class MapGridPainter extends CustomPainter {
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
     final visibleTileLayers = visibleLayers.whereType<TileLayer>().toList();
-    final tileLayersInPaintOrder = _usesBottomToTopTileLayerOrder(map)
-        ? visibleTileLayers
-        : visibleTileLayers.reversed;
+    final tileLayersInPaintOrder = (_usesBottomToTopTileLayerOrder(map)
+            ? visibleTileLayers
+            : visibleTileLayers.reversed)
+        .toList(growable: false);
     final foregroundTileCellIndicesByLayerId =
         buildEditorForegroundTileCellIndicesByLayerId(
       map: map,
@@ -311,37 +312,94 @@ class MapGridPainter extends CustomPainter {
       }
     }
 
+    TileLayer? deferredPathGroundLayer;
+    final deferredPathLayers = <PathLayer>[];
+    // Match the runtime's narrow opt-in: only the first background tile layer
+    // can act as an opaque ground below editable paths. This keeps every prop,
+    // shadow and later structure above the path in both previews and gameplay.
+    if (tileLayersInPaintOrder.isNotEmpty) {
+      final candidate = tileLayersInPaintOrder.first;
+      final isForeground = _isExplicitForegroundTileLayerForEditor(
+        layerId: candidate.id,
+        layerName: candidate.name,
+      );
+      if (!isForeground) {
+        for (var index = visibleLayers.length - 1; index >= 0; index--) {
+          final layer = visibleLayers[index];
+          if (layer is! PathLayer) continue;
+          final targetId =
+              layer.properties['paintAfterTileLayerId']?.trim() ?? '';
+          if (targetId == candidate.id) {
+            deferredPathLayers.add(layer);
+          }
+        }
+        if (deferredPathLayers.isNotEmpty) {
+          deferredPathGroundLayer = candidate;
+        }
+      }
+    }
+    final deferredPathLayerIds = <String>{
+      for (final layer in deferredPathLayers) layer.id,
+    };
+
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
       if (layer is PathLayer) {
+        if (deferredPathLayerIds.contains(layer.id)) continue;
         _paintPathLayer(canvas, layer);
       }
     }
 
-    for (final layer in tileLayersInPaintOrder) {
+    void paintVisibleSurfaceLayers() {
+      for (var index = visibleLayers.length - 1; index >= 0; index--) {
+        final layer = visibleLayers[index];
+        if (layer is SurfaceLayer) {
+          paintSurfaceLayerAtlasTilePreview(
+            canvas: canvas,
+            layer: layer,
+            mapSize: map.size,
+            project: project,
+            tilesetImagesById: tilesetImagesById,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+            zoom: zoom,
+            elapsedMs: editorEntityAnimationMs,
+          );
+        }
+      }
+    }
+
+    if (deferredPathGroundLayer != null) {
+      paintVisibleSurfaceLayers();
       _paintTileLayer(
         canvas,
-        layer,
+        deferredPathGroundLayer,
         renderPass: _EditorMapTileRenderPass.background,
         foregroundTileCellIndicesByLayerId: foregroundTileCellIndicesByLayerId,
       );
-    }
-
-    for (var index = visibleLayers.length - 1; index >= 0; index--) {
-      final layer = visibleLayers[index];
-      if (layer is SurfaceLayer) {
-        paintSurfaceLayerAtlasTilePreview(
-          canvas: canvas,
-          layer: layer,
-          mapSize: map.size,
-          project: project,
-          tilesetImagesById: tilesetImagesById,
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          zoom: zoom,
-          elapsedMs: editorEntityAnimationMs,
+      for (final layer in deferredPathLayers) {
+        _paintPathLayer(canvas, layer);
+      }
+      for (var index = 1; index < tileLayersInPaintOrder.length; index++) {
+        _paintTileLayer(
+          canvas,
+          tileLayersInPaintOrder[index],
+          renderPass: _EditorMapTileRenderPass.background,
+          foregroundTileCellIndicesByLayerId:
+              foregroundTileCellIndicesByLayerId,
         );
       }
+    } else {
+      for (final layer in tileLayersInPaintOrder) {
+        _paintTileLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.background,
+          foregroundTileCellIndicesByLayerId:
+              foregroundTileCellIndicesByLayerId,
+        );
+      }
+      paintVisibleSurfaceLayers();
     }
 
     paintEditorStaticShadowPreviewInstructions(

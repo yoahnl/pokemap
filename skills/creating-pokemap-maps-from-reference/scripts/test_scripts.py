@@ -166,6 +166,125 @@ class AssetUsageApplyTest(unittest.TestCase):
             self.assertNotEqual(apply.returncode, 0)
             self.assertTrue(asset.exists())
 
+    def test_dry_run_retains_provenance_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._fixture(root)
+            provenance = root / "assets" / "provenance" / "family.json"
+            provenance.parent.mkdir()
+            provenance.write_text(
+                json.dumps(
+                    {
+                        "schemaVersion": 1,
+                        "family": "fixture",
+                        "source": "owner supplied",
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = root / "provenance-usage.json"
+
+            result = _run(
+                "audit_project_asset_usage.py",
+                "--project-root",
+                str(root),
+                "--dry-run",
+                "--manifest",
+                str(manifest),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            document = json.loads(manifest.read_text(encoding="utf-8"))
+            entry = next(
+                item
+                for item in document["files"]
+                if item["path"] == "provenance/family.json"
+            )
+            self.assertEqual(entry["classification"], "reference-retained")
+
+    def test_dry_run_classifies_plural_sources_directory_as_atlas_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self._fixture(root)
+            sources = root / "assets" / "sources"
+            sources.mkdir()
+            source = sources / "family.png"
+            _write_rgba_png(source, (11, 22, 33, 255))
+            (root / "assets" / "ATLAS_LAYOUTS.json").write_text(
+                json.dumps(
+                    {
+                        "atlases": {
+                            "fixture": {
+                                "items": [{"file": "sources/family.png"}],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            manifest = root / "source-usage.json"
+
+            result = _run(
+                "audit_project_asset_usage.py",
+                "--project-root",
+                str(root),
+                "--dry-run",
+                "--manifest",
+                str(manifest),
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            document = json.loads(manifest.read_text(encoding="utf-8"))
+            entry = next(
+                item
+                for item in document["files"]
+                if item["path"] == "sources/family.png"
+            )
+            self.assertEqual(entry["classification"], "atlas-source-used")
+
+    def test_manifest_inside_scan_root_is_stable_and_applyable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            asset, _, _ = self._fixture(root)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            manifest = evidence / "usage.json"
+            arguments = (
+                "--project-root",
+                str(root),
+                "--dry-run",
+                "--manifest",
+                str(manifest),
+                "--reference-root",
+                str(evidence),
+            )
+
+            first = _run("audit_project_asset_usage.py", *arguments)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            first_bytes = manifest.read_bytes()
+            document = json.loads(first_bytes)
+            manifest_hash = document["manifestSha256"]
+
+            second = _run("audit_project_asset_usage.py", *arguments, "--force")
+            self.assertEqual(second.returncode, 0, second.stderr)
+            self.assertEqual(manifest.read_bytes(), first_bytes)
+
+            apply = _run(
+                "audit_project_asset_usage.py",
+                "--project-root",
+                str(root),
+                "--apply",
+                "--manifest",
+                str(manifest),
+                "--expected-sha256",
+                manifest_hash,
+                "--reference-root",
+                str(evidence),
+            )
+
+            self.assertEqual(apply.returncode, 0, apply.stderr)
+            self.assertFalse(asset.exists())
+
     @unittest.skipUnless(hasattr(os, "symlink"), "symlinks unsupported")
     def test_dry_run_rejects_symlinked_assets(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

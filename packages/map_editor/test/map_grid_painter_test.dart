@@ -927,6 +927,171 @@ void main() {
       tilesetImage.dispose();
     });
 
+    test('paints an editable path above its opted-in ground layer', () async {
+      const map = MapData(
+        id: 'path_over_ground',
+        name: 'Path over ground',
+        size: GridSize(width: 3, height: 1),
+        properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'ground',
+            tiles: <int>[1, 1, 1],
+          ),
+          PathLayer(
+            id: 'pavement',
+            name: 'Pavement',
+            presetId: 'pavement',
+            cells: <bool>[true, true, true],
+            properties: <String, String>{
+              'paintAfterTileLayerId': 'ground',
+            },
+          ),
+          TileLayer(
+            id: 'structures',
+            name: 'Structures',
+            tilesetId: 'structures',
+            tiles: <int>[0, 0, 1],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'ground_prop',
+            layerId: 'ground',
+            elementId: 'ground_prop',
+            pos: GridPos(x: 1, y: 0),
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'ground',
+            name: 'Ground',
+            relativePath: 'ground.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'pavement',
+            name: 'Pavement',
+            relativePath: 'pavement.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'entity',
+            name: 'Entity',
+            relativePath: 'entity.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'structures',
+            name: 'Structures',
+            relativePath: 'structures.png',
+          ),
+        ],
+        elements: const <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'ground_prop',
+            name: 'Ground prop',
+            tilesetId: 'entity',
+            categoryId: 'decor',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+        pathPresets: const <ProjectPathPreset>[
+          ProjectPathPreset(
+            id: 'pavement',
+            name: 'Pavement',
+            tilesetId: 'pavement',
+          ),
+        ],
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+      );
+      final ground = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFF3C8C50),
+      );
+      final pavement = await _solidColorImage(
+        width: 160,
+        height: 96,
+        color: const ui.Color(0xFFE6C778),
+      );
+      final entity = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFFC83CB4),
+      );
+      final structures = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFF285AB4),
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: <String, ui.Image>{
+          'ground': ground,
+          'pavement': pavement,
+          'entity': entity,
+          'structures': structures,
+        },
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{
+          'ground': 1,
+          'pavement': 5,
+          'entity': 1,
+          'structures': 1,
+        },
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: <String, PathAutotileSet>{
+          'pavement': PathAutotileSet.defaultForTileset('pavement'),
+        },
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(96, 32));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(96, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      void expectRgba(int x, List<int> expected) {
+        final offset = ((16 * image.width) + x) * 4;
+        expect(
+          <int>[
+            pixels!.getUint8(offset),
+            pixels.getUint8(offset + 1),
+            pixels.getUint8(offset + 2),
+            pixels.getUint8(offset + 3),
+          ],
+          expected,
+        );
+      }
+
+      expectRgba(16, const <int>[230, 199, 120, 255]);
+      expectRgba(48, const <int>[200, 60, 180, 255]);
+      expectRgba(80, const <int>[40, 90, 180, 255]);
+
+      picture.dispose();
+      image.dispose();
+      ground.dispose();
+      pavement.dispose();
+      entity.dispose();
+      structures.dispose();
+    });
+
     test('paints path layer with center-only 2x2 PathPattern in canvas',
         () async {
       const map = MapData(

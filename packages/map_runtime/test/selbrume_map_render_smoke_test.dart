@@ -28,18 +28,19 @@ void main() {
     final placedById = <String, MapPlacedElement>{
       for (final placed in bundle.map.placedElements) placed.id: placed,
     };
-    expect(placedById['pe_port_bateau']?.pos, const GridPos(x: 3, y: 30));
-    expect(placedById['pe_port_hangar']?.pos, const GridPos(x: 35, y: 12));
-    expect(placedById['pe_port_nid_goelise']?.pos, const GridPos(x: 6, y: 5));
+    expect(placedById['pe_port_bateau']?.pos, const GridPos(x: 0, y: 22));
+    expect(placedById['pe_port_hangar']?.pos, const GridPos(x: 31, y: 11));
+    expect(placedById['pe_port_nid_goelise']?.pos, const GridPos(x: 7, y: 9));
     expect(
       bundle.map.placedElements.map((placed) => placed.elementId),
       containsAll(<String>[
-        'el_selbrume_port_quai_droit',
-        'el_selbrume_port_brise_lames',
-        'el_selbrume_port_filets',
-        'el_selbrume_port_caisses',
-        'el_selbrume_port_tonneaux',
-        'el_selbrume_port_bouees',
+        'el_port_ref_quay_horizontal',
+        'el_port_ref_pier_t',
+        'el_port_ref_boat_large',
+        'el_port_ref_boat_medium',
+        'el_port_ref_harbor_master',
+        'el_port_ref_fish_crates_small',
+        'el_port_ref_foam_quay_horizontal',
       ]),
     );
 
@@ -47,9 +48,9 @@ void main() {
     expect(
       tileImages.keys,
       containsAll(<String>[
-        'ts_selbrume_port_props',
-        'ts_selbrume_boat',
-        'ts_selbrume_open_sea_loop',
+        'ts_selbrume_port_reference_v3',
+        'ts_selbrume_port_ground_v3',
+        'ts_selbrume_port_water_v3',
       ]),
     );
     final image = await _renderOverview(

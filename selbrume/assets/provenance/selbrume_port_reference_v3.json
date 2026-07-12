@@ -1,0 +1,811 @@
+{
+  "schemaVersion": 1,
+  "mapId": "map_port_brisants",
+  "status": "candidate_pending_owner_approval",
+  "licenseDecision": "user_supplied_reference_and_user_requested_derivation",
+  "referenceOnlySource": {
+    "file": "ChatGPT Image Jun 6, 2026, 07_10_04 PM.png",
+    "sha256": "25fdc9419850028a6e79787ac53dd8e34dcf457ed2d90c1126b5e9b60ecfb219",
+    "runtimeUnderlay": false
+  },
+  "generation": {
+    "tool": "built-in image_gen",
+    "backgroundRemoval": "remove_chroma_key.py auto-key border, soft matte, edge contract 1",
+    "normalization": "cell crop, alpha trim, binary alpha, nearest-neighbor resize, bottom-center anchor",
+    "prompts": [
+      "six isolated Selbrume harbor architecture sprites",
+      "three modular docks and three working fishing boats",
+      "six isolated Selbrume landscaping sprites",
+      "natural continuous rocky Selbrume coastline sections",
+      "transparent shoreline foam overlays",
+      "compact isolated working-port prop clusters",
+      "one empty sea-bird nest prop",
+      "one lamp, one bench, one sign and three small coastal rock variants"
+    ]
+  },
+  "groundTextureSource": {
+    "path": "assets/sources/port_reference_v3/grass_texture_owner.png",
+    "sha256": "410c9dac535964b0824ffb422f1f08e2f2be3e06a6962a13ba6c847e923a8780",
+    "tool": "owner_supplied_exact_asset",
+    "referenceRole": "runtime_texture_source"
+  },
+  "nativePavementPath": {
+    "presetId": "pavement_path",
+    "tilesetId": "pavement_path",
+    "tool": "existing_project_path_preset",
+    "referenceRole": "runtime_path_source"
+  },
+  "sourceSheets": [
+    {
+      "key": "architecture",
+      "chromaPath": "assets/sources/port_reference_v3/architecture_sheet_chroma.png",
+      "chromaSha256": "ca2d487ea3f1963a410e980f36c8d3f182021dc5556a5f8454530b931cb5b17e",
+      "alphaPath": "assets/sources/port_reference_v3/architecture_sheet_alpha.png",
+      "alphaSha256": "b1cf19ea4ae8470ccf94615652fed3c1487b5e495d68db26e46f5b92c732383f",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "key": "docks_boats",
+      "chromaPath": "assets/sources/port_reference_v3/docks_boats_sheet_chroma.png",
+      "chromaSha256": "601f2e03a7e9d4e12a1615abcc7bc17717846941ac7fbd0aec0bafab2103fca3",
+      "alphaPath": "assets/sources/port_reference_v3/docks_boats_sheet_alpha.png",
+      "alphaSha256": "564620ab327fbd92e0c8d29bd970b174019c1a9c6672586e1d1ae627019551aa",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "key": "nature",
+      "chromaPath": "assets/sources/port_reference_v3/nature_sheet_chroma.png",
+      "chromaSha256": "4a80364184cc294901e600122a6c94aa34dd7c8120a3e8abc2bdeeec5857a159",
+      "alphaPath": "assets/sources/port_reference_v3/nature_sheet_alpha.png",
+      "alphaSha256": "eec26cee363ca41d0321310e06ee15bb8f76b630f20fa7295a5bddecc6ca2c34",
+      "width": 1448,
+      "height": 1086
+    },
+    {
+      "key": "coast",
+      "chromaPath": "assets/sources/port_reference_v3/coast_sheet_chroma.png",
+      "chromaSha256": "1af75ee54d4c6aa7ac1757debf2ae20732f4636f30803c1f4b1e8d99221bc479",
+      "alphaPath": "assets/sources/port_reference_v3/coast_sheet_alpha.png",
+      "alphaSha256": "ebfe90c3d2d8dc7182a243f9143d9da7860b2743fa30aa21b66db39285dff130",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "key": "natural_coast",
+      "chromaPath": "assets/sources/port_reference_v3/natural_coast_chroma.png",
+      "chromaSha256": "16206f723e6676acc73f7ad0e7edcd95827cceea9fb4fc3381b919ce283ffa19",
+      "alphaPath": "assets/sources/port_reference_v3/natural_coast_alpha.png",
+      "alphaSha256": "e1fcfa3f07fb2a11f26259b005b2a59ad70f8bf246b3bce8b5ecfbd01132054b",
+      "width": 1608,
+      "height": 978
+    },
+    {
+      "key": "shore_foam",
+      "chromaPath": "assets/sources/port_reference_v3/shore_foam_chroma.png",
+      "chromaSha256": "c79ff4a4cd612fba3e99f3225377a8d7d2acd85eb704f08140c5822b7c90bd93",
+      "alphaPath": "assets/sources/port_reference_v3/shore_foam_alpha.png",
+      "alphaSha256": "8fb6360b97f8c796398eb3446ac83ee0a7190f3f5586e711c65fd06a230c2cf2",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "key": "small_harbor_props",
+      "chromaPath": "assets/sources/port_reference_v3/small_harbor_props_chroma.png",
+      "chromaSha256": "b547b10af05a875e373cec7b996b41fd81b02852bdcc170235b41e4827928552",
+      "alphaPath": "assets/sources/port_reference_v3/small_harbor_props_alpha.png",
+      "alphaSha256": "e7f3573347e1ccb897b94e9705283f0a1f0659243047f9e8d3851647cf3b1c3e",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "key": "nest",
+      "chromaPath": "assets/sources/port_reference_v3/nest_chroma.png",
+      "chromaSha256": "0564a2222083c53d6fb379490b055d900d18656761897927a37a7e9bcb10b6f4",
+      "alphaPath": "assets/sources/port_reference_v3/nest_alpha.png",
+      "alphaSha256": "d6f99da4250fe5f31478e9ae9e3c0d0d34e9d42985e6c1ae3ea1b99629d0d333",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "key": "small_props",
+      "chromaPath": "assets/sources/port_reference_v3/small_props_chroma.png",
+      "chromaSha256": "aa6b3b5c1f95d363743d070e5ffc48ca3c313ada147d2df16dcaa6337a4ab049",
+      "alphaPath": "assets/sources/port_reference_v3/small_props_alpha.png",
+      "alphaSha256": "ad840de07943c48eaa3113fe26722971edfc7ce4af15b5f56d62201024560b13",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "atlases": {
+    "sprites": {
+      "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png",
+      "sha256": "e097f0a12dba22bf6630d8be066d4f105d54483d17d4c862f257dbb064ca8952",
+      "widthCells": 48,
+      "heightCells": 44
+    },
+    "ground": {
+      "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_ground_v3.png",
+      "sha256": "444251b7dc30250cf610b4166721d10962a5b27c7092f5bf252f34da1c75a617",
+      "widthCells": 66,
+      "heightCells": 1
+    },
+    "water": {
+      "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_water_v3.png",
+      "sha256": "61399414998a1a613dcb85f9ffbee1fef7e540ac986b9aa882076b20106056f6",
+      "patternSizeCells": 8,
+      "frameCount": 8,
+      "frameDurationMs": 180,
+      "widthCells": 64,
+      "heightCells": 8
+    }
+  },
+  "entries": [
+    {
+      "id": "el_port_ref_harbor_master",
+      "name": "Capitainerie de Port des Brisants",
+      "category": "building",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "architecture",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 0,
+        "y": 0,
+        "width": 8,
+        "height": 6
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_building_base"
+    },
+    {
+      "id": "el_port_ref_house_orange",
+      "name": "Maison de pecheur orange",
+      "category": "building",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "architecture",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 8,
+        "y": 0,
+        "width": 7,
+        "height": 5
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_building_base"
+    },
+    {
+      "id": "el_port_ref_house_blue",
+      "name": "Maison de pecheur bleue",
+      "category": "building",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "architecture",
+      "sourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "source": {
+        "x": 15,
+        "y": 0,
+        "width": 7,
+        "height": 5
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_building_base"
+    },
+    {
+      "id": "el_port_ref_fish_market",
+      "name": "Marche aux poissons",
+      "category": "building",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "architecture",
+      "sourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "source": {
+        "x": 22,
+        "y": 0,
+        "width": 8,
+        "height": 6
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_shop_base"
+    },
+    {
+      "id": "el_port_ref_chandlery",
+      "name": "Accastillage et filets",
+      "category": "building",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "architecture",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 30,
+        "y": 0,
+        "width": 8,
+        "height": 6
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_shop_base"
+    },
+    {
+      "id": "el_port_ref_quay_horizontal",
+      "name": "Quai horizontal",
+      "category": "dock",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 0,
+        "y": 6,
+        "width": 12,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "walkable_deck"
+    },
+    {
+      "id": "el_port_ref_pier_t",
+      "name": "Ponton en T",
+      "category": "dock",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 12,
+        "y": 6,
+        "width": 9,
+        "height": 9
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "walkable_deck"
+    },
+    {
+      "id": "el_port_ref_pier_vertical",
+      "name": "Ponton vertical",
+      "category": "dock",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "source": {
+        "x": 21,
+        "y": 6,
+        "width": 5,
+        "height": 9
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "walkable_deck"
+    },
+    {
+      "id": "el_port_ref_boat_large",
+      "name": "Grand bateau de peche",
+      "category": "boat",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "source": {
+        "x": 26,
+        "y": 6,
+        "width": 10,
+        "height": 5
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_boat"
+    },
+    {
+      "id": "el_port_ref_boat_medium",
+      "name": "Bateau de peche moyen",
+      "category": "boat",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 36,
+        "y": 6,
+        "width": 8,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_boat"
+    },
+    {
+      "id": "el_port_ref_boat_small",
+      "name": "Canot de peche",
+      "category": "boat",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "docks_boats",
+      "sourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "source": {
+        "x": 0,
+        "y": 15,
+        "width": 6,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_boat"
+    },
+    {
+      "id": "el_port_ref_forest_cluster",
+      "name": "Lisiere forestiere dense",
+      "category": "nature",
+      "recommendedLayerId": "l_tile_port_ref_overhead",
+      "sourceSheet": "nature",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 6,
+        "y": 15,
+        "width": 11,
+        "height": 7
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_tree_trunks"
+    },
+    {
+      "id": "el_port_ref_tree",
+      "name": "Grand arbre de Selbrume",
+      "category": "nature",
+      "recommendedLayerId": "l_tile_port_ref_overhead",
+      "sourceSheet": "nature",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 17,
+        "y": 15,
+        "width": 5,
+        "height": 6
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_tree_trunk"
+    },
+    {
+      "id": "el_port_ref_walled_garden",
+      "name": "Jardin clos fleuri",
+      "category": "garden",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "nature",
+      "sourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "source": {
+        "x": 22,
+        "y": 15,
+        "width": 7,
+        "height": 5
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_garden_border"
+    },
+    {
+      "id": "el_port_ref_flower_bed",
+      "name": "Massif fleuri",
+      "category": "garden",
+      "recommendedLayerId": "l_tile_port_ref_ground",
+      "sourceSheet": "nature",
+      "sourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "source": {
+        "x": 29,
+        "y": 15,
+        "width": 8,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_rock_cluster",
+      "name": "Rochers cotiers",
+      "category": "coast",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "nature",
+      "sourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "source": {
+        "x": 37,
+        "y": 15,
+        "width": 6,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_rocks"
+    },
+    {
+      "id": "el_port_ref_coast_west_continuous",
+      "name": "Cote rocheuse naturelle ouest",
+      "category": "coastline",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "natural_coast",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 0,
+        "y": 22,
+        "width": 8,
+        "height": 19
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_coast_east_peninsula",
+      "name": "Cote rocheuse naturelle est",
+      "category": "coastline",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "natural_coast",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 8,
+        "y": 22,
+        "width": 9,
+        "height": 5
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_quay_steps",
+      "name": "Escalier du quai",
+      "category": "dock",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "coast",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 17,
+        "y": 22,
+        "width": 7,
+        "height": 7
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "walkable_steps"
+    },
+    {
+      "id": "el_port_ref_foam_quay_horizontal",
+      "name": "Ecume horizontale de quai",
+      "category": "foam",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "shore_foam",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 24,
+        "y": 22,
+        "width": 12,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_foam_rock_cluster",
+      "name": "Ecume de groupe de rochers",
+      "category": "foam",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "shore_foam",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 36,
+        "y": 22,
+        "width": 6,
+        "height": 4
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_foam_boat_wake",
+      "name": "Sillage discret de bateau",
+      "category": "foam",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "shore_foam",
+      "sourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "source": {
+        "x": 42,
+        "y": 22,
+        "width": 4,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative"
+    },
+    {
+      "id": "el_port_ref_fish_crates_small",
+      "name": "Petites caisses de poisson",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 46,
+        "y": 22,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_rope_coil_small",
+      "name": "Petit cordage et bouee",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 0,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_net_rack_small",
+      "name": "Etendoir a filet etroit",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "source": {
+        "x": 2,
+        "y": 41,
+        "width": 2,
+        "height": 3
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_fish_basket_small",
+      "name": "Petit panier de poisson",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "source": {
+        "x": 4,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_lobster_pots_small",
+      "name": "Petits casiers et bouee",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 6,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_barrel_buoy_small",
+      "name": "Petit tonneau et bouee",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_harbor_props",
+      "sourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "source": {
+        "x": 8,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_nest",
+      "name": "Nid de Goelise",
+      "category": "interaction",
+      "recommendedLayerId": "l_tile_port_ref_ground",
+      "sourceSheet": "nest",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 10,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "decorative_interaction"
+    },
+    {
+      "id": "el_port_ref_lamp",
+      "name": "Lampadaire du port",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "source": {
+        "x": 12,
+        "y": 41,
+        "width": 1,
+        "height": 3
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_bench",
+      "name": "Banc du port",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "source": {
+        "x": 13,
+        "y": 41,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_sign_small",
+      "name": "Petit panneau du port",
+      "category": "prop",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "source": {
+        "x": 16,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_prop_base"
+    },
+    {
+      "id": "el_port_ref_rock_small",
+      "name": "Petit rocher cotier",
+      "category": "coast",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "source": {
+        "x": 18,
+        "y": 41,
+        "width": 1,
+        "height": 1
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_rocks"
+    },
+    {
+      "id": "el_port_ref_rock_pair",
+      "name": "Paire de rochers cotiers",
+      "category": "coast",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "source": {
+        "x": 19,
+        "y": 41,
+        "width": 2,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_rocks"
+    },
+    {
+      "id": "el_port_ref_rock_trio",
+      "name": "Groupe de rochers cotiers",
+      "category": "coast",
+      "recommendedLayerId": "l_tile_port_ref_structures",
+      "sourceSheet": "small_props",
+      "sourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "source": {
+        "x": 21,
+        "y": 41,
+        "width": 3,
+        "height": 2
+      },
+      "anchor": "bottom_center",
+      "collisionIntent": "solid_rocks"
+    }
+  ]
+}

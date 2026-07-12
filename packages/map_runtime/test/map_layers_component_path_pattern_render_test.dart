@@ -47,22 +47,30 @@ void main() {
                 PathCenterPatternCell(
                   localX: 0,
                   localY: 0,
-                  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+                  ],
                 ),
                 PathCenterPatternCell(
                   localX: 1,
                   localY: 0,
-                  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))],
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))
+                  ],
                 ),
                 PathCenterPatternCell(
                   localX: 0,
                   localY: 1,
-                  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0))],
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0))
+                  ],
                 ),
                 PathCenterPatternCell(
                   localX: 1,
                   localY: 1,
-                  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0))],
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0))
+                  ],
                 ),
               ],
             ),
@@ -99,6 +107,7 @@ void main() {
                 name: 'Path',
                 presetId: 'water-base',
                 cells: [true],
+                animationMode: PathAnimationMode.alwaysActive,
               ),
             ],
           ),
@@ -187,7 +196,9 @@ void main() {
                 PathCenterPatternCell(
                   localX: 0,
                   localY: 0,
-                  frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+                  ],
                 ),
               ],
             ),
@@ -197,6 +208,155 @@ void main() {
       );
 
       await expectLater(_renderComponent(component, 32, 32), completes);
+    });
+
+    test('un path peut rester editable tout en passant devant son sol',
+        () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: MapData(
+            id: 'path-over-ground-map',
+            name: 'Path over ground map',
+            size: const GridSize(width: 5, height: 1),
+            properties: const <String, dynamic>{
+              'tileLayerOrder': 'bottom_to_top',
+            },
+            placedElements: const <MapPlacedElement>[
+              MapPlacedElement(
+                id: 'ground-prop',
+                layerId: 'ground',
+                elementId: 'ground-prop',
+                pos: GridPos(x: 2, y: 0),
+              ),
+            ],
+            layers: const <MapLayer>[
+              TileLayer(
+                id: 'ground',
+                name: 'Ground',
+                tilesetId: 'ground',
+                tiles: <int>[1, 1, 1, 1, 1],
+              ),
+              PathLayer(
+                id: 'pavement',
+                name: 'Pavement',
+                presetId: 'pavement',
+                cells: <bool>[true, false, true, false, true],
+                properties: <String, String>{
+                  'paintAfterTileLayerId': 'ground',
+                },
+              ),
+              TileLayer(
+                id: 'structures',
+                name: 'Structures',
+                tilesetId: 'structures',
+                tiles: <int>[0, 0, 0, 0, 1],
+              ),
+            ],
+          ),
+          pathPresets: const <ProjectPathPreset>[
+            ProjectPathPreset(
+              id: 'pavement',
+              name: 'Pavement',
+              tilesetId: 'pavement',
+              variants: <PathPresetVariantMapping>[
+                PathPresetVariantMapping(
+                  variant: TerrainPathVariant.isolated,
+                  frames: <TilesetVisualFrame>[
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 0, y: 0),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+          elements: <ProjectElementEntry>[
+            surfaceTestElement(id: 'ground-prop', tilesetId: 'entity'),
+          ],
+        ),
+        tileImagesByTilesetId: {
+          'ground': await runtimeTilesetImage(
+            const <Color>[Color(0xFF3C8C50)],
+          ),
+          'pavement': await runtimeTilesetImage(
+            const <Color>[Color(0xFFE6C778)],
+          ),
+          'entity': await runtimeTilesetImage(
+            const <Color>[Color(0xFFC83CB4)],
+          ),
+          'structures': await runtimeTilesetImage(
+            const <Color>[Color(0xFF285AB4)],
+          ),
+        },
+      );
+
+      final image = await _renderComponent(component, 160, 32);
+
+      expect(await pixelAt(image, 16, 16), rgba(230, 199, 120, 255));
+      expect(await pixelAt(image, 80, 16), rgba(200, 60, 180, 255));
+      expect(await pixelAt(image, 144, 16), rgba(40, 90, 180, 255));
+    });
+
+    test('une cible de sol invalide conserve l ordre runtime historique',
+        () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: const MapData(
+            id: 'invalid-path-ground-target',
+            name: 'Invalid path ground target',
+            size: GridSize(width: 1, height: 1),
+            properties: <String, dynamic>{
+              'tileLayerOrder': 'bottom_to_top',
+            },
+            layers: <MapLayer>[
+              TileLayer(
+                id: 'ground',
+                name: 'Ground',
+                tilesetId: 'ground',
+                tiles: <int>[1],
+              ),
+              PathLayer(
+                id: 'pavement',
+                name: 'Pavement',
+                presetId: 'pavement',
+                cells: <bool>[true],
+                properties: <String, String>{
+                  'paintAfterTileLayerId': 'missing-ground',
+                },
+              ),
+            ],
+          ),
+          pathPresets: const <ProjectPathPreset>[
+            ProjectPathPreset(
+              id: 'pavement',
+              name: 'Pavement',
+              tilesetId: 'pavement',
+              variants: <PathPresetVariantMapping>[
+                PathPresetVariantMapping(
+                  variant: TerrainPathVariant.isolated,
+                  frames: <TilesetVisualFrame>[
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 0, y: 0),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+        tileImagesByTilesetId: {
+          'ground': await runtimeTilesetImage(
+            const <Color>[Color(0xFF3C8C50)],
+          ),
+          'pavement': await runtimeTilesetImage(
+            const <Color>[Color(0xFFE6C778)],
+          ),
+        },
+      );
+
+      final image = await _renderComponent(component, 32, 32);
+
+      expect(await pixelAt(image, 16, 16), rgba(60, 140, 80, 255));
     });
   });
 }

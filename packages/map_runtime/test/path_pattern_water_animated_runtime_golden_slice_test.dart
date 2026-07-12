@@ -28,6 +28,7 @@ void main() {
           id: 'path_main',
           name: 'Path',
           presetId: 'water-base',
+          animationMode: PathAnimationMode.alwaysActive,
           cells: <bool>[
             true,
             true,
@@ -105,7 +106,8 @@ void main() {
   });
 }
 
-Future<void> _expectPixel(ui.Image image, int x, int y, List<int> expected) async {
+Future<void> _expectPixel(
+    ui.Image image, int x, int y, List<int> expected) async {
   expect(await pixelAt(image, x, y), expected);
 }
 

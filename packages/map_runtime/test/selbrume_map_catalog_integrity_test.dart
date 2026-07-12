@@ -31,37 +31,49 @@ void main() {
     );
     final map = bundle.map;
     expect(map.id, entries.single.id);
-    expect(map.size, const GridSize(width: 45, height: 45));
+    expect(map.size, const GridSize(width: 45, height: 34));
     expect(map.mapMetadata.isIndoor, isFalse);
     expect(
       map.layers.map((layer) => layer.id),
       <String>[
         'l_terrain',
+        'l_tile_port_ref_base',
         'l_path_primary',
         'l_path_secondary',
-        'l_tile_ground',
-        'l_tile_structures',
-        'l_tile_overhead',
-        'l_tile_fx',
+        'l_tile_port_ref_ground',
+        'l_tile_port_ref_backdrop',
+        'l_environment_port_ref_north',
+        'l_tile_port_ref_overhead',
+        'l_environment_port_ref_east',
+        'l_tile_port_ref_structures',
         'l_collisions',
       ],
     );
     expect(map.layers[0], isA<TerrainLayer>());
-    expect(map.layers[1], isA<PathLayer>());
+    expect(map.layers[1], isA<TileLayer>());
     expect(map.layers[2], isA<PathLayer>());
-    for (var index = 3; index <= 6; index += 1) {
-      expect(map.layers[index], isA<TileLayer>());
-    }
-    expect(map.layers[7], isA<CollisionLayer>());
+    expect(map.layers[3], isA<PathLayer>());
+    expect(map.layers[4], isA<TileLayer>());
+    expect(map.layers[5], isA<TileLayer>());
+    expect(map.layers[6], isA<EnvironmentLayer>());
+    expect(map.layers[7], isA<TileLayer>());
+    expect(map.layers[8], isA<EnvironmentLayer>());
+    expect(map.layers[9], isA<TileLayer>());
+    expect(map.layers[10], isA<CollisionLayer>());
     for (final layer in map.layers) {
       final cellCount = switch (layer) {
         TerrainLayer(:final terrains) => terrains.length,
         PathLayer(:final cells) => cells.length,
         TileLayer(:final tiles) => tiles.length,
+        EnvironmentLayer(:final content) => content.areas.every(
+            (area) => area.mask.cells.length == 45 * 34,
+          )
+              ? 45 * 34
+              : -1,
         CollisionLayer(:final collisions) => collisions.length,
         _ => -1,
       };
-      expect(cellCount, 45 * 45, reason: layer.id);
+      expect(cellCount, 45 * 34, reason: layer.id);
     }
 
     expect(() => MapValidator.validate(map, projectDialogueContext: manifest),
@@ -74,15 +86,15 @@ void main() {
     expect(
       zones['zone_port_entry']!.area,
       const MapRect(
-        pos: GridPos(x: 24, y: 0),
-        size: GridSize(width: 8, height: 5),
+        pos: GridPos(x: 26, y: 0),
+        size: GridSize(width: 5, height: 4),
       ),
     );
     expect(
       zones['zone_port_center']!.area,
       const MapRect(
-        pos: GridPos(x: 17, y: 16),
-        size: GridSize(width: 12, height: 10),
+        pos: GridPos(x: 17, y: 10),
+        size: GridSize(width: 14, height: 8),
       ),
     );
     for (final zone in zones.values) {
@@ -122,12 +134,12 @@ void main() {
           'pe_port_hangar',
           'pe_port_nid_goelise',
         ]));
-    expect(placedById['pe_port_bateau']!.pos, const GridPos(x: 3, y: 30));
-    expect(placedById['pe_port_bateau']!.elementId, 'el_selbrume_port_bateau');
-    expect(placedById['pe_port_hangar']!.pos, const GridPos(x: 35, y: 12));
-    expect(placedById['pe_port_nid_goelise']!.pos, const GridPos(x: 6, y: 5));
-    expect(placedById['pe_port_nid_goelise']!.elementId,
-        'el_selbrume_port_nid_vide');
+    expect(placedById['pe_port_bateau']!.pos, const GridPos(x: 0, y: 22));
+    expect(placedById['pe_port_bateau']!.elementId, 'el_port_ref_boat_large');
+    expect(placedById['pe_port_hangar']!.pos, const GridPos(x: 31, y: 11));
+    expect(placedById['pe_port_hangar']!.elementId, 'el_port_ref_chandlery');
+    expect(placedById['pe_port_nid_goelise']!.pos, const GridPos(x: 7, y: 9));
+    expect(placedById['pe_port_nid_goelise']!.elementId, 'el_port_ref_nest');
     expect(placedById['pe_port_nid_goelise']!.behaviors, isEmpty);
     expect(map.events, isEmpty);
   });

@@ -124,14 +124,14 @@ const _namedCropsByMapId = <String, List<_NamedCropSpec>>{
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('captures every canonical Selbrume beta map', () async {
+  test('captures the selected canonical Selbrume beta maps', () async {
     final config = _CaptureHarnessConfig.fromEnvironment();
     await config.outputDirectory.create(recursive: true);
 
     expect(_namedCropsByMapId.keys.toSet(), _canonicalMapIds.toSet());
 
     final mapCaptures = <_MapCaptureResult>[];
-    for (final mapId in _canonicalMapIds) {
+    for (final mapId in config.mapIds) {
       final bundle = await loadRuntimeMapBundle(
         projectFilePath: config.projectFile.path,
         mapId: mapId,
@@ -145,6 +145,7 @@ void main() {
         scene: scene,
         outputDirectory: config.outputDirectory,
         namedCrops: _namedCropsByMapId[mapId]!,
+        logicalTilePx: config.logicalTilePx,
       );
       mapCaptures.add(result);
       debugPrint(
@@ -171,32 +172,29 @@ void main() {
         '${const JsonEncoder.withIndent('  ').convert(manifest)}\n';
     await manifestFile.writeAsString(manifestText);
 
-    expect(mapCaptures, hasLength(_canonicalMapIds.length));
+    expect(mapCaptures, hasLength(config.mapIds.length));
     expect(
       mapCaptures.map((capture) => capture.mapId).toList(),
-      _canonicalMapIds,
+      config.mapIds,
     );
     expect(
       mapCaptures.expand((capture) => capture.artifacts).where(
             (artifact) => artifact.kind == _CaptureKind.overview,
           ),
-      hasLength(10),
+      hasLength(config.mapIds.length),
     );
     expect(
       mapCaptures.expand((capture) => capture.artifacts).where(
             (artifact) => artifact.kind == _CaptureKind.collisionOverlay,
           ),
-      hasLength(10),
+      hasLength(config.mapIds.length),
     );
     expect(
       mapCaptures.expand((capture) => capture.artifacts).where(
             (artifact) => artifact.kind == _CaptureKind.namedCrop,
           ),
       hasLength(
-        _namedCropsByMapId.values.fold<int>(
-          0,
-          (count, crops) => count + crops.length,
-        ),
+        config.mapIds.expand((mapId) => _namedCropsByMapId[mapId]!).length,
       ),
     );
     for (final artifact in mapCaptures.expand((capture) => capture.artifacts)) {
@@ -219,7 +217,7 @@ void main() {
     expect(
       (jsonDecode(await manifestFile.readAsString())
           as Map<String, dynamic>)['mapCount'],
-      10,
+      config.mapIds.length,
     );
     expect(
       manifestText.contains(config.projectFile.absolute.path),
@@ -244,6 +242,7 @@ Future<_MapCaptureResult> _captureMap({
   required _MapCaptureScene scene,
   required Directory outputDirectory,
   required List<_NamedCropSpec> namedCrops,
+  required int? logicalTilePx,
 }) async {
   final bundle = scene.bundle;
   final worldWidth = bundle.map.size.width * bundle.cellWidth;
@@ -255,6 +254,12 @@ Future<_MapCaptureResult> _captureMap({
   final overviewGeometry = _CaptureGeometry.fitWholeMap(
     worldWidth: worldWidth,
     worldHeight: worldHeight,
+    forcedScale: logicalTilePx == null
+        ? null
+        : math.min(
+            logicalTilePx / bundle.cellWidth,
+            logicalTilePx / bundle.cellHeight,
+          ),
   );
   final overview = await _renderArtifact(
     scene: scene,
@@ -620,6 +625,8 @@ final class _CaptureHarnessConfig {
   const _CaptureHarnessConfig({
     required this.projectFile,
     required this.outputDirectory,
+    required this.mapIds,
+    required this.logicalTilePx,
   });
 
   factory _CaptureHarnessConfig.fromEnvironment() {
@@ -646,16 +653,48 @@ final class _CaptureHarnessConfig {
         'written into the repository accidentally.',
       );
     }
+    final mapIdsOverride =
+        Platform.environment['SELBRUME_MAP_CAPTURE_MAP_IDS']?.trim();
+    final mapIds = mapIdsOverride == null || mapIdsOverride.isEmpty
+        ? _canonicalMapIds
+        : mapIdsOverride
+            .split(',')
+            .map((value) => value.trim())
+            .where((value) => value.isNotEmpty)
+            .toList(growable: false);
+    if (mapIds.isEmpty ||
+        mapIds.toSet().length != mapIds.length ||
+        mapIds.any((id) => !_canonicalMapIds.contains(id))) {
+      throw StateError(
+        'SELBRUME_MAP_CAPTURE_MAP_IDS must contain unique canonical map ids.',
+      );
+    }
+    final logicalTileRaw =
+        Platform.environment['SELBRUME_MAP_CAPTURE_LOGICAL_TILE_PX']?.trim();
+    final logicalTilePx = logicalTileRaw == null || logicalTileRaw.isEmpty
+        ? null
+        : int.tryParse(logicalTileRaw);
+    if (logicalTileRaw != null &&
+        logicalTileRaw.isNotEmpty &&
+        (logicalTilePx == null || logicalTilePx <= 0)) {
+      throw StateError(
+        'SELBRUME_MAP_CAPTURE_LOGICAL_TILE_PX must be a positive integer.',
+      );
+    }
     return _CaptureHarnessConfig(
       projectFile: projectFile.absolute,
       outputDirectory: Directory(
         p.normalize(p.absolute(outputOverride)),
       ),
+      mapIds: List<String>.unmodifiable(mapIds),
+      logicalTilePx: logicalTilePx,
     );
   }
 
   final File projectFile;
   final Directory outputDirectory;
+  final List<String> mapIds;
+  final int? logicalTilePx;
 }
 
 Directory _findRepositoryRoot() {
@@ -742,14 +781,16 @@ final class _CaptureGeometry {
   factory _CaptureGeometry.fitWholeMap({
     required double worldWidth,
     required double worldHeight,
+    double? forcedScale,
   }) {
-    final scale = math.min(
-      1.0,
-      math.min(
-        _overviewMaxWidth / worldWidth,
-        _overviewMaxHeight / worldHeight,
-      ),
-    );
+    final scale = forcedScale ??
+        math.min(
+          1.0,
+          math.min(
+            _overviewMaxWidth / worldWidth,
+            _overviewMaxHeight / worldHeight,
+          ),
+        );
     return _CaptureGeometry(
       worldLeft: 0,
       worldTop: 0,

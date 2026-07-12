@@ -308,24 +308,40 @@ class MapLayersComponent extends PositionComponent {
         _visibleTileLayersInPaintOrder(visible);
     if (renderPass == MapLayerRenderPass.foreground) {
       for (final layer in visibleTileLayers) {
-        _paintTileLayer(
-          canvas,
-          layerId: layer.id,
-          layerName: layer.name,
-          tilesetId: layer.tilesetId,
-          tiles: layer.tiles,
-          opacity: layer.opacity,
-        );
-        _paintPlacedElementsForLayer(
-          canvas,
-          layerId: layer.id,
-          layerName: layer.name,
-          opacity: layer.opacity,
-        );
+        _paintTileLayerAndElements(canvas, layer);
       }
       _paintEntities(canvas);
       return;
     }
+    TileLayer? deferredPathGroundLayer;
+    final deferredPathLayers = <PathLayer>[];
+    // This opt-in is deliberately limited to the first background tile layer.
+    // It lets an editable path sit over a ground texture while preserving the
+    // historic order for shadows, placed elements and every later tile layer.
+    if (visibleTileLayers.isNotEmpty) {
+      final candidate = visibleTileLayers.first;
+      final isForeground = _isExplicitForegroundTileLayer(
+        layerId: candidate.id,
+        layerName: candidate.name,
+      );
+      if (!isForeground) {
+        for (var index = visible.length - 1; index >= 0; index -= 1) {
+          final layer = visible[index];
+          if (layer is! PathLayer) continue;
+          final targetId =
+              layer.properties['paintAfterTileLayerId']?.trim() ?? '';
+          if (targetId == candidate.id) {
+            deferredPathLayers.add(layer);
+          }
+        }
+        if (deferredPathLayers.isNotEmpty) {
+          deferredPathGroundLayer = candidate;
+        }
+      }
+    }
+    final deferredPathLayerIds = <String>{
+      for (final layer in deferredPathLayers) layer.id,
+    };
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
         terrain: (id, name, v, o, terrains) =>
@@ -333,6 +349,9 @@ class MapLayersComponent extends PositionComponent {
       );
     }
     for (var i = visible.length - 1; i >= 0; i--) {
+      if (deferredPathLayerIds.contains(visible[i].id)) {
+        continue;
+      }
       visible[i].whenOrNull(
         path: (id, name, v, o, presetId, cells, properties, animationMode,
                 animationTriggers) =>
@@ -345,33 +364,76 @@ class MapLayersComponent extends PositionComponent {
         _paintSurfaceLayer(canvas, layer);
       }
     }
-    _paintShadows(canvas);
-    for (final layer in visibleTileLayers) {
+    if (deferredPathGroundLayer != null) {
+      final groundLayer = deferredPathGroundLayer;
       _paintTileLayer(
         canvas,
-        layerId: layer.id,
-        layerName: layer.name,
-        tilesetId: layer.tilesetId,
-        tiles: layer.tiles,
-        opacity: layer.opacity,
+        layerId: groundLayer.id,
+        layerName: groundLayer.name,
+        tilesetId: groundLayer.tilesetId,
+        tiles: groundLayer.tiles,
+        opacity: groundLayer.opacity,
       );
+      for (final pathLayer in deferredPathLayers) {
+        _paintPathLayer(
+          canvas,
+          pathLayer.id,
+          pathLayer.presetId,
+          pathLayer.cells,
+          pathLayer.opacity,
+        );
+      }
+      _paintShadows(canvas);
       _paintPlacedElementsForLayer(
         canvas,
-        layerId: layer.id,
-        layerName: layer.name,
-        opacity: layer.opacity,
+        layerId: groundLayer.id,
+        layerName: groundLayer.name,
+        opacity: groundLayer.opacity,
       );
+      for (var index = 1; index < visibleTileLayers.length; index += 1) {
+        _paintTileLayerAndElements(canvas, visibleTileLayers[index]);
+      }
+      _paintEntities(canvas);
+      if (showCollisionOverlay) {
+        _paintCollisionOverlays(canvas, visible);
+      }
+      return;
+    }
+    _paintShadows(canvas);
+    for (final layer in visibleTileLayers) {
+      _paintTileLayerAndElements(canvas, layer);
     }
     _paintEntities(canvas);
     if (showCollisionOverlay) {
-      for (var i = visible.length - 1; i >= 0; i--) {
-        visible[i].whenOrNull(
-          collision: (id, name, v, o, collisions) =>
-              _paintCollisionLayer(canvas, collisions, o),
-        );
-      }
-      _paintPlacedElementsCollisionOverlay(canvas);
+      _paintCollisionOverlays(canvas, visible);
     }
+  }
+
+  void _paintTileLayerAndElements(Canvas canvas, TileLayer layer) {
+    _paintTileLayer(
+      canvas,
+      layerId: layer.id,
+      layerName: layer.name,
+      tilesetId: layer.tilesetId,
+      tiles: layer.tiles,
+      opacity: layer.opacity,
+    );
+    _paintPlacedElementsForLayer(
+      canvas,
+      layerId: layer.id,
+      layerName: layer.name,
+      opacity: layer.opacity,
+    );
+  }
+
+  void _paintCollisionOverlays(Canvas canvas, List<MapLayer> visible) {
+    for (var i = visible.length - 1; i >= 0; i--) {
+      visible[i].whenOrNull(
+        collision: (id, name, v, o, collisions) =>
+            _paintCollisionLayer(canvas, collisions, o),
+      );
+    }
+    _paintPlacedElementsCollisionOverlay(canvas);
   }
 
   List<TileLayer> _visibleTileLayersInPaintOrder(List<MapLayer> visible) {

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "rootLabel": "map_port_brisants_reference",
+  "summary": {
+    "imageCount": 1,
+    "totalBytes": 2984552,
+    "duplicateGroupCount": 0,
+    "decodeErrorCount": 0,
+    "inspectionWarningCount": 0,
+    "missingProvenanceCount": 0,
+    "unapprovedProvenanceCount": 0,
+    "realTransparencyCount": 0
+  },
+  "duplicateGroups": [],
+  "decodeErrors": [],
+  "inspectionWarnings": [],
+  "missingProvenance": [],
+  "unapprovedProvenance": [],
+  "assets": [
+    {
+      "path": "ChatGPT Image Jun 6, 2026, 07_10_04 PM.png",
+      "sizeBytes": 2984552,
+      "sha256": "25fdc9419850028a6e79787ac53dd8e34dcf457ed2d90c1126b5e9b60ecfb219",
+      "provenance": {
+        "source": "user-supplied Port des Brisants objective image",
+        "license": "user-authorized reference and derivative asset use for Selbrume",
+        "status": "approved"
+      },
+      "format": "png",
+      "width": 1448,
+      "height": 1086,
+      "bitDepth": 8,
+      "colorType": 2,
+      "declaresAlpha": false,
+      "alphaInspection": "not-applicable",
+      "transparentPixels": null,
+      "translucentPixels": null
+    }
+  ]
+}

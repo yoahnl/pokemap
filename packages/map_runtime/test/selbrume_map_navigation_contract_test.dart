@@ -89,6 +89,9 @@ void main() {
     final soline = port.entities.singleWhere(
       (entity) => entity.id == 'anchor_port_soline',
     );
+    final lysa = port.entities.singleWhere(
+      (entity) => entity.id == 'anchor_port_lysa',
+    );
     final reached = _reachableCells(
       map: port,
       world: portWorld,
@@ -96,7 +99,7 @@ void main() {
     );
     for (final target in <GridPos>[
       const GridPos(x: 28, y: 1),
-      const GridPos(x: 22, y: 21),
+      lysa.pos,
       nest.pos,
       soline.pos,
     ]) {
@@ -119,9 +122,17 @@ void main() {
     final boat = port.placedElements.singleWhere(
       (placed) => placed.id == 'pe_port_bateau',
     );
-    expect(boat.pos, const GridPos(x: 3, y: 30));
-    for (var y = boat.pos.y; y < boat.pos.y + 7; y += 1) {
-      for (var x = boat.pos.x; x < boat.pos.x + 5; x += 1) {
+    expect(boat.pos, const GridPos(x: 0, y: 22));
+    final boatElement = portBundle.manifest.elements.singleWhere(
+      (element) => element.id == boat.elementId,
+    );
+    final boatSource = boatElement.frames.primarySource;
+    expect(
+      boatSource,
+      const TilesetSourceRect(x: 26, y: 6, width: 10, height: 5),
+    );
+    for (var y = boat.pos.y; y < boat.pos.y + boatSource.height; y += 1) {
+      for (var x = boat.pos.x; x < boat.pos.x + boatSource.width; x += 1) {
         expect(
           portWorld.isBlocked(x, y, movementMode: MovementMode.walk),
           isTrue,

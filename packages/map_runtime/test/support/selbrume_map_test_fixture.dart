@@ -31,7 +31,7 @@ abstract final class SelbrumeMapTestFixture {
 
   static const Map<String, GridSize> expectedDimensions = <String, GridSize>{
     'map_bourg_selbrume': GridSize(width: 55, height: 55),
-    'map_port_brisants': GridSize(width: 45, height: 45),
+    'map_port_brisants': GridSize(width: 45, height: 34),
     'map_bois_chaise_brume': GridSize(width: 45, height: 45),
     'map_marais_salants': GridSize(width: 45, height: 45),
     'map_passage_dames': GridSize(width: 60, height: 24),
@@ -105,12 +105,9 @@ abstract final class SelbrumeMapTestFixture {
       'pe_bourg_maison_joueur_facade': <String>{'selbrum_maison_1'},
     },
     'map_port_brisants': <String, Set<String>>{
-      'pe_port_bateau': <String>{'el_selbrume_port_bateau'},
-      'pe_port_hangar': <String>{'el_selbrume_port_hangar'},
-      'pe_port_nid_goelise': <String>{
-        'el_selbrume_port_nid_vide',
-        'el_selbrume_port_nid_brillant',
-      },
+      'pe_port_bateau': <String>{'el_port_ref_boat_large'},
+      'pe_port_hangar': <String>{'el_port_ref_chandlery'},
+      'pe_port_nid_goelise': <String>{'el_port_ref_nest'},
     },
     'map_bois_chaise_brume': <String, Set<String>>{
       'pe_bois_pin_grand_001': <String>{'el_selbrume_bois_pin_grand'},
@@ -177,9 +174,10 @@ abstract final class SelbrumeMapTestFixture {
   // Only these planned outputs receive the new PNG/RGBA/32-pixel-grid rules.
   // Historical Selbrume JPG/RGB/prefixed sources are intentionally excluded.
   static const Set<String> requiredNewTilesetIds = <String>{
-    'ts_selbrume_boat',
     'ts_selbrume_open_sea_loop',
-    'ts_selbrume_port_props',
+    'ts_selbrume_port_reference_v3',
+    'ts_selbrume_port_ground_v3',
+    'ts_selbrume_port_water_v3',
     'ts_selbrume_forest_props',
     'ts_selbrume_marsh_props',
     'ts_selbrume_passage_props',

@@ -50,7 +50,7 @@ const List<String> canonicalSelbrumeMapIds = <String>[
 
 const Map<String, GridSize> _authoredMapSizes = <String, GridSize>{
   'map_bourg_selbrume': GridSize(width: 55, height: 55),
-  'map_port_brisants': GridSize(width: 45, height: 45),
+  'map_port_brisants': GridSize(width: 45, height: 34),
   'map_bois_chaise_brume': GridSize(width: 45, height: 45),
   'map_marais_salants': GridSize(width: 45, height: 45),
   'map_passage_dames': GridSize(width: 60, height: 24),
@@ -194,17 +194,24 @@ const Map<String, List<(String, String, String, GridPos, bool)>>
   'map_port_brisants': <(String, String, String, GridPos, bool)>[
     (
       'pe_port_bateau',
-      'el_selbrume_port_bateau',
-      'l_tile_structures',
-      GridPos(x: 3, y: 30),
+      'el_port_ref_boat_large',
+      'l_tile_port_ref_structures',
+      GridPos(x: 0, y: 22),
       true,
     ),
     (
       'pe_port_nid_goelise',
-      'el_selbrume_port_nid_vide',
-      'l_tile_ground',
-      GridPos(x: 6, y: 5),
+      'el_port_ref_nest',
+      'l_tile_port_ref_ground',
+      GridPos(x: 7, y: 9),
       false,
+    ),
+    (
+      'pe_port_hangar',
+      'el_port_ref_chandlery',
+      'l_tile_port_ref_structures',
+      GridPos(x: 31, y: 11),
+      true,
     ),
   ],
   'map_bois_chaise_brume': <(String, String, String, GridPos, bool)>[
@@ -468,6 +475,20 @@ const Set<String> _authoredExteriorLayerIds = <String>{
   'l_tile_structures',
   'l_tile_overhead',
   'l_tile_fx',
+  'l_collisions',
+};
+
+const Set<String> _authoredPortLayerIds = <String>{
+  'l_terrain',
+  'l_path_primary',
+  'l_path_secondary',
+  'l_tile_port_ref_base',
+  'l_tile_port_ref_ground',
+  'l_tile_port_ref_backdrop',
+  'l_environment_port_ref_north',
+  'l_tile_port_ref_overhead',
+  'l_environment_port_ref_east',
+  'l_tile_port_ref_structures',
   'l_collisions',
 };
 
@@ -1390,6 +1411,9 @@ void _validateAuthoredTopology(Map<String, MapData> maps) {
 }
 
 Set<String> _authoredRequiredLayerIds(String mapId) {
+  if (mapId == 'map_port_brisants') {
+    return _authoredPortLayerIds;
+  }
   if (_authoredExteriorMapIds.contains(mapId)) {
     return _authoredExteriorLayerIds;
   }
@@ -1406,6 +1430,7 @@ bool _isAuthoredLayerTypeValid(String id, MapLayer layer) {
   if (id == 'l_terrain') return layer is TerrainLayer;
   if (id == 'l_collisions') return layer is CollisionLayer;
   if (id.startsWith('l_path_')) return layer is PathLayer;
+  if (id.startsWith('l_environment_')) return layer is EnvironmentLayer;
   return layer is TileLayer;
 }
 
