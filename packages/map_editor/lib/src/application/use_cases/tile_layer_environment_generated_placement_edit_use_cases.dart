@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
 import '../services/environment_generated_placement_hover_resolver.dart';
+import '../services/placed_element_instance_indexer.dart';
 
 final class DeleteTileLayerEnvironmentGeneratedPlacementResult {
   const DeleteTileLayerEnvironmentGeneratedPlacementResult({
@@ -117,6 +118,9 @@ class AddTileLayerEnvironmentGeneratedPlacementAtUseCase {
       applyCollision: _applyCollisionFromEnvironmentMode(
         paletteItem.collisionMode,
       ),
+      properties: const {
+        pokemapPlacementOriginProperty: pokemapPlacementOriginEnvironment,
+      },
     );
     final updated = _addGeneratedPlacement(
       map,

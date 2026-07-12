@@ -537,11 +537,29 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> saveActiveMap() async {
+  Future<void> saveActiveMap({bool confirmBulkPlacementLoss = false}) async {
     endMapStroke();
     final map = state.activeMap;
     final path = state.activeMapPath;
     if (map == null || path == null) return;
+
+    final savedPlacementCount = state.savedMapSnapshot?.placedElements.length;
+    final currentPlacementCount = map.placedElements.length;
+    if (!confirmBulkPlacementLoss &&
+        savedPlacementCount != null &&
+        savedPlacementCount > 0 &&
+        currentPlacementCount < savedPlacementCount &&
+        (savedPlacementCount - currentPlacementCount) * 4 >
+            savedPlacementCount) {
+      state = state.copyWith(
+        isSaving: false,
+        errorMessage: 'Sauvegarde bloquée : les placements passeraient de '
+            '$savedPlacementCount à $currentPlacementCount (perte supérieure '
+            'à 25 %). Confirmez explicitement cette suppression massive avant '
+            'd’enregistrer.',
+      );
+      return;
+    }
 
     debugPrint('EditorNotifier: saveActiveMap()');
     state = _projectSessionController.markMapSaving(state);
@@ -8490,6 +8508,31 @@ class EditorNotifier extends _$EditorNotifier {
       return;
     }
 
+    final origin = instance.properties[pokemapPlacementOriginProperty]?.trim();
+    if (origin != pokemapPlacementOriginTileIndex) {
+      try {
+        final updated = removeMapPlacedElement(
+          map,
+          instanceId: trimmedId,
+        );
+        MapValidator.validate(updated, projectDialogueContext: state.project);
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: updated,
+          preferredActiveLayerId: state.activeLayerId,
+          statusMessage: 'Instance supprimée (${instance.elementId})',
+        );
+        debugPrint(
+          '[editor][elements] deleted authored placed instance id=$trimmedId elementId=${instance.elementId} layer=${instance.layerId} pos=(${instance.pos.x},${instance.pos.y})',
+        );
+      } catch (e) {
+        state = state.copyWith(
+          errorMessage: 'Failed to delete placed element instance: $e',
+        );
+      }
+      return;
+    }
+
     final layer = _findLayerById(map, instance.layerId);
     if (layer is! TileLayer) {
       state = state.copyWith(
@@ -8678,6 +8721,9 @@ class EditorNotifier extends _$EditorNotifier {
       elementId: item.elementId,
       pos: pos,
       applyCollision: _applyCollisionFromEnvironmentMode(item.collisionMode),
+      properties: const {
+        pokemapPlacementOriginProperty: pokemapPlacementOriginEnvironment,
+      },
     );
     final updatedMap = _addEnvironmentGeneratedPlacedElement(
       map,

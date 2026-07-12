@@ -201,8 +201,7 @@ void main() {
       }
     });
 
-    test('tags candidat ne sont pas copiés vers MapPlacedElement.properties',
-        () {
+    test('tags candidat ne sont pas copiés et l’origine est marquée', () {
       final ctx = _happyContext();
       final cand = EnvironmentGeneratedPlacementCandidate(
         id: 't1',
@@ -223,7 +222,9 @@ void main() {
         areaId: 'area1',
         candidates: [cand],
       );
-      expect(r.map.placedElements.single.properties, isEmpty);
+      expect(r.map.placedElements.single.properties, const {
+        'pokemapPlacementOrigin': 'environment',
+      });
     });
 
     test('erreurs layer / target / area', () {

@@ -702,6 +702,12 @@ void main() {
         'tree_a',
         'env_gen_a1_1_1_tree',
       ]);
+      expect(
+        outMap.placedElements
+            .singleWhere((p) => p.id == 'env_gen_a1_1_1_tree')
+            .properties,
+        const {'pokemapPlacementOrigin': 'environment'},
+      );
       expect(s.statusMessage, contains('Placement généré ajouté'));
     });
 

@@ -101,6 +101,67 @@ void main() {
     });
   });
 
+  group('EditorNotifier.saveActiveMap bulk placement loss guard', () {
+    test('blocks a loss above 25 percent until explicitly confirmed', () async {
+      final repo = _FakeMapRepository();
+      final container = ProviderContainer(
+        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final saved = _mapWithPlacementCount(4);
+      final reduced = saved.copyWith(
+        placedElements: saved.placedElements.take(2).toList(),
+      );
+      notifier.state = EditorState(
+        project: _bulkGuardManifest(),
+        activeMap: reduced,
+        activeMapPath: '/project/maps/town.json',
+        savedMapSnapshot: saved,
+        isDirty: true,
+      );
+
+      await notifier.saveActiveMap();
+
+      expect(repo.savedMaps, isEmpty);
+      expect(notifier.state.isSaving, isFalse);
+      expect(notifier.state.isDirty, isTrue);
+      expect(notifier.state.errorMessage, contains('4'));
+      expect(notifier.state.errorMessage, contains('2'));
+
+      await notifier.saveActiveMap(confirmBulkPlacementLoss: true);
+
+      expect(repo.savedMaps, [reduced]);
+      expect(notifier.state.isDirty, isFalse);
+      expect(notifier.state.savedMapSnapshot, reduced);
+    });
+
+    test('allows a loss of exactly 25 percent without confirmation', () async {
+      final repo = _FakeMapRepository();
+      final container = ProviderContainer(
+        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final saved = _mapWithPlacementCount(4);
+      final reduced = saved.copyWith(
+        placedElements: saved.placedElements.take(3).toList(),
+      );
+      notifier.state = EditorState(
+        project: _bulkGuardManifest(),
+        activeMap: reduced,
+        activeMapPath: '/project/maps/town.json',
+        savedMapSnapshot: saved,
+        isDirty: true,
+      );
+
+      await notifier.saveActiveMap();
+
+      expect(repo.savedMaps, [reduced]);
+      expect(notifier.state.errorMessage, isNull);
+    });
+  });
+
   group('EditorNotifier.loadMapSnapshotById', () {
     test('returns activeMap when requested map is already active', () async {
       const active = MapData(
@@ -278,6 +339,7 @@ class _FakeMapRepository implements MapRepository {
 
   final Map<String, MapData> _mapsByPath;
   final List<String> loadedPaths = <String>[];
+  final List<MapData> savedMaps = <MapData>[];
 
   @override
   Future<void> deleteMap(String path) async {}
@@ -300,5 +362,54 @@ class _FakeMapRepository implements MapRepository {
     MapData map,
     String path, {
     ProjectManifest? projectDialogueContext,
-  }) async {}
+  }) async {
+    savedMaps.add(map);
+  }
 }
+
+MapData _mapWithPlacementCount(int count) => MapData(
+      id: 'town',
+      name: 'Town',
+      size: GridSize(width: count, height: 1),
+      layers: [
+        MapLayer.tile(
+          id: 'decor',
+          name: 'Decor',
+          tilesetId: 'nature',
+          tiles: List<int>.filled(count, 0),
+        ),
+      ],
+      placedElements: [
+        for (var index = 0; index < count; index += 1)
+          MapPlacedElement(
+            id: 'placement_$index',
+            layerId: 'decor',
+            elementId: 'tree',
+            pos: GridPos(x: index, y: 0),
+          ),
+      ],
+    );
+
+ProjectManifest _bulkGuardManifest() => const ProjectManifest(
+      name: 'Demo',
+      maps: [],
+      tilesets: [
+        ProjectTilesetEntry(
+          id: 'nature',
+          name: 'Nature',
+          relativePath: 'tilesets/nature.png',
+        ),
+      ],
+      surfaceCatalog: ProjectSurfaceCatalog.empty(),
+      elements: [
+        ProjectElementEntry(
+          id: 'tree',
+          name: 'Tree',
+          tilesetId: 'nature',
+          categoryId: 'nature',
+          frames: [
+            TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+          ],
+        ),
+      ],
+    );

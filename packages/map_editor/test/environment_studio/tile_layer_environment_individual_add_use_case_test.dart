@@ -30,6 +30,9 @@ void main() {
       expect(added.elementId, 'big_tree');
       expect(added.pos, const GridPos(x: 2, y: 2));
       expect(added.applyCollision, isFalse);
+      expect(added.properties, const {
+        'pokemapPlacementOrigin': 'environment',
+      });
 
       final area = _areaById(result.map, 'area');
       expect(area.generatedPlacementIds, const [
