@@ -136,6 +136,35 @@ void main() {
       expect(notifier.state.savedMapSnapshot, reduced);
     });
 
+    test('allows saving placement loss caused by confirmed delete all layers',
+        () async {
+      final repo = _FakeMapRepository();
+      final container = ProviderContainer(
+        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final saved = _mapWithPlacementCount(4);
+      notifier.state = EditorState(
+        project: _bulkGuardManifest(),
+        activeMap: saved,
+        activeMapPath: '/project/maps/town.json',
+        savedMapSnapshot: saved,
+      );
+
+      notifier.deleteAllMapLayers(confirmBulkPlacementLoss: true);
+      final cleared = notifier.state.activeMap!;
+
+      expect(cleared.layers, isEmpty);
+      expect(cleared.placedElements, isEmpty);
+
+      await notifier.saveActiveMap();
+
+      expect(repo.savedMaps, [cleared]);
+      expect(notifier.state.isDirty, isFalse);
+      expect(notifier.state.errorMessage, isNull);
+    });
+
     test('allows a loss of exactly 25 percent without confirmation', () async {
       final repo = _FakeMapRepository();
       final container = ProviderContainer(

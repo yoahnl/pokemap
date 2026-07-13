@@ -59,7 +59,7 @@ class LayersPanel extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
     final colors = context.pokeMapColors;
-    
+
     final content = map == null
         ? Center(
             child: Text(
@@ -230,7 +230,7 @@ class LayersPanel extends ConsumerWidget {
       primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
-    notifier.deleteAllMapLayers();
+    notifier.deleteAllMapLayers(confirmBulkPlacementLoss: true);
   }
 }
 

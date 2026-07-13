@@ -72,6 +72,8 @@ const MethodChannel _macOsFileAccessChannel =
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
+  MapData? _confirmedBulkPlacementLossBaseline;
+
   EditorWorkspaceController get _editorWorkspaceController =>
       ref.read(editorWorkspaceControllerProvider);
   MapEditingController get _mapEditingController => MapEditingController(
@@ -545,7 +547,11 @@ class EditorNotifier extends _$EditorNotifier {
 
     final savedPlacementCount = state.savedMapSnapshot?.placedElements.length;
     final currentPlacementCount = map.placedElements.length;
-    if (!confirmBulkPlacementLoss &&
+    final confirmedBaseline = _confirmedBulkPlacementLossBaseline;
+    final isBulkPlacementLossConfirmed = confirmBulkPlacementLoss ||
+        (confirmedBaseline != null &&
+            identical(confirmedBaseline, state.savedMapSnapshot));
+    if (!isBulkPlacementLossConfirmed &&
         savedPlacementCount != null &&
         savedPlacementCount > 0 &&
         currentPlacementCount < savedPlacementCount &&
@@ -577,6 +583,7 @@ class EditorNotifier extends _$EditorNotifier {
         map: map,
         statusMessage: 'Carte « ${map.id} » enregistrée',
       );
+      _confirmedBulkPlacementLossBaseline = null;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
       state = _projectSessionController.markMapSaveFailed(
@@ -7158,12 +7165,14 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  void deleteAllMapLayers() {
+  void deleteAllMapLayers({bool confirmBulkPlacementLoss = false}) {
     final map = state.activeMap;
     if (map == null) return;
     try {
       final useCase = ref.read(deleteAllMapLayersUseCaseProvider);
       final updated = useCase.execute(map);
+      final removedPlacements =
+          updated.placedElements.length < map.placedElements.length;
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
@@ -7171,6 +7180,10 @@ class EditorNotifier extends _$EditorNotifier {
             _editorMapSessionCoordinator.resolveActiveLayerId(updated),
         statusMessage: 'Tous les calques supprimés',
       );
+      if (removedPlacements) {
+        _confirmedBulkPlacementLossBaseline =
+            confirmBulkPlacementLoss ? state.savedMapSnapshot : null;
+      }
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
       state = state.copyWith(

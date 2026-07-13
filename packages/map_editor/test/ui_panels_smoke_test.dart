@@ -333,6 +333,70 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('path preset selectors open anchored dropdown menus',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final project = buildSampleProject();
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: tempProjectRoot.path,
+        project: project,
+      );
+
+      await pumpEditorSurface(
+        tester,
+        container,
+        child: const SizedBox(
+          width: 520,
+          height: 980,
+          child: TerrainEditorPanel(),
+        ),
+        surfaceSize: const Size(900, 1200),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.bySemanticsLabel('New preset').last);
+      await tester.pumpAndSettle();
+
+      const folderKey = ValueKey<String>('path-preset-folder-dropdown');
+      const tilesetKey = ValueKey<String>('path-preset-tileset-dropdown');
+
+      expect(find.text('New Path Preset'), findsOneWidget);
+      expect(find.byKey(folderKey), findsOneWidget);
+      expect(find.byKey(tilesetKey), findsOneWidget);
+
+      final folderDropdown = find.descendant(
+        of: find.byKey(folderKey),
+        matching: find.byType(DropdownButton<String>),
+      );
+      await tester.tap(folderDropdown);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+      expect(find.text('Root'), findsNWidgets(2));
+      await tester.tap(find.text('Root').last);
+      await tester.pumpAndSettle();
+
+      final tilesetDropdown = find.descendant(
+        of: find.byKey(tilesetKey),
+        matching: find.byType(DropdownButton<String>),
+      );
+      await tester.tap(tilesetDropdown);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+      expect(find.text('World Tileset'), findsOneWidget);
+      await tester.tap(find.text('World Tileset'));
+      await tester.pumpAndSettle();
+
+      final tilesetField = tester.widget<PokeMapDropdownField<String>>(
+        find.byKey(tilesetKey),
+      );
+      expect(tilesetField.value, 'tileset_world');
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets(
         'TilesetPalettePanel renders selected tileset wiring without crashing',
         (tester) async {

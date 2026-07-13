@@ -490,15 +490,6 @@ Future<void> _showPathPresetDialog(
       currentTilesetId: preset?.tilesetId,
     ),
   );
-  String pathFolderRowPickLabel(String id) {
-    if (id.isEmpty) return 'Root';
-    return categories.firstWhere((e) => e.id == id).label;
-  }
-
-  String pathTilesetRowLabel(String id) {
-    if (id.isEmpty) return 'None';
-    return availableTilesets.firstWhere((e) => e.id == id).name;
-  }
 
   await showMacosEditorTallSheet<void>(
     context: context,
@@ -536,81 +527,73 @@ Future<void> _showPathPresetDialog(
                       ),
                     ),
                     const SizedBox(width: 12),
-                    CupertinoSlidingSegmentedControl<_PathTraversalType>(
-                      groupValue: traversalType,
-                      onValueChanged: (value) {
-                        if (value != null) {
-                          setState(() => traversalType = value);
-                        }
-                      },
-                      children: {
-                        for (final t in _PathTraversalType.values)
-                          t: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            child: Text(_pathTraversalLabel(t)),
-                          ),
-                      },
+                    Expanded(
+                      child:
+                          CupertinoSlidingSegmentedControl<_PathTraversalType>(
+                        groupValue: traversalType,
+                        onValueChanged: (value) {
+                          if (value != null) {
+                            setState(() => traversalType = value);
+                          }
+                        },
+                        children: {
+                          for (final t in _PathTraversalType.values)
+                            t: Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
+                              child: Text(_pathTraversalLabel(t)),
+                            ),
+                        },
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final items = <String>[
-                        '',
-                        ...categories.map((c) => c.id),
-                      ];
-                      final picked = await showCupertinoListPicker<String>(
-                        context: ctx,
-                        title: 'Folder',
-                        items: items,
-                        labelOf: pathFolderRowPickLabel,
-                      );
-                      if (picked != null) {
-                        setState(
-                          () => categoryId = picked.isEmpty ? null : picked,
-                        );
-                      }
-                    },
-                    child: Text(
-                      'Folder: ${pathFolderRowPickLabel(categoryId ?? '')}',
+                PokeMapDropdownField<String>(
+                  key: const ValueKey<String>('path-preset-folder-dropdown'),
+                  label: 'Folder',
+                  value: categoryId ?? '',
+                  items: [
+                    const PokeMapDropdownItem<String>(
+                      value: '',
+                      label: 'Root',
                     ),
-                  ),
+                    for (final category in categories)
+                      PokeMapDropdownItem<String>(
+                        value: category.id,
+                        label: category.label,
+                      ),
+                  ],
+                  onChanged: (picked) {
+                    setState(
+                      () => categoryId = picked.isEmpty ? null : picked,
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final items = <String>[
-                        '',
-                        ...availableTilesets.map((t) => t.id),
-                      ];
-                      final picked = await showCupertinoListPicker<String>(
-                        context: ctx,
-                        title: 'Tileset',
-                        items: items,
-                        labelOf: pathTilesetRowLabel,
-                      );
-                      if (picked != null) {
-                        setState(() {
-                          tilesetId = picked;
-                          pathTilesetTransparentColor =
-                              notifier.getTilesetById(picked)?.transparentColor;
-                          clearPathTilesetTransparentColor = false;
-                        });
-                      }
-                    },
-                    child: Text(
-                      'Tileset: ${pathTilesetRowLabel(tilesetId)}',
+                PokeMapDropdownField<String>(
+                  key: const ValueKey<String>('path-preset-tileset-dropdown'),
+                  label: 'Tileset',
+                  value: tilesetId,
+                  items: [
+                    const PokeMapDropdownItem<String>(
+                      value: '',
+                      label: 'None',
                     ),
-                  ),
+                    for (final tileset in availableTilesets)
+                      PokeMapDropdownItem<String>(
+                        value: tileset.id,
+                        label: tileset.name,
+                      ),
+                  ],
+                  onChanged: (picked) {
+                    setState(() {
+                      tilesetId = picked;
+                      pathTilesetTransparentColor =
+                          notifier.getTilesetById(picked)?.transparentColor;
+                      clearPathTilesetTransparentColor = false;
+                    });
+                  },
                 ),
                 const SizedBox(height: 4),
                 Text(

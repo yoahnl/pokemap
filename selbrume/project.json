@@ -249,6 +249,18 @@
       "name": "Effets de Selbrume",
       "parentFolderId": "tsf_selbrume_beta",
       "sortOrder": 60
+    },
+    {
+      "id": "objectif",
+      "name": "objectif",
+      "parentFolderId": null,
+      "sortOrder": 101
+    },
+    {
+      "id": "terrain",
+      "name": "terrain",
+      "parentFolderId": null,
+      "sortOrder": 102
     }
   ],
   "tilesets": [
@@ -493,18 +505,6 @@
       "paletteEntries": []
     },
     {
-      "id": "ts_selbrume_open_sea_loop",
-      "name": "Boucle marine de Selbrume",
-      "relativePath": "assets/tilesets/selbrume_open_sea_loop.png",
-      "scope": "global",
-      "groupId": null,
-      "folderId": "tsf_selbrume_beta_port",
-      "sortOrder": 0,
-      "isWorldTileset": false,
-      "elementGroups": [],
-      "paletteEntries": []
-    },
-    {
       "id": "ts_selbrume_port_reference_v3",
       "name": "Port des Brisants - Famille visuelle de reference",
       "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png",
@@ -536,6 +536,30 @@
       "groupId": null,
       "folderId": "tsf_selbrume_beta_port",
       "sortOrder": 12,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
+    },
+    {
+      "id": "grass_texture",
+      "name": "grass_texture",
+      "relativePath": "assets/tilesets/grass_texture.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "terrain",
+      "sortOrder": 0,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
+    },
+    {
+      "id": "selbrume_objectif",
+      "name": "selbrume objectif",
+      "relativePath": "assets/tilesets/selbrume_objectif.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "objectif",
+      "sortOrder": 0,
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
@@ -16830,11 +16854,64 @@
         "coast"
       ],
       "sortOrder": 34
+    },
+    {
+      "id": "selbrume_objectif",
+      "name": "selbrume objectif",
+      "tilesetId": "selbrume_objectif",
+      "categoryId": "batiments",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 45,
+            "height": 33
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "generic",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": "group_selbrume_bourg",
+      "recommendedLayerId": "l_tile_objectif",
+      "tags": [],
+      "sortOrder": 0
     }
   ],
   "terrainCategories": [],
   "pathCategories": [],
-  "terrainPresets": [],
+  "terrainPresets": [
+    {
+      "id": "terrain_herbe_de_base",
+      "name": "terrain herbe de base",
+      "terrainType": "grass",
+      "categoryId": null,
+      "tilesetId": "grass_texture",
+      "variants": [
+        {
+          "frames": [
+            {
+              "tilesetId": "",
+              "source": {
+                "x": 0,
+                "y": 0,
+                "width": 26,
+                "height": 21
+              },
+              "durationMs": null
+            }
+          ],
+          "weight": 1,
+          "multiTileLayout": "tessellated"
+        }
+      ],
+      "sortOrder": 0
+    }
+  ],
   "pathPresets": [
     {
       "id": "dirth_path",
