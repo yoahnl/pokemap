@@ -171,6 +171,29 @@ void main() {
       expect(portProjectElementIds, _baselinePortProjectElementIds);
     });
 
+    test('keeps the in-bounds south-east edge filled with visual water', () {
+      final map = scene.bundle.map;
+      final water = map.layers.whereType<PathLayer>().singleWhere(
+            (layer) => layer.id == 'l_path_secondary',
+          );
+      expect(water.presetId, 'path_selbrume_port_water_v3');
+
+      for (var x = 36; x < map.size.width; x += 1) {
+        expect(
+          water.cells[(map.size.height - 1) * map.size.width + x],
+          isTrue,
+          reason: 'the south edge must stay water at ($x,33)',
+        );
+      }
+      for (var y = 25; y < map.size.height; y += 1) {
+        expect(
+          water.cells[y * map.size.width + map.size.width - 1],
+          isTrue,
+          reason: 'the east edge must stay water at (44,$y)',
+        );
+      }
+    });
+
     test('keeps tile modules and placed visual frames within bounds', () {
       final map = scene.bundle.map;
       final tileSize = scene.bundle.manifest.settings.tileWidth;

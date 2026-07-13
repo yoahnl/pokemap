@@ -13,6 +13,7 @@ const String portVisualMapRelativePath = 'maps/map_port_brisants.json';
 const String portVisualManifestRelativePath =
     'assets/provenance/selbrume_port_reference_v3.json';
 const String portPrimaryPathLayerId = 'l_path_primary';
+const String portSecondaryWaterPathLayerId = 'l_path_secondary';
 
 const List<String> portVisualTileLayerIds = <String>[
   'l_tile_port_ref_ground',
@@ -46,27 +47,38 @@ const List<String> portVisualReplaceablePlacementIds = <String>[
   'pe_port_foam_wake_large',
   'pe_port_foam_wake_small',
   'pe_port_foam_cluster_south',
+  'pe_port_nid_goelise',
+  'pe_port_net_rack_west',
+  'pe_port_net_rack_east',
 ];
 
 /// The only existing props whose position may be adjusted by this pass.
 const List<String> portVisualMovablePropPlacementIds = <String>[
-  'pe_port_net_rack_east',
+  'pe_port_boat_medium',
+  'pe_port_bateau',
+  'pe_port_boat_small',
+  'pe_port_garden_east',
+  'pe_port_fish_crates_west',
+  'pe_port_rope_coil_west',
   'pe_port_fish_basket_west',
   'pe_port_fish_basket_east',
   'pe_port_lobster_pots_center',
   'pe_port_barrel_buoy_center',
+  'pe_port_fish_crates_pier',
+  'pe_port_barrel_buoy_east',
+  'pe_port_lobster_pots_pier',
+  'pe_port_rope_coil_pier',
 ];
 
 const List<String> requiredPortVisualModuleIds = <String>[
-  'module_port_ref_wall_h_short',
-  'module_port_ref_wall_h_long',
-  'module_port_ref_wall_end_left',
-  'module_port_ref_wall_end_right',
-  'module_port_ref_garden_gate_open',
-  'module_port_ref_flower_bed_compact',
+  'module_port_ref_west_house_garden_complete',
+  'module_port_ref_captain_terrace_complete',
+  'module_port_ref_flower_bed_square',
   'module_port_ref_quay_steps_compact',
-  'module_port_ref_quay_pier_join',
-  'module_port_ref_pier_endcap',
+  'module_port_ref_quay_continuous',
+  'module_port_ref_pier_west_l',
+  'module_port_ref_pier_center_u',
+  'module_port_ref_pier_east_hook',
   'module_port_ref_coast_east_complete',
   'module_port_ref_coast_quay_join',
   'module_port_ref_coast_quay_join_mirrored',
@@ -76,9 +88,6 @@ const List<String> requiredPortVisualModuleIds = <String>[
 ];
 
 const List<String> requiredPortVisualEntryIds = <String>[
-  'el_port_ref_quay_horizontal',
-  'el_port_ref_pier_vertical',
-  'el_port_ref_pier_t',
   'el_port_ref_coast_west_continuous',
 ];
 
@@ -156,8 +165,8 @@ final class PortVisualModulePlacement {
   final int y;
 }
 
-final class _PortVisualEntryPlacement {
-  const _PortVisualEntryPlacement({
+final class PortVisualEntryPlacement {
+  const PortVisualEntryPlacement({
     required this.entryId,
     required this.layerId,
     required this.x,
@@ -175,130 +184,81 @@ final class _PortVisualEntryPlacement {
 /// painting code.
 const List<PortVisualModulePlacement> portVisualComposition =
     <PortVisualModulePlacement>[
-  // West house: short stone returns with a deliberate opening at the door.
+  // Complete U-shaped gardens keep the masonry attached to the houses and
+  // leave a deliberate two-cell opening in front of each visible door.
   PortVisualModulePlacement(
     group: 'west_house_garden',
-    moduleId: 'module_port_ref_wall_h_short',
+    moduleId: 'module_port_ref_west_house_garden_complete',
     layerId: 'l_tile_port_ref_backdrop',
-    x: 8,
-    y: 8,
-  ),
-  PortVisualModulePlacement(
-    group: 'west_house_garden',
-    moduleId: 'module_port_ref_wall_end_left',
-    layerId: 'l_tile_port_ref_structures',
-    x: 11,
-    y: 8,
-  ),
-  PortVisualModulePlacement(
-    group: 'west_house_garden',
-    moduleId: 'module_port_ref_garden_gate_open',
-    layerId: 'l_tile_port_ref_structures',
-    x: 13,
-    y: 8,
-  ),
-  PortVisualModulePlacement(
-    group: 'west_house_garden',
-    moduleId: 'module_port_ref_wall_end_right',
-    layerId: 'l_tile_port_ref_structures',
-    x: 16,
-    y: 8,
+    x: 7,
+    y: 5,
   ),
 
-  // Capitainerie: a broad terrace, centered gate and two side returns.
   PortVisualModulePlacement(
     group: 'harbor_master_terrace',
-    moduleId: 'module_port_ref_wall_h_long',
+    moduleId: 'module_port_ref_captain_terrace_complete',
     layerId: 'l_tile_port_ref_backdrop',
     x: 18,
-    y: 8,
-  ),
-  PortVisualModulePlacement(
-    group: 'harbor_master_terrace',
-    moduleId: 'module_port_ref_garden_gate_open',
-    layerId: 'l_tile_port_ref_structures',
-    x: 23,
-    y: 8,
-  ),
-  PortVisualModulePlacement(
-    group: 'harbor_master_terrace',
-    moduleId: 'module_port_ref_wall_h_long',
-    layerId: 'l_tile_port_ref_backdrop',
-    x: 26,
-    y: 8,
+    y: 5,
   ),
   PortVisualModulePlacement(
     group: 'central_square',
-    moduleId: 'module_port_ref_flower_bed_compact',
+    moduleId: 'module_port_ref_flower_bed_square',
     layerId: 'l_tile_port_ref_ground',
-    x: 21,
+    x: 22,
     y: 12,
   ),
 
-  // Existing dock bodies are repainted tile-only; these modules repair their
-  // junctions and remove the former oversized stone-on-wood composite.
+  // One continuous quay and three reference-shaped dock silhouettes replace
+  // the disconnected generic pier sprites.
   PortVisualModulePlacement(
     group: 'quay_connections',
     moduleId: 'module_port_ref_quay_steps_compact',
     layerId: 'l_tile_port_ref_structures',
-    x: 18,
+    x: 17,
     y: 16,
   ),
   PortVisualModulePlacement(
     group: 'quay_connections',
-    moduleId: 'module_port_ref_quay_pier_join',
+    moduleId: 'module_port_ref_quay_continuous',
     layerId: 'l_tile_port_ref_structures',
-    x: 8,
-    y: 18,
+    x: 5,
+    y: 17,
   ),
   PortVisualModulePlacement(
     group: 'quay_connections',
-    moduleId: 'module_port_ref_quay_pier_join',
+    moduleId: 'module_port_ref_pier_west_l',
     layerId: 'l_tile_port_ref_structures',
-    x: 19,
-    y: 18,
+    x: 7,
+    y: 20,
   ),
   PortVisualModulePlacement(
     group: 'quay_connections',
-    moduleId: 'module_port_ref_quay_pier_join',
+    moduleId: 'module_port_ref_pier_center_u',
     layerId: 'l_tile_port_ref_structures',
-    x: 32,
-    y: 18,
+    x: 17,
+    y: 20,
   ),
   PortVisualModulePlacement(
     group: 'quay_connections',
-    moduleId: 'module_port_ref_pier_endcap',
+    moduleId: 'module_port_ref_pier_east_hook',
     layerId: 'l_tile_port_ref_structures',
-    x: 8,
-    y: 28,
-  ),
-  PortVisualModulePlacement(
-    group: 'quay_connections',
-    moduleId: 'module_port_ref_pier_endcap',
-    layerId: 'l_tile_port_ref_structures',
-    x: 19,
-    y: 28,
-  ),
-  PortVisualModulePlacement(
-    group: 'quay_connections',
-    moduleId: 'module_port_ref_pier_endcap',
-    layerId: 'l_tile_port_ref_structures',
-    x: 32,
-    y: 28,
+    x: 31,
+    y: 20,
   ),
 
   PortVisualModulePlacement(
     group: 'east_coast',
     moduleId: 'module_port_ref_coast_east_complete',
     layerId: 'l_tile_port_ref_structures',
-    x: 36,
+    x: 35,
     y: 20,
   ),
   PortVisualModulePlacement(
     group: 'east_coast',
     moduleId: 'module_port_ref_coast_quay_join',
     layerId: 'l_tile_port_ref_structures',
-    x: 36,
+    x: 35,
     y: 18,
   ),
   PortVisualModulePlacement(
@@ -361,49 +321,13 @@ const List<PortVisualModulePlacement> portVisualComposition =
   ),
 ];
 
-const List<_PortVisualEntryPlacement> _portVisualEntryComposition =
-    <_PortVisualEntryPlacement>[
-  _PortVisualEntryPlacement(
+const List<PortVisualEntryPlacement> portVisualEntryComposition =
+    <PortVisualEntryPlacement>[
+  PortVisualEntryPlacement(
     entryId: 'el_port_ref_coast_west_continuous',
     layerId: 'l_tile_port_ref_structures',
     x: 0,
     y: 0,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_quay_horizontal',
-    layerId: 'l_tile_port_ref_structures',
-    x: 5,
-    y: 18,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_quay_horizontal',
-    layerId: 'l_tile_port_ref_structures',
-    x: 17,
-    y: 18,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_quay_horizontal',
-    layerId: 'l_tile_port_ref_structures',
-    x: 29,
-    y: 18,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_pier_vertical',
-    layerId: 'l_tile_port_ref_structures',
-    x: 8,
-    y: 21,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_pier_t',
-    layerId: 'l_tile_port_ref_structures',
-    x: 18,
-    y: 21,
-  ),
-  _PortVisualEntryPlacement(
-    entryId: 'el_port_ref_pier_vertical',
-    layerId: 'l_tile_port_ref_structures',
-    x: 32,
-    y: 21,
   ),
 ];
 
@@ -547,12 +471,14 @@ Map<String, dynamic> buildRefinedPortVisualMap({
   final desired = _cloneObject(mapJson);
   _layerById(desired, portPrimaryPathLayerId)['cells'] =
       buildVisualPavementCells();
+  _layerById(desired, portSecondaryWaterPathLayerId)['cells'] =
+      buildVisualWaterCells();
 
   for (final layerId in portVisualTileLayerIds) {
     _layerById(desired, layerId)['tiles'] =
         List<int>.filled(portVisualMapCellCount, 0);
   }
-  for (final placement in _portVisualEntryComposition) {
+  for (final placement in portVisualEntryComposition) {
     _paintModule(
       map: desired,
       module: entryModules[placement.entryId]!,
@@ -595,9 +521,9 @@ Map<String, dynamic> buildRefinedPortVisualMap({
     context: 'Port properties',
   );
   properties
-    ..['visualRefinerVersion'] = 1
+    ..['visualRefinerVersion'] = 2
     ..['visualRefinerManifestSchema'] = manifestJson['schemaVersion'] ?? 1
-    ..['visualRefinerComposition'] = 'port_reference_v3_modules'
+    ..['visualRefinerComposition'] = 'port_reference_v3_photo_pass'
     ..['visualRefinerStatus'] = 'candidate_pending_owner_approval';
   desired['properties'] = properties;
 
@@ -606,11 +532,20 @@ Map<String, dynamic> buildRefinedPortVisualMap({
 }
 
 const Map<String, (int, int)> _refinedPropPositions = <String, (int, int)>{
-  'pe_port_net_rack_east': (39, 13),
-  'pe_port_fish_basket_west': (14, 16),
-  'pe_port_fish_basket_east': (35, 17),
+  'pe_port_boat_medium': (20, 20),
+  'pe_port_bateau': (0, 21),
+  'pe_port_boat_small': (29, 25),
+  'pe_port_garden_east': (37, 15),
+  'pe_port_fish_crates_west': (8, 16),
+  'pe_port_rope_coil_west': (6, 15),
+  'pe_port_fish_basket_west': (5, 16),
+  'pe_port_fish_basket_east': (34, 17),
   'pe_port_lobster_pots_center': (23, 18),
-  'pe_port_barrel_buoy_center': (28, 19),
+  'pe_port_barrel_buoy_center': (26, 18),
+  'pe_port_fish_crates_pier': (9, 22),
+  'pe_port_barrel_buoy_east': (34, 22),
+  'pe_port_lobster_pots_pier': (18, 25),
+  'pe_port_rope_coil_pier': (22, 26),
 };
 
 List<bool> buildVisualPavementCells() {
@@ -619,9 +554,12 @@ List<bool> buildVisualPavementCells() {
     for (var x = 0; x < portVisualMapWidth; x += 1) {
       var painted = false;
 
-      // The real northern connection is centered, so the visual avenue stays
-      // centered rather than imitating the reference's north-east exit.
-      if (y <= 10 && x >= 26 && x <= 30) painted = true;
+      // The photo reference exits through the north-east tree line.
+      if ((y <= 3 && x >= 41 && x <= 44) ||
+          (y >= 4 && y <= 7 && x >= 40 && x <= 44) ||
+          (y >= 8 && y <= 10 && x >= 39 && x <= 43)) {
+        painted = true;
+      }
 
       // Broad, slightly irregular village square instead of rectangular loops.
       if (y >= 9 && y <= 18) {
@@ -643,6 +581,7 @@ List<bool> buildVisualPavementCells() {
 
       // Short approaches make every visible northern threshold read clearly.
       if ((x >= 12 && x <= 14 && y >= 6 && y <= 10) ||
+          (x >= 23 && x <= 24 && y >= 6 && y <= 10) ||
           (x >= 31 && x <= 33 && y >= 7 && y <= 10) ||
           (x >= 38 && x <= 40 && y >= 7 && y <= 10)) {
         painted = true;
@@ -656,6 +595,47 @@ List<bool> buildVisualPavementCells() {
         painted = false;
       }
       cells[y * portVisualMapWidth + x] = painted;
+    }
+  }
+  return List<bool>.unmodifiable(cells);
+}
+
+/// Builds only the visual sea surface. It is intentionally independent from
+/// every collision or navigation layer: the owner keeps full control of those.
+List<bool> buildVisualWaterCells() {
+  final cells = List<bool>.filled(portVisualMapCellCount, false);
+  const upperWestEdges = <int>[
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    4,
+    5,
+    5,
+    5,
+    6,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    5,
+    4,
+  ];
+  for (var y = 0; y < portVisualMapHeight; y += 1) {
+    final rightEdge = switch (y) {
+      < 20 => upperWestEdges[y],
+      >= 20 && <= 23 => 36,
+      24 => 39,
+      25 => 42,
+      _ => 44,
+    };
+    for (var x = 0; x <= rightEdge; x += 1) {
+      cells[y * portVisualMapWidth + x] = true;
     }
   }
   return List<bool>.unmodifiable(cells);
@@ -875,6 +855,10 @@ void _validateMapSurface(Map<String, dynamic> map) {
   if (cells is! List || cells.length != portVisualMapCellCount) {
     throw StateError('$portPrimaryPathLayerId must expose 1530 cells.');
   }
+  final water = _layerById(map, portSecondaryWaterPathLayerId)['cells'];
+  if (water is! List || water.length != portVisualMapCellCount) {
+    throw StateError('$portSecondaryWaterPathLayerId must expose 1530 cells.');
+  }
   for (final layerId in portVisualTileLayerIds) {
     final tiles = _layerById(map, layerId)['tiles'];
     if (tiles is! List || tiles.length != portVisualMapCellCount) {
@@ -898,7 +882,9 @@ Map<String, dynamic> _visualResidue(Map<String, dynamic> source) {
 
   for (final layer in _objectList(residue['layers'], context: 'layers')) {
     final id = layer['id'];
-    if (id == portPrimaryPathLayerId) layer.remove('cells');
+    if (id == portPrimaryPathLayerId || id == portSecondaryWaterPathLayerId) {
+      layer.remove('cells');
+    }
     if (portVisualTileLayerIds.contains(id)) layer.remove('tiles');
   }
   final placements = _objectList(

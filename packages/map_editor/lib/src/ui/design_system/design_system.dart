@@ -8,6 +8,7 @@ export 'pokemap_card.dart';
 export 'pokemap_dashboard_primitives.dart';
 export 'pokemap_empty_state.dart';
 export 'pokemap_explorer_module_card.dart';
+export 'pokemap_horizontal_resize_handle.dart';
 export 'pokemap_icon_button.dart';
 export 'pokemap_panel.dart';
 export 'pokemap_section_header.dart';

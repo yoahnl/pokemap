@@ -56,10 +56,24 @@ void main() {
 
   test('publishes a restrained composition without freestanding garden walls',
       () {
-    expect(requiredPortVisualModuleIds, hasLength(15));
+    expect(requiredPortVisualModuleIds, hasLength(14));
     expect(
       requiredPortVisualModuleIds,
       isNot(contains(anyOf(<String>[
+        'module_port_ref_wall_h_short',
+        'module_port_ref_wall_h_long',
+        'module_port_ref_wall_end_left',
+        'module_port_ref_wall_end_right',
+        'module_port_ref_garden_gate_open',
+        'module_port_ref_quay_pier_join',
+        'module_port_ref_pier_endcap',
+        'module_port_ref_wall_west_left_run',
+        'module_port_ref_wall_west_right_run',
+        'module_port_ref_wall_captain_left_run',
+        'module_port_ref_wall_captain_right_run',
+        'module_port_ref_flower_bed_compact',
+        'module_port_ref_pier_t_open',
+        'module_port_ref_pier_vertical_open',
         'module_port_ref_wall_v',
         'module_port_ref_fence_h',
         'module_port_ref_foam_v_short',
@@ -81,10 +95,78 @@ void main() {
       portVisualComposition.map((placement) => placement.group),
       isNot(contains('east_house_gardens')),
     );
+    expect(
+      portVisualComposition
+          .where(
+            (placement) => <String>{
+              'west_house_garden',
+              'harbor_master_terrace',
+            }.contains(placement.group),
+          )
+          .map(
+            (placement) => (
+              placement.group,
+              placement.moduleId,
+              placement.layerId,
+              placement.x,
+              placement.y,
+            ),
+          )
+          .toList(),
+      <(String, String, String, int, int)>[
+        (
+          'west_house_garden',
+          'module_port_ref_west_house_garden_complete',
+          'l_tile_port_ref_backdrop',
+          7,
+          5,
+        ),
+        (
+          'harbor_master_terrace',
+          'module_port_ref_captain_terrace_complete',
+          'l_tile_port_ref_backdrop',
+          18,
+          5,
+        ),
+      ],
+    );
     final steps = portVisualComposition.singleWhere(
       (placement) => placement.moduleId == 'module_port_ref_quay_steps_compact',
     );
-    expect((steps.x, steps.y), (18, 16));
+    expect((steps.x, steps.y), (17, 16));
+    expect(
+      portVisualComposition
+          .where(
+            (placement) => <String>{
+              'module_port_ref_pier_west_l',
+              'module_port_ref_pier_center_u',
+              'module_port_ref_pier_east_hook',
+            }.contains(placement.moduleId),
+          )
+          .map(
+            (placement) => (placement.moduleId, placement.x, placement.y),
+          )
+          .toList(),
+      <(String, int, int)>[
+        ('module_port_ref_pier_west_l', 7, 20),
+        ('module_port_ref_pier_center_u', 17, 20),
+        ('module_port_ref_pier_east_hook', 31, 20),
+      ],
+    );
+    expect(
+      portVisualEntryComposition
+          .map(
+            (placement) => (placement.entryId, placement.x, placement.y),
+          )
+          .toList(),
+      <(String, int, int)>[
+        ('el_port_ref_coast_west_continuous', 0, 0),
+      ],
+    );
+    final quay = portVisualComposition.singleWhere(
+      (placement) => placement.moduleId == 'module_port_ref_quay_continuous',
+    );
+    expect((quay.x, quay.y), (5, 17));
     expect(
       portVisualComposition
           .map((placement) => placement.moduleId)
@@ -105,15 +187,29 @@ void main() {
     );
   });
 
-  test('keeps the visual north avenue on the real centered corridor', () {
+  test('moves the visual north avenue to the north-east reference corridor',
+      () {
     final cells = buildVisualPavementCells();
 
-    for (var x = 26; x <= 30; x += 1) {
-      expect(cells[x], isTrue, reason: 'north avenue cell ($x, 0)');
+    expect(cells[28], isFalse, reason: 'the old central avenue is removed');
+    expect(cells[42], isTrue, reason: 'the reference exits north-east');
+    expect(cells[9 * portVisualMapWidth + 40], isTrue);
+  });
+
+  test('builds continuous visual water below and underneath every dock', () {
+    final cells = buildVisualWaterCells();
+    bool waterAt(int x, int y) => cells[y * portVisualMapWidth + x];
+
+    for (final x in <int>[5, 9, 18, 22, 31, 36]) {
+      expect(waterAt(x, 21), isTrue, reason: 'water below dock at x=$x');
     }
-    for (var x = 22; x <= 25; x += 1) {
-      expect(cells[x], isFalse, reason: 'no false west exit at ($x, 0)');
-    }
+    expect(waterAt(36, 23), isTrue);
+    expect(waterAt(37, 23), isFalse);
+    expect(waterAt(39, 24), isTrue);
+    expect(waterAt(40, 24), isFalse);
+    expect(waterAt(42, 25), isTrue);
+    expect(waterAt(43, 25), isFalse);
+    expect(waterAt(44, 26), isTrue);
   });
 
   test('keeps one compact planted island inside a mostly paved square', () {
@@ -173,15 +269,21 @@ void main() {
         reason: '$layerId must receive a deliberate visual contribution',
       );
     }
-    expect(
-      (_layer(after, 'l_tile_port_ref_overhead')['tiles'] as List)
-          .where((value) => value != 0),
-      isEmpty,
-      reason: 'the restrained pass has no justified overhead-only pixels',
-    );
+    for (final layerId in <String>{'l_tile_port_ref_overhead'}) {
+      expect(
+        (_layer(after, layerId)['tiles'] as List).where((value) => value != 0),
+        isEmpty,
+        reason: 'the restrained pass has no justified $layerId pixels',
+      );
+    }
     expect(
       after['properties'],
       containsPair('visualRefinerStatus', 'candidate_pending_owner_approval'),
+    );
+    expect(
+      _layer(after, 'l_path_secondary')['cells'],
+      buildVisualWaterCells(),
+      reason: 'the refiner owns the deterministic visual water mask only',
     );
   });
 
@@ -293,6 +395,16 @@ Map<String, dynamic> _fixtureMap() {
         'runtimeType': 'path',
         'opacity': 1.0,
         'cells': List<bool>.filled(portVisualMapCellCount, false),
+      },
+      <String, dynamic>{
+        'id': 'l_path_secondary',
+        'runtimeType': 'path',
+        'opacity': 1.0,
+        'presetId': 'path_selbrume_port_water_v3',
+        'cells': <bool>[
+          ...List<bool>.filled(portVisualMapCellCount - 1, false),
+          true,
+        ],
       },
       for (final id in portVisualTileLayerIds)
         <String, dynamic>{

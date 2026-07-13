@@ -13,6 +13,10 @@ void main() {
       portVisualMapCellCount,
       true,
     );
+    _layer(after, 'l_path_secondary')['cells'] = List<bool>.filled(
+      portVisualMapCellCount,
+      true,
+    );
     for (final layerId in portVisualTileLayerIds) {
       _layer(after, layerId)['tiles'] = List<int>.filled(
         portVisualMapCellCount,
@@ -25,9 +29,9 @@ void main() {
       ),
     );
     (after['properties'] as Map<String, dynamic>)
-      ..['visualRefinerVersion'] = 1
+      ..['visualRefinerVersion'] = 2
       ..['visualRefinerManifestSchema'] = 1
-      ..['visualRefinerComposition'] = 'port_reference_v3_modules'
+      ..['visualRefinerComposition'] = 'port_reference_v3_photo_pass'
       ..['visualRefinerStatus'] = 'candidate_pending_owner_approval';
 
     expect(
@@ -50,6 +54,17 @@ void main() {
     final before = _fixtureMap();
     final after = _clone(before);
     _layer(after, portPrimaryPathLayerId)['opacity'] = 0.5;
+
+    expect(
+      () => verifyOnlyPortVisualChanges(before: before, after: after),
+      throwsStateError,
+    );
+  });
+
+  test('rejects a non-cell change on the visual water layer', () {
+    final before = _fixtureMap();
+    final after = _clone(before);
+    _layer(after, 'l_path_secondary')['opacity'] = 0.5;
 
     expect(
       () => verifyOnlyPortVisualChanges(before: before, after: after),
@@ -99,6 +114,16 @@ Map<String, dynamic> _fixtureMap() {
         'runtimeType': 'path',
         'opacity': 1.0,
         'cells': List<bool>.filled(portVisualMapCellCount, false),
+      },
+      <String, dynamic>{
+        'id': 'l_path_secondary',
+        'runtimeType': 'path',
+        'opacity': 1.0,
+        'presetId': 'path_selbrume_port_water_v3',
+        'cells': <bool>[
+          ...List<bool>.filled(portVisualMapCellCount - 1, false),
+          true,
+        ],
       },
       for (final id in portVisualTileLayerIds)
         <String, dynamic>{

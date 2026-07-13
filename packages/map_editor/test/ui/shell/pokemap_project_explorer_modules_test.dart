@@ -217,6 +217,11 @@ void main() {
       expect(find.text('Environment Studio'), findsAtLeastNWidgets(1));
       expect(find.text('Trainer Studio'), findsAtLeastNWidgets(1));
       expect(find.text('Character Library'), findsAtLeastNWidgets(1));
+      final moduleCards = tester.widgetList<ProjectExplorerModuleCard>(
+        find.byType(ProjectExplorerModuleCard),
+      );
+      expect(moduleCards, hasLength(9));
+      expect(moduleCards.every((card) => !card.expanded), isTrue);
       expect(tester.takeException(), isNull);
     });
   });

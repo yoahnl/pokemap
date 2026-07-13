@@ -185,11 +185,8 @@ void _expectTileModulesAreAppendOnly({
   }
 
   final gardenBoundaryIds = <String>{
-    'module_port_ref_wall_h_short',
-    'module_port_ref_wall_h_long',
-    'module_port_ref_wall_end_left',
-    'module_port_ref_wall_end_right',
-    'module_port_ref_garden_gate_open',
+    'module_port_ref_west_house_garden_complete',
+    'module_port_ref_captain_terrace_complete',
   };
   for (final module in modules.where(
     (candidate) => gardenBoundaryIds.contains(candidate['id']),
@@ -199,6 +196,37 @@ void _expectTileModulesAreAppendOnly({
       derivation['sourceEntries'],
       contains('el_port_ref_walled_garden'),
       reason: '${module['id']} must reuse the low garden language',
+    );
+  }
+
+  _expectEveryTileColumnHasVisiblePixels(
+    spriteAtlas,
+    modules.singleWhere(
+      (module) => module['id'] == 'module_port_ref_quay_continuous',
+    ),
+  );
+}
+
+void _expectEveryTileColumnHasVisiblePixels(img.Image atlas, Map module) {
+  final source = module['source']! as Map;
+  final originX = (source['x']! as int) * 32;
+  final originY = (source['y']! as int) * 32;
+  final width = source['width']! as int;
+  final height = source['height']! as int;
+  for (var tileX = 0; tileX < width; tileX += 1) {
+    var hasVisiblePixel = false;
+    for (var y = 0; y < height * 32 && !hasVisiblePixel; y += 1) {
+      for (var x = 0; x < 32; x += 1) {
+        if (atlas.getPixel(originX + tileX * 32 + x, originY + y).a > 0) {
+          hasVisiblePixel = true;
+          break;
+        }
+      }
+    }
+    expect(
+      hasVisiblePixel,
+      isTrue,
+      reason: '${module['id']} must not contain a visual gap at column $tileX',
     );
   }
 }
@@ -219,15 +247,14 @@ bool _moduleHasOpaquePixel(
 }
 
 const List<String> _expectedTileModuleIds = <String>[
-  'module_port_ref_wall_h_short',
-  'module_port_ref_wall_h_long',
-  'module_port_ref_wall_end_left',
-  'module_port_ref_wall_end_right',
-  'module_port_ref_garden_gate_open',
-  'module_port_ref_flower_bed_compact',
+  'module_port_ref_west_house_garden_complete',
+  'module_port_ref_captain_terrace_complete',
+  'module_port_ref_flower_bed_square',
   'module_port_ref_quay_steps_compact',
-  'module_port_ref_quay_pier_join',
-  'module_port_ref_pier_endcap',
+  'module_port_ref_quay_continuous',
+  'module_port_ref_pier_west_l',
+  'module_port_ref_pier_center_u',
+  'module_port_ref_pier_east_hook',
   'module_port_ref_coast_east_complete',
   'module_port_ref_coast_quay_join',
   'module_port_ref_coast_quay_join_mirrored',

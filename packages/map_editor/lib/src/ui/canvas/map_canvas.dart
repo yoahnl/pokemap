@@ -4,7 +4,12 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart' show kSecondaryButton, kTertiaryButton;
+import 'package:flutter/gestures.dart'
+    show
+        PointerScrollEvent,
+        PointerSignalEvent,
+        kSecondaryButton,
+        kTertiaryButton;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -347,6 +352,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           onPointerMove: _onMapPointerMove,
           onPointerUp: _onMapPointerUp,
           onPointerCancel: _onMapPointerCancel,
+          onPointerSignal: _onMapPointerSignal,
           onPointerHover: (event) => _onMapPointerHover(event.localPosition),
           child: GestureDetector(
             onTapUp: (details) {
@@ -758,6 +764,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     if (event.pointer == _rightPanPointerId) {
       _rightPanPointerId = null;
     }
+  }
+
+  void _onMapPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    final kind = event.kind;
+    if (kind != ui.PointerDeviceKind.mouse &&
+        kind != ui.PointerDeviceKind.trackpad) {
+      return;
+    }
+    if (event.scrollDelta == Offset.zero) return;
+    ref.read(editorNotifierProvider.notifier).pan(-event.scrollDelta);
   }
 
   void _onMapPointerHover(Offset localPosition) {

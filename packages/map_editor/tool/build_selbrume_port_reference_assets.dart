@@ -557,60 +557,38 @@ img.Image _buildTileModuleImage(
   }
 
   final image = switch (spec.id) {
-    'module_port_ref_wall_h_short' => _cropCells(
+    'module_port_ref_west_house_garden_complete' => _buildGardenComplete(
         existing('el_port_ref_walled_garden'),
-        x: 2,
-        y: 3,
-        width: 3,
-        height: 2,
+        widthCells: 11,
+        doorStartCell: 5,
       ),
-    'module_port_ref_wall_h_long' => _cropCells(
+    'module_port_ref_captain_terrace_complete' => _buildGardenComplete(
         existing('el_port_ref_walled_garden'),
-        x: 0,
-        y: 3,
-        width: 6,
-        height: 2,
+        widthCells: 13,
+        doorStartCell: 5,
       ),
-    'module_port_ref_wall_end_left' => _cropCells(
-        existing('el_port_ref_walled_garden'),
-        x: 0,
-        y: 3,
-        width: 2,
-        height: 2,
-      ),
-    'module_port_ref_wall_end_right' => _cropCells(
-        existing('el_port_ref_walled_garden'),
-        x: 5,
-        y: 3,
-        width: 2,
-        height: 2,
-      ),
-    'module_port_ref_garden_gate_open' => _buildOpenGate(
-        _cropCells(
-          existing('el_port_ref_walled_garden'),
-          x: 1,
-          y: 1,
-          width: 6,
-          height: 2,
-        ),
-      ),
-    'module_port_ref_flower_bed_compact' =>
-      normalized('nature', 0, 1, 5, 3, 'garden'),
-    'module_port_ref_quay_steps_compact' =>
-      normalized('coast', 1, 1, 5, 5, 'dock'),
-    'module_port_ref_quay_pier_join' => _cropCells(
-        existing('el_port_ref_pier_t'),
+    'module_port_ref_flower_bed_square' => _cropCells(
+        existing('el_port_ref_flower_bed'),
         x: 2,
         y: 0,
-        width: 5,
-        height: 3,
+        width: 4,
+        height: 4,
       ),
-    'module_port_ref_pier_endcap' => _cropCells(
+    'module_port_ref_quay_steps_compact' =>
+      normalized('coast', 1, 1, 5, 5, 'dock'),
+    'module_port_ref_quay_continuous' =>
+      _buildContinuousQuay(existing('el_port_ref_quay_horizontal')),
+    'module_port_ref_pier_west_l' => _buildWestPierL(
         existing('el_port_ref_pier_vertical'),
-        x: 0,
-        y: 7,
-        width: 5,
-        height: 2,
+        existing('el_port_ref_pier_t'),
+      ),
+    'module_port_ref_pier_center_u' => _buildCenterPierU(
+        existing('el_port_ref_pier_vertical'),
+        existing('el_port_ref_pier_t'),
+      ),
+    'module_port_ref_pier_east_hook' => _buildEastPierHook(
+        existing('el_port_ref_pier_vertical'),
+        existing('el_port_ref_pier_t'),
       ),
     'module_port_ref_coast_east_complete' =>
       normalized('natural_coast', 1, 0, 9, 6, 'coastline'),
@@ -654,22 +632,314 @@ img.Image _cropCells(
   );
 }
 
-img.Image _buildOpenGate(img.Image fence) {
-  final canvas = img.Image(
-    width: 3 * _tileSize,
-    height: 2 * _tileSize,
+img.Image _buildGardenComplete(
+  img.Image source, {
+  required int widthCells,
+  required int doorStartCell,
+}) {
+  const heightCells = 5;
+  const doorWidthCells = 2;
+  if (source.width != 7 * _tileSize || source.height != 5 * _tileSize) {
+    throw StateError('A complete garden requires the published 7x5 garden.');
+  }
+  if (doorStartCell <= 0 || doorStartCell + doorWidthCells >= widthCells) {
+    throw StateError('The garden entrance must stay between both side walls.');
+  }
+
+  final result = img.Image(
+    width: widthCells * _tileSize,
+    height: heightCells * _tileSize,
     numChannels: 4,
   );
-  img.compositeImage(
-    canvas,
-    _cropCells(fence, x: 0, y: 0, width: 1, height: 2),
+  for (var targetX = 0; targetX < widthCells; targetX += 1) {
+    final sourceX = switch (targetX) {
+      0 => 0,
+      _ when targetX == widthCells - 1 => 6,
+      _ => 1 + ((targetX - 1) % 5),
+    };
+    _blitCells(
+      result,
+      source,
+      sourceX: sourceX,
+      sourceY: 0,
+      width: 1,
+      height: heightCells,
+      targetX: targetX,
+      targetY: 0,
+    );
+  }
+
+  // The published garden supplies a complete U-shaped masonry language. Only
+  // the two cells facing the authored door are cleared, so no isolated pillar
+  // or wall cap can obstruct the approach.
+  _clearCells(
+    result,
+    x: doorStartCell,
+    y: 3,
+    width: doorWidthCells,
+    height: 2,
   );
-  img.compositeImage(
-    canvas,
-    _cropCells(fence, x: 5, y: 0, width: 1, height: 2),
-    dstX: 2 * _tileSize,
+  return result;
+}
+
+img.Image _buildContinuousQuay(img.Image source) {
+  const targetWidthCells = 32;
+  const heightCells = 4;
+  if (source.width != 12 * _tileSize || source.height != 4 * _tileSize) {
+    throw StateError('A continuous quay requires the published 12x4 quay.');
+  }
+
+  final result = img.Image(
+    width: targetWidthCells * _tileSize,
+    height: heightCells * _tileSize,
+    numChannels: 4,
   );
-  return canvas;
+  for (var targetX = 0; targetX < targetWidthCells; targetX += 1) {
+    final sourceX = 1 + (targetX % 10);
+    _blitCells(
+      result,
+      source,
+      sourceX: sourceX,
+      sourceY: 0,
+      width: 1,
+      height: heightCells,
+      targetX: targetX,
+      targetY: 0,
+    );
+  }
+  return result;
+}
+
+img.Image _buildWestPierL(img.Image verticalSource, img.Image tSource) {
+  final vertical = _replaceTopTileRowWithSecond(verticalSource);
+  final crossbar = _buildDockCrossbar(
+    _replaceTopTileRowWithSecond(tSource),
+    widthCells: 6,
+  );
+  final result = img.Image(
+    width: 6 * _tileSize,
+    height: 12 * _tileSize,
+    numChannels: 4,
+  );
+  _blitCells(
+    result,
+    vertical,
+    sourceX: 0,
+    sourceY: 0,
+    width: 5,
+    height: 9,
+    targetX: 1,
+    targetY: 0,
+  );
+  _blitCells(
+    result,
+    crossbar,
+    sourceX: 0,
+    sourceY: 0,
+    width: 6,
+    height: 4,
+    targetX: 0,
+    targetY: 8,
+  );
+  return result;
+}
+
+img.Image _buildCenterPierU(img.Image verticalSource, img.Image tSource) {
+  final vertical = _replaceTopTileRowWithSecond(verticalSource);
+  final crossbar = _buildDockCrossbar(
+    _replaceTopTileRowWithSecond(tSource),
+    widthCells: 11,
+  );
+  final result = img.Image(
+    width: 11 * _tileSize,
+    height: 10 * _tileSize,
+    numChannels: 4,
+  );
+
+  _blitCells(
+    result,
+    crossbar,
+    sourceX: 0,
+    sourceY: 0,
+    width: 11,
+    height: 4,
+    targetX: 0,
+    targetY: 0,
+  );
+  _blitCells(
+    result,
+    vertical,
+    sourceX: 0,
+    sourceY: 1,
+    width: 2,
+    height: 8,
+    targetX: 0,
+    targetY: 2,
+  );
+  _blitCells(
+    result,
+    vertical,
+    sourceX: 3,
+    sourceY: 1,
+    width: 2,
+    height: 8,
+    targetX: 9,
+    targetY: 2,
+  );
+  _blitCells(
+    result,
+    crossbar,
+    sourceX: 0,
+    sourceY: 0,
+    width: 11,
+    height: 4,
+    targetX: 0,
+    targetY: 6,
+  );
+  return result;
+}
+
+img.Image _buildEastPierHook(img.Image verticalSource, img.Image tSource) {
+  final vertical = _replaceTopTileRowWithSecond(verticalSource);
+  final crossbar = _buildDockCrossbar(
+    _replaceTopTileRowWithSecond(tSource),
+    widthCells: 6,
+  );
+  final result = img.Image(
+    width: 6 * _tileSize,
+    height: 13 * _tileSize,
+    numChannels: 4,
+  );
+  _blitCells(
+    result,
+    vertical,
+    sourceX: 0,
+    sourceY: 0,
+    width: 5,
+    height: 9,
+    targetX: 0,
+    targetY: 0,
+  );
+  _blitCells(
+    result,
+    vertical,
+    sourceX: 1,
+    sourceY: 3,
+    width: 3,
+    height: 5,
+    targetX: 2,
+    targetY: 7,
+  );
+  _blitCells(
+    result,
+    crossbar,
+    sourceX: 0,
+    sourceY: 0,
+    width: 6,
+    height: 4,
+    targetX: 0,
+    targetY: 9,
+  );
+  return result;
+}
+
+img.Image _buildDockCrossbar(
+  img.Image source, {
+  required int widthCells,
+}) {
+  const heightCells = 4;
+  if (source.width != 9 * _tileSize || source.height != 9 * _tileSize) {
+    throw StateError('A dock crossbar requires the published 9x9 T pier.');
+  }
+  if (widthCells < 2) {
+    throw StateError('A dock crossbar needs two visible end caps.');
+  }
+
+  final result = img.Image(
+    width: widthCells * _tileSize,
+    height: heightCells * _tileSize,
+    numChannels: 4,
+  );
+  for (var targetX = 0; targetX < widthCells; targetX += 1) {
+    final sourceX = switch (targetX) {
+      0 => 0,
+      _ when targetX == widthCells - 1 => 8,
+      _ => 1 + ((targetX - 1) % 7),
+    };
+    _blitCells(
+      result,
+      source,
+      sourceX: sourceX,
+      sourceY: 0,
+      width: 1,
+      height: heightCells,
+      targetX: targetX,
+      targetY: 0,
+    );
+  }
+  return result;
+}
+
+void _blitCells(
+  img.Image target,
+  img.Image source, {
+  required int sourceX,
+  required int sourceY,
+  required int width,
+  required int height,
+  required int targetX,
+  required int targetY,
+}) {
+  img.compositeImage(
+    target,
+    _cropCells(
+      source,
+      x: sourceX,
+      y: sourceY,
+      width: width,
+      height: height,
+    ),
+    dstX: targetX * _tileSize,
+    dstY: targetY * _tileSize,
+  );
+}
+
+void _clearCells(
+  img.Image target, {
+  required int x,
+  required int y,
+  required int width,
+  required int height,
+}) {
+  for (var pixelY = y * _tileSize;
+      pixelY < (y + height) * _tileSize;
+      pixelY += 1) {
+    for (var pixelX = x * _tileSize;
+        pixelX < (x + width) * _tileSize;
+        pixelX += 1) {
+      target.setPixelRgba(pixelX, pixelY, 0, 0, 0, 0);
+    }
+  }
+}
+
+img.Image _replaceTopTileRowWithSecond(img.Image source) {
+  if (source.height < 2 * _tileSize) {
+    throw StateError('An open pier needs at least two tile rows.');
+  }
+  final result = img.copyCrop(
+    source,
+    x: 0,
+    y: 0,
+    width: source.width,
+    height: source.height,
+  );
+  for (var y = 0; y < _tileSize; y += 1) {
+    for (var x = 0; x < source.width; x += 1) {
+      final pixel = source.getPixel(x, _tileSize + y);
+      result.setPixelRgba(x, y, pixel.r, pixel.g, pixel.b, pixel.a);
+    }
+  }
+  return result;
 }
 
 img.Image _mirrorHorizontal(img.Image source) {
@@ -1157,64 +1427,37 @@ final class _SpriteSpec {
 
 const List<_TileModuleSpec> _tileModuleSpecs = <_TileModuleSpec>[
   _TileModuleSpec(
-    id: 'module_port_ref_wall_h_short',
-    widthCells: 3,
-    heightCells: 2,
-    futurePlacement: 'short west and east garden limits',
+    id: 'module_port_ref_west_house_garden_complete',
+    widthCells: 11,
+    heightCells: 5,
+    futurePlacement: 'complete west house garden with a clear door approach',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe:
+        'published 7x5 garden columns extended to 11x5; bottom cells 5-6 cleared for the authored door',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_captain_terrace_complete',
+    widthCells: 13,
+    heightCells: 5,
+    futurePlacement:
+        'complete harbor master terrace with a clear door approach',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe:
+        'published 7x5 garden columns extended to 13x5; bottom cells 5-6 cleared for the authored door',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_flower_bed_square',
+    widthCells: 4,
+    heightCells: 4,
+    futurePlacement: 'square central planted island',
     derivationKind: 'published_entry_crop',
     sourceSheets: <String>[],
-    sourceEntries: <String>['el_port_ref_walled_garden'],
-    recipe: 'crop cells 2,3 3x2 from the published low garden border',
-  ),
-  _TileModuleSpec(
-    id: 'module_port_ref_wall_h_long',
-    widthCells: 6,
-    heightCells: 2,
-    futurePlacement: 'harbor master terrace retaining wall',
-    derivationKind: 'published_entry_crop',
-    sourceSheets: <String>[],
-    sourceEntries: <String>['el_port_ref_walled_garden'],
-    recipe: 'crop cells 0,3 6x2 from the published low garden border',
-  ),
-  _TileModuleSpec(
-    id: 'module_port_ref_wall_end_left',
-    widthCells: 2,
-    heightCells: 2,
-    futurePlacement: 'left side of visual door openings',
-    derivationKind: 'published_entry_crop',
-    sourceSheets: <String>[],
-    sourceEntries: <String>['el_port_ref_walled_garden'],
-    recipe: 'crop cells 0,3 2x2 from the published low garden border',
-  ),
-  _TileModuleSpec(
-    id: 'module_port_ref_wall_end_right',
-    widthCells: 2,
-    heightCells: 2,
-    futurePlacement: 'right side of visual door openings',
-    derivationKind: 'published_entry_crop',
-    sourceSheets: <String>[],
-    sourceEntries: <String>['el_port_ref_walled_garden'],
-    recipe: 'crop cells 5,3 2x2 from the published low garden border',
-  ),
-  _TileModuleSpec(
-    id: 'module_port_ref_garden_gate_open',
-    widthCells: 3,
-    heightCells: 2,
-    futurePlacement: 'explicit visual opening in front of house doors',
-    derivationKind: 'deterministic_composition',
-    sourceSheets: <String>[],
-    sourceEntries: <String>['el_port_ref_walled_garden'],
-    recipe: 'outer cells of published garden fence with transparent center',
-  ),
-  _TileModuleSpec(
-    id: 'module_port_ref_flower_bed_compact',
-    widthCells: 5,
-    heightCells: 3,
-    futurePlacement: 'compact central planted island',
-    derivationKind: 'normalized_source_cell',
-    sourceSheets: <String>['nature'],
-    sourceEntries: <String>[],
-    recipe: 'nature cell 0,1 normalized to 5x3',
+    sourceEntries: <String>['el_port_ref_flower_bed'],
+    recipe: 'crop cells 2,0 4x4 from the published flower bed',
   ),
   _TileModuleSpec(
     id: 'module_port_ref_quay_steps_compact',
@@ -1227,24 +1470,57 @@ const List<_TileModuleSpec> _tileModuleSpecs = <_TileModuleSpec>[
     recipe: 'coast steps cell 1,1 normalized to 5x5',
   ),
   _TileModuleSpec(
-    id: 'module_port_ref_quay_pier_join',
-    widthCells: 5,
-    heightCells: 3,
-    futurePlacement: 'continuous center quay to pier junction',
-    derivationKind: 'published_sprite_crop',
-    sourceSheets: <String>['docks_boats'],
-    sourceEntries: <String>['el_port_ref_pier_t'],
-    recipe: 'crop cells 2,0 5x3 from normalized T pier',
+    id: 'module_port_ref_quay_continuous',
+    widthCells: 32,
+    heightCells: 4,
+    futurePlacement: 'single uninterrupted harbor quay',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_quay_horizontal'],
+    recipe:
+        'published interior quay columns repeated across 32 cells without reintroducing bounded side caps',
   ),
   _TileModuleSpec(
-    id: 'module_port_ref_pier_endcap',
-    widthCells: 5,
-    heightCells: 2,
-    futurePlacement: 'distinct west and east pier ends',
-    derivationKind: 'published_sprite_crop',
-    sourceSheets: <String>['docks_boats'],
-    sourceEntries: <String>['el_port_ref_pier_vertical'],
-    recipe: 'crop cells 0,7 5x2 from normalized vertical pier',
+    id: 'module_port_ref_pier_west_l',
+    widthCells: 6,
+    heightCells: 12,
+    futurePlacement: 'asymmetric west L pier reaching the lower harbor',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>[
+      'el_port_ref_pier_vertical',
+      'el_port_ref_pier_t',
+    ],
+    recipe:
+        'open published vertical pier with a six-cell published T-pier crossbar offset to the west',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_pier_center_u',
+    widthCells: 11,
+    heightCells: 10,
+    futurePlacement: 'wide center U pier with an open boat slip',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>[
+      'el_port_ref_pier_vertical',
+      'el_port_ref_pier_t',
+    ],
+    recipe:
+        'two eleven-cell published T-pier crossbars joined by published vertical pier side rails',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_pier_east_hook',
+    widthCells: 6,
+    heightCells: 13,
+    futurePlacement: 'narrow east hook pier with a terminal platform',
+    derivationKind: 'deterministic_published_entry_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>[
+      'el_port_ref_pier_vertical',
+      'el_port_ref_pier_t',
+    ],
+    recipe:
+        'open published vertical pier extended on its east side and finished with a six-cell published T-pier crossbar',
   ),
   _TileModuleSpec(
     id: 'module_port_ref_coast_east_complete',

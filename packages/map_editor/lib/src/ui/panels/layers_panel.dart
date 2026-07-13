@@ -461,136 +461,13 @@ class _LayerList extends StatelessWidget {
                                 onPressed: () =>
                                     notifier.setActiveLayer(layer.id),
                                 child: ClipRect(
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        _iconForLayer(layer),
-                                        size: 16,
-                                        color: isActive
-                                            ? colors.brandPrimary
-                                            : colors.textSecondary,
-                                      ),
-                                      const SizedBox(width: 7),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              layer.name,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: isActive
-                                                    ? FontWeight.w600
-                                                    : FontWeight.w500,
-                                                color: colors.textPrimary,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              '${_labelForLayer(layer)} • ${layer.id}',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: colors.textMuted,
-                                              ),
-                                            ),
-                                            if (row.environmentAttachmentLabel !=
-                                                null) ...[
-                                              const SizedBox(height: 4),
-                                              _LayerStatusText(
-                                                row.environmentAttachmentLabel!,
-                                                color: colors.textSecondary,
-                                              ),
-                                            ],
-                                            if (row.technicalEnvironmentSelectionLabel !=
-                                                null) ...[
-                                              const SizedBox(height: 3),
-                                              _LayerStatusText(
-                                                row.technicalEnvironmentSelectionLabel!,
-                                                color: colors.textSecondary,
-                                              ),
-                                            ],
-                                            if (row.environmentWarningLabel !=
-                                                null) ...[
-                                              const SizedBox(height: 3),
-                                              _LayerStatusText(
-                                                row.environmentWarningLabel!,
-                                                color: colors.warning,
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      PokeMapIconButton(
-                                        onPressed: () =>
-                                            notifier.setMapLayerVisibility(
-                                          layer.id,
-                                          !layer.isVisible,
-                                        ),
-                                        icon: Icon(layer.isVisible
-                                            ? CupertinoIcons.eye
-                                            : CupertinoIcons.eye_slash),
-                                        tooltip: layer.isVisible
-                                            ? 'Masquer le calque'
-                                            : 'Afficher le calque',
-                                        size: 26.0,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      PokeMapIconButton(
-                                        onPressed: canMoveUp
-                                            ? () => notifier
-                                                .moveMapLayerUp(layer.id)
-                                            : null,
-                                        icon: const Icon(CupertinoIcons.arrow_up),
-                                        tooltip: 'Monter le calque',
-                                        size: 26.0,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      PokeMapIconButton(
-                                        onPressed: canMoveDown
-                                            ? () => notifier
-                                                .moveMapLayerDown(layer.id)
-                                            : null,
-                                        icon: const Icon(CupertinoIcons.arrow_down),
-                                        tooltip: 'Descendre le calque',
-                                        size: 26.0,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      PokeMapIconButton(
-                                        onPressed: () => _showRenameLayerDialog(
-                                          context,
-                                          notifier,
-                                          layer,
-                                        ),
-                                        icon: const Icon(CupertinoIcons.pencil),
-                                        tooltip: 'Renommer le calque',
-                                        size: 26.0,
-                                      ),
-                                      const SizedBox(width: 2),
-                                      PokeMapIconButton(
-                                        key: ValueKey(
-                                          'delete-layer-${layer.id}',
-                                        ),
-                                        onPressed: canDeleteLayer
-                                            ? () => _showDeleteLayerDialog(
-                                                  context,
-                                                  notifier,
-                                                  layer,
-                                                )
-                                            : null,
-                                        icon: const Icon(CupertinoIcons.trash),
-                                        tooltip: canDeleteLayer
-                                            ? 'Supprimer le calque'
-                                            : 'Suppression protégée : environnement attaché',
-                                        variant: PokeMapIconButtonVariant.danger,
-                                        size: 26.0,
-                                      ),
-                                    ],
+                                  child: _buildLayerRowHeader(
+                                    context: context,
+                                    row: row,
+                                    notifier: notifier,
+                                    canMoveUp: canMoveUp,
+                                    canMoveDown: canMoveDown,
+                                    canDeleteLayer: canDeleteLayer,
                                   ),
                                 ),
                               ),
@@ -606,6 +483,182 @@ class _LayerList extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  Widget _buildLayerRowHeader({
+    required BuildContext context,
+    required LayerPanelPresentationRow row,
+    required EditorNotifier notifier,
+    required bool canMoveUp,
+    required bool canMoveDown,
+    required bool canDeleteLayer,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 180;
+        final identity = _buildLayerIdentity(context, row);
+        final actions = _buildLayerActions(
+          context: context,
+          row: row,
+          notifier: notifier,
+          canMoveUp: canMoveUp,
+          canMoveDown: canMoveDown,
+          canDeleteLayer: canDeleteLayer,
+          wrap: compact,
+        );
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              identity,
+              const SizedBox(height: 5),
+              Align(alignment: Alignment.centerRight, child: actions),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: identity),
+            const SizedBox(width: 4),
+            actions,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLayerIdentity(
+    BuildContext context,
+    LayerPanelPresentationRow row,
+  ) {
+    final colors = context.pokeMapColors;
+    final layer = row.layer;
+    return Row(
+      children: [
+        Icon(
+          _iconForLayer(layer),
+          size: 16,
+          color: row.isActive ? colors.brandPrimary : colors.textSecondary,
+        ),
+        const SizedBox(width: 7),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                layer.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: row.isActive ? FontWeight.w600 : FontWeight.w500,
+                  color: colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${_labelForLayer(layer)} • ${layer.id}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10, color: colors.textMuted),
+              ),
+              if (row.environmentAttachmentLabel != null) ...[
+                const SizedBox(height: 4),
+                _LayerStatusText(
+                  row.environmentAttachmentLabel!,
+                  color: colors.textSecondary,
+                ),
+              ],
+              if (row.technicalEnvironmentSelectionLabel != null) ...[
+                const SizedBox(height: 3),
+                _LayerStatusText(
+                  row.technicalEnvironmentSelectionLabel!,
+                  color: colors.textSecondary,
+                ),
+              ],
+              if (row.environmentWarningLabel != null) ...[
+                const SizedBox(height: 3),
+                _LayerStatusText(
+                  row.environmentWarningLabel!,
+                  color: colors.warning,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLayerActions({
+    required BuildContext context,
+    required LayerPanelPresentationRow row,
+    required EditorNotifier notifier,
+    required bool canMoveUp,
+    required bool canMoveDown,
+    required bool canDeleteLayer,
+    required bool wrap,
+  }) {
+    final layer = row.layer;
+    final buttons = <Widget>[
+      PokeMapIconButton(
+        onPressed: () =>
+            notifier.setMapLayerVisibility(layer.id, !layer.isVisible),
+        icon: Icon(
+          layer.isVisible ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+        ),
+        tooltip: layer.isVisible ? 'Masquer le calque' : 'Afficher le calque',
+        size: 26,
+      ),
+      PokeMapIconButton(
+        onPressed: canMoveUp ? () => notifier.moveMapLayerUp(layer.id) : null,
+        icon: const Icon(CupertinoIcons.arrow_up),
+        tooltip: 'Monter le calque',
+        size: 26,
+      ),
+      PokeMapIconButton(
+        onPressed:
+            canMoveDown ? () => notifier.moveMapLayerDown(layer.id) : null,
+        icon: const Icon(CupertinoIcons.arrow_down),
+        tooltip: 'Descendre le calque',
+        size: 26,
+      ),
+      PokeMapIconButton(
+        onPressed: () => _showRenameLayerDialog(context, notifier, layer),
+        icon: const Icon(CupertinoIcons.pencil),
+        tooltip: 'Renommer le calque',
+        size: 26,
+      ),
+      PokeMapIconButton(
+        key: ValueKey('delete-layer-${layer.id}'),
+        onPressed: canDeleteLayer
+            ? () => _showDeleteLayerDialog(context, notifier, layer)
+            : null,
+        icon: const Icon(CupertinoIcons.trash),
+        tooltip: canDeleteLayer
+            ? 'Supprimer le calque'
+            : 'Suppression protégée : environnement attaché',
+        variant: PokeMapIconButtonVariant.danger,
+        size: 26,
+      ),
+    ];
+    if (wrap) {
+      return Wrap(
+        alignment: WrapAlignment.end,
+        spacing: 2,
+        runSpacing: 2,
+        children: buttons,
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var index = 0; index < buttons.length; index++) ...[
+          if (index > 0) const SizedBox(width: 2),
+          buttons[index],
+        ],
+      ],
     );
   }
 

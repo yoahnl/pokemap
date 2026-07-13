@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons, Material, MaterialType;
@@ -20,6 +21,12 @@ import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
 
+const double _kRightInspectorDefaultWidth = 336;
+const double _kRightInspectorMinWidth = 280;
+const double _kRightInspectorMaxWidth = 560;
+const double _kRightInspectorResizeHandleWidth = 12;
+const double _kCenterStageMinWidth = 320;
+
 class EditorShellPage extends ConsumerStatefulWidget {
   const EditorShellPage({super.key});
 
@@ -35,6 +42,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
   /// When false, the right ResizablePane (map / tileset / narrative inspector) is omitted so the center stage uses full width.
   bool _rightInspectorVisible = true;
+
+  /// Preferred right inspector width, retained while the shell stays mounted.
+  double _rightInspectorWidth = _kRightInspectorDefaultWidth;
 
   /// When false, the left ResizablePane is collapsed to a narrow toggle strip.
   bool _leftSidebarVisible = true;
@@ -286,6 +296,25 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                   duration: const Duration(milliseconds: 150),
                                   curve: Curves.easeInOutCubic,
                                   builder: (context, animWidth, child) {
+                                    return LayoutBuilder(
+                                      builder: (context, stageConstraints) {
+                                    final availableInspectorMaxWidth = math.max(
+                                      _kRightInspectorMinWidth,
+                                      math.min(
+                                        _kRightInspectorMaxWidth,
+                                        stageConstraints.maxWidth -
+                                            animWidth -
+                                            _kRightInspectorResizeHandleWidth -
+                                            _kCenterStageMinWidth,
+                                      ),
+                                    );
+                                    final effectiveInspectorWidth =
+                                        _rightInspectorWidth
+                                            .clamp(
+                                              _kRightInspectorMinWidth,
+                                              availableInspectorMaxWidth,
+                                            )
+                                            .toDouble();
                                     return Row(
                                       crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: [
@@ -338,6 +367,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                 onCollapse: () {
                                                                   setState(() {
                                                                     _leftSidebarVisible = false;
+                                                                    if (workspaceMode ==
+                                                                            EditorWorkspaceMode.map &&
+                                                                        activeMap != null) {
+                                                                      _rightInspectorWidth =
+                                                                          _kRightInspectorMaxWidth;
+                                                                    }
                                                                   });
                                                                 },
                                                               ),
@@ -470,9 +505,30 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                             ),
                                           ),
                                         ),
-                                        if (supportsRightInspector && _rightInspectorVisible)
+                                        if (supportsRightInspector && _rightInspectorVisible) ...[
+                                          PokeMapHorizontalResizeHandle(
+                                            key: const ValueKey<String>(
+                                              'right-inspector-resize-handle',
+                                            ),
+                                            tooltip: 'Redimensionner le panneau droit',
+                                            width: _kRightInspectorResizeHandleWidth,
+                                            onDrag: (delta) {
+                                              setState(() {
+                                                _rightInspectorWidth =
+                                                    (effectiveInspectorWidth - delta)
+                                                        .clamp(
+                                                          _kRightInspectorMinWidth,
+                                                          availableInspectorMaxWidth,
+                                                        )
+                                                        .toDouble();
+                                              });
+                                            },
+                                          ),
                                           SizedBox(
-                                            width: isNarrativeWorkspace ? 292 : 336,
+                                            key: const ValueKey<String>(
+                                              'right-inspector-region',
+                                            ),
+                                            width: effectiveInspectorWidth,
                                             child: Padding(
                                               padding: const EdgeInsets.fromLTRB(12, 18, 16, 18),
                                               child: EditorIsland(
@@ -515,9 +571,12 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               ),
                                             ),
                                           ),
+                                        ],
                                       ],
                                     );
                                   },
+                                    );
+                                      },
                                 ),
                               ),
                               const StatusBar(),
