@@ -121,9 +121,9 @@
   "atlases": {
     "sprites": {
       "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png",
-      "sha256": "e097f0a12dba22bf6630d8be066d4f105d54483d17d4c862f257dbb064ca8952",
+      "sha256": "689dd6db5b93ad1dbf26ab9354a7e0fe87e6add49d62b61561b38da4db638645",
       "widthCells": 48,
-      "heightCells": 44
+      "heightCells": 53
     },
     "ground": {
       "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_ground_v3.png",
@@ -806,6 +806,538 @@
       },
       "anchor": "bottom_center",
       "collisionIntent": "solid_rocks"
+    }
+  ],
+  "tileModuleGeneration": {
+    "method": "deterministic_existing_source_derivation",
+    "generativeArt": false,
+    "packing": "append_only_after_published_entries",
+    "tileOrder": "row_major"
+  },
+  "tileModules": [
+    {
+      "id": "module_port_ref_wall_h_short",
+      "source": {
+        "x": 0,
+        "y": 44,
+        "width": 3,
+        "height": 2
+      },
+      "tileIds": [
+        2113,
+        2114,
+        2115,
+        2161,
+        2162,
+        2163
+      ],
+      "sha256": "2f86d7e638d249039d5fa809214edc43957c04580bbec9a52e42908172cb3ee3",
+      "futurePlacement": "short west and east garden limits",
+      "derivation": {
+        "kind": "published_entry_crop",
+        "sourceSheets": [],
+        "sourceEntries": [
+          "el_port_ref_walled_garden"
+        ],
+        "recipe": "crop cells 2,3 3x2 from the published low garden border",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_wall_h_long",
+      "source": {
+        "x": 3,
+        "y": 44,
+        "width": 6,
+        "height": 2
+      },
+      "tileIds": [
+        2116,
+        2117,
+        2118,
+        2119,
+        2120,
+        2121,
+        2164,
+        2165,
+        2166,
+        2167,
+        2168,
+        2169
+      ],
+      "sha256": "4884bb8769fd2f4f355b7517ff5654f6257f751d71513a98e2929db8b39eecaf",
+      "futurePlacement": "harbor master terrace retaining wall",
+      "derivation": {
+        "kind": "published_entry_crop",
+        "sourceSheets": [],
+        "sourceEntries": [
+          "el_port_ref_walled_garden"
+        ],
+        "recipe": "crop cells 0,3 6x2 from the published low garden border",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_wall_end_left",
+      "source": {
+        "x": 9,
+        "y": 44,
+        "width": 2,
+        "height": 2
+      },
+      "tileIds": [
+        2122,
+        2123,
+        2170,
+        2171
+      ],
+      "sha256": "897a92cebfbebc77a017f57adc4786a9bd206c50fd85ed37ad99d7da32ddf64b",
+      "futurePlacement": "left side of visual door openings",
+      "derivation": {
+        "kind": "published_entry_crop",
+        "sourceSheets": [],
+        "sourceEntries": [
+          "el_port_ref_walled_garden"
+        ],
+        "recipe": "crop cells 0,3 2x2 from the published low garden border",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_wall_end_right",
+      "source": {
+        "x": 11,
+        "y": 44,
+        "width": 2,
+        "height": 2
+      },
+      "tileIds": [
+        2124,
+        2125,
+        2172,
+        2173
+      ],
+      "sha256": "e480afaeb7003ebea0197bcdbf90a784d3856417d49f6f16dec45d1a363dfbef",
+      "futurePlacement": "right side of visual door openings",
+      "derivation": {
+        "kind": "published_entry_crop",
+        "sourceSheets": [],
+        "sourceEntries": [
+          "el_port_ref_walled_garden"
+        ],
+        "recipe": "crop cells 5,3 2x2 from the published low garden border",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_garden_gate_open",
+      "source": {
+        "x": 13,
+        "y": 44,
+        "width": 3,
+        "height": 2
+      },
+      "tileIds": [
+        2126,
+        2127,
+        2128,
+        2174,
+        2175,
+        2176
+      ],
+      "sha256": "d47bd352739995d968f76e2482bc0eb7a2349e22e8ac390c010076c38db2624f",
+      "futurePlacement": "explicit visual opening in front of house doors",
+      "derivation": {
+        "kind": "deterministic_composition",
+        "sourceSheets": [],
+        "sourceEntries": [
+          "el_port_ref_walled_garden"
+        ],
+        "recipe": "outer cells of published garden fence with transparent center",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_flower_bed_compact",
+      "source": {
+        "x": 16,
+        "y": 44,
+        "width": 5,
+        "height": 3
+      },
+      "tileIds": [
+        2129,
+        2130,
+        2131,
+        2132,
+        2133,
+        2177,
+        2178,
+        2179,
+        2180,
+        2181,
+        2225,
+        2226,
+        2227,
+        2228,
+        2229
+      ],
+      "sha256": "2d6ed4e69ef223dd9cd0ee2cf2a07a66f91d086c8b2af28131a8104b67b4d0d4",
+      "futurePlacement": "compact central planted island",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "nature"
+        ],
+        "sourceEntries": [],
+        "recipe": "nature cell 0,1 normalized to 5x3",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_quay_steps_compact",
+      "source": {
+        "x": 21,
+        "y": 44,
+        "width": 5,
+        "height": 5
+      },
+      "tileIds": [
+        2134,
+        2135,
+        2136,
+        2137,
+        2138,
+        2182,
+        2183,
+        2184,
+        2185,
+        2186,
+        2230,
+        2231,
+        2232,
+        2233,
+        2234,
+        2278,
+        2279,
+        2280,
+        2281,
+        2282,
+        2326,
+        2327,
+        2328,
+        2329,
+        2330
+      ],
+      "sha256": "0316f93bbdf37f004acbc17322f62533a633a5b1ac65aae4062c1552661b982a",
+      "futurePlacement": "compact central quay access",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "coast"
+        ],
+        "sourceEntries": [],
+        "recipe": "coast steps cell 1,1 normalized to 5x5",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_quay_pier_join",
+      "source": {
+        "x": 26,
+        "y": 44,
+        "width": 5,
+        "height": 3
+      },
+      "tileIds": [
+        2139,
+        2140,
+        2141,
+        2142,
+        2143,
+        2187,
+        2188,
+        2189,
+        2190,
+        2191,
+        2235,
+        2236,
+        2237,
+        2238,
+        2239
+      ],
+      "sha256": "16dc1da9cfbe1c386ad21965cb93c6d10c5098721c783b79d33b0c7996d732ed",
+      "futurePlacement": "continuous center quay to pier junction",
+      "derivation": {
+        "kind": "published_sprite_crop",
+        "sourceSheets": [
+          "docks_boats"
+        ],
+        "sourceEntries": [
+          "el_port_ref_pier_t"
+        ],
+        "recipe": "crop cells 2,0 5x3 from normalized T pier",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_pier_endcap",
+      "source": {
+        "x": 31,
+        "y": 44,
+        "width": 5,
+        "height": 2
+      },
+      "tileIds": [
+        2144,
+        2145,
+        2146,
+        2147,
+        2148,
+        2192,
+        2193,
+        2194,
+        2195,
+        2196
+      ],
+      "sha256": "d8f5e67d178e0ac5981e58acffbcfe0db1409b3682fe4c91298b9ef2adc55934",
+      "futurePlacement": "distinct west and east pier ends",
+      "derivation": {
+        "kind": "published_sprite_crop",
+        "sourceSheets": [
+          "docks_boats"
+        ],
+        "sourceEntries": [
+          "el_port_ref_pier_vertical"
+        ],
+        "recipe": "crop cells 0,7 5x2 from normalized vertical pier",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_coast_east_complete",
+      "source": {
+        "x": 36,
+        "y": 44,
+        "width": 9,
+        "height": 6
+      },
+      "tileIds": [
+        2149,
+        2150,
+        2151,
+        2152,
+        2153,
+        2154,
+        2155,
+        2156,
+        2157,
+        2197,
+        2198,
+        2199,
+        2200,
+        2201,
+        2202,
+        2203,
+        2204,
+        2205,
+        2245,
+        2246,
+        2247,
+        2248,
+        2249,
+        2250,
+        2251,
+        2252,
+        2253,
+        2293,
+        2294,
+        2295,
+        2296,
+        2297,
+        2298,
+        2299,
+        2300,
+        2301,
+        2341,
+        2342,
+        2343,
+        2344,
+        2345,
+        2346,
+        2347,
+        2348,
+        2349,
+        2389,
+        2390,
+        2391,
+        2392,
+        2393,
+        2394,
+        2395,
+        2396,
+        2397
+      ],
+      "sha256": "418cba18103173fd193ff8553a0d544d5b251c87f9f73e466b1340b50fd6c89e",
+      "futurePlacement": "complete south-east in-bounds coastline",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "natural_coast"
+        ],
+        "sourceEntries": [],
+        "recipe": "natural coast east cell normalized to 9x6",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_coast_quay_join",
+      "source": {
+        "x": 45,
+        "y": 44,
+        "width": 3,
+        "height": 3
+      },
+      "tileIds": [
+        2158,
+        2159,
+        2160,
+        2206,
+        2207,
+        2208,
+        2254,
+        2255,
+        2256
+      ],
+      "sha256": "48d53367b3ab2ee68eeec8f66f6259e45e05d67fd11221815faaa59394a516a9",
+      "futurePlacement": "east quay to rocky coast transition",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "coast"
+        ],
+        "sourceEntries": [],
+        "recipe": "coast corner cell 2,0 normalized to 3x3",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_coast_quay_join_mirrored",
+      "source": {
+        "x": 0,
+        "y": 50,
+        "width": 3,
+        "height": 3
+      },
+      "tileIds": [
+        2401,
+        2402,
+        2403,
+        2449,
+        2450,
+        2451,
+        2497,
+        2498,
+        2499
+      ],
+      "sha256": "a3c05b380efb5448d0b1f0dcb8db3c528cd74d65d0aadfe1e723ab6a2d9efede",
+      "futurePlacement": "west quay to rocky coast transition",
+      "derivation": {
+        "kind": "deterministic_mirror",
+        "sourceSheets": [
+          "coast"
+        ],
+        "sourceEntries": [],
+        "recipe": "horizontal mirror of normalized coast corner cell 2,0",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_foam_h_short",
+      "source": {
+        "x": 3,
+        "y": 50,
+        "width": 4,
+        "height": 1
+      },
+      "tileIds": [
+        2404,
+        2405,
+        2406,
+        2407
+      ],
+      "sha256": "041624f0d589dd08f804f0278dfa808715a4fa63b5cc2e96be4580e1fc78c88b",
+      "futurePlacement": "short local foam below quay piles",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "shore_foam"
+        ],
+        "sourceEntries": [],
+        "recipe": "shore foam cell 1,0 normalized to 4x1",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_foam_corner",
+      "source": {
+        "x": 7,
+        "y": 50,
+        "width": 3,
+        "height": 3
+      },
+      "tileIds": [
+        2408,
+        2409,
+        2410,
+        2456,
+        2457,
+        2458,
+        2504,
+        2505,
+        2506
+      ],
+      "sha256": "4f334bf5ffebd8e49f677dce035e1c3cdee1a0ab218b72d73f828c8a1e232969",
+      "futurePlacement": "local foam at coast corners",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "shore_foam"
+        ],
+        "sourceEntries": [],
+        "recipe": "shore foam corner cell 2,0 normalized to 3x3",
+        "generativeArt": false
+      }
+    },
+    {
+      "id": "module_port_ref_foam_wake_short",
+      "source": {
+        "x": 10,
+        "y": 50,
+        "width": 4,
+        "height": 2
+      },
+      "tileIds": [
+        2411,
+        2412,
+        2413,
+        2414,
+        2459,
+        2460,
+        2461,
+        2462
+      ],
+      "sha256": "b36ca6045588e58878a49a4aa9b00d8924e55a48c8b80c78f3c703ed7f6c5d6f",
+      "futurePlacement": "restrained local wake below boat hulls",
+      "derivation": {
+        "kind": "normalized_source_cell",
+        "sourceSheets": [
+          "shore_foam"
+        ],
+        "sourceEntries": [],
+        "recipe": "shore foam wake cell 2,1 normalized to 4x2",
+        "generativeArt": false
+      }
     }
   ]
 }

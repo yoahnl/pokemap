@@ -103,6 +103,18 @@ Future<SelbrumePortReferenceAssetResult> buildSelbrumePortReferenceAssets(
   for (final entry in desiredBytes.entries) {
     hashes[entry.key] = await _sha256Bytes(entry.value);
   }
+  final tileModuleJson = <Object?>[];
+  for (final module in spriteBuild.tileModules) {
+    final moduleHash = await _sha256Bytes(
+      Uint8List.fromList(img.encodePng(module.image)),
+    );
+    tileModuleJson.add(
+      module.toJson(
+        atlasWidthCells: _spriteAtlasWidthCells,
+        sha256: moduleHash,
+      ),
+    );
+  }
   final manifest = <String, Object?>{
     'schemaVersion': 1,
     'mapId': 'map_port_brisants',
@@ -181,6 +193,13 @@ Future<SelbrumePortReferenceAssetResult> buildSelbrumePortReferenceAssets(
     'entries': <Object?>[
       for (final entry in spriteBuild.entries) entry.toJson(),
     ],
+    'tileModuleGeneration': const <String, Object?>{
+      'method': 'deterministic_existing_source_derivation',
+      'generativeArt': false,
+      'packing': 'append_only_after_published_entries',
+      'tileOrder': 'row_major',
+    },
+    'tileModules': tileModuleJson,
   };
   final manifestBytes = Uint8List.fromList(
     utf8.encode('${_prettyJson.convert(manifest)}\n'),
@@ -275,13 +294,16 @@ Future<_OpaqueSource> _loadGrassSource(Directory root) async {
 
 _SpriteBuild _buildSpriteAtlas(Map<String, _SourceSheet> sources) {
   final prepared = <(_SpriteSpec, img.Image)>[];
+  final preparedById = <String, img.Image>{};
   for (final spec in _spriteSpecs) {
     final source = sources[spec.sheetKey];
     if (source == null) throw StateError('Unknown sheet ${spec.sheetKey}.');
     final cell =
         spec.sheetKey == 'nest' ? source.image : _sheetCell(source.image, spec);
     final trimmed = _trimAlpha(cell);
-    prepared.add((spec, _normalizeSprite(trimmed, spec)));
+    final normalized = _normalizeSprite(trimmed, spec);
+    prepared.add((spec, normalized));
+    preparedById[spec.id] = normalized;
   }
 
   var x = 0;
@@ -299,6 +321,25 @@ _SpriteBuild _buildSpriteAtlas(Map<String, _SourceSheet> sources) {
     placements.add((item.$1, item.$2, x, y));
     x += widthCells;
     rowHeight = math.max(rowHeight, heightCells);
+  }
+  final publishedHeightCells = y + rowHeight;
+  final preparedModules = <(_TileModuleSpec, img.Image)>[
+    for (final spec in _tileModuleSpecs)
+      (spec, _buildTileModuleImage(spec, sources, preparedById)),
+  ];
+  x = 0;
+  y = publishedHeightCells;
+  rowHeight = 0;
+  final modulePlacements = <(_TileModuleSpec, img.Image, int, int)>[];
+  for (final item in preparedModules) {
+    if (x > 0 && x + item.$1.widthCells > _spriteAtlasWidthCells) {
+      x = 0;
+      y += rowHeight;
+      rowHeight = 0;
+    }
+    modulePlacements.add((item.$1, item.$2, x, y));
+    x += item.$1.widthCells;
+    rowHeight = math.max(rowHeight, item.$1.heightCells);
   }
   final heightCells = y + rowHeight;
   final atlas = img.Image(
@@ -322,7 +363,28 @@ _SpriteBuild _buildSpriteAtlas(Map<String, _SourceSheet> sources) {
       ),
     );
   }
-  return _SpriteBuild(atlas: atlas, entries: entries);
+  final tileModules = <_BuiltTileModule>[];
+  for (final placement in modulePlacements) {
+    img.compositeImage(
+      atlas,
+      placement.$2,
+      dstX: placement.$3 * _tileSize,
+      dstY: placement.$4 * _tileSize,
+    );
+    tileModules.add(
+      _BuiltTileModule(
+        spec: placement.$1,
+        image: placement.$2,
+        x: placement.$3,
+        y: placement.$4,
+      ),
+    );
+  }
+  return _SpriteBuild(
+    atlas: atlas,
+    entries: entries,
+    tileModules: tileModules,
+  );
 }
 
 img.Image _sheetCell(img.Image source, _SpriteSpec spec) {
@@ -453,6 +515,183 @@ double _visualScaleFor(_SpriteSpec spec) {
     'foam' => 1.0,
     _ => 0.85,
   };
+}
+
+img.Image _buildTileModuleImage(
+  _TileModuleSpec spec,
+  Map<String, _SourceSheet> sources,
+  Map<String, img.Image> preparedById,
+) {
+  img.Image existing(String id) {
+    final image = preparedById[id];
+    if (image == null) throw StateError('Unknown published sprite $id.');
+    return image;
+  }
+
+  img.Image normalized(
+    String sheetKey,
+    int column,
+    int row,
+    int widthCells,
+    int heightCells,
+    String category,
+  ) {
+    final source = sources[sheetKey];
+    if (source == null) throw StateError('Unknown sheet $sheetKey.');
+    final adapter = _SpriteSpec(
+      id: spec.id,
+      name: spec.id,
+      sheetKey: sheetKey,
+      column: column,
+      row: row,
+      widthCells: widthCells,
+      heightCells: heightCells,
+      category: category,
+      recommendedLayerId: 'tile_only',
+      collisionIntent: 'none',
+    );
+    return _normalizeSprite(
+      _trimAlpha(_sheetCell(source.image, adapter)),
+      adapter,
+    );
+  }
+
+  final image = switch (spec.id) {
+    'module_port_ref_wall_h_short' => _cropCells(
+        existing('el_port_ref_walled_garden'),
+        x: 2,
+        y: 3,
+        width: 3,
+        height: 2,
+      ),
+    'module_port_ref_wall_h_long' => _cropCells(
+        existing('el_port_ref_walled_garden'),
+        x: 0,
+        y: 3,
+        width: 6,
+        height: 2,
+      ),
+    'module_port_ref_wall_end_left' => _cropCells(
+        existing('el_port_ref_walled_garden'),
+        x: 0,
+        y: 3,
+        width: 2,
+        height: 2,
+      ),
+    'module_port_ref_wall_end_right' => _cropCells(
+        existing('el_port_ref_walled_garden'),
+        x: 5,
+        y: 3,
+        width: 2,
+        height: 2,
+      ),
+    'module_port_ref_garden_gate_open' => _buildOpenGate(
+        _cropCells(
+          existing('el_port_ref_walled_garden'),
+          x: 1,
+          y: 1,
+          width: 6,
+          height: 2,
+        ),
+      ),
+    'module_port_ref_flower_bed_compact' =>
+      normalized('nature', 0, 1, 5, 3, 'garden'),
+    'module_port_ref_quay_steps_compact' =>
+      normalized('coast', 1, 1, 5, 5, 'dock'),
+    'module_port_ref_quay_pier_join' => _cropCells(
+        existing('el_port_ref_pier_t'),
+        x: 2,
+        y: 0,
+        width: 5,
+        height: 3,
+      ),
+    'module_port_ref_pier_endcap' => _cropCells(
+        existing('el_port_ref_pier_vertical'),
+        x: 0,
+        y: 7,
+        width: 5,
+        height: 2,
+      ),
+    'module_port_ref_coast_east_complete' =>
+      normalized('natural_coast', 1, 0, 9, 6, 'coastline'),
+    'module_port_ref_coast_quay_join' =>
+      normalized('coast', 2, 0, 3, 3, 'coastline'),
+    'module_port_ref_coast_quay_join_mirrored' => _mirrorHorizontal(
+        normalized('coast', 2, 0, 3, 3, 'coastline'),
+      ),
+    'module_port_ref_foam_h_short' =>
+      normalized('shore_foam', 1, 0, 4, 1, 'foam'),
+    'module_port_ref_foam_corner' =>
+      normalized('shore_foam', 2, 0, 3, 3, 'foam'),
+    'module_port_ref_foam_wake_short' =>
+      normalized('shore_foam', 2, 1, 4, 2, 'foam'),
+    _ => throw StateError('Unknown tile module recipe: ${spec.id}.'),
+  };
+  if (image.width != spec.widthCells * _tileSize ||
+      image.height != spec.heightCells * _tileSize) {
+    throw StateError(
+      'Tile module ${spec.id} produced ${image.width}x${image.height}; '
+      'expected ${spec.widthCells * _tileSize}x'
+      '${spec.heightCells * _tileSize}.',
+    );
+  }
+  return image;
+}
+
+img.Image _cropCells(
+  img.Image source, {
+  required int x,
+  required int y,
+  required int width,
+  required int height,
+}) {
+  return img.copyCrop(
+    source,
+    x: x * _tileSize,
+    y: y * _tileSize,
+    width: width * _tileSize,
+    height: height * _tileSize,
+  );
+}
+
+img.Image _buildOpenGate(img.Image fence) {
+  final canvas = img.Image(
+    width: 3 * _tileSize,
+    height: 2 * _tileSize,
+    numChannels: 4,
+  );
+  img.compositeImage(
+    canvas,
+    _cropCells(fence, x: 0, y: 0, width: 1, height: 2),
+  );
+  img.compositeImage(
+    canvas,
+    _cropCells(fence, x: 5, y: 0, width: 1, height: 2),
+    dstX: 2 * _tileSize,
+  );
+  return canvas;
+}
+
+img.Image _mirrorHorizontal(img.Image source) {
+  final mirrored = img.Image(
+    width: source.width,
+    height: source.height,
+    numChannels: 4,
+  );
+  for (var y = 0; y < source.height; y += 1) {
+    for (var x = 0; x < source.width; x += 1) {
+      final pixel = source.getPixel(x, y);
+      mirrored.setPixelRgba(
+        source.width - x - 1,
+        y,
+        pixel.r,
+        pixel.g,
+        pixel.b,
+        pixel.a,
+      );
+    }
+  }
+  return mirrored;
 }
 
 /// Packs owner-approved grass plus the two non-road fallback tiles.
@@ -781,10 +1020,81 @@ final class _OpaqueSource {
 }
 
 final class _SpriteBuild {
-  const _SpriteBuild({required this.atlas, required this.entries});
+  const _SpriteBuild({
+    required this.atlas,
+    required this.entries,
+    required this.tileModules,
+  });
 
   final img.Image atlas;
   final List<_BuiltSpriteEntry> entries;
+  final List<_BuiltTileModule> tileModules;
+}
+
+final class _BuiltTileModule {
+  const _BuiltTileModule({
+    required this.spec,
+    required this.image,
+    required this.x,
+    required this.y,
+  });
+
+  final _TileModuleSpec spec;
+  final img.Image image;
+  final int x;
+  final int y;
+
+  Map<String, Object?> toJson({
+    required int atlasWidthCells,
+    required String sha256,
+  }) {
+    final tileIds = <int>[
+      for (var localY = 0; localY < spec.heightCells; localY += 1)
+        for (var localX = 0; localX < spec.widthCells; localX += 1)
+          (y + localY) * atlasWidthCells + x + localX + 1,
+    ];
+    return <String, Object?>{
+      'id': spec.id,
+      'source': <String, int>{
+        'x': x,
+        'y': y,
+        'width': spec.widthCells,
+        'height': spec.heightCells,
+      },
+      'tileIds': tileIds,
+      'sha256': sha256,
+      'futurePlacement': spec.futurePlacement,
+      'derivation': <String, Object?>{
+        'kind': spec.derivationKind,
+        'sourceSheets': spec.sourceSheets,
+        'sourceEntries': spec.sourceEntries,
+        'recipe': spec.recipe,
+        'generativeArt': false,
+      },
+    };
+  }
+}
+
+final class _TileModuleSpec {
+  const _TileModuleSpec({
+    required this.id,
+    required this.widthCells,
+    required this.heightCells,
+    required this.futurePlacement,
+    required this.derivationKind,
+    required this.sourceSheets,
+    required this.sourceEntries,
+    required this.recipe,
+  });
+
+  final String id;
+  final int widthCells;
+  final int heightCells;
+  final String futurePlacement;
+  final String derivationKind;
+  final List<String> sourceSheets;
+  final List<String> sourceEntries;
+  final String recipe;
 }
 
 final class _BuiltSpriteEntry {
@@ -844,6 +1154,159 @@ final class _SpriteSpec {
   final String recommendedLayerId;
   final String collisionIntent;
 }
+
+const List<_TileModuleSpec> _tileModuleSpecs = <_TileModuleSpec>[
+  _TileModuleSpec(
+    id: 'module_port_ref_wall_h_short',
+    widthCells: 3,
+    heightCells: 2,
+    futurePlacement: 'short west and east garden limits',
+    derivationKind: 'published_entry_crop',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe: 'crop cells 2,3 3x2 from the published low garden border',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_wall_h_long',
+    widthCells: 6,
+    heightCells: 2,
+    futurePlacement: 'harbor master terrace retaining wall',
+    derivationKind: 'published_entry_crop',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe: 'crop cells 0,3 6x2 from the published low garden border',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_wall_end_left',
+    widthCells: 2,
+    heightCells: 2,
+    futurePlacement: 'left side of visual door openings',
+    derivationKind: 'published_entry_crop',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe: 'crop cells 0,3 2x2 from the published low garden border',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_wall_end_right',
+    widthCells: 2,
+    heightCells: 2,
+    futurePlacement: 'right side of visual door openings',
+    derivationKind: 'published_entry_crop',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe: 'crop cells 5,3 2x2 from the published low garden border',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_garden_gate_open',
+    widthCells: 3,
+    heightCells: 2,
+    futurePlacement: 'explicit visual opening in front of house doors',
+    derivationKind: 'deterministic_composition',
+    sourceSheets: <String>[],
+    sourceEntries: <String>['el_port_ref_walled_garden'],
+    recipe: 'outer cells of published garden fence with transparent center',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_flower_bed_compact',
+    widthCells: 5,
+    heightCells: 3,
+    futurePlacement: 'compact central planted island',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['nature'],
+    sourceEntries: <String>[],
+    recipe: 'nature cell 0,1 normalized to 5x3',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_quay_steps_compact',
+    widthCells: 5,
+    heightCells: 5,
+    futurePlacement: 'compact central quay access',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['coast'],
+    sourceEntries: <String>[],
+    recipe: 'coast steps cell 1,1 normalized to 5x5',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_quay_pier_join',
+    widthCells: 5,
+    heightCells: 3,
+    futurePlacement: 'continuous center quay to pier junction',
+    derivationKind: 'published_sprite_crop',
+    sourceSheets: <String>['docks_boats'],
+    sourceEntries: <String>['el_port_ref_pier_t'],
+    recipe: 'crop cells 2,0 5x3 from normalized T pier',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_pier_endcap',
+    widthCells: 5,
+    heightCells: 2,
+    futurePlacement: 'distinct west and east pier ends',
+    derivationKind: 'published_sprite_crop',
+    sourceSheets: <String>['docks_boats'],
+    sourceEntries: <String>['el_port_ref_pier_vertical'],
+    recipe: 'crop cells 0,7 5x2 from normalized vertical pier',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_coast_east_complete',
+    widthCells: 9,
+    heightCells: 6,
+    futurePlacement: 'complete south-east in-bounds coastline',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['natural_coast'],
+    sourceEntries: <String>[],
+    recipe: 'natural coast east cell normalized to 9x6',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_coast_quay_join',
+    widthCells: 3,
+    heightCells: 3,
+    futurePlacement: 'east quay to rocky coast transition',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['coast'],
+    sourceEntries: <String>[],
+    recipe: 'coast corner cell 2,0 normalized to 3x3',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_coast_quay_join_mirrored',
+    widthCells: 3,
+    heightCells: 3,
+    futurePlacement: 'west quay to rocky coast transition',
+    derivationKind: 'deterministic_mirror',
+    sourceSheets: <String>['coast'],
+    sourceEntries: <String>[],
+    recipe: 'horizontal mirror of normalized coast corner cell 2,0',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_foam_h_short',
+    widthCells: 4,
+    heightCells: 1,
+    futurePlacement: 'short local foam below quay piles',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['shore_foam'],
+    sourceEntries: <String>[],
+    recipe: 'shore foam cell 1,0 normalized to 4x1',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_foam_corner',
+    widthCells: 3,
+    heightCells: 3,
+    futurePlacement: 'local foam at coast corners',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['shore_foam'],
+    sourceEntries: <String>[],
+    recipe: 'shore foam corner cell 2,0 normalized to 3x3',
+  ),
+  _TileModuleSpec(
+    id: 'module_port_ref_foam_wake_short',
+    widthCells: 4,
+    heightCells: 2,
+    futurePlacement: 'restrained local wake below boat hulls',
+    derivationKind: 'normalized_source_cell',
+    sourceSheets: <String>['shore_foam'],
+    sourceEntries: <String>[],
+    recipe: 'shore foam wake cell 2,1 normalized to 4x2',
+  ),
+];
 
 const List<_SpriteSpec> _spriteSpecs = <_SpriteSpec>[
   _SpriteSpec(

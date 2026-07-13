@@ -53,7 +53,16 @@ void main() {
       (manifest['referenceOnlySource'] as Map)['runtimeUnderlay'],
       isFalse,
     );
-    expect((manifest['entries'] as List), hasLength(35));
+    final entries = (manifest['entries'] as List).cast<Map>();
+    expect(entries, hasLength(35));
+    _expectPublishedEntryRectsStayFixed(entries);
+    _expectTileModulesAreAppendOnly(
+      manifest: manifest,
+      spriteAtlas: _decode(
+        fixture,
+        selbrumePortReferenceSpriteAtlasPath,
+      ),
+    );
     expect(
       (((manifest['atlases'] as Map)['water'] as Map)['frameDurationMs']),
       180,
@@ -91,6 +100,195 @@ void main() {
     _expectWaterUsesLayeredCurvedWavelets(water);
   });
 }
+
+void _expectPublishedEntryRectsStayFixed(List<Map> entries) {
+  final actual = <String, Map<String, Object?>>{
+    for (final entry in entries)
+      entry['id']! as String:
+          Map<String, Object?>.from(entry['source']! as Map),
+  };
+  expect(actual, _publishedEntrySources);
+}
+
+void _expectTileModulesAreAppendOnly({
+  required Map<String, dynamic> manifest,
+  required img.Image spriteAtlas,
+}) {
+  final atlas = (manifest['atlases'] as Map)['sprites'] as Map;
+  final atlasWidthCells = atlas['widthCells']! as int;
+  final atlasHeightCells = atlas['heightCells']! as int;
+  expect(atlasWidthCells, 48);
+  expect(atlasHeightCells, greaterThan(44));
+  expect(
+    manifest['tileModuleGeneration'],
+    containsPair('generativeArt', false),
+  );
+  expect(
+    manifest['tileModuleGeneration'],
+    containsPair('packing', 'append_only_after_published_entries'),
+  );
+
+  final modules = (manifest['tileModules'] as List).cast<Map>();
+  expect(
+    modules.map((module) => module['id']).toList(),
+    _expectedTileModuleIds,
+  );
+  final occupiedTileIds = <int>{};
+  for (final module in modules) {
+    final source = module['source']! as Map;
+    final x = source['x']! as int;
+    final y = source['y']! as int;
+    final width = source['width']! as int;
+    final height = source['height']! as int;
+    expect(x, inInclusiveRange(0, atlasWidthCells - 1));
+    expect(y, greaterThanOrEqualTo(44));
+    expect(width, greaterThan(0));
+    expect(height, greaterThan(0));
+    expect(x + width, lessThanOrEqualTo(atlasWidthCells));
+    expect(y + height, lessThanOrEqualTo(atlasHeightCells));
+
+    final expectedTileIds = <int>[
+      for (var localY = 0; localY < height; localY += 1)
+        for (var localX = 0; localX < width; localX += 1)
+          (y + localY) * atlasWidthCells + x + localX + 1,
+    ];
+    expect(module['tileIds'], expectedTileIds);
+    for (final tileId in expectedTileIds) {
+      expect(
+        occupiedTileIds.add(tileId),
+        isTrue,
+        reason: 'tile modules must not overlap in the atlas',
+      );
+    }
+    expect(module['sha256'], matches(RegExp(r'^[a-f0-9]{64}$')));
+    expect(module['futurePlacement'], isNotEmpty);
+    final derivation = module['derivation']! as Map;
+    expect(derivation['kind'], isNotEmpty);
+    expect(
+      (derivation['sourceSheets'] as List).isNotEmpty ||
+          (derivation['sourceEntries'] as List).isNotEmpty,
+      isTrue,
+      reason: '${module['id']} must name a sheet or published entry source',
+    );
+    expect(derivation['generativeArt'], isFalse);
+    expect(
+      _moduleHasOpaquePixel(
+        spriteAtlas,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+      ),
+      isTrue,
+      reason: '${module['id']} must contain visible pixels',
+    );
+  }
+
+  final gardenBoundaryIds = <String>{
+    'module_port_ref_wall_h_short',
+    'module_port_ref_wall_h_long',
+    'module_port_ref_wall_end_left',
+    'module_port_ref_wall_end_right',
+    'module_port_ref_garden_gate_open',
+  };
+  for (final module in modules.where(
+    (candidate) => gardenBoundaryIds.contains(candidate['id']),
+  )) {
+    final derivation = module['derivation']! as Map;
+    expect(
+      derivation['sourceEntries'],
+      contains('el_port_ref_walled_garden'),
+      reason: '${module['id']} must reuse the low garden language',
+    );
+  }
+}
+
+bool _moduleHasOpaquePixel(
+  img.Image atlas, {
+  required int x,
+  required int y,
+  required int width,
+  required int height,
+}) {
+  for (var pixelY = y * 32; pixelY < (y + height) * 32; pixelY += 1) {
+    for (var pixelX = x * 32; pixelX < (x + width) * 32; pixelX += 1) {
+      if (atlas.getPixel(pixelX, pixelY).a.toInt() > 0) return true;
+    }
+  }
+  return false;
+}
+
+const List<String> _expectedTileModuleIds = <String>[
+  'module_port_ref_wall_h_short',
+  'module_port_ref_wall_h_long',
+  'module_port_ref_wall_end_left',
+  'module_port_ref_wall_end_right',
+  'module_port_ref_garden_gate_open',
+  'module_port_ref_flower_bed_compact',
+  'module_port_ref_quay_steps_compact',
+  'module_port_ref_quay_pier_join',
+  'module_port_ref_pier_endcap',
+  'module_port_ref_coast_east_complete',
+  'module_port_ref_coast_quay_join',
+  'module_port_ref_coast_quay_join_mirrored',
+  'module_port_ref_foam_h_short',
+  'module_port_ref_foam_corner',
+  'module_port_ref_foam_wake_short',
+];
+
+const Map<String, Map<String, Object?>> _publishedEntrySources =
+    <String, Map<String, Object?>>{
+  'el_port_ref_harbor_master': {'x': 0, 'y': 0, 'width': 8, 'height': 6},
+  'el_port_ref_house_orange': {'x': 8, 'y': 0, 'width': 7, 'height': 5},
+  'el_port_ref_house_blue': {'x': 15, 'y': 0, 'width': 7, 'height': 5},
+  'el_port_ref_fish_market': {'x': 22, 'y': 0, 'width': 8, 'height': 6},
+  'el_port_ref_chandlery': {'x': 30, 'y': 0, 'width': 8, 'height': 6},
+  'el_port_ref_quay_horizontal': {'x': 0, 'y': 6, 'width': 12, 'height': 4},
+  'el_port_ref_pier_t': {'x': 12, 'y': 6, 'width': 9, 'height': 9},
+  'el_port_ref_pier_vertical': {'x': 21, 'y': 6, 'width': 5, 'height': 9},
+  'el_port_ref_boat_large': {'x': 26, 'y': 6, 'width': 10, 'height': 5},
+  'el_port_ref_boat_medium': {'x': 36, 'y': 6, 'width': 8, 'height': 4},
+  'el_port_ref_boat_small': {'x': 0, 'y': 15, 'width': 6, 'height': 4},
+  'el_port_ref_forest_cluster': {'x': 6, 'y': 15, 'width': 11, 'height': 7},
+  'el_port_ref_tree': {'x': 17, 'y': 15, 'width': 5, 'height': 6},
+  'el_port_ref_walled_garden': {'x': 22, 'y': 15, 'width': 7, 'height': 5},
+  'el_port_ref_flower_bed': {'x': 29, 'y': 15, 'width': 8, 'height': 4},
+  'el_port_ref_rock_cluster': {'x': 37, 'y': 15, 'width': 6, 'height': 4},
+  'el_port_ref_coast_west_continuous': {
+    'x': 0,
+    'y': 22,
+    'width': 8,
+    'height': 19
+  },
+  'el_port_ref_coast_east_peninsula': {
+    'x': 8,
+    'y': 22,
+    'width': 9,
+    'height': 5
+  },
+  'el_port_ref_quay_steps': {'x': 17, 'y': 22, 'width': 7, 'height': 7},
+  'el_port_ref_foam_quay_horizontal': {
+    'x': 24,
+    'y': 22,
+    'width': 12,
+    'height': 2
+  },
+  'el_port_ref_foam_rock_cluster': {'x': 36, 'y': 22, 'width': 6, 'height': 4},
+  'el_port_ref_foam_boat_wake': {'x': 42, 'y': 22, 'width': 4, 'height': 2},
+  'el_port_ref_fish_crates_small': {'x': 46, 'y': 22, 'width': 2, 'height': 2},
+  'el_port_ref_rope_coil_small': {'x': 0, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_net_rack_small': {'x': 2, 'y': 41, 'width': 2, 'height': 3},
+  'el_port_ref_fish_basket_small': {'x': 4, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_lobster_pots_small': {'x': 6, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_barrel_buoy_small': {'x': 8, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_nest': {'x': 10, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_lamp': {'x': 12, 'y': 41, 'width': 1, 'height': 3},
+  'el_port_ref_bench': {'x': 13, 'y': 41, 'width': 3, 'height': 2},
+  'el_port_ref_sign_small': {'x': 16, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_rock_small': {'x': 18, 'y': 41, 'width': 1, 'height': 1},
+  'el_port_ref_rock_pair': {'x': 19, 'y': 41, 'width': 2, 'height': 2},
+  'el_port_ref_rock_trio': {'x': 21, 'y': 41, 'width': 3, 'height': 2},
+};
 
 void _expectWaterUsesLayeredCurvedWavelets(img.Image water) {
   const frameSize = 256;
