@@ -130,35 +130,30 @@ class LayersPanel extends ConsumerWidget {
               style: editorMacosSheetTitleStyle(ctx),
             ),
             const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PushButton(
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: () async {
-                  final picked =
-                      await showCupertinoListPicker<_LayerCreationKind>(
-                    context: ctx,
-                    title: 'Type de calque',
-                    items: _LayerCreationKind.values,
-                    labelOf: _kindLabel,
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      selectedType = picked;
-                      if (picked == _LayerCreationKind.surface &&
-                          nameController.text.trim().isEmpty) {
-                        nameController.text = 'Surfaces';
-                      }
-                      if (picked == _LayerCreationKind.environment &&
-                          nameController.text.trim().isEmpty) {
-                        nameController.text = 'Environnement';
-                      }
-                    });
+            PokeMapDropdownField<_LayerCreationKind>(
+              key: const ValueKey<String>('layers-panel-add-type-dropdown'),
+              label: 'Type',
+              value: selectedType,
+              items: [
+                for (final kind in _LayerCreationKind.values)
+                  PokeMapDropdownItem<_LayerCreationKind>(
+                    value: kind,
+                    label: _kindLabel(kind),
+                  ),
+              ],
+              onChanged: (picked) {
+                setState(() {
+                  selectedType = picked;
+                  if (picked == _LayerCreationKind.surface &&
+                      nameController.text.trim().isEmpty) {
+                    nameController.text = 'Surfaces';
                   }
-                },
-                child: Text('Type : ${_kindLabel(selectedType)}'),
-              ),
+                  if (picked == _LayerCreationKind.environment &&
+                      nameController.text.trim().isEmpty) {
+                    nameController.text = 'Environnement';
+                  }
+                });
+              },
             ),
             const SizedBox(height: 8),
             MacosTextField(

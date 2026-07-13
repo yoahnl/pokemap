@@ -53,12 +53,19 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
+          (widget) =>
+              widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
+      const typeKey = ValueKey<String>('layers-panel-add-type-dropdown');
+      final typeDropdown = find.descendant(
+        of: find.byKey(typeKey),
+        matching: find.byIcon(CupertinoIcons.chevron_down),
+      );
+      await tester.tap(typeDropdown);
       await tester.pumpAndSettle();
+      expect(find.byType(CupertinoActionSheet), findsNothing);
       expect(find.text('Couche d\'environnement'), findsOneWidget);
     });
 
@@ -103,11 +110,23 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
+          (widget) =>
+              widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
+      const typeKey = ValueKey<String>('layers-panel-add-type-dropdown');
+      final typeDropdown = find.descendant(
+        of: find.byKey(typeKey),
+        matching: find.byIcon(CupertinoIcons.chevron_down),
+      );
+      await tester.tap(typeDropdown);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Couche d\'environnement'),
+        100,
+        scrollable: find.byType(Scrollable).last,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Couche d\'environnement'));
       await tester.pumpAndSettle();

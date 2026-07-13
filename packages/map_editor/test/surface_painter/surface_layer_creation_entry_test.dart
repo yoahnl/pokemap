@@ -44,20 +44,32 @@ void main() {
 
       await tester.tap(
         find.byWidgetPredicate(
-          (widget) => widget is Tooltip && widget.message == 'Ajouter un calque',
+          (widget) =>
+              widget is Tooltip && widget.message == 'Ajouter un calque',
         ),
       );
       await tester.pumpAndSettle();
       expect(find.text('Ajouter un calque'), findsOneWidget);
 
-      await tester.tap(find.text('Type : Couche de tuiles (Tile)'));
+      const typeKey = ValueKey<String>('layers-panel-add-type-dropdown');
+      expect(find.byKey(typeKey), findsOneWidget);
+      expect(find.text('Type'), findsOneWidget);
+      expect(find.text('Couche de tuiles (Tile)'), findsOneWidget);
+
+      final typeDropdown = find.descendant(
+        of: find.byKey(typeKey),
+        matching: find.byIcon(CupertinoIcons.chevron_down),
+      );
+      await tester.tap(typeDropdown);
       await tester.pumpAndSettle();
-      expect(find.text('Type de calque'), findsOneWidget);
+
+      expect(find.byType(CupertinoActionSheet), findsNothing);
+      expect(find.text('Type de calque'), findsNothing);
       expect(find.text('Couche de surface'), findsOneWidget);
 
       await tester.tap(find.text('Couche de surface'));
       await tester.pumpAndSettle();
-      expect(find.text('Type : Couche de surface'), findsOneWidget);
+      expect(find.text('Couche de surface'), findsOneWidget);
       expect(find.text('Surfaces'), findsOneWidget);
 
       await tester.tap(find.text('Ajouter'));
