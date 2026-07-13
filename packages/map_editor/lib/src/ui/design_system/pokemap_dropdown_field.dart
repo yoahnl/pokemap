@@ -75,9 +75,7 @@ class PokeMapDropdownField<T> extends StatelessWidget {
                     icon: Icon(
                       CupertinoIcons.chevron_down,
                       size: 14,
-                      color: canOpen
-                          ? colors.brandPrimary
-                          : colors.textMuted,
+                      color: canOpen ? colors.brandPrimary : colors.textMuted,
                     ),
                     style: TextStyle(
                       fontSize: 13,

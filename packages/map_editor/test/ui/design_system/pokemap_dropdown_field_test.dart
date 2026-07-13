@@ -38,7 +38,7 @@ void main() {
     expect(find.text('Grass Base'), findsOneWidget);
     expect(find.byIcon(CupertinoIcons.chevron_down), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey<String>('base-type-dropdown')));
+    await tester.tap(find.byType(DropdownButton<String>));
     await tester.pumpAndSettle();
 
     expect(find.text('Dirt Base'), findsOneWidget);

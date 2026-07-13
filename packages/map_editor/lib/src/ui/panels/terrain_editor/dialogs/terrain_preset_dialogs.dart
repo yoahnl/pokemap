@@ -222,15 +222,6 @@ Future<void> _showTerrainPresetDialog(
   final paintableTerrainTypes = TerrainType.values
       .where((type) => type.isBackgroundPaintable)
       .toList(growable: false);
-  String folderRowPickLabel(String id) {
-    if (id.isEmpty) return 'Root';
-    return categories.firstWhere((e) => e.id == id).label;
-  }
-
-  String tilesetRowLabel(String id) {
-    if (id.isEmpty) return 'None';
-    return availableTilesets.firstWhere((e) => e.id == id).name;
-  }
 
   await showMacosEditorTallSheet<void>(
     context: context,
@@ -258,78 +249,68 @@ Future<void> _showTerrainPresetDialog(
                   placeholder: 'Preset name',
                 ),
                 const SizedBox(height: 12),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final picked = await showCupertinoListPicker<TerrainType>(
-                        context: ctx,
-                        title: 'Base type',
-                        items: paintableTerrainTypes,
-                        labelOf: _terrainLabel,
-                      );
-                      if (picked != null) {
-                        setState(() => terrainType = picked);
-                      }
-                    },
-                    child: Text(
-                      'Base type: ${_terrainLabel(terrainType)}',
-                    ),
+                PokeMapDropdownField<TerrainType>(
+                  key: const ValueKey<String>(
+                    'terrain-preset-base-type-dropdown',
                   ),
+                  label: 'Base type',
+                  value: terrainType,
+                  items: [
+                    for (final type in paintableTerrainTypes)
+                      PokeMapDropdownItem<TerrainType>(
+                        value: type,
+                        label: _terrainLabel(type),
+                      ),
+                  ],
+                  onChanged: (picked) {
+                    setState(() => terrainType = picked);
+                  },
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final items = <String>[
-                        '',
-                        ...categories.map((c) => c.id),
-                      ];
-                      final picked = await showCupertinoListPicker<String>(
-                        context: ctx,
-                        title: 'Folder',
-                        items: items,
-                        labelOf: folderRowPickLabel,
-                      );
-                      if (picked != null) {
-                        setState(
-                          () => categoryId = picked.isEmpty ? null : picked,
-                        );
-                      }
-                    },
-                    child: Text(
-                      'Folder: ${folderRowPickLabel(categoryId ?? '')}',
-                    ),
+                PokeMapDropdownField<String>(
+                  key: const ValueKey<String>(
+                    'terrain-preset-folder-dropdown',
                   ),
+                  label: 'Folder',
+                  value: categoryId ?? '',
+                  items: [
+                    const PokeMapDropdownItem<String>(
+                      value: '',
+                      label: 'Root',
+                    ),
+                    for (final category in categories)
+                      PokeMapDropdownItem<String>(
+                        value: category.id,
+                        label: category.label,
+                      ),
+                  ],
+                  onChanged: (picked) {
+                    setState(
+                      () => categoryId = picked.isEmpty ? null : picked,
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: PushButton(
-                    controlSize: ControlSize.regular,
-                    secondary: true,
-                    onPressed: () async {
-                      final items = <String>[
-                        '',
-                        ...availableTilesets.map((t) => t.id),
-                      ];
-                      final picked = await showCupertinoListPicker<String>(
-                        context: ctx,
-                        title: 'Tileset',
-                        items: items,
-                        labelOf: tilesetRowLabel,
-                      );
-                      if (picked != null) {
-                        setState(() => tilesetId = picked);
-                      }
-                    },
-                    child: Text('Tileset: ${tilesetRowLabel(tilesetId)}'),
+                PokeMapDropdownField<String>(
+                  key: const ValueKey<String>(
+                    'terrain-preset-tileset-dropdown',
                   ),
+                  label: 'Tileset',
+                  value: tilesetId,
+                  items: [
+                    const PokeMapDropdownItem<String>(
+                      value: '',
+                      label: 'None',
+                    ),
+                    for (final tileset in availableTilesets)
+                      PokeMapDropdownItem<String>(
+                        value: tileset.id,
+                        label: tileset.name,
+                      ),
+                  ],
+                  onChanged: (picked) {
+                    setState(() => tilesetId = picked);
+                  },
                 ),
                 const SizedBox(height: 4),
                 Text(
