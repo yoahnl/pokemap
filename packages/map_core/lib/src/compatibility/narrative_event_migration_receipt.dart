@@ -2,7 +2,9 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_registry.dart';
+import '../models/narrative_event_wire.dart';
 import '../operations/narrative_event_canonical_json.dart';
+import 'narrative_event_migration_choice.dart';
 import 'narrative_event_reference_mapping.dart';
 
 final RegExp _fingerprintPattern = RegExp(r'^sha256:[0-9a-f]{64}$');
@@ -40,6 +42,19 @@ final class NarrativeEventMigrationSnapshot {
 
   factory NarrativeEventMigrationSnapshot.fromJson(Object? json) {
     final object = _object(json, 'snapshot');
+    _expectExactFields(
+      object,
+      const {
+        'projectRevisionToken',
+        'manifestHash',
+        'corpusHash',
+        'referenceCatalogHash',
+        'mapHashes',
+        'legacySourceHashes',
+        'saveHashes',
+      },
+      r'$.snapshot',
+    );
     return NarrativeEventMigrationSnapshot(
       projectRevisionToken: _string(object, 'projectRevisionToken'),
       manifestHash: _string(object, 'manifestHash'),
@@ -89,6 +104,16 @@ final class NarrativeEventMigrationWritePreconditions {
 
   factory NarrativeEventMigrationWritePreconditions.fromJson(Object? json) {
     final object = _object(json, 'writePreconditions');
+    _expectExactFields(
+      object,
+      const {
+        'snapshot',
+        'requireProjectWritable',
+        'requireRegistryMigrationAllowed',
+        'requireNoClaimConflicts',
+      },
+      r'$.writePreconditions',
+    );
     return NarrativeEventMigrationWritePreconditions(
       snapshot: NarrativeEventMigrationSnapshot.fromJson(object['snapshot']),
       requireProjectWritable: _boolean(object, 'requireProjectWritable'),
@@ -146,6 +171,15 @@ final class NarrativeEventMigrationBackupPlan {
 
   factory NarrativeEventMigrationBackupPlan.fromJson(Object? json) {
     final object = _object(json, 'backupPlan');
+    _expectExactFields(
+      object,
+      const {
+        'futureDestinations',
+        'createBeforeCommit',
+        'noBackupCreatedInPhaseC',
+      },
+      r'$.backupPlan',
+    );
     return NarrativeEventMigrationBackupPlan(
       futureDestinations: _stringMap(
         object['futureDestinations'],
@@ -223,6 +257,11 @@ final class NarrativeEventMigrationReceiptLifecycle {
 
   factory NarrativeEventMigrationReceiptLifecycle.fromJson(Object? json) {
     final object = _object(json, 'lifecycle');
+    _expectExactFields(
+      object,
+      const {'status', 'preparedAt', 'committedAt', 'recoveredAt'},
+      r'$.lifecycle',
+    );
     return NarrativeEventMigrationReceiptLifecycle._(
       status: _enumByName(
         NarrativeEventMigrationReceiptStatus.values,
@@ -295,6 +334,18 @@ final class NarrativeEventMigrationAtomicityPlan {
 
   factory NarrativeEventMigrationAtomicityPlan.fromJson(Object? json) {
     final object = _object(json, 'atomicityPlan');
+    _expectExactFields(
+      object,
+      const {
+        'claimsMultiFileAtomicity',
+        'manifestStagingRequired',
+        'unitRenameOnly',
+        'legacyMapsRemainUnchanged',
+        'crashRecoveryUsesJournal',
+        'journalStates',
+      },
+      r'$.atomicityPlan',
+    );
     return NarrativeEventMigrationAtomicityPlan(
       claimsMultiFileAtomicity: _boolean(object, 'claimsMultiFileAtomicity'),
       manifestStagingRequired: _boolean(object, 'manifestStagingRequired'),
@@ -353,6 +404,18 @@ final class NarrativeEventMigrationRollbackPlan {
 
   factory NarrativeEventMigrationRollbackPlan.fromJson(Object? json) {
     final object = _object(json, 'rollbackPlan');
+    _expectExactFields(
+      object,
+      const {
+        'requiresUnchangedRevision',
+        'requiresMatchingHashes',
+        'availableBeforePointOfNoReturn',
+        'availableAfterPointOfNoReturn',
+        'compensatingMigrationRequiredAfter',
+        'conditions',
+      },
+      r'$.rollbackPlan',
+    );
     return NarrativeEventMigrationRollbackPlan(
       requiresUnchangedRevision: _boolean(object, 'requiresUnchangedRevision'),
       requiresMatchingHashes: _boolean(object, 'requiresMatchingHashes'),
@@ -412,6 +475,16 @@ final class NarrativeEventMigrationPointOfNoReturn {
 
   factory NarrativeEventMigrationPointOfNoReturn.fromJson(Object? json) {
     final object = _object(json, 'pointOfNoReturn');
+    _expectExactFields(
+      object,
+      const {
+        'trigger',
+        'description',
+        'reached',
+        'compensatingMigrationRequiredAfter',
+      },
+      r'$.pointOfNoReturn',
+    );
     return NarrativeEventMigrationPointOfNoReturn(
       trigger: _string(object, 'trigger'),
       description: _string(object, 'description'),
@@ -437,12 +510,13 @@ final class NarrativeEventMigrationPointOfNoReturn {
 
 @immutable
 final class NarrativeEventMigrationReceipt {
-  static const currentSchemaVersion = 1;
+  static const legacySchemaVersion = 1;
+  static const currentSchemaVersion = 2;
   static const phaseC = 'NS-EVENT-V2-PHASE-C';
 
   NarrativeEventMigrationReceipt({
     required String receiptId,
-    this.schemaVersion = currentSchemaVersion,
+    int? schemaVersion,
     this.phase = phaseC,
     required this.isProposal,
     required this.snapshot,
@@ -451,6 +525,7 @@ final class NarrativeEventMigrationReceipt {
     required this.lifecycle,
     required List<String> cohortIds,
     required this.mappings,
+    List<NarrativeEventMigrationSourceChoice> sourceChoices = const [],
     required List<NarrativeEventRecord> targetRecords,
     required List<LegacySourceClaim> targetClaims,
     required this.backupPlan,
@@ -459,6 +534,10 @@ final class NarrativeEventMigrationReceipt {
     required this.rollbackPlan,
     required this.pointOfNoReturn,
   })  : receiptId = _identity(receiptId, 'receiptId'),
+        schemaVersion = schemaVersion ??
+            (sourceChoices.isEmpty
+                ? legacySchemaVersion
+                : currentSchemaVersion),
         expectedManifestHashAfter = _fingerprint(
           expectedManifestHashAfter,
           'expectedManifestHashAfter',
@@ -468,13 +547,21 @@ final class NarrativeEventMigrationReceipt {
           'expectedRegistryHashAfter',
         ),
         cohortIds = _sortedUnique(cohortIds, 'cohortIds'),
+        sourceChoices = _sortedSourceChoices(sourceChoices),
         targetRecords = _sortedRecords(targetRecords),
         targetClaims = _sortedClaims(targetClaims) {
-    if (schemaVersion != currentSchemaVersion) {
+    if (this.schemaVersion != legacySchemaVersion &&
+        this.schemaVersion != currentSchemaVersion) {
       throw ArgumentError.value(
-        schemaVersion,
+        this.schemaVersion,
         'schemaVersion',
-        'only schema version 1 is supported',
+        'only schema versions 1 and 2 are supported',
+      );
+    }
+    if (this.schemaVersion == legacySchemaVersion &&
+        this.sourceChoices.isNotEmpty) {
+      throw ArgumentError(
+        'Schema version 1 cannot persist explicit source choices.',
       );
     }
     if (phase != phaseC) {
@@ -601,6 +688,7 @@ final class NarrativeEventMigrationReceipt {
     final recordsById = {
       for (final record in this.targetRecords) record.id: record,
     };
+    final claimsByProvenance = <LegacySourceRef, LegacySourceClaim>{};
     for (final claim in this.targetClaims) {
       if (claim.migrationReceiptId != this.receiptId ||
           !this.cohortIds.contains(claim.cohortId)) {
@@ -617,15 +705,155 @@ final class NarrativeEventMigrationReceipt {
           );
         }
       }
+      for (final member in claim.members) {
+        if (claimsByProvenance.putIfAbsent(
+              member.provenance,
+              () => claim,
+            ) !=
+            claim) {
+          throw ArgumentError(
+            'A receipt provenance cannot belong to multiple target claims.',
+          );
+        }
+      }
+    }
+    final idMappingsByProvenance =
+        <LegacySourceRef, List<NarrativeEventIdMapping>>{};
+    for (final mapping in mappings.idMappings) {
+      final claim = claimsByProvenance[mapping.provenance];
+      if (claim == null) {
+        throw ArgumentError(
+          'Every ID mapping must belong to a target claim provenance.',
+        );
+      }
+      if (mapping.targetEventIds.any(
+        (targetId) =>
+            !claim.targetEventIds.contains(targetId) ||
+            recordsById[targetId]?.definitionOrNull?.source != claim.source,
+      )) {
+        throw ArgumentError(
+          'Every ID mapping target must belong to its exact provenance claim.',
+        );
+      }
+      idMappingsByProvenance
+          .putIfAbsent(mapping.provenance, () => [])
+          .add(mapping);
+    }
+    for (final provenance in claimsByProvenance.keys) {
+      if (idMappingsByProvenance[provenance]?.length != 1) {
+        throw ArgumentError(
+          'Every claimed provenance requires one exact ID mapping.',
+        );
+      }
+    }
+    for (final choice in this.sourceChoices) {
+      final claim = claimsByProvenance[choice.provenance];
+      if (claim == null) {
+        throw ArgumentError(
+          'Every persisted source choice must belong to a target claim.',
+        );
+      }
+      if (claim.source != choice.source) {
+        throw ArgumentError(
+          'Persisted source choices and their target claims must use the '
+          'same source.',
+        );
+      }
+      final choiceSignatures = [
+        for (final target in choice.targets)
+          target.recordSignature(choice.source),
+      ]..sort();
+      if (choiceSignatures.length != choiceSignatures.toSet().length) {
+        throw ArgumentError(
+          'Persisted source choice targets must not contain duplicates.',
+        );
+      }
+      final idMapping = idMappingsByProvenance[choice.provenance]!.single;
+      final recordSignatures = [
+        for (final targetId in idMapping.targetEventIds)
+          _recordSignature(recordsById[targetId]!.definitionOrNull!),
+      ]..sort();
+      if (!_sameStrings(choiceSignatures, recordSignatures)) {
+        throw ArgumentError(
+          'Persisted source choice targets must exactly match its mapped '
+          'target records.',
+        );
+      }
     }
   }
 
   factory NarrativeEventMigrationReceipt.fromJson(Object? json) {
     final object = _object(json, 'receipt');
+    final schemaVersion = _integer(object, 'schemaVersion');
+    if (schemaVersion > currentSchemaVersion) {
+      NarrativeEventWire.unsupported(
+        'Unsupported future migration receipt schema version '
+        '$schemaVersion.',
+        path: r'$.schemaVersion',
+        source: schemaVersion,
+      );
+    }
+    if (schemaVersion < legacySchemaVersion) {
+      NarrativeEventWire.invalid(
+        'Unsupported historical migration receipt schema version '
+        '$schemaVersion.',
+        path: r'$.schemaVersion',
+        source: schemaVersion,
+      );
+    }
+    final expectedFields = schemaVersion == legacySchemaVersion
+        ? const {
+            'receiptId',
+            'schemaVersion',
+            'phase',
+            'isProposal',
+            'snapshot',
+            'expectedManifestHashAfter',
+            'expectedRegistryHashAfter',
+            'lifecycle',
+            'cohortIds',
+            'mappings',
+            'targetRecords',
+            'targetClaims',
+            'backupPlan',
+            'writePreconditions',
+            'atomicityPlan',
+            'rollbackPlan',
+            'pointOfNoReturn',
+          }
+        : const {
+            'receiptId',
+            'schemaVersion',
+            'phase',
+            'isProposal',
+            'snapshot',
+            'expectedManifestHashAfter',
+            'expectedRegistryHashAfter',
+            'lifecycle',
+            'cohortIds',
+            'mappings',
+            'sourceChoices',
+            'targetRecords',
+            'targetClaims',
+            'backupPlan',
+            'writePreconditions',
+            'atomicityPlan',
+            'rollbackPlan',
+            'pointOfNoReturn',
+          };
+    _expectExactFields(object, expectedFields, r'$');
+    final phase = _string(object, 'phase');
+    if (phase != phaseC) {
+      NarrativeEventWire.unsupported(
+        'Unsupported migration receipt phase "$phase".',
+        path: r'$.phase',
+        source: phase,
+      );
+    }
     return NarrativeEventMigrationReceipt(
       receiptId: _string(object, 'receiptId'),
-      schemaVersion: _integer(object, 'schemaVersion'),
-      phase: _string(object, 'phase'),
+      schemaVersion: schemaVersion,
+      phase: phase,
       isProposal: _boolean(object, 'isProposal'),
       snapshot: NarrativeEventMigrationSnapshot.fromJson(object['snapshot']),
       expectedManifestHashAfter: _string(
@@ -641,6 +869,11 @@ final class NarrativeEventMigrationReceipt {
       ),
       cohortIds: _stringList(object['cohortIds'], 'cohortIds'),
       mappings: NarrativeEventReferenceMappings.fromJson(object['mappings']),
+      sourceChoices: schemaVersion == currentSchemaVersion
+          ? _list(object['sourceChoices'], 'sourceChoices')
+              .map(NarrativeEventMigrationSourceChoice.fromJson)
+              .toList()
+          : const [],
       targetRecords: _list(object['targetRecords'], 'targetRecords')
           .map(NarrativeEventRecord.fromJson)
           .toList(),
@@ -675,6 +908,7 @@ final class NarrativeEventMigrationReceipt {
   final NarrativeEventMigrationReceiptLifecycle lifecycle;
   final List<String> cohortIds;
   final NarrativeEventReferenceMappings mappings;
+  final List<NarrativeEventMigrationSourceChoice> sourceChoices;
   final List<NarrativeEventRecord> targetRecords;
   final List<LegacySourceClaim> targetClaims;
   final NarrativeEventMigrationBackupPlan backupPlan;
@@ -694,6 +928,10 @@ final class NarrativeEventMigrationReceipt {
         'lifecycle': lifecycle.toJson(),
         'cohortIds': cohortIds,
         'mappings': mappings.toJson(),
+        if (schemaVersion >= currentSchemaVersion)
+          'sourceChoices': [
+            for (final choice in sourceChoices) choice.toJson(),
+          ],
         'targetRecords': [for (final record in targetRecords) record.toJson()],
         'targetClaims': [for (final claim in targetClaims) claim.toJson()],
         'backupPlan': backupPlan.toJson(),
@@ -702,6 +940,20 @@ final class NarrativeEventMigrationReceipt {
         'rollbackPlan': rollbackPlan.toJson(),
         'pointOfNoReturn': pointOfNoReturn.toJson(),
       };
+}
+
+String _recordSignature(NarrativeEventDefinition definition) {
+  return canonicalizeNarrativeEventJson({
+    'name': definition.name,
+    'source': definition.source.toJson(),
+    'conditions': [
+      for (final condition in definition.conditions) condition.toJson(),
+    ],
+    'sceneId': definition.sceneId,
+    'reusePolicy': definition.reusePolicy.name,
+    'priority': definition.priority,
+    'order': definition.order,
+  });
 }
 
 bool _sameStrings(List<String> left, List<String> right) {
@@ -731,6 +983,29 @@ List<LegacySourceClaim> _sortedClaims(List<LegacySourceClaim> values) {
   for (var index = 1; index < sorted.length; index++) {
     if (sorted[index - 1].cohortId == sorted[index].cohortId) {
       throw ArgumentError.value(values, 'targetClaims', 'duplicate cohort ID');
+    }
+  }
+  return List.unmodifiable(sorted);
+}
+
+List<NarrativeEventMigrationSourceChoice> _sortedSourceChoices(
+  List<NarrativeEventMigrationSourceChoice> values,
+) {
+  final sorted = List<NarrativeEventMigrationSourceChoice>.of(values)
+    ..sort(
+      (left, right) => canonicalizeNarrativeEventJson(
+        left.provenance.toJson(),
+      ).compareTo(
+        canonicalizeNarrativeEventJson(right.provenance.toJson()),
+      ),
+    );
+  for (var index = 1; index < sorted.length; index++) {
+    if (sorted[index - 1].provenance == sorted[index].provenance) {
+      throw ArgumentError.value(
+        values,
+        'sourceChoices',
+        'duplicate provenance',
+      );
     }
   }
   return List.unmodifiable(sorted);
@@ -792,15 +1067,15 @@ String _identity(String value, String name) {
 }
 
 Map<String, Object?> _object(Object? value, String path) {
-  if (value is! Map) throw FormatException('$path must be an object.');
-  return {
-    for (final entry in value.entries) _key(entry.key, path): entry.value,
-  };
+  return NarrativeEventWire.object(value, path: r'$.' + path);
 }
 
-String _key(Object? value, String path) {
-  if (value is! String) throw FormatException('$path keys must be strings.');
-  return value;
+void _expectExactFields(
+  Map<String, Object?> object,
+  Set<String> fields,
+  String path,
+) {
+  NarrativeEventWire.expectExactFields(object, fields, path: path);
 }
 
 List<Object?> _list(Object? value, String path) {
@@ -866,5 +1141,9 @@ T _enumByName<T extends Enum>(List<T> values, String name, String path) {
   for (final value in values) {
     if (value.name == name) return value;
   }
-  throw FormatException('$path has unsupported value "$name".');
+  NarrativeEventWire.unsupported(
+    'Unsupported enum value "$name".',
+    path: r'$.' + path,
+    source: name,
+  );
 }

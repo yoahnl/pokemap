@@ -11,7 +11,8 @@ Missions executables : 13 (A, B, C, D, E, F1, F2, G, H, I, J, K, L)
 Jalons traces : 44 au total, RESET-00 + V2-01 a V2-43
 Architecture : hybride projet + ancres de map
 Phase A : CLOSED / ACCEPTED le 2026-07-10
-Prochaine mission : PHASE B - Domain Contracts
+Phase D : CLOSED / ACCEPTED le 2026-07-13
+Prochaine mission : PHASE E - Authoring Operations
 ```
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
@@ -518,7 +519,8 @@ et les sources Scenario existantes.
 
 ### NS-EVENT-V2-08 — Migration Plan, Reference Mapping & Recovery Receipt V0
 
-- **Statut :** PASS — dry-run déterministe et receipt validés le 2026-07-11.
+- **Statut :** PASS dry-run Phase C — applicabilité `ready/canApply` fermée
+  par Phase D D0 le 2026-07-13.
 - **Type :** migration.
 - **Objectif :** produire un plan de migration pur, complet et réversible sans écrire.
 - **Problème traité :** références dispersées, claims absents et promesse impossible de transaction multi-fichiers atomique.
@@ -562,8 +564,9 @@ Couche de compatibilité et plan de migration sûr, encore sans write utilisateu
 # Phase D — Source Catalogs & Read Models
 
 ```text
-Mission status : READY
+Mission status : CLOSED / ACCEPTED le 2026-07-13
 Gate d'entrée : ACCEPTED par Phase C le 2026-07-11
+Gate de sortie : ACCEPTED — D0 global et V2-09 à V2-12 PASS
 Jalons : V2-09 à V2-12
 ```
 
@@ -586,8 +589,22 @@ nécessaires à l’authoring source-first.
 
 ## Jalons internes
 
+## D0 — Migration Integrity Closure
+
+```text
+D0-A — Receipt & Choice Closure : PASS
+D0-B — Contextual Integrity : PASS
+D0 global : PASS
+```
+
+Le receipt est closed-world, les clés dupliquées sont rejetées et les choix
+`confirmCandidate` / `explicitReassignment` restent distincts. Un plan
+`ready/canApply` exige désormais un catalogue lié au snapshot exact et des
+références source, Scene, Fact, Event et outcome contextuellement valides.
+
 ### NS-EVENT-V2-09 — Spatial Event Source Catalog V0
 
+- **Statut :** PASS — catalogue spatial validé le 2026-07-13.
 - **Type :** core.
 - **Objectif :** cataloguer maps, `MapEntity` interactables et `MapTrigger`.
 - **Problème traité :** Event Builder limité à la map active.
@@ -611,6 +628,7 @@ nécessaires à l’authoring source-first.
 
 ### NS-EVENT-V2-10 — Outcome Event Source Catalog V0
 
+- **Statut :** PASS — catalogue outcomes qualifiés validé le 2026-07-13.
 - **Type :** core.
 - **Objectif :** cataloguer outcomes Scene/Battle et Scenario legacy qualifiés ; Yarn est exposé par l'outcome Scene qui l'orchestre.
 - **Problème traité :** sources non spatiales sans registre unifié.
@@ -625,7 +643,7 @@ nécessaires à l’authoring source-first.
 - **Régressions :** Scene outcome diagnostics et projections.
 - **Analyse/build :** map_core test/analyze.
 - **Visual Gate :** non.
-- **Critères d’acceptation :** source outcome sélectionnable sans map ; provenance persistée ; mêmes IDs locaux restent distincts ; aucun `putIfAbsent` global silencieux.
+- **Critères d’acceptation :** source outcome sélectionnable sans map active, sous réserve du snapshot projet requis pour vérifier toute référence map-backed ; provenance persistée ; mêmes IDs locaux restent distincts ; aucun `putIfAbsent` global silencieux.
 - **Evidence Pack :** registry snapshot, collisions.
 - **Rollback :** retirer catalogue sans donnée.
 - **Impact suivant :** outcome authoring/runtime.
@@ -634,6 +652,7 @@ nécessaires à l’authoring source-first.
 
 ### NS-EVENT-V2-11 — Unified Event Builder Project Read Model V0
 
+- **Statut :** PASS — read model projet unifié validé le 2026-07-13.
 - **Type :** core.
 - **Objectif :** projeter V2 + legacy dans une liste projet déterministe.
 - **Problème traité :** workspace map-local et double pipeline invisible.
@@ -657,6 +676,7 @@ nécessaires à l’authoring source-first.
 
 ### NS-EVENT-V2-12 — Event Source Navigation & Diagnostic Destinations V0
 
+- **Statut :** PASS — intents editor-neutral validés le 2026-07-13.
 - **Type :** core.
 - **Objectif :** calculer destinations éditeur et actions recommandées.
 - **Problème traité :** `Voir sur la carte` non fonctionnel et diagnostics sans chemin.
@@ -687,8 +707,9 @@ nécessaires à l’authoring source-first.
 
 ## Gate de validation
 
-Snapshots déterministes, budgets performance établis, aucune présentation prête
-sur référence invalide.
+`ACCEPTED` : snapshots déterministes, baseline performance établie, aucune
+présentation prête sur référence invalide, compatibilité V1/runtime vérifiée et
+aucune donnée utilisateur migrée.
 
 ## Livrable final
 
@@ -699,7 +720,8 @@ Catalogue source-first et read model projet consommables par l’éditeur.
 # Phase E — Authoring Operations
 
 ```text
-Mission status : PLANNED
+Mission status : READY
+Gate d'entrée : ACCEPTED par Phase D le 2026-07-13
 Jalons : V2-13 à V2-16
 ```
 
@@ -1890,10 +1912,10 @@ Report et demande un ADR de remplacement.
 | Mission | Jalons | Nombre | Gate principal |
 |---|---|---:|---|
 | A `CLOSED` | RESET-00 | 1 | 20 ADRs + Entry Gate B |
-| B | V2-01 à V2-04 | 4 | contrats/JSON/index |
-| C | V2-05 à V2-08 | 4 | adapters/plan/claims |
-| D | V2-09 à V2-12 | 4 | catalogs/read models |
-| E | V2-13 à V2-16 | 4 | authoring/single-write |
+| B `CLOSED` | V2-01 à V2-04 | 4 | contrats/JSON/index |
+| C `CLOSED` | V2-05 à V2-08 | 4 | adapters/plan/claims |
+| D `CLOSED` | V2-09 à V2-12 | 4 | catalogs/read models |
+| E `READY` | V2-13 à V2-16 | 4 | authoring/single-write |
 | F1 | V2-17 à V2-18 | 2 | autorité/progression/outbox |
 | F2 | V2-19 à V2-22 | 4 | quatre source bridges |
 | G | V2-23 à V2-25 | 3 | Map Editor bridge |
@@ -1907,12 +1929,12 @@ Report et demande un ADR de remplacement.
 # Prochaine mission exécutable
 
 ```text
-PHASE B — Domain Contracts
-Jalons internes : V2-01 à V2-04
-Gate d'entrée : ACCEPTED
+PHASE E — Authoring Operations
+Jalons internes : V2-13 à V2-16
+Gate d'entrée : ACCEPTED par Phase D
 ```
 
-Phase B doit exécuter ses quatre jalons dans une seule mission avec tests
-cumulés, reviews locales, Evidence Pack et rapport de phase. Elle peut considérer
-immuables les 13 éléments du `Entry Gate normatif de Phase B` du ledger. Elle
-ne doit ajouter ni runtime, ni migration de projet, ni UI.
+Phase E doit exécuter ses quatre jalons dans une seule mission avec tests
+cumulés, reviews locales, Evidence Pack et rapport de phase. Elle doit conserver
+les catalogues et intentions Phase D comme contrats immuables et ne doit encore
+ajouter ni runtime V2, ni migration réelle de projet, ni UI Flutter.

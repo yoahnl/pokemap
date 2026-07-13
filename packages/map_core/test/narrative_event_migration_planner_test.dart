@@ -142,6 +142,18 @@ void main() {
       expect(plan.receiptProposal!.isProposal, isTrue);
       expect(plan.receiptProposal!.targetClaims, plan.claimsProposed);
       expect(plan.receiptProposal!.snapshot.mapHashes, contains('map_a'));
+      expect(
+        plan.receiptProposal!.schemaVersion,
+        NarrativeEventMigrationReceipt.currentSchemaVersion,
+      );
+      expect(
+        plan.receiptProposal!.sourceChoices.single.kind,
+        NarrativeEventMigrationSourceChoiceKind.confirmCandidate,
+      );
+      expect(
+        plan.autoSafeItems.single.choiceKind,
+        NarrativeEventMigrationSourceChoiceKind.confirmCandidate,
+      );
       expect(plan.canApply, isTrue);
       expect(plan.pointOfNoReturn.reached, isFalse);
       expect(jsonEncode(input.project.toJson()), projectBefore);
@@ -247,7 +259,7 @@ void main() {
           mapProjections: [projection],
           choices: NarrativeEventMigrationChoices(
             sourceChoices: [
-              NarrativeEventMigrationSourceChoice(
+              NarrativeEventMigrationSourceChoice.confirmCandidate(
                 provenance: projection.provenance,
                 source: originalChoice.source,
                 targets: [
@@ -269,6 +281,52 @@ void main() {
 
       expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
       expect(plan.recordsProposed, isEmpty);
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          NarrativeEventMigrationDiagnosticCodes.choiceContradictsProjection,
+        ),
+      );
+      expect(ids.calls, 0);
+    });
+
+    test('rejects a candidate confirmation outside the projection inventory',
+        () {
+      final projection = _projection(
+        mapId: 'map_a',
+        legacyEventId: 'assisted',
+        source: NarrativeEventSourceRef.entityInteract('map_a', 'npc_hint'),
+        sceneId: 'scene_a',
+        classification: LegacyMigrationClassification.assisted,
+        confirmed: false,
+        fingerprintCharacter: 'f',
+      );
+      final choice = NarrativeEventMigrationSourceChoice.confirmCandidate(
+        provenance: projection.provenance,
+        source: NarrativeEventSourceRef.entityInteract('map_a', 'npc_other'),
+        targets: [
+          NarrativeEventMigrationTargetProposal(
+            name: 'Assisted event',
+            legacyPageIndex: 0,
+            conditions: const [],
+            sceneId: 'scene_a',
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            priority: 0,
+            order: 0,
+          ),
+        ],
+      );
+      final ids = _InjectedIds.forbidden();
+
+      final plan = _planner(ids).plan(
+        _input(
+          mapProjections: [projection],
+          choices: NarrativeEventMigrationChoices(sourceChoices: [choice]),
+        ),
+      );
+
+      expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(plan.receiptProposal, isNull);
       expect(
         plan.diagnostics.map((diagnostic) => diagnostic.code),
         contains(
@@ -408,7 +466,8 @@ void main() {
       expect(plan.claimsProposed, isEmpty);
     });
 
-    test('applies explicit ASSISTED source and target choices', () {
+    test('validates an explicit ASSISTED reassignment against D0-B context',
+        () {
       final source =
           NarrativeEventSourceRef.entityInteract('map_a', 'npc_confirmed');
       final projection = _projection(
@@ -420,9 +479,10 @@ void main() {
         confirmed: false,
         fingerprintCharacter: 'f',
       );
-      final choice = NarrativeEventMigrationSourceChoice(
+      final choice = NarrativeEventMigrationSourceChoice.explicitReassignment(
         provenance: projection.provenance,
         source: source,
+        reason: 'Le PNJ confirmé remplace le candidat legacy ambigu.',
         targets: [
           NarrativeEventMigrationTargetProposal(
             name: 'Confirmed event',
@@ -435,10 +495,7 @@ void main() {
           ),
         ],
       );
-      final ids = _InjectedIds(
-        eventIds: const ['evt_018f0000-0000-7000-8000-000000000001'],
-        receiptIds: const ['evmr_018f0000-0000-7000-8000-000000000002'],
-      );
+      final ids = _InjectedIds.standardTwo();
 
       final plan = _planner(ids).plan(
         _input(
@@ -449,50 +506,24 @@ void main() {
 
       expect(plan.status, NarrativeEventMigrationPlanStatus.ready);
       expect(plan.assistedItems.single.choiceApplied, isTrue);
-      expect(plan.draftsProposed, isEmpty);
-      expect(plan.claimsProposed.single.source, source);
       expect(
-        plan.recordsProposed.single.definitionOrNull!.conditions,
-        [NarrativeEventCondition.fact('fact_a', true)],
+        plan.assistedItems.single.choiceKind,
+        NarrativeEventMigrationSourceChoiceKind.explicitReassignment,
       );
-
-      final registry = NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.legacyOnly,
-        records: plan.recordsProposed,
-        legacyClaims: plan.claimsProposed,
+      expect(
+        plan.assistedItems.single.reassignmentReason,
+        'Le PNJ confirmé remplace le candidat legacy ambigu.',
       );
-      final project = _project(
-        eventRegistry: registry,
-        mapIds: const ['map_a'],
-        sceneIds: const ['scene_a'],
-      );
-      final claimedProjection = _projection(
-        mapId: 'map_a',
-        legacyEventId: 'assisted',
-        source: NarrativeEventSourceRef.entityInteract('map_a', 'npc_hint'),
-        sceneId: 'scene_a',
-        classification: LegacyMigrationClassification.assisted,
-        confirmed: false,
-        fingerprintCharacter: 'f',
-        existingClaim: plan.claimsProposed.single,
-      );
-      final forbiddenIds = _InjectedIds.forbidden();
-      final replay = _planner(forbiddenIds).plan(
-        _input(
-          project: project,
-          mapProjections: [claimedProjection],
-          choices: NarrativeEventMigrationChoices(sourceChoices: [choice]),
-          currentSnapshot: _snapshot(
-            [claimedProjection],
-            project: project,
-          ),
-          existingReceipt: plan.receiptProposal,
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          NarrativeEventMigrationDiagnosticCodes.explicitReassignmentValidated,
         ),
       );
-
-      expect(replay.status, NarrativeEventMigrationPlanStatus.alreadyPrepared);
-      expect(forbiddenIds.calls, 0);
+      expect(plan.recordsProposed, hasLength(1));
+      expect(plan.claimsProposed, hasLength(1));
+      expect(plan.receiptProposal, isNotNull);
+      expect(ids.calls, 2);
     });
 
     test('plans an AUTO_SAFE Scenario source with its proven lifecycle', () {
@@ -511,13 +542,62 @@ void main() {
         _input(scenarioProjections: [projection]),
       );
 
-      expect(plan.status, NarrativeEventMigrationPlanStatus.ready);
+      expect(
+        plan.status,
+        NarrativeEventMigrationPlanStatus.ready,
+        reason:
+            plan.diagnostics.map((diagnostic) => diagnostic.toJson()).join(),
+      );
       expect(plan.recordsProposed.single.definitionOrNull!.source, source);
       expect(
         plan.recordsProposed.single.definitionOrNull!.reusePolicy,
         NarrativeEventReusePolicy.oneShot,
       );
       expect(plan.claimsProposed.single.members.single.provenance, provenance);
+    });
+
+    test('rejects forged Scenario projection content before allocation', () {
+      final canonical = _scenarioProjection(
+        scenarioId: 'scenario_forged',
+        nodeId: 'source',
+        source: NarrativeEventSourceRef.mapEnter('map_a'),
+        fingerprintCharacter: 'f',
+      );
+      final forged = LegacyScenarioSourceProjection(
+        scenarioId: canonical.scenarioId,
+        nodeId: canonical.nodeId,
+        provenance: canonical.provenance,
+        source: NarrativeEventSourceRef.mapEnter('map_b'),
+        sceneCandidateId: canonical.sceneCandidateId,
+        lifecycleEvidence: canonical.lifecycleEvidence,
+        reusePolicyCandidate: canonical.reusePolicyCandidate,
+        graphComplexity: canonical.graphComplexity,
+        classification: canonical.classification,
+        claimStatus: canonical.claimStatus,
+        existingClaim: canonical.existingClaim,
+        sourceFingerprint: canonical.sourceFingerprint,
+        actions: canonical.actions,
+        conditions: canonical.conditions,
+        preservedScenarioJson: canonical.preservedScenarioJson,
+        diagnostics: canonical.diagnostics,
+        manualActions: canonical.manualActions,
+      );
+      final ids = _InjectedIds.forbidden();
+
+      final plan = _planner(ids).plan(
+        _input(scenarioProjections: [forged]),
+      );
+
+      expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(plan.canApply, isFalse);
+      expect(plan.receiptProposal, isNull);
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          NarrativeEventMigrationDiagnosticCodes.projectionEvidenceMismatch,
+        ),
+      );
+      expect(ids.calls, 0);
     });
 
     test('revalidates the current Scene proof for AUTO_SAFE Scenario sources',
@@ -610,7 +690,8 @@ void main() {
       expect(ids.calls, 0);
     });
 
-    test('bounds ASSISTED Scenario choices to the characterized source', () {
+    test('blocks a qualified Scenario source absent from the outcome catalog',
+        () {
       final qualifiedSource = NarrativeEventSourceRef.outcomeReceived(
         NarrativeOutcomeRef(
           producerKind: NarrativeOutcomeProducerKind.scene,
@@ -637,66 +718,179 @@ void main() {
         priority: 0,
         order: 0,
       );
-      final validChoice = NarrativeEventMigrationSourceChoice(
+      final choice = NarrativeEventMigrationSourceChoice.explicitReassignment(
         provenance: projection.provenance,
         source: qualifiedSource,
         targets: [validTarget],
+        reason: 'Le résultat legacy est qualifié par la scène productrice.',
       );
-
-      final valid = _planner(_InjectedIds.standardTwo()).plan(
+      final ids = _InjectedIds.forbidden();
+      final plan = _planner(ids).plan(
         _input(
           scenarioProjections: [projection],
           choices: NarrativeEventMigrationChoices(
-            sourceChoices: [validChoice],
+            sourceChoices: [choice],
           ),
         ),
       );
-      expect(valid.status, NarrativeEventMigrationPlanStatus.ready);
+      expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(plan.receiptProposal, isNull);
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          NarrativeEventMigrationDiagnosticCodes.sourceUnavailable,
+        ),
+      );
+      expect(ids.calls, 0);
+    });
 
-      final invalidChoices = [
-        NarrativeEventMigrationSourceChoice(
-          provenance: projection.provenance,
-          source: NarrativeEventSourceRef.outcomeReceived(
-            NarrativeOutcomeRef(
-              producerKind: NarrativeOutcomeProducerKind.scene,
-              producerId: 'producer_scene',
-              outcomeId: 'different',
-            ),
-          ),
-          targets: [validTarget],
+    test('accepts and replays an explicit Scenario producer reassignment', () {
+      final legacyHint = NarrativeEventSourceRef.outcomeReceived(
+        NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.scene,
+          producerId: 'legacy_hint',
+          outcomeId: 'victory',
         ),
-        NarrativeEventMigrationSourceChoice(
-          provenance: projection.provenance,
-          source: qualifiedSource,
-          targets: [
-            NarrativeEventMigrationTargetProposal(
-              name: validTarget.name,
-              conditions: validTarget.conditions,
-              sceneId: 'missing_scene',
-              reusePolicy: validTarget.reusePolicy,
-              priority: validTarget.priority,
-              order: validTarget.order,
-            ),
-          ],
+      );
+      final reassignedSource = NarrativeEventSourceRef.outcomeReceived(
+        NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.scene,
+          producerId: 'producer_confirmed',
+          outcomeId: 'victory',
         ),
+      );
+      final projection = _scenarioProjection(
+        scenarioId: 'scenario_reassigned',
+        nodeId: 'source',
+        source: legacyHint,
+        fingerprintCharacter: 'c',
+      );
+      expect(
+        projection.classification,
+        LegacyMigrationClassification.assisted,
+      );
+      final target = NarrativeEventMigrationTargetProposal(
+        name: 'Scenario scenario_reassigned',
+        conditions: const [],
+        sceneId: 'scene_scenario_reassigned',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      );
+      final choice = NarrativeEventMigrationSourceChoice.explicitReassignment(
+        provenance: projection.provenance,
+        source: reassignedSource,
+        targets: [target],
+        reason: 'Le producteur exact a été confirmé dans le projet.',
+      );
+      final scenarios = _scenariosForProjections([projection]);
+      final scenes = [
+        _sceneForScenario('scenario_reassigned'),
+        _outcomeProducerScene('producer_confirmed', 'victory'),
       ];
-      for (final choice in invalidChoices) {
-        final ids = _InjectedIds.forbidden();
-        final plan = _planner(ids).plan(
-          _input(
+      final project = _project(scenarios: scenarios, scenes: scenes);
+      final choices = NarrativeEventMigrationChoices(sourceChoices: [choice]);
+      final first = _planner(_InjectedIds.standardTwo()).plan(
+        _input(
+          project: project,
+          scenarioProjections: [projection],
+          choices: choices,
+        ),
+      );
+
+      expect(
+        first.status,
+        NarrativeEventMigrationPlanStatus.ready,
+        reason:
+            first.diagnostics.map((diagnostic) => diagnostic.toJson()).join(),
+      );
+      expect(first.canApply, isTrue);
+      expect(
+        first.recordsProposed.single.definitionOrNull!.source,
+        reassignedSource,
+      );
+      expect(first.items.single.choiceApplied, isTrue);
+      expect(
+        first.items.single.choiceKind,
+        NarrativeEventMigrationSourceChoiceKind.explicitReassignment,
+      );
+
+      final registry = NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.legacyOnly,
+        records: first.recordsProposed,
+        legacyClaims: first.claimsProposed,
+      );
+      final replayProject = project.copyWith(eventRegistry: registry);
+      final replayIds = _InjectedIds.forbidden();
+      final replay = _planner(replayIds).plan(
+        _input(
+          project: replayProject,
+          scenarioProjections: [projection],
+          choices: NarrativeEventMigrationChoices.empty(),
+          currentSnapshot: _snapshot(
+            const [],
             scenarioProjections: [projection],
-            choices: NarrativeEventMigrationChoices(
-              sourceChoices: [choice],
-            ),
+            project: replayProject,
           ),
-        );
-        expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
-        expect(
-          plan.diagnostics.map((diagnostic) => diagnostic.path),
-          contains('scenarios.scenario_outcome.nodes.source.choice'),
-        );
-        expect(ids.calls, 0);
-      }
+          existingReceipt: first.receiptProposal,
+        ),
+      );
+
+      expect(
+        replay.status,
+        NarrativeEventMigrationPlanStatus.alreadyPrepared,
+      );
+      expect(replay.items.single.source, reassignedSource);
+      expect(replay.items.single.choiceApplied, isTrue);
+      expect(replayIds.calls, 0);
+    });
+
+    test('rejects reassignment of an AUTO_SAFE Scenario before allocation', () {
+      final source = NarrativeEventSourceRef.mapEnter('map_a');
+      final projection = _scenarioProjection(
+        scenarioId: 'scenario_auto_reassigned',
+        nodeId: 'source',
+        source: source,
+        fingerprintCharacter: 'd',
+      );
+      expect(
+        projection.classification,
+        LegacyMigrationClassification.autoSafe,
+      );
+      final choice = NarrativeEventMigrationSourceChoice.explicitReassignment(
+        provenance: projection.provenance,
+        source: source,
+        targets: [
+          NarrativeEventMigrationTargetProposal(
+            name: 'Changed semantics',
+            conditions: const [],
+            sceneId: 'scene_scenario_auto_reassigned',
+            reusePolicy: NarrativeEventReusePolicy.reusable,
+            priority: 9,
+            order: 9,
+          ),
+        ],
+        reason: 'This override must not weaken AUTO_SAFE evidence.',
+      );
+      final ids = _InjectedIds.forbidden();
+
+      final plan = _planner(ids).plan(
+        _input(
+          scenarioProjections: [projection],
+          choices: NarrativeEventMigrationChoices(sourceChoices: [choice]),
+        ),
+      );
+
+      expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(plan.receiptProposal, isNull);
+      expect(
+        plan.diagnostics.map((diagnostic) => diagnostic.code),
+        contains(
+          NarrativeEventMigrationDiagnosticCodes.choiceContradictsProjection,
+        ),
+      );
+      expect(ids.calls, 0);
     });
 
     test('is idempotent with an exact existing registry and receipt', () {
@@ -727,6 +921,7 @@ void main() {
       final secondInput = _input(
         project: project,
         mapProjections: [projection],
+        choices: NarrativeEventMigrationChoices.empty(),
         currentSnapshot: _snapshot(
           [projection],
           project: project,
@@ -742,7 +937,15 @@ void main() {
       expect(second.claimsProposed, isEmpty);
       expect(second.cohorts.single.claimStatus,
           NarrativeEventMigrationCohortClaimStatus.existing);
-      expect(second.receiptProposal, first.receiptProposal);
+      expect(
+        second.receiptProposal!.toJson(),
+        first.receiptProposal!.toJson(),
+      );
+      expect(
+        second.autoSafeItems.single.choiceKind,
+        NarrativeEventMigrationSourceChoiceKind.confirmCandidate,
+      );
+      expect(second.autoSafeItems.single.choiceApplied, isTrue);
       expect(forbiddenIds.calls, 0);
     });
 
@@ -759,7 +962,7 @@ void main() {
         fingerprintCharacter: '1',
       );
       final secondProjection = _projection(
-        mapId: 'map_b',
+        mapId: 'map_a',
         legacyEventId: 'legacy_b',
         source: source,
         sceneId: 'scene_b',
@@ -769,7 +972,7 @@ void main() {
       );
       final choices = NarrativeEventMigrationChoices(
         sourceChoices: [
-          NarrativeEventMigrationSourceChoice(
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
             provenance: firstProjection.provenance,
             source: source,
             targets: [
@@ -784,7 +987,7 @@ void main() {
               ),
             ],
           ),
-          NarrativeEventMigrationSourceChoice(
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
             provenance: secondProjection.provenance,
             source: source,
             targets: [
@@ -838,7 +1041,7 @@ void main() {
           existingClaim: claim,
         ),
         _projection(
-          mapId: 'map_b',
+          mapId: 'map_a',
           legacyEventId: 'legacy_b',
           source: source,
           sceneId: 'scene_b',
@@ -871,6 +1074,57 @@ void main() {
         first.mappings.idMappings.map((mapping) => mapping.targetEventIds),
       );
       expect(ids.calls, 0);
+
+      final legacyReceiptJson = jsonDecode(
+        jsonEncode(first.receiptProposal!.toJson()),
+      )! as Map<String, dynamic>
+        ..['schemaVersion'] = NarrativeEventMigrationReceipt.legacySchemaVersion
+        ..remove('sourceChoices');
+      final legacyReceipt = NarrativeEventMigrationReceipt.fromJson(
+        legacyReceiptJson,
+      );
+      final legacyReplay = _planner(_InjectedIds.forbidden()).plan(
+        _input(
+          project: project,
+          maps: initialInput.maps,
+          mapProjections: claimedProjections,
+          choices: NarrativeEventMigrationChoices.empty(),
+          currentSnapshot: _snapshot(
+            claimedProjections,
+            project: project,
+            maps: initialInput.maps,
+          ),
+          existingReceipt: legacyReceipt,
+        ),
+      );
+      expect(legacyReplay.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(legacyReplay.receiptProposal, isNull);
+
+      final missingChoiceReceiptJson = jsonDecode(
+        jsonEncode(first.receiptProposal!.toJson()),
+      )! as Map<String, dynamic>
+        ..['sourceChoices'] = <Object?>[];
+      final missingChoiceReplay = _planner(_InjectedIds.forbidden()).plan(
+        _input(
+          project: project,
+          maps: initialInput.maps,
+          mapProjections: claimedProjections,
+          choices: NarrativeEventMigrationChoices.empty(),
+          currentSnapshot: _snapshot(
+            claimedProjections,
+            project: project,
+            maps: initialInput.maps,
+          ),
+          existingReceipt: NarrativeEventMigrationReceipt.fromJson(
+            missingChoiceReceiptJson,
+          ),
+        ),
+      );
+      expect(
+        missingChoiceReplay.status,
+        NarrativeEventMigrationPlanStatus.blocked,
+      );
+      expect(missingChoiceReplay.receiptProposal, isNull);
     });
 
     test('blocks incremental cohorts until receipt history is modelled', () {
@@ -1002,7 +1256,7 @@ void main() {
       expect(forbiddenIds.calls, 0);
     });
 
-    test('revalidates receipt target Scenes when choices are not replayed', () {
+    test('does not prepare a receipt for an unproven Scenario outcome', () {
       final source = NarrativeEventSourceRef.outcomeReceived(
         NarrativeOutcomeRef(
           producerKind: NarrativeOutcomeProducerKind.scene,
@@ -1016,9 +1270,10 @@ void main() {
         source: source,
         fingerprintCharacter: 'b',
       );
-      final choice = NarrativeEventMigrationSourceChoice(
+      final choice = NarrativeEventMigrationSourceChoice.explicitReassignment(
         provenance: projection.provenance,
         source: source,
+        reason: 'Le résultat legacy est qualifié par cette scène.',
         targets: [
           NarrativeEventMigrationTargetProposal(
             name: 'Scenario scenario_outcome',
@@ -1030,80 +1285,17 @@ void main() {
           ),
         ],
       );
-      final first = _planner(_InjectedIds.standardTwo()).plan(
+      final ids = _InjectedIds.forbidden();
+      final plan = _planner(ids).plan(
         _input(
           scenarioProjections: [projection],
           choices: NarrativeEventMigrationChoices(sourceChoices: [choice]),
         ),
       );
-      final prepared = first.recordsProposed.single.definitionOrNull!;
-      final changedRecord =
-          NarrativeEventRecord.configuredStructurallyUnchecked(
-        NarrativeEventDefinition(
-          id: prepared.id,
-          name: prepared.name,
-          source: prepared.source,
-          conditions: prepared.conditions,
-          sceneId: 'missing_scene',
-          reusePolicy: prepared.reusePolicy,
-          priority: prepared.priority,
-          order: prepared.order,
-        ),
-        enabled: false,
-      );
-      final registry = NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.legacyOnly,
-        records: [changedRecord],
-        legacyClaims: first.claimsProposed,
-      );
-      final claimedProjection = _scenarioProjectionWithClaim(
-        projection,
-        first.claimsProposed.single,
-      );
-      final scenarios = _scenariosForProjections([projection]);
-      final maps = _mapsForProjections(const [], [projection]);
-      final project = _project(
-        eventRegistry: registry,
-        scenarios: scenarios,
-        scenes: _scenesForProjections([projection]),
-      );
-      final snapshot = _snapshot(
-        const [],
-        scenarioProjections: [claimedProjection],
-        project: project,
-        maps: maps,
-      );
-      final receiptJson = jsonDecode(
-        jsonEncode(first.receiptProposal!.toJson()),
-      ) as Map<String, dynamic>;
-      receiptJson['targetRecords'] = [changedRecord.toJson()];
-      receiptJson['expectedManifestHashAfter'] = snapshot.manifestHash;
-      receiptJson['expectedRegistryHashAfter'] = _jsonHash(registry.toJson());
-      final existingReceipt = NarrativeEventMigrationReceipt.fromJson(
-        receiptJson,
-      );
-      final ids = _InjectedIds.forbidden();
-
-      final second = _planner(ids).plan(
-        _input(
-          project: project,
-          maps: maps,
-          scenarioProjections: [claimedProjection],
-          choices: NarrativeEventMigrationChoices.empty(),
-          currentSnapshot: snapshot,
-          existingReceipt: existingReceipt,
-        ),
-      );
-
-      expect(second.status, NarrativeEventMigrationPlanStatus.blocked);
-      expect(second.recordsProposed, isEmpty);
-      expect(
-        second.diagnostics.map((diagnostic) => diagnostic.code),
-        contains(
-          NarrativeEventMigrationDiagnosticCodes.existingReceiptMismatch,
-        ),
-      );
+      expect(plan.status, NarrativeEventMigrationPlanStatus.blocked);
+      expect(plan.recordsProposed, isEmpty);
+      expect(plan.claimsProposed, isEmpty);
+      expect(plan.receiptProposal, isNull);
       expect(ids.calls, 0);
     });
 
@@ -1113,17 +1305,19 @@ void main() {
       final projections = [
         _projection(
           mapId: 'map_a',
-          legacyEventId: 'shared',
+          legacyEventId: 'shared_b',
           source: source,
           sceneId: 'scene_shared',
           fingerprintCharacter: '1',
+          title: 'Legacy shared',
         ),
         _projection(
-          mapId: 'map_b',
+          mapId: 'map_a',
           legacyEventId: 'shared',
           source: source,
           sceneId: 'scene_shared',
           fingerprintCharacter: '2',
+          title: 'Legacy shared',
         ),
       ];
       final first = _planner(_InjectedIds.standardTwo()).plan(
@@ -1139,17 +1333,37 @@ void main() {
       );
       final project = _project(
         eventRegistry: registry,
-        mapIds: const ['map_a', 'map_b'],
+        mapIds: const ['map_a'],
         sceneIds: const ['scene_shared'],
       );
+      final claimedProjections = [
+        _projection(
+          mapId: 'map_a',
+          legacyEventId: 'shared_b',
+          source: source,
+          sceneId: 'scene_shared',
+          fingerprintCharacter: '1',
+          title: 'Legacy shared',
+          existingClaim: first.claimsProposed.single,
+        ),
+        _projection(
+          mapId: 'map_a',
+          legacyEventId: 'shared',
+          source: source,
+          sceneId: 'scene_shared',
+          fingerprintCharacter: '2',
+          title: 'Legacy shared',
+          existingClaim: first.claimsProposed.single,
+        ),
+      ];
       final ids = _InjectedIds.forbidden();
 
       final second = _planner(ids).plan(
         _input(
           project: project,
-          mapProjections: projections,
+          mapProjections: claimedProjections,
           currentSnapshot: _snapshot(
-            projections,
+            claimedProjections,
             project: project,
           ),
           existingReceipt: first.receiptProposal,
@@ -1158,7 +1372,10 @@ void main() {
 
       expect(second.status, NarrativeEventMigrationPlanStatus.alreadyPrepared);
       expect(second.recordsProposed, isEmpty);
-      expect(second.receiptProposal, same(first.receiptProposal));
+      expect(
+        second.receiptProposal!.toJson(),
+        first.receiptProposal!.toJson(),
+      );
       expect(ids.calls, 0);
     });
 
@@ -1293,42 +1510,15 @@ void main() {
       final first = _planner(_InjectedIds.standardTwo()).plan(
         _input(mapProjections: [projection]),
       );
-      final registry = NarrativeEventRegistry(
-        schemaVersion: 1,
-        mode: EventSystemMode.legacyOnly,
-        records: first.recordsProposed,
-        legacyClaims: first.claimsProposed,
-      );
-      final project = _project(
-        eventRegistry: registry,
-        mapIds: const ['map_a'],
-        sceneIds: const ['scene_a'],
-      );
       final receiptJson = jsonDecode(
         jsonEncode(first.receiptProposal!.toJson()),
       )! as Map<String, dynamic>;
       final mappings = receiptJson['mappings']! as Map<String, dynamic>;
       mappings['ids'] = <Object?>[];
-      final changedReceipt = NarrativeEventMigrationReceipt.fromJson(
-        receiptJson,
+      expect(
+        () => NarrativeEventMigrationReceipt.fromJson(receiptJson),
+        throwsArgumentError,
       );
-      final ids = _InjectedIds.forbidden();
-
-      final second = _planner(ids).plan(
-        _input(
-          project: project,
-          mapProjections: [projection],
-          currentSnapshot: _snapshot(
-            [projection],
-            project: project,
-          ),
-          existingReceipt: changedReceipt,
-        ),
-      );
-
-      expect(second.status, NarrativeEventMigrationPlanStatus.blocked);
-      expect(second.receiptProposal, isNull);
-      expect(ids.calls, 0);
     });
 
     test('rejects a receipt whose backup plan differs from the input', () {
@@ -1462,7 +1652,8 @@ void main() {
       );
       final reusableTarget =
           _defaultChoices([projection]).sourceChoices.single.targets.single;
-      final changedChoice = NarrativeEventMigrationSourceChoice(
+      final changedChoice =
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
         provenance: projection.provenance,
         source: projection.confirmedSource!,
         targets: [
@@ -1497,6 +1688,7 @@ void main() {
       expect(second.status, NarrativeEventMigrationPlanStatus.blocked);
       expect(second.recordsProposed, isEmpty);
       expect(second.receiptProposal, isNull);
+      expect(second.items.single.choiceApplied, isFalse);
       expect(ids.calls, 0);
     });
 
@@ -1511,7 +1703,8 @@ void main() {
         confirmed: false,
         fingerprintCharacter: 'b',
       );
-      final initialChoice = NarrativeEventMigrationSourceChoice(
+      final initialChoice =
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
         provenance: initialProjection.provenance,
         source: source,
         targets: [
@@ -2150,7 +2343,7 @@ void main() {
       final ids = _InjectedIds.forbidden();
       final choices = NarrativeEventMigrationChoices(
         sourceChoices: [
-          NarrativeEventMigrationSourceChoice(
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
             provenance: orphan,
             source: NarrativeEventSourceRef.entityInteract('map_a', 'npc_a'),
             targets: [
@@ -2285,7 +2478,7 @@ void main() {
         confirmed: false,
         fingerprintCharacter: '8',
       );
-      final sourceChoice = NarrativeEventMigrationSourceChoice(
+      final sourceChoice = NarrativeEventMigrationSourceChoice.confirmCandidate(
         provenance: projection.provenance,
         source: source,
         targets: [
@@ -2440,6 +2633,9 @@ NarrativeEventMigrationPlannerInput _input({
   List<NarrativeEventUnknownLegacyData> unknownLegacyData = const [],
   Map<String, Object?>? characterizedCorpus,
   List<Map<String, Object?>> saveSnapshots = const [],
+  NarrativeEventProjectCatalog? validationCatalog,
+  bool includeValidationCatalog = true,
+  List<NarrativeEventRecord> validationProposedRecords = const [],
 }) {
   final referenceCatalog = references ?? NarrativeEventReferenceCatalog.empty();
   final resolvedCorpus =
@@ -2449,6 +2645,7 @@ NarrativeEventMigrationPlannerInput _input({
       _mapsForProjections(
         mapProjections,
         scenarioProjections,
+        choices: resolvedChoices,
       );
   final resolvedProject = project ??
       _project(
@@ -2459,7 +2656,22 @@ NarrativeEventMigrationPlannerInput _input({
           scenarioProjections,
           choices: resolvedChoices,
         ),
+        facts: _factsForChoices(resolvedChoices),
       );
+  final resolvedValidationCatalog = includeValidationCatalog
+      ? validationCatalog ??
+          buildNarrativeEventProjectCatalog(
+            project: resolvedProject,
+            maps: resolvedMaps,
+            legacyProjections: mapProjections,
+            referencedOutcomes: _referencedOutcomes(
+              mapProjections,
+              scenarioProjections,
+              resolvedChoices,
+            ),
+            proposedRecords: validationProposedRecords,
+          )
+      : null;
   return NarrativeEventMigrationPlannerInput(
     project: resolvedProject,
     maps: resolvedMaps,
@@ -2487,7 +2699,10 @@ NarrativeEventMigrationPlannerInput _input({
         'receipt': 'backups/phase-c/receipt.json',
       },
     ),
-    existingReceipt: existingReceipt,
+    existingReceiptJsonBytes: existingReceipt == null
+        ? null
+        : utf8.encode(jsonEncode(existingReceipt.toJson())),
+    validationCatalog: resolvedValidationCatalog,
   );
 }
 
@@ -2543,7 +2758,7 @@ NarrativeEventMigrationChoices _defaultChoices(
             projection.confirmedSource != null &&
             projection.pages.length == 1 &&
             projection.pages.single.sceneId != null)
-          NarrativeEventMigrationSourceChoice(
+          NarrativeEventMigrationSourceChoice.confirmCandidate(
             provenance: projection.provenance,
             source: projection.confirmedSource!,
             targets: [
@@ -2579,12 +2794,23 @@ ProjectManifest _project({
   List<String> sceneIds = const [],
   List<ScenarioAsset> scenarios = const [],
   List<SceneAsset> scenes = const [],
+  List<NarrativeFactDefinition> facts = const [],
 }) {
   final scenesById = <String, SceneAsset>{
     for (final sceneId in sceneIds) sceneId: _sceneForMapTarget(sceneId),
     for (final scene in scenes) scene.id: scene,
   };
   final sortedSceneIds = scenesById.keys.toList()..sort();
+  final dialogueIds = <String>{};
+  for (final scene in scenesById.values) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is SceneYarnDialoguePayload) {
+        dialogueIds.add(payload.dialogueId);
+      }
+    }
+  }
+  final sortedDialogueIds = dialogueIds.toList()..sort();
   return ProjectManifest(
     name: 'Phase C4',
     maps: [
@@ -2598,6 +2824,15 @@ ProjectManifest _project({
     tilesets: const [],
     scenarios: scenarios,
     scenes: [for (final sceneId in sortedSceneIds) scenesById[sceneId]!],
+    dialogues: [
+      for (final dialogueId in sortedDialogueIds)
+        ProjectDialogueEntry(
+          id: dialogueId,
+          name: 'Dialogue $dialogueId',
+          relativePath: 'dialogues/$dialogueId.yarn',
+        ),
+    ],
+    facts: facts,
     eventRegistry: eventRegistry,
   );
 }
@@ -2651,8 +2886,9 @@ NarrativeEventMigrationSnapshot _snapshot(
 
 List<MapData> _mapsForProjections(
   List<LegacyMapEventProjection> mapProjections,
-  List<LegacyScenarioSourceProjection> scenarioProjections,
-) {
+  List<LegacyScenarioSourceProjection> scenarioProjections, {
+  NarrativeEventMigrationChoices? choices,
+}) {
   final ids = _concernedMapIds(mapProjections, scenarioProjections).toList()
     ..sort();
   return [
@@ -2664,7 +2900,191 @@ List<MapData> _mapsForProjections(
             if (_mapIdOf(projection.provenance) == id)
               _mapEventFromProjection(projection),
         ],
+        entities: _entitiesForSources(
+          id,
+          mapProjections,
+          scenarioProjections,
+          choices: choices,
+        ),
+        triggers: _triggersForSources(
+          id,
+          mapProjections,
+          scenarioProjections,
+          choices: choices,
+        ),
       ),
+  ];
+}
+
+List<MapEntity> _entitiesForSources(
+  String mapId,
+  List<LegacyMapEventProjection> mapProjections,
+  List<LegacyScenarioSourceProjection> scenarioProjections, {
+  NarrativeEventMigrationChoices? choices,
+}) {
+  final ids = <String>{};
+  final positions = <String, GridPos>{};
+  for (final projection in mapProjections) {
+    final event = _mapEventFromProjection(projection);
+    for (final candidate in projection.sourceCandidates) {
+      candidate.source.when<void>(
+        entityInteract: (sourceMapId, entityId) {
+          if (sourceMapId != mapId) return;
+          ids.add(entityId);
+          positions.putIfAbsent(
+            entityId,
+            () => GridPos(x: event.position.x, y: event.position.y),
+          );
+        },
+        triggerEnter: (_, __) {},
+        mapEnter: (_) {},
+        outcomeReceived: (_) {},
+      );
+    }
+  }
+  for (final source in _projectionSources(
+    mapProjections,
+    scenarioProjections,
+    choices: choices,
+  )) {
+    source.when<void>(
+      entityInteract: (sourceMapId, entityId) {
+        if (sourceMapId == mapId) ids.add(entityId);
+      },
+      triggerEnter: (_, __) {},
+      mapEnter: (_) {},
+      outcomeReceived: (_) {},
+    );
+  }
+  final sorted = ids.toList()..sort();
+  return [
+    for (var index = 0; index < sorted.length; index++)
+      MapEntity(
+        id: sorted[index],
+        name: 'Entity ${sorted[index]}',
+        kind: MapEntityKind.npc,
+        pos: positions[sorted[index]] ?? GridPos(x: index % 7, y: index ~/ 7),
+      ),
+  ];
+}
+
+List<MapTrigger> _triggersForSources(
+  String mapId,
+  List<LegacyMapEventProjection> mapProjections,
+  List<LegacyScenarioSourceProjection> scenarioProjections, {
+  NarrativeEventMigrationChoices? choices,
+}) {
+  final ids = <String>{};
+  final positions = <String, GridPos>{};
+  for (final projection in mapProjections) {
+    final event = _mapEventFromProjection(projection);
+    for (final candidate in projection.sourceCandidates) {
+      candidate.source.when<void>(
+        entityInteract: (_, __) {},
+        triggerEnter: (sourceMapId, triggerId) {
+          if (sourceMapId != mapId) return;
+          ids.add(triggerId);
+          positions.putIfAbsent(
+            triggerId,
+            () => GridPos(x: event.position.x, y: event.position.y),
+          );
+        },
+        mapEnter: (_) {},
+        outcomeReceived: (_) {},
+      );
+    }
+  }
+  for (final source in _projectionSources(
+    mapProjections,
+    scenarioProjections,
+    choices: choices,
+  )) {
+    source.when<void>(
+      entityInteract: (_, __) {},
+      triggerEnter: (sourceMapId, triggerId) {
+        if (sourceMapId == mapId) ids.add(triggerId);
+      },
+      mapEnter: (_) {},
+      outcomeReceived: (_) {},
+    );
+  }
+  final sorted = ids.toList()..sort();
+  return [
+    for (var index = 0; index < sorted.length; index++)
+      MapTrigger(
+        id: sorted[index],
+        name: 'Trigger ${sorted[index]}',
+        type: TriggerType.event,
+        area: MapRect(
+          pos: positions[sorted[index]] ?? GridPos(x: index % 7, y: index ~/ 7),
+          size: const GridSize(width: 1, height: 1),
+        ),
+      ),
+  ];
+}
+
+Iterable<NarrativeEventSourceRef> _projectionSources(
+  List<LegacyMapEventProjection> mapProjections,
+  List<LegacyScenarioSourceProjection> scenarioProjections, {
+  NarrativeEventMigrationChoices? choices,
+}) sync* {
+  for (final projection in mapProjections) {
+    for (final candidate in projection.sourceCandidates) {
+      yield candidate.source;
+    }
+  }
+  for (final projection in scenarioProjections) {
+    final source = projection.source;
+    if (source != null) yield source;
+  }
+  if (choices != null) {
+    for (final choice in choices.sourceChoices) {
+      yield choice.source;
+    }
+  }
+}
+
+List<NarrativeOutcomeRef> _referencedOutcomes(
+  List<LegacyMapEventProjection> mapProjections,
+  List<LegacyScenarioSourceProjection> scenarioProjections,
+  NarrativeEventMigrationChoices choices,
+) {
+  final byKey = <String, NarrativeOutcomeRef>{};
+  for (final source in _projectionSources(
+    mapProjections,
+    scenarioProjections,
+    choices: choices,
+  )) {
+    source.when<void>(
+      entityInteract: (_, __) {},
+      triggerEnter: (_, __) {},
+      mapEnter: (_) {},
+      outcomeReceived: (outcome) {
+        byKey[canonicalizeNarrativeEventJson(outcome.toJson())] = outcome;
+      },
+    );
+  }
+  final keys = byKey.keys.toList()..sort();
+  return [for (final key in keys) byKey[key]!];
+}
+
+List<NarrativeFactDefinition> _factsForChoices(
+  NarrativeEventMigrationChoices choices,
+) {
+  final ids = <String>{};
+  for (final choice in choices.sourceChoices) {
+    for (final target in choice.targets) {
+      for (final condition in target.conditions) {
+        condition.when<void>(
+          fact: (factId, _) => ids.add(factId),
+          narrativeEventConsumed: (_, __) {},
+        );
+      }
+    }
+  }
+  final sorted = ids.toList()..sort();
+  return [
+    for (final id in sorted) NarrativeFactDefinition(id: id, label: 'Fact $id'),
   ];
 }
 
@@ -2672,6 +3092,8 @@ MapData _mapData(
   String id, {
   String? name,
   List<MapEventDefinition> events = const [],
+  List<MapEntity> entities = const [],
+  List<MapTrigger> triggers = const [],
 }) {
   return MapData(
     id: id,
@@ -2679,6 +3101,8 @@ MapData _mapData(
     size: const GridSize(width: 8, height: 8),
     layers: const [MapLayer.object(id: 'events', name: 'Events')],
     events: events,
+    entities: entities,
+    triggers: triggers,
   );
 }
 
@@ -2830,6 +3254,7 @@ LegacyMapEventProjection _projection({
   required NarrativeEventSourceRef source,
   required String sceneId,
   required String fingerprintCharacter,
+  String? title,
   LegacyMigrationClassification classification =
       LegacyMigrationClassification.autoSafe,
   bool confirmed = true,
@@ -2852,9 +3277,20 @@ LegacyMapEventProjection _projection({
           metadata: const {},
         ),
       ];
+  final sourcePosition = _sourceFixturePosition(source);
+  final sourceMetadata = source.when(
+    entityInteract: (_, entityId) => confirmed
+        ? {LegacyMapEventCompatibilityMetadataKeys.entityId: entityId}
+        : const <String, String>{},
+    triggerEnter: (_, triggerId) => confirmed
+        ? {LegacyMapEventCompatibilityMetadataKeys.triggerId: triggerId}
+        : const <String, String>{},
+    mapEnter: (_) => const <String, String>{},
+    outcomeReceived: (_) => const <String, String>{},
+  );
   final event = MapEventDefinition(
     id: legacyEventId,
-    title: 'Legacy $legacyEventId',
+    title: title ?? 'Legacy $legacyEventId',
     pages: [
       for (final page in resolvedPages)
         MapEventPage(
@@ -2871,39 +3307,102 @@ LegacyMapEventProjection _projection({
           metadata: page.metadata,
         ),
     ],
-    position: const EventPosition(layerId: 'events', x: 0, y: 0),
-    type: MapEventType.object,
-    metadata: {'testFingerprint': fingerprintCharacter},
+    position: EventPosition(
+      layerId: 'events',
+      x: sourcePosition.x,
+      y: sourcePosition.y,
+    ),
+    type: source.when(
+      entityInteract: (_, __) => MapEventType.object,
+      triggerEnter: (_, __) => MapEventType.triggerZone,
+      mapEnter: (_) => MapEventType.object,
+      outcomeReceived: (_) => MapEventType.object,
+    ),
+    metadata: {
+      'testFingerprint': fingerprintCharacter,
+      ...sourceMetadata,
+    },
+  );
+  final fixtureEntities = <MapEntity>[];
+  final fixtureTriggers = <MapTrigger>[];
+  source.when<void>(
+    entityInteract: (sourceMapId, entityId) {
+      if (sourceMapId == mapId) {
+        fixtureEntities.add(
+          MapEntity(
+            id: entityId,
+            name: 'Entity $entityId',
+            kind: MapEntityKind.npc,
+            pos: sourcePosition,
+          ),
+        );
+      }
+    },
+    triggerEnter: (sourceMapId, triggerId) {
+      if (sourceMapId == mapId) {
+        fixtureTriggers.add(
+          MapTrigger(
+            id: triggerId,
+            name: 'Trigger $triggerId',
+            type: TriggerType.event,
+            area: MapRect(
+              pos: sourcePosition,
+              size: const GridSize(width: 1, height: 1),
+            ),
+          ),
+        );
+      }
+    },
+    mapEnter: (_) {},
+    outcomeReceived: (_) {},
+  );
+  final canonical = projectLegacyMapEventReadOnly(
+    mapId: mapId,
+    map: _mapData(
+      mapId,
+      events: [event],
+      entities: fixtureEntities,
+      triggers: fixtureTriggers,
+    ),
+    event: event,
+    claimIndex: buildValidatedLegacyClaimIndex(
+      NarrativeEventRegistry(
+        schemaVersion: 1,
+        mode: EventSystemMode.legacyOnly,
+        records: const [],
+        legacyClaims: const [],
+      ),
+    ),
   );
   return LegacyMapEventProjection(
-    provenance: LegacySourceRef.mapEvent(mapId, legacyEventId),
+    provenance: canonical.provenance,
     classification: classification,
     claimStatus: claimStatus ??
         (existingClaim == null
             ? LegacyProjectionClaimStatus.absent
             : LegacyProjectionClaimStatus.valid),
     existingClaim: existingClaim,
-    sourceFingerprint: computeMapEventSourceFingerprint(
-      mapId: mapId,
-      event: event,
-    ),
-    sourceCandidates: [
-      LegacyMapEventSourceCandidate(
-        source: source,
-        evidence: confirmed
-            ? LegacyMapEventSourceEvidenceKind.explicitMetadata
-            : LegacyMapEventSourceEvidenceKind.exactUniqueFootprint,
-        confirmed: confirmed,
-        reason: confirmed ? 'Explicit metadata.' : 'Position hint only.',
-      ),
-    ],
-    pages: resolvedPages,
-    preservedEventJson: event.toJson(),
-    unconvertibleDataPaths: const [],
-    linkedReferences: const [],
-    diagnostics: const [],
-    manualActions: const [],
+    sourceFingerprint: canonical.sourceFingerprint,
+    sourceCandidates: canonical.sourceCandidates,
+    pages: canonical.pages,
+    preservedEventJson: canonical.preservedEventJson,
+    unconvertibleDataPaths: canonical.unconvertibleDataPaths,
+    linkedReferences: canonical.linkedReferences,
+    diagnostics: canonical.diagnostics,
+    manualActions: canonical.manualActions,
   );
+}
+
+GridPos _sourceFixturePosition(NarrativeEventSourceRef source) {
+  final token = source.when(
+    entityInteract: (_, entityId) => entityId,
+    triggerEnter: (_, triggerId) => triggerId,
+    mapEnter: (mapId) => mapId,
+    outcomeReceived: (outcome) =>
+        '${outcome.producerKind.name}:${outcome.producerId}:${outcome.outcomeId}',
+  );
+  final slot = token.codeUnits.fold<int>(0, (sum, value) => sum + value) % 49;
+  return GridPos(x: slot % 7, y: slot ~/ 7);
 }
 
 LegacyScenarioSourceProjection _scenarioProjection({
@@ -2955,31 +3454,6 @@ LegacyScenarioSourceProjection _scenarioProjection({
       ),
     ),
     lifecycleEvidence: LegacyScenarioLifecycleEvidence.oneShot,
-  );
-}
-
-LegacyScenarioSourceProjection _scenarioProjectionWithClaim(
-  LegacyScenarioSourceProjection projection,
-  LegacySourceClaim claim,
-) {
-  return LegacyScenarioSourceProjection(
-    scenarioId: projection.scenarioId,
-    nodeId: projection.nodeId,
-    provenance: projection.provenance,
-    source: projection.source,
-    sceneCandidateId: projection.sceneCandidateId,
-    lifecycleEvidence: projection.lifecycleEvidence,
-    reusePolicyCandidate: projection.reusePolicyCandidate,
-    graphComplexity: projection.graphComplexity,
-    classification: projection.classification,
-    claimStatus: LegacyProjectionClaimStatus.valid,
-    existingClaim: claim,
-    sourceFingerprint: projection.sourceFingerprint,
-    actions: projection.actions,
-    conditions: projection.conditions,
-    preservedScenarioJson: projection.preservedScenarioJson,
-    diagnostics: projection.diagnostics,
-    manualActions: projection.manualActions,
   );
 }
 
@@ -3047,6 +3521,34 @@ SceneAsset _sceneForMapTarget(String sceneId) {
   });
 }
 
+SceneAsset _outcomeProducerScene(String sceneId, String outcomeId) {
+  return SceneAsset(
+    id: sceneId,
+    name: 'Scene $sceneId',
+    graph: SceneGraph(
+      startNodeId: 'start',
+      nodes: [
+        SceneNode(id: 'start', kind: SceneNodeKind.start),
+        SceneNode(
+          id: 'end',
+          kind: SceneNodeKind.end,
+          payload: SceneEndPayload(sceneOutcomeId: outcomeId),
+        ),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge',
+          fromNodeId: 'start',
+          fromPortId: 'completed',
+          toNodeId: 'end',
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+      ],
+    ),
+    declaredOutcomes: [SceneOutcome(id: outcomeId, label: outcomeId)],
+  );
+}
+
 SceneAsset _unbuildableScene(String sceneId) {
   return SceneAsset.fromJson({
     'id': sceneId,
@@ -3063,8 +3565,9 @@ SceneAsset _unbuildableScene(String sceneId) {
 
 String _hash(String character) => 'sha256:${character * 64}';
 
-String _jsonHash(Object? value) =>
-    'sha256:${narrativeEventCanonicalSha256(value)}';
+String _jsonHash(Object? value) => 'sha256:${narrativeEventCanonicalSha256(
+      jsonDecode(jsonEncode(value)),
+    )}';
 
 Map<String, String> _saveHashes(List<Map<String, Object?>> snapshots) {
   return {

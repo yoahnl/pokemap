@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../models/narrative_event_registry.dart';
+import '../models/narrative_event_wire.dart';
 import '../operations/narrative_event_canonical_json.dart';
 import 'legacy_event_migration_models.dart';
 
@@ -104,6 +105,17 @@ final class NarrativeEventReferenceCatalog {
 
   factory NarrativeEventReferenceCatalog.fromJson(Object? json) {
     final object = _object(json, 'referenceCatalog');
+    _expectExactFields(
+      object,
+      const {
+        'progression',
+        'conditions',
+        'worldRules',
+        'consequences',
+        'saves',
+      },
+      r'$.referenceCatalog',
+    );
     return NarrativeEventReferenceCatalog(
       progression: _referenceList(object['progression'], 'progression'),
       conditions: _referenceList(object['conditions'], 'conditions'),
@@ -192,6 +204,16 @@ final class NarrativeEventReferenceResolutionChoice {
 
   factory NarrativeEventReferenceResolutionChoice.fromJson(Object? json) {
     final object = _object(json, 'referenceChoice');
+    _expectExactFields(
+      object,
+      const {
+        'path',
+        'decision',
+        'selectedTargetEventIds',
+        'selectedTargetKeys',
+      },
+      r'$.referenceChoice',
+    );
     return NarrativeEventReferenceResolutionChoice(
       path: _string(object, 'path'),
       decision: _enumByName(
@@ -238,6 +260,11 @@ final class NarrativeEventIdMapping {
 
   factory NarrativeEventIdMapping.fromJson(Object? json) {
     final object = _object(json, 'idMapping');
+    _expectExactFields(
+      object,
+      const {'provenance', 'legacyId', 'targetEventIds'},
+      r'$.mappings.ids[]',
+    );
     return NarrativeEventIdMapping(
       provenance: LegacySourceRef.fromJson(object['provenance']),
       legacyId: _string(object, 'legacyId'),
@@ -287,6 +314,19 @@ final class NarrativeEventPageMapping {
 
   factory NarrativeEventPageMapping.fromJson(Object? json) {
     final object = _object(json, 'pageMapping');
+    _expectExactFields(
+      object,
+      const {
+        'provenance',
+        'pageIndex',
+        'pageNumber',
+        'status',
+        'targetEventId',
+        'sceneId',
+        'preservedPageJson',
+      },
+      r'$.mappings.pages[]',
+    );
     return NarrativeEventPageMapping(
       provenance: LegacySourceRef.fromJson(object['provenance']),
       pageIndex: _integer(object, 'pageIndex'),
@@ -363,6 +403,22 @@ final class NarrativeEventReferenceMapping {
 
   factory NarrativeEventReferenceMapping.fromJson(Object? json) {
     final object = _object(json, 'referenceMapping');
+    _expectExactFields(
+      object,
+      const {
+        'domain',
+        'kind',
+        'path',
+        'legacyEventId',
+        'mapId',
+        'candidateProvenances',
+        'targetEventIds',
+        'availableTargetKeys',
+        'status',
+        'decision',
+      },
+      r'$.mappings.references[]',
+    );
     final decisionName = _optionalString(object['decision'], 'decision');
     return NarrativeEventReferenceMapping(
       domain: _enumByName(
@@ -455,6 +511,19 @@ final class NarrativeEventReferenceMappings {
 
   factory NarrativeEventReferenceMappings.fromJson(Object? json) {
     final object = _object(json, 'referenceMappings');
+    _expectExactFields(
+      object,
+      const {
+        'ids',
+        'pages',
+        'progression',
+        'conditions',
+        'worldRules',
+        'consequences',
+        'saves',
+      },
+      r'$.mappings',
+    );
     return NarrativeEventReferenceMappings(
       idMappings: _list(object['ids'], 'ids')
           .map(NarrativeEventIdMapping.fromJson)
@@ -719,6 +788,17 @@ List<NarrativeEventReferenceMapping> _mappingList(
 List<LegacyEventReference> _referenceList(Object? value, String path) {
   return _list(value, path).map((item) {
     final object = _object(item, path);
+    _expectExactFields(
+      object,
+      const {
+        'kind',
+        'path',
+        'legacyEventId',
+        'mapId',
+        'candidateProvenances',
+      },
+      r'$.referenceCatalog[]',
+    );
     return LegacyEventReference(
       kind: _enumByName(
         LegacyEventReferenceKind.values,
@@ -800,12 +880,15 @@ String _jsonKey(Object? value) {
 }
 
 Map<String, Object?> _object(Object? value, String path) {
-  if (value is! Map) {
-    throw FormatException('$path must be an object.');
-  }
-  return {
-    for (final entry in value.entries) _jsonKey(entry.key): entry.value,
-  };
+  return NarrativeEventWire.object(value, path: r'$.' + path);
+}
+
+void _expectExactFields(
+  Map<String, Object?> object,
+  Set<String> fields,
+  String path,
+) {
+  NarrativeEventWire.expectExactFields(object, fields, path: path);
 }
 
 List<Object?> _list(Object? value, String path) {
@@ -842,7 +925,11 @@ T _enumByName<T extends Enum>(List<T> values, String name, String path) {
   for (final value in values) {
     if (value.name == name) return value;
   }
-  throw FormatException('$path has unsupported value "$name".');
+  NarrativeEventWire.unsupported(
+    'Unsupported enum value "$name".',
+    path: r'$.' + path,
+    source: name,
+  );
 }
 
 String _identity(String value, String name) {

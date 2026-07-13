@@ -250,7 +250,7 @@ LegacyScenarioSourceProjection projectLegacyScenarioSourceReadOnly({
     );
   }
 
-  final sourceNodes = scenario.nodes.where(_isScenarioSourceNode).toList();
+  final sourceNodes = scenario.nodes.where(isLegacyScenarioSourceNode).toList();
   final hasChoice = scenario.nodes.any(
     (candidate) => candidate.type == ScenarioNodeType.choice,
   );
@@ -605,7 +605,7 @@ NarrativeEventSourceRef? _readScenarioSource(ScenarioNode node) {
   };
 }
 
-bool _isScenarioSourceNode(ScenarioNode node) {
+bool isLegacyScenarioSourceNode(ScenarioNode node) {
   return node.type == ScenarioNodeType.reference &&
       const {
         'sourceMapEnter',
@@ -659,7 +659,7 @@ bool _isSimpleLinearScenario(ScenarioAsset scenario, ScenarioNode source) {
 }
 
 bool _hasOnlySourceSemantics(ScenarioNode node) {
-  if (!_isScenarioSourceNode(node) ||
+  if (!isLegacyScenarioSourceNode(node) ||
       node.type != ScenarioNodeType.reference ||
       node.payload.message != null ||
       node.payload.condition != null ||
