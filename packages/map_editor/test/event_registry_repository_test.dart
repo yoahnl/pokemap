@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
+import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/application/models/narrative_event_registry_persistence_models.dart';
 import 'package:map_editor/src/application/ports/narrative_event_registry_persistence_gateway.dart';
 import 'package:map_editor/src/application/use_cases/narrative_event_registry_persistence_use_cases.dart';
@@ -22,15 +23,10 @@ void main() {
       final nextRecord = persistenceDraft();
       final nextRegistry = persistenceRegistry(records: [nextRecord]);
       final repository = FileProjectRepository();
-      final context = persistenceAuthoringContext(
-        registry: null,
-        revision: fixture.revision,
-      );
+      final context = fixture.session.context;
       final result = await repository.persistNarrativeEventAuthoringResult(
-        path: fixture.projectPath,
+        session: fixture.session,
         operationId: 'e4_absent_registry',
-        expectedProjectRevision: fixture.revision,
-        context: context,
         result: persistenceAuthoringResult(
           previousRegistry: null,
           nextRegistry: nextRegistry,
@@ -231,14 +227,9 @@ void main() {
           expectedRevision: fixture.revision,
         );
         expect(
-          () => NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-            projectPath: fixture.projectPath,
+          () => NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+            session: fixture.session,
             operationId: entry.$1,
-            expectedProjectRevision: fixture.revision,
-            context: persistenceAuthoringContext(
-              registry: current,
-              revision: fixture.revision,
-            ),
             result: forged,
           ),
           throwsArgumentError,
@@ -254,24 +245,11 @@ void main() {
       expect(await fixture.readBytes(), fixture.initialBytes);
     });
 
-    test('rejects stale hashes and concurrent unknown-root changes', () async {
+    test('rejects concurrent unknown-root changes', () async {
       final fixture = await createPersistenceFixture();
       addTearDown(fixture.dispose);
       final next = persistenceRegistry();
       final service = NarrativeEventRegistryPersistence();
-      final stale = await service.write(
-        persistenceRequest(
-          fixture: fixture,
-          operationId: 'e4_stale',
-          previousRegistry: null,
-          nextRegistry: next,
-          expectedRevision: 'sha256:stale',
-        ),
-      );
-      expect(
-          stale.status, NarrativeEventRegistryPersistenceStatus.staleRevision);
-      expect(await fixture.readBytes(), fixture.initialBytes);
-
       final concurrentRoot = Map<String, Object?>.from(fixture.initialRoot)
         ..['concurrentFuture'] = {'preserve': true};
       final concurrentBytes =
@@ -287,7 +265,7 @@ void main() {
         ),
       );
       expect(concurrent.status,
-          NarrativeEventRegistryPersistenceStatus.staleRevision);
+          NarrativeEventRegistryPersistenceStatus.staleAuthoringSnapshot);
       expect(await fixture.readBytes(), concurrentBytes);
     });
 
@@ -297,17 +275,16 @@ void main() {
       );
       final fixture = await createPersistenceFixture(registry: current);
       addTearDown(fixture.dispose);
-      final service = NarrativeEventRegistryPersistence();
-      final mismatch = await service.write(
-        persistenceRequest(
-          fixture: fixture,
-          operationId: 'e4_registry_mismatch',
-          previousRegistry: persistenceRegistry(
-            records: [persistenceDraft(name: 'Other')],
-          ),
-          nextRegistry: current,
-          mutation: 'rename',
-        ),
+      final other = persistenceRegistry(
+        records: [persistenceDraft(name: 'Other')],
+      );
+      final forgedMismatch = NarrativeEventAuthoringResult.applied(
+        mutation: NarrativeEventAuthoringMutation.rename,
+        previousRegistry: other,
+        nextRegistry: current,
+        previousRecord: other.records.single,
+        nextRecord: current.records.single,
+        expectedRevision: fixture.revision,
       );
       final noOpResult = NarrativeEventAuthoringResult.noOp(
         mutation: NarrativeEventAuthoringMutation.rename,
@@ -317,19 +294,17 @@ void main() {
       );
 
       expect(
-        mismatch.status,
-        NarrativeEventRegistryPersistenceStatus.staleRevision,
+        () => NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+          session: fixture.session,
+          operationId: 'e4_registry_mismatch',
+          result: forgedMismatch,
+        ),
+        throwsArgumentError,
       );
-      expect(mismatch.code, 'registryMismatch');
       expect(
-        () => NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-          projectPath: fixture.projectPath,
+        () => NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+          session: fixture.session,
           operationId: 'e4_registry_noop',
-          expectedProjectRevision: fixture.revision,
-          context: persistenceAuthoringContext(
-            registry: current,
-            revision: fixture.revision,
-          ),
           result: noOpResult,
         ),
         throwsArgumentError,
@@ -344,7 +319,9 @@ void main() {
       );
     });
 
-    test('binds persistence revision to the applied authoring result', () {
+    test('binds persistence revision to the attested session', () async {
+      final fixture = await createPersistenceFixture();
+      addTearDown(fixture.dispose);
       final nextRecord = persistenceDraft();
       final nextRegistry = persistenceRegistry(records: [nextRecord]);
       final result = persistenceAuthoringResult(
@@ -354,14 +331,9 @@ void main() {
       );
 
       expect(
-        () => NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-          projectPath: '/tmp/project.json',
+        () => NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+          session: fixture.session,
           operationId: 'e4_revision_binding',
-          expectedProjectRevision: 'sha256:persistence',
-          context: persistenceAuthoringContext(
-            registry: null,
-            revision: 'sha256:authoring',
-          ),
           result: result,
         ),
         throwsArgumentError,
@@ -456,7 +428,7 @@ void main() {
         results.map((result) => result.status),
         containsAll([
           NarrativeEventRegistryPersistenceStatus.committed,
-          NarrativeEventRegistryPersistenceStatus.staleRevision,
+          NarrativeEventRegistryPersistenceStatus.staleAuthoringSnapshot,
         ]),
       );
     });
@@ -510,7 +482,7 @@ void main() {
       );
     });
 
-    test('rejects a forged activation with unresolved references', () {
+    test('rejects a forged activation with unresolved references', () async {
       final configured = persistenceConfigured(name: 'Invalid activation');
       final previous = persistenceRegistry(records: [configured]);
       final invalidDefinition = NarrativeEventDefinition(
@@ -528,24 +500,21 @@ void main() {
         enabled: true,
       );
       final next = persistenceRegistry(records: [active]);
+      final fixture = await createPersistenceFixture(registry: previous);
+      addTearDown(fixture.dispose);
       final forged = NarrativeEventAuthoringResult.applied(
         mutation: NarrativeEventAuthoringMutation.activate,
         previousRegistry: previous,
         nextRegistry: next,
         previousRecord: configured,
         nextRecord: active,
-        expectedRevision: 'sha256:activation',
+        expectedRevision: fixture.revision,
       );
 
       expect(
-        () => NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-          projectPath: '/tmp/project.json',
+        () => NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+          session: fixture.session,
           operationId: 'e4_invalid_activation',
-          expectedProjectRevision: 'sha256:activation',
-          context: persistenceAuthoringContext(
-            registry: previous,
-            revision: 'sha256:activation',
-          ),
           result: forged,
         ),
         throwsArgumentError,
@@ -554,26 +523,22 @@ void main() {
 
     test('blocks duplicate escaped unsupported and invalid project JSON',
         () async {
-      final cases = <(String, String, NarrativeEventRegistryPersistenceStatus)>[
+      final cases = <(String, String)>[
         (
           'duplicate',
           '{"name":"A","name":"B","maps":[],"tilesets":[]}',
-          NarrativeEventRegistryPersistenceStatus.invalidRegistry,
         ),
         (
           'escaped_duplicate',
           '{"name":"A","\\u006eame":"B","maps":[],"tilesets":[]}',
-          NarrativeEventRegistryPersistenceStatus.invalidRegistry,
         ),
         (
           'unsupported',
           '{"name":"A","maps":[],"tilesets":[],"eventRegistry":{"schemaVersion":99}}',
-          NarrativeEventRegistryPersistenceStatus.unsupportedRegistry,
         ),
         (
           'invalid',
           '{"name":"A","maps":[],"tilesets":[],"eventRegistry":{"schemaVersion":1,"mode":"legacyOnly","records":"bad","legacyClaims":[]}}',
-          NarrativeEventRegistryPersistenceStatus.invalidRegistry,
         ),
       ];
       for (final entry in cases) {
@@ -581,17 +546,11 @@ void main() {
         addTearDown(fixture.dispose);
         final bytes = utf8.encode(entry.$2);
         await File(fixture.projectPath).writeAsBytes(bytes, flush: true);
-        final result = await NarrativeEventRegistryPersistence().write(
-          persistenceRequest(
-            fixture: fixture,
-            operationId: 'e4_json_${entry.$1}',
-            previousRegistry: null,
-            nextRegistry: persistenceRegistry(),
-            expectedRevision: narrativeEventRegistryProjectRevision(bytes),
-          ),
+        await expectLater(
+          NarrativeEventAuthoringSession.prepare(fixture.projectPath),
+          throwsA(isA<NarrativeEventAuthoringSessionException>()),
+          reason: entry.$1,
         );
-
-        expect(result.status, entry.$3, reason: entry.$1);
         expect(await fixture.readBytes(), bytes, reason: entry.$1);
       }
     });

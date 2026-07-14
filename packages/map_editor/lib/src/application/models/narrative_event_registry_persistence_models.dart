@@ -1,10 +1,13 @@
 import 'package:map_core/map_core.dart';
 
+import 'narrative_event_authoring_session.dart';
+
 enum NarrativeEventRegistryPersistenceStatus {
   committed,
   recovered,
   noOp,
   staleRevision,
+  staleAuthoringSnapshot,
   staleUndo,
   rejected,
   unsupportedRegistry,
@@ -15,6 +18,35 @@ enum NarrativeEventRegistryPersistenceStatus {
 }
 
 enum NarrativeEventRegistryJournalState { prepared, committed, recovered }
+
+enum NarrativeEventRegistryRecoveryGateStatus {
+  clear,
+  recoveryRequired,
+  recoveryBlocked,
+}
+
+final class NarrativeEventRegistryRecoveryIssue {
+  NarrativeEventRegistryRecoveryIssue({
+    required String code,
+    required String message,
+    this.path,
+  })  : code = _identity(code, 'code'),
+        message = _identity(message, 'message');
+
+  final String code;
+  final String message;
+  final String? path;
+}
+
+final class NarrativeEventRegistryRecoveryInspection {
+  NarrativeEventRegistryRecoveryInspection({
+    required this.status,
+    required List<NarrativeEventRegistryRecoveryIssue> issues,
+  }) : issues = List.unmodifiable(issues);
+
+  final NarrativeEventRegistryRecoveryGateStatus status;
+  final List<NarrativeEventRegistryRecoveryIssue> issues;
+}
 
 enum NarrativeEventRegistryWriteCheckpoint {
   beforeBackup,
@@ -38,7 +70,7 @@ final class NarrativeEventRegistryWriteRequest {
     required String projectPath,
     required String operationId,
     required String expectedProjectRevision,
-    required this.authoringContext,
+    required this.session,
     required this.authoringResult,
     required this.previousRegistry,
     required this.nextRegistry,
@@ -50,11 +82,9 @@ final class NarrativeEventRegistryWriteRequest {
             _identity(expectedProjectRevision, 'expectedProjectRevision'),
         eventIds = _eventIds(eventIds);
 
-  factory NarrativeEventRegistryWriteRequest.fromAuthoringResult({
-    required String projectPath,
+  factory NarrativeEventRegistryWriteRequest.fromAuthoringSession({
+    required NarrativeEventAuthoringSession session,
     required String operationId,
-    required String expectedProjectRevision,
-    required NarrativeEventAuthoringContext context,
     required NarrativeEventAuthoringResult result,
   }) {
     if (result.status != NarrativeEventAuthoringStatus.applied ||
@@ -65,15 +95,15 @@ final class NarrativeEventRegistryWriteRequest {
         'must be an applied authoring result',
       );
     }
-    if (expectedProjectRevision != result.expectedRevision) {
+    if (session.projectRevision != result.expectedRevision) {
       throw ArgumentError.value(
-        expectedProjectRevision,
-        'expectedProjectRevision',
+        session.projectRevision,
+        'session',
         'must match the authoring result revision',
       );
     }
     final verification = verifyNarrativeEventAuthoringResult(
-      context: context,
+      context: session.context,
       result: result,
     );
     if (verification != null) {
@@ -96,10 +126,10 @@ final class NarrativeEventRegistryWriteRequest {
       );
     }
     return NarrativeEventRegistryWriteRequest._(
-      projectPath: projectPath,
+      projectPath: session.projectPath,
       operationId: operationId,
-      expectedProjectRevision: expectedProjectRevision,
-      authoringContext: context,
+      expectedProjectRevision: session.projectRevision,
+      session: session,
       authoringResult: result,
       previousRegistry: result.previousRegistry,
       nextRegistry: result.nextRegistry!,
@@ -111,7 +141,7 @@ final class NarrativeEventRegistryWriteRequest {
   final String projectPath;
   final String operationId;
   final String expectedProjectRevision;
-  final NarrativeEventAuthoringContext authoringContext;
+  final NarrativeEventAuthoringSession session;
   final NarrativeEventAuthoringResult authoringResult;
   final NarrativeEventRegistry? previousRegistry;
   final NarrativeEventRegistry nextRegistry;
@@ -147,6 +177,7 @@ final class NarrativeEventRegistryPersistenceResult {
     this.afterRevision,
     this.journal,
     this.undoEntry,
+    this.recoveryInspection,
   })  : code = _identity(code, 'code'),
         message = _identity(message, 'message');
 
@@ -157,6 +188,7 @@ final class NarrativeEventRegistryPersistenceResult {
   final String? afterRevision;
   final NarrativeEventRegistryWriteJournal? journal;
   final NarrativeEventRegistryUndoEntry? undoEntry;
+  final NarrativeEventRegistryRecoveryInspection? recoveryInspection;
 
   bool get succeeded =>
       status == NarrativeEventRegistryPersistenceStatus.committed ||

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_event_registry_persistence.dart';
 import 'package:map_editor/src/application/models/narrative_event_registry_persistence_models.dart';
 import 'package:path/path.dart' as p;
@@ -18,6 +19,7 @@ final class EventRegistryPersistenceFixture {
     required this.initialRoot,
     required this.initialBytes,
     required this.initialSentinelBytes,
+    required this.session,
   });
 
   final Directory root;
@@ -25,6 +27,7 @@ final class EventRegistryPersistenceFixture {
   final Map<String, Object?> initialRoot;
   final List<int> initialBytes;
   final Map<String, List<int>> initialSentinelBytes;
+  final NarrativeEventAuthoringSession session;
 
   String get revision => narrativeEventRegistryProjectRevision(initialBytes);
 
@@ -51,6 +54,9 @@ final class EventRegistryPersistenceFixture {
 
 Future<EventRegistryPersistenceFixture> createPersistenceFixture({
   NarrativeEventRegistry? registry,
+  MapData? map,
+  SceneAsset? scene,
+  bool mapViaSymbolicLink = false,
   Map<String, Object?> extraRoot = const {
     'futureRoot': {
       'flag': true,
@@ -60,17 +66,24 @@ Future<EventRegistryPersistenceFixture> createPersistenceFixture({
 }) async {
   final root = await Directory.systemTemp.createTemp('pokemap_event_v2_e4_');
   final projectPath = p.join(root.path, 'project.json');
-  final manifest = ProjectManifest(
-    name: 'Phase E fixture',
-    maps: const [
-      ProjectMapEntry(
+  final effectiveMap = map ??
+      const MapData(
         id: 'map_a',
         name: 'Map A',
-        relativePath: 'maps/map_a.json',
+        size: GridSize(width: 8, height: 6),
+      );
+  final manifest = ProjectManifest(
+    name: 'Phase E fixture',
+    maps: [
+      ProjectMapEntry(
+        id: effectiveMap.id,
+        name: effectiveMap.name,
+        relativePath:
+            mapViaSymbolicLink ? 'maps/map_alias.json' : 'maps/map_a.json',
       ),
     ],
     tilesets: const [],
-    scenes: [persistenceScene()],
+    scenes: [scene ?? persistenceScene()],
     facts: [NarrativeFactDefinition(id: 'fact_a', label: 'Fact A')],
     eventRegistry: registry,
   );
@@ -84,7 +97,11 @@ Future<EventRegistryPersistenceFixture> createPersistenceFixture({
   ));
   await File(projectPath).writeAsBytes(initialBytes, flush: true);
   final initialSentinelBytes = <String, List<int>>{
-    p.join(root.path, 'maps', 'map_a.json'): utf8.encode('{"map":"A"}'),
+    p.join(root.path, 'maps', 'map_a.json'): utf8.encode(
+      const JsonEncoder.withIndent('  ').convert(
+        effectiveMap.toJson(),
+      ),
+    ),
     p.join(root.path, 'scenarios', 'scenario_a.json'):
         utf8.encode('{"scenario":"A"}'),
     p.join(root.path, 'assets', 'sprite.bin'): const [0, 1, 2, 255],
@@ -95,12 +112,19 @@ Future<EventRegistryPersistenceFixture> createPersistenceFixture({
     await file.parent.create(recursive: true);
     await file.writeAsBytes(entry.value, flush: true);
   }
+  if (mapViaSymbolicLink) {
+    await Link(p.join(root.path, 'maps', 'map_alias.json')).create(
+      'map_a.json',
+    );
+  }
+  final session = await NarrativeEventAuthoringSession.prepare(projectPath);
   return EventRegistryPersistenceFixture(
     root: root,
-    projectPath: File(projectPath).absolute.path,
+    projectPath: session.projectPath,
     initialRoot: initialRoot,
     initialBytes: initialBytes,
     initialSentinelBytes: initialSentinelBytes,
+    session: session,
   );
 }
 
@@ -128,11 +152,13 @@ SceneAsset persistenceScene() => SceneAsset.fromJson(const {
 NarrativeEventRecord persistenceDraft({
   String id = persistenceEventA,
   String name = 'Draft',
+  NarrativeEventSourceRef? source,
 }) {
   return NarrativeEventRecord.draft(
     NarrativeEventDraft(
       id: id,
       name: name,
+      source: source,
       conditions: const [],
       priority: 0,
       order: 0,
@@ -202,14 +228,12 @@ NarrativeEventRegistryWriteRequest persistenceRequest({
   required String operationId,
   required NarrativeEventRegistry? previousRegistry,
   required NarrativeEventRegistry nextRegistry,
-  String? expectedRevision,
+  NarrativeEventAuthoringSession? session,
   String mutation = 'createDraft',
 }) {
-  final revision = expectedRevision ?? fixture.revision;
-  final context = persistenceAuthoringContext(
-    registry: previousRegistry,
-    revision: revision,
-  );
+  final effectiveSession = session ?? fixture.session;
+  final revision = effectiveSession.projectRevision;
+  final context = effectiveSession.context;
   final result = persistenceAuthoringResult(
     previousRegistry: previousRegistry,
     nextRegistry: nextRegistry,
@@ -217,11 +241,9 @@ NarrativeEventRegistryWriteRequest persistenceRequest({
     mutation: NarrativeEventAuthoringMutation.values.byName(mutation),
     context: context,
   );
-  return NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-    projectPath: fixture.projectPath,
+  return NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+    session: effectiveSession,
     operationId: operationId,
-    expectedProjectRevision: revision,
-    context: context,
     result: result,
   );
 }

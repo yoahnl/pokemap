@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/application/models/narrative_event_registry_persistence_models.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_event_registry_persistence.dart';
 import 'package:path/path.dart' as p;
@@ -51,6 +53,8 @@ void main() {
         fixture.initialBytes,
         flush: true,
       );
+      final canonicalSecondProjectPath =
+          await File(secondProjectPath).resolveSymbolicLinks();
       const operationId = 'e4_shared_operation';
       await _interruptProject(
         fixture.projectPath,
@@ -59,7 +63,7 @@ void main() {
         NarrativeEventRegistryWriteCheckpoint.afterJournalPrepared,
       );
       await _interruptProject(
-        File(secondProjectPath).absolute.path,
+        canonicalSecondProjectPath,
         fixture.revision,
         operationId,
         NarrativeEventRegistryWriteCheckpoint.afterJournalPrepared,
@@ -68,7 +72,7 @@ void main() {
       final firstResults = await NarrativeEventRegistryPersistence()
           .recoverProject(fixture.projectPath);
       final secondJournalPath = narrativeEventRegistryJournalPath(
-        secondProjectPath,
+        canonicalSecondProjectPath,
         operationId,
       );
 
@@ -76,13 +80,12 @@ void main() {
       expect(firstResults.single.code, 'rolledBackBeforeCommit');
       expect(await File(secondJournalPath).exists(), isTrue);
       final secondResults = await NarrativeEventRegistryPersistence()
-          .recoverProject(secondProjectPath);
+          .recoverProject(canonicalSecondProjectPath);
       expect(secondResults, hasLength(1));
       expect(secondResults.single.code, 'rolledBackBeforeCommit');
     });
 
-    test('removes a verified backup orphaned before journal publication',
-        () async {
+    test('blocks a backup orphaned before journal publication', () async {
       final fixture = await createPersistenceFixture();
       addTearDown(fixture.dispose);
       await _interrupt(
@@ -95,13 +98,15 @@ void main() {
 
       expect(results, hasLength(1));
       expect(results.single.status,
-          NarrativeEventRegistryPersistenceStatus.recovered);
-      expect(results.single.code, 'orphanBackupRemoved');
+          NarrativeEventRegistryPersistenceStatus.blocked);
+      expect(results.single.code, 'orphanBackup');
       expect(await fixture.readBytes(), fixture.initialBytes);
       expect(
-        await NarrativeEventRegistryPersistence()
-            .recoverProject(fixture.projectPath),
-        isEmpty,
+        (await NarrativeEventRegistryPersistence()
+                .recoverProject(fixture.projectPath))
+            .single
+            .code,
+        'orphanBackup',
       );
     });
 
@@ -166,11 +171,39 @@ void main() {
         'e4_prepared_one',
         NarrativeEventRegistryWriteCheckpoint.afterJournalPrepared,
       );
-      await _interrupt(
-        fixture,
-        'e4_prepared_two',
-        NarrativeEventRegistryWriteCheckpoint.afterJournalPrepared,
+      final firstPath = narrativeEventRegistryJournalPath(
+        fixture.projectPath,
+        'e4_prepared_one',
       );
+      final secondPath = narrativeEventRegistryJournalPath(
+        fixture.projectPath,
+        'e4_prepared_two',
+      );
+      final firstJson = jsonObject(
+        jsonDecode(await File(firstPath).readAsString()),
+      );
+      final firstStem = firstPath.substring(
+        0,
+        firstPath.length -
+            NarrativeEventRegistryPersistence.journalSuffix.length,
+      );
+      final secondStem = secondPath.substring(
+        0,
+        secondPath.length -
+            NarrativeEventRegistryPersistence.journalSuffix.length,
+      );
+      final secondBackup =
+          '$secondStem${NarrativeEventRegistryPersistence.backupSuffix}';
+      final secondJson = Map<String, Object?>.from(firstJson)
+        ..['operationId'] = 'e4_prepared_two'
+        ..['journalPath'] = secondPath
+        ..['tempPath'] =
+            '$secondStem${NarrativeEventRegistryPersistence.tempSuffix}'
+        ..['backupPath'] = secondBackup;
+      await File(
+        '$firstStem${NarrativeEventRegistryPersistence.backupSuffix}',
+      ).copy(secondBackup);
+      await File(secondPath).writeAsString(jsonEncode(secondJson), flush: true);
       final beforeRecovery = await fixture.readBytes();
       final results = await NarrativeEventRegistryPersistence()
           .recoverProject(fixture.projectPath);
@@ -319,11 +352,15 @@ void main() {
       final secondRegistry = persistenceRegistry(
         records: [persistenceDraft(name: 'Second')],
       );
+      expect(first.status, NarrativeEventRegistryPersistenceStatus.committed);
+      final secondSession = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
       final second = await service.write(
         persistenceRequest(
           fixture: fixture,
           operationId: 'e4_history_second',
-          expectedRevision: first.afterRevision!,
+          session: secondSession,
           previousRegistry: firstRegistry,
           nextRegistry: secondRegistry,
           mutation: 'rename',
@@ -367,20 +404,18 @@ Future<void> _interruptProject(
       if (checkpoint == target) throw _RecoveryFault();
     },
   );
+  final session = await NarrativeEventAuthoringSession.prepare(projectPath);
+  expect(session.projectRevision, revision);
   await expectLater(
     service.write(
-      NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-        projectPath: projectPath,
+      NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+        session: session,
         operationId: operationId,
-        expectedProjectRevision: revision,
-        context: persistenceAuthoringContext(
-          registry: null,
-          revision: revision,
-        ),
         result: persistenceAuthoringResult(
           previousRegistry: null,
           nextRegistry: persistenceRegistry(),
           expectedRevision: revision,
+          context: session.context,
         ),
       ),
     ),

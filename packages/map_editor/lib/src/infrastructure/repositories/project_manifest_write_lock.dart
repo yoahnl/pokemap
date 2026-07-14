@@ -11,7 +11,12 @@ Future<T> withProjectManifestWriteLock<T>(
   String projectPath,
   Future<T> Function() action,
 ) async {
-  final qualifiedPath = p.normalize(File(projectPath).absolute.path);
+  final projectFile = File(projectPath);
+  final qualifiedPath = p.normalize(
+    await projectFile.exists()
+        ? await projectFile.resolveSymbolicLinks()
+        : projectFile.absolute.path,
+  );
   final previous = _projectWriteQueues[qualifiedPath] ?? Future<void>.value();
   final turn = Completer<void>();
   final tail = previous.then((_) => turn.future);

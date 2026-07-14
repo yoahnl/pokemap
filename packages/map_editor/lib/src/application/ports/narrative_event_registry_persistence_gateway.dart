@@ -1,6 +1,10 @@
 import '../models/narrative_event_registry_persistence_models.dart';
 
 abstract interface class NarrativeEventRegistryPersistenceGateway {
+  Future<NarrativeEventRegistryRecoveryInspection> inspectRecovery(
+    String projectPath,
+  );
+
   Future<NarrativeEventRegistryPersistenceResult> persist(
     NarrativeEventRegistryWriteRequest request,
   );

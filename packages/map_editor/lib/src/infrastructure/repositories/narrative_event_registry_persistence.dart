@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../application/errors/application_errors.dart';
+import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/models/narrative_event_registry_persistence_models.dart';
 import 'project_manifest_write_lock.dart';
 
@@ -26,28 +28,77 @@ final class NarrativeEventRegistryPersistence {
     NarrativeEventRegistryWriteRequest request,
   ) async {
     try {
-      final verification = verifyNarrativeEventAuthoringResult(
-        context: request.authoringContext,
-        result: request.authoringResult,
-      );
-      if (verification != null) {
-        return NarrativeEventRegistryPersistenceResult(
-          status: NarrativeEventRegistryPersistenceStatus.rejected,
-          code: verification.code,
-          message: verification.message,
-        );
-      }
       return await withProjectManifestWriteLock(
         request.projectPath,
-        () => _writeTransition(
-          projectPath: request.projectPath,
-          operationId: request.operationId,
-          expectedProjectRevision: request.expectedProjectRevision,
-          previousRegistry: request.previousRegistry,
-          nextRegistry: request.nextRegistry,
-          mutation: request.mutation,
-          eventIds: request.eventIds,
-        ),
+        () async {
+          final recoveryInspection =
+              await inspectProjectAlreadyLocked(request.projectPath);
+          if (recoveryInspection.status !=
+              NarrativeEventRegistryRecoveryGateStatus.clear) {
+            return _recoveryGateResult(recoveryInspection);
+          }
+          late final NarrativeEventAuthoringSession freshSession;
+          try {
+            freshSession = await NarrativeEventAuthoringSession.prepare(
+              request.projectPath,
+            );
+          } on NarrativeEventAuthoringSessionException catch (error) {
+            return NarrativeEventRegistryPersistenceResult(
+              status: NarrativeEventRegistryPersistenceStatus
+                  .staleAuthoringSnapshot,
+              code: 'staleAuthoringSnapshot',
+              message: error.message,
+              beforeRevision: request.expectedProjectRevision,
+            );
+          }
+          if (!request.session.hasSameAttestation(freshSession)) {
+            final mapChanged = !_stringMapEquals(
+                  request.session.mapManifestPaths,
+                  freshSession.mapManifestPaths,
+                ) ||
+                !_stringMapEquals(
+                  request.session.mapPaths,
+                  freshSession.mapPaths,
+                ) ||
+                !_stringMapEquals(
+                  request.session.mapByteHashes,
+                  freshSession.mapByteHashes,
+                );
+            return NarrativeEventRegistryPersistenceResult(
+              status: NarrativeEventRegistryPersistenceStatus
+                  .staleAuthoringSnapshot,
+              code: mapChanged ? 'staleMapRevision' : 'staleAuthoringSnapshot',
+              message: mapChanged
+                  ? 'Une map a changé depuis la préparation de l’authoring.'
+                  : 'Le projet a changé depuis la préparation de l’authoring.',
+              beforeRevision: request.expectedProjectRevision,
+              afterRevision: freshSession.projectRevision,
+            );
+          }
+          final verification = verifyNarrativeEventAuthoringResult(
+            context: freshSession.context,
+            result: request.authoringResult,
+          );
+          if (verification != null) {
+            return NarrativeEventRegistryPersistenceResult(
+              status: NarrativeEventRegistryPersistenceStatus.rejected,
+              code: verification.code,
+              message: verification.message,
+            );
+          }
+          return _writeTransition(
+            projectPath: request.projectPath,
+            operationId: request.operationId,
+            expectedProjectRevision: request.expectedProjectRevision,
+            previousRegistry: request.previousRegistry,
+            nextRegistry: request.nextRegistry,
+            mutation: request.mutation,
+            eventIds: request.eventIds,
+            attestedMapManifestPaths: freshSession.mapManifestPaths,
+            attestedMapPaths: freshSession.mapPaths,
+            attestedMapByteHashes: freshSession.mapByteHashes,
+          );
+        },
       );
     } on FileSystemException catch (error) {
       return _ioFailure(error);
@@ -58,19 +109,270 @@ final class NarrativeEventRegistryPersistence {
     String projectPath,
   ) async {
     try {
+      final qualifiedProjectPath = await _canonicalProjectPath(projectPath);
       return await withProjectManifestWriteLock(
-        projectPath,
-        () => _recoverProjectLocked(projectPath),
+        qualifiedProjectPath,
+        () async {
+          final inspection =
+              await inspectProjectAlreadyLocked(qualifiedProjectPath);
+          if (inspection.status ==
+              NarrativeEventRegistryRecoveryGateStatus.recoveryBlocked) {
+            return [_recoveryGateResult(inspection)];
+          }
+          return _recoverProjectLocked(qualifiedProjectPath);
+        },
       );
     } on FileSystemException catch (error) {
       return [_ioFailure(error)];
     }
   }
 
+  Future<NarrativeEventRegistryRecoveryInspection> inspectProject(
+    String projectPath,
+  ) {
+    return withProjectManifestWriteLock(
+      projectPath,
+      () => inspectProjectAlreadyLocked(projectPath),
+    );
+  }
+
+  Future<NarrativeEventRegistryRecoveryInspection> inspectProjectAlreadyLocked(
+      String projectPath) async {
+    final qualifiedProjectPath = await _canonicalProjectPath(projectPath);
+    final directory = Directory(p.dirname(qualifiedProjectPath));
+    if (!await directory.exists()) {
+      return NarrativeEventRegistryRecoveryInspection(
+        status: NarrativeEventRegistryRecoveryGateStatus.clear,
+        issues: const [],
+      );
+    }
+    final artifactPrefix = _projectArtifactPrefix(qualifiedProjectPath);
+    final journalPaths = <String>[];
+    final backupPaths = <String>[];
+    final tempPaths = <String>[];
+    final undoPaths = <String>[];
+    final rewritePaths = <String>[];
+    final linkPaths = <String>[];
+    await for (final entity in directory.list(followLinks: false)) {
+      final path = _qualified(entity.path);
+      final name = p.basename(path);
+      if (!name.startsWith(artifactPrefix)) continue;
+      if (entity is Link) {
+        linkPaths.add(path);
+        continue;
+      }
+      if (entity is! File) continue;
+      if (name.endsWith('$journalSuffix.rewrite.tmp') ||
+          name.endsWith('$undoSuffix.rewrite.tmp')) {
+        rewritePaths.add(path);
+      } else if (name.endsWith(journalSuffix)) {
+        journalPaths.add(path);
+      } else if (name.endsWith(backupSuffix)) {
+        backupPaths.add(path);
+      } else if (name.endsWith(tempSuffix)) {
+        tempPaths.add(path);
+      } else if (name.endsWith(undoSuffix)) {
+        undoPaths.add(path);
+      }
+    }
+    for (final paths in [
+      journalPaths,
+      backupPaths,
+      tempPaths,
+      undoPaths,
+      rewritePaths,
+      linkPaths,
+    ]) {
+      paths.sort(compareNarrativeEventUtf16);
+    }
+    final blocked = <NarrativeEventRegistryRecoveryIssue>[];
+    final required = <NarrativeEventRegistryRecoveryIssue>[];
+    final journals = <String, NarrativeEventRegistryWriteJournal>{};
+    final safeJournalPaths = <String>{};
+    for (final path in journalPaths) {
+      try {
+        final journal = await _readJournal(path);
+        journals[path] = journal;
+        final pathIssue = _journalPathIssue(journal, path);
+        if (pathIssue != null) {
+          blocked.add(NarrativeEventRegistryRecoveryIssue(
+            code: pathIssue.code,
+            message: pathIssue.message,
+            path: path,
+          ));
+        } else {
+          safeJournalPaths.add(path);
+        }
+      } on Object {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'invalidJournal',
+          message: 'Un journal Event est illisible et exige une intervention.',
+          path: path,
+        ));
+      }
+    }
+    final prepared = journals.entries
+        .where((entry) =>
+            entry.value.state == NarrativeEventRegistryJournalState.prepared)
+        .toList();
+    if (prepared.length > 1) {
+      blocked.add(NarrativeEventRegistryRecoveryIssue(
+        code: 'multiplePreparedJournals',
+        message: 'Plusieurs écritures Event préparées sont en attente.',
+      ));
+    }
+    for (final entry in prepared) {
+      if (!safeJournalPaths.contains(entry.key)) continue;
+      final prerequisiteIssues = await _inspectPreparedRecoveryPrerequisites(
+        entry.value,
+        qualifiedProjectPath,
+        entry.key,
+      );
+      if (prerequisiteIssues.isNotEmpty) {
+        blocked.addAll(prerequisiteIssues);
+      } else if (prepared.length == 1) {
+        required.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'preparedJournal',
+          message: _recoveryRequiredMessage,
+          path: entry.key,
+        ));
+      }
+    }
+    final knownBackups = <String>{};
+    final knownTemps = <String>{};
+    final knownUndos = <String>{};
+    final knownRewrites = <String>{};
+    for (final entry in journals.entries) {
+      final path = entry.key;
+      final journal = entry.value;
+      final expected = _pathsFor(journal.projectPath, journal.operationId);
+      knownBackups.add(expected.backupPath);
+      knownTemps.add(expected.tempPath);
+      knownUndos.add(expected.undoPath);
+      knownRewrites.add('${expected.journalPath}.rewrite.tmp');
+      knownRewrites.add('${expected.undoPath}.rewrite.tmp');
+      final hasPendingFiles = await File(expected.backupPath).exists() ||
+          await File(expected.tempPath).exists() ||
+          await File('${expected.journalPath}.rewrite.tmp').exists() ||
+          await File('${expected.undoPath}.rewrite.tmp').exists();
+      final undoFile = File(expected.undoPath);
+      if (journal.state != NarrativeEventRegistryJournalState.committed &&
+          await undoFile.exists()) {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: journal.state == NarrativeEventRegistryJournalState.recovered
+              ? 'unexpectedRecoveredUndo'
+              : 'unexpectedPreparedUndo',
+          message:
+              'Un undo existe pour une écriture Event qui n’a pas été committée.',
+          path: expected.undoPath,
+        ));
+      }
+      if (journal.state == NarrativeEventRegistryJournalState.committed) {
+        if (await undoFile.exists()) {
+          try {
+            final undo = await _readUndo(expected.undoPath);
+            if (!_undoMatchesJournal(undo, journal)) {
+              blocked.add(NarrativeEventRegistryRecoveryIssue(
+                code: 'inconsistentUndo',
+                message: 'L’undo ne correspond pas au journal committé.',
+                path: expected.undoPath,
+              ));
+            }
+          } on Object {
+            blocked.add(NarrativeEventRegistryRecoveryIssue(
+              code: 'invalidUndo',
+              message: 'L’undo du journal committé est illisible.',
+              path: expected.undoPath,
+            ));
+          }
+        } else {
+          final projectFile = File(qualifiedProjectPath);
+          final projectHash = await projectFile.exists()
+              ? narrativeEventBytesFingerprint(await projectFile.readAsBytes())
+              : null;
+          if (projectHash == journal.expectedAfterHash) {
+            required.add(NarrativeEventRegistryRecoveryIssue(
+              code: 'committedUndoRecoveryRequired',
+              message: _recoveryRequiredMessage,
+              path: path,
+            ));
+          } else {
+            blocked.add(NarrativeEventRegistryRecoveryIssue(
+              code: 'committedProjectMismatch',
+              message: 'Le journal committé ne correspond pas au projet.',
+              path: path,
+            ));
+          }
+        }
+      }
+      if (journal.state != NarrativeEventRegistryJournalState.prepared &&
+          hasPendingFiles) {
+        required.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'journalCleanupRequired',
+          message: _recoveryRequiredMessage,
+          path: path,
+        ));
+      }
+    }
+    for (final path in backupPaths) {
+      if (!knownBackups.contains(path)) {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'orphanBackup',
+          message: 'Un backup Event orphelin exige une intervention.',
+          path: path,
+        ));
+      }
+    }
+    for (final path in tempPaths) {
+      if (!knownTemps.contains(path)) {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'orphanTemp',
+          message:
+              'Un fichier temporaire Event orphelin exige une intervention.',
+          path: path,
+        ));
+      }
+    }
+    for (final path in undoPaths) {
+      if (!knownUndos.contains(path)) {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'orphanUndo',
+          message: 'Un undo Event orphelin exige une intervention.',
+          path: path,
+        ));
+      }
+    }
+    for (final path in rewritePaths) {
+      if (!knownRewrites.contains(path)) {
+        blocked.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'orphanJournalRewrite',
+          message: 'Un rewrite Event orphelin exige une intervention.',
+          path: path,
+        ));
+      }
+    }
+    for (final path in linkPaths) {
+      blocked.add(NarrativeEventRegistryRecoveryIssue(
+        code: 'unsafeArtifactLink',
+        message: 'Un artefact Event est un lien symbolique non sûr.',
+        path: path,
+      ));
+    }
+    final issues = blocked.isNotEmpty ? blocked : required;
+    return NarrativeEventRegistryRecoveryInspection(
+      status: blocked.isNotEmpty
+          ? NarrativeEventRegistryRecoveryGateStatus.recoveryBlocked
+          : required.isNotEmpty
+              ? NarrativeEventRegistryRecoveryGateStatus.recoveryRequired
+              : NarrativeEventRegistryRecoveryGateStatus.clear,
+      issues: issues,
+    );
+  }
+
   Future<List<NarrativeEventRegistryPersistenceResult>> _recoverProjectLocked(
     String projectPath,
   ) async {
-    final qualifiedProjectPath = _qualified(projectPath);
+    final qualifiedProjectPath = await _canonicalProjectPath(projectPath);
     final directory = Directory(p.dirname(qualifiedProjectPath));
     if (!await directory.exists()) return const [];
     final artifactPrefix = _projectArtifactPrefix(qualifiedProjectPath);
@@ -86,7 +388,8 @@ final class NarrativeEventRegistryPersistence {
           name.endsWith(backupSuffix)) {
         backupPaths.add(_qualified(entity.path));
       } else if (name.startsWith(artifactPrefix) &&
-          name.endsWith('$journalSuffix.rewrite.tmp')) {
+          (name.endsWith('$journalSuffix.rewrite.tmp') ||
+              name.endsWith('$undoSuffix.rewrite.tmp'))) {
         rewritePaths.add(_qualified(entity.path));
       }
     }
@@ -131,14 +434,17 @@ final class NarrativeEventRegistryPersistence {
         backupPath,
       ));
     }
+    final knownRewrites = {
+      for (final journal in journals.values)
+        '${_pathsFor(journal.projectPath, journal.operationId).journalPath}.rewrite.tmp',
+      for (final journal in journals.values)
+        '${_pathsFor(journal.projectPath, journal.operationId).undoPath}.rewrite.tmp',
+    };
     for (final rewritePath in rewritePaths) {
-      final finalPath = rewritePath.substring(
-        0,
-        rewritePath.length - '.rewrite.tmp'.length,
-      );
-      if (journals.containsKey(finalPath)) {
-        final rewriteFile = File(rewritePath);
-        if (await rewriteFile.exists()) await rewriteFile.delete();
+      final rewriteFile = File(rewritePath);
+      if (!await rewriteFile.exists()) continue;
+      if (knownRewrites.contains(rewritePath)) {
+        await rewriteFile.delete();
       } else {
         results.add(_blocked(
           'orphanJournalRewrite',
@@ -156,7 +462,15 @@ final class NarrativeEventRegistryPersistence {
       final journal = await _readJournal(journalPath);
       return await withProjectManifestWriteLock(
         journal.projectPath,
-        () => _recoverJournalLocked(journalPath),
+        () async {
+          final inspection =
+              await inspectProjectAlreadyLocked(journal.projectPath);
+          if (inspection.status ==
+              NarrativeEventRegistryRecoveryGateStatus.recoveryBlocked) {
+            return _recoveryGateResult(inspection);
+          }
+          return _recoverJournalLocked(journalPath);
+        },
       );
     } on FileSystemException catch (error) {
       return _ioFailure(error);
@@ -303,7 +617,15 @@ final class NarrativeEventRegistryPersistence {
       final entry = await _readUndo(undoPath);
       return await withProjectManifestWriteLock(
         entry.projectPath,
-        () => _undoEntry(undoPath, entry),
+        () async {
+          final inspection =
+              await inspectProjectAlreadyLocked(entry.projectPath);
+          if (inspection.status !=
+              NarrativeEventRegistryRecoveryGateStatus.clear) {
+            return _recoveryGateResult(inspection);
+          }
+          return _undoEntry(undoPath, entry);
+        },
       );
     } on FileSystemException catch (error) {
       return _ioFailure(error);
@@ -377,6 +699,9 @@ final class NarrativeEventRegistryPersistence {
     required NarrativeEventRegistry? nextRegistry,
     required String mutation,
     required List<String> eventIds,
+    Map<String, String> attestedMapManifestPaths = const {},
+    Map<String, String> attestedMapPaths = const {},
+    Map<String, String> attestedMapByteHashes = const {},
   }) async {
     final qualifiedProjectPath = _qualified(projectPath);
     final paths = _pathsFor(qualifiedProjectPath, operationId);
@@ -387,6 +712,20 @@ final class NarrativeEventRegistryPersistence {
         status: NarrativeEventRegistryPersistenceStatus.staleRevision,
         code: 'staleRevision',
         message: 'Le projet a changé avant l’écriture.',
+        beforeRevision: expectedProjectRevision,
+        afterRevision: beforeHash,
+      );
+    }
+    final initialMapIssue = await _attestedMapRevisionIssue(
+      manifestPaths: attestedMapManifestPaths,
+      canonicalPaths: attestedMapPaths,
+      expectedHashes: attestedMapByteHashes,
+    );
+    if (initialMapIssue != null) {
+      return NarrativeEventRegistryPersistenceResult(
+        status: NarrativeEventRegistryPersistenceStatus.staleAuthoringSnapshot,
+        code: initialMapIssue.code,
+        message: initialMapIssue.message,
         beforeRevision: expectedProjectRevision,
         afterRevision: beforeHash,
       );
@@ -535,7 +874,14 @@ final class NarrativeEventRegistryPersistence {
       final liveHash = narrativeEventBytesFingerprint(
         await File(qualifiedProjectPath).readAsBytes(),
       );
-      if (liveHash != beforeHash) {
+      final finalMapIssue = liveHash == beforeHash
+          ? await _attestedMapRevisionIssue(
+              manifestPaths: attestedMapManifestPaths,
+              canonicalPaths: attestedMapPaths,
+              expectedHashes: attestedMapByteHashes,
+            )
+          : null;
+      if (liveHash != beforeHash || finalMapIssue != null) {
         journal = journal.withState(
           NarrativeEventRegistryJournalState.recovered,
           _clock().toUtc(),
@@ -543,9 +889,12 @@ final class NarrativeEventRegistryPersistence {
         await _writeJournal(journal);
         await _safeCleanup(journal);
         return NarrativeEventRegistryPersistenceResult(
-          status: NarrativeEventRegistryPersistenceStatus.staleRevision,
-          code: 'staleRevisionBeforeRename',
-          message: 'Le projet a changé pendant la préparation.',
+          status: finalMapIssue == null
+              ? NarrativeEventRegistryPersistenceStatus.staleRevision
+              : NarrativeEventRegistryPersistenceStatus.staleAuthoringSnapshot,
+          code: finalMapIssue?.code ?? 'staleRevisionBeforeRename',
+          message: finalMapIssue?.message ??
+              'Le projet a changé pendant la préparation.',
           beforeRevision: beforeHash,
           afterRevision: liveHash,
           journal: journal,
@@ -597,6 +946,73 @@ final class NarrativeEventRegistryPersistence {
         afterRevision: afterHash,
       );
     }
+  }
+
+  Future<_AttestedMapRevisionIssue?> _attestedMapRevisionIssue({
+    required Map<String, String> manifestPaths,
+    required Map<String, String> canonicalPaths,
+    required Map<String, String> expectedHashes,
+  }) async {
+    if (!_sameStringKeys(manifestPaths, canonicalPaths) ||
+        !_sameStringKeys(canonicalPaths, expectedHashes)) {
+      return const _AttestedMapRevisionIssue(
+        code: 'staleMapInventory',
+        message: 'L’inventaire des maps attestées est incohérent.',
+      );
+    }
+    final mapIds = canonicalPaths.keys.toList()
+      ..sort(compareNarrativeEventUtf16);
+    for (final mapId in mapIds) {
+      final manifestPath = manifestPaths[mapId]!;
+      final expectedCanonicalPath = canonicalPaths[mapId]!;
+      final file = File(manifestPath);
+      if (!await file.exists()) {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'La map $mapId a disparu pendant la préparation.',
+        );
+      }
+      late final String canonicalPath;
+      try {
+        canonicalPath = p.normalize(await file.resolveSymbolicLinks());
+      } on FileSystemException {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'La map $mapId ne peut plus être vérifiée.',
+        );
+      }
+      if (canonicalPath != expectedCanonicalPath) {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'Le chemin canonique de la map $mapId a changé.',
+        );
+      }
+      final currentHash = narrativeEventBytesFingerprint(
+        await file.readAsBytes(),
+      );
+      late final String verifiedCanonicalPath;
+      try {
+        verifiedCanonicalPath = p.normalize(await file.resolveSymbolicLinks());
+      } on FileSystemException {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'La map $mapId ne peut plus être vérifiée.',
+        );
+      }
+      if (verifiedCanonicalPath != expectedCanonicalPath) {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'Le chemin canonique de la map $mapId a changé.',
+        );
+      }
+      if (currentHash != expectedHashes[mapId]) {
+        return _AttestedMapRevisionIssue(
+          code: 'staleMapRevision',
+          message: 'La map $mapId a changé pendant la préparation.',
+        );
+      }
+    }
+    return null;
   }
 
   _ProjectPreflight _preflight(List<int> bytes) {
@@ -720,6 +1136,62 @@ final class NarrativeEventRegistryPersistence {
     return null;
   }
 
+  Future<List<NarrativeEventRegistryRecoveryIssue>>
+      _inspectPreparedRecoveryPrerequisites(
+    NarrativeEventRegistryWriteJournal journal,
+    String projectPath,
+    String journalPath,
+  ) async {
+    final issues = <NarrativeEventRegistryRecoveryIssue>[];
+    try {
+      final backupIssue = await _validateBackup(journal);
+      if (backupIssue != null) {
+        issues.add(NarrativeEventRegistryRecoveryIssue(
+          code: backupIssue.code,
+          message: backupIssue.message,
+          path: journalPath,
+        ));
+      }
+      final projectFile = File(projectPath);
+      if (!await projectFile.exists()) {
+        issues.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'projectMissing',
+          message: 'Le projet du journal est absent.',
+          path: journalPath,
+        ));
+        return issues;
+      }
+      final projectHash = narrativeEventBytesFingerprint(
+        await projectFile.readAsBytes(),
+      );
+      if (projectHash != journal.beforeHash &&
+          projectHash != journal.expectedAfterHash) {
+        issues.add(NarrativeEventRegistryRecoveryIssue(
+          code: 'unknownProjectRevision',
+          message:
+              'Le projet ne correspond ni à la version avant ni à la version après.',
+          path: journalPath,
+        ));
+      } else if (projectHash == journal.expectedAfterHash) {
+        final tempIssue = await _validateTempWhenPresent(journal);
+        if (tempIssue != null) {
+          issues.add(NarrativeEventRegistryRecoveryIssue(
+            code: tempIssue.code,
+            message: tempIssue.message,
+            path: journalPath,
+          ));
+        }
+      }
+    } on FileSystemException catch (error) {
+      issues.add(NarrativeEventRegistryRecoveryIssue(
+        code: 'recoveryInspectionIoFailure',
+        message: 'L’inspection de récupération a échoué: ${error.message}',
+        path: journalPath,
+      ));
+    }
+    return issues;
+  }
+
   Future<NarrativeEventRegistryPersistenceResult> _recoverOrphanBackup(
     String projectPath,
     String backupPath,
@@ -788,11 +1260,17 @@ final class NarrativeEventRegistryPersistence {
     NarrativeEventRegistryWriteJournal journal,
   ) async {
     final expected = _pathsFor(journal.projectPath, journal.operationId);
-    if (journal.tempPath != expected.tempPath ||
+    if (journal.journalPath != expected.journalPath ||
+        journal.tempPath != expected.tempPath ||
         journal.backupPath != expected.backupPath) {
       return;
     }
-    for (final path in [journal.tempPath, journal.backupPath]) {
+    for (final path in [
+      journal.tempPath,
+      journal.backupPath,
+      '${expected.journalPath}.rewrite.tmp',
+      '${expected.undoPath}.rewrite.tmp',
+    ]) {
       final file = File(path);
       if (await file.exists()) await file.delete();
     }
@@ -954,6 +1432,21 @@ final class NarrativeEventRegistryPersistence {
     );
   }
 
+  NarrativeEventRegistryPersistenceResult _recoveryGateResult(
+    NarrativeEventRegistryRecoveryInspection inspection,
+  ) {
+    final issue = inspection.issues.first;
+    return NarrativeEventRegistryPersistenceResult(
+      status: inspection.status ==
+              NarrativeEventRegistryRecoveryGateStatus.recoveryRequired
+          ? NarrativeEventRegistryPersistenceStatus.recoveryRequired
+          : NarrativeEventRegistryPersistenceStatus.blocked,
+      code: issue.code,
+      message: issue.message,
+      recoveryInspection: inspection,
+    );
+  }
+
   NarrativeEventRegistryPersistenceResult _ioFailure(
     FileSystemException error,
   ) {
@@ -963,6 +1456,20 @@ final class NarrativeEventRegistryPersistence {
       message: 'L’opération filesystem a échoué: ${error.message}',
     );
   }
+}
+
+bool _stringMapEquals(Map<String, String> left, Map<String, String> right) {
+  if (left.length != right.length) return false;
+  for (final entry in left.entries) {
+    if (right[entry.key] != entry.value) return false;
+  }
+  return true;
+}
+
+bool _sameStringKeys(Map<String, String> left, Map<String, String> right) {
+  return left.length == right.length &&
+      left.keys.every(right.containsKey) &&
+      right.keys.every(left.containsKey);
 }
 
 String narrativeEventRegistryProjectRevision(List<int> projectBytes) {
@@ -1010,6 +1517,19 @@ Map<String, Object?> _jsonObject(Object? value) {
 }
 
 String _qualified(String path) => p.normalize(File(path).absolute.path);
+
+Future<String> _canonicalProjectPath(String path) async {
+  final file = File(path);
+  return p.normalize(
+    await file.exists()
+        ? await file.resolveSymbolicLinks()
+        : file.absolute.path,
+  );
+}
+
+const _recoveryRequiredMessage =
+    'Une écriture d’événements interrompue doit être récupérée avant '
+    'd’ouvrir ou d’enregistrer ce projet.';
 
 String _projectArtifactPrefix(String projectPath) {
   final projectKey = narrativeEventCanonicalSha256({
@@ -1072,4 +1592,14 @@ final class _ProjectPreflight {
 
   final _ProjectSnapshot? snapshot;
   final NarrativeEventRegistryPersistenceResult? rejection;
+}
+
+final class _AttestedMapRevisionIssue {
+  const _AttestedMapRevisionIssue({
+    required this.code,
+    required this.message,
+  });
+
+  final String code;
+  final String message;
 }

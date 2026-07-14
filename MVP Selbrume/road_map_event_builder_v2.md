@@ -872,6 +872,26 @@ API d’authoring V2 complète, journalée et gardée par la validation du regis
 - runtime V2 toujours absent ;
 - aucune migration réelle appliquée.
 
+## E-bis — Authoring Snapshot Attestation & Pending Recovery Gate Closure
+
+```text
+Status : PASS
+Phase E : CLOSED / ACCEPTED
+Persistence context attestation : PASS
+Map revision gate : PASS
+Mandatory recovery gate : PASS
+Repository regressions : CLASSIFIED / PREEXISTING PROVEN
+Phase F1 : READY
+```
+
+La clôture E-bis atteste les sessions d'authoring depuis les octets du disque,
+rejoue les opérations contre un snapshot frais, revalide les révisions des maps
+avant le remplacement du manifest et place write, save, load et undo derrière
+un gate read-only. Un état `recoveryRequired` exige une recovery explicite pour
+débloquer le projet. Un état `recoveryBlocked` exige une inspection et une
+remédiation manuelles ; aucune recovery automatique n'est tentée. Aucun runtime,
+bridge source, widget ou projet réel n'est ajouté par ce lot.
+
 ---
 
 # Phase F1 — Runtime Authority & Progress

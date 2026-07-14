@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/application/models/narrative_event_registry_persistence_models.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_event_registry_persistence.dart';
 
@@ -62,24 +63,25 @@ Future<void> _populateCommittedJournals(
   int count,
 ) async {
   final service = NarrativeEventRegistryPersistence();
-  var revision = fixture.revision;
   NarrativeEventRegistry? previousRegistry;
   for (var index = 0; index < count; index++) {
     final nextRegistry = persistenceRegistry(
       records: [persistenceDraft(name: 'Version $index')],
     );
+    final session = index == 0
+        ? fixture.session
+        : await NarrativeEventAuthoringSession.prepare(fixture.projectPath);
     final result = await service.write(
       persistenceRequest(
         fixture: fixture,
         operationId: 'e4_perf_history_$index',
-        expectedRevision: revision,
+        session: session,
         previousRegistry: previousRegistry,
         nextRegistry: nextRegistry,
         mutation: index == 0 ? 'createDraft' : 'rename',
       ),
     );
     expect(result.status, NarrativeEventRegistryPersistenceStatus.committed);
-    revision = result.afterRevision!;
     previousRegistry = nextRegistry;
   }
 }

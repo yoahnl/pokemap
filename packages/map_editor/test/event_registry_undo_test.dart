@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
 import 'package:map_editor/src/application/models/narrative_event_registry_persistence_models.dart';
 import 'package:map_editor/src/infrastructure/repositories/narrative_event_registry_persistence.dart';
 import 'package:path/path.dart' as p;
@@ -137,11 +138,15 @@ void main() {
       final secondRegistry = persistenceRegistry(
         records: [persistenceDraft(name: 'Later')],
       );
+      expect(first.status, NarrativeEventRegistryPersistenceStatus.committed);
+      final secondSession = await NarrativeEventAuthoringSession.prepare(
+        fixture.projectPath,
+      );
       final second = await service.write(
         persistenceRequest(
           fixture: fixture,
           operationId: 'e4_undo_later',
-          expectedRevision: first.afterRevision!,
+          session: secondSession,
           previousRegistry: firstRegistry,
           nextRegistry: secondRegistry,
           mutation: 'rename',
@@ -345,7 +350,7 @@ void main() {
       );
 
       expect(retry.status, NarrativeEventRegistryPersistenceStatus.blocked);
-      expect(retry.code, 'operationAlreadyExists');
+      expect(retry.code, 'unsafeJournalPaths');
       expect(await sentinel.readAsString(), 'keep');
       expect(await fixture.readBytes(), bytesBeforeRetry);
       expect(await File(journalPath).exists(), isTrue);

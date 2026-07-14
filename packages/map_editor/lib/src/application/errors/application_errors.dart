@@ -31,3 +31,31 @@ final class EditorMissingDependencyException
 final class EditorPersistenceException extends EditorApplicationException {
   const EditorPersistenceException(super.message);
 }
+
+final class NarrativeEventAuthoringSessionException
+    extends EditorApplicationException {
+  const NarrativeEventAuthoringSessionException(super.message);
+}
+
+final class ProjectRecoveryRequiredException
+    extends EditorApplicationException {
+  const ProjectRecoveryRequiredException(
+    super.message, {
+    required this.code,
+    this.path,
+  });
+
+  final String code;
+  final String? path;
+}
+
+final class ProjectRecoveryBlockedException extends EditorApplicationException {
+  const ProjectRecoveryBlockedException(
+    super.message, {
+    required this.code,
+    this.path,
+  });
+
+  final String code;
+  final String? path;
+}

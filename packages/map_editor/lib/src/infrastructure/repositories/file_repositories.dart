@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/errors/application_errors.dart';
+import '../../application/models/narrative_event_authoring_session.dart';
 import '../../application/models/narrative_event_registry_persistence_models.dart';
 import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokemon_project_data_models.dart';
@@ -28,6 +29,13 @@ class FileProjectRepository
   final NarrativeEventRegistryPersistence _eventRegistryPersistence;
 
   @override
+  Future<NarrativeEventRegistryRecoveryInspection> inspectRecovery(
+    String projectPath,
+  ) {
+    return _eventRegistryPersistence.inspectProject(projectPath);
+  }
+
+  @override
   Future<NarrativeEventRegistryPersistenceResult> persist(
     NarrativeEventRegistryWriteRequest request,
   ) {
@@ -48,18 +56,14 @@ class FileProjectRepository
 
   Future<NarrativeEventRegistryPersistenceResult>
       persistNarrativeEventAuthoringResult({
-    required String path,
+    required NarrativeEventAuthoringSession session,
     required String operationId,
-    required String expectedProjectRevision,
-    required NarrativeEventAuthoringContext context,
     required NarrativeEventAuthoringResult result,
   }) {
     return persist(
-      NarrativeEventRegistryWriteRequest.fromAuthoringResult(
-        projectPath: path,
+      NarrativeEventRegistryWriteRequest.fromAuthoringSession(
+        session: session,
         operationId: operationId,
-        expectedProjectRevision: expectedProjectRevision,
-        context: context,
         result: result,
       ),
     );
@@ -81,7 +85,10 @@ class FileProjectRepository
     ProjectValidator.validate(project);
     await withProjectManifestWriteLock(
       path,
-      () => _saveProjectLocked(project, path),
+      () async {
+        await _ensureRecoveryGateClear(path);
+        return _saveProjectLocked(project, path);
+      },
     );
   }
 
@@ -169,20 +176,56 @@ class FileProjectRepository
     if (!await file.exists()) {
       throw const ProjectLoadException('Project file not found');
     }
-    final content = await file.readAsString();
-    try {
-      final json = migrateProjectManifestJson(
-        jsonDecode(content) as Map<String, dynamic>,
+    return withProjectManifestWriteLock(path, () async {
+      await _ensureRecoveryGateClear(path);
+      try {
+        return decodeValidatedNarrativeEventAuthoringProject(
+          await file.readAsBytes(),
+        ).manifest;
+      } catch (e) {
+        throw ProjectLoadException('Failed to load project: $e');
+      }
+    });
+  }
+
+  Future<void> _ensureRecoveryGateClear(String path) async {
+    final inspection =
+        await _eventRegistryPersistence.inspectProjectAlreadyLocked(path);
+    if (inspection.status ==
+        NarrativeEventRegistryRecoveryGateStatus.recoveryRequired) {
+      final issue = inspection.issues.first;
+      throw ProjectRecoveryRequiredException(
+        _recoveryGateMessage(
+          'Une écriture d’événements interrompue doit être récupérée avant '
+          'd’ouvrir ou d’enregistrer ce projet.',
+          issue,
+        ),
+        code: issue.code,
+        path: issue.path,
       );
-      final manifest = _normalizeProjectElementCollisionProfiles(
-        ProjectManifest.fromJson(json),
+    }
+    if (inspection.status ==
+        NarrativeEventRegistryRecoveryGateStatus.recoveryBlocked) {
+      final issue = inspection.issues.first;
+      throw ProjectRecoveryBlockedException(
+        _recoveryGateMessage(
+          'Une écriture d’événements interrompue est bloquée et doit être '
+          'inspectée avant d’ouvrir ou d’enregistrer ce projet.',
+          issue,
+        ),
+        code: issue.code,
+        path: issue.path,
       );
-      ProjectValidator.validate(manifest);
-      return manifest;
-    } catch (e) {
-      throw ProjectLoadException('Failed to load project: $e');
     }
   }
+}
+
+String _recoveryGateMessage(
+  String summary,
+  NarrativeEventRegistryRecoveryIssue issue,
+) {
+  final path = issue.path == null ? '' : ' Fichier: ${issue.path}.';
+  return '$summary Cause: ${issue.code}. ${issue.message}$path';
 }
 
 Map<String, Object?> _strictJsonObject(Object? value) {
@@ -205,48 +248,6 @@ bool _sameEventRegistry(
 ) {
   return canonicalizeNarrativeEventJson(left?.toJson()) ==
       canonicalizeNarrativeEventJson(right?.toJson());
-}
-
-ProjectManifest _normalizeProjectElementCollisionProfiles(
-  ProjectManifest manifest,
-) {
-  return manifest.copyWith(
-    elements: [
-      for (final element in manifest.elements)
-        _normalizeProjectElementCollisionProfile(element, manifest.settings),
-    ],
-  );
-}
-
-ProjectElementEntry _normalizeProjectElementCollisionProfile(
-  ProjectElementEntry element,
-  ProjectSettings settings,
-) {
-  final profile = element.collisionProfile;
-  if (profile == null) {
-    return element;
-  }
-
-  return element.copyWith(
-    collisionProfile: normalizeElementCollisionProfile(
-      profile,
-      tileSize: _collisionProfileTileSize(settings, profile),
-    ),
-  );
-}
-
-int _collisionProfileTileSize(
-  ProjectSettings settings,
-  ElementCollisionProfile profile,
-) {
-  if (profile.collisionMask != null &&
-      settings.tileWidth != settings.tileHeight) {
-    throw ValidationException(
-      'Cannot normalize collision masks for non-square project tiles: '
-      '${settings.tileWidth}x${settings.tileHeight}',
-    );
-  }
-  return settings.tileWidth;
 }
 
 class FileMapRepository implements MapRepository {
@@ -274,14 +275,11 @@ class FileMapRepository implements MapRepository {
     if (!await file.exists()) {
       throw MapLoadException('Map file not found: $path');
     }
-    final content = await file.readAsString();
     try {
-      final json = migrateMapDataJson(
-        jsonDecode(content) as Map<String, dynamic>,
+      return decodeValidatedNarrativeEventAuthoringMap(
+        await file.readAsBytes(),
+        path,
       );
-      final map = MapData.fromJson(json);
-      MapValidator.validate(map);
-      return map;
     } catch (e) {
       throw MapLoadException('Failed to load map: $e');
     }
