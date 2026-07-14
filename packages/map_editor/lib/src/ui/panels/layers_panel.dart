@@ -711,6 +711,7 @@ class _LayerList extends StatelessWidget {
       surface: (_) => CupertinoIcons.map,
       object: (_) => CupertinoIcons.square_stack_3d_up,
       environment: (_) => CupertinoIcons.cloud,
+      border: (_) => CupertinoIcons.waveform_path,
     );
   }
 
@@ -724,6 +725,8 @@ class _LayerList extends StatelessWidget {
           'surface · ${surfaceLayer.placements.length} placement(s)',
       object: (_) => 'objets',
       environment: (el) => 'environnement · ${el.content.areaCount} zone(s)',
+      border: (borderLayer) =>
+          'bordure · ${borderLayer.content.features.length} tracé(s)',
     );
   }
 

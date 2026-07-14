@@ -27,6 +27,26 @@ SurfaceVariantRole resolveSurfaceVariantRoleForPlacement({
     return matchingCoordinates.contains(_coordinateKey(nextX, nextY));
   }
 
+  return resolveSurfaceVariantRoleAt(
+    x: x,
+    y: y,
+    matchesAt: matchesAt,
+  );
+}
+
+/// Resolves a native Surface role against an arbitrary complete occupancy
+/// domain.
+///
+/// The callback is intentionally asset-agnostic. Border uses it to classify a
+/// cell against the complete painted region before retaining only its inner
+/// ground band; ordinary Surface layers keep using the placement adapter
+/// above.
+SurfaceVariantRole resolveSurfaceVariantRoleAt({
+  required int x,
+  required int y,
+  required bool Function(int x, int y) matchesAt,
+}) {
+  _requireNonNegativeCoordinate(x: x, y: y);
   final mask = _resolveSurfaceCardinalMaskAt(
     x: x,
     y: y,

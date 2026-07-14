@@ -74,6 +74,7 @@ Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
+  ProjectVersion.v2: 'v2',
 };
 
 _$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(

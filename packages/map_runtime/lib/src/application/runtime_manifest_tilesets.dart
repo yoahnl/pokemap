@@ -43,6 +43,9 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
       environment: (id, name, isVisible, opacity, content, properties) {},
+      // Border snapshots are not runtime tilesets. Border rendering is
+      // intentionally deferred to its dedicated runtime integration lot.
+      border: (id, name, isVisible, opacity, content, properties) {},
     );
   }
   return ids;
@@ -123,6 +126,8 @@ void addTerrainAndPathPresetTilesetIds(
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
       environment: (id, name, isVisible, opacity, content, properties) {},
+      // Border snapshots are not terrain/path preset tileset references.
+      border: (id, name, isVisible, opacity, content, properties) {},
     );
   }
 }

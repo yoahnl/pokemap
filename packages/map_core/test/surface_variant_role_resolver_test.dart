@@ -2,6 +2,49 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('resolveSurfaceVariantRoleAt', () {
+    test('uses the callback for cardinal and diagonal connectivity', () {
+      const occupied = <(int, int)>{
+        (0, 0),
+        (1, 0),
+        (0, 1),
+        (1, 1),
+        (2, 1),
+        (0, 2),
+        (1, 2),
+        (2, 2),
+      };
+
+      expect(
+        resolveSurfaceVariantRoleAt(
+          x: 1,
+          y: 1,
+          matchesAt: (x, y) => occupied.contains((x, y)),
+        ),
+        SurfaceVariantRole.innerCornerNE,
+      );
+    });
+
+    test('rejects only a negative queried center, not neighbor probes', () {
+      expect(
+        resolveSurfaceVariantRoleAt(
+          x: 0,
+          y: 0,
+          matchesAt: (x, y) => x == 0 && y == 0,
+        ),
+        SurfaceVariantRole.isolated,
+      );
+      expect(
+        () => resolveSurfaceVariantRoleAt(
+          x: -1,
+          y: 0,
+          matchesAt: (_, __) => false,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+  });
+
   group('resolveSurfaceVariantRoleForPlacement', () {
     test('resolves an isolated placement', () {
       const placements = [

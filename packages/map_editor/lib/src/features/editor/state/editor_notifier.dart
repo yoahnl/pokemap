@@ -61,6 +61,7 @@ import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 import 'environment_generated_placement_add_element_provider.dart';
 import 'environment_mask_brush_size_provider.dart';
+import '../../border_map_editing/state/border_preview_providers.dart';
 import '../../surface_painter/surface_painting_controller.dart';
 
 part 'editor_notifier.g.dart';
@@ -2841,6 +2842,11 @@ class EditorNotifier extends _$EditorNotifier {
   /// Bascule vers Environment Studio.
   void selectEnvironmentStudioWorkspace() {
     state = _editorWorkspaceController.selectEnvironmentStudioWorkspace(state);
+  }
+
+  /// Bascule vers Border Studio sans exiger de carte active.
+  void selectBorderStudioWorkspace() {
+    state = _editorWorkspaceController.selectBorderStudioWorkspace(state);
   }
 
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
@@ -6680,7 +6686,10 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = ref.read(addMapLayerUseCaseProvider);
       int? insertIndex;
       final activeId = state.activeLayerId;
-      if (activeId != null) {
+      // Border layers represent authored visual overlays. Their default
+      // creation position is the end of the authored stack, independently of
+      // whichever legacy layer happens to be active.
+      if (kind != MapLayerKind.border && activeId != null) {
         final idx = map.layers.indexWhere((layer) => layer.id == activeId);
         if (idx >= 0) {
           insertIndex = idx;
@@ -8676,6 +8685,28 @@ class EditorNotifier extends _$EditorNotifier {
       current: state,
       tool: tool,
     );
+  }
+
+  /// Commits one fully resolved Border preview as one map-history mutation.
+  bool applyPendingBorderPreview() {
+    final map = state.activeMap;
+    if (map == null) return false;
+    final preview = ref.read(borderPreviewControllerProvider.notifier);
+    final transaction = preview.current.transaction;
+    final outcome = preview.apply(map);
+    if (!outcome.applied || transaction == null) {
+      state = state.copyWith(
+        errorMessage: 'L’aperçu de bordure ne peut plus être appliqué.',
+      );
+      return false;
+    }
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: outcome.map,
+      preferredActiveLayerId: transaction.layerId,
+      statusMessage: 'Bordure appliquée',
+    );
+    return true;
   }
 
   void selectTerrainType(TerrainType terrain) {

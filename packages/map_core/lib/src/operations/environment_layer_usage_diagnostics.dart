@@ -186,6 +186,7 @@ String _mapLayerId(MapLayer layer) {
     SurfaceLayer(:final id) => id,
     ObjectLayer(:final id) => id,
     EnvironmentLayer(:final id) => id,
+    BorderLayer(:final id) => id,
   };
 }
 

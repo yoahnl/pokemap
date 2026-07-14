@@ -62,6 +62,22 @@ void main() {
       expect(next.statusMessage, current.statusMessage);
     });
 
+    test('selectBorderStudioWorkspace opens without an active map', () {
+      const current = EditorState(
+        projectRootPath: '/tmp/border-project',
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: null,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectBorderStudioWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.borderStudio);
+      expect(next.projectRootPath, '/tmp/border-project');
+      expect(next.activeMap, isNull);
+      expect(next.errorMessage, isNull);
+    });
+
     test(
         'selectPokemonCatalogSection opens the parent workspace and stores the section',
         () {

@@ -159,6 +159,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
+    EditorWorkspaceMode.borderStudio => 'Border Studio',
   };
 
   final workspaceSubtitle = switch (workspaceMode) {
@@ -196,6 +197,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>
       'Presets d’environnements réutilisables',
+    EditorWorkspaceMode.borderStudio =>
+      'Créez des blueprints de côtes, murets et clôtures à partir de vos assets.',
   };
 
   final exposesMapActions = workspaceMode == EditorWorkspaceMode.map;

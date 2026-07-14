@@ -60,6 +60,7 @@ class PokeMapButton extends StatefulWidget {
     this.isLoading = false,
     this.isSelected = false,
     this.focusNode,
+    this.autofocus = false,
   });
 
   /// Action callback. If null, the button is rendered in a disabled state.
@@ -92,6 +93,8 @@ class PokeMapButton extends StatefulWidget {
   /// [onPressed]. This lets modal flows restore focus to the exact launcher.
   final FocusNode? focusNode;
 
+  /// Requests initial focus without bypassing the shared focus styling.
+  final bool autofocus;
   @override
   State<PokeMapButton> createState() => _PokeMapButtonState();
 }
@@ -216,6 +219,7 @@ class _PokeMapButtonState extends State<PokeMapButton> {
       enabled: !isDisabled,
       child: FocusableActionDetector(
         focusNode: widget.focusNode,
+        autofocus: widget.autofocus,
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (intent) {

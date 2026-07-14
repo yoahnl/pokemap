@@ -4,6 +4,8 @@ enum EditorToolType {
   terrainPaint,
   surfacePaint,
   collisionPaint,
+  borderPaint,
+  borderErase,
   entityPlacement,
   eventPlacement,
   warpPlacement,

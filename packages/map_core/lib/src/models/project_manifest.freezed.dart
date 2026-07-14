@@ -94,6 +94,13 @@ mixin _$ProjectManifest {
       toJson: _projectSurfaceCatalogToJson)
   ProjectSurfaceCatalog get surfaceCatalog =>
       throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'borderCatalog',
+      readValue: _readProjectBorderCatalog,
+      fromJson: _projectBorderCatalogFromJson,
+      toJson: _projectBorderCatalogToJson,
+      includeIfNull: false)
+  ProjectBorderCatalog get borderCatalog => throw _privateConstructorUsedError;
   @ProjectShadowCatalogJsonConverter()
   ProjectShadowCatalog get shadowCatalog => throw _privateConstructorUsedError;
   @JsonKey(
@@ -179,6 +186,13 @@ abstract class $ProjectManifestCopyWith<$Res> {
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'borderCatalog',
+          readValue: _readProjectBorderCatalog,
+          fromJson: _projectBorderCatalogFromJson,
+          toJson: _projectBorderCatalogToJson,
+          includeIfNull: false)
+      ProjectBorderCatalog borderCatalog,
       @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
       @JsonKey(
           name: 'projectedBuildingShadowCatalog',
@@ -238,6 +252,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? newGame = null,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
+    Object? borderCatalog = null,
     Object? shadowCatalog = null,
     Object? projectedBuildingShadowCatalog = null,
   }) {
@@ -370,6 +385,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.surfaceCatalog
           : surfaceCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectSurfaceCatalog,
+      borderCatalog: null == borderCatalog
+          ? _value.borderCatalog
+          : borderCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectBorderCatalog,
       shadowCatalog: null == shadowCatalog
           ? _value.shadowCatalog
           : shadowCatalog // ignore: cast_nullable_to_non_nullable
@@ -469,6 +488,13 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
       ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'borderCatalog',
+          readValue: _readProjectBorderCatalog,
+          fromJson: _projectBorderCatalogFromJson,
+          toJson: _projectBorderCatalogToJson,
+          includeIfNull: false)
+      ProjectBorderCatalog borderCatalog,
       @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
       @JsonKey(
           name: 'projectedBuildingShadowCatalog',
@@ -528,6 +554,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? newGame = null,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
+    Object? borderCatalog = null,
     Object? shadowCatalog = null,
     Object? projectedBuildingShadowCatalog = null,
   }) {
@@ -660,6 +687,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value.surfaceCatalog
           : surfaceCatalog // ignore: cast_nullable_to_non_nullable
               as ProjectSurfaceCatalog,
+      borderCatalog: null == borderCatalog
+          ? _value.borderCatalog
+          : borderCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectBorderCatalog,
       shadowCatalog: null == shadowCatalog
           ? _value.shadowCatalog
           : shadowCatalog // ignore: cast_nullable_to_non_nullable
@@ -718,11 +749,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.pokemon = const ProjectPokemonConfig(),
       this.newGame = const ProjectNewGameConfig(),
       final Map<String, dynamic> globalProperties = const {},
-      @JsonKey(
-          name: 'surfaceCatalog',
-          fromJson: _projectSurfaceCatalogFromJson,
-          toJson: _projectSurfaceCatalogToJson)
+      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
       this.surfaceCatalog = const ProjectSurfaceCatalog.empty(),
+      @JsonKey(
+          name: 'borderCatalog',
+          readValue: _readProjectBorderCatalog,
+          fromJson: _projectBorderCatalogFromJson,
+          toJson: _projectBorderCatalogToJson,
+          includeIfNull: false)
+      this.borderCatalog = const ProjectBorderCatalog.empty(),
       @ProjectShadowCatalogJsonConverter()
       this.shadowCatalog = const ProjectShadowCatalog.empty(),
       @JsonKey(
@@ -1026,6 +1061,14 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       toJson: _projectSurfaceCatalogToJson)
   final ProjectSurfaceCatalog surfaceCatalog;
   @override
+  @JsonKey(
+      name: 'borderCatalog',
+      readValue: _readProjectBorderCatalog,
+      fromJson: _projectBorderCatalogFromJson,
+      toJson: _projectBorderCatalogToJson,
+      includeIfNull: false)
+  final ProjectBorderCatalog borderCatalog;
+  @override
   @JsonKey()
   @ProjectShadowCatalogJsonConverter()
   final ProjectShadowCatalog shadowCatalog;
@@ -1039,7 +1082,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1099,6 +1142,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._globalProperties, _globalProperties) &&
             (identical(other.surfaceCatalog, surfaceCatalog) ||
                 other.surfaceCatalog == surfaceCatalog) &&
+            (identical(other.borderCatalog, borderCatalog) ||
+                other.borderCatalog == borderCatalog) &&
             (identical(other.shadowCatalog, shadowCatalog) ||
                 other.shadowCatalog == shadowCatalog) &&
             (identical(other.projectedBuildingShadowCatalog,
@@ -1143,6 +1188,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         newGame,
         const DeepCollectionEquality().hash(_globalProperties),
         surfaceCatalog,
+        borderCatalog,
         shadowCatalog,
         projectedBuildingShadowCatalog
       ]);
@@ -1225,6 +1271,13 @@ abstract class _ProjectManifest implements ProjectManifest {
           fromJson: _projectSurfaceCatalogFromJson,
           toJson: _projectSurfaceCatalogToJson)
       final ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'borderCatalog',
+          readValue: _readProjectBorderCatalog,
+          fromJson: _projectBorderCatalogFromJson,
+          toJson: _projectBorderCatalogToJson,
+          includeIfNull: false)
+      final ProjectBorderCatalog borderCatalog,
       @ProjectShadowCatalogJsonConverter()
       final ProjectShadowCatalog shadowCatalog,
       @JsonKey(
@@ -1329,6 +1382,14 @@ abstract class _ProjectManifest implements ProjectManifest {
       fromJson: _projectSurfaceCatalogFromJson,
       toJson: _projectSurfaceCatalogToJson)
   ProjectSurfaceCatalog get surfaceCatalog;
+  @override
+  @JsonKey(
+      name: 'borderCatalog',
+      readValue: _readProjectBorderCatalog,
+      fromJson: _projectBorderCatalogFromJson,
+      toJson: _projectBorderCatalogToJson,
+      includeIfNull: false)
+  ProjectBorderCatalog get borderCatalog;
   @override
   @ProjectShadowCatalogJsonConverter()
   ProjectShadowCatalog get shadowCatalog;

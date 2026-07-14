@@ -696,6 +696,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       SurfaceLayer _ => 'Calque de surface',
       ObjectLayer _ => 'Calque d\'objets',
       EnvironmentLayer _ => 'Calque d\'environnement',
+      BorderLayer _ => 'Calque de bordure',
     };
   }
 
@@ -759,6 +760,7 @@ class _InspectorOverviewCard extends StatelessWidget {
             CollisionLayer _ => 'Calque de collision actif',
             ObjectLayer _ => 'Calque d\'objets actif',
             EnvironmentLayer _ => 'Calque d\'environnement actif',
+            BorderLayer _ => 'Calque de bordure actif',
           };
 
     return Container(

@@ -138,5 +138,58 @@ void main() {
         EditorToolType.selection,
       );
     });
+
+    test('Border paint and erase stay outside the generic eraser flow', () {
+      const map = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        version: ProjectVersion.v2,
+        size: GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          MapLayer.border(id: 'border', name: 'Bordures'),
+          MapLayer.collision(id: 'collision', name: 'Collision'),
+        ],
+      );
+
+      for (final tool in <EditorToolType>[
+        EditorToolType.borderPaint,
+        EditorToolType.borderErase,
+      ]) {
+        final borderState = EditorState(
+          activeMap: map,
+          activeLayerId: 'border',
+          activeTool: tool,
+        );
+        final collisionState = EditorState(
+          activeMap: map,
+          activeLayerId: 'collision',
+          activeTool: tool,
+        );
+        expect(
+          controller
+              .coerceActiveToolIfIncompatibleWithLayer(borderState)
+              .activeTool,
+          tool,
+        );
+        expect(
+          controller
+              .coerceActiveToolIfIncompatibleWithLayer(collisionState)
+              .activeTool,
+          EditorToolType.selection,
+        );
+      }
+
+      const genericEraser = EditorState(
+        activeMap: map,
+        activeLayerId: 'border',
+        activeTool: EditorToolType.eraser,
+      );
+      expect(
+        controller
+            .coerceActiveToolIfIncompatibleWithLayer(genericEraser)
+            .activeTool,
+        EditorToolType.selection,
+      );
+    });
   });
 }

@@ -61,4 +61,11 @@ enum EditorWorkspaceMode {
   /// Surface centrale read-only : résumé des presets Environment et
   /// diagnostics agrégés (`map_core`), sans édition ni génération.
   environmentStudio,
+
+  /// Studio no-code des blueprints de bordure réutilisables.
+  ///
+  /// Ce workspace ne dessine pas sur une carte : il assemble des assets,
+  /// leurs rôles et des règles déterministes, puis publie une révision
+  /// immuable consommée ensuite par World Maps.
+  borderStudio,
 }

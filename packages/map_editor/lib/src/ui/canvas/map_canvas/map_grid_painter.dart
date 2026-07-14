@@ -233,6 +233,7 @@ class MapGridPainter extends CustomPainter {
   final EnvironmentMaskBrushCursorOverlay? environmentBrushCursorOverlay;
   final EnvironmentGeneratedPlacementAddPreview? environmentGeneratedAddPreview;
   final String? environmentGeneratedDeletePreviewId;
+  final BorderPreviewTransaction? borderPreview;
 
   MapGridPainter({
     required this.map,
@@ -270,6 +271,7 @@ class MapGridPainter extends CustomPainter {
     this.environmentBrushCursorOverlay,
     this.environmentGeneratedAddPreview,
     this.environmentGeneratedDeletePreviewId,
+    this.borderPreview,
   });
 
   @override
@@ -417,6 +419,21 @@ class MapGridPainter extends CustomPainter {
       canvas,
       staticShadowPreviewInstructions,
     );
+
+    final borderCatalog = project?.borderCatalog;
+    if (borderCatalog != null) {
+      const BorderPreviewPainter().paint(
+        canvas,
+        map: map,
+        catalog: borderCatalog,
+        frameImagesByKey: tilesetImagesById,
+        sourceTileWidth: sourceTileWidth,
+        sourceTileHeight: sourceTileHeight,
+        displayScale: sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
+        elapsedMs: editorEntityAnimationMs,
+        preview: borderPreview,
+      );
+    }
 
     for (final layer in tileLayersInPaintOrder) {
       _paintPlacedElementsForLayer(
@@ -2768,6 +2785,7 @@ class MapGridPainter extends CustomPainter {
             environmentGeneratedAddPreview ||
         oldDelegate.environmentGeneratedDeletePreviewId !=
             environmentGeneratedDeletePreviewId ||
+        !identical(oldDelegate.borderPreview, borderPreview) ||
         oldDelegate.environmentBrushCursorOverlay !=
             environmentBrushCursorOverlay ||
         !_sameEnvironmentMaskOverlay(

@@ -176,6 +176,11 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
       case ObjectLayer():
       case EnvironmentLayer():
         break;
+      case BorderLayer():
+        // Border rendering is intentionally deferred. Keeping this branch
+        // explicit prevents a Border layer from falling through another
+        // layer family's renderer. The empty-plan diagnostic remains valid.
+        break;
     }
   }
 
