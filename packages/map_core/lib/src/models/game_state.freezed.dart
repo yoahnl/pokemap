@@ -967,6 +967,9 @@ mixin _$GameState {
 
   /// Flags narratifs (booléens).
   StoryFlags get storyFlags => throw _privateConstructorUsedError;
+  @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+  NarrativeFactRuntimeState get narrativeFactRuntimeState =>
+      throw _privateConstructorUsedError;
 
   /// IDs d'événements déjà consommés (objets ramassés, etc.).
   Set<String> get consumedEventIds => throw _privateConstructorUsedError;
@@ -1002,6 +1005,8 @@ abstract class $GameStateCopyWith<$Res> {
       PlayerProgression progression,
       ScriptVariables scriptVariables,
       StoryFlags storyFlags,
+      @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+      NarrativeFactRuntimeState narrativeFactRuntimeState,
       Set<String> consumedEventIds,
       Map<String, String> metadata});
 
@@ -1042,6 +1047,7 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
     Object? progression = null,
     Object? scriptVariables = null,
     Object? storyFlags = null,
+    Object? narrativeFactRuntimeState = null,
     Object? consumedEventIds = null,
     Object? metadata = null,
   }) {
@@ -1094,6 +1100,10 @@ class _$GameStateCopyWithImpl<$Res, $Val extends GameState>
           ? _value.storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
               as StoryFlags,
+      narrativeFactRuntimeState: null == narrativeFactRuntimeState
+          ? _value.narrativeFactRuntimeState
+          : narrativeFactRuntimeState // ignore: cast_nullable_to_non_nullable
+              as NarrativeFactRuntimeState,
       consumedEventIds: null == consumedEventIds
           ? _value.consumedEventIds
           : consumedEventIds // ignore: cast_nullable_to_non_nullable
@@ -1207,6 +1217,8 @@ abstract class _$$GameStateImplCopyWith<$Res>
       PlayerProgression progression,
       ScriptVariables scriptVariables,
       StoryFlags storyFlags,
+      @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+      NarrativeFactRuntimeState narrativeFactRuntimeState,
       Set<String> consumedEventIds,
       Map<String, String> metadata});
 
@@ -1253,6 +1265,7 @@ class __$$GameStateImplCopyWithImpl<$Res>
     Object? progression = null,
     Object? scriptVariables = null,
     Object? storyFlags = null,
+    Object? narrativeFactRuntimeState = null,
     Object? consumedEventIds = null,
     Object? metadata = null,
   }) {
@@ -1305,6 +1318,10 @@ class __$$GameStateImplCopyWithImpl<$Res>
           ? _value.storyFlags
           : storyFlags // ignore: cast_nullable_to_non_nullable
               as StoryFlags,
+      narrativeFactRuntimeState: null == narrativeFactRuntimeState
+          ? _value.narrativeFactRuntimeState
+          : narrativeFactRuntimeState // ignore: cast_nullable_to_non_nullable
+              as NarrativeFactRuntimeState,
       consumedEventIds: null == consumedEventIds
           ? _value._consumedEventIds
           : consumedEventIds // ignore: cast_nullable_to_non_nullable
@@ -1334,6 +1351,8 @@ class _$GameStateImpl implements _GameState {
       this.progression = const PlayerProgression(),
       this.scriptVariables = const ScriptVariables(),
       this.storyFlags = const StoryFlags(),
+      @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+      this.narrativeFactRuntimeState = const NarrativeFactRuntimeState.empty(),
       final Set<String> consumedEventIds = const {},
       final Map<String, String> metadata = const {}})
       : _consumedEventIds = consumedEventIds,
@@ -1394,6 +1413,9 @@ class _$GameStateImpl implements _GameState {
   @override
   @JsonKey()
   final StoryFlags storyFlags;
+  @override
+  @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+  final NarrativeFactRuntimeState narrativeFactRuntimeState;
 
   /// IDs d'événements déjà consommés (objets ramassés, etc.).
   final Set<String> _consumedEventIds;
@@ -1421,7 +1443,7 @@ class _$GameStateImpl implements _GameState {
 
   @override
   String toString() {
-    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, consumedEventIds: $consumedEventIds, metadata: $metadata)';
+    return 'GameState(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, playerMovementMode: $playerMovementMode, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, scriptVariables: $scriptVariables, storyFlags: $storyFlags, narrativeFactRuntimeState: $narrativeFactRuntimeState, consumedEventIds: $consumedEventIds, metadata: $metadata)';
   }
 
   @override
@@ -1450,6 +1472,9 @@ class _$GameStateImpl implements _GameState {
                 other.scriptVariables == scriptVariables) &&
             (identical(other.storyFlags, storyFlags) ||
                 other.storyFlags == storyFlags) &&
+            (identical(other.narrativeFactRuntimeState,
+                    narrativeFactRuntimeState) ||
+                other.narrativeFactRuntimeState == narrativeFactRuntimeState) &&
             const DeepCollectionEquality()
                 .equals(other._consumedEventIds, _consumedEventIds) &&
             const DeepCollectionEquality().equals(other._metadata, _metadata));
@@ -1471,6 +1496,7 @@ class _$GameStateImpl implements _GameState {
       progression,
       scriptVariables,
       storyFlags,
+      narrativeFactRuntimeState,
       const DeepCollectionEquality().hash(_consumedEventIds),
       const DeepCollectionEquality().hash(_metadata));
 
@@ -1504,6 +1530,8 @@ abstract class _GameState implements GameState {
       final PlayerProgression progression,
       final ScriptVariables scriptVariables,
       final StoryFlags storyFlags,
+      @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+      final NarrativeFactRuntimeState narrativeFactRuntimeState,
       final Set<String> consumedEventIds,
       final Map<String, String> metadata}) = _$GameStateImpl;
 
@@ -1551,6 +1579,9 @@ abstract class _GameState implements GameState {
   /// Flags narratifs (booléens).
   @override
   StoryFlags get storyFlags;
+  @override
+  @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+  NarrativeFactRuntimeState get narrativeFactRuntimeState;
 
   /// IDs d'événements déjà consommés (objets ramassés, etc.).
   @override

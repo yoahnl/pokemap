@@ -54,9 +54,11 @@
       "name": "map_core",
       "version": "0.1.0",
       "dependencies": [
+        "crypto",
         "freezed_annotation",
         "json_annotation",
-        "meta"
+        "meta",
+        "uuid"
       ]
     },
     {
@@ -308,6 +310,14 @@
       ]
     },
     {
+      "name": "uuid",
+      "version": "4.5.3",
+      "dependencies": [
+        "crypto",
+        "fixnum"
+      ]
+    },
+    {
       "name": "meta",
       "version": "1.18.2",
       "dependencies": []
@@ -326,6 +336,13 @@
         "collection",
         "json_annotation",
         "meta"
+      ]
+    },
+    {
+      "name": "crypto",
+      "version": "3.0.7",
+      "dependencies": [
+        "typed_data"
       ]
     },
     {
@@ -351,13 +368,6 @@
       "name": "web",
       "version": "1.1.1",
       "dependencies": []
-    },
-    {
-      "name": "crypto",
-      "version": "3.0.7",
-      "dependencies": [
-        "typed_data"
-      ]
     },
     {
       "name": "vm_service",
@@ -461,6 +471,11 @@
         "meta",
         "source_span"
       ]
+    },
+    {
+      "name": "fixnum",
+      "version": "1.1.1",
+      "dependencies": []
     },
     {
       "name": "file",

@@ -68,6 +68,12 @@
       "languageVersion": "3.0"
     },
     {
+      "name": "fixnum",
+      "rootUri": "file:///Users/karim/.pub-cache/hosted/pub.dev/fixnum-1.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "freezed_annotation",
       "rootUri": "file:///Users/karim/.pub-cache/hosted/pub.dev/freezed_annotation-2.4.4",
       "packageUri": "lib/",
@@ -125,7 +131,7 @@
       "name": "map_core",
       "rootUri": "../../map_core",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.4"
     },
     {
       "name": "matcher",
@@ -264,6 +270,12 @@
       "rootUri": "file:///Users/karim/.pub-cache/hosted/pub.dev/typed_data-1.4.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
+    },
+    {
+      "name": "uuid",
+      "rootUri": "file:///Users/karim/.pub-cache/hosted/pub.dev/uuid-4.5.3",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "vm_service",

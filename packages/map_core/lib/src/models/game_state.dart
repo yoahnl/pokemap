@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'narrative_fact_runtime_state.dart';
 import 'save_data.dart';
 
 part 'game_state.freezed.dart';
@@ -97,6 +98,9 @@ class GameState with _$GameState {
 
     /// Flags narratifs (booléens).
     @Default(StoryFlags()) StoryFlags storyFlags,
+    @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
+    @Default(NarrativeFactRuntimeState.empty())
+    NarrativeFactRuntimeState narrativeFactRuntimeState,
 
     /// IDs d'événements déjà consommés (objets ramassés, etc.).
     @Default({}) Set<String> consumedEventIds,

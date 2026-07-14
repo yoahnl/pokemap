@@ -377,6 +377,7 @@ void main() {
       expect(save.progression.storyFlags, isEmpty);
       expect(save.progression.completedStepIds, isEmpty);
       expect(save.properties, isEmpty);
+      expect(save.narrativeFactRuntimeState.overridesByFactId, isEmpty);
     });
 
     test('copyWith preserves unmodified fields', () {
@@ -395,6 +396,24 @@ void main() {
       expect(updated.saveId, 'test');
       expect(updated.currentMapId, 'route_2');
       expect(updated.party.members.length, 1);
+    });
+
+    test('normalized preserves canonical Fact overrides', () {
+      final save = SaveData(
+        saveId: ' fact_save ',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {
+            'fact_default_true': false,
+            'fact_orphan': true,
+          },
+        ),
+      );
+
+      final normalized = save.normalized();
+
+      expect(normalized.saveId, 'fact_save');
+      expect(
+          normalized.narrativeFactRuntimeState, save.narrativeFactRuntimeState);
     });
   });
 

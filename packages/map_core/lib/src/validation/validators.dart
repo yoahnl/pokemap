@@ -8,6 +8,7 @@ import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
 import '../operations/map_entities.dart';
+import '../operations/narrative_fact_runtime.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
 
@@ -162,6 +163,13 @@ class ProjectValidator {
       (c) => c.id,
       duplicateMessagePrefix: 'Duplicate character ID',
     );
+    final factResolver = NarrativeFactRuntimeResolver.fromFacts(manifest.facts);
+    if (!factResolver.isValid) {
+      throw ValidationException(
+        'Invalid Fact runtime catalog: '
+        '${factResolver.issues.map((issue) => issue.message).join(' ')}',
+      );
+    }
   }
 
   static void _validateProjectDialogues(ProjectManifest manifest) {

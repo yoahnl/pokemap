@@ -193,7 +193,8 @@ void main() {
           legacyClaims: [valid],
         ),
       );
-      expect(validIndex.canStartDualRead, isTrue);
+      expect(validIndex.canStartDualRead, isFalse);
+      expect(validIndex.runtimeEvidenceValidated, isFalse);
       expect(validIndex.validBySource[source], valid);
       expect(validIndex.validByProvenance[provenance], same(valid));
       expect(

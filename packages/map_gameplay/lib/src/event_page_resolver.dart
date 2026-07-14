@@ -23,10 +23,13 @@ class EventPageResolver {
     MapEventDefinition event,
     GameState state, {
     ScriptEvaluationContext? context,
+    ScriptEvaluationContext? Function(MapEventPage page)? contextForPage,
   }) {
     for (var i = 0; i < event.pages.length; i++) {
       final page = event.pages[i];
-      if (_isPageActive(page, state, context: context)) {
+      final evaluationContext =
+          contextForPage == null ? context : contextForPage(page);
+      if (_isPageActive(page, state, context: evaluationContext)) {
         return ActiveEventPage(
           eventId: event.id,
           page: page,
@@ -56,10 +59,16 @@ class EventPageResolver {
     List<MapEventDefinition> events,
     GameState state, {
     ScriptEvaluationContext? context,
+    ScriptEvaluationContext? Function(MapEventPage page)? contextForPage,
   }) {
     final result = <String, ActiveEventPage>{};
     for (final event in events) {
-      final activePage = resolve(event, state, context: context);
+      final activePage = resolve(
+        event,
+        state,
+        context: context,
+        contextForPage: contextForPage,
+      );
       if (activePage != null) {
         result[event.id] = activePage;
       }

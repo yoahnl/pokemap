@@ -2,6 +2,66 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  group('Event Builder page provenance', () {
+    test('accepts current schema and legacy reuse metadata', () {
+      expect(
+        hasEventBuilderPageProvenance(
+          const MapEventPage(
+            pageNumber: 0,
+            metadata: {
+              EventBuilderMetadataKeys.schemaVersion:
+                  EventBuilderMetadataKeys.currentSchemaVersion,
+            },
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        hasEventBuilderPageProvenance(
+          const MapEventPage(
+            pageNumber: 0,
+            metadata: {
+              EventBuilderMetadataKeys.reusePolicy: 'oneShot',
+            },
+          ),
+        ),
+        isTrue,
+      );
+    });
+
+    test('rejects absent or malformed Event Builder metadata', () {
+      expect(
+        hasEventBuilderPageProvenance(
+          const MapEventPage(pageNumber: 0),
+        ),
+        isFalse,
+      );
+      expect(
+        hasEventBuilderPageProvenance(
+          const MapEventPage(
+            pageNumber: 0,
+            metadata: {
+              EventBuilderMetadataKeys.reusePolicy: 'reuse-forever',
+            },
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        hasEventBuilderPageProvenance(
+          const MapEventPage(
+            pageNumber: 0,
+            metadata: {
+              EventBuilderMetadataKeys.schemaVersion: '2',
+              EventBuilderMetadataKeys.reusePolicy: 'oneShot',
+            },
+          ),
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('Event Builder authoring operations', () {
     test('reads legacy event without Event Builder metadata', () {
       final event = _event(

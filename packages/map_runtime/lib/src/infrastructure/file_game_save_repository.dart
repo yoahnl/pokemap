@@ -40,6 +40,7 @@ class FileGameSaveRepository implements GameSaveRepository {
         trainerProfile: normalizedSaveData.trainerProfile,
         bag: normalizedSaveData.bag,
         progression: normalizedSaveData.progression,
+        narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
         metadata: normalizedSaveData.properties,
       );
       final json = normalizedState.toJson();

@@ -24,9 +24,17 @@ class ScriptConditionEvaluator {
       case ScriptConditionType.not:
         return _evaluateNot(condition.children, state, context: context);
       case ScriptConditionType.flagIsSet:
-        return _evaluateFlagIsSet(condition.params, state);
+        return _evaluateFlagIsSet(
+          condition.params,
+          state,
+          context: context,
+        );
       case ScriptConditionType.flagIsUnset:
-        return _evaluateFlagIsUnset(condition.params, state);
+        return _evaluateFlagIsUnset(
+          condition.params,
+          state,
+          context: context,
+        );
       case ScriptConditionType.variableEquals:
         return _evaluateVariableEquals(condition.params, state);
       case ScriptConditionType.variableGreaterThan:
@@ -36,9 +44,11 @@ class ScriptConditionEvaluator {
       case ScriptConditionType.fieldAbilityUnlocked:
         return _evaluateFieldAbilityUnlocked(condition.params, state);
       case ScriptConditionType.partyHasMove:
-        return _evaluatePartyHasMove(condition.params, state, requireUsable: false);
+        return _evaluatePartyHasMove(condition.params, state,
+            requireUsable: false);
       case ScriptConditionType.partyHasUsableMove:
-        return _evaluatePartyHasMove(condition.params, state, requireUsable: true);
+        return _evaluatePartyHasMove(condition.params, state,
+            requireUsable: true);
       case ScriptConditionType.eventIsConsumed:
         return _evaluateEventIsConsumed(condition.params, state);
       case ScriptConditionType.playerOnMap:
@@ -83,16 +93,56 @@ class ScriptConditionEvaluator {
     return !evaluate(children.first, state, context: context);
   }
 
-  bool _evaluateFlagIsSet(Map<String, String> params, GameState state) {
+  bool _evaluateFlagIsSet(
+    Map<String, String> params,
+    GameState state, {
+    ScriptEvaluationContext? context,
+  }) {
     final flagName = params[ScriptConditionParams.flagName];
     if (flagName == null || flagName.isEmpty) return false;
-    return state.storyFlags.activeFlags.contains(flagName);
+    final resolver = context?.narrativeFactResolver;
+    if (resolver == null) {
+      return state.storyFlags.activeFlags.contains(flagName);
+    }
+    final resolution = resolver.resolve(
+      factId: flagName,
+      runtimeState: state.narrativeFactRuntimeState,
+      storyFlags: state.storyFlags,
+    );
+    return switch (resolution) {
+      NarrativeFactRuntimeResolved() => resolution.value,
+      NarrativeFactRuntimeUnknownFact() =>
+        state.storyFlags.activeFlags.contains(flagName),
+      NarrativeFactRuntimeAmbiguousFact() ||
+      NarrativeFactRuntimeInvalidRuntimeKey() =>
+        false,
+    };
   }
 
-  bool _evaluateFlagIsUnset(Map<String, String> params, GameState state) {
+  bool _evaluateFlagIsUnset(
+    Map<String, String> params,
+    GameState state, {
+    ScriptEvaluationContext? context,
+  }) {
     final flagName = params[ScriptConditionParams.flagName];
     if (flagName == null || flagName.isEmpty) return true;
-    return !state.storyFlags.activeFlags.contains(flagName);
+    final resolver = context?.narrativeFactResolver;
+    if (resolver == null) {
+      return !state.storyFlags.activeFlags.contains(flagName);
+    }
+    final resolution = resolver.resolve(
+      factId: flagName,
+      runtimeState: state.narrativeFactRuntimeState,
+      storyFlags: state.storyFlags,
+    );
+    return switch (resolution) {
+      NarrativeFactRuntimeResolved() => !resolution.value,
+      NarrativeFactRuntimeUnknownFact() =>
+        !state.storyFlags.activeFlags.contains(flagName),
+      NarrativeFactRuntimeAmbiguousFact() ||
+      NarrativeFactRuntimeInvalidRuntimeKey() =>
+        false,
+    };
   }
 
   bool _evaluateVariableEquals(Map<String, String> params, GameState state) {
@@ -152,7 +202,8 @@ class ScriptConditionEvaluator {
 
     final ability = FieldAbility.values.firstWhere(
       (a) => a.name == abilityName,
-      orElse: () => throw FormatException('Unknown field ability: $abilityName'),
+      orElse: () =>
+          throw FormatException('Unknown field ability: $abilityName'),
     );
 
     return state.progression.unlockedFieldAbilities.contains(ability);
@@ -199,6 +250,7 @@ class ScriptEvaluationContext {
   const ScriptEvaluationContext({
     this.transientFlags = const {},
     this.transientVariables = const {},
+    this.narrativeFactResolver,
   });
 
   /// Flags temporaires (non persistés).
@@ -206,4 +258,6 @@ class ScriptEvaluationContext {
 
   /// Variables temporaires (non persistées).
   final Map<String, ScriptVariableValue> transientVariables;
+
+  final NarrativeFactRuntimeResolver? narrativeFactResolver;
 }

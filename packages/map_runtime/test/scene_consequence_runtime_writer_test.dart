@@ -27,13 +27,28 @@ void main() {
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
       expect(
           result.gameState.storyFlags.activeFlags, contains('fact_gate_open'));
+      expect(
+        result.gameState.narrativeFactRuntimeState.overridesByFactId,
+        {'fact_gate_open': true},
+      );
+      expect(
+        result.gameState.progression.storyFlags,
+        contains('fact_gate_open'),
+      );
       expect(state.storyFlags.activeFlags, isEmpty);
     });
 
-    test('setFact false clears Fact runtime key', () {
+    test('setFact false overrides a true default and clears both flag stores',
+        () {
       const state = GameState(
         saveId: 'save_test',
-        storyFlags: StoryFlags(activeFlags: {'fact_gate_open'}),
+        storyFlags: StoryFlags(
+          activeFlags: {'legacy_gate_open', 'runtime_other'},
+        ),
+        progression: PlayerProgression(
+          storyFlags: ['legacy_gate_open', 'progression_other'],
+        ),
+        consumedEventIds: {'legacy_event'},
       );
       final writer = SceneConsequenceRuntimeWriter(
         project: _project(
@@ -41,6 +56,8 @@ void main() {
             NarrativeFactDefinition(
               id: 'fact_gate_open',
               label: 'Gate open',
+              defaultValue: true,
+              legacyFlagName: 'legacy_gate_open',
             ),
           ],
         ),
@@ -56,9 +73,15 @@ void main() {
       expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
       expect(
         result.gameState.storyFlags.activeFlags,
-        isNot(contains('fact_gate_open')),
+        {'runtime_other'},
       );
-      expect(state.storyFlags.activeFlags, contains('fact_gate_open'));
+      expect(result.gameState.progression.storyFlags, ['progression_other']);
+      expect(
+        result.gameState.narrativeFactRuntimeState.overridesByFactId,
+        {'fact_gate_open': false},
+      );
+      expect(result.gameState.consumedEventIds, {'legacy_event'});
+      expect(state.storyFlags.activeFlags, contains('legacy_gate_open'));
     });
 
     test('setFact uses legacyFlagName when present', () {
@@ -90,6 +113,10 @@ void main() {
         result.gameState.storyFlags.activeFlags,
         isNot(contains('fact_gate_open')),
       );
+      expect(
+        result.gameState.narrativeFactRuntimeState.overridesByFactId,
+        {'fact_gate_open': true},
+      );
     });
 
     test('setFact unknown Fact fails without mutating the original state', () {
@@ -110,6 +137,58 @@ void main() {
       );
       expect(result.gameState, state);
       expect(state.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('setFact ambiguous Fact fails without choosing a winner', () {
+      const state = GameState(saveId: 'save_test');
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(id: 'fact_dup', label: 'A'),
+            NarrativeFactDefinition(id: 'fact_dup', label: 'B'),
+          ],
+        ),
+      );
+
+      final result = writer.applyAll(
+        state,
+        [SceneConsequence.setFact(factId: 'fact_dup', value: true)],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.ambiguousFact,
+      );
+      expect(identical(result.gameState, state), isTrue);
+    });
+
+    test('rolls back every consequence when a later setFact fails', () {
+      const state = GameState(
+        saveId: 'save_test',
+        storyFlags: StoryFlags(activeFlags: {'original'}),
+      );
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(id: 'fact_known', label: 'Known'),
+          ],
+        ),
+      );
+
+      final result = writer.applyAll(
+        state,
+        [
+          SceneConsequence.setFact(factId: 'fact_known', value: true),
+          SceneConsequence.setFact(factId: 'fact_missing', value: true),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(identical(result.gameState, state), isTrue);
+      expect(result.appliedConsequences, isEmpty);
+      expect(state.storyFlags.activeFlags, {'original'});
+      expect(state.narrativeFactRuntimeState.overridesByFactId, isEmpty);
     });
 
     test('markEventConsumed adds consumed event id using existing convention',

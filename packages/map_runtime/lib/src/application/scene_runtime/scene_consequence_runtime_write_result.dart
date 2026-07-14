@@ -7,6 +7,8 @@ enum SceneConsequenceRuntimeWriteStatus {
 
 enum SceneConsequenceRuntimeWriteErrorCode {
   unknownFact,
+  ambiguousFact,
+  invalidFactRuntimeKey,
   unknownMap,
   unknownEvent,
 }

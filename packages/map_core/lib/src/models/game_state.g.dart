@@ -115,6 +115,13 @@ _$GameStateImpl _$$GameStateImplFromJson(Map<String, dynamic> json) =>
       storyFlags: json['storyFlags'] == null
           ? const StoryFlags()
           : StoryFlags.fromJson(json['storyFlags'] as Map<String, dynamic>),
+      narrativeFactRuntimeState: readNarrativeFactRuntimeStateJson(
+                  json, 'narrativeFactRuntimeState') ==
+              null
+          ? const NarrativeFactRuntimeState.empty()
+          : NarrativeFactRuntimeState.fromJson(
+              readNarrativeFactRuntimeStateJson(
+                  json, 'narrativeFactRuntimeState') as Map<String, dynamic>),
       consumedEventIds: (json['consumedEventIds'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toSet() ??
@@ -139,6 +146,7 @@ Map<String, dynamic> _$$GameStateImplToJson(_$GameStateImpl instance) =>
       'progression': instance.progression.toJson(),
       'scriptVariables': instance.scriptVariables.toJson(),
       'storyFlags': instance.storyFlags.toJson(),
+      'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
       'consumedEventIds': instance.consumedEventIds.toList(),
       'metadata': instance.metadata,
     };

@@ -894,11 +894,37 @@ bridge source, widget ou projet réel n'est ajouté par ce lot.
 
 ---
 
+## F1-PREREQ — Canonical Fact Runtime Semantics, Dual-Read Readiness & Outbox Contract Closure
+
+```text
+Status : CLOSED / ACCEPTED
+Gate d'entrée : blocker F1-0 confirme par a2ee6bbd
+Gate de sortie : ACCEPTED
+Blocker F1-0 initial : RESOLVED
+Canonical Fact overrides : PASS
+Fact resolver/writer alignment : PASS
+Dual-read entry gate : PASS
+Dual-read runtime readiness : PASS
+Typed tombstones : PASS
+Outbox overlap contract : PASS
+Phase F1 : READY
+Phase F2 : PLANNED / NOT READY
+```
+
+Ce prerequis ajoute un etat runtime Fact persistant capable de conserver un
+override explicite `false`, aligne les lecteurs et writers canoniques, separe le
+gate strict d'entree dual-read de la readiness runtime tolerante aux tombstones
+locaux, et ferme le contrat strict-wire/defensive-memory de l'outbox future.
+Il n'implemente ni planner, ni progression Event V2, ni outbox, ni bridge source.
+Les jalons V2-17 et V2-18 restent a realiser dans F1.
+
+---
+
 # Phase F1 — Runtime Authority & Progress
 
 ```text
 Mission status : READY
-Gate d'entrée : ACCEPTED par Phase E le 2026-07-14
+Gate d'entrée : ACCEPTED par Phase E et F1-PREREQ le 2026-07-14
 Jalons : V2-17 à V2-18
 ```
 
@@ -910,9 +936,11 @@ lifecycle/persistance avant de brancher une source production.
 ## Entry criteria
 
 - Phases B, C et E `CLOSED`.
+- F1-PREREQ `CLOSED / ACCEPTED`.
 - index structurel V2-04 disponible.
 - conditions et authoring V2-15 stables.
-- truth table mode/claims et ADR-EV2-013/014 inchangés.
+- resolver Fact canonique et gates dual-read prêts.
+- truth table mode/claims et ADR-EV2-013/014 avec addenda acceptés.
 
 ## Exit criteria
 
@@ -1956,6 +1984,7 @@ Report et demande un ADR de remplacement.
 | C `CLOSED` | V2-05 à V2-08 | 4 | adapters/plan/claims |
 | D `CLOSED` | V2-09 à V2-12 | 4 | catalogs/read models |
 | E `CLOSED / ACCEPTED` | V2-13 à V2-16 | 4 | authoring/single-write |
+| F1-PREREQ `CLOSED / ACCEPTED` | prérequis F1-0 | 1 | Facts/dual-read/outbox contract |
 | F1 `READY` | V2-17 à V2-18 | 2 | autorité/progression/outbox |
 | F2 | V2-19 à V2-22 | 4 | quatre source bridges |
 | G | V2-23 à V2-25 | 3 | Map Editor bridge |
@@ -1964,14 +1993,14 @@ Report et demande un ADR de remplacement.
 | J | V2-34 à V2-37 | 4 | Golden Selbrume |
 | K | V2-38 à V2-40 | 3 | pixel closure |
 | L | V2-41 à V2-43 | 3 | readiness |
-| **Total** | **RESET-00 + V2-01…43** | **44** | **Go/No-Go** |
+| **Total** | **RESET-00 + F1-PREREQ + V2-01…43** | **45** | **Go/No-Go** |
 
 # Prochaine mission exécutable
 
 ```text
 PHASE F1 — Runtime Authority & Progress
 Jalons internes : V2-17 à V2-18
-Gate d'entrée : ACCEPTED par Phase E
+Gate d'entrée : ACCEPTED par Phase E et F1-PREREQ
 ```
 
 Phase F1 doit construire l'autorité pure de dispatch et la progression V2 à

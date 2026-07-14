@@ -100,6 +100,8 @@ export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dar
         SceneConsequenceRuntimeWriteErrorCode,
         SceneConsequenceRuntimeWriteResult,
         SceneConsequenceRuntimeWriteStatus;
+export 'src/application/scene_runtime/scene_fact_condition_runtime_resolver.dart'
+    show evaluateCanonicalNarrativeFactSceneCondition;
 export 'src/application/scene_runtime/scene_runtime_host_callbacks.dart'
     show SceneRuntimeHostCallbacks;
 export 'src/application/scene_runtime/scene_runtime_hook_result.dart'

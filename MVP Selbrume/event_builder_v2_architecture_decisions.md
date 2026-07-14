@@ -651,6 +651,115 @@ etre qualifiee par une union fermee et integree a une cohorte.
 
 ---
 
+## ADR-EV2-008-A - Dual-Read Entry Gate vs Runtime Readiness
+
+**Statut : Accepted**
+
+**Contexte.** ADR-EV2-008 impose a juste titre un gate de transition strict,
+mais `canStartDualRead` confond actuellement deux situations dont la portee
+runtime differe : une collision globale d'autorite et un claim local invalide.
+Une collision globale interdit toute autorite dual-read. Un claim local
+invalide est un tombstone fail-closed pour sa source ou sa provenance, sans
+retirer l'autorite aux cohortes valides.
+
+**Decision.** `ValidatedLegacyClaimIndex` expose trois gates :
+
+```text
+canEnterDualRead =
+  runtimeEvidenceValidated
+  && globalConflicts.isEmpty
+  && invalidBySource.isEmpty
+  && invalidByProvenance.isEmpty
+
+canStartDualRead = canEnterDualRead
+
+canRunDualRead =
+  runtimeEvidenceValidated
+  && globalConflicts.isEmpty
+```
+
+`canStartDualRead` reste l'API compatible et le gate strict de transition.
+`canEnterDualRead` rend ce sens explicite. `canRunDualRead` exprime uniquement
+la capacite d'un registry deja en dual-read a conserver une autorite globale
+malgre des tombstones locaux. Une collision globale de `cohortId`, `source` ou
+`provenance` rend les trois gates faux. Un tombstone local rend
+`canEnterDualRead` et `canStartDualRead` faux, mais laisse `canRunDualRead`
+vrai.
+
+Un index construit depuis le seul registry reste un precheck structurel. Si le
+registry contient des claims, il ne peut annoncer aucun des trois gates tant
+qu'un `LegacyClaimRuntimeEvidence` complet n'a pas confronte chaque provenance,
+source et fingerprint au corpus courant. Le builder runtime exige explicitement
+cette preuve. Un corpus absent ne devient ni `valid` ni `absent`; les resolvers
+refusent l'acces. Un corpus fourni mais contenant une provenance disparue, une
+empreinte stale, une source divergente ou un membre de cohorte supplementaire
+produit un tombstone local. Un registry sans claim est trivialement valide sans
+preuve corpus.
+
+La resolution n'utilise plus `null`. Deux unions fermees sont publiques :
+
+```text
+LegacyClaimSourceResolution =
+  absent(source)
+  valid(source, claim)
+  tombstone(source, claim?, cohortId?, diagnostics)
+
+LegacyClaimProvenanceResolution =
+  absent(provenance)
+  valid(provenance, claim)
+  tombstone(provenance, claim?, cohortId?, diagnostics)
+```
+
+Ces unions ne sont consultables que lorsque `runtimeEvidenceValidated` et
+`canRunDualRead` sont vrais. Lorsque la preuve corpus manque ou que ce gate est
+faux, les resolvers source/provenance refusent l'acces au lieu de maquiller
+l'etat en `absent` ou en tombstone local.
+
+Chaque tombstone conserve la cle demandee, le claim et le `cohortId` lorsqu'ils
+sont structurellement disponibles, ainsi qu'une collection immuable de
+diagnostics ordonnes avec un code stable. Une resolution source valide et une
+resolution provenance valide pour la meme occurrence doivent designer la meme
+cohorte. Une divergence deja prouvable pendant la construction ou le preflight
+du corpus est enregistree dans `globalConflicts` et bloque `canRunDualRead`.
+Une divergence decouverte seulement lors de la preparation d'une occurrence
+ne redefinit pas le gate global : elle produit une erreur typee et bloque cette
+occurrence sans dispatch. Aucun premier gagnant n'est choisi.
+
+| Etat | canEnterDualRead | canStartDualRead | canRunDualRead |
+|---|---:|---:|---:|
+| aucun claim invalide | true | true | true |
+| claims sans preuve corpus | false | false | false |
+| tombstone local | false | false | true |
+| collision globale | false | false | false |
+
+Une divergence source/provenance propre a une occurrence ne modifie pas cette
+table : l'occurrence est bloquee fail-closed. Si le preflight demontre que la
+divergence appartient au corpus, elle devient la ligne collision globale.
+
+**Invariants.** Le codec, les claims JSON, fingerprints, receipts et plans de
+migration ne changent pas. Les consommateurs existants de
+`canStartDualRead` conservent leur comportement strict. Un tombstone n'est
+jamais traite comme une absence et une collision globale n'est jamais reduite
+a une erreur locale.
+
+**Consequences positives.** Le gate de migration reste conservateur tandis
+que la future autorite runtime peut isoler une source invalide sans arreter les
+cohortes valides.
+
+**Couts / consequences negatives.** Les futurs consommateurs runtime doivent
+traiter explicitement les trois variantes et refuser une incoherence de
+cohorte entre source et provenance.
+
+**Alternatives rejetees.** Assouplir `canStartDualRead`, representer un
+tombstone par `null`, bloquer toute autorite sur une seule erreur locale,
+choisir le premier claim lors d'une collision.
+
+**Phases impactees.** F1-PREREQ, F1, F2, I, L.
+
+**Date / phase de ratification.** 2026-07-14 - F1-PREREQ PR-0.
+
+---
+
 ## ADR-EV2-009 - Identite globale et immuable
 
 **Statut : Accepted**
@@ -845,6 +954,114 @@ migration save prouvee et evaluator canonique teste.
 
 ---
 
+## ADR-EV2-012-A - Canonical Fact Runtime Overrides & Resolution
+
+**Statut : Accepted**
+
+**Contexte.** La representation historique par presence d'un Story Flag ne
+peut pas conserver un `false` explicite lorsque le `defaultValue` du Fact vaut
+`true`. Les lecteurs World Rule, Scene et Script n'appliquent pas encore une
+semantique unique.
+
+**Decision.** `GameState` et `SaveData` portent un
+`NarrativeFactRuntimeState`, absent = valeur vide :
+
+```text
+overridesByFactId: Map<String, bool>
+```
+
+Le wire canonique est :
+
+```json
+{
+  "narrativeFactRuntimeState": {
+    "overridesByFactId": {
+      "fact_gate_open": false,
+      "fact_rival_defeated": true
+    }
+  }
+}
+```
+
+Les IDs sont non vides et trim-exacts, les valeurs sont strictement booleennes
+et les cles sont encodees en ordre lexical. Une ancienne save sans ce
+sous-arbre produit un etat vide. Aucun Story Flag n'est transforme en override
+au chargement. Un override orphelin est conserve, n'est applique a aucun autre
+Fact et peut produire un diagnostic ; aucun rapprochement par label ou alias
+n'est permis.
+
+Pour un `NarrativeFactDefinition fact`, avec
+`runtimeKey = fact.legacyFlagName ?? fact.id`, le resolver canonique applique
+exactement :
+
+```text
+1. overridesByFactId[fact.id] si la cle existe
+2. true si runtimeKey est actif dans StoryFlags
+3. fact.defaultValue
+```
+
+L'existence de la cle d'override est distincte de sa valeur. Un override
+explicite gagne toujours sur l'alias, l'ID et le default. Le resolver retourne
+un resultat type `resolved`, `unknownFact`, `ambiguousFact` ou
+`invalidRuntimeKey`, jamais seulement `bool?`.
+
+Le writer canonique ecrit toujours
+`overridesByFactId[fact.id] = value`, meme lorsque la valeur egale le default,
+puis synchronise le runtime key historique : `true` l'ajoute aux Story Flags,
+`false` le retire.
+
+Le runtime actuel possede deux miroirs legacy de ces flags :
+`GameState.storyFlags.activeFlags` et
+`GameState.progression.storyFlags`. La synchronisation cible exactement le
+runtime key dans les deux collections afin qu'un save/load ne ressuscite pas
+un alias retire et que les lecteurs raw historiques restent coherents. Tous
+les autres flags et champs restent inchanges ; `consumedEventIds` n'est jamais
+lu ni modifie par cette operation. Cette synchronisation n'infere aucun
+override depuis les flags.
+
+Avant toute resolution, un index immuable valide les IDs et cles runtime du
+projet. Deux IDs identiques, deux `legacyFlagName` identiques, un alias egal a
+l'ID d'un autre Fact ou deux runtime keys identiques sont bloquants. Aucun
+consommateur canonique ne choisit le premier Fact trouve.
+
+| Cas | Valeur attendue |
+|---|---:|
+| default false, aucun flag, aucun override | false |
+| default true, aucun flag, aucun override | true |
+| alias actif, aucun override | true |
+| default true, override false | false |
+| alias actif, override false | false |
+| default false, override true | true |
+| override orphelin | conserve, non applique |
+
+`factLikeStoryFlag` reste un flag legacy brut. `ScriptCondition.flagIsSet` et
+`flagIsUnset` restent bruts lorsqu'aucun contexte Fact canonique n'est fourni.
+Les chemins explicitement canoniques utilisent tous le resolver partage.
+
+**Invariants.** Aucun override explicite n'est supprime parce qu'il egale le
+default. Aucun override n'est infere au load. Les anciennes saves restent
+lisibles sans migration eager. Les cles d'override sont toujours des IDs Fact,
+jamais des aliases. Les deux miroirs legacy ne divergent pas pour un runtime
+key apres une ecriture canonique.
+
+**Consequences positives.** Un default vrai peut devenir faux durablement,
+survivre au save/reload et produire la meme valeur chez tous les consommateurs
+canoniques sans casser les lecteurs legacy.
+
+**Couts / consequences negatives.** Un nouveau sous-arbre persistant et un
+preflight de collisions sont requis. Les overrides orphelins peuvent accroitre
+les saves jusqu'a une future politique explicite de nettoyage.
+
+**Alternatives rejetees.** Supprimer le flag pour ecrire faux, stocker les
+overrides par alias, inferer les overrides depuis les flags au load, supprimer
+les overrides egaux au default, choisir le premier Fact ambigu.
+
+**Phases impactees.** F1-PREREQ, F1, F2, J, L.
+
+**Date / phase de ratification.** 2026-07-14 - F1-PREREQ PR-0.
+
+---
+
 ## ADR-EV2-013 - Lifecycle, succes et suspension
 
 **Statut : Accepted**
@@ -991,6 +1208,128 @@ preuve de croissance necessitant une compaction idempotente.
 **Phases impactees.** F1, F2, J, L.
 
 **Date / phase de ratification.** 2026-07-10 - Phase A.
+
+---
+
+## ADR-EV2-014-A - Strict Outbox Wire Invariant & Defensive Runtime Guard
+
+**Statut : Accepted**
+
+**Contexte.** Le futur codec outbox doit rejeter un etat persiste incoherent,
+alors que le futur processor doit aussi empecher un double effet si un objet
+incoherent contourne le codec et arrive directement en memoire. Ces deux
+protections appartiennent a des frontieres de confiance distinctes.
+
+**Decision.** Dans le futur `NarrativeEventProgress`, un `deliveryId` ne peut
+jamais etre simultanement present dans
+`pendingNarrativeOutcomeDeliveries` et
+`deliveredNarrativeOutcomeDeliveryIds`. Le codec JSON et tous les
+constructeurs publics valides rejettent cet overlap. Ils ne dedoublonnent, ne
+suppriment et ne choisissent jamais silencieusement un gagnant.
+
+`deliveryId` est l'identite stable et la cle d'idempotence d'une commande
+logique de livraison. V0 n'ajoute pas un second `dispatchId`. Une creation
+logique produit exactement une envelope `NarrativeOutcomeDelivery`; ses retries
+et son reload conservent le meme `deliveryId`, le meme `outcome`, la meme
+causation, la meme correlation et la meme profondeur. Seul `attemptCount` peut
+augmenter. Le codec et les constructeurs publics rejettent aussi deux entries
+pending portant le meme `deliveryId`, qu'elles soient identiques ou
+divergentes. Ils valident strictement les six champs ratifies par ADR-EV2-014 :
+`deliveryId`, `outcome`, `causationExecutionId`, `rootCorrelationId`, `depth` et
+`attemptCount`. Aucun champ d'identite de publication, projet, story, source ou
+operation n'est ajoute implicitement a cette envelope V0.
+
+Le futur processor reste defensif face a un objet incoherent injecte en
+memoire sans passer par ces frontieres. Si une delivery pending porte un ID
+deja delivered, il ne la dispatche jamais, la retire de pending, conserve le
+set delivered et emet un diagnostic stable `dataInconsistency`. Ce nettoyage
+defensif n'incremente pas la tentative, ne cree aucun enfant et ne rend pas
+l'objet d'origine valide retroactivement. Il produit en memoire un nouvel etat
+coherent, qui peut ensuite passer par les validateurs et le codec normaux lors
+d'un save ulterieur. Le decoder ne declenche jamais cette branche et rejette
+toujours le JSON overlap. Cette defense empeche seulement un double effet.
+
+Un retry d'infrastructure et un reload d'un etat pending reprennent exactement
+la meme envelope et le meme `deliveryId`; ils ne creent pas une nouvelle
+commande logique. Une transition terminale installee en memoire puis rendue
+durable par un save conserve l'ID dans delivered et interdit tout replay apres
+reload. Si la delivery pending avait deja ete sauvegardee, un crash avant la
+durabilite de sa transition terminale restaure cette meme pending et son
+identite originale. Si le commit producteur qui cree la pending n'avait jamais
+ete sauvegarde, le crash restaure l'etat anterieur sans cette delivery et sans
+les effets de ce producteur. V0 garantit ainsi
+l'idempotence du ledger et des effets appartenant au commit autoritatif
+`GameState`; il ne promet pas un exactly-once transactionnel pour un effet
+externe situe hors de ce commit. Un tel effet exige un protocole idempotent
+externe indexe par `deliveryId` ou un nouvel ADR. Cette limite ne permet jamais
+de regenerer un ID au retry.
+
+| Etat | Wire | Processor memoire |
+|---|---|---|
+| pending uniquement | valide | dispatchable |
+| delivered uniquement | valide | non rejoue |
+| pending et delivered, meme ID | rejet | nettoyage sans dispatch |
+| deux pending, meme ID et meme contenu | rejet | objet incoherent, aucun premier gagnant |
+| deux pending, meme ID et contenu divergent | rejet | objet incoherent, aucun premier gagnant |
+| pending recharge apres save | valide, meme ID | retry de la meme commande |
+| creation pending jamais sauvegardee puis crash | absente du dernier wire | retour avec le commit producteur precedent |
+| pending durable puis crash avant terminal save | valide, meme ID | restauration de la pending originale |
+| terminal delivered recharge | valide | non rejoue |
+| effet externe hors commit autoritatif | hors garantie exactly-once | protocole idempotent requis |
+
+La future Phase F1 doit reprendre cette matrice comme gate d'acceptation et
+prouver au minimum les cas suivants par des tests distincts :
+
+```text
+outbox codec rejects pending/delivered overlap
+outbox public constructor rejects pending/delivered overlap
+outbox processor dispatches a pending-only delivery once
+outbox processor never replays a delivered-only delivery
+outbox processor terminalizes an injected overlap without dispatch
+outbox injected-overlap guard preserves delivered and removes pending
+outbox injected-overlap guard emits dataInconsistency without attempt or child
+outbox invalid overlap JSON remains rejected instead of being repaired
+outbox codec rejects duplicate pending delivery IDs with identical envelopes
+outbox codec rejects duplicate pending delivery IDs with divergent envelopes
+outbox public constructor rejects duplicate pending delivery IDs
+outbox retry preserves delivery ID and immutable envelope identity
+outbox reload preserves pending delivery ID and FIFO position
+outbox terminal save and reload never replays a delivered delivery ID
+outbox crash before first producer save restores no delivery and no producer effect
+outbox crash after durable pending and before terminal save restores original pending ID
+outbox never regenerates a delivery ID during infrastructure retry
+```
+
+Le gate F1 exige donc simultanement un decode strict, des constructeurs publics
+stricts et une garde memoire defensive. La reussite de la garde memoire ne peut
+jamais servir de preuve que le wire overlap est accepte ou migre.
+
+Le codec et les constructeurs outbox n'existent pas dans F1-PREREQ. Leur
+implementation et les tests de dispatch restent des criteres obligatoires de
+la Phase F1 ; cet addendum ratifie uniquement leur contrat commun.
+
+**Invariants.** Une delivery overlap ne peut jamais etre redispatchee. Un JSON
+invalide n'est jamais presente comme repare au load. Les namespaces memoire
+`dispatching` et les diagnostics d'echec ne deviennent pas des etats wire
+persistants par cet addendum. Une commande logique garde un seul `deliveryId`
+sur creation, retry, reload et terminalisation. Deux pending partageant un ID
+sont invalides sans premier gagnant. L'exactly-once d'un effet externe hors du
+commit `GameState` reste explicitement hors garantie V0.
+
+**Consequences positives.** La validation wire reste stricte sans sacrifier la
+defense en profondeur contre un double effet en memoire.
+
+**Couts / consequences negatives.** Le futur processor doit posseder une
+branche d'invariant explicite et testee, meme si ses constructeurs publics
+interdisent normalement cet etat.
+
+**Alternatives rejetees.** Reparer le JSON silencieusement, redispatcher
+l'overlap, choisir pending ou delivered au premier gagnant, omettre la garde
+memoire au motif que le codec est strict.
+
+**Phases impactees.** F1-PREREQ, F1, F2, J, L.
+
+**Date / phase de ratification.** 2026-07-14 - F1-PREREQ PR-0.
 
 ---
 

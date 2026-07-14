@@ -1,7 +1,10 @@
 import '../models/enums.dart';
+import '../models/game_state.dart';
 import '../models/map_data.dart';
+import '../models/narrative_fact_runtime_state.dart';
 import '../models/project_manifest.dart';
 import '../models/world_rule.dart';
+import '../operations/narrative_fact_runtime.dart';
 
 enum WorldRuleDiagnosticSeverity {
   error,
@@ -21,6 +24,7 @@ enum WorldRuleDiagnosticCode {
   worldRuleConflict,
   worldRuleUsesRawTechnicalId,
   worldRuleLegacyPredicateLeak,
+  worldRuleFactRuntimeCollision,
 }
 
 final class WorldRuleDiagnostic {
@@ -120,7 +124,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
   final diagnostics = <WorldRuleDiagnostic>[];
   final mapsById = {for (final map in maps) map.id: map};
   final projectMapIds = project.maps.map((map) => map.id).toSet();
-  final factIds = project.facts.map((fact) => fact.id).toSet();
+  final factResolver = NarrativeFactRuntimeResolver.fromFacts(project.facts);
   final dialogueIds = project.dialogues.map((dialogue) => dialogue.id).toSet();
   final storyStepIds = _storyStepIds(project);
   final consumedEventIds = _eventIds(maps);
@@ -129,7 +133,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
     _diagnoseSource(
       rule,
       diagnostics,
-      factIds: factIds,
+      factResolver: factResolver,
       storyStepIds: storyStepIds,
       consumedEventIds: consumedEventIds,
     );
@@ -153,7 +157,7 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
 void _diagnoseSource(
   WorldRuleDefinition rule,
   List<WorldRuleDiagnostic> diagnostics, {
-  required Set<String> factIds,
+  required NarrativeFactRuntimeResolver factResolver,
   required Set<String> storyStepIds,
   required Set<String> consumedEventIds,
 }) {
@@ -187,17 +191,37 @@ void _diagnoseSource(
 
   switch (rule.source.kind) {
     case WorldRuleSourceKind.fact:
-      if (!factIds.contains(rule.source.sourceId)) {
-        diagnostics.add(
-          WorldRuleDiagnostic(
-            code: WorldRuleDiagnosticCode.worldRuleSourceUnknown,
-            severity: WorldRuleDiagnosticSeverity.error,
-            message: 'La World Rule référence un Fact absent du projet.',
-            ruleId: rule.id,
-            sourceId: rule.source.sourceId,
-            suggestedFixLabel: 'Choisir un Fact existant.',
-          ),
-        );
+      final resolution = factResolver.resolve(
+        factId: rule.source.sourceId,
+        runtimeState: const NarrativeFactRuntimeState.empty(),
+        storyFlags: const StoryFlags(),
+      );
+      switch (resolution) {
+        case NarrativeFactRuntimeResolved():
+          break;
+        case NarrativeFactRuntimeUnknownFact():
+          diagnostics.add(
+            WorldRuleDiagnostic(
+              code: WorldRuleDiagnosticCode.worldRuleSourceUnknown,
+              severity: WorldRuleDiagnosticSeverity.error,
+              message: 'La World Rule référence un Fact absent du projet.',
+              ruleId: rule.id,
+              sourceId: rule.source.sourceId,
+              suggestedFixLabel: 'Choisir un Fact existant.',
+            ),
+          );
+        case NarrativeFactRuntimeAmbiguousFact() ||
+              NarrativeFactRuntimeInvalidRuntimeKey():
+          diagnostics.add(
+            WorldRuleDiagnostic(
+              code: WorldRuleDiagnosticCode.worldRuleFactRuntimeCollision,
+              severity: WorldRuleDiagnosticSeverity.error,
+              message: 'Le catalogue Fact possède des clés runtime ambiguës.',
+              ruleId: rule.id,
+              sourceId: rule.source.sourceId,
+              suggestedFixLabel: 'Corriger les IDs et aliases des Facts.',
+            ),
+          );
       }
     case WorldRuleSourceKind.storyStepCompletion:
       if (storyStepIds.isNotEmpty &&

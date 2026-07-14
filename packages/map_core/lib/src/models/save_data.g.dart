@@ -219,6 +219,13 @@ _$SaveDataImpl _$$SaveDataImplFromJson(Map<String, dynamic> json) =>
           ? const PlayerProgression()
           : PlayerProgression.fromJson(
               json['progression'] as Map<String, dynamic>),
+      narrativeFactRuntimeState: readNarrativeFactRuntimeStateJson(
+                  json, 'narrativeFactRuntimeState') ==
+              null
+          ? const NarrativeFactRuntimeState.empty()
+          : NarrativeFactRuntimeState.fromJson(
+              readNarrativeFactRuntimeStateJson(
+                  json, 'narrativeFactRuntimeState') as Map<String, dynamic>),
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -236,6 +243,7 @@ Map<String, dynamic> _$$SaveDataImplToJson(_$SaveDataImpl instance) =>
       'trainerProfile': instance.trainerProfile.toJson(),
       'bag': instance.bag.toJson(),
       'progression': instance.progression.toJson(),
+      'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
       'properties': instance.properties,
     };
 

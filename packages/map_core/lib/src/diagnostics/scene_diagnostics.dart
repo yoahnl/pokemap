@@ -1115,7 +1115,11 @@ bool _isConditionSourceKindSupportedV0(SceneConditionSourceKind kind) {
 
 bool _isConditionOperatorSupportedV0(SceneConditionSource source) {
   return switch (source.sourceKind) {
-    SceneConditionSourceKind.fact ||
+    SceneConditionSourceKind.fact =>
+      source.operator == SceneConditionOperator.isTrue ||
+          source.operator == SceneConditionOperator.isFalse ||
+          source.operator == SceneConditionOperator.equals &&
+              (source.value == 'true' || source.value == 'false'),
     SceneConditionSourceKind.factLikeStoryFlag ||
     SceneConditionSourceKind.consumedEvent =>
       source.operator == SceneConditionOperator.isTrue ||

@@ -53,6 +53,7 @@ import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_adapte
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_adapter.dart';
 import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.dart';
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
+import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
@@ -263,6 +264,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeStoryBranching _storyBranching = const RuntimeStoryBranching();
   final ScenarioRuntimeExecutor _scenarioRuntime =
       const ScenarioRuntimeExecutor();
+  ProjectManifest? _cachedNarrativeFactResolverManifest;
+  NarrativeFactRuntimeResolver? _cachedNarrativeFactResolver;
+
+  NarrativeFactRuntimeResolver get _narrativeFactResolver {
+    final manifest = _bundle.manifest;
+    if (!identical(_cachedNarrativeFactResolverManifest, manifest)) {
+      _cachedNarrativeFactResolverManifest = manifest;
+      _cachedNarrativeFactResolver =
+          NarrativeFactRuntimeResolver.fromFacts(manifest.facts);
+    }
+    return _cachedNarrativeFactResolver!;
+  }
 
   /// Cache de l’index Step Studio ↔ cutscenes locales (invalidé quand [_bundle] change).
   StepCompletionCutsceneIndex? _cachedStepCompletionIndex;
@@ -5140,7 +5153,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     if (event == null) return;
 
-    final activePage = _storyBranching.resolveEventPage(event, _gameState);
+    final factContext = ScriptEvaluationContext(
+      narrativeFactResolver: _narrativeFactResolver,
+    );
+    final activePage = _storyBranching.pageResolver.resolve(
+      event,
+      _gameState,
+      contextForPage: (page) =>
+          hasEventBuilderPageProvenance(page) ? factContext : null,
+    );
 
     if (activePage == null) return;
 
@@ -5484,6 +5505,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final source = intent.conditionSource;
     if (source == null) {
       throw StateError('Scene condition intent is missing a condition source.');
+    }
+
+    if (source.sourceKind == SceneConditionSourceKind.fact) {
+      return evaluateCanonicalNarrativeFactSceneCondition(
+        source: source,
+        gameState: _gameState,
+        resolver: _narrativeFactResolver,
+      )
+          ? 'true'
+          : 'false';
     }
 
     final value = switch (source.sourceKind) {

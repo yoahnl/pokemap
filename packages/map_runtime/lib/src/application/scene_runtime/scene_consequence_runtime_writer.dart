@@ -20,8 +20,11 @@ final class SceneConsequenceRuntimeWriter {
   ) {
     var nextState = gameState;
     final applied = <SceneConsequence>[];
+    final factWriter = NarrativeFactRuntimeWriter(
+      NarrativeFactRuntimeResolver.fromFacts(project.facts),
+    );
     for (final consequence in consequences) {
-      final step = _apply(nextState, consequence);
+      final step = _apply(nextState, consequence, factWriter);
       if (step.errorCode != null) {
         return SceneConsequenceRuntimeWriteResult.failed(
           gameState: gameState,
@@ -43,11 +46,13 @@ final class SceneConsequenceRuntimeWriter {
   _SceneConsequenceRuntimeWriteStep _apply(
     GameState gameState,
     SceneConsequence consequence,
+    NarrativeFactRuntimeWriter factWriter,
   ) {
     return switch (consequence.kind) {
       SceneConsequenceKind.setFact => _applySetFact(
           gameState,
           consequence as SceneSetFactConsequence,
+          factWriter,
         ),
       SceneConsequenceKind.markEventConsumed => _applyMarkEventConsumed(
           gameState,
@@ -59,20 +64,27 @@ final class SceneConsequenceRuntimeWriter {
   _SceneConsequenceRuntimeWriteStep _applySetFact(
     GameState gameState,
     SceneSetFactConsequence consequence,
+    NarrativeFactRuntimeWriter factWriter,
   ) {
-    final fact = _findFact(consequence.factId);
-    if (fact == null) {
+    final result = factWriter.setFact(
+      gameState: gameState,
+      factId: consequence.factId,
+      value: consequence.value,
+    );
+    if (result is NarrativeFactRuntimeWriteRejected) {
       return _SceneConsequenceRuntimeWriteStep.failed(
-        SceneConsequenceRuntimeWriteErrorCode.unknownFact,
-        'Scene consequence setFact references unknown Fact '
-        '"${consequence.factId}".',
+        switch (result.errorCode) {
+          NarrativeFactRuntimeWriteErrorCode.unknownFact =>
+            SceneConsequenceRuntimeWriteErrorCode.unknownFact,
+          NarrativeFactRuntimeWriteErrorCode.ambiguousFact =>
+            SceneConsequenceRuntimeWriteErrorCode.ambiguousFact,
+          NarrativeFactRuntimeWriteErrorCode.invalidRuntimeKey =>
+            SceneConsequenceRuntimeWriteErrorCode.invalidFactRuntimeKey,
+        },
+        result.message,
       );
     }
-    final runtimeKey = fact.legacyFlagName ?? fact.id;
-    final nextState = consequence.value
-        ? mutations.setFlag(gameState, runtimeKey)
-        : mutations.clearFlag(gameState, runtimeKey);
-    return _SceneConsequenceRuntimeWriteStep.applied(nextState);
+    return _SceneConsequenceRuntimeWriteStep.applied(result.gameState);
   }
 
   _SceneConsequenceRuntimeWriteStep _applyMarkEventConsumed(
@@ -101,15 +113,6 @@ final class SceneConsequenceRuntimeWriter {
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.markEventConsumed(gameState, consequence.eventId),
     );
-  }
-
-  NarrativeFactDefinition? _findFact(String factId) {
-    for (final fact in project.facts) {
-      if (fact.id == factId) {
-        return fact;
-      }
-    }
-    return null;
   }
 }
 

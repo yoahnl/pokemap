@@ -52,6 +52,7 @@ GameState createNewGameState({
     progression: const PlayerProgression(),
     scriptVariables: const ScriptVariables(),
     storyFlags: const StoryFlags(),
+    narrativeFactRuntimeState: const NarrativeFactRuntimeState.empty(),
     consumedEventIds: const {},
     metadata: const {},
   );

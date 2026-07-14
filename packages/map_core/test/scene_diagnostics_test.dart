@@ -166,6 +166,38 @@ void main() {
           isEmpty);
     });
 
+    test('canonical Fact equality accepts explicit boolean values', () {
+      for (final expectedValue in const ['true', 'false']) {
+        final scene = _scene(
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_condition',
+              kind: SceneNodeKind.condition,
+              payload: SceneConditionPayload(
+                conditionSource: SceneConditionSource(
+                  sourceKind: SceneConditionSourceKind.fact,
+                  sourceId: 'fact_test',
+                  operator: SceneConditionOperator.equals,
+                  value: expectedValue,
+                  label: 'Fact test = $expectedValue',
+                ),
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+        );
+
+        final report = diagnoseScene(scene);
+
+        expect(
+          report.byCode(SceneDiagnosticCode.conditionOperatorUnsupported),
+          isEmpty,
+          reason: 'equals $expectedValue is executable by the runtime',
+        );
+      }
+    });
+
     test('incompatible edge port emits blocking diagnostic', () {
       final scene = _scene(
         edges: [

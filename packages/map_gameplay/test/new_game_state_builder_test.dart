@@ -115,6 +115,12 @@ void main() {
       expect(state.consumedEventIds, isEmpty);
     });
 
+    test('initializes canonical Fact overrides as empty', () {
+      final state = createNewGameState(startMapId: 'test_map');
+
+      expect(state.narrativeFactRuntimeState.overridesByFactId, isEmpty);
+    });
+
     test('initializes progression seenSpeciesIds as empty', () {
       final state = createNewGameState(startMapId: 'test_map');
 

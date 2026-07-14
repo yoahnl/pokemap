@@ -39,6 +39,17 @@ enum EventBuilderWorldImpactKind {
   consumedEvent,
 }
 
+bool hasEventBuilderPageProvenance(MapEventPage page) {
+  final schemaVersion = page.metadata[EventBuilderMetadataKeys.schemaVersion];
+  if (schemaVersion != null) {
+    return schemaVersion == EventBuilderMetadataKeys.currentSchemaVersion;
+  }
+  final reusePolicy = page.metadata[EventBuilderMetadataKeys.reusePolicy];
+  return EventBuilderReusePolicy.values.any(
+    (policy) => policy.name == reusePolicy,
+  );
+}
+
 enum EventBuilderContractDiagnosticSeverity {
   info,
   warning,

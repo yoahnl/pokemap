@@ -163,6 +163,77 @@ void main() {
 
       expect(effects.map((effect) => effect.ruleId), ['world_rule_valid']);
     });
+
+    test('uses explicit false before an active alias and true default', () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_known',
+            label: 'Known',
+            defaultValue: true,
+            legacyFlagName: 'legacy_known',
+          ),
+        ],
+        worldRules: [
+          _entityRule(
+            id: 'world_rule_hidden',
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityHidden,
+            ),
+          ),
+        ],
+      );
+      final state = GameState(
+        saveId: 'save',
+        storyFlags: const StoryFlags(activeFlags: {'legacy_known'}),
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {'fact_known': false},
+        ),
+      );
+
+      final effects = projectWorldRuleEffects(
+        project,
+        state,
+        maps: [_mapWithNpc()],
+      );
+
+      expect(effects, isEmpty);
+    });
+
+    test('fails closed and diagnoses an ambiguous Fact catalog', () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(id: 'fact_known', label: 'Known A'),
+          NarrativeFactDefinition(id: 'fact_known', label: 'Known B'),
+        ],
+        worldRules: [
+          _entityRule(
+            id: 'world_rule_ambiguous',
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityHidden,
+            ),
+          ),
+        ],
+      );
+
+      final diagnostics = diagnoseWorldRules(project, maps: [_mapWithNpc()]);
+      final effects = projectWorldRuleEffects(
+        project,
+        const GameState(
+          saveId: 'save',
+          storyFlags: StoryFlags(activeFlags: {'fact_known'}),
+        ),
+        maps: [_mapWithNpc()],
+      );
+
+      expect(effects, isEmpty);
+      expect(
+        diagnostics.byCode(
+          WorldRuleDiagnosticCode.worldRuleFactRuntimeCollision,
+        ),
+        hasLength(1),
+      );
+    });
   });
 }
 

@@ -56,6 +56,31 @@ void main() {
       expect(state.progression.seenSpeciesIds, ['lapras']);
       expect(state.metadata['legacy'], equals('ok'));
     });
+
+    test('preserves Fact overrides without inferring legacy flags', () {
+      final save = SaveData(
+        saveId: 'fact_save',
+        progression: const PlayerProgression(
+          storyFlags: ['legacy_fact_alias'],
+        ),
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {
+            'fact_default_true': false,
+            'fact_orphan': true,
+          },
+        ),
+      );
+
+      final state = gameStateFromSaveData(save);
+
+      expect(state.narrativeFactRuntimeState, save.narrativeFactRuntimeState);
+      expect(state.storyFlags.activeFlags, {'legacy_fact_alias'});
+      expect(
+        state.narrativeFactRuntimeState.overridesByFactId,
+        isNot(contains('legacy_fact_alias')),
+      );
+      expect(state.consumedEventIds, isEmpty);
+    });
   });
 
   group('saveDataFromGameState', () {
@@ -174,6 +199,29 @@ void main() {
         containsAll(<String>['bulbasaur', 'stored_pidgey']),
       );
     });
+
+    test('round-trips Fact overrides without repurposing legacy event IDs', () {
+      final state = GameState(
+        saveId: 'fact_round_trip',
+        storyFlags: const StoryFlags(activeFlags: {'legacy_flag'}),
+        consumedEventIds: const {'legacy_event'},
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {
+            'fact_default_true': false,
+            'fact_orphan': true,
+          },
+        ),
+      );
+
+      final save = saveDataFromGameState(state);
+      final restored = gameStateFromSaveData(save);
+
+      expect(
+          restored.narrativeFactRuntimeState, state.narrativeFactRuntimeState);
+      expect(restored.storyFlags.activeFlags, {'legacy_flag'});
+      expect(state.consumedEventIds, {'legacy_event'});
+      expect(restored.consumedEventIds, isEmpty);
+    });
   });
 
   group('normalizeLoadedGameState', () {
@@ -204,6 +252,26 @@ void main() {
       final normalized = normalizeLoadedGameState(state);
 
       expect(normalized.storyFlags.activeFlags, equals({'runtime_flag'}));
+    });
+
+    test('keeps Fact overrides and legacy flags unchanged', () {
+      final state = GameState(
+        saveId: 'fact_normalize',
+        progression: const PlayerProgression(storyFlags: ['legacy_flag']),
+        storyFlags: const StoryFlags(activeFlags: {'runtime_flag'}),
+        consumedEventIds: const {'legacy_event'},
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {'fact_orphan': false},
+        ),
+      );
+
+      final normalized = normalizeLoadedGameState(state);
+
+      expect(normalized.narrativeFactRuntimeState,
+          state.narrativeFactRuntimeState);
+      expect(normalized.storyFlags, state.storyFlags);
+      expect(normalized.progression.storyFlags, state.progression.storyFlags);
+      expect(normalized.consumedEventIds, state.consumedEventIds);
     });
 
     test('hydrates caught and seen from party for legacy states', () {
