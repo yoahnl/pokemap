@@ -9,11 +9,31 @@ void main() {
   group('assessBorderPublicationReadiness', () {
     test('accepts a complete organic candidate without ground', () {
       final fixture = _Fixture.complete();
+      final gallery = resolveOrganicEdgeCanonicalGallery(
+        blueprintId: 'coast',
+        blueprintRevision: BorderBlueprintRevision(
+          revision: 1,
+          definition: fixture.definition,
+        ),
+        visualSnapshots: fixture.snapshots,
+        tileSizePx: const GridSize(width: 2, height: 2),
+        resolverVersion: _resolverVersion,
+      );
 
-      final result = _assess(fixture);
+      final result = _assess(fixture, galleryReport: gallery.report);
 
+      expect(gallery.allCasesResolved, isTrue);
       expect(result.canPublish, isTrue);
-      expect(result.diagnosticReport, const BorderDiagnosticsReport.empty());
+      expect(result.diagnosticReport.hasErrors, isFalse);
+      expect(
+        result.diagnosticReport.diagnostics.map((item) => item.code).toSet(),
+        everyElement(
+          anyOf(
+            'border.publication.repetition_run',
+            'border.publication.repetition_variety',
+          ),
+        ),
+      );
     });
 
     test('requires the template structural roles', () {
@@ -515,6 +535,52 @@ void main() {
         <String>['missing-animation'],
       );
       expect(broken.canPublish, isFalse);
+    });
+
+    test('ground Surface fallback uses the first authored reference', () {
+      final fixture = _Fixture.complete();
+      final project = fixture.project.copyWith(
+        surfaceCatalog: ProjectSurfaceCatalog(
+          animations: <ProjectSurfaceAnimation>[
+            _surfaceAnimation('sand-horizontal'),
+            _surfaceAnimation('sand-corner'),
+          ],
+          presets: <ProjectSurfacePreset>[
+            ProjectSurfacePreset(
+              id: 'first-authored-fallback',
+              name: 'First authored fallback',
+              variantAnimations: SurfaceVariantAnimationRefSet(
+                refs: <SurfaceVariantAnimationRef>[
+                  SurfaceVariantAnimationRef(
+                    role: SurfaceVariantRole.horizontal,
+                    animationId: 'sand-horizontal',
+                  ),
+                  SurfaceVariantAnimationRef(
+                    role: SurfaceVariantRole.cornerNE,
+                    animationId: 'sand-corner',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+      final result = _assess(
+        fixture,
+        project: project,
+        definition: fixture.definitionFor(
+          ground: _ground(
+            presetId: 'first-authored-fallback',
+            snapshotId: fixture.snapshotId(0),
+          ),
+        ),
+      );
+
+      expect(
+        _codes(result),
+        isNot(contains('border.publication.ground_surface_unresolvable')),
+      );
+      expect(result.canPublish, isTrue);
     });
 
     test('blocks a missing gallery or a gap beyond candidate tolerance', () {

@@ -15,6 +15,7 @@ enum BorderPublicationManifestOperation {
 enum BorderPublicationManifestErrorCode {
   invalidStageId,
   stagedManifestInvalid,
+  staleManifest,
   atomicReplaceFailed,
 }
 
@@ -69,8 +70,11 @@ final class FileBorderPublicationManifestPort
   final BorderPublicationManifestOperationHook? beforeOperation;
 
   @override
-  Future<void> atomicallyReplace(ProjectManifest manifest) async {
-    ProjectValidator.validate(manifest);
+  Future<void> atomicallyReplace({
+    required ProjectManifest previousManifest,
+    required ProjectManifest nextManifest,
+  }) async {
+    ProjectValidator.validate(nextManifest);
     final stageId = _stageIdFactory();
     if (!_isSafeStageId(stageId)) {
       throw const BorderPublicationManifestException(
@@ -92,7 +96,7 @@ final class FileBorderPublicationManifestPort
 
     try {
       final encoded = const JsonEncoder.withIndent('  ').convert(
-        manifest.toJson(),
+        nextManifest.toJson(),
       );
       await staged.writeAsString(encoded, flush: true);
       await Future<void>.sync(
@@ -101,13 +105,14 @@ final class FileBorderPublicationManifestPort
           staged.path,
         ),
       );
-      await _validateStagedManifest(staged, manifest);
+      await _validateStagedManifest(staged, nextManifest);
       await Future<void>.sync(
         () => beforeOperation?.call(
           BorderPublicationManifestOperation.atomicReplace,
           staged.path,
         ),
       );
+      await _validateCurrentManifest(manifestFile, previousManifest);
       try {
         await _atomicFileReplace(staged, manifestFile);
       } on FileSystemException catch (error) {
@@ -127,6 +132,37 @@ final class FileBorderPublicationManifestPort
   @override
   void applyInMemory(ProjectManifest manifest) {
     _applyInMemoryManifest(manifest);
+  }
+}
+
+Future<void> _validateCurrentManifest(
+  File manifestFile,
+  ProjectManifest expected,
+) async {
+  try {
+    if (!await manifestFile.exists()) {
+      throw const FormatException('current project manifest is missing');
+    }
+    final decodedJson = jsonDecode(await manifestFile.readAsString());
+    if (decodedJson is! Map<String, dynamic>) {
+      throw const FormatException('current project manifest must be an object');
+    }
+    final current = ProjectManifest.fromJson(
+      migrateProjectManifestJson(decodedJson),
+    );
+    ProjectValidator.validate(current);
+    if (current != expected) {
+      throw const FormatException(
+        'current project manifest differs from the publication baseline',
+      );
+    }
+  } catch (error) {
+    throw BorderPublicationManifestException(
+      code: BorderPublicationManifestErrorCode.staleManifest,
+      userMessage:
+          'Le projet a changé sur le disque. Rechargez-le avant de republier.',
+      cause: error,
+    );
   }
 }
 

@@ -40,7 +40,10 @@ void main() {
       );
       final next = _manifest('Published', ProjectVersion.v2);
 
-      await port.atomicallyReplace(next);
+      await port.atomicallyReplace(
+        previousManifest: previous,
+        nextManifest: next,
+      );
 
       final decoded = ProjectManifest.fromJson(
         migrateProjectManifestJson(
@@ -75,7 +78,10 @@ void main() {
       );
 
       await expectLater(
-        port.atomicallyReplace(_manifest('Next', ProjectVersion.v2)),
+        port.atomicallyReplace(
+          previousManifest: previous,
+          nextManifest: _manifest('Next', ProjectVersion.v2),
+        ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
             (error) => error.code,
@@ -111,7 +117,10 @@ void main() {
       );
 
       await expectLater(
-        port.atomicallyReplace(_manifest('Next', ProjectVersion.v2)),
+        port.atomicallyReplace(
+          previousManifest: previous,
+          nextManifest: _manifest('Next', ProjectVersion.v2),
+        ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
             (error) => error.code,
@@ -141,7 +150,10 @@ void main() {
       );
 
       await expectLater(
-        port.atomicallyReplace(_manifest('Next', ProjectVersion.v2)),
+        port.atomicallyReplace(
+          previousManifest: previous,
+          nextManifest: _manifest('Next', ProjectVersion.v2),
+        ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
             (error) => error.code,
@@ -152,7 +164,53 @@ void main() {
       );
       expect(await manifestFile.readAsBytes(), previousBytes);
     });
+
+    test('rejects a manifest changed after the publication candidate was built',
+        () async {
+      final external = _manifest('External update', ProjectVersion.v2);
+      final port = FileBorderPublicationManifestPort(
+        manifestPath: manifestFile.path,
+        applyInMemoryManifest: (_) {},
+        stageIdFactory: () => 'publish_stale',
+        beforeOperation: (operation, _) async {
+          if (operation == BorderPublicationManifestOperation.atomicReplace) {
+            await manifestFile.writeAsString(
+              const JsonEncoder.withIndent('  ').convert(external.toJson()),
+              flush: true,
+            );
+          }
+        },
+      );
+
+      await expectLater(
+        port.atomicallyReplace(
+          previousManifest: previous,
+          nextManifest: _manifest('Candidate', ProjectVersion.v2),
+        ),
+        throwsA(
+          isA<BorderPublicationManifestException>().having(
+            (error) => error.code,
+            'code',
+            BorderPublicationManifestErrorCode.staleManifest,
+          ),
+        ),
+      );
+
+      expect(await _readManifest(manifestFile), external);
+      expect(
+        projectRoot
+            .listSync()
+            .whereType<File>()
+            .map((file) => p.basename(file.path)),
+        <String>['project.json'],
+      );
+    });
   });
+}
+
+Future<ProjectManifest> _readManifest(File file) async {
+  final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+  return ProjectManifest.fromJson(migrateProjectManifestJson(json));
 }
 
 ProjectManifest _manifest(String name, ProjectVersion version) {

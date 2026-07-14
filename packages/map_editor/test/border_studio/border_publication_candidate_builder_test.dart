@@ -255,7 +255,13 @@ void main() {
           appendedForTwo.snapshot,
         ],
       );
-      expect(result.files, appendedForTwo.files);
+      expect(
+        result.files,
+        <BorderSnapshotFilePayload>[
+          ...retainedA.files,
+          ...appendedForTwo.files,
+        ],
+      );
       expect(result.snapshotIntegrity.keys, <String>{
         retainedA.snapshot.id,
         appendedForTwo.snapshot.id,
@@ -267,6 +273,62 @@ void main() {
           'two': appendedForTwo.snapshot.id,
           'three': appendedForThree.snapshot.id,
         },
+      );
+    });
+
+    test('rejects conflicting bytes for an otherwise shared payload path', () {
+      final shared = _preparation(
+        'c',
+        sourceElementId: 'element-one',
+      );
+      final conflicting = BorderAssetSnapshotPreparation(
+        sourceElementId: 'element-two',
+        snapshot: shared.snapshot,
+        metrics: _metrics('conflicting-source'),
+        files: <BorderSnapshotFilePayload>[
+          BorderSnapshotFilePayload(
+            relativePath: shared.files.single.relativePath,
+            bytes: Uint8List.fromList(<int>[255]),
+          ),
+        ],
+      );
+      final target = _record(
+        id: 'coast',
+        primitives: <BorderPrimitiveDraft>[
+          _draftPrimitive(id: 'one', sourceElementId: 'element-one'),
+          _draftPrimitive(id: 'two', sourceElementId: 'element-two'),
+        ],
+      );
+
+      expect(
+        () => const BorderPublicationCandidateBuilder().build(
+          manifest: _manifest(
+            records: <BorderBlueprintRecord>[target],
+            elements: <ProjectElementEntry>[
+              _element('element-one'),
+              _element('element-two'),
+            ],
+          ),
+          draftRecord: target,
+          primitiveSnapshotsByPrimitiveId: <String,
+              BorderAssetSnapshotPreparation>{
+            'one': shared,
+            'two': conflicting,
+          },
+        ),
+        throwsA(
+          isA<BorderPublicationCandidateException>()
+              .having(
+                (error) => error.code,
+                'code',
+                BorderPublicationCandidateErrorCode.snapshotPayloadConflict,
+              )
+              .having(
+                (error) => error.relativePath,
+                'relativePath',
+                shared.files.single.relativePath,
+              ),
+        ),
       );
     });
 
@@ -307,7 +369,8 @@ void main() {
         ),
       );
       final onlyIsolated = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
-        SurfaceVariantRole.isolated: _preparation('a'),
+        SurfaceVariantRole.isolated:
+            _preparation('a', sourceElementId: 'shore'),
       };
 
       expect(
@@ -339,7 +402,7 @@ void main() {
 
     test('publishes complete ground snapshots in stable Surface role order',
         () {
-      final shared = _preparation('d');
+      final shared = _preparation('d', sourceElementId: 'shore');
       final byRole = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
         for (final role in standardSurfaceVariantRoleOrder) role: shared,
       };
@@ -380,6 +443,61 @@ void main() {
       expect(
         result.nextManifest.borderCatalog.visualSnapshots,
         <BorderVisualSnapshot>[shared.snapshot],
+      );
+    });
+
+    test('rejects ground snapshots prepared from another Surface preset', () {
+      final target = _record(
+        id: 'coast',
+        ground: BorderGroundDraft(
+          sourceSurfacePresetId: 'shore',
+          edgeBandCells: 2,
+        ),
+      );
+      final wrongSource = _preparation(
+        'e',
+        sourceElementId: 'other-surface',
+      );
+
+      expect(
+        () => const BorderPublicationCandidateBuilder().build(
+          manifest: _manifest(
+            records: <BorderBlueprintRecord>[target],
+            surfacePreset: _surfacePreset('shore'),
+          ),
+          draftRecord: target,
+          primitiveSnapshotsByPrimitiveId: const <String,
+              BorderAssetSnapshotPreparation>{},
+          groundSnapshotsByRole: <SurfaceVariantRole,
+              BorderAssetSnapshotPreparation>{
+            for (final role in standardSurfaceVariantRoleOrder)
+              role: wrongSource,
+          },
+        ),
+        throwsA(
+          isA<BorderPublicationCandidateException>()
+              .having(
+                (error) => error.code,
+                'code',
+                BorderPublicationCandidateErrorCode
+                    .groundSnapshotSourceMismatch,
+              )
+              .having(
+                (error) => error.surfaceRole,
+                'surfaceRole',
+                SurfaceVariantRole.isolated,
+              )
+              .having(
+                (error) => error.sourceSurfacePresetId,
+                'sourceSurfacePresetId',
+                'shore',
+              )
+              .having(
+                (error) => error.sourceElementId,
+                'sourceElementId',
+                'other-surface',
+              ),
+        ),
       );
     });
 

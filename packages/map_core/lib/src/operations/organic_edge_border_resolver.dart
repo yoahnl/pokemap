@@ -1,3 +1,5 @@
+import 'package:meta/meta.dart' show immutable;
+
 import '../exceptions/map_exceptions.dart';
 import '../models/border_blueprint.dart';
 import '../models/border_diagnostics.dart';
@@ -16,6 +18,113 @@ import 'border_region_contours.dart';
 import 'border_rle_codec.dart';
 import 'border_slot_keys.dart';
 import 'border_sprite_geometry.dart';
+
+/// Exact trace retained from the resolver pass that produced [result].
+@immutable
+final class OrganicEdgeBorderResolutionEvidence {
+  OrganicEdgeBorderResolutionEvidence._({
+    required this.result,
+    required List<OrganicEdgeContourEvidence> contours,
+    required List<OrganicEdgeStructuralRunEvidence> structuralRuns,
+  })  : _contours = List<OrganicEdgeContourEvidence>.unmodifiable(contours),
+        _structuralRuns =
+            List<OrganicEdgeStructuralRunEvidence>.unmodifiable(structuralRuns);
+
+  final BorderResolutionResult result;
+  final List<OrganicEdgeContourEvidence> _contours;
+  final List<OrganicEdgeStructuralRunEvidence> _structuralRuns;
+
+  List<OrganicEdgeContourEvidence> get contours => _contours;
+
+  List<OrganicEdgeStructuralRunEvidence> get structuralRuns => _structuralRuns;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganicEdgeBorderResolutionEvidence &&
+          result == other.result &&
+          _listEquals(_contours, other._contours) &&
+          _listEquals(_structuralRuns, other._structuralRuns);
+
+  @override
+  int get hashCode => Object.hash(
+        result,
+        Object.hashAll(_contours),
+        Object.hashAll(_structuralRuns),
+      );
+}
+
+/// Coverage measured for one canonical contour during organic resolution.
+@immutable
+final class OrganicEdgeContourEvidence {
+  const OrganicEdgeContourEvidence._({
+    required this.contourIndex,
+    required this.kind,
+    required this.coverage,
+  });
+
+  final int contourIndex;
+  final BorderRegionContourKind kind;
+  final BorderLoopCoverageAssessment coverage;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganicEdgeContourEvidence &&
+          contourIndex == other.contourIndex &&
+          kind == other.kind &&
+          _coverageEquals(coverage, other.coverage);
+
+  @override
+  int get hashCode => Object.hash(
+        contourIndex,
+        kind,
+        _coverageHash(coverage),
+      );
+}
+
+/// One contiguous structural sequence selected by the organic resolver.
+@immutable
+final class OrganicEdgeStructuralRunEvidence {
+  OrganicEdgeStructuralRunEvidence._({
+    required this.contourIndex,
+    required this.role,
+    required this.quarterTurns,
+    required this.passIndex,
+    required this.rank,
+    required List<String> primitiveIds,
+  }) : _primitiveIds = List<String>.unmodifiable(primitiveIds);
+
+  final int contourIndex;
+  final BorderPrimitiveRole role;
+  final int quarterTurns;
+  final int passIndex;
+  final int rank;
+  final List<String> _primitiveIds;
+
+  List<String> get primitiveIds => _primitiveIds;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganicEdgeStructuralRunEvidence &&
+          contourIndex == other.contourIndex &&
+          role == other.role &&
+          quarterTurns == other.quarterTurns &&
+          passIndex == other.passIndex &&
+          rank == other.rank &&
+          _listEquals(_primitiveIds, other._primitiveIds);
+
+  @override
+  int get hashCode => Object.hash(
+        contourIndex,
+        role,
+        quarterTurns,
+        passIndex,
+        rank,
+        Object.hashAll(_primitiveIds),
+      );
+}
 
 /// Returns the conservative V1 locality halo for one organic request.
 int computeOrganicEdgeBorderDirtyHaloRadiusPx(
@@ -57,6 +166,15 @@ int computeOrganicEdgeBorderDirtyHaloRadiusPx(
 /// obtained only through an explicitly allowed clockwise quarter turn.
 BorderResolutionResult resolveOrganicEdgeBorder(
   BorderResolutionRequest request,
+) =>
+    resolveOrganicEdgeBorderWithEvidence(request).result;
+
+/// Resolves an organic Border and exposes the exact coverage/repetition trace.
+///
+/// Coverage is assessed once; diagnostics and public evidence consume the same
+/// immutable assessment objects.
+OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
+  BorderResolutionRequest request,
 ) {
   final diagnostics = <BorderDiagnostic>[];
   final revision = request.blueprintRevision;
@@ -67,7 +185,7 @@ BorderResolutionResult resolveOrganicEdgeBorder(
       scope: BorderDiagnosticScope.blueprint,
       action: 'border.action.publish_blueprint',
     ));
-    return _failed(diagnostics);
+    return _failedEvidence(diagnostics);
   }
   final definition = revision.definition;
   if (definition.template != BorderBlueprintTemplate.organicEdge) {
@@ -87,7 +205,7 @@ BorderResolutionResult resolveOrganicEdgeBorder(
       scope: BorderDiagnosticScope.geometry,
       action: 'border.action.draw_nonempty_region',
     ));
-    return _failed(diagnostics);
+    return _failedEvidence(diagnostics);
   }
   if (geometry.width != request.mapSize.width ||
       geometry.height != request.mapSize.height) {
@@ -165,7 +283,7 @@ BorderResolutionResult resolveOrganicEdgeBorder(
   if (diagnostics.any(
     (diagnostic) => diagnostic.severity == BorderDiagnosticSeverity.error,
   )) {
-    return _failed(diagnostics);
+    return _failedEvidence(diagnostics);
   }
 
   final params = request.feature.paramsOverride ?? definition.defaults;
@@ -180,7 +298,7 @@ BorderResolutionResult resolveOrganicEdgeBorder(
       scope: BorderDiagnosticScope.geometry,
       action: 'border.action.draw_nonempty_region',
     ));
-    return _failed(diagnostics);
+    return _failedEvidence(diagnostics);
   }
 
   final ground = switch (definition.ground) {
@@ -378,7 +496,7 @@ BorderResolutionResult resolveOrganicEdgeBorder(
     }
   }
 
-  _diagnoseCoverage(
+  final contourEvidence = _diagnoseCoverage(
     request,
     contours: contours,
     generated: generated,
@@ -391,10 +509,15 @@ BorderResolutionResult resolveOrganicEdgeBorder(
     generated: generated,
     diagnostics: diagnostics,
   );
+  final structuralRunEvidence = _buildStructuralRunEvidence(generated);
   if (diagnostics.any(
     (diagnostic) => diagnostic.severity == BorderDiagnosticSeverity.error,
   )) {
-    return _failed(diagnostics);
+    return OrganicEdgeBorderResolutionEvidence._(
+      result: _failed(diagnostics),
+      contours: contourEvidence,
+      structuralRuns: structuralRunEvidence,
+    );
   }
 
   final placements = generated.map((item) => item.placement).toList()
@@ -408,7 +531,11 @@ BorderResolutionResult resolveOrganicEdgeBorder(
       scope: BorderDiagnosticScope.materialization,
       action: 'border.action.adjust_blueprint_or_geometry',
     ));
-    return _failed(diagnostics);
+    return OrganicEdgeBorderResolutionEvidence._(
+      result: _failed(diagnostics),
+      contours: contourEvidence,
+      structuralRuns: structuralRunEvidence,
+    );
   }
 
   final components = computeBorderInputFingerprints(request);
@@ -432,9 +559,13 @@ BorderResolutionResult resolveOrganicEdgeBorder(
     ground: ground,
     placements: placements,
   );
-  return BorderResolutionResult(
-    materialization: materialization,
-    diagnosticReport: BorderDiagnosticsReport(diagnostics: diagnostics),
+  return OrganicEdgeBorderResolutionEvidence._(
+    result: BorderResolutionResult(
+      materialization: materialization,
+      diagnosticReport: BorderDiagnosticsReport(diagnostics: diagnostics),
+    ),
+    contours: contourEvidence,
+    structuralRuns: structuralRunEvidence,
   );
 }
 
@@ -1137,7 +1268,7 @@ bool _spriteOpaqueIntersectsKeepOut({
   };
 }
 
-void _diagnoseCoverage(
+List<OrganicEdgeContourEvidence> _diagnoseCoverage(
   BorderResolutionRequest request, {
   required List<BorderRegionContour> contours,
   required List<_GeneratedPlacement> generated,
@@ -1145,6 +1276,7 @@ void _diagnoseCoverage(
   required BorderGenerationParams params,
   required List<BorderDiagnostic> diagnostics,
 }) {
+  final evidence = <OrganicEdgeContourEvidence>[];
   for (var contourIndex = 0;
       contourIndex < contours.length;
       contourIndex += 1) {
@@ -1182,6 +1314,13 @@ void _diagnoseCoverage(
       gapTolerancePx: params.gapTolerancePx,
       maxOverlapPx: params.maxOverlapPx,
     );
+    evidence.add(
+      OrganicEdgeContourEvidence._(
+        contourIndex: contourIndex,
+        kind: contour.kind,
+        coverage: coverage,
+      ),
+    );
     if (coverage.hasExcessiveGap) {
       diagnostics.add(_error(
         request,
@@ -1209,6 +1348,7 @@ void _diagnoseCoverage(
       ));
     }
   }
+  return List<OrganicEdgeContourEvidence>.unmodifiable(evidence);
 }
 
 void _diagnoseRepetition(
@@ -1313,6 +1453,72 @@ void _diagnoseRepetition(
       break;
     }
   }
+}
+
+List<OrganicEdgeStructuralRunEvidence> _buildStructuralRunEvidence(
+  List<_GeneratedPlacement> generated,
+) {
+  final groups = <(int, int, BorderPrimitiveRole, BorderCardinalDirection, int),
+      List<_GeneratedPlacement>>{};
+  for (final item in generated) {
+    if (item.placement.drawBand != BorderDrawBand.structure) {
+      continue;
+    }
+    groups.putIfAbsent(
+      (
+        item.contourIndex,
+        item.placement.stableOrderKey.passIndex,
+        item.primitive.role,
+        item.edge.direction,
+        item.placement.stableOrderKey.rank,
+      ),
+      () => <_GeneratedPlacement>[],
+    ).add(item);
+  }
+
+  final entries = groups.entries.toList(growable: false)
+    ..sort((left, right) {
+      var comparison = left.key.$1.compareTo(right.key.$1);
+      if (comparison != 0) return comparison;
+      comparison = left.key.$2.compareTo(right.key.$2);
+      if (comparison != 0) return comparison;
+      comparison = borderPrimitiveRoleV1WireName(left.key.$3)
+          .compareTo(borderPrimitiveRoleV1WireName(right.key.$3));
+      if (comparison != 0) return comparison;
+      comparison = borderCardinalDirectionV1Rank(left.key.$4)
+          .compareTo(borderCardinalDirectionV1Rank(right.key.$4));
+      if (comparison != 0) return comparison;
+      return left.key.$5.compareTo(right.key.$5);
+    });
+  final evidence = <OrganicEdgeStructuralRunEvidence>[];
+  for (final entry in entries) {
+    final (contourIndex, passIndex, role, direction, rank) = entry.key;
+    final group = entry.value
+      ..sort((left, right) {
+        final abscissa = left.edge.startAbscissaPx.compareTo(
+          right.edge.startAbscissaPx,
+        );
+        if (abscissa != 0) return abscissa;
+        return left.placement.stableOrderKey.ordinalLocal.compareTo(
+          right.placement.stableOrderKey.ordinalLocal,
+        );
+      });
+    for (final sequence in _contiguousRepetitionSequences(group)) {
+      evidence.add(
+        OrganicEdgeStructuralRunEvidence._(
+          contourIndex: contourIndex,
+          role: role,
+          quarterTurns: borderCardinalDirectionV1Rank(direction),
+          passIndex: passIndex,
+          rank: rank,
+          primitiveIds: <String>[
+            for (final item in sequence) item.primitive.id,
+          ],
+        ),
+      );
+    }
+  }
+  return List<OrganicEdgeStructuralRunEvidence>.unmodifiable(evidence);
 }
 
 List<List<_GeneratedPlacement>> _contiguousRepetitionSequences(
@@ -1428,6 +1634,15 @@ BorderResolutionResult _failed(Iterable<BorderDiagnostic> diagnostics) =>
       diagnosticReport: BorderDiagnosticsReport(diagnostics: diagnostics),
     );
 
+OrganicEdgeBorderResolutionEvidence _failedEvidence(
+  Iterable<BorderDiagnostic> diagnostics,
+) =>
+    OrganicEdgeBorderResolutionEvidence._(
+      result: _failed(diagnostics),
+      contours: const <OrganicEdgeContourEvidence>[],
+      structuralRuns: const <OrganicEdgeStructuralRunEvidence>[],
+    );
+
 BorderDiagnostic _error(
   BorderResolutionRequest request, {
   required String code,
@@ -1506,4 +1721,61 @@ final class _DecorativePass {
   final BorderPrimitiveRole role;
   final BorderDrawBand drawBand;
   final int passIndex;
+}
+
+bool _coverageEquals(
+  BorderLoopCoverageAssessment left,
+  BorderLoopCoverageAssessment right,
+) =>
+    left.longestContiguousGapPx == right.longestContiguousGapPx &&
+    left.maximumPairwiseOverlapPx == right.maximumPairwiseOverlapPx &&
+    left.gapTolerancePx == right.gapTolerancePx &&
+    left.maxOverlapPx == right.maxOverlapPx &&
+    _listEquals(left.targetIntervals, right.targetIntervals) &&
+    _listEquals(left.coveredIntervals, right.coveredIntervals) &&
+    _listEquals(left.uncoveredIntervals, right.uncoveredIntervals) &&
+    _overlapListEquals(left.overlaps, right.overlaps);
+
+bool _overlapListEquals(
+  List<BorderCoverageOverlap> left,
+  List<BorderCoverageOverlap> right,
+) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    final leftItem = left[index];
+    final rightItem = right[index];
+    if (leftItem.firstPlacementId != rightItem.firstPlacementId ||
+        leftItem.secondPlacementId != rightItem.secondPlacementId ||
+        leftItem.lengthPx != rightItem.lengthPx) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int _coverageHash(BorderLoopCoverageAssessment coverage) => Object.hash(
+      coverage.longestContiguousGapPx,
+      coverage.maximumPairwiseOverlapPx,
+      coverage.gapTolerancePx,
+      coverage.maxOverlapPx,
+      Object.hashAll(coverage.targetIntervals),
+      Object.hashAll(coverage.coveredIntervals),
+      Object.hashAll(coverage.uncoveredIntervals),
+      Object.hashAll(<Object>[
+        for (final overlap in coverage.overlaps)
+          Object.hash(
+            overlap.firstPlacementId,
+            overlap.secondPlacementId,
+            overlap.lengthPx,
+          ),
+      ]),
+    );
+
+bool _listEquals<T>(List<T> left, List<T> right) {
+  if (identical(left, right)) return true;
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }

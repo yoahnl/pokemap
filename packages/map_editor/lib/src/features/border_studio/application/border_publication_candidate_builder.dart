@@ -13,8 +13,10 @@ enum BorderPublicationCandidateErrorCode {
   unexpectedPrimitiveSnapshot,
   sourceSurfacePresetMissing,
   groundSnapshotRoleMissing,
+  groundSnapshotSourceMismatch,
   unexpectedGroundSnapshots,
   snapshotIdentityConflict,
+  snapshotPayloadConflict,
 }
 
 final class BorderPublicationCandidateException implements Exception {
@@ -26,6 +28,7 @@ final class BorderPublicationCandidateException implements Exception {
     this.sourceSurfacePresetId,
     this.surfaceRole,
     this.snapshotId,
+    this.relativePath,
   });
 
   final BorderPublicationCandidateErrorCode code;
@@ -35,6 +38,7 @@ final class BorderPublicationCandidateException implements Exception {
   final String? sourceSurfacePresetId;
   final SurfaceVariantRole? surfaceRole;
   final String? snapshotId;
+  final String? relativePath;
 
   @override
   String toString() =>
@@ -147,7 +151,7 @@ final class BorderPublicationCandidateBuilder {
     final snapshotsById = <String, BorderVisualSnapshot>{
       for (final snapshot in snapshots) snapshot.id: snapshot,
     };
-    final files = <BorderSnapshotFilePayload>[];
+    final filesByRelativePath = <String, BorderSnapshotFilePayload>{};
     final integrity = <String, BorderVisualSnapshotIntegrity>{};
 
     String registerSnapshot(BorderAssetSnapshotPreparation preparation) {
@@ -164,7 +168,19 @@ final class BorderPublicationCandidateBuilder {
       if (known == null) {
         snapshots.add(snapshot);
         snapshotsById[snapshot.id] = snapshot;
-        files.addAll(preparation.files);
+      }
+      for (final file in preparation.files) {
+        final existing = filesByRelativePath[file.relativePath];
+        if (existing != null && existing != file) {
+          throw BorderPublicationCandidateException(
+            code: BorderPublicationCandidateErrorCode.snapshotPayloadConflict,
+            userMessage:
+                'Deux snapshots préparés utilisent le même chemin avec des contenus différents.',
+            snapshotId: snapshot.id,
+            relativePath: file.relativePath,
+          );
+        }
+        filesByRelativePath.putIfAbsent(file.relativePath, () => file);
       }
       integrity[snapshot.id] = BorderVisualSnapshotIntegrity(
         snapshotId: snapshot.id,
@@ -249,6 +265,17 @@ final class BorderPublicationCandidateBuilder {
             surfaceRole: role,
           );
         }
+        if (preparation.sourceElementId != draftGround.sourceSurfacePresetId) {
+          throw BorderPublicationCandidateException(
+            code: BorderPublicationCandidateErrorCode
+                .groundSnapshotSourceMismatch,
+            userMessage:
+                'Réanalysez la variante Surface « ${role.name} » depuis le preset « ${draftGround.sourceSurfacePresetId} ».',
+            sourceElementId: preparation.sourceElementId,
+            sourceSurfacePresetId: draftGround.sourceSurfacePresetId,
+            surfaceRole: role,
+          );
+        }
         groundBindings[role] = registerSnapshot(preparation);
       }
       publishedGround = BorderPublishedGround(
@@ -295,7 +322,7 @@ final class BorderPublicationCandidateBuilder {
     return BorderPublicationCandidate(
       nextManifest: replaceProjectBorderCatalog(manifest, nextCatalog),
       revision: nextRevision,
-      files: files,
+      files: filesByRelativePath.values.toList(growable: false),
       snapshotIntegrity: integrity,
       primitiveSnapshotIdsByPrimitiveId: primitiveBindings,
       groundSnapshotIdsByRole: groundBindings,

@@ -4,9 +4,12 @@ import 'package:path/path.dart' as p;
 
 import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_selectors.dart';
+import '../application/border_project_element_asset_service.dart';
+import '../application/border_publication_candidate_builder.dart';
 import '../application/border_publication_transaction.dart';
 import '../application/border_studio_draft.dart';
 import '../application/border_studio_draft_controller.dart';
+import '../application/border_studio_publication_coordinator.dart';
 import '../infrastructure/filesystem/file_border_asset_snapshot_store.dart';
 import '../infrastructure/filesystem/file_border_publication_manifest_port.dart';
 
@@ -42,11 +45,28 @@ final borderStudioDraftControllerProvider =
 /// complete editor notifier graph.
 final borderPublicationApplyInMemoryManifestProvider =
     Provider<void Function(ProjectManifest)>((ref) {
-  return (manifest) =>
-      ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
-            manifest,
-            statusMessage: 'Blueprint de bordure publié.',
-          );
+  final capturedProjectRootPath = ref.watch(editorProjectRootPathProvider);
+  final capturedManifest = ref.watch(editorProjectManifestProvider);
+  final capturedDraftState = ref.watch(borderStudioDraftControllerProvider);
+  return (manifest) {
+    final activeProjectRootPath = ref.read(editorProjectRootPathProvider);
+    if (capturedProjectRootPath == null ||
+        activeProjectRootPath != capturedProjectRootPath ||
+        capturedManifest == null ||
+        ref.read(editorProjectManifestProvider) != capturedManifest ||
+        !identical(
+          ref.read(borderStudioDraftControllerProvider),
+          capturedDraftState,
+        )) {
+      throw StateError(
+        'Border publication cannot refresh a stale editor session',
+      );
+    }
+    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+          manifest,
+          statusMessage: 'Blueprint de bordure publié.',
+        );
+  };
 });
 
 /// Project-scoped, crash-safe publication transaction.
@@ -70,5 +90,49 @@ final borderPublicationTransactionProvider =
       manifestPath: p.join(projectRootPath, 'project.json'),
       applyInMemoryManifest: applyInMemory,
     ),
+    candidateValidator: const CoreBorderPublicationCandidateValidator(
+      enabledTemplates: <BorderBlueprintTemplate>{
+        BorderBlueprintTemplate.organicEdge,
+      },
+    ),
+  );
+});
+
+/// Project-scoped BORD-03 organic publication orchestration.
+///
+/// Surface snapshot preparations remain explicit inputs to [prepare]; this
+/// provider wires only the current-source primitive reader, pure candidate
+/// builder, real canonical gallery, and crash-safe transaction.
+final borderStudioPublicationCoordinatorProvider =
+    Provider<BorderStudioPublicationCoordinator?>((ref) {
+  final projectRootPath = ref.watch(editorProjectRootPathProvider);
+  final transaction = ref.watch(borderPublicationTransactionProvider);
+  if (projectRootPath == null ||
+      projectRootPath.trim().isEmpty ||
+      transaction == null) {
+    return null;
+  }
+  const assetService = BorderProjectElementAssetService();
+  const candidateBuilder = BorderPublicationCandidateBuilder();
+  return BorderStudioPublicationCoordinator(
+    prepareProjectElementAsset: assetService.prepare,
+    buildCandidate: candidateBuilder.build,
+    resolveCanonicalGallery: ({
+      required blueprintId,
+      required blueprintRevision,
+      required visualSnapshots,
+      required tileSizePx,
+      required resolverVersion,
+    }) =>
+        BorderStudioCanonicalGalleryResolution.fromCore(
+      resolveOrganicEdgeCanonicalGallery(
+        blueprintId: blueprintId,
+        blueprintRevision: blueprintRevision,
+        visualSnapshots: visualSnapshots,
+        tileSizePx: tileSizePx,
+        resolverVersion: resolverVersion,
+      ),
+    ),
+    publishRequest: transaction.publish,
   );
 });

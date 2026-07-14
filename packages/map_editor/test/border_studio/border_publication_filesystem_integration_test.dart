@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_publication_candidate_builder.dart';
 import 'package:map_editor/src/features/border_studio/application/border_publication_transaction.dart';
 import 'package:map_editor/src/features/border_studio/application/ports/border_asset_snapshot_store.dart';
 import 'package:map_editor/src/features/border_studio/infrastructure/filesystem/file_border_asset_snapshot_store.dart';
@@ -41,6 +42,8 @@ void main() {
     test('recovers after a partial snapshot move without exposing manifest',
         () async {
       final preparation = _animatedPreparation();
+      previous = _previousManifest(preparation, catalogKnowsSnapshot: false);
+      await _writeManifest(manifestFile, previous);
       var stageIndex = 0;
       var moveCount = 0;
       var injected = false;
@@ -97,8 +100,11 @@ void main() {
       expect(await _readManifest(manifestFile), request.nextManifest);
     });
 
-    test('a corrupt shared snapshot blocks manifest replacement', () async {
+    test('a corrupt catalog-known snapshot blocks manifest replacement',
+        () async {
       final preparation = _animatedPreparation();
+      previous = _previousManifest(preparation, catalogKnowsSnapshot: true);
+      await _writeManifest(manifestFile, previous);
       final firstFile = File(
         p.join(root.path, preparation.files.first.relativePath),
       );
@@ -133,6 +139,86 @@ void main() {
       expect(await manifestFile.readAsBytes(), oldBytes);
       expect(await firstFile.readAsBytes(), corruptBytes);
     });
+
+    test('restores missing files for a catalog-known referenced snapshot',
+        () async {
+      final preparation = _animatedPreparation();
+      previous = _previousManifest(preparation, catalogKnowsSnapshot: true);
+      await _writeManifest(manifestFile, previous);
+      final request = _request(previous, preparation);
+      expect(
+        request.nextManifest.borderCatalog.visualSnapshots,
+        previous.borderCatalog.visualSnapshots,
+      );
+      expect(request.files, preparation.files);
+      ProjectManifest? applied;
+      final transaction = BorderPublicationTransaction(
+        snapshotStore: FileBorderAssetSnapshotStore(
+          projectRootPath: root.path,
+          stageIdFactory: () => 'stage_restore_known',
+        ),
+        manifestPort: FileBorderPublicationManifestPort(
+          manifestPath: manifestFile.path,
+          applyInMemoryManifest: (manifest) => applied = manifest,
+          stageIdFactory: () => 'manifest_restore_known',
+        ),
+        candidateValidator: const _AcceptingValidator(),
+      );
+
+      final result = await transaction.publish(request);
+
+      expect(result.snapshotFinalize.createdRelativePaths,
+          preparation.files.map((file) => file.relativePath));
+      expect(applied, request.nextManifest);
+      for (final payload in preparation.files) {
+        expect(
+          await File(p.join(root.path, payload.relativePath)).readAsBytes(),
+          payload.bytes,
+        );
+      }
+      expect(await _readManifest(manifestFile), request.nextManifest);
+    });
+
+    test('preserves an external manifest changed after candidate creation',
+        () async {
+      final preparation = _animatedPreparation();
+      previous = _previousManifest(preparation, catalogKnowsSnapshot: true);
+      await _writeManifest(manifestFile, previous);
+      final request = _request(previous, preparation);
+      final external = previous.copyWith(name: 'Newer external project');
+      ProjectManifest? applied;
+      final transaction = BorderPublicationTransaction(
+        snapshotStore: FileBorderAssetSnapshotStore(
+          projectRootPath: root.path,
+          stageIdFactory: () => 'stage_stale_manifest',
+        ),
+        manifestPort: FileBorderPublicationManifestPort(
+          manifestPath: manifestFile.path,
+          applyInMemoryManifest: (manifest) => applied = manifest,
+          stageIdFactory: () => 'manifest_stale',
+          beforeOperation: (operation, _) async {
+            if (operation == BorderPublicationManifestOperation.atomicReplace) {
+              await _writeManifest(manifestFile, external);
+            }
+          },
+        ),
+        candidateValidator: const _AcceptingValidator(),
+      );
+
+      await expectLater(
+        transaction.publish(request),
+        throwsA(
+          isA<BorderPublicationManifestException>().having(
+            (error) => error.code,
+            'code',
+            BorderPublicationManifestErrorCode.staleManifest,
+          ),
+        ),
+      );
+
+      expect(await _readManifest(manifestFile), external);
+      expect(applied, isNull);
+    });
   });
 }
 
@@ -161,32 +247,108 @@ BorderPublicationRequest _request(
   ProjectManifest previous,
   BorderAssetSnapshotPreparation preparation,
 ) {
-  final next = replaceProjectBorderCatalog(
-    previous,
-    ProjectBorderCatalog(
-      visualSnapshots: <BorderVisualSnapshot>[preparation.snapshot],
-    ),
+  final target = previous.borderCatalog.records.single;
+  final candidate = const BorderPublicationCandidateBuilder().build(
+    manifest: previous,
+    draftRecord: target,
+    primitiveSnapshotsByPrimitiveId: <String, BorderAssetSnapshotPreparation>{
+      'animated-structure': preparation,
+    },
   );
   return BorderPublicationRequest(
     previousManifest: previous,
-    nextManifest: next,
+    nextManifest: candidate.nextManifest,
     blueprintId: 'integration-coast',
     resolverVersion: 1,
-    snapshotIntegrity: <String, BorderVisualSnapshotIntegrity>{
-      preparation.snapshot.id: BorderVisualSnapshotIntegrity(
-        snapshotId: preparation.snapshot.id,
-        metadataValid: true,
-        filesPresent: true,
-        contentFingerprintMatches: true,
-      ),
-    },
+    snapshotIntegrity: candidate.snapshotIntegrity,
     canonicalGalleryReport: BorderPublicationGalleryReport(
       resolverVersion: 1,
       canonicalGalleryVersion: borderCanonicalGalleryVersion,
       candidateFingerprint: 'sha256:${List<String>.filled(64, '0').join()}',
       samples: const <BorderPublicationGallerySample>[],
     ),
-    files: preparation.files,
+    files: candidate.files,
+  );
+}
+
+ProjectManifest _previousManifest(
+  BorderAssetSnapshotPreparation preparation, {
+  required bool catalogKnowsSnapshot,
+}) {
+  final definition = BorderBlueprintDraftDefinition(
+    name: 'Integration coast',
+    previewSeed: BorderSignedInt64.zero,
+    template: BorderBlueprintTemplate.organicEdge,
+    primitives: <BorderPrimitiveDraft>[
+      BorderPrimitiveDraft(
+        id: 'animated-structure',
+        sourceElementId: 'animated-element',
+        role: BorderPrimitiveRole.structureLarge,
+        weight: 1000,
+        anchorPx: preparation.metrics.defaultAnchorPx,
+        transforms: BorderTransformPolicy(
+          allowFlipX: false,
+          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        ),
+        currentMetrics: preparation.metrics,
+      ),
+    ],
+    defaults: BorderGenerationParams(
+      irregularityPermille: 500,
+      detailDensityPermille: 500,
+      variationPermille: 500,
+      maxOverlapPx: 2,
+      gapTolerancePx: 2,
+      depthRows: 2,
+    ),
+    sortOrder: 0,
+  );
+  return ProjectManifest(
+    name: 'Before publication',
+    version: ProjectVersion.v2,
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'source-tileset',
+        name: 'Source tileset',
+        relativePath: 'assets/source/source.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'border', name: 'Border'),
+    ],
+    elements: const <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'animated-element',
+        name: 'Animated element',
+        tilesetId: 'source-tileset',
+        categoryId: 'border',
+        frames: <TilesetVisualFrame>[
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+      ),
+    ],
+    borderCatalog: ProjectBorderCatalog(
+      records: <BorderBlueprintRecord>[
+        BorderBlueprintRecord(
+          id: 'integration-coast',
+          draft: BorderBlueprintDraft(
+            baseRevision: 0,
+            definition: definition,
+          ),
+        ),
+      ],
+      visualSnapshots: catalogKnowsSnapshot
+          ? <BorderVisualSnapshot>[preparation.snapshot]
+          : const <BorderVisualSnapshot>[],
+    ),
+  );
+}
+
+Future<void> _writeManifest(File file, ProjectManifest manifest) async {
+  await file.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
+    flush: true,
   );
 }
 

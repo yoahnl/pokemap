@@ -82,6 +82,7 @@ export 'src/operations/border_ground_resolution.dart';
 export 'src/operations/border_coverage.dart';
 export 'src/operations/border_sprite_geometry.dart';
 export 'src/operations/organic_edge_border_resolver.dart';
+export 'src/operations/organic_edge_canonical_gallery.dart';
 export 'src/operations/border_resolver.dart';
 export 'src/operations/border_publication_readiness.dart';
 export 'src/operations/project_manifest_border_catalog_operations.dart';

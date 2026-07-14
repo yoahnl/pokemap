@@ -3,6 +3,31 @@ import 'package:test/test.dart';
 
 void main() {
   group('resolveOrganicEdgeBorder', () {
+    test('exposes exact deterministic coverage evidence from the resolver', () {
+      final request = _request(singlePrimitive: true);
+
+      final evidence = resolveOrganicEdgeBorderWithEvidence(request);
+
+      expect(evidence.result, resolveOrganicEdgeBorder(request));
+      expect(evidence.contours, hasLength(1));
+      expect(evidence.contours.single.contourIndex, 0);
+      expect(
+        evidence.contours.single.kind,
+        BorderRegionContourKind.landBoundary,
+      );
+      expect(evidence.contours.single.coverage.hasExcessiveGap, isFalse);
+      expect(evidence.contours.single.coverage.longestContiguousGapPx, 0);
+      expect(evidence.structuralRuns, isNotEmpty);
+      expect(
+        evidence.structuralRuns.expand((run) => run.primitiveIds).toSet(),
+        <String>{'rock-a'},
+      );
+      expect(
+        resolveOrganicEdgeBorderWithEvidence(request),
+        evidence,
+      );
+    });
+
     test('materializes a canonical region deterministically', () {
       final request = _request();
 

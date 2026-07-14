@@ -64,9 +64,12 @@ class BorderTypeStep extends StatelessWidget {
                             PokeMapBadge(
                               label: template ==
                                       BorderBlueprintTemplate.organicEdge
-                                  ? 'Publication après BORD-03'
+                                  ? 'Publication disponible'
                                   : 'Publication après BORD-06',
-                              variant: PokeMapBadgeVariant.warning,
+                              variant: template ==
+                                      BorderBlueprintTemplate.organicEdge
+                                  ? PokeMapBadgeVariant.success
+                                  : PokeMapBadgeVariant.warning,
                             ),
                             if (disabledReason != null) ...[
                               const SizedBox(height: 8),

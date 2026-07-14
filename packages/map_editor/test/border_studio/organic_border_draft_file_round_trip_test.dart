@@ -43,12 +43,12 @@ void main() {
         'rock-element');
     expect(record.draft.definition.primitives.single.currentMetrics,
         _rockPrimitive().currentMetrics);
-    expect(reloadedController.state.diagnosticsAreCurrent, isTrue);
+    expect(reloadedController.state.diagnosticsAreCurrent, isFalse);
     expect(reloadedController.state.diagnostics.hasErrors, isFalse);
     expect(reloadedController.state.canPublish, isFalse);
     expect(
       reloadedController.state.publicationAvailability.disabledReason,
-      contains('BORD-03'),
+      contains('aperçu canonique'),
     );
   });
 }

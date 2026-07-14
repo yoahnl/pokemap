@@ -94,10 +94,14 @@ abstract interface class BorderPublicationCandidateValidator {
 }
 
 /// Disk replacement must be atomic. [applyInMemory] is invoked only after the
-/// disk replacement succeeds and must be a synchronous, non-throwing adapter
-/// to `EditorNotifier.applyInMemoryProjectManifest`.
+/// disk replacement succeeds and must complete synchronously. It may reject a
+/// stale editor session; the transaction then reports that disk is committed
+/// but an explicit project reload is required.
 abstract interface class BorderPublicationManifestPort {
-  Future<void> atomicallyReplace(ProjectManifest manifest);
+  Future<void> atomicallyReplace({
+    required ProjectManifest previousManifest,
+    required ProjectManifest nextManifest,
+  });
 
   void applyInMemory(ProjectManifest manifest);
 }
@@ -208,7 +212,10 @@ final class BorderPublicationTransaction {
       }
 
       finalized = await snapshotStore.finalize(stage);
-      await manifestPort.atomicallyReplace(request.nextManifest);
+      await manifestPort.atomicallyReplace(
+        previousManifest: request.previousManifest,
+        nextManifest: request.nextManifest,
+      );
     } catch (error, stackTrace) {
       try {
         await snapshotStore.discard(stage);
@@ -261,14 +268,28 @@ List<BorderDiagnostic> _snapshotPayloadDiagnostics(
   BorderPublicationRequest request,
   BorderAssetSnapshotService snapshotService,
 ) {
-  final previousSnapshots =
-      request.previousManifest.borderCatalog.visualSnapshots;
-  final nextSnapshots = request.nextManifest.borderCatalog.visualSnapshots;
-  final appendedSnapshots = nextSnapshots.length < previousSnapshots.length
-      ? const <BorderVisualSnapshot>[]
-      : nextSnapshots.skip(previousSnapshots.length).toList(growable: false);
+  final referencedSnapshotIds = <String>{};
+  final revision = request.nextManifest.borderCatalog
+      .recordById(request.blueprintId)
+      ?.latestPublished;
+  if (revision != null) {
+    for (final primitive in revision.definition.primitives) {
+      referencedSnapshotIds.add(primitive.visualSnapshotId);
+    }
+    final ground = revision.definition.ground;
+    if (ground != null) {
+      referencedSnapshotIds.addAll(ground.visualSnapshotIdsByRole.values);
+    }
+  }
+  final snapshotsById = <String, BorderVisualSnapshot>{
+    for (final snapshot in request.nextManifest.borderCatalog.visualSnapshots)
+      snapshot.id: snapshot,
+  };
   final validation = snapshotService.validatePreparedPayloads(
-    snapshots: appendedSnapshots,
+    snapshots: <BorderVisualSnapshot>[
+      for (final snapshotId in referencedSnapshotIds)
+        if (snapshotsById[snapshotId] case final snapshot?) snapshot,
+    ],
     files: request.files,
   );
   return <BorderDiagnostic>[

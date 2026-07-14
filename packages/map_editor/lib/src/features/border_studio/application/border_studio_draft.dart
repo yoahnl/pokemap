@@ -122,10 +122,7 @@ final class BorderStudioDraftState {
       );
     }
     return switch (draft.blueprint.definition.template) {
-      BorderBlueprintTemplate.organicEdge =>
-        const BorderStudioPublicationAvailability.disabled(
-          'La publication des côtes reste désactivée jusqu’au lot BORD-03.',
-        ),
+      BorderBlueprintTemplate.organicEdge => _organicPublicationAvailability,
       BorderBlueprintTemplate.masonryLine ||
       BorderBlueprintTemplate.postAndRailLine =>
         const BorderStudioPublicationAvailability.disabled(
@@ -133,6 +130,25 @@ final class BorderStudioDraftState {
           'BORD-06.',
         ),
     };
+  }
+
+  BorderStudioPublicationAvailability get _organicPublicationAvailability {
+    if (!diagnosticsAreCurrent) {
+      return const BorderStudioPublicationAvailability.disabled(
+        'Regénérez l’aperçu canonique avant de publier.',
+      );
+    }
+    if (diagnostics.hasErrors) {
+      return const BorderStudioPublicationAvailability.disabled(
+        'Corrigez les erreurs du blueprint avant de publier.',
+      );
+    }
+    if (unacknowledgedWarningCodes.isNotEmpty) {
+      return const BorderStudioPublicationAvailability.disabled(
+        'Acceptez explicitement chaque avertissement avant de publier.',
+      );
+    }
+    return const BorderStudioPublicationAvailability.allowed();
   }
 
   bool get canPublish => publicationAvailability.isAllowed;

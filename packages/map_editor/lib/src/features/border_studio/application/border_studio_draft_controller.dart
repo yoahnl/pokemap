@@ -106,7 +106,14 @@ final class BorderStudioDraftController
       _setState(BorderStudioDraftState());
       return;
     }
-    _selectRecord(selected, manifest.borderCatalog.records);
+    _selectRecord(
+      selected,
+      manifest.borderCatalog.records,
+      preserveExternalDiagnostics: incoming != null &&
+          working != null &&
+          incoming.draft == working.blueprint &&
+          !selectedPublicationChanged,
+    );
   }
 
   void selectBlueprint(String blueprintId) {
@@ -493,9 +500,12 @@ final class BorderStudioDraftController
 
   void _selectRecord(
     BorderBlueprintRecord selected,
-    List<BorderBlueprintRecord> records,
-  ) {
-    _externalDiagnostics = const BorderDiagnosticsReport.empty();
+    List<BorderBlueprintRecord> records, {
+    bool preserveExternalDiagnostics = false,
+  }) {
+    if (!preserveExternalDiagnostics) {
+      _externalDiagnostics = const BorderDiagnosticsReport.empty();
+    }
     final loadedFingerprints = _loadedFingerprintsByBlueprintId[selected.id] ??
         const <String, String>{};
     final divergence = _sourceDivergenceIds(
@@ -567,7 +577,6 @@ final class BorderStudioDraftController
   void _setState(BorderStudioDraftState next) {
     state = next.copyWith(
       diagnostics: _composeDiagnostics(next),
-      diagnosticsAreCurrent: next.workingDraft != null && _manifest != null,
     );
   }
 

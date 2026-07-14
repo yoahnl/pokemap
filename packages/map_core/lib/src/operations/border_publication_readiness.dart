@@ -824,12 +824,10 @@ void _diagnoseGroundCompleteness(
   final preset =
       project.surfaceCatalog.presetById(ground.sourceSurfacePresetId);
   if (preset == null) return;
-  final isolatedAnimationId =
-      preset.animationIdForRole(SurfaceVariantRole.isolated);
   final unresolvedRoles = <String>[];
   final missingAnimationIds = <String>{};
   for (final role in standardSurfaceVariantRoleOrder) {
-    final animationId = preset.animationIdForRole(role) ?? isolatedAnimationId;
+    final animationId = _resolveGroundSurfaceAnimationId(preset, role);
     if (animationId == null) {
       unresolvedRoles.add(_surfaceRoleV1WireName(role));
       continue;
@@ -853,6 +851,24 @@ void _diagnoseGroundCompleteness(
     },
     action: 'border.action.resolve_surface_role_animations',
   ));
+}
+
+String? _resolveGroundSurfaceAnimationId(
+  ProjectSurfacePreset preset,
+  SurfaceVariantRole role,
+) {
+  final exact = preset.animationIdForRole(role)?.trim();
+  if (exact != null && exact.isNotEmpty) return exact;
+
+  final isolated =
+      preset.animationIdForRole(SurfaceVariantRole.isolated)?.trim();
+  if (isolated != null && isolated.isNotEmpty) return isolated;
+
+  for (final ref in preset.variantAnimations.refs) {
+    final animationId = ref.animationId.trim();
+    if (animationId.isNotEmpty) return animationId;
+  }
+  return null;
 }
 
 void _diagnoseCanonicalGallery(

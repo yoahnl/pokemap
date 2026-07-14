@@ -37,6 +37,8 @@ void main() {
 
       expect(masonryButton.onPressed, isNotNull);
       expect(fenceButton.onPressed, isNull);
+      expect(find.text('Publication disponible'), findsOneWidget);
+      expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(
           'Indisponible : le rôle « Structure principale » n’est pas pris en '

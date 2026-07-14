@@ -1,11 +1,25 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/cupertino.dart' show CupertinoPageScaffold;
+import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter/services.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_publication_candidate_builder.dart';
+import 'package:map_editor/src/features/border_studio/application/border_publication_transaction.dart';
+import 'package:map_editor/src/features/border_studio/application/border_studio_publication_coordinator.dart';
+import 'package:map_editor/src/features/border_studio/application/ports/border_asset_snapshot_store.dart';
+import 'package:map_editor/src/features/border_studio/border_studio_workspace.dart';
 import 'package:map_editor/src/features/border_studio/state/border_studio_providers.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 import '../shell_chrome_test_harness.dart';
@@ -182,8 +196,19 @@ void main() {
       find.byKey(const ValueKey<String>('border-studio-neutral-sandbox')),
       findsOneWidget,
     );
-    expect(find.text('Longue portion'), findsOneWidget);
-    expect(find.text('Petite boucle ou îlot'), findsOneWidget);
+    expect(find.text('Longue portion'), findsNothing);
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-gallery-not-prepared'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-prepare-preview'),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.byKey(const ValueKey<String>('border-studio-save-draft')),
       findsOneWidget,
@@ -194,9 +219,7 @@ void main() {
     expect(publish, findsOneWidget);
     expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
     expect(
-      find.text(
-        'La publication des côtes reste désactivée jusqu’au lot BORD-03.',
-      ),
+      find.text('Générez l’aperçu canonique avant de publier.'),
       findsOneWidget,
     );
 
@@ -268,6 +291,144 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('publication disables every workspace mutation and navigation',
+      (tester) async {
+    final publishCompleter = Completer<BorderPublicationResult>();
+    late BorderPublicationRequest request;
+    final manifest = _publicationManifest();
+    final container = await _pumpControlledPublicationWorkspace(
+      tester,
+      manifest: manifest,
+      coordinator: _controlledCoordinator(
+        publishCompleter: publishCompleter,
+        onPublishRequest: (value) => request = value,
+      ),
+    );
+    await _prepareAndStartPublication(tester, container);
+
+    for (final key in const <String>[
+      'border-studio-new-blueprint',
+      'border-studio-step-Type',
+      'border-studio-step-Assets',
+      'border-studio-step-Rôles',
+      'border-studio-step-Règles',
+      'border-studio-step-Aperçu et publication',
+      'border-studio-prepare-preview',
+      'border-studio-new-variation',
+      'border-studio-save-draft',
+      'border-studio-publish',
+    ]) {
+      final button = tester.widget<PokeMapButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull, reason: '$key must be disabled');
+    }
+    for (final key in const <String>[
+      'border-studio-rename-blueprint',
+      'border-studio-duplicate-blueprint',
+      'border-studio-delete-blueprint',
+    ]) {
+      final button = tester.widget<PokeMapIconButton>(
+        find.byKey(ValueKey<String>(key)),
+      );
+      expect(button.onPressed, isNull, reason: '$key must be disabled');
+    }
+    expect(
+      tester
+          .widgetList<PokeMapSidebarItem>(
+            find.byType(PokeMapSidebarItem),
+          )
+          .every((item) => item.onTap == null),
+      isTrue,
+    );
+
+    publishCompleter.complete(_publicationResult(request.nextManifest));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(editorNotifierProvider).project,
+      request.nextManifest,
+    );
+  });
+
+  testWidgets('publication completion never pollutes a newly opened project',
+      (tester) async {
+    final publishCompleter = Completer<BorderPublicationResult>();
+    late BorderPublicationRequest request;
+    final originalManifest = _publicationManifest();
+    final container = await _pumpControlledPublicationWorkspace(
+      tester,
+      manifest: originalManifest,
+      coordinator: _controlledCoordinator(
+        publishCompleter: publishCompleter,
+        onPublishRequest: (value) => request = value,
+      ),
+    );
+    await _prepareAndStartPublication(tester, container);
+    const replacementManifest = ProjectManifest(
+      name: 'Replacement while publishing',
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+    );
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/projects/replacement',
+      project: replacementManifest,
+      workspaceMode: EditorWorkspaceMode.borderStudio,
+    );
+    await tester.pump();
+
+    publishCompleter.complete(_publicationResult(request.nextManifest));
+    await tester.pumpAndSettle();
+
+    final editor = container.read(editorNotifierProvider);
+    expect(editor.projectRootPath, '/projects/replacement');
+    expect(editor.project, same(replacementManifest));
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey<String>('border-studio-new-blueprint'),
+            ),
+          )
+          .onPressed,
+      isNotNull,
+    );
+  });
+
+  testWidgets('publication completion never overwrites a changed target draft',
+      (tester) async {
+    final publishCompleter = Completer<BorderPublicationResult>();
+    late BorderPublicationRequest request;
+    final manifest = _publicationManifest();
+    final container = await _pumpControlledPublicationWorkspace(
+      tester,
+      manifest: manifest,
+      coordinator: _controlledCoordinator(
+        publishCompleter: publishCompleter,
+        onPublishRequest: (value) => request = value,
+      ),
+    );
+    await _prepareAndStartPublication(tester, container);
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier);
+    controller.renameBlueprint('Edited while publication was pending');
+    await tester.pump();
+
+    publishCompleter.complete(_publicationResult(request.nextManifest));
+    await tester.pumpAndSettle();
+
+    expect(
+      controller.state.workingDraft!.blueprint.definition.name,
+      'Edited while publication was pending',
+    );
+    expect(container.read(editorNotifierProvider).project, same(manifest));
+    expect(
+      find.text(
+        'Le résultat a été ignoré car le projet ou le blueprint a changé.',
+      ),
+      findsOneWidget,
+    );
+  });
 }
 
 Future<ProviderContainer> _pumpWorkspace(
@@ -323,6 +484,354 @@ BorderPrimitiveDraft _primitive({
       opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
       defaultAnchorPx: const BorderPixelPos(x: 4, y: 8),
       occupancyMaskRle: '1:256',
+    ),
+  );
+}
+
+Future<ProviderContainer> _pumpControlledPublicationWorkspace(
+  WidgetTester tester, {
+  required ProjectManifest manifest,
+  required BorderStudioPublicationCoordinator coordinator,
+}) async {
+  final container = ProviderContainer(
+    overrides: <Override>[
+      borderStudioPublicationCoordinatorProvider.overrideWithValue(
+        coordinator,
+      ),
+    ],
+  );
+  final subscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() async {
+    subscription.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    container.dispose();
+  });
+  await tester.binding.setSurfaceSize(const Size(1280, 1600));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  container.read(editorNotifierProvider.notifier).state = EditorState(
+    projectRootPath: '/projects/original',
+    project: manifest,
+    workspaceMode: EditorWorkspaceMode.borderStudio,
+  );
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: const CupertinoPageScaffold(
+          child: BorderStudioWorkspace(),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
+
+Future<void> _prepareAndStartPublication(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  await tester.tap(
+    find.byKey(
+      const ValueKey<String>(
+        'border-studio-step-Aperçu et publication',
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.tap(
+    find.byKey(const ValueKey<String>('border-studio-prepare-preview')),
+  );
+  await tester.pumpAndSettle();
+  final controller =
+      container.read(borderStudioDraftControllerProvider.notifier);
+  for (final warningCode in controller.state.warningCodes) {
+    controller.acknowledgeWarningCode(warningCode);
+  }
+  await tester.pump();
+  final publish = find.byKey(
+    const ValueKey<String>('border-studio-publish'),
+  );
+  expect(
+    tester.widget<PokeMapButton>(publish).onPressed,
+    isNotNull,
+    reason:
+        'availability=${controller.state.publicationAvailability.disabledReason}; '
+        'diagnostics=${controller.state.diagnostics.diagnostics.map((item) => item.code).toList()}; '
+        'galleryNotPrepared=${find.byKey(const ValueKey<String>('border-studio-gallery-not-prepared')).evaluate().isNotEmpty}',
+  );
+  await tester.tap(publish);
+  await tester.pump();
+}
+
+BorderStudioPublicationCoordinator _controlledCoordinator({
+  required Completer<BorderPublicationResult> publishCompleter,
+  required ValueChanged<BorderPublicationRequest> onPublishRequest,
+}) {
+  return BorderStudioPublicationCoordinator(
+    prepareProjectElementAsset: ({
+      required manifest,
+      required projectRootPath,
+      required sourceElementId,
+      required primitiveId,
+      required role,
+      required weight,
+      required transforms,
+      anchorPx,
+    }) async {
+      final record = manifest.borderCatalog.recordById('coast')!;
+      final primitive = record.draft.definition.primitives.singleWhere(
+        (candidate) => candidate.id == primitiveId,
+      );
+      final preparation = _snapshotPreparation(primitive);
+      return BorderPreparedProjectElementAsset(
+        sourceElement: manifest.elements.singleWhere(
+          (element) => element.id == sourceElementId,
+        ),
+        primitive: primitive,
+        preparation: preparation,
+      );
+    },
+    buildCandidate: const BorderPublicationCandidateBuilder().build,
+    resolveCanonicalGallery: _passingGallery,
+    publishRequest: (request) {
+      onPublishRequest(request);
+      return publishCompleter.future;
+    },
+  );
+}
+
+BorderStudioCanonicalGalleryResolution _passingGallery({
+  required String blueprintId,
+  required BorderBlueprintRevision blueprintRevision,
+  required Iterable<BorderVisualSnapshot> visualSnapshots,
+  required GridSize tileSizePx,
+  required int resolverVersion,
+}) {
+  final definition = blueprintRevision.definition;
+  final samples = <BorderPublicationGallerySample>[
+    for (final galleryCase
+        in borderCanonicalGalleryCasesForTemplate(definition.template))
+      BorderPublicationGallerySample(
+        galleryCase: galleryCase,
+        coverageChecks: <BorderPublicationCoverageCheck>[
+          for (final component in borderCanonicalCoverageComponentsForCase(
+            template: definition.template,
+            galleryCase: galleryCase,
+          ))
+            BorderPublicationCoverageCheck(
+              component: component,
+              longestContiguousGapPx: 0,
+              maximumPairwiseOverlapPx: 0,
+              gapTolerancePx: definition.defaults.gapTolerancePx,
+              maxOverlapPx: definition.defaults.maxOverlapPx,
+            ),
+        ],
+        structuralRuns: const <BorderPublicationStructuralRun>[],
+      ),
+  ];
+  final report = BorderPublicationGalleryReport(
+    resolverVersion: resolverVersion,
+    canonicalGalleryVersion: borderCanonicalGalleryVersion,
+    candidateFingerprint: computeBorderPublicationCandidateFingerprint(
+      blueprintId: blueprintId,
+      definition: definition,
+      resolverVersion: resolverVersion,
+    ),
+    samples: samples,
+  );
+  final primitive = definition.primitives.single;
+  return BorderStudioCanonicalGalleryResolution(
+    report: report,
+    cases: <BorderStudioCanonicalGalleryCasePreview>[
+      for (var index = 0; index < samples.length; index += 1)
+        BorderStudioCanonicalGalleryCasePreview(
+          galleryCase: samples[index].galleryCase,
+          geometry: BorderRegionGeometry(
+            width: 1,
+            height: 1,
+            cells: const <bool>[true],
+          ),
+          resolution: _successfulResolution(
+            primitiveId: primitive.id,
+            snapshotId: primitive.visualSnapshotId,
+            revision: blueprintRevision.revision,
+          ),
+          publicationSample: samples[index],
+        ),
+    ],
+    resolutionDiagnostics: const BorderDiagnosticsReport.empty(),
+  );
+}
+
+BorderResolutionResult _successfulResolution({
+  required String primitiveId,
+  required String snapshotId,
+  required int revision,
+}) {
+  const fingerprint =
+      'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff';
+  final components = BorderInputFingerprints(
+    blueprint: fingerprint,
+    geometryAndSeed: fingerprint,
+    parameters: fingerprint,
+    overrides: fingerprint,
+    keepOutRegions: fingerprint,
+    mapContext: fingerprint,
+    visualSnapshots: fingerprint,
+  );
+  return BorderResolutionResult(
+    materialization: BorderMaterialization(
+      receipt: BorderResolutionReceipt(
+        resolverVersion: borderResolverVersion,
+        blueprintRevision: revision,
+        components: components,
+        inputFingerprint: fingerprint,
+        outputFingerprint: fingerprint,
+      ),
+      ground: const <BorderResolvedGroundCell>[],
+      placements: <BorderResolvedPlacement>[
+        BorderResolvedPlacement(
+          id: 'placement',
+          slotKey: 'slot',
+          primitiveId: primitiveId,
+          visualSnapshotId: snapshotId,
+          anchorCell: const GridPos(x: 0, y: 0),
+          topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+          opaqueWorldBoundsPx: BorderPixelRect(
+            x: 0,
+            y: 0,
+            width: 1,
+            height: 1,
+          ),
+          transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+          drawBand: BorderDrawBand.structure,
+          stableOrderKey: BorderStableOrderKey(
+            drawBandIndex: borderDrawBandV1Index(BorderDrawBand.structure),
+            anchorRowMajor: 0,
+            passIndex: 0,
+            rank: 0,
+            ordinalLocal: 0,
+            slotKey: 'slot',
+          ),
+        ),
+      ],
+    ),
+    diagnosticReport: const BorderDiagnosticsReport.empty(),
+  );
+}
+
+ProjectManifest _publicationManifest() {
+  final primitive = BorderPrimitiveDraft(
+    id: 'rock',
+    sourceElementId: 'element-rock',
+    role: BorderPrimitiveRole.structureLarge,
+    weight: 100,
+    anchorPx: const BorderPixelPos(x: 1, y: 1),
+    transforms: BorderTransformPolicy(
+      allowFlipX: true,
+      allowedQuarterTurns: const <int>[0, 1, 2, 3],
+    ),
+    currentMetrics: BorderPrimitiveAssetMetrics(
+      assetFingerprint: 'fingerprint-rock',
+      pixelSize: const GridSize(width: 2, height: 2),
+      opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 2, height: 2),
+      defaultAnchorPx: const BorderPixelPos(x: 1, y: 1),
+      occupancyMaskRle: encodeBorderRleMask(
+        const <bool>[true, true, true, true],
+      ),
+    ),
+  );
+  final record = BorderBlueprintRecord(
+    id: 'coast',
+    draft: BorderBlueprintDraft(
+      baseRevision: 0,
+      definition: BorderBlueprintDraftDefinition(
+        name: 'Coast',
+        previewSeed: BorderSignedInt64.fromInt(7),
+        template: BorderBlueprintTemplate.organicEdge,
+        primitives: <BorderPrimitiveDraft>[primitive],
+        defaults: BorderGenerationParams(
+          irregularityPermille: 250,
+          detailDensityPermille: 500,
+          variationPermille: 300,
+          maxOverlapPx: 4,
+          gapTolerancePx: 1,
+          depthRows: 1,
+        ),
+        sortOrder: 0,
+      ),
+    ),
+  );
+  return _manifest(
+    records: <BorderBlueprintRecord>[record],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tileset',
+        name: 'Tileset',
+        relativePath: 'assets/tilesets/border.png',
+      ),
+    ],
+    elements: const <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'element-rock',
+        name: 'Rock',
+        tilesetId: 'tileset',
+        categoryId: 'border',
+        frames: <TilesetVisualFrame>[
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+      ),
+    ],
+  );
+}
+
+BorderAssetSnapshotPreparation _snapshotPreparation(
+  BorderPrimitiveDraft primitive,
+) {
+  const digit = 'a';
+  final fingerprint = digit * 64;
+  final relativePath = 'assets/borders/snapshots/$fingerprint/frame_0000.png';
+  return BorderAssetSnapshotPreparation(
+    sourceElementId: primitive.sourceElementId,
+    snapshot: BorderVisualSnapshot(
+      id: 'border-snapshot-sha256:$fingerprint',
+      contentFingerprint: fingerprint,
+      frames: <BorderVisualFrameSnapshot>[
+        BorderVisualFrameSnapshot(
+          relativeAssetPath: relativePath,
+          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 2, height: 2),
+          durationMs: 100,
+        ),
+      ],
+    ),
+    metrics: primitive.currentMetrics,
+    files: <BorderSnapshotFilePayload>[
+      BorderSnapshotFilePayload(
+        relativePath: relativePath,
+        bytes: Uint8List.fromList(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAEklEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+          ),
+        ),
+      ),
+    ],
+  );
+}
+
+BorderPublicationResult _publicationResult(ProjectManifest manifest) {
+  return BorderPublicationResult(
+    manifest: manifest,
+    diagnostics: const BorderDiagnosticsReport.empty(),
+    snapshotFinalize: BorderAssetSnapshotFinalizeResult(
+      createdRelativePaths: const <String>[],
+      deduplicatedRelativePaths: const <String>[],
     ),
   );
 }

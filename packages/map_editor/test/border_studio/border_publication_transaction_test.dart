@@ -40,6 +40,7 @@ void main() {
               .map((file) => file.relativePath)
               .toList(growable: false));
       expect(manifest.applied, same(request.nextManifest));
+      expect(manifest.expectedPrevious, same(request.previousManifest));
     });
 
     test('validation errors discard staging and preserve the manifest',
@@ -286,6 +287,58 @@ void main() {
       );
       expect(events, <String>['stage', 'validate', 'discard-stage']);
     });
+
+    test(
+      'validates payloads for catalog-known snapshots referenced by the new revision',
+      () async {
+        final complete = _completeCoreRequest();
+        final knownSnapshot =
+            complete.nextManifest.borderCatalog.visualSnapshots.first;
+        final previous = complete.previousManifest.copyWith(
+          borderCatalog: ProjectBorderCatalog(
+            records: complete.previousManifest.borderCatalog.records,
+            visualSnapshots: <BorderVisualSnapshot>[knownSnapshot],
+          ),
+        );
+        final request = BorderPublicationRequest(
+          previousManifest: previous,
+          nextManifest: complete.nextManifest,
+          blueprintId: complete.blueprintId,
+          resolverVersion: complete.resolverVersion,
+          snapshotIntegrity: complete.snapshotIntegrity,
+          canonicalGalleryReport: complete.canonicalGalleryReport,
+          files: complete.files.skip(1).toList(growable: false),
+        );
+        final events = <String>[];
+        final transaction = BorderPublicationTransaction(
+          snapshotStore: _SnapshotStore(events),
+          manifestPort: _ManifestPort(events),
+          candidateValidator: _Validator(
+            events,
+            const BorderDiagnosticsReport.empty(),
+          ),
+        );
+
+        await expectLater(
+          transaction.publish(request),
+          throwsA(
+            isA<BorderPublicationTransactionException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  BorderPublicationTransactionErrorCode.validationFailed,
+                )
+                .having(
+                  (error) => error.diagnostics.diagnostics
+                      .map((diagnostic) => diagnostic.code),
+                  'diagnostic codes',
+                  contains('border.publication.snapshot_file_missing'),
+                ),
+          ),
+        );
+        expect(events, <String>['stage', 'validate', 'discard-stage']);
+      },
+    );
 
     test('reports an explicit committed outcome when memory refresh fails',
         () async {
@@ -802,13 +855,18 @@ final class _ManifestPort implements BorderPublicationManifestPort {
   Object? replaceError;
   Object? applyError;
   ProjectManifest? replaced;
+  ProjectManifest? expectedPrevious;
   ProjectManifest? applied;
 
   @override
-  Future<void> atomicallyReplace(ProjectManifest manifest) async {
+  Future<void> atomicallyReplace({
+    required ProjectManifest previousManifest,
+    required ProjectManifest nextManifest,
+  }) async {
     events.add('replace-manifest');
     if (replaceError case final error?) throw error;
-    replaced = manifest;
+    expectedPrevious = previousManifest;
+    replaced = nextManifest;
   }
 
   @override

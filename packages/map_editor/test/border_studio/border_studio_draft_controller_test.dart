@@ -240,6 +240,9 @@ void main() {
       final first = BorderStudioDraftController()..loadFromManifest(manifest);
       final second = BorderStudioDraftController()..loadFromManifest(manifest);
       final before = first.state.workingDraft!.blueprint;
+      first.setDiagnostics(const BorderDiagnosticsReport.empty());
+      second.setDiagnostics(const BorderDiagnosticsReport.empty());
+      expect(first.state.diagnosticsAreCurrent, isTrue);
 
       first.newPreviewVariation();
       second.newPreviewVariation();
@@ -260,6 +263,8 @@ void main() {
       expect(after.definition.categoryId, before.definition.categoryId);
       expect(after.definition.sortOrder, before.definition.sortOrder);
       expect(first.state.isDirty, isTrue);
+      expect(first.state.diagnosticsAreCurrent, isFalse);
+      expect(first.state.canPublish, isFalse);
 
       final createdFirst = BorderStudioDraftController()
         ..loadFromManifest(_manifest())
@@ -281,7 +286,7 @@ void main() {
       );
     });
 
-    test('keeps every template unpublished until its resolver lot', () {
+    test('enables only organic edges for the BORD-03 publication lot', () {
       final controller = BorderStudioDraftController()
         ..loadFromManifest(
           _manifest(records: <BorderBlueprintRecord>[
@@ -291,11 +296,9 @@ void main() {
 
       controller.setDiagnostics(const BorderDiagnosticsReport.empty());
 
-      expect(controller.state.publicationAvailability.isAllowed, isFalse);
-      expect(
-        controller.state.publicationAvailability.disabledReason,
-        contains('BORD-03'),
-      );
+      expect(controller.state.publicationAvailability.isAllowed, isTrue);
+      expect(controller.state.publicationAvailability.disabledReason, isNull);
+      expect(controller.state.canPublish, isTrue);
 
       controller.setTemplate(BorderBlueprintTemplate.masonryLine);
       expect(controller.state.canPublish, isFalse);
@@ -353,11 +356,7 @@ void main() {
         },
       );
       expect(controller.state.unacknowledgedWarningCodes, isEmpty);
-      expect(controller.state.canPublish, isFalse);
-      expect(
-        controller.state.publicationAvailability.disabledReason,
-        contains('BORD-03'),
-      );
+      expect(controller.state.canPublish, isTrue);
       expect(
         () => controller.acknowledgeWarningCode('border.unknown.warning'),
         throwsArgumentError,
@@ -388,6 +387,7 @@ void main() {
           record,
           _record(id: 'other', name: 'Autre'),
         ],
+        elements: <ProjectElementEntry>[_element('element-rock')],
       );
       final controller = BorderStudioDraftController()
         ..loadFromManifest(manifest);
@@ -419,7 +419,7 @@ void main() {
       expect(controller.state.sourceDivergedPrimitiveIds, <String>{'rock'});
       expect(controller.state.requiresSourceReanalysis, isFalse);
       expect(controller.state.requiresRepublish, isTrue);
-      expect(controller.state.canPublish, isFalse);
+      expect(controller.state.canPublish, isTrue);
       expect(
         controller.state.diagnostics.diagnostics.map((item) => item.code),
         contains(borderStudioSourceRepublishRequiredDiagnosticCode),
@@ -756,17 +756,13 @@ void main() {
         ..acknowledgeWarningCode('border.publication.review_warning');
 
       expect(controller.state.diagnosticsAreCurrent, isTrue);
-      expect(controller.state.canPublish, isFalse);
+      expect(controller.state.canPublish, isTrue);
 
       controller.renameBlueprint('Bord retouche');
 
-      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
       expect(controller.state.acknowledgedWarningCodes, isEmpty);
       expect(controller.state.canPublish, isFalse);
-      expect(
-        controller.state.publicationAvailability.disabledReason,
-        contains('BORD-03'),
-      );
     });
 
     test('recomputes authoring diagnostics automatically after draft edits',
@@ -780,7 +776,7 @@ void main() {
           ),
         );
 
-      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
       expect(controller.state.diagnostics.diagnostics, isEmpty);
 
       controller.replacePrimitives(<BorderPrimitiveDraft>[
@@ -790,7 +786,7 @@ void main() {
         ),
       ]);
 
-      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
       expect(
         controller.state.diagnostics.diagnostics.map((item) => item.code),
         contains('border.blueprint.source_element_missing'),
@@ -799,11 +795,15 @@ void main() {
 
       controller.replacePrimitives(const <BorderPrimitiveDraft>[]);
 
-      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
       expect(
         controller.state.diagnostics.diagnostics.map((item) => item.code),
         isNot(contains('border.blueprint.source_element_missing')),
       );
+
+      controller.setDiagnostics(const BorderDiagnosticsReport.empty());
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.canPublish, isTrue);
     });
 
     test('clean manifest sync cannot turn a validation error into publishable',
@@ -829,8 +829,12 @@ void main() {
         manifest.copyWith(globalProperties: <String, dynamic>{'other': true}),
       );
 
-      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnosticsAreCurrent, isFalse);
       expect(controller.state.canPublish, isFalse);
+      expect(
+        controller.state.diagnostics.diagnostics.map((item) => item.code),
+        contains('border.publication.blocking'),
+      );
     });
   });
 }
@@ -838,6 +842,7 @@ void main() {
 ProjectManifest _manifest({
   List<BorderBlueprintRecord> records = const <BorderBlueprintRecord>[],
   List<BorderVisualSnapshot> visualSnapshots = const <BorderVisualSnapshot>[],
+  List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
 }) {
   return ProjectManifest(
     name: 'Border test',
@@ -850,12 +855,23 @@ ProjectManifest _manifest({
       ),
     ],
     tilesets: const [],
+    elements: elements,
     borderCatalog: ProjectBorderCatalog(
       records: records,
       visualSnapshots: visualSnapshots,
     ),
   );
 }
+
+ProjectElementEntry _element(String id) => ProjectElementEntry(
+      id: id,
+      name: id,
+      tilesetId: 'tileset',
+      categoryId: 'border',
+      frames: const <TilesetVisualFrame>[
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+      ],
+    );
 
 BorderBlueprintRecord _record({
   required String id,
@@ -919,7 +935,9 @@ BorderPrimitiveAssetMetrics _metrics(String fingerprint) {
     pixelSize: const GridSize(width: 16, height: 16),
     opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
     defaultAnchorPx: const BorderPixelPos(x: 4, y: 8),
-    occupancyMaskRle: '1:256',
+    occupancyMaskRle: encodeBorderRleMask(
+      List<bool>.filled(16 * 16, true),
+    ),
   );
 }
 
