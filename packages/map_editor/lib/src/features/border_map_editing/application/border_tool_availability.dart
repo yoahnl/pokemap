@@ -72,6 +72,11 @@ BorderToolAvailability assessBorderToolAvailability({
     );
   }
   final record = manifest?.borderCatalog.recordById(feature.blueprintId);
+  if (record?.isDeprecated ?? false) {
+    return const BorderToolAvailability.disabled(
+      'Le blueprint utilisé par cette bordure est obsolète.',
+    );
+  }
   final revision = record?.latestPublished;
   if (revision == null) {
     return const BorderToolAvailability.disabled(

@@ -25,6 +25,7 @@ import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs
 import 'design_system/design_system.dart';
 import '../theme/theme.dart';
 
+import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
@@ -352,7 +353,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                 if (_isTextInputFocused()) return null;
                 if (workspaceMode == EditorWorkspaceMode.map) {
                   if (!shell.canSaveMap) return null;
-                  notifier.saveActiveMap();
+                  requestActiveMapSaveWithBorderPreviewGuard(
+                    context: context,
+                    notifier: notifier,
+                  );
                   return null;
                 }
                 if (project == null) return null;
@@ -1475,7 +1479,10 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                       MacosPulldownMenuItem(
                         label: 'Sauvegarder la carte',
                         title: const Text('Sauvegarder la carte'),
-                        onTap: notifier.saveActiveMap,
+                        onTap: () => requestActiveMapSaveWithBorderPreviewGuard(
+                          context: context,
+                          notifier: notifier,
+                        ),
                       ),
                     ],
                   ),

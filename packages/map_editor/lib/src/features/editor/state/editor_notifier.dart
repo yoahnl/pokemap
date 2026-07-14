@@ -61,6 +61,10 @@ import '../tools/editor_tool.dart';
 import 'editor_state.dart';
 import 'environment_generated_placement_add_element_provider.dart';
 import 'environment_mask_brush_size_provider.dart';
+import '../../border_map_editing/application/border_feature_authoring_controller.dart';
+import '../../border_map_editing/application/border_preview_transaction.dart';
+import '../../border_map_editing/application/pending_border_save_guard.dart';
+import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
 import '../../surface_painter/surface_painting_controller.dart';
 
@@ -90,6 +94,27 @@ typedef _MapDiskMutationLease = ({
   MapData? activeMap,
   String? activeMapPath,
 });
+
+BorderPreviewContext? _borderPreviewContext(EditorState state) {
+  final projectRootPath = state.projectRootPath;
+  final project = state.project;
+  final map = state.activeMap;
+  final activeMapPath = state.activeMapPath;
+  if (projectRootPath == null ||
+      projectRootPath.trim().isEmpty ||
+      project == null ||
+      map == null ||
+      activeMapPath == null ||
+      activeMapPath.trim().isEmpty) {
+    return null;
+  }
+  return createEditorBorderPreviewContext(
+    projectRootPath: p.normalize(projectRootPath),
+    activeMapPath: p.normalize(activeMapPath),
+    project: project,
+    map: map,
+  );
+}
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
@@ -161,6 +186,8 @@ class EditorNotifier extends _$EditorNotifier {
   NarrativeEventSourceDependencyGuard
       get _narrativeEventSourceDependencyGuard =>
           const NarrativeEventSourceDependencyGuard();
+  BorderFeatureAuthoringController get _borderFeatureAuthoringController =>
+      const BorderFeatureAuthoringController();
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     final selection = state.selection;
@@ -194,6 +221,19 @@ class EditorNotifier extends _$EditorNotifier {
 
   @override
   EditorState build() {
+    final activeBorderFeatureController =
+        ref.read(activeBorderFeatureControllerProvider.notifier);
+    final borderPreviewController =
+        ref.read(borderPreviewControllerProvider.notifier);
+    listenSelf((_, next) {
+      activeBorderFeatureController.reconcile(
+        map: next.activeMap,
+        activeLayerId: next.activeLayerId,
+      );
+      if (borderPreviewController.current.hasPendingPreview) {
+        borderPreviewController.reconcileContext(_borderPreviewContext(next));
+      }
+    });
     return const EditorState();
   }
 
@@ -856,15 +896,49 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  Future<void> saveActiveMap({bool confirmBulkPlacementLoss = false}) async {
+  Future<ActiveMapSaveOutcome> saveActiveMap({
+    bool confirmBulkPlacementLoss = false,
+    PendingBorderSaveDecision? pendingBorderDecision,
+  }) async {
     final map = state.activeMap;
     final path = state.activeMapPath;
-    if (map == null || path == null) return;
-    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+    if (map == null || path == null) {
+      return ActiveMapSaveOutcome.unavailable;
+    }
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) {
+      return ActiveMapSaveOutcome.unavailable;
+    }
     endMapStroke();
 
+    final activeBorderFeature = ref.read(activeBorderFeatureControllerProvider);
+    final preparation = ref.read(pendingBorderSaveGuardProvider).prepare(
+          currentMap: map,
+          previewState: ref.read(borderPreviewControllerProvider),
+          currentContext: _borderPreviewContext(state),
+          activeLayerId: state.activeLayerId,
+          activeFeatureLayerId: activeBorderFeature.activeLayerId,
+          activeFeatureId: activeBorderFeature.activeFeatureId,
+          decision: pendingBorderDecision,
+        );
+    switch (preparation) {
+      case PendingBorderSaveDecisionRequired():
+        return ActiveMapSaveOutcome.pendingBorderDecisionRequired;
+      case PendingBorderSaveCancelled():
+        return ActiveMapSaveOutcome.cancelled;
+      case PendingBorderSaveConflict(:final message, :final cause):
+        state = state.copyWith(
+          isSaving: false,
+          errorMessage: cause == null ? message : '$message $cause',
+        );
+        return ActiveMapSaveOutcome.conflict;
+      case PendingBorderSaveReady():
+        break;
+    }
+    final ready = preparation;
+    final candidateMap = ready.candidateMap;
+
     final savedPlacementCount = state.savedMapSnapshot?.placedElements.length;
-    final currentPlacementCount = map.placedElements.length;
+    final currentPlacementCount = candidateMap.placedElements.length;
     final confirmedBaseline = _confirmedBulkPlacementLossBaseline;
     final isBulkPlacementLossConfirmed = confirmBulkPlacementLoss ||
         (confirmedBaseline != null &&
@@ -882,28 +956,47 @@ class EditorNotifier extends _$EditorNotifier {
             'à 25 %). Confirmez explicitement cette suppression massive avant '
             'd’enregistrer.',
       );
-      return;
+      return ActiveMapSaveOutcome.bulkPlacementLossBlocked;
     }
 
     debugPrint('EditorNotifier: saveActiveMap()');
     final lease = _beginMapDiskMutationLease();
-    if (lease == null) return;
+    if (lease == null) return ActiveMapSaveOutcome.unavailable;
 
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
       await useCase.execute(
-        map,
+        candidateMap,
         path,
         projectDialogueContext: state.project,
       );
 
-      if (!_canAdoptMapDiskMutation(lease)) return;
+      if (!_canAdoptMapDiskMutation(lease)) {
+        return ActiveMapSaveOutcome.unavailable;
+      }
+      switch (ready.postSaveAction) {
+        case PendingBorderPostSaveAction.none:
+          break;
+        case PendingBorderPostSaveAction.commitAppliedPreview:
+          _applyMapMutation(
+            previousMap: map,
+            updatedMap: candidateMap,
+            preferredActiveLayerId: ready.transaction?.layerId,
+            statusMessage: 'Bordure appliquée',
+          );
+        case PendingBorderPostSaveAction.discardPreview:
+          break;
+      }
       state = _projectSessionController.markMapSaved(
         current: state,
-        map: map,
-        statusMessage: 'Carte « ${map.id} » enregistrée',
+        map: candidateMap,
+        statusMessage: 'Carte « ${candidateMap.id} » enregistrée',
       );
+      if (ready.postSaveAction != PendingBorderPostSaveAction.none) {
+        ref.read(borderPreviewControllerProvider.notifier).cancel();
+      }
       _confirmedBulkPlacementLossBaseline = null;
+      return ActiveMapSaveOutcome.saved;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
       if (_canAdoptMapDiskMutation(lease)) {
@@ -912,6 +1005,7 @@ class EditorNotifier extends _$EditorNotifier {
           errorMessage: 'Impossible d’enregistrer la carte : $e',
         );
       }
+      return ActiveMapSaveOutcome.failed;
     } finally {
       _endMapDiskMutationLease(lease);
     }
@@ -8680,6 +8774,266 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void createBorderFeature({
+    required String layerId,
+    required String blueprintId,
+    required String name,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final blueprint = _publishedBorderBlueprint(blueprintId);
+      final result = _borderFeatureAuthoringController.createFeature(
+        map: map,
+        layerId: layerId,
+        blueprint: blueprint,
+        name: name.trim(),
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Bordure « ${result.feature.name} » créée',
+      );
+      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+            map: result.map,
+            layerId: layerId,
+            featureId: result.feature.id,
+          );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de créer la bordure : $e',
+      );
+    }
+  }
+
+  void selectBorderFeature({
+    required String layerId,
+    required String featureId,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+            map: map,
+            layerId: layerId,
+            featureId: featureId,
+          );
+      state = state.copyWith(
+        statusMessage: 'Bordure sélectionnée',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de sélectionner la bordure : $e',
+      );
+    }
+  }
+
+  void renameBorderFeature({
+    required String layerId,
+    required String featureId,
+    required String name,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Le nom de la bordure ne peut pas être vide.',
+      );
+      return;
+    }
+    try {
+      final updated = _borderFeatureAuthoringController.renameFeature(
+        map: map,
+        layerId: layerId,
+        featureId: featureId,
+        name: normalizedName,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Bordure renommée',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de renommer la bordure : $e',
+      );
+    }
+  }
+
+  void reorderBorderFeature({
+    required String layerId,
+    required String featureId,
+    required int newIndex,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = _borderFeatureAuthoringController.reorderFeature(
+        map: map,
+        layerId: layerId,
+        featureId: featureId,
+        newIndex: newIndex,
+      );
+      if (identical(updated, map) || updated == map) return;
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Ordre des bordures mis à jour',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de réordonner la bordure : $e',
+      );
+    }
+  }
+
+  void deleteBorderFeature({
+    required String layerId,
+    required String featureId,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = _borderFeatureAuthoringController.deleteFeature(
+        map: map,
+        layerId: layerId,
+        featureId: featureId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Bordure supprimée',
+      );
+      ref.read(activeBorderFeatureControllerProvider.notifier).reconcile(
+            map: updated,
+            activeLayerId: layerId,
+          );
+      if (state.activeTool == EditorToolType.borderPaint ||
+          state.activeTool == EditorToolType.borderErase) {
+        final activeFeature =
+            ref.read(activeBorderFeatureControllerProvider).activeFeatureId;
+        if (activeFeature == null) {
+          state = state.copyWith(activeTool: EditorToolType.selection);
+        }
+      }
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de supprimer la bordure : $e',
+      );
+    }
+  }
+
+  void changeBorderFeatureBlueprint(BorderBlueprintChangePreview preview) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated = _borderFeatureAuthoringController.applyBlueprintChange(
+        map: map,
+        preview: preview,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: preview.layerId,
+        statusMessage: 'Blueprint de bordure modifié',
+      );
+      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+            map: updated,
+            layerId: preview.layerId,
+            featureId: preview.featureId,
+          );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de changer le blueprint : $e',
+      );
+    }
+  }
+
+  void resetBorderFeatureBlueprint(BorderBlueprintChangePreview preview) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final updated =
+          _borderFeatureAuthoringController.resetFeatureForBlueprintChange(
+        map: map,
+        preview: preview,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: preview.layerId,
+        statusMessage: 'Bordure remise à zéro pour le nouveau blueprint',
+      );
+      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+            map: updated,
+            layerId: preview.layerId,
+            featureId: preview.featureId,
+          );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de remettre la bordure à zéro : $e',
+      );
+    }
+  }
+
+  void createBorderFeatureFromBlueprintChange({
+    required BorderBlueprintChangePreview preview,
+    required String name,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Le nom de la bordure ne peut pas être vide.',
+      );
+      return;
+    }
+    try {
+      final targetBlueprint =
+          _publishedBorderBlueprint(preview.afterBlueprintId);
+      final result =
+          _borderFeatureAuthoringController.createFeatureFromBlueprintChange(
+        map: map,
+        preview: preview,
+        targetBlueprint: targetBlueprint,
+        name: normalizedName,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: preview.layerId,
+        statusMessage: 'Bordure « ${result.feature.name} » créée séparément',
+      );
+      ref.read(activeBorderFeatureControllerProvider.notifier).selectFeature(
+            map: result.map,
+            layerId: preview.layerId,
+            featureId: result.feature.id,
+          );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de créer la bordure séparée : $e',
+      );
+    }
+  }
+
+  BorderBlueprintRecord _publishedBorderBlueprint(String blueprintId) {
+    final record = state.project?.borderCatalog.recordById(blueprintId);
+    if (record == null || record.latestPublished == null) {
+      throw StateError('Le blueprint sélectionné n’est pas publié.');
+    }
+    if (record.isDeprecated) {
+      throw StateError('Le blueprint sélectionné est obsolète.');
+    }
+    return record;
+  }
+
   void selectTool(EditorToolType tool) {
     state = _mapSelectionController.selectTool(
       current: state,
@@ -8693,8 +9047,29 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null) return false;
     final preview = ref.read(borderPreviewControllerProvider.notifier);
     final transaction = preview.current.transaction;
-    final outcome = preview.apply(map);
-    if (!outcome.applied || transaction == null) {
+    final context = _borderPreviewContext(state);
+    final activeBorderFeature = ref.read(activeBorderFeatureControllerProvider);
+    if (transaction == null ||
+        context == null ||
+        state.activeLayerId != transaction.layerId ||
+        activeBorderFeature.activeLayerId != transaction.layerId ||
+        activeBorderFeature.activeFeatureId != transaction.featureId) {
+      state = state.copyWith(
+        errorMessage:
+            'La bordure active a changé depuis la création de l’aperçu.',
+      );
+      return false;
+    }
+    final BorderPreviewApplyOutcome outcome;
+    try {
+      outcome = preview.apply(map, context: context);
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’appliquer l’aperçu de bordure : $error',
+      );
+      return false;
+    }
+    if (!outcome.applied) {
       state = state.copyWith(
         errorMessage: 'L’aperçu de bordure ne peut plus être appliqué.',
       );

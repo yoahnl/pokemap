@@ -22,11 +22,20 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
     required MapData map,
     required String layerId,
     required String featureId,
+    required BorderPreviewContext context,
   }) {
+    if (!identical(context.mapIdentity, map)) {
+      throw ArgumentError.value(
+        context.mapIdentity,
+        'context.mapIdentity',
+        'must identify the map used to begin the preview',
+      );
+    }
     final feature = _feature(map, layerId: layerId, featureId: featureId);
     state = BorderPreviewState(
       phase: BorderPreviewPhase.drawing,
       transaction: BorderPreviewTransaction(
+        context: context,
         mapId: map.id,
         mapSize: map.size,
         layerId: layerId,
@@ -45,6 +54,55 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
       transaction: transaction.withDraftFeature(
         _copyFeature(transaction.proposedFeature, geometry: geometry),
       ),
+    );
+  }
+
+  /// Resolves the current organic-region draft without ending the drag.
+  void previewGeometry(
+    BorderFeatureGeometry geometry, {
+    required BorderBlueprintRevision? blueprintRevision,
+    required GridSize tileSizePx,
+    required Iterable<BorderVisualSnapshot> visualSnapshots,
+    required int resolverVersion,
+  }) {
+    final transaction = _requireTransaction(BorderPreviewPhase.drawing);
+    final feature = _copyFeature(
+      transaction.proposedFeature,
+      geometry: geometry,
+    );
+    final request = BorderResolutionRequest(
+      mapSize: transaction.mapSize,
+      tileSizePx: tileSizePx,
+      blueprintId: feature.blueprintId,
+      blueprintRevision: blueprintRevision,
+      feature: feature,
+      visualSnapshots: visualSnapshots,
+      resolverVersion: resolverVersion,
+    );
+    final result = _resolver(request);
+    state = BorderPreviewState(
+      phase: BorderPreviewPhase.drawing,
+      transaction: transaction.withResolution(
+        feature: feature,
+        request: request,
+        result: result,
+        variationOrdinal: transaction.variationOrdinal,
+      ),
+    );
+  }
+
+  /// Freezes the last transient result as resolved or invalid on release.
+  void finishDrawing() {
+    final transaction = _requireTransaction(BorderPreviewPhase.drawing);
+    final result = transaction.result;
+    if (result == null) {
+      throw StateError('A Border drag must be previewed before it is finished');
+    }
+    state = BorderPreviewState(
+      phase: result.canApply
+          ? BorderPreviewPhase.resolved
+          : BorderPreviewPhase.invalid,
+      transaction: transaction,
     );
   }
 
@@ -108,11 +166,16 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
     );
   }
 
-  BorderPreviewApplyOutcome apply(MapData currentMap) {
+  BorderPreviewApplyOutcome apply(
+    MapData currentMap, {
+    required BorderPreviewContext context,
+  }) {
     final transaction = state.transaction;
     if (state.phase != BorderPreviewPhase.resolved ||
         transaction == null ||
-        transaction.result?.canApply != true) {
+        transaction.result?.canApply != true ||
+        !transaction.context.matches(context) ||
+        !identical(context.mapIdentity, currentMap)) {
       return BorderPreviewApplyOutcome(map: currentMap, applied: false);
     }
 
@@ -142,6 +205,15 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
 
   void cancel() {
     state = const BorderPreviewState.idle();
+  }
+
+  /// Drops a transient proposal as soon as its owning editor document drifts.
+  void reconcileContext(BorderPreviewContext? context) {
+    final transaction = state.transaction;
+    if (transaction == null) return;
+    if (context == null || !transaction.context.matches(context)) {
+      cancel();
+    }
   }
 
   void _publishResolution({

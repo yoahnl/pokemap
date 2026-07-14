@@ -1,7 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
@@ -323,5 +326,204 @@ void main() {
       buttonWithTooltip('Save Map').onPressed?.call();
       await tester.pumpAndSettle();
     });
+
+    testWidgets(
+        'shows dedicated Border paint and erase only for a compatible active feature',
+        (tester) async {
+      final container = await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          project: _borderProject(
+            template: BorderBlueprintTemplate.organicEdge,
+          ),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: _borderMap(),
+          activeLayerId: 'borders',
+        ),
+      );
+
+      ToolbarCapsuleButton buttonWithTooltip(String tooltip) {
+        return tester.widget<ToolbarCapsuleButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+          ),
+        );
+      }
+
+      final paint = buttonWithTooltip('Border Paint Tool');
+      final erase = buttonWithTooltip('Border Erase Tool');
+      expect(paint.onPressed, isNotNull);
+      expect(erase.onPressed, isNotNull);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Eraser Tool',
+        ),
+        findsNothing,
+        reason: 'Border erase must not reuse the generic eraser',
+      );
+
+      paint.onPressed!.call();
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.borderPaint,
+      );
+
+      erase.onPressed!.call();
+      await tester.pump();
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.borderErase,
+      );
+    });
+
+    testWidgets('shows disabled Border tools with the incompatibility reason',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          project: _borderProject(
+            template: BorderBlueprintTemplate.masonryLine,
+          ),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: _borderMap(),
+          activeLayerId: 'borders',
+        ),
+      );
+
+      final buttons = tester
+          .widgetList<ToolbarCapsuleButton>(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is ToolbarCapsuleButton &&
+                  (widget.tooltip.startsWith('Border Paint Tool') ||
+                      widget.tooltip.startsWith('Border Erase Tool')),
+            ),
+          )
+          .toList(growable: false);
+      expect(buttons, hasLength(2));
+      expect(
+          buttons,
+          everyElement(predicate<ToolbarCapsuleButton>(
+            (button) =>
+                button.onPressed == null &&
+                button.tooltip.contains('géométrie') &&
+                button.tooltip.contains('blueprint'),
+          )));
+    });
+
+    testWidgets('shows disabled Border tools when no feature exists',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          project: _borderProject(
+            template: BorderBlueprintTemplate.organicEdge,
+          ),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: _borderMap(withFeature: false),
+          activeLayerId: 'borders',
+        ),
+      );
+
+      final buttons = tester
+          .widgetList<ToolbarCapsuleButton>(
+            find.byWidgetPredicate(
+              (widget) =>
+                  widget is ToolbarCapsuleButton &&
+                  (widget.tooltip.startsWith('Border Paint Tool') ||
+                      widget.tooltip.startsWith('Border Erase Tool')),
+            ),
+          )
+          .toList(growable: false);
+      expect(buttons, hasLength(2));
+      expect(
+          buttons,
+          everyElement(predicate<ToolbarCapsuleButton>(
+            (button) =>
+                button.onPressed == null &&
+                button.tooltip.contains('Sélectionnez ou créez une bordure'),
+          )));
+    });
   });
 }
+
+ProjectManifest _borderProject({
+  required BorderBlueprintTemplate template,
+}) {
+  final draft = BorderBlueprintDraftDefinition(
+    name: 'Coast',
+    previewSeed: BorderSignedInt64.zero,
+    template: template,
+    primitives: const <BorderPrimitiveDraft>[],
+    defaults: _borderParams(),
+    sortOrder: 0,
+  );
+  return ProjectManifest(
+    name: 'Project',
+    version: ProjectVersion.v2,
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[],
+    borderCatalog: ProjectBorderCatalog(
+      records: <BorderBlueprintRecord>[
+        BorderBlueprintRecord(
+          id: 'coast',
+          draft: BorderBlueprintDraft(baseRevision: 1, definition: draft),
+          latestPublished: BorderBlueprintRevision(
+            revision: 1,
+            definition: BorderBlueprintPublishedDefinition(
+              name: 'Coast',
+              previewSeed: BorderSignedInt64.zero,
+              template: template,
+              primitives: const <BorderPublishedPrimitive>[],
+              defaults: _borderParams(),
+              sortOrder: 0,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+MapData _borderMap({bool withFeature = true}) => MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 3, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'borders',
+          name: 'Bordures',
+          content: BorderLayerContent(
+            features: <BorderFeature>[
+              if (withFeature)
+                BorderFeature(
+                  id: 'coast-feature',
+                  name: 'Coast',
+                  blueprintId: 'coast',
+                  seed: BorderSignedInt64.zero,
+                  geometry: BorderRegionGeometry(
+                    width: 3,
+                    height: 3,
+                    cells: List<bool>.filled(9, false),
+                  ),
+                  overrides: const <BorderSlotOverride>[],
+                  keepOutRegions: const <BorderKeepOutRegion>[],
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+BorderGenerationParams _borderParams() => BorderGenerationParams(
+      irregularityPermille: 0,
+      detailDensityPermille: 0,
+      variationPermille: 0,
+      maxOverlapPx: 0,
+      gapTolerancePx: 0,
+      depthRows: 1,
+    );

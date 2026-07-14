@@ -344,7 +344,8 @@ void main() {
       tilesetImage.dispose();
     });
 
-    test('paints static shadow preview below placed elements', () async {
+    test('map with Border keeps static shadow preview below placed elements',
+        () async {
       const map = MapData(
         id: 'market',
         name: 'Market',
@@ -382,6 +383,7 @@ void main() {
               0,
             ],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(
@@ -458,7 +460,8 @@ void main() {
       image.dispose();
     });
 
-    test('paints projected building shadow preview below placed elements',
+    test(
+        'map with Border keeps projected building shadow preview below placed elements',
         () async {
       const map = MapData(
         id: 'market',
@@ -507,6 +510,7 @@ void main() {
               0,
             ],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(
@@ -927,19 +931,15 @@ void main() {
       tilesetImage.dispose();
     });
 
-    test('paints an editable path above its opted-in ground layer', () async {
+    test(
+        'map with Border paints an editable path above its opted-in ground layer',
+        () async {
       const map = MapData(
         id: 'path_over_ground',
         name: 'Path over ground',
         size: GridSize(width: 3, height: 1),
         properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
         layers: <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Ground',
-            tilesetId: 'ground',
-            tiles: <int>[1, 1, 1],
-          ),
           PathLayer(
             id: 'pavement',
             name: 'Pavement',
@@ -950,11 +950,18 @@ void main() {
             },
           ),
           TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'ground',
+            tiles: <int>[1, 1, 1],
+          ),
+          TileLayer(
             id: 'structures',
             name: 'Structures',
             tilesetId: 'structures',
             tiles: <int>[0, 0, 1],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(

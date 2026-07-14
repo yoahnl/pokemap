@@ -33,9 +33,12 @@ import '../../features/editor/state/environment_generated_placement_add_element_
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
+import '../../features/border_map_editing/application/border_feature_hit_test.dart';
 import '../../features/border_map_editing/application/border_region_editing.dart';
 import '../../features/border_map_editing/application/border_tool_availability.dart';
 import '../../features/border_map_editing/application/border_preview_transaction.dart';
+import '../../features/border_map_editing/presentation/border_diagnostic_presentation.dart';
+import '../../features/border_map_editing/presentation/editor_map_layer_paint_order.dart';
 import '../../features/border_map_editing/presentation/border_preview_painter.dart';
 import '../../features/border_map_editing/state/border_map_editing_providers.dart';
 import '../../features/border_map_editing/state/border_preview_providers.dart';
@@ -130,6 +133,28 @@ bool _mapRectContains(MapRect rect, GridPos pos) {
       pos.y >= rect.pos.y &&
       pos.x < rect.pos.x + rect.size.width &&
       pos.y < rect.pos.y + rect.size.height;
+}
+
+BorderPreviewContext? _borderPreviewContextForCanvas(
+  EditorState state,
+  MapData map,
+) {
+  final projectRootPath = state.projectRootPath;
+  final activeMapPath = state.activeMapPath;
+  final project = state.project;
+  if (projectRootPath == null ||
+      projectRootPath.trim().isEmpty ||
+      activeMapPath == null ||
+      activeMapPath.trim().isEmpty ||
+      project == null) {
+    return null;
+  }
+  return createEditorBorderPreviewContext(
+    projectRootPath: p.normalize(projectRootPath),
+    activeMapPath: p.normalize(activeMapPath),
+    project: project,
+    map: map,
+  );
 }
 
 class MapCanvas extends ConsumerStatefulWidget {
@@ -411,14 +436,38 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   )
                 : null;
 
+        void previewBorderGeometry(BorderRegionGeometry geometry) {
+          final transaction = borderPreviewController.current.transaction;
+          if (transaction == null) return;
+          final catalog = state.project?.borderCatalog;
+          final revision = catalog
+              ?.recordById(transaction.proposedFeature.blueprintId)
+              ?.latestPublished;
+          borderPreviewController.previewGeometry(
+            geometry,
+            blueprintRevision: revision,
+            tileSizePx: GridSize(
+              width: settings.tileWidth,
+              height: settings.tileHeight,
+            ),
+            visualSnapshots:
+                catalog?.visualSnapshots ?? const <BorderVisualSnapshot>[],
+            resolverVersion: borderResolverVersion,
+          );
+        }
+
         void applyToolAt(GridPos gridPos, {bool partOfStroke = false}) {
           if (isBorderRegionEditing) {
             if (borderPreviewController.current.phase ==
                 BorderPreviewPhase.idle) {
+              final previewContext =
+                  _borderPreviewContextForCanvas(state, activeMap);
+              if (previewContext == null) return;
               borderPreviewController.begin(
                 map: activeMap,
                 layerId: state.activeLayerId!,
                 featureId: activeBorderFeature.activeFeatureId!,
+                context: previewContext,
               );
             }
             final transaction = borderPreviewController.current.transaction;
@@ -428,14 +477,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 geometry is! BorderRegionGeometry) {
               return;
             }
-            final updated = editBorderRegionCell(
+            final previousCell =
+                partOfStroke ? _lastBorderPaintCell ?? gridPos : gridPos;
+            final updated = editBorderRegionSegment(
               geometry,
+              previousCell,
               gridPos,
               filled: state.activeTool == EditorToolType.borderPaint,
             );
-            if (!identical(updated, geometry)) {
-              borderPreviewController.updateGeometry(updated);
-            }
+            previewBorderGeometry(updated);
             return;
           }
           if (isEnvironmentMaskEditing) {
@@ -496,20 +546,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             return;
           }
           final transaction = borderPreviewController.current.transaction!;
-          final catalog = state.project?.borderCatalog;
-          final revision = catalog
-              ?.recordById(transaction.proposedFeature.blueprintId)
-              ?.latestPublished;
-          borderPreviewController.resolve(
-            blueprintRevision: revision,
-            tileSizePx: GridSize(
-              width: settings.tileWidth,
-              height: settings.tileHeight,
-            ),
-            visualSnapshots:
-                catalog?.visualSnapshots ?? const <BorderVisualSnapshot>[],
-            resolverVersion: borderResolverVersion,
-          );
+          if (transaction.result == null) {
+            final geometry = transaction.proposedFeature.geometry;
+            if (geometry is BorderRegionGeometry) {
+              previewBorderGeometry(geometry);
+            }
+          }
+          borderPreviewController.finishDrawing();
         }
 
         return Listener(
@@ -607,6 +650,29 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (state.environmentMaskEditMode ==
                   EnvironmentMaskEditMode.generatedDelete) {
                 notifier.deleteGeneratedEnvironmentPlacementAt(gridPos);
+                return;
+              }
+
+              if (state.activeTool == EditorToolType.selection) {
+                MapLayer? activeLayer;
+                for (final layer in activeMap.layers) {
+                  if (layer.id == state.activeLayerId) {
+                    activeLayer = layer;
+                    break;
+                  }
+                }
+                if (activeLayer is BorderLayer) {
+                  final hit = hitTestBorderFeature(
+                    layer: activeLayer,
+                    position: gridPos,
+                  );
+                  if (hit != null) {
+                    notifier.selectBorderFeature(
+                      layerId: activeLayer.id,
+                      featureId: hit.id,
+                    );
+                  }
+                }
                 return;
               }
 
@@ -817,6 +883,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           environmentGeneratedDeletePreviewId:
                               environmentGeneratedDeleteTarget?.placed.id,
                           borderPreview: borderPreviewState.transaction,
+                          borderDiagnosticOverlayPalette:
+                              EditorBorderDiagnosticOverlayPalette(
+                            warningFill:
+                                colors.warningSoft.withValues(alpha: 0.72),
+                            warningStroke: colors.warningBorder,
+                            errorFill: colors.errorSoft.withValues(alpha: 0.72),
+                            errorStroke: colors.errorBorder,
+                          ),
                         ),
                       ),
                     ),
@@ -1270,7 +1344,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         }
       }
     }
-    final previewMaterialization = borderPreview?.result?.materialization;
+    final previewMaterialization = map == null
+        ? null
+        : editorBorderPreviewMaterializationForMap(
+            map: map,
+            preview: borderPreview,
+          );
     if (previewMaterialization != null) {
       borderSnapshotIds.addAll(
         previewMaterialization.ground.map((cell) => cell.visualSnapshotId),

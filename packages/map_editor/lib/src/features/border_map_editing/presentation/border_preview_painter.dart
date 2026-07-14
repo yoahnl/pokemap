@@ -8,6 +8,19 @@ import '../application/border_preview_transaction.dart';
 
 enum EditorBorderPaintEntryKind { ground, placement }
 
+BorderMaterialization? editorBorderPreviewMaterializationForMap({
+  required MapData map,
+  required BorderPreviewTransaction? preview,
+}) {
+  if (preview == null ||
+      preview.mapId != map.id ||
+      !identical(preview.context.mapIdentity, map)) {
+    return null;
+  }
+  final result = preview.result;
+  return result?.canApply == true ? result!.materialization : null;
+}
+
 /// One passive editor draw entry derived from saved or preview materialization.
 @immutable
 final class EditorBorderPaintEntry {
@@ -70,43 +83,68 @@ List<EditorBorderPaintEntry> buildEditorBorderPaintEntries({
     if (layer is! BorderLayer || !layer.isVisible || layer.opacity <= 0) {
       continue;
     }
-    BorderMaterialization? materializationOf(BorderFeature feature) {
-      final previewMatches = preview?.mapId == map.id &&
-          preview?.layerId == layer.id &&
-          preview?.featureId == feature.id &&
-          preview?.result?.canApply == true;
-      return previewMatches
-          ? preview!.result!.materialization
-          : feature.materialization;
-    }
+    result.addAll(
+      buildEditorBorderLayerPaintEntries(
+        map: map,
+        layer: layer,
+        preview: preview,
+      ),
+    );
+  }
+  return List<EditorBorderPaintEntry>.unmodifiable(result);
+}
 
-    for (final feature in layer.content.features) {
-      final materialization = materializationOf(feature);
-      if (materialization == null) continue;
-      for (final ground in materialization.ground) {
-        result.add(
-          EditorBorderPaintEntry.ground(
-            layerId: layer.id,
-            featureId: feature.id,
-            layerOpacity: layer.opacity,
-            ground: ground,
-          ),
-        );
-      }
+/// Builds exactly one authored Border layer pass.
+///
+/// All feature grounds precede every placement in the same layer. A resolved
+/// preview replaces only its target feature; neighbouring features continue to
+/// use their saved immutable materializations.
+List<EditorBorderPaintEntry> buildEditorBorderLayerPaintEntries({
+  required MapData map,
+  required BorderLayer layer,
+  BorderPreviewTransaction? preview,
+}) {
+  if (!layer.isVisible || layer.opacity <= 0) {
+    return const <EditorBorderPaintEntry>[];
+  }
+  BorderMaterialization? materializationOf(BorderFeature feature) {
+    final previewMatches = preview?.mapId == map.id &&
+        identical(preview?.context.mapIdentity, map) &&
+        preview?.layerId == layer.id &&
+        preview?.featureId == feature.id &&
+        preview?.result?.canApply == true;
+    return previewMatches
+        ? preview!.result!.materialization
+        : feature.materialization;
+  }
+
+  final result = <EditorBorderPaintEntry>[];
+  for (final feature in layer.content.features) {
+    final materialization = materializationOf(feature);
+    if (materialization == null) continue;
+    for (final ground in materialization.ground) {
+      result.add(
+        EditorBorderPaintEntry.ground(
+          layerId: layer.id,
+          featureId: feature.id,
+          layerOpacity: layer.opacity,
+          ground: ground,
+        ),
+      );
     }
-    for (final feature in layer.content.features) {
-      final materialization = materializationOf(feature);
-      if (materialization == null) continue;
-      for (final placement in materialization.placements) {
-        result.add(
-          EditorBorderPaintEntry.placement(
-            layerId: layer.id,
-            featureId: feature.id,
-            layerOpacity: layer.opacity,
-            placement: placement,
-          ),
-        );
-      }
+  }
+  for (final feature in layer.content.features) {
+    final materialization = materializationOf(feature);
+    if (materialization == null) continue;
+    for (final placement in materialization.placements) {
+      result.add(
+        EditorBorderPaintEntry.placement(
+          layerId: layer.id,
+          featureId: feature.id,
+          layerOpacity: layer.opacity,
+          placement: placement,
+        ),
+      );
     }
   }
   return List<EditorBorderPaintEntry>.unmodifiable(result);
@@ -134,6 +172,59 @@ final class BorderPreviewPainter {
       return;
     }
     final entries = buildEditorBorderPaintEntries(map: map, preview: preview);
+    _paintEntries(
+      canvas,
+      entries: entries,
+      catalog: catalog,
+      frameImagesByKey: frameImagesByKey,
+      sourceTileWidth: sourceTileWidth,
+      sourceTileHeight: sourceTileHeight,
+      displayScale: displayScale,
+      elapsedMs: elapsedMs,
+    );
+  }
+
+  void paintLayer(
+    ui.Canvas canvas, {
+    required MapData map,
+    required BorderLayer layer,
+    required ProjectBorderCatalog catalog,
+    required Map<String, ui.Image?> frameImagesByKey,
+    required int sourceTileWidth,
+    required int sourceTileHeight,
+    required double displayScale,
+    required int elapsedMs,
+    BorderPreviewTransaction? preview,
+  }) {
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0 || displayScale <= 0) {
+      return;
+    }
+    _paintEntries(
+      canvas,
+      entries: buildEditorBorderLayerPaintEntries(
+        map: map,
+        layer: layer,
+        preview: preview,
+      ),
+      catalog: catalog,
+      frameImagesByKey: frameImagesByKey,
+      sourceTileWidth: sourceTileWidth,
+      sourceTileHeight: sourceTileHeight,
+      displayScale: displayScale,
+      elapsedMs: elapsedMs,
+    );
+  }
+
+  void _paintEntries(
+    ui.Canvas canvas, {
+    required List<EditorBorderPaintEntry> entries,
+    required ProjectBorderCatalog catalog,
+    required Map<String, ui.Image?> frameImagesByKey,
+    required int sourceTileWidth,
+    required int sourceTileHeight,
+    required double displayScale,
+    required int elapsedMs,
+  }) {
     for (final entry in entries) {
       final snapshot = catalog.visualSnapshotById(entry.snapshotId);
       if (snapshot == null || snapshot.frames.isEmpty) continue;

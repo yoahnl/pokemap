@@ -81,6 +81,111 @@ void main() {
       );
     });
 
+    test('generic reorder, visibility and opacity preserve Border save/reload',
+        () {
+      const source = MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v2,
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.tile(
+            id: 'tile',
+            name: 'Décor',
+            tiles: <int>[0, 0, 0, 0],
+          ),
+          MapLayer.border(id: 'border', name: 'Bordures'),
+        ],
+      );
+
+      var updated = SetMapLayerVisibilityUseCase().execute(
+        source,
+        layerId: 'border',
+        isVisible: false,
+      );
+      updated = SetMapLayerOpacityUseCase().execute(
+        updated,
+        layerId: 'border',
+        opacity: 0.42,
+      );
+      updated = ReorderMapLayersUseCase().execute(
+        updated,
+        oldIndex: 1,
+        newIndex: 0,
+      );
+
+      final border = updated.layers.first as BorderLayer;
+      expect(border.id, 'border');
+      expect(border.isVisible, isFalse);
+      expect(border.opacity, 0.42);
+      final reloaded = MapData.fromJson(updated.toJson());
+      expect(reloaded.toJson(), updated.toJson());
+      expect(reloaded.layers.first, isA<BorderLayer>());
+    });
+
+    testWidgets(
+        'add-layer dialog offers Couche de bordures and appends it at the end',
+        (tester) async {
+      const map = MapData(
+        id: 'map',
+        name: 'Map',
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.tile(
+            id: 'tile',
+            name: 'Décor',
+            tiles: <int>[0, 0, 0, 0],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: map,
+        activeLayerId: 'tile',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 600,
+                  child: LayersPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(CupertinoIcons.add));
+      await tester.pumpAndSettle();
+      final dropdownFinder =
+          find.byKey(const ValueKey<String>('layers-panel-add-type-dropdown'));
+      expect(dropdownFinder, findsOneWidget);
+      final dynamic dropdown = tester.widget(dropdownFinder);
+      final dynamic borderItem = (dropdown.items as List<dynamic>)
+          .singleWhere((dynamic item) => item.label == 'Couche de bordures');
+      expect(borderItem.label, 'Couche de bordures');
+      dropdown.onChanged(borderItem.value);
+      await tester.pump();
+      await tester.enterText(find.byType(MacosTextField), 'Rivage');
+      await tester.tap(find.text('Ajouter'));
+      await tester.pumpAndSettle();
+
+      final updated = container.read(editorNotifierProvider).activeMap!;
+      expect(updated.layers.last, isA<BorderLayer>());
+      expect(updated.layers.last.name, 'Rivage');
+      expect(container.read(editorNotifierProvider).activeLayerId,
+          updated.layers.last.id);
+    });
+
     testWidgets('LayersPanel gives Border its own icon and label',
         (tester) async {
       const map = MapData(

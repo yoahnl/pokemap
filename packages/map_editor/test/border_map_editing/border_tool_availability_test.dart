@@ -57,12 +57,41 @@ void main() {
       expect(line.isEnabled, isFalse);
       expect(line.disabledReason, contains('géométrie'));
     });
+
+    test('matching line geometry reaches the deferred line-solver guard', () {
+      final result = assessBorderToolAvailability(
+        manifest: _manifest(BorderBlueprintTemplate.masonryLine),
+        map: _lineMap(),
+        activeLayerId: 'borders',
+        activeFeatureId: 'wall',
+      );
+
+      expect(result.isEnabled, isFalse);
+      expect(result.disabledReason, contains('BORD-06'));
+      expect(result.disabledReason, isNot(contains('géométrie')));
+    });
+
+    test('rejects a deprecated published blueprint', () {
+      final result = assessBorderToolAvailability(
+        manifest: _manifest(
+          BorderBlueprintTemplate.organicEdge,
+          isDeprecated: true,
+        ),
+        map: _map(),
+        activeLayerId: 'borders',
+        activeFeatureId: 'coast',
+      );
+
+      expect(result.isEnabled, isFalse);
+      expect(result.disabledReason, contains('obsolète'));
+    });
   });
 }
 
 ProjectManifest _manifest(
   BorderBlueprintTemplate template, {
   bool published = true,
+  bool isDeprecated = false,
 }) {
   final draftDefinition = BorderBlueprintDraftDefinition(
     name: 'Coast',
@@ -97,6 +126,7 @@ ProjectManifest _manifest(
                   ),
                 )
               : null,
+          isDeprecated: isDeprecated,
         ),
       ],
     ),
@@ -123,6 +153,43 @@ MapData _map() => MapData(
                   width: 3,
                   height: 3,
                   cells: List<bool>.filled(9, false),
+                ),
+                overrides: const <BorderSlotOverride>[],
+                keepOutRegions: const <BorderKeepOutRegion>[],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+MapData _lineMap() => MapData(
+      id: 'line-map',
+      name: 'Line Map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 3, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'borders',
+          name: 'Bordures',
+          content: BorderLayerContent(
+            features: <BorderFeature>[
+              BorderFeature(
+                id: 'wall',
+                name: 'Wall',
+                blueprintId: 'blueprint',
+                seed: BorderSignedInt64.zero,
+                geometry: BorderStrokeGeometry(
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'wall-stroke',
+                      points: const <GridPos>[
+                        GridPos(x: 0, y: 0),
+                        GridPos(x: 1, y: 0),
+                      ],
+                      closed: false,
+                    ),
+                  ],
                 ),
                 overrides: const <BorderSlotOverride>[],
                 keepOutRegions: const <BorderKeepOutRegion>[],

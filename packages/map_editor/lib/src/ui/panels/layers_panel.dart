@@ -19,6 +19,7 @@ enum _LayerCreationKind {
   surface,
   object,
   environment,
+  border,
 }
 
 class LayersPanel extends ConsumerWidget {
@@ -38,6 +39,7 @@ class LayersPanel extends ConsumerWidget {
       _LayerCreationKind.surface => 'Couche de surface',
       _LayerCreationKind.object => 'Couche d\'objets',
       _LayerCreationKind.environment => 'Couche d\'environnement',
+      _LayerCreationKind.border => 'Couche de bordures',
     };
   }
 
@@ -50,6 +52,7 @@ class LayersPanel extends ConsumerWidget {
       _LayerCreationKind.surface => null,
       _LayerCreationKind.object => MapLayerKind.object,
       _LayerCreationKind.environment => MapLayerKind.environment,
+      _LayerCreationKind.border => MapLayerKind.border,
     };
   }
 
@@ -151,6 +154,10 @@ class LayersPanel extends ConsumerWidget {
                   if (picked == _LayerCreationKind.environment &&
                       nameController.text.trim().isEmpty) {
                     nameController.text = 'Environnement';
+                  }
+                  if (picked == _LayerCreationKind.border &&
+                      nameController.text.trim().isEmpty) {
+                    nameController.text = 'Bordures';
                   }
                 });
               },

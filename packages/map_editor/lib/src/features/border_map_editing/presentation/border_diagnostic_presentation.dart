@@ -1,0 +1,185 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/foundation.dart' show immutable;
+import 'package:map_core/map_core.dart';
+
+import '../application/border_preview_transaction.dart';
+
+String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
+  final message = switch (diagnostic.code) {
+    'border.resolution.region_empty' => 'Peignez une zone non vide.',
+    'border.resolution.region_geometry_required' =>
+      'Utilisez une géométrie de zone pour ce blueprint organique.',
+    'border.resolution.region_size_mismatch' =>
+      'Adaptez la zone aux dimensions actuelles de la carte.',
+    'border.resolution.blueprint_unavailable' =>
+      'Le blueprint publié est indisponible.',
+    'border.resolution.proposal_not_canonical' =>
+      'Recréez l’aperçu : sa proposition n’est plus canonique.',
+    'border.resolution.template_solver_unavailable' =>
+      'Ce type de blueprint ne peut pas encore être résolu sur la carte.',
+    'border.resolution.template_mismatch' =>
+      'Choisissez un blueprint organique compatible avec cette bordure.',
+    'border.resolution.contour_empty' =>
+      'Élargissez la zone pour obtenir un contour exploitable.',
+    'border.resolution.anchor_outside_asset' =>
+      'Replacez l’ancre de l’élément à l’intérieur de son visuel.',
+    'border.resolution.duplicate_primitive_id' =>
+      'Attribuez un identifiant unique à chaque élément du blueprint.',
+    'border.resolution.ground_snapshot_missing' =>
+      'Publiez le visuel de sol utilisé par cette bordure.',
+    'border.resolution.keep_out_size_mismatch' =>
+      'Adaptez les zones d’exclusion aux dimensions de la carte.',
+    'border.resolution.overrides_not_supported' =>
+      'Retirez les remplacements manuels incompatibles avec ce blueprint.',
+    'border.resolution.role_not_supported_by_template' =>
+      'Remplacez cet élément par un rôle accepté par le blueprint organique.',
+    'border.resolution.structural_role_missing' =>
+      'Ajoutez au moins un élément structurel au blueprint.',
+    'border.resolution.structural_occupancy_empty' =>
+      'Ajoutez des pixels opaques à l’élément structurel publié.',
+    'border.resolution.structural_occupancy_invalid' =>
+      'Republiez l’élément structurel avec une empreinte valide.',
+      'border.resolution.coverage_gap' =>
+        'Réduisez l’ouverture ou ajustez les éléments de bordure.',
+      'border.resolution.coverage_overlap' =>
+        'Réduisez le chevauchement ou ajustez les éléments de bordure.',
+      'border.resolution.orientation_unavailable' =>
+        'Autorisez l’orientation manquante dans le blueprint.',
+    'border.resolution.repetition_four_identical' =>
+      'Ajoutez des variantes pour éviter quatre éléments identiques de suite.',
+    'border.resolution.repetition_low_window_variety' =>
+      'Augmentez la variété des éléments sur cette portion de bordure.',
+      'border.resolution.materialization_empty' =>
+        'Ajoutez des éléments compatibles pour générer la bordure.',
+    'border.resolution.visual_snapshot_invalid' =>
+      'Republiez le visuel absent ou invalide utilisé par le blueprint.',
+    _ => 'Diagnostic de bordure à vérifier.',
+  };
+  final location = <String>[
+    if (diagnostic.cell case final cell?) 'case ${cell.x}, ${cell.y}',
+    if (diagnostic.strokeId case final strokeId?) 'tracé $strokeId',
+    if (diagnostic.segmentIndex case final segmentIndex?)
+      'segment ${segmentIndex + 1}',
+    if (diagnostic.slotKey case final slotKey?) 'emplacement $slotKey',
+  ];
+  return location.isEmpty ? message : '$message (${location.join(' · ')})';
+}
+
+List<BorderDiagnostic> editorBorderPreviewDiagnosticsForMap({
+  required MapData map,
+  required BorderPreviewTransaction? preview,
+}) {
+  if (preview == null ||
+      preview.mapId != map.id ||
+      !identical(preview.context.mapIdentity, map)) {
+    return const <BorderDiagnostic>[];
+  }
+  return preview.result?.diagnosticReport.diagnostics ??
+      const <BorderDiagnostic>[];
+}
+
+@immutable
+final class EditorBorderDiagnosticOverlayMark {
+  const EditorBorderDiagnosticOverlayMark({
+    required this.cell,
+    required this.severity,
+  });
+
+  final GridPos cell;
+  final BorderDiagnosticSeverity severity;
+}
+
+List<EditorBorderDiagnosticOverlayMark> buildEditorBorderDiagnosticOverlayMarks(
+  Iterable<BorderDiagnostic> diagnostics,
+) {
+  final severityByCell = <GridPos, BorderDiagnosticSeverity>{};
+  for (final diagnostic in diagnostics) {
+    final cell = diagnostic.cell;
+    if (cell == null || diagnostic.severity == BorderDiagnosticSeverity.info) {
+      continue;
+    }
+    final previous = severityByCell[cell];
+    if (previous == null ||
+        borderDiagnosticSeverityV1Rank(diagnostic.severity) <
+            borderDiagnosticSeverityV1Rank(previous)) {
+      severityByCell[cell] = diagnostic.severity;
+    }
+  }
+  final cells = severityByCell.keys.toList(growable: false)
+    ..sort((left, right) {
+      final byRow = left.y.compareTo(right.y);
+      return byRow != 0 ? byRow : left.x.compareTo(right.x);
+    });
+  return List<EditorBorderDiagnosticOverlayMark>.unmodifiable(
+    cells.map(
+      (cell) => EditorBorderDiagnosticOverlayMark(
+        cell: cell,
+        severity: severityByCell[cell]!,
+      ),
+    ),
+  );
+}
+
+@immutable
+final class EditorBorderDiagnosticOverlayPalette {
+  const EditorBorderDiagnosticOverlayPalette({
+    required this.warningFill,
+    required this.warningStroke,
+    required this.errorFill,
+    required this.errorStroke,
+  });
+
+  final ui.Color warningFill;
+  final ui.Color warningStroke;
+  final ui.Color errorFill;
+  final ui.Color errorStroke;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EditorBorderDiagnosticOverlayPalette &&
+          warningFill == other.warningFill &&
+          warningStroke == other.warningStroke &&
+          errorFill == other.errorFill &&
+          errorStroke == other.errorStroke;
+
+  @override
+  int get hashCode =>
+      Object.hash(warningFill, warningStroke, errorFill, errorStroke);
+}
+
+void paintEditorBorderDiagnosticOverlay(
+  ui.Canvas canvas, {
+  required List<EditorBorderDiagnosticOverlayMark> marks,
+  required double tileWidth,
+  required double tileHeight,
+  required double zoom,
+  required EditorBorderDiagnosticOverlayPalette palette,
+}) {
+  if (tileWidth <= 0 || tileHeight <= 0 || zoom <= 0) return;
+  for (final mark in marks) {
+    final isError = mark.severity == BorderDiagnosticSeverity.error;
+    final rect = ui.Rect.fromLTWH(
+      mark.cell.x * tileWidth,
+      mark.cell.y * tileHeight,
+      tileWidth,
+      tileHeight,
+    ).deflate(1 / zoom);
+    canvas.drawRect(
+      rect,
+      ui.Paint()
+        ..isAntiAlias = false
+        ..style = ui.PaintingStyle.fill
+        ..color = isError ? palette.errorFill : palette.warningFill,
+    );
+    canvas.drawRect(
+      rect,
+      ui.Paint()
+        ..isAntiAlias = false
+        ..style = ui.PaintingStyle.stroke
+        ..strokeWidth = 2 / zoom
+        ..color = isError ? palette.errorStroke : palette.warningStroke,
+    );
+  }
+}

@@ -61,6 +61,50 @@ void main() {
       expect(color, _red);
     });
 
+    test('map with Border keeps bottom_to_top foreground Tile order', () async {
+      final color = await _paintOverlappingLayers(
+        properties: const <String, dynamic>{
+          'tileLayerOrder': 'bottom_to_top',
+        },
+        explicitForeground: true,
+        includeBorder: true,
+      );
+
+      expect(color, _blue);
+    });
+
+    test('map with Border keeps legacy inverse foreground Tile order',
+        () async {
+      final color = await _paintOverlappingLayers(
+        explicitForeground: true,
+        includeBorder: true,
+      );
+
+      expect(color, _red);
+    });
+
+    test('map with Border defers ordinary placed elements below entities',
+        () async {
+      expect(
+        await _paintLayerAgainstEntity(
+          'l_tile_furniture',
+          placedElement: true,
+          includeBorder: true,
+        ),
+        _red,
+      );
+    });
+
+    test('map with Border keeps foreground Tile above entities', () async {
+      expect(
+        await _paintLayerAgainstEntity(
+          'l_tile_overhead',
+          includeBorder: true,
+        ),
+        _blue,
+      );
+    });
+
     for (final layerId in <String>[
       'l_tile_overhead',
       'l_tile_occlusion',
@@ -97,6 +141,7 @@ Future<ui.Color> _paintOverlappingLayers({
   Map<String, dynamic> properties = const <String, dynamic>{},
   bool explicitForeground = false,
   bool placedElements = false,
+  bool includeBorder = false,
 }) async {
   final bottomId = explicitForeground ? 'bottom_foreground' : 'bottom';
   final topId = explicitForeground ? 'top_foreground' : 'top';
@@ -112,6 +157,8 @@ Future<ui.Color> _paintOverlappingLayers({
         tilesetId: 'test_tileset',
         tiles: <int>[placedElements ? 0 : 1],
       ),
+      if (includeBorder)
+        const BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
       TileLayer(
         id: topId,
         name: topId,
@@ -221,6 +268,7 @@ Future<ui.Image> _twoColorTileset() async {
 Future<ui.Color> _paintLayerAgainstEntity(
   String layerId, {
   bool placedElement = false,
+  bool includeBorder = false,
 }) async {
   final tilesetImage = await _twoColorTileset();
   final recorder = ui.PictureRecorder();
@@ -231,6 +279,9 @@ Future<ui.Color> _paintLayerAgainstEntity(
       id: 'foreground_marker_test',
       name: 'Foreground marker test',
       size: const GridSize(width: 1, height: 1),
+      properties: includeBorder
+          ? const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'}
+          : const <String, dynamic>{},
       layers: <MapLayer>[
         TileLayer(
           id: layerId,
@@ -238,6 +289,8 @@ Future<ui.Color> _paintLayerAgainstEntity(
           tilesetId: 'test_tileset',
           tiles: <int>[placedElement ? 0 : 2],
         ),
+        if (includeBorder)
+          const BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
       ],
       placedElements: placedElement
           ? <MapPlacedElement>[

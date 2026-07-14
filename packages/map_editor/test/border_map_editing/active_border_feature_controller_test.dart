@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_map_editing/application/active_border_feature_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
   group('ActiveBorderFeatureController', () {
@@ -158,14 +160,12 @@ void main() {
         ],
       );
       final beforeJson = map.toJson();
-      final container = ProviderContainer(
-        overrides: <Override>[
-          activeBorderFeatureSourceProvider.overrideWithValue(
-            (map: map, activeLayerId: 'border-a'),
-          ),
-        ],
-      );
+      final container = ProviderContainer();
       addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        activeMap: map,
+        activeLayerId: 'border-a',
+      );
 
       expect(
         container.read(activeBorderFeatureControllerProvider).activeFeatureId,

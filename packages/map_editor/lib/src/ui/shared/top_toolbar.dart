@@ -4,6 +4,9 @@ import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/terrain_selection_mode.dart';
+import '../../features/border_map_editing/application/border_tool_availability.dart';
+import '../../features/border_map_editing/presentation/pending_border_save_dialog.dart';
+import '../../features/border_map_editing/state/border_map_editing_providers.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -69,6 +72,8 @@ class TopToolbar extends ConsumerWidget {
   }) {
     final colors = context.pokeMapColors;
     final toolbar = ref.watch(editorToolbarSnapshotProvider);
+    final activeBorderFeature =
+        ref.watch(activeBorderFeatureControllerProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final settings = toolbar.settings;
 
@@ -82,6 +87,17 @@ class TopToolbar extends ConsumerWidget {
     final hasMapCanvas = map != null;
     final showWorldTools = isMapWorkspace && hasMapCanvas;
     final activeLayer = toolbar.activeLayer;
+    final borderToolAvailability = assessBorderToolAvailability(
+      manifest: toolbar.project,
+      map: map,
+      activeLayerId: activeLayer?.id,
+      activeFeatureId: activeBorderFeature.activeFeatureId,
+    );
+    final showBorderTools = activeLayer is BorderLayer;
+    final borderToolDisabledReason = borderToolAvailability.disabledReason;
+    String borderToolTooltip(String label) => borderToolAvailability.isEnabled
+        ? label
+        : '$label — ${borderToolDisabledReason ?? 'Outil indisponible.'}';
 
     final canEraseOnActiveLayer = activeLayer is TileLayer ||
         activeLayer is CollisionLayer ||
@@ -140,8 +156,12 @@ class TopToolbar extends ConsumerWidget {
                 _ => toolbar.isProjectDirty,
               },
               onPressed: switch (toolbar.workspaceMode) {
-                EditorWorkspaceMode.map =>
-                  toolbar.canSaveMap ? notifier.saveActiveMap : null,
+                EditorWorkspaceMode.map => toolbar.canSaveMap
+                    ? () => requestActiveMapSaveWithBorderPreviewGuard(
+                          context: context,
+                          notifier: notifier,
+                        )
+                    : null,
                 _ =>
                   toolbar.project != null ? notifier.saveProjectManifest : null,
               },
@@ -231,6 +251,8 @@ class TopToolbar extends ConsumerWidget {
                 EditorToolType.terrainPaint,
                 EditorToolType.surfacePaint,
                 EditorToolType.collisionPaint,
+                EditorToolType.borderPaint,
+                EditorToolType.borderErase,
                 EditorToolType.eraser,
                 EditorToolType.entityPlacement,
                 EditorToolType.eventPlacement,
@@ -280,6 +302,24 @@ class TopToolbar extends ConsumerWidget {
                   selected: toolbar.activeTool == EditorToolType.surfacePaint,
                   onPressed: notifier.selectSurfacePaintMode,
                 ),
+              if (showBorderTools) ...[
+                ToolbarCapsuleButton(
+                  icon: CupertinoIcons.waveform_path,
+                  tooltip: borderToolTooltip('Border Paint Tool'),
+                  selected: toolbar.activeTool == EditorToolType.borderPaint,
+                  onPressed: borderToolAvailability.isEnabled
+                      ? () => notifier.selectTool(EditorToolType.borderPaint)
+                      : null,
+                ),
+                ToolbarCapsuleButton(
+                  icon: CupertinoIcons.clear_circled,
+                  tooltip: borderToolTooltip('Border Erase Tool'),
+                  selected: toolbar.activeTool == EditorToolType.borderErase,
+                  onPressed: borderToolAvailability.isEnabled
+                      ? () => notifier.selectTool(EditorToolType.borderErase)
+                      : null,
+                ),
+              ],
               if (activeLayer is CollisionLayer) ...[
                 ToolbarCapsuleButton(
                   icon: CupertinoIcons.square_grid_2x2,
