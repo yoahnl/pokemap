@@ -6,23 +6,160 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../application/errors/application_errors.dart';
+import '../../application/models/narrative_event_registry_persistence_models.dart';
 import '../../application/models/pokemon_database_index.dart';
 import '../../application/models/pokemon_project_data_models.dart';
+import '../../application/ports/narrative_event_registry_persistence_gateway.dart';
 import '../../application/ports/pokemon_read_repository.dart';
 import '../../application/ports/pokemon_write_repository.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
 import '../../domain/repositories/repositories.dart';
+import 'narrative_event_registry_persistence.dart';
+import 'project_manifest_write_lock.dart';
 
-class FileProjectRepository implements ProjectRepository {
+class FileProjectRepository
+    implements ProjectRepository, NarrativeEventRegistryPersistenceGateway {
+  FileProjectRepository({
+    NarrativeEventRegistryPersistence? eventRegistryPersistence,
+  }) : _eventRegistryPersistence =
+            eventRegistryPersistence ?? NarrativeEventRegistryPersistence();
+
+  final NarrativeEventRegistryPersistence _eventRegistryPersistence;
+
+  @override
+  Future<NarrativeEventRegistryPersistenceResult> persist(
+    NarrativeEventRegistryWriteRequest request,
+  ) {
+    return _eventRegistryPersistence.write(request);
+  }
+
+  @override
+  Future<List<NarrativeEventRegistryPersistenceResult>> recover(
+    String projectPath,
+  ) {
+    return _eventRegistryPersistence.recoverProject(projectPath);
+  }
+
+  @override
+  Future<NarrativeEventRegistryPersistenceResult> undo(String undoPath) {
+    return _eventRegistryPersistence.undo(undoPath);
+  }
+
+  Future<NarrativeEventRegistryPersistenceResult>
+      persistNarrativeEventAuthoringResult({
+    required String path,
+    required String operationId,
+    required String expectedProjectRevision,
+    required NarrativeEventAuthoringContext context,
+    required NarrativeEventAuthoringResult result,
+  }) {
+    return persist(
+      NarrativeEventRegistryWriteRequest.fromAuthoringResult(
+        projectPath: path,
+        operationId: operationId,
+        expectedProjectRevision: expectedProjectRevision,
+        context: context,
+        result: result,
+      ),
+    );
+  }
+
+  Future<List<NarrativeEventRegistryPersistenceResult>>
+      recoverNarrativeEventRegistryWrites(String path) {
+    return recover(path);
+  }
+
+  Future<NarrativeEventRegistryPersistenceResult>
+      undoNarrativeEventRegistryWrite(String undoPath) {
+    return undo(undoPath);
+  }
+
   @override
   Future<void> saveProject(ProjectManifest project, String path) async {
     debugPrint('FileProjectRepository: Validating and saving project to $path');
     ProjectValidator.validate(project);
+    await withProjectManifestWriteLock(
+      path,
+      () => _saveProjectLocked(project, path),
+    );
+  }
+
+  Future<void> _saveProjectLocked(ProjectManifest project, String path) async {
     final file = File(path);
     if (!await file.parent.exists()) await file.parent.create(recursive: true);
-    final json = project.toJson();
-    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+    if (!await file.exists()) {
+      final json = project.toJson();
+      await file.writeAsString(
+        const JsonEncoder.withIndent('  ').convert(json),
+        flush: true,
+      );
+      return;
+    }
+    final beforeBytes = await file.readAsBytes();
+    final beforeRevision = narrativeEventBytesFingerprint(beforeBytes);
+    late final Map<String, Object?> currentRoot;
+    try {
+      currentRoot = _strictJsonObject(
+        decodeNarrativeEventJsonStrict(utf8.decode(beforeBytes)),
+      );
+    } on Object catch (error) {
+      throw EditorPersistenceException(
+        'Current project cannot be preserved safely: $error',
+      );
+    }
+    final currentRegistry = decodeNarrativeEventRegistry(
+      currentRoot['eventRegistry'],
+    );
+    if (!currentRegistry.writable) {
+      throw EditorPersistenceException(
+        'Current Event registry is read-only: '
+        '${currentRegistry.diagnostics.join(' ')}',
+      );
+    }
+    if (!_sameEventRegistry(
+        currentRegistry.registryOrNull, project.eventRegistry)) {
+      throw const EditorConflictException(
+        'The Event registry changed outside the generic project save.',
+      );
+    }
+    late final Map<String, Object?> serializedProject;
+    try {
+      serializedProject = _strictJsonObject(
+        jsonDecode(jsonEncode(project.toJson())),
+      );
+    } on Object catch (error) {
+      throw EditorPersistenceException(
+        'Updated project cannot be encoded safely: $error',
+      );
+    }
+    final nextRoot = Map<String, Object?>.from(currentRoot)
+      ..addAll(serializedProject);
+    if (currentRoot.containsKey('eventRegistry')) {
+      nextRoot['eventRegistry'] = currentRoot['eventRegistry'];
+    } else {
+      nextRoot.remove('eventRegistry');
+    }
+    late final List<int> nextBytes;
+    try {
+      canonicalizeNarrativeEventJson(nextRoot);
+      nextBytes = utf8.encode(
+        const JsonEncoder.withIndent('  ').convert(nextRoot),
+      );
+    } on Object catch (error) {
+      throw EditorPersistenceException(
+        'Updated project cannot be encoded safely: $error',
+      );
+    }
+    final liveRevision = narrativeEventBytesFingerprint(
+      await file.readAsBytes(),
+    );
+    if (liveRevision != beforeRevision) {
+      throw const EditorConflictException(
+        'The project changed during the generic save.',
+      );
+    }
+    await file.writeAsBytes(nextBytes, flush: true);
   }
 
   @override
@@ -46,6 +183,28 @@ class FileProjectRepository implements ProjectRepository {
       throw ProjectLoadException('Failed to load project: $e');
     }
   }
+}
+
+Map<String, Object?> _strictJsonObject(Object? value) {
+  if (value is! Map) {
+    throw const FormatException('Project root must be an object.');
+  }
+  final result = <String, Object?>{};
+  for (final entry in value.entries) {
+    if (entry.key is! String) {
+      throw const FormatException('Project keys must be strings.');
+    }
+    result[entry.key as String] = entry.value;
+  }
+  return result;
+}
+
+bool _sameEventRegistry(
+  NarrativeEventRegistry? left,
+  NarrativeEventRegistry? right,
+) {
+  return canonicalizeNarrativeEventJson(left?.toJson()) ==
+      canonicalizeNarrativeEventJson(right?.toJson());
 }
 
 ProjectManifest _normalizeProjectElementCollisionProfiles(

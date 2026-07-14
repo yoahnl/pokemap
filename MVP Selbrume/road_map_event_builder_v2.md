@@ -12,7 +12,8 @@ Jalons traces : 44 au total, RESET-00 + V2-01 a V2-43
 Architecture : hybride projet + ancres de map
 Phase A : CLOSED / ACCEPTED le 2026-07-10
 Phase D : CLOSED / ACCEPTED le 2026-07-13
-Prochaine mission : PHASE E - Authoring Operations
+Phase E : CLOSED / ACCEPTED le 2026-07-14
+Prochaine mission : PHASE F1 - Runtime Authority & Progress
 ```
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
@@ -720,9 +721,14 @@ Catalogue source-first et read model projet consommables par l’éditeur.
 # Phase E — Authoring Operations
 
 ```text
-Mission status : READY
+Mission status : CLOSED / ACCEPTED
 Gate d'entrée : ACCEPTED par Phase D le 2026-07-13
+Gate de sortie : ACCEPTED par Phase E le 2026-07-14
 Jalons : V2-13 à V2-16
+V2-13 : PASS
+V2-14 : PASS
+V2-15 : PASS
+V2-16 : PASS
 ```
 
 ## Objectif
@@ -747,6 +753,7 @@ Event V2 sans UI.
 
 ### NS-EVENT-V2-13 — Event Draft Creation Operations V0
 
+- **Statut :** PASS.
 - **Type :** core.
 - **Objectif :** créer un Event brouillon avec ou sans source initiale.
 - **Problème traité :** création V1 exige map, layer et position.
@@ -770,6 +777,7 @@ Event V2 sans UI.
 
 ### NS-EVENT-V2-14 — Event Source Select, Replace & Remove Operations V0
 
+- **Statut :** PASS.
 - **Type :** core.
 - **Objectif :** choisir/changer/retirer une source en préservant le reste.
 - **Problème traité :** source confondue avec position et Event identity.
@@ -793,6 +801,7 @@ Event V2 sans UI.
 
 ### NS-EVENT-V2-15 — Event Conditions, Scene & Behavior Authoring V0
 
+- **Statut :** PASS.
 - **Type :** core.
 - **Objectif :** authorer le subset V0 et compiler un Event publiable.
 - **Problème traité :** adapters V1 partiels et lifecycle metadata-only.
@@ -816,6 +825,7 @@ Event V2 sans UI.
 
 ### NS-EVENT-V2-16 — Journaled Event Registry Single-Write & Undo V0
 
+- **Statut :** PASS.
 - **Type :** editor.
 - **Objectif :** persister uniquement le registry/claims du manifest avec journal de récupération, révision et undo.
 - **Problème traité :** mutations dupliquées, save direct et fausse promesse d'atomicité multi-fichiers.
@@ -853,12 +863,22 @@ undo verts ; aucun widget encore requis.
 
 API d’authoring V2 complète, journalée et gardée par la validation du registry.
 
+## Clôture Phase E
+
+- authoring V2 disponible sans UI ;
+- registry persistant en single-write ;
+- mode et claims préservés ;
+- journal, recovery et undo disponibles ;
+- runtime V2 toujours absent ;
+- aucune migration réelle appliquée.
+
 ---
 
 # Phase F1 — Runtime Authority & Progress
 
 ```text
-Mission status : PLANNED
+Mission status : READY
+Gate d'entrée : ACCEPTED par Phase E le 2026-07-14
 Jalons : V2-17 à V2-18
 ```
 
@@ -1915,8 +1935,8 @@ Report et demande un ADR de remplacement.
 | B `CLOSED` | V2-01 à V2-04 | 4 | contrats/JSON/index |
 | C `CLOSED` | V2-05 à V2-08 | 4 | adapters/plan/claims |
 | D `CLOSED` | V2-09 à V2-12 | 4 | catalogs/read models |
-| E `READY` | V2-13 à V2-16 | 4 | authoring/single-write |
-| F1 | V2-17 à V2-18 | 2 | autorité/progression/outbox |
+| E `CLOSED / ACCEPTED` | V2-13 à V2-16 | 4 | authoring/single-write |
+| F1 `READY` | V2-17 à V2-18 | 2 | autorité/progression/outbox |
 | F2 | V2-19 à V2-22 | 4 | quatre source bridges |
 | G | V2-23 à V2-25 | 3 | Map Editor bridge |
 | H | V2-26 à V2-30 | 5 | UI V2 |
@@ -1929,12 +1949,13 @@ Report et demande un ADR de remplacement.
 # Prochaine mission exécutable
 
 ```text
-PHASE E — Authoring Operations
-Jalons internes : V2-13 à V2-16
-Gate d'entrée : ACCEPTED par Phase D
+PHASE F1 — Runtime Authority & Progress
+Jalons internes : V2-17 à V2-18
+Gate d'entrée : ACCEPTED par Phase E
 ```
 
-Phase E doit exécuter ses quatre jalons dans une seule mission avec tests
-cumulés, reviews locales, Evidence Pack et rapport de phase. Elle doit conserver
-les catalogues et intentions Phase D comme contrats immuables et ne doit encore
-ajouter ni runtime V2, ni migration réelle de projet, ni UI Flutter.
+Phase F1 doit construire l'autorité pure de dispatch et la progression V2 à
+partir des contrats d'authoring et de persistance désormais acceptés. Elle doit
+conserver la séparation publication/activation, le mode et les claims, et ne
+doit encore ajouter ni bridge source production, ni UI Flutter, ni migration
+réelle de projet.

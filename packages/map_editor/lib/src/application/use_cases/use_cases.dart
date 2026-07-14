@@ -17,6 +17,7 @@ export 'layer_use_cases.dart';
 export 'list_pokedex_entries_use_case.dart';
 export 'load_pokedex_species_detail_use_case.dart';
 export 'map_use_cases.dart';
+export 'narrative_event_registry_persistence_use_cases.dart';
 export 'paint_use_cases.dart';
 export 'path_layer_use_cases.dart';
 export 'project_element_use_cases.dart';

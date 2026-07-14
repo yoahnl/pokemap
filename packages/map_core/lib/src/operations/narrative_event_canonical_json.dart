@@ -40,6 +40,10 @@ String narrativeEventCanonicalSha256(Object? value) {
   return sha256.convert(canonicalizeNarrativeEventJsonUtf8(value)).toString();
 }
 
+String narrativeEventBytesFingerprint(List<int> bytes) {
+  return 'sha256:${sha256.convert(bytes)}';
+}
+
 int compareNarrativeEventUtf16(String left, String right) {
   final leftUnits = left.codeUnits;
   final rightUnits = right.codeUnits;
