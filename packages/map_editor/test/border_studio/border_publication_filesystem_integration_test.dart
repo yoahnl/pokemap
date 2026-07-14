@@ -140,6 +140,7 @@ BorderAssetSnapshotPreparation _animatedPreparation() {
   const service = BorderAssetSnapshotService();
   return service.prepare(
     BorderAssetSnapshotRequest(
+      sourceElementId: 'animated-element',
       frames: <BorderAssetSnapshotSourceFrame>[
         BorderAssetSnapshotSourceFrame(
           sourceProjectRelativePath: 'assets/source/frame-a.png',

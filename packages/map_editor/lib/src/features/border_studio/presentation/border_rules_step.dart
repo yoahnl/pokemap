@@ -69,6 +69,61 @@ class BorderRulesStep extends StatelessWidget {
                   icon: CupertinoIcons.checkmark_seal,
                 ),
                 const SizedBox(height: 12),
+                PokeMapCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      PokeMapGuidedSlider(
+                        key: const ValueKey<String>(
+                          'border-studio-regularity-control',
+                        ),
+                        label: 'Régularité',
+                        description:
+                            'Élevée pour un tracé calme, basse pour plus d’aspérités.',
+                        value: 100 - rules.irregularityPermille ~/ 10,
+                        onChanged: (value) => onRulesChanged(
+                          _copyRules(
+                            rules,
+                            irregularityPermille: (100 - value) * 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      PokeMapGuidedSlider(
+                        key: const ValueKey<String>(
+                          'border-studio-details-control',
+                        ),
+                        label: 'Quantité de détails',
+                        description:
+                            'Dose les petits éléments ajoutés autour de la structure.',
+                        value: rules.detailDensityPermille ~/ 10,
+                        onChanged: (value) => onRulesChanged(
+                          _copyRules(
+                            rules,
+                            detailDensityPermille: value * 10,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      PokeMapGuidedSlider(
+                        key: const ValueKey<String>(
+                          'border-studio-variety-control',
+                        ),
+                        label: 'Variété',
+                        description:
+                            'Augmente la fréquence des alternatives compatibles.',
+                        value: rules.variationPermille ~/ 10,
+                        onChanged: (value) => onRulesChanged(
+                          _copyRules(
+                            rules,
+                            variationPermille: value * 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -105,23 +160,19 @@ class BorderRulesStep extends StatelessWidget {
   }
 
   BorderGenerationParams _strictFrom(BorderGenerationParams current) =>
-      BorderGenerationParams(
+      _copyRules(
+        current,
         irregularityPermille: 100,
         detailDensityPermille: 250,
         variationPermille: 100,
-        maxOverlapPx: current.maxOverlapPx,
-        gapTolerancePx: current.gapTolerancePx,
-        depthRows: current.depthRows,
       );
 
   BorderGenerationParams _wildFrom(BorderGenerationParams current) =>
-      BorderGenerationParams(
+      _copyRules(
+        current,
         irregularityPermille: 750,
         detailDensityPermille: 700,
         variationPermille: 700,
-        maxOverlapPx: current.maxOverlapPx,
-        gapTolerancePx: current.gapTolerancePx,
-        depthRows: current.depthRows,
       );
 
   bool _isStrict(BorderGenerationParams rules) =>
@@ -133,4 +184,21 @@ class BorderRulesStep extends StatelessWidget {
       rules.irregularityPermille == 750 &&
       rules.detailDensityPermille == 700 &&
       rules.variationPermille == 700;
+
+  BorderGenerationParams _copyRules(
+    BorderGenerationParams source, {
+    int? irregularityPermille,
+    int? detailDensityPermille,
+    int? variationPermille,
+  }) =>
+      BorderGenerationParams(
+        irregularityPermille:
+            irregularityPermille ?? source.irregularityPermille,
+        detailDensityPermille:
+            detailDensityPermille ?? source.detailDensityPermille,
+        variationPermille: variationPermille ?? source.variationPermille,
+        maxOverlapPx: source.maxOverlapPx,
+        gapTolerancePx: source.gapTolerancePx,
+        depthRows: source.depthRows,
+      );
 }

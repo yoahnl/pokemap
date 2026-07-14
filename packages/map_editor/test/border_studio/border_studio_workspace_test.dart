@@ -192,7 +192,13 @@ void main() {
       const ValueKey<String>('border-studio-publish'),
     );
     expect(publish, findsOneWidget);
-    expect(tester.widget<PokeMapButton>(publish).onPressed, isNotNull);
+    expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
+    expect(
+      find.text(
+        'La publication des côtes reste désactivée jusqu’au lot BORD-03.',
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('border-studio-new-variation')),

@@ -251,6 +251,74 @@ final class BorderStudioDraftController
     );
   }
 
+  /// Adds one primitive prepared from a normal project element.
+  ///
+  /// Asset IO stays in the dedicated application service; this controller
+  /// only owns the draft mutation and its diagnostic invalidation.
+  void addPreparedPrimitive(BorderPrimitiveDraft primitive) {
+    final primitives = _requireWorkingDraft().blueprint.definition.primitives;
+    if (primitives.any((candidate) => candidate.id == primitive.id)) {
+      throw ArgumentError.value(
+        primitive.id,
+        'primitive.id',
+        'already exists in the working draft',
+      );
+    }
+    replacePrimitives(<BorderPrimitiveDraft>[...primitives, primitive]);
+  }
+
+  /// Replaces only the metrics produced by an explicit current-source read.
+  ///
+  /// Reanalysis must not become a back door for changing role, weight,
+  /// transforms, or provenance. When pixels changed, the existing divergence
+  /// machinery records that republishing is still required.
+  void replacePrimitiveAfterReanalysis(BorderPrimitiveDraft primitive) {
+    final primitives = _requireWorkingDraft().blueprint.definition.primitives;
+    final index = primitives.indexWhere(
+      (candidate) => candidate.id == primitive.id,
+    );
+    if (index < 0) {
+      throw ArgumentError.value(
+        primitive.id,
+        'primitive.id',
+        'does not exist in the working draft',
+      );
+    }
+    final previous = primitives[index];
+    if (previous.sourceElementId != primitive.sourceElementId ||
+        previous.role != primitive.role ||
+        previous.weight != primitive.weight ||
+        previous.anchorPx != primitive.anchorPx ||
+        previous.transforms != primitive.transforms) {
+      throw ArgumentError.value(
+        primitive,
+        'primitive',
+        'reanalysis may only replace current asset metrics',
+      );
+    }
+    final updated = List<BorderPrimitiveDraft>.of(primitives);
+    updated[index] = primitive;
+    replacePrimitives(updated);
+    if (state.sourceDivergedPrimitiveIds.contains(primitive.id)) {
+      markPrimitiveReanalyzed(primitive.id);
+    }
+  }
+
+  void removePrimitive(String primitiveId) {
+    final primitives = _requireWorkingDraft().blueprint.definition.primitives;
+    if (!primitives.any((primitive) => primitive.id == primitiveId)) {
+      throw ArgumentError.value(
+        primitiveId,
+        'primitiveId',
+        'does not exist in the working draft',
+      );
+    }
+    replacePrimitives(<BorderPrimitiveDraft>[
+      for (final primitive in primitives)
+        if (primitive.id != primitiveId) primitive,
+    ]);
+  }
+
   void newPreviewVariation() {
     final working = _requireWorkingDraft();
     final currentSeed = working.blueprint.definition.previewSeed;
@@ -497,11 +565,15 @@ final class BorderStudioDraftController
   }
 
   void _setState(BorderStudioDraftState next) {
-    state = next.copyWith(diagnostics: _composeDiagnostics(next));
+    state = next.copyWith(
+      diagnostics: _composeDiagnostics(next),
+      diagnosticsAreCurrent: next.workingDraft != null && _manifest != null,
+    );
   }
 
   BorderDiagnosticsReport _composeDiagnostics(BorderStudioDraftState next) {
     final diagnostics = <BorderDiagnostic>[
+      ..._automaticAuthoringDiagnostics(next).diagnostics,
       ..._externalDiagnostics.diagnostics,
     ];
     final primitiveById = <String, BorderPrimitiveDraft>{
@@ -544,6 +616,27 @@ final class BorderStudioDraftController
       );
     }
     return BorderDiagnosticsReport(diagnostics: diagnostics);
+  }
+
+  BorderDiagnosticsReport _automaticAuthoringDiagnostics(
+    BorderStudioDraftState next,
+  ) {
+    final manifest = _manifest;
+    final working = next.workingDraft;
+    if (manifest == null || working == null) {
+      return const BorderDiagnosticsReport.empty();
+    }
+    final existing = manifest.borderCatalog.recordById(working.id);
+    return diagnoseBorderBlueprint(
+      BorderBlueprintRecord(
+        id: working.id,
+        draft: working.blueprint,
+        isDeprecated: existing?.isDeprecated ?? false,
+      ),
+      project: manifest,
+      purpose: BorderBlueprintValidationPurpose.authoring,
+      snapshotIntegrity: const <String, BorderVisualSnapshotIntegrity>{},
+    );
   }
 
   ProjectManifest _requireManifest() {

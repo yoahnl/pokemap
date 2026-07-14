@@ -10,6 +10,8 @@ class PokeMapTextField extends StatelessWidget {
     this.controller,
     this.focusNode,
     this.hintText,
+    this.placeholder,
+    this.fieldKey,
     this.errorText,
     this.onChanged,
     this.onSubmitted,
@@ -23,6 +25,8 @@ class PokeMapTextField extends StatelessWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final String? hintText;
+  final String? placeholder;
+  final Key? fieldKey;
   final String? errorText;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
@@ -35,7 +39,7 @@ class PokeMapTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           label,
@@ -52,6 +56,7 @@ class PokeMapTextField extends StatelessWidget {
           enabled: enabled,
           label: label,
           child: TextField(
+            key: fieldKey,
             controller: controller,
             focusNode: focusNode,
             autofocus: autofocus,
@@ -69,7 +74,7 @@ class PokeMapTextField extends StatelessWidget {
               isDense: true,
               filled: true,
               fillColor: colors.surfaceSubtle,
-              hintText: hintText,
+              hintText: hintText ?? placeholder,
               hintStyle: TextStyle(
                 color: colors.textMuted,
                 fontSize: 13,

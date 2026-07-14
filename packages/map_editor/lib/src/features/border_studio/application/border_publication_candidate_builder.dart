@@ -9,6 +9,7 @@ enum BorderPublicationCandidateErrorCode {
   staleDraftRevision,
   sourceElementMissing,
   primitiveSnapshotMissing,
+  primitiveSnapshotSourceMismatch,
   unexpectedPrimitiveSnapshot,
   sourceSurfacePresetMissing,
   groundSnapshotRoleMissing,
@@ -187,6 +188,16 @@ final class BorderPublicationCandidateBuilder {
           userMessage:
               'Réanalysez la primitive « ${primitive.id} » avant de publier.',
           primitiveId: primitive.id,
+        );
+      }
+      if (preparation.sourceElementId != primitive.sourceElementId) {
+        throw BorderPublicationCandidateException(
+          code: BorderPublicationCandidateErrorCode
+              .primitiveSnapshotSourceMismatch,
+          userMessage:
+              'Réanalysez la primitive « ${primitive.id} » depuis son élément projet actuel.',
+          primitiveId: primitive.id,
+          sourceElementId: preparation.sourceElementId,
         );
       }
       final snapshotId = registerSnapshot(preparation);

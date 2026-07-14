@@ -115,6 +115,10 @@ final class FileBorderAssetSnapshotStore implements BorderAssetSnapshotStore {
       final stagedFile = File(_resolveStagedFile(stage, staged));
       final finalFile = File(_resolveProjectRelative(staged.relativePath));
       await _rejectLinkedManagedPath(finalFile.parent.path);
+      // The final path itself may already be a link even when every parent is
+      // safe. Treating matching target bytes as a deduplicated snapshot would
+      // otherwise let a managed project path escape the project root.
+      await _rejectLinkedManagedPath(finalFile.path);
       if (!await stagedFile.exists()) {
         if (await finalFile.exists()) {
           final existingHash =

@@ -10,8 +10,14 @@ void main() {
     test(
       'publishes positive primitives at the next revision without disturbing the project',
       () {
-        final first = _preparation('a');
-        final disabled = _preparation('b');
+        final first = _preparation(
+          'a',
+          sourceElementId: 'element-large',
+        );
+        final disabled = _preparation(
+          'b',
+          sourceElementId: 'element-disabled',
+        );
         final target = _record(
           id: 'coast',
           baseRevision: 2,
@@ -149,11 +155,66 @@ void main() {
       );
     });
 
+    test('rejects a preparation from a different project element', () {
+      final target = _record(
+        id: 'coast',
+        primitives: <BorderPrimitiveDraft>[
+          _draftPrimitive(id: 'large', sourceElementId: 'element-large'),
+        ],
+      );
+
+      expect(
+        () => const BorderPublicationCandidateBuilder().build(
+          manifest: _manifest(
+            records: <BorderBlueprintRecord>[target],
+            elements: <ProjectElementEntry>[_element('element-large')],
+          ),
+          draftRecord: target,
+          primitiveSnapshotsByPrimitiveId: <String,
+              BorderAssetSnapshotPreparation>{
+            'large': _preparation(
+              'a',
+              sourceElementId: 'another-element',
+            ),
+          },
+        ),
+        throwsA(
+          isA<BorderPublicationCandidateException>()
+              .having(
+                (error) => error.code,
+                'code',
+                BorderPublicationCandidateErrorCode
+                    .primitiveSnapshotSourceMismatch,
+              )
+              .having(
+                (error) => error.primitiveId,
+                'primitiveId',
+                'large',
+              )
+              .having(
+                (error) => error.sourceElementId,
+                'sourceElementId',
+                'another-element',
+              ),
+        ),
+      );
+    });
+
     test('deduplicates prior and new snapshots while preserving prior order',
         () {
-      final retainedA = _preparation('a');
+      final retainedA = _preparation(
+        'a',
+        sourceElementId: 'element-one',
+      );
       final retainedB = _preparation('b');
-      final appended = _preparation('c');
+      final appendedForTwo = _preparation(
+        'c',
+        sourceElementId: 'element-two',
+      );
+      final appendedForThree = _preparation(
+        'c',
+        sourceElementId: 'element-three',
+      );
       final target = _record(
         id: 'coast',
         primitives: <BorderPrimitiveDraft>[
@@ -181,8 +242,8 @@ void main() {
         primitiveSnapshotsByPrimitiveId: <String,
             BorderAssetSnapshotPreparation>{
           'one': retainedA,
-          'two': appended,
-          'three': appended,
+          'two': appendedForTwo,
+          'three': appendedForThree,
         },
       );
 
@@ -191,20 +252,20 @@ void main() {
         <BorderVisualSnapshot>[
           retainedA.snapshot,
           retainedB.snapshot,
-          appended.snapshot,
+          appendedForTwo.snapshot,
         ],
       );
-      expect(result.files, appended.files);
+      expect(result.files, appendedForTwo.files);
       expect(result.snapshotIntegrity.keys, <String>{
         retainedA.snapshot.id,
-        appended.snapshot.id,
+        appendedForTwo.snapshot.id,
       });
       expect(
         result.primitiveSnapshotIdsByPrimitiveId,
         <String, String>{
           'one': retainedA.snapshot.id,
-          'two': appended.snapshot.id,
-          'three': appended.snapshot.id,
+          'two': appendedForTwo.snapshot.id,
+          'three': appendedForThree.snapshot.id,
         },
       );
     });
@@ -486,10 +547,14 @@ ProjectSurfacePreset _surfacePreset(String id) {
   );
 }
 
-BorderAssetSnapshotPreparation _preparation(String digit) {
+BorderAssetSnapshotPreparation _preparation(
+  String digit, {
+  String? sourceElementId,
+}) {
   final fingerprint = digit * 64;
   final relativePath = 'assets/borders/snapshots/$fingerprint/frame_0000.png';
   return BorderAssetSnapshotPreparation(
+    sourceElementId: sourceElementId ?? 'element-$digit',
     snapshot: BorderVisualSnapshot(
       id: 'border-snapshot-sha256:$fingerprint',
       contentFingerprint: fingerprint,

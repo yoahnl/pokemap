@@ -218,6 +218,51 @@ void main() {
       expect(outside.listSync(recursive: true), isEmpty);
     });
 
+    test('rejects a final snapshot file that is itself a symlink', () async {
+      final outside = await Directory.systemTemp.createTemp(
+        'pokemap_border_snapshot_file_link_',
+      );
+      addTearDown(() async {
+        if (await outside.exists()) await outside.delete(recursive: true);
+      });
+      final store = FileBorderAssetSnapshotStore(
+        projectRootPath: projectRoot.path,
+        stageIdFactory: () => 'stage_final_file_link',
+      );
+      final payload = _payload('linked-final', <int>[4, 3, 2, 1]);
+      final stage = await store.stage(<BorderSnapshotFilePayload>[payload]);
+      final outsideFile = File(p.join(outside.path, 'frame.png'));
+      await outsideFile.writeAsBytes(payload.bytes, flush: true);
+      final finalPath = p.join(projectRoot.path, payload.relativePath);
+      await Directory(p.dirname(finalPath)).create(recursive: true);
+      await Link(finalPath).create(outsideFile.path);
+
+      await expectLater(
+        store.finalize(stage),
+        throwsA(
+          isA<BorderAssetSnapshotStoreException>().having(
+            (error) => error.code,
+            'code',
+            BorderAssetSnapshotStoreErrorCode.invalidProjectRoot,
+          ),
+        ),
+      );
+
+      expect(await outsideFile.readAsBytes(), payload.bytes);
+      expect(
+        File(
+          p.join(
+            projectRoot.path,
+            stage.stagingRelativeDirectory,
+            payload.relativePath,
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      await Link(finalPath).delete();
+      await store.discard(stage);
+    });
+
     test('detects a corrupted existing snapshot without overwriting it',
         () async {
       var nextStage = 0;

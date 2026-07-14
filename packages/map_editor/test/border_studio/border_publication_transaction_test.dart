@@ -383,7 +383,22 @@ void main() {
   });
 
   group('CoreBorderPublicationCandidateValidator', () {
-    const validator = CoreBorderPublicationCandidateValidator();
+    const validator = CoreBorderPublicationCandidateValidator(
+      enabledTemplates: <BorderBlueprintTemplate>{
+        BorderBlueprintTemplate.organicEdge,
+      },
+    );
+
+    test('default gate keeps organic publication disabled until BORD-03', () {
+      const defaultValidator = CoreBorderPublicationCandidateValidator();
+
+      final result = defaultValidator.validate(_completeCoreRequest());
+
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('border.publication.template_not_enabled_in_editor'),
+      );
+    });
 
     test('accepts a complete organic revision and exact manifest transition',
         () {
@@ -485,6 +500,7 @@ BorderPublicationRequest _completeCoreRequest() {
     for (var index = 0; index < 3; index += 1)
       snapshotService.prepare(
         BorderAssetSnapshotRequest(
+          sourceElementId: 'element-large-$index',
           frames: <BorderAssetSnapshotSourceFrame>[
             BorderAssetSnapshotSourceFrame(
               sourceProjectRelativePath: 'assets/tilesets/source-$index.png',

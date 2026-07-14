@@ -281,7 +281,7 @@ void main() {
       );
     });
 
-    test('keeps line-template publication disabled with a BORD-06 reason', () {
+    test('keeps every template unpublished until its resolver lot', () {
       final controller = BorderStudioDraftController()
         ..loadFromManifest(
           _manifest(records: <BorderBlueprintRecord>[
@@ -291,7 +291,11 @@ void main() {
 
       controller.setDiagnostics(const BorderDiagnosticsReport.empty());
 
-      expect(controller.state.publicationAvailability.isAllowed, isTrue);
+      expect(controller.state.publicationAvailability.isAllowed, isFalse);
+      expect(
+        controller.state.publicationAvailability.disabledReason,
+        contains('BORD-03'),
+      );
 
       controller.setTemplate(BorderBlueprintTemplate.masonryLine);
       expect(controller.state.canPublish, isFalse);
@@ -349,7 +353,11 @@ void main() {
         },
       );
       expect(controller.state.unacknowledgedWarningCodes, isEmpty);
-      expect(controller.state.canPublish, isTrue);
+      expect(controller.state.canPublish, isFalse);
+      expect(
+        controller.state.publicationAvailability.disabledReason,
+        contains('BORD-03'),
+      );
       expect(
         () => controller.acknowledgeWarningCode('border.unknown.warning'),
         throwsArgumentError,
@@ -411,7 +419,7 @@ void main() {
       expect(controller.state.sourceDivergedPrimitiveIds, <String>{'rock'});
       expect(controller.state.requiresSourceReanalysis, isFalse);
       expect(controller.state.requiresRepublish, isTrue);
-      expect(controller.state.canPublish, isTrue);
+      expect(controller.state.canPublish, isFalse);
       expect(
         controller.state.diagnostics.diagnostics.map((item) => item.code),
         contains(borderStudioSourceRepublishRequiredDiagnosticCode),
@@ -727,7 +735,8 @@ void main() {
       );
     });
 
-    test('draft edits invalidate diagnostics and warning acknowledgements', () {
+    test('draft edits recompute diagnostics and clear warning acknowledgements',
+        () {
       final controller = BorderStudioDraftController()
         ..loadFromManifest(
           _manifest(
@@ -747,16 +756,53 @@ void main() {
         ..acknowledgeWarningCode('border.publication.review_warning');
 
       expect(controller.state.diagnosticsAreCurrent, isTrue);
-      expect(controller.state.canPublish, isTrue);
+      expect(controller.state.canPublish, isFalse);
 
       controller.renameBlueprint('Bord retouche');
 
-      expect(controller.state.diagnosticsAreCurrent, isFalse);
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
       expect(controller.state.acknowledgedWarningCodes, isEmpty);
       expect(controller.state.canPublish, isFalse);
       expect(
         controller.state.publicationAvailability.disabledReason,
-        contains('diagnostics'),
+        contains('BORD-03'),
+      );
+    });
+
+    test('recomputes authoring diagnostics automatically after draft edits',
+        () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(
+          _manifest(
+            records: <BorderBlueprintRecord>[
+              _record(id: 'edge', name: 'Bord'),
+            ],
+          ),
+        );
+
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(controller.state.diagnostics.diagnostics, isEmpty);
+
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(
+          id: 'missing-rock',
+          role: BorderPrimitiveRole.structureLarge,
+        ),
+      ]);
+
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(
+        controller.state.diagnostics.diagnostics.map((item) => item.code),
+        contains('border.blueprint.source_element_missing'),
+      );
+      expect(controller.state.diagnostics.hasErrors, isTrue);
+
+      controller.replacePrimitives(const <BorderPrimitiveDraft>[]);
+
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
+      expect(
+        controller.state.diagnostics.diagnostics.map((item) => item.code),
+        isNot(contains('border.blueprint.source_element_missing')),
       );
     });
 
@@ -783,7 +829,7 @@ void main() {
         manifest.copyWith(globalProperties: <String, dynamic>{'other': true}),
       );
 
-      expect(controller.state.diagnosticsAreCurrent, isFalse);
+      expect(controller.state.diagnosticsAreCurrent, isTrue);
       expect(controller.state.canPublish, isFalse);
     });
   });

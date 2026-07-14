@@ -12,6 +12,7 @@ const String _sourceHashDomain = 'pokemap-border-source-v1';
 
 enum BorderAssetSnapshotErrorCode {
   unsafeSourcePath,
+  invalidSourceElementId,
   fullyTransparent,
   anchorOutsideAsset,
 }
@@ -63,10 +64,19 @@ final class BorderAssetSnapshotSourceFrame {
 
 final class BorderAssetSnapshotRequest {
   BorderAssetSnapshotRequest({
+    required this.sourceElementId,
     required List<BorderAssetSnapshotSourceFrame> frames,
     this.anchorPx,
-  }) : _frames = List<BorderAssetSnapshotSourceFrame>.unmodifiable(frames);
+  }) : _frames = List<BorderAssetSnapshotSourceFrame>.unmodifiable(frames) {
+    if (sourceElementId.isEmpty || sourceElementId.trim() != sourceElementId) {
+      throw const BorderAssetSnapshotException(
+        code: BorderAssetSnapshotErrorCode.invalidSourceElementId,
+        userMessage: 'L’asset doit provenir d’un élément projet valide.',
+      );
+    }
+  }
 
+  final String sourceElementId;
   final List<BorderAssetSnapshotSourceFrame> _frames;
   final BorderPixelPos? anchorPx;
 
@@ -109,11 +119,13 @@ final class BorderSnapshotFilePayload {
 
 final class BorderAssetSnapshotPreparation {
   BorderAssetSnapshotPreparation({
+    required this.sourceElementId,
     required this.snapshot,
     required this.metrics,
     required List<BorderSnapshotFilePayload> files,
   }) : _files = List<BorderSnapshotFilePayload>.unmodifiable(files);
 
+  final String sourceElementId;
   final BorderVisualSnapshot snapshot;
   final BorderPrimitiveAssetMetrics metrics;
   final List<BorderSnapshotFilePayload> _files;
@@ -353,6 +365,7 @@ final class BorderAssetSnapshotService {
     }
 
     return BorderAssetSnapshotPreparation(
+      sourceElementId: request.sourceElementId,
       snapshot: BorderVisualSnapshot(
         id: 'border-snapshot-sha256:$snapshotFingerprint',
         contentFingerprint: snapshotFingerprint,
@@ -395,6 +408,7 @@ String _sourceFingerprint(
 ) {
   final digest = _Sha256Builder()
     ..addText(_sourceHashDomain)
+    ..addText(request.sourceElementId)
     ..addUint32(request.frames.length);
   for (var index = 0; index < request.frames.length; index += 1) {
     final source = request.frames[index];

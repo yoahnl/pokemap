@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -5,12 +7,15 @@ import 'package:map_core/map_core.dart';
 import '../../ui/design_system/design_system.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
+import 'application/border_asset_snapshot_service.dart';
+import 'application/border_project_element_asset_service.dart';
 import 'application/border_studio_draft.dart';
 import 'application/border_studio_draft_controller.dart';
 import 'presentation/border_assets_step.dart';
 import 'presentation/border_preview_publication_step.dart';
 import 'presentation/border_roles_step.dart';
 import 'presentation/border_rules_step.dart';
+import 'presentation/border_studio_presentation.dart';
 import 'presentation/border_type_step.dart';
 import 'state/border_studio_providers.dart';
 
@@ -34,8 +39,17 @@ class BorderStudioWorkspace extends ConsumerStatefulWidget {
 }
 
 class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
+  static const _assetService = BorderProjectElementAssetService();
+
   int _activeStep = 0;
   String? _feedback;
+  String? _selectedAssetElementId;
+  bool _isAnalyzingAsset = false;
+  BorderAssetStepFeedback? _assetFeedback;
+  final Map<String, Map<String, Uint8List>> _assetPreviewBytesByBlueprintId =
+      <String, Map<String, Uint8List>>{};
+  final TextEditingController _renameController = TextEditingController();
+  bool _isRenaming = false;
 
   static const _steps = <({String label, IconData icon})>[
     (label: 'Type', icon: CupertinoIcons.square_grid_2x2),
@@ -44,6 +58,12 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     (label: 'Règles', icon: CupertinoIcons.slider_horizontal_3),
     (label: 'Aperçu et publication', icon: CupertinoIcons.play_rectangle),
   ];
+
+  @override
+  void dispose() {
+    _renameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +82,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
 
     final state = ref.watch(borderStudioDraftControllerProvider);
     final controller = ref.read(borderStudioDraftControllerProvider.notifier);
+    final projectRootPath = ref.watch(editorProjectRootPathProvider);
 
     return PokeMapPageSurface(
       key: const ValueKey<String>('border-studio-workspace'),
@@ -139,32 +160,123 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
           Expanded(
             child: PokeMapPanel(
               expandChild: true,
-              header: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
+              header: Padding(
                 padding: const EdgeInsets.all(12),
-                child: FocusTraversalGroup(
-                  policy: OrderedTraversalPolicy(),
-                  child: Row(
-                    children: [
-                      for (var index = 0;
-                          index < _steps.length;
-                          index += 1) ...[
-                        PokeMapButton(
-                          key: ValueKey<String>(
-                            'border-studio-step-${_steps[index].label}',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (state.workingDraft case final workingDraft?) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: PokeMapSectionHeader(
+                              title: workingDraft.blueprint.definition.name,
+                              description: 'Blueprint en cours d’édition',
+                            ),
                           ),
-                          onPressed: () => setState(() => _activeStep = index),
-                          autofocus: index == 0,
-                          variant: PokeMapButtonVariant.secondary,
-                          size: PokeMapButtonSize.small,
-                          isSelected: _activeStep == index,
-                          leading: Icon(_steps[index].icon),
-                          child: Text(_steps[index].label),
+                          PokeMapIconButton(
+                            key: const ValueKey<String>(
+                              'border-studio-rename-blueprint',
+                            ),
+                            tooltip: 'Renommer',
+                            onPressed: () => _beginRename(state),
+                            icon: const Icon(CupertinoIcons.pencil),
+                          ),
+                          const SizedBox(width: 4),
+                          PokeMapIconButton(
+                            key: const ValueKey<String>(
+                              'border-studio-duplicate-blueprint',
+                            ),
+                            tooltip: 'Dupliquer',
+                            onPressed: () => _duplicateBlueprint(
+                              controller,
+                              state,
+                            ),
+                            icon: const Icon(CupertinoIcons.doc_on_doc),
+                          ),
+                          const SizedBox(width: 4),
+                          PokeMapIconButton(
+                            key: const ValueKey<String>(
+                              'border-studio-delete-blueprint',
+                            ),
+                            tooltip: state.canDeleteSelectedDraft
+                                ? 'Supprimer le brouillon'
+                                : 'Une identité publiée ne peut pas être supprimée',
+                            variant: PokeMapIconButtonVariant.danger,
+                            onPressed: state.canDeleteSelectedDraft
+                                ? () => _deleteBlueprint(controller)
+                                : null,
+                            icon: const Icon(CupertinoIcons.delete),
+                          ),
+                        ],
+                      ),
+                      if (_isRenaming) ...[
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: PokeMapTextField(
+                                fieldKey: const ValueKey<String>(
+                                  'border-studio-rename-field',
+                                ),
+                                controller: _renameController,
+                                label: 'Nom visible du blueprint',
+                                autofocus: true,
+                                onSubmitted: (_) => _confirmRename(controller),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            PokeMapButton(
+                              key: const ValueKey<String>(
+                                'border-studio-confirm-rename',
+                              ),
+                              onPressed: () => _confirmRename(controller),
+                              size: PokeMapButtonSize.small,
+                              child: const Text('Valider'),
+                            ),
+                            const SizedBox(width: 6),
+                            PokeMapButton(
+                              onPressed: () =>
+                                  setState(() => _isRenaming = false),
+                              variant: PokeMapButtonVariant.ghost,
+                              size: PokeMapButtonSize.small,
+                              child: const Text('Annuler'),
+                            ),
+                          ],
                         ),
-                        if (index < _steps.length - 1) const SizedBox(width: 6),
                       ],
                     ],
-                  ),
+                    if (state.workingDraft != null) const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: FocusTraversalGroup(
+                        policy: OrderedTraversalPolicy(),
+                        child: Row(
+                          children: [
+                            for (var index = 0;
+                                index < _steps.length;
+                                index += 1) ...[
+                              PokeMapButton(
+                                key: ValueKey<String>(
+                                  'border-studio-step-${_steps[index].label}',
+                                ),
+                                onPressed: () =>
+                                    setState(() => _activeStep = index),
+                                autofocus: index == 0,
+                                variant: PokeMapButtonVariant.secondary,
+                                size: PokeMapButtonSize.small,
+                                isSelected: _activeStep == index,
+                                leading: Icon(_steps[index].icon),
+                                child: Text(_steps[index].label),
+                              ),
+                              if (index < _steps.length - 1)
+                                const SizedBox(width: 6),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               child: switch (_activeStep) {
@@ -172,7 +284,35 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
                     state: state,
                     onTemplateSelected: controller.setTemplate,
                   ),
-                1 => BorderAssetsStep(state: state),
+                1 => BorderAssetsStep(
+                    state: state,
+                    manifest: manifest,
+                    selectedSourceElementId: _selectedAssetElementId,
+                    onSourceElementSelected: (id) => setState(() {
+                      _selectedAssetElementId = id;
+                      _assetFeedback = null;
+                    }),
+                    onAnalyzeSelected: () => _analyzeSelectedAsset(
+                      controller,
+                      state,
+                      manifest,
+                      projectRootPath,
+                    ),
+                    onReanalyzePrimitive: (primitiveId) => _reanalyzeAsset(
+                      controller,
+                      state,
+                      manifest,
+                      projectRootPath,
+                      primitiveId,
+                    ),
+                    onRemovePrimitive: (primitiveId) =>
+                        _removeAsset(controller, primitiveId),
+                    previewBytesByPrimitiveId: _assetPreviewBytesByBlueprintId[
+                            state.selectedBlueprintId] ??
+                        const <String, Uint8List>{},
+                    feedback: _assetFeedback,
+                    isAnalyzing: _isAnalyzingAsset,
+                  ),
                 2 => BorderRolesStep(
                     state: state,
                     onRoleChanged: (primitiveId, role) => _changeRole(
@@ -224,7 +364,251 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     setState(() {
       _activeStep = 0;
       _feedback = null;
+      _assetFeedback = null;
+      _assetPreviewBytesByBlueprintId.clear();
+      _isRenaming = false;
     });
+  }
+
+  void _beginRename(BorderStudioDraftState state) {
+    final name = state.workingDraft?.blueprint.definition.name;
+    if (name == null) return;
+    _renameController.text = name;
+    _renameController.selection = TextSelection.collapsed(offset: name.length);
+    setState(() => _isRenaming = true);
+  }
+
+  void _confirmRename(BorderStudioDraftController controller) {
+    final name = _renameController.text.trim();
+    if (name.isEmpty) return;
+    controller.renameBlueprint(name);
+    setState(() => _isRenaming = false);
+  }
+
+  void _duplicateBlueprint(
+    BorderStudioDraftController controller,
+    BorderStudioDraftState state,
+  ) {
+    final working = state.workingDraft;
+    if (working == null) return;
+    final knownIds = <String>{
+      for (final record in state.catalogRecords) record.id,
+      working.id,
+    };
+    var ordinal = 1;
+    var id = '${working.id}-copy-$ordinal';
+    while (knownIds.contains(id)) {
+      ordinal += 1;
+      id = '${working.id}-copy-$ordinal';
+    }
+    controller.copyBlueprint(
+      sourceBlueprintId: working.id,
+      newBlueprintId: id,
+      name: '${working.blueprint.definition.name} — copie',
+    );
+    setState(() {
+      _assetPreviewBytesByBlueprintId.clear();
+      _assetFeedback = null;
+      _isRenaming = false;
+    });
+  }
+
+  void _deleteBlueprint(BorderStudioDraftController controller) {
+    final updated = controller.deleteSelectedDraft();
+    ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+          updated,
+          statusMessage: 'Brouillon Border supprimé du projet.',
+        );
+    setState(() {
+      _activeStep = 0;
+      _assetPreviewBytesByBlueprintId.clear();
+      _assetFeedback = null;
+      _isRenaming = false;
+    });
+  }
+
+  Future<void> _analyzeSelectedAsset(
+    BorderStudioDraftController controller,
+    BorderStudioDraftState state,
+    ProjectManifest manifest,
+    String? projectRootPath,
+  ) async {
+    final working = state.workingDraft;
+    final sourceElementId = _resolveSelectedElementId(manifest);
+    if (working == null || sourceElementId == null) return;
+    final targetBlueprintId = working.id;
+    final role = orderedBorderRoles(state.allowedPrimitiveRoles).firstOrNull;
+    if (role == null) return;
+    final primitiveId = _nextPrimitiveId(
+      working.blueprint.definition.primitives,
+    );
+    await _runAssetAnalysis(() async {
+      final prepared = await _assetService.prepare(
+        manifest: manifest,
+        projectRootPath: projectRootPath ?? '',
+        sourceElementId: sourceElementId,
+        primitiveId: primitiveId,
+        role: role,
+        weight: 1000,
+        transforms: BorderTransformPolicy(
+          allowFlipX: false,
+          allowedQuarterTurns: const <int>[0, 1, 2, 3],
+        ),
+      );
+      if (!_isAssetAnalysisTargetCurrent(
+        manifest: manifest,
+        projectRootPath: projectRootPath,
+        blueprintId: targetBlueprintId,
+        primitiveIdMustBeAbsent: primitiveId,
+      )) {
+        return 'Le résultat a été ignoré car le projet ou le blueprint actif a changé.';
+      }
+      controller.addPreparedPrimitive(prepared.primitive);
+      (_assetPreviewBytesByBlueprintId[targetBlueprintId] ??=
+              <String, Uint8List>{})[primitiveId] =
+          prepared.preparation.files.first.bytes;
+      return 'L’élément ${prepared.sourceElement.name} est prêt dans le blueprint.';
+    });
+  }
+
+  Future<void> _reanalyzeAsset(
+    BorderStudioDraftController controller,
+    BorderStudioDraftState state,
+    ProjectManifest manifest,
+    String? projectRootPath,
+    String primitiveId,
+  ) async {
+    BorderPrimitiveDraft? primitive;
+    for (final candidate
+        in state.workingDraft!.blueprint.definition.primitives) {
+      if (candidate.id == primitiveId) {
+        primitive = candidate;
+        break;
+      }
+    }
+    if (primitive == null) return;
+    final source = primitive;
+    final targetBlueprintId = state.workingDraft!.id;
+    await _runAssetAnalysis(() async {
+      final prepared = await _assetService.reanalyze(
+        manifest: manifest,
+        projectRootPath: projectRootPath ?? '',
+        primitive: source,
+      );
+      if (!_isAssetAnalysisTargetCurrent(
+        manifest: manifest,
+        projectRootPath: projectRootPath,
+        blueprintId: targetBlueprintId,
+        expectedPrimitive: source,
+      )) {
+        return 'Le résultat a été ignoré car le projet, le blueprint ou l’asset actif a changé.';
+      }
+      controller.replacePrimitiveAfterReanalysis(prepared.primitive);
+      (_assetPreviewBytesByBlueprintId[targetBlueprintId] ??=
+              <String, Uint8List>{})[primitiveId] =
+          prepared.preparation.files.first.bytes;
+      return 'La source de ${prepared.sourceElement.name} a été relue explicitement.';
+    });
+  }
+
+  void _removeAsset(
+    BorderStudioDraftController controller,
+    String primitiveId,
+  ) {
+    controller.removePrimitive(primitiveId);
+    setState(() {
+      final blueprintId =
+          ref.read(borderStudioDraftControllerProvider).selectedBlueprintId;
+      _assetPreviewBytesByBlueprintId[blueprintId]?.remove(primitiveId);
+      _assetFeedback = const BorderAssetStepFeedback.info(
+        'Asset retiré du brouillon.',
+      );
+    });
+  }
+
+  bool _isAssetAnalysisTargetCurrent({
+    required ProjectManifest manifest,
+    required String? projectRootPath,
+    required String blueprintId,
+    BorderPrimitiveDraft? expectedPrimitive,
+    String? primitiveIdMustBeAbsent,
+  }) {
+    if (!mounted ||
+        ref.read(editorProjectManifestProvider) != manifest ||
+        ref.read(editorProjectRootPathProvider) != projectRootPath) {
+      return false;
+    }
+    final current = ref.read(borderStudioDraftControllerProvider);
+    if (current.selectedBlueprintId != blueprintId ||
+        current.workingDraft?.id != blueprintId) {
+      return false;
+    }
+    final primitives = current.workingDraft!.blueprint.definition.primitives;
+    if (primitiveIdMustBeAbsent != null &&
+        primitives
+            .any((primitive) => primitive.id == primitiveIdMustBeAbsent)) {
+      return false;
+    }
+    if (expectedPrimitive != null &&
+        !primitives.any((primitive) => primitive == expectedPrimitive)) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _runAssetAnalysis(
+    Future<String> Function() action,
+  ) async {
+    setState(() {
+      _isAnalyzingAsset = true;
+      _assetFeedback = null;
+    });
+    try {
+      final message = await action();
+      if (!mounted) return;
+      setState(() {
+        _isAnalyzingAsset = false;
+        _assetFeedback = BorderAssetStepFeedback.success(message);
+      });
+    } on BorderProjectElementAssetException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isAnalyzingAsset = false;
+        _assetFeedback = BorderAssetStepFeedback.error(error.userMessage);
+      });
+    } on BorderAssetSnapshotException catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isAnalyzingAsset = false;
+        _assetFeedback = BorderAssetStepFeedback.error(error.userMessage);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isAnalyzingAsset = false;
+        _assetFeedback = const BorderAssetStepFeedback.error(
+          'L’asset n’a pas pu être analysé. Vérifiez sa source dans la bibliothèque.',
+        );
+      });
+    }
+  }
+
+  String? _resolveSelectedElementId(ProjectManifest manifest) {
+    for (final element in manifest.elements) {
+      if (element.id == _selectedAssetElementId) return element.id;
+    }
+    return manifest.elements.firstOrNull?.id;
+  }
+
+  String _nextPrimitiveId(List<BorderPrimitiveDraft> primitives) {
+    final ids = <String>{for (final primitive in primitives) primitive.id};
+    var ordinal = primitives.length + 1;
+    var id = 'border-primitive-$ordinal';
+    while (ids.contains(id)) {
+      ordinal += 1;
+      id = 'border-primitive-$ordinal';
+    }
+    return id;
   }
 
   void _saveDraft(BorderStudioDraftController controller) {

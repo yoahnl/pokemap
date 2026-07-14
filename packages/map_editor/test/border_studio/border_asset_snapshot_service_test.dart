@@ -15,6 +15,7 @@ void main() {
 
       final first = service.prepare(
         BorderAssetSnapshotRequest(
+          sourceElementId: 'first-element',
           frames: <BorderAssetSnapshotSourceFrame>[
             BorderAssetSnapshotSourceFrame(
               sourceProjectRelativePath: 'assets/tilesets/first.png',
@@ -25,6 +26,7 @@ void main() {
       );
       final second = service.prepare(
         BorderAssetSnapshotRequest(
+          sourceElementId: 'second-element',
           frames: <BorderAssetSnapshotSourceFrame>[
             BorderAssetSnapshotSourceFrame(
               sourceProjectRelativePath: 'assets/imported/second.png',
@@ -36,6 +38,8 @@ void main() {
 
       expect(first.snapshot, second.snapshot);
       expect(first.files, second.files);
+      expect(first.sourceElementId, 'first-element');
+      expect(second.sourceElementId, 'second-element');
       expect(
         first.metrics.assetFingerprint,
         isNot(second.metrics.assetFingerprint),
@@ -56,9 +60,45 @@ void main() {
       );
     });
 
+    test('deduplicates identical RGBA pixels across different PNG encodings',
+        () {
+      const rgba = <int>[255, 0, 0, 255, 0, 0, 0, 0];
+      final fastPng = _png(rgba, level: 0);
+      final compressedPng = _png(rgba, level: 9);
+      expect(fastPng, isNot(compressedPng));
+
+      BorderAssetSnapshotPreparation prepare(
+        String sourceElementId,
+        Uint8List bytes,
+      ) =>
+          service.prepare(
+            BorderAssetSnapshotRequest(
+              sourceElementId: sourceElementId,
+              frames: <BorderAssetSnapshotSourceFrame>[
+                BorderAssetSnapshotSourceFrame(
+                  sourceProjectRelativePath:
+                      'assets/tilesets/$sourceElementId.png',
+                  encodedImageBytes: bytes,
+                ),
+              ],
+            ),
+          );
+
+      final first = prepare('encoded-fast', fastPng);
+      final second = prepare('encoded-compressed', compressedPng);
+
+      expect(first.snapshot, second.snapshot);
+      expect(first.files, second.files);
+      expect(
+        first.metrics.assetFingerprint,
+        isNot(second.metrics.assetFingerprint),
+      );
+    });
+
     test('freezes source bytes and exposes defensive file payload copies', () {
       final mutableSource = _png(<int>[1, 2, 3, 255, 4, 5, 6, 0]);
       final request = BorderAssetSnapshotRequest(
+        sourceElementId: 'mutable-element',
         frames: <BorderAssetSnapshotSourceFrame>[
           BorderAssetSnapshotSourceFrame(
             sourceProjectRelativePath: 'assets/tilesets/source.png',
@@ -103,6 +143,7 @@ void main() {
 
       final prepared = service.prepare(
         BorderAssetSnapshotRequest(
+          sourceElementId: 'animated-element',
           frames: <BorderAssetSnapshotSourceFrame>[
             BorderAssetSnapshotSourceFrame(
               sourceProjectRelativePath: 'assets/tilesets/a.png',
@@ -151,6 +192,7 @@ void main() {
       }) =>
           service.prepare(
             BorderAssetSnapshotRequest(
+              sourceElementId: 'ordered-element',
               frames: <BorderAssetSnapshotSourceFrame>[
                 for (var index = 0; index < frames.length; index += 1)
                   BorderAssetSnapshotSourceFrame(
@@ -180,6 +222,7 @@ void main() {
     test('keeps the canonical snapshot hash and paths stable', () {
       final prepared = service.prepare(
         BorderAssetSnapshotRequest(
+          sourceElementId: 'golden-element',
           frames: <BorderAssetSnapshotSourceFrame>[
             BorderAssetSnapshotSourceFrame(
               sourceProjectRelativePath: 'assets/source/golden-a.png',
@@ -230,6 +273,7 @@ void main() {
       expect(
         () => service.prepare(
           BorderAssetSnapshotRequest(
+            sourceElementId: 'empty-element',
             frames: <BorderAssetSnapshotSourceFrame>[
               BorderAssetSnapshotSourceFrame(
                 sourceProjectRelativePath: 'assets/empty.png',
@@ -250,7 +294,7 @@ void main() {
   });
 }
 
-Uint8List _png(List<int> rgba) {
+Uint8List _png(List<int> rgba, {int? level}) {
   assert(rgba.length == 8);
   final image = img.Image(width: 2, height: 1, numChannels: 4);
   for (var x = 0; x < 2; x += 1) {
@@ -264,5 +308,7 @@ Uint8List _png(List<int> rgba) {
       rgba[offset + 3],
     );
   }
-  return Uint8List.fromList(img.encodePng(image));
+  return Uint8List.fromList(
+    level == null ? img.encodePng(image) : img.encodePng(image, level: level),
+  );
 }

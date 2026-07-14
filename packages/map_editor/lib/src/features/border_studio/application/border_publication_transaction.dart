@@ -106,9 +106,7 @@ abstract interface class BorderPublicationManifestPort {
 final class CoreBorderPublicationCandidateValidator
     implements BorderPublicationCandidateValidator {
   const CoreBorderPublicationCandidateValidator({
-    this.enabledTemplates = const <BorderBlueprintTemplate>{
-      BorderBlueprintTemplate.organicEdge,
-    },
+    this.enabledTemplates = const <BorderBlueprintTemplate>{},
   });
 
   final Set<BorderBlueprintTemplate> enabledTemplates;

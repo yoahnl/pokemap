@@ -17,7 +17,8 @@ class BorderTypeStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = state.workingDraft?.blueprint.definition.template;
+    final definition = state.workingDraft?.blueprint.definition;
+    final selected = definition?.template;
     return BorderStudioStepScaffold(
       title: '1. Type',
       description:
@@ -26,67 +27,84 @@ class BorderTypeStep extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (final template in BorderBlueprintTemplate.values) ...[
-            PokeMapCard(
-              selected: selected == template,
-              child: Row(
-                children: [
-                  PokeMapIconTile(
-                    icon: switch (template) {
-                      BorderBlueprintTemplate.organicEdge =>
-                        CupertinoIcons.waveform_path,
-                      BorderBlueprintTemplate.masonryLine =>
-                        CupertinoIcons.square_stack_3d_down_right,
-                      BorderBlueprintTemplate.postAndRailLine =>
-                        CupertinoIcons.equal_square,
-                    },
-                    tone: template == BorderBlueprintTemplate.organicEdge
-                        ? PokeMapTone.info
-                        : PokeMapTone.neutral,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(borderTemplateLabel(template)),
-                        const SizedBox(height: 4),
-                        Text(borderTemplateDescription(template)),
-                        const SizedBox(height: 8),
-                        PokeMapBadge(
-                          label: template == BorderBlueprintTemplate.organicEdge
-                              ? 'Publication disponible'
-                              : 'Publication après BORD-06',
-                          variant:
-                              template == BorderBlueprintTemplate.organicEdge
-                                  ? PokeMapBadgeVariant.success
-                                  : PokeMapBadgeVariant.warning,
+            Builder(
+              builder: (context) {
+                final incompatibleRoles = definition == null
+                    ? const <BorderPrimitiveRole>[]
+                    : _incompatibleRoles(definition, template);
+                final disabledReason = incompatibleRoles.isEmpty
+                    ? null
+                    : _incompatibleTemplateReason(incompatibleRoles);
+                return PokeMapCard(
+                  selected: selected == template,
+                  child: Row(
+                    children: [
+                      PokeMapIconTile(
+                        icon: switch (template) {
+                          BorderBlueprintTemplate.organicEdge =>
+                            CupertinoIcons.waveform_path,
+                          BorderBlueprintTemplate.masonryLine =>
+                            CupertinoIcons.square_stack_3d_down_right,
+                          BorderBlueprintTemplate.postAndRailLine =>
+                            CupertinoIcons.equal_square,
+                        },
+                        tone: template == BorderBlueprintTemplate.organicEdge
+                            ? PokeMapTone.info
+                            : PokeMapTone.neutral,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(borderTemplateLabel(template)),
+                            const SizedBox(height: 4),
+                            Text(borderTemplateDescription(template)),
+                            const SizedBox(height: 8),
+                            PokeMapBadge(
+                              label: template ==
+                                      BorderBlueprintTemplate.organicEdge
+                                  ? 'Publication après BORD-03'
+                                  : 'Publication après BORD-06',
+                              variant: PokeMapBadgeVariant.warning,
+                            ),
+                            if (disabledReason != null) ...[
+                              const SizedBox(height: 8),
+                              Text(disabledReason),
+                            ],
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      PokeMapButton(
+                        key: ValueKey<String>(
+                          switch (template) {
+                            BorderBlueprintTemplate.organicEdge =>
+                              'border-studio-template-organic',
+                            BorderBlueprintTemplate.masonryLine =>
+                              'border-studio-template-masonry',
+                            BorderBlueprintTemplate.postAndRailLine =>
+                              'border-studio-template-fence',
+                          },
+                        ),
+                        onPressed: definition == null || disabledReason != null
+                            ? null
+                            : () => onTemplateSelected(template),
+                        variant: PokeMapButtonVariant.secondary,
+                        isSelected: selected == template,
+                        size: PokeMapButtonSize.small,
+                        child: Text(
+                          disabledReason != null
+                              ? 'Indisponible'
+                              : selected == template
+                                  ? 'Sélectionné'
+                                  : 'Choisir',
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  PokeMapButton(
-                    key: ValueKey<String>(
-                      switch (template) {
-                        BorderBlueprintTemplate.organicEdge =>
-                          'border-studio-template-organic',
-                        BorderBlueprintTemplate.masonryLine =>
-                          'border-studio-template-masonry',
-                        BorderBlueprintTemplate.postAndRailLine =>
-                          'border-studio-template-fence',
-                      },
-                    ),
-                    onPressed: state.workingDraft == null
-                        ? null
-                        : () => onTemplateSelected(template),
-                    variant: PokeMapButtonVariant.secondary,
-                    isSelected: selected == template,
-                    size: PokeMapButtonSize.small,
-                    child:
-                        Text(selected == template ? 'Sélectionné' : 'Choisir'),
-                  ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 10),
           ],
@@ -94,4 +112,28 @@ class BorderTypeStep extends StatelessWidget {
       ),
     );
   }
+}
+
+List<BorderPrimitiveRole> _incompatibleRoles(
+  BorderBlueprintDraftDefinition definition,
+  BorderBlueprintTemplate template,
+) {
+  final allowedRoles = borderAllowedPrimitiveRolesForTemplate(template);
+  final incompatible = <BorderPrimitiveRole>{
+    for (final primitive in definition.primitives)
+      if (!allowedRoles.contains(primitive.role)) primitive.role,
+  };
+  return orderedBorderRoles(incompatible);
+}
+
+String _incompatibleTemplateReason(List<BorderPrimitiveRole> roles) {
+  final labels = roles.map(borderRoleLabel).toList(growable: false);
+  if (labels.length == 1) {
+    return 'Indisponible : le rôle « ${labels.single} » n’est pas pris en '
+        'charge. Réattribuez ou retirez l’asset concerné avant de choisir ce '
+        'type.';
+  }
+  return 'Indisponible : les rôles ${labels.map((label) => '« $label »').join(', ')} '
+      'ne sont pas pris en charge. Réattribuez ou retirez les assets concernés '
+      'avant de choisir ce type.';
 }

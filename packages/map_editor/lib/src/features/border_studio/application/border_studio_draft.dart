@@ -121,34 +121,18 @@ final class BorderStudioDraftState {
         'Sélectionnez ou créez un blueprint avant de publier.',
       );
     }
-    if (draft.blueprint.definition.template !=
-        BorderBlueprintTemplate.organicEdge) {
-      return const BorderStudioPublicationAvailability.disabled(
-        'La publication des murets et clôtures reste désactivée jusqu’au lot '
-        'BORD-06.',
-      );
-    }
-    if (requiresSourceReanalysis) {
-      return const BorderStudioPublicationAvailability.disabled(
-        'Réanalysez les assets dont la source a changé avant de republier.',
-      );
-    }
-    if (!diagnosticsAreCurrent) {
-      return const BorderStudioPublicationAvailability.disabled(
-        'Actualisez les diagnostics du brouillon avant de publier.',
-      );
-    }
-    if (diagnostics.hasErrors) {
-      return const BorderStudioPublicationAvailability.disabled(
-        'Corrigez les erreurs Border avant de publier.',
-      );
-    }
-    if (unacknowledgedWarningCodes.isNotEmpty) {
-      return const BorderStudioPublicationAvailability.disabled(
-        'Acquittez explicitement chaque avertissement avant de publier.',
-      );
-    }
-    return const BorderStudioPublicationAvailability.allowed();
+    return switch (draft.blueprint.definition.template) {
+      BorderBlueprintTemplate.organicEdge =>
+        const BorderStudioPublicationAvailability.disabled(
+          'La publication des côtes reste désactivée jusqu’au lot BORD-03.',
+        ),
+      BorderBlueprintTemplate.masonryLine ||
+      BorderBlueprintTemplate.postAndRailLine =>
+        const BorderStudioPublicationAvailability.disabled(
+          'La publication des murets et clôtures reste désactivée jusqu’au lot '
+          'BORD-06.',
+        ),
+    };
   }
 
   bool get canPublish => publicationAvailability.isAllowed;

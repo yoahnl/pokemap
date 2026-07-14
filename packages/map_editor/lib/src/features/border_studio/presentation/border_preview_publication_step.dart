@@ -32,12 +32,10 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         : unresolvedBorderRoleLabels(definition);
     final publication = state.publicationAvailability;
     final canPublish = publication.isAllowed && unresolved.isEmpty;
-    final disabledReason = definition != null &&
-            definition.template != BorderBlueprintTemplate.organicEdge
-        ? publication.disabledReason
-        : unresolved.isNotEmpty
+    final disabledReason = publication.disabledReason ??
+        (unresolved.isNotEmpty
             ? 'Attribuez les rôles requis avant de publier : ${unresolved.join(', ')}.'
-            : publication.disabledReason;
+            : null);
     return BorderStudioStepScaffold(
       title: '5. Aperçu et publication',
       description:
