@@ -317,4 +317,44 @@ void main() {
       );
     });
   });
+
+  group('NarrativeEventProgress persistence', () {
+    test('propagates V2 progress without migrating legacy namespaces', () {
+      final progress = NarrativeEventProgress(
+        consumedNarrativeEventIds: const {
+          'evt_019abcde-0000-7000-8000-000000000001',
+        },
+        pendingNarrativeOutcomeDeliveries: [
+          NarrativeOutcomeDelivery(
+            deliveryId: 'outd_019abcde-0000-7000-8000-000000000001',
+            outcome: NarrativeOutcomeRef(
+              producerKind: NarrativeOutcomeProducerKind.scene,
+              producerId: 'scene',
+              outcomeId: 'done',
+            ),
+            rootCorrelationId: 'corr_019abcde-0000-7000-8000-000000000001',
+            depth: 0,
+            attemptCount: 0,
+          ),
+        ],
+      );
+      final state = GameState(
+        saveId: 'progress',
+        consumedEventIds: const {'legacy_local'},
+        storyFlags: const StoryFlags(activeFlags: {'legacy_flag'}),
+        narrativeEventProgress: progress,
+      );
+
+      final save = saveDataFromGameState(state);
+      final restored = gameStateFromSaveData(save);
+      final normalized = normalizeLoadedGameState(restored);
+
+      expect(save.narrativeEventProgress, progress);
+      expect(restored.narrativeEventProgress, progress);
+      expect(normalized.narrativeEventProgress, progress);
+      expect(state.consumedEventIds, {'legacy_local'});
+      expect(restored.consumedEventIds, isEmpty);
+      expect(restored.storyFlags.activeFlags, {'legacy_flag'});
+    });
+  });
 }

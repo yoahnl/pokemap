@@ -226,6 +226,12 @@ _$SaveDataImpl _$$SaveDataImplFromJson(Map<String, dynamic> json) =>
           : NarrativeFactRuntimeState.fromJson(
               readNarrativeFactRuntimeStateJson(
                   json, 'narrativeFactRuntimeState') as Map<String, dynamic>),
+      narrativeEventProgress: readNarrativeEventProgressJson(
+                  json, 'narrativeEventProgress') ==
+              null
+          ? const NarrativeEventProgress.empty()
+          : NarrativeEventProgress.fromJson(
+              readNarrativeEventProgressJson(json, 'narrativeEventProgress')),
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -244,6 +250,8 @@ Map<String, dynamic> _$$SaveDataImplToJson(_$SaveDataImpl instance) =>
       'bag': instance.bag.toJson(),
       'progression': instance.progression.toJson(),
       'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
+      'narrativeEventProgress':
+          narrativeEventProgressToJson(instance.narrativeEventProgress),
       'properties': instance.properties,
     };
 

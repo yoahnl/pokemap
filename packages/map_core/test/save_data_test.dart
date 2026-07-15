@@ -378,6 +378,7 @@ void main() {
       expect(save.progression.completedStepIds, isEmpty);
       expect(save.properties, isEmpty);
       expect(save.narrativeFactRuntimeState.overridesByFactId, isEmpty);
+      expect(save.narrativeEventProgress, const NarrativeEventProgress.empty());
     });
 
     test('copyWith preserves unmodified fields', () {
@@ -414,6 +415,38 @@ void main() {
       expect(normalized.saveId, 'fact_save');
       expect(
           normalized.narrativeFactRuntimeState, save.narrativeFactRuntimeState);
+    });
+
+    test('round-trips stable Narrative Event delivery identity', () {
+      final progress = NarrativeEventProgress(
+        pendingNarrativeOutcomeDeliveries: [
+          NarrativeOutcomeDelivery(
+            deliveryId: 'outd_019abcde-0000-7000-8000-000000000001',
+            outcome: NarrativeOutcomeRef(
+              producerKind: NarrativeOutcomeProducerKind.scene,
+              producerId: 'scene',
+              outcomeId: 'done',
+            ),
+            causationExecutionId: 'evx_019abcde-0000-7000-8000-000000000002',
+            rootCorrelationId: 'corr_019abcde-0000-7000-8000-000000000003',
+            depth: 1,
+            attemptCount: 2,
+          ),
+        ],
+      );
+      final save = SaveData(
+        saveId: 'delivery',
+        narrativeEventProgress: progress,
+      );
+
+      final restored = SaveData.fromJson(save.toJson());
+
+      expect(restored.narrativeEventProgress, progress);
+      expect(
+        restored.narrativeEventProgress.pendingNarrativeOutcomeDeliveries.single
+            .deliveryId,
+        'outd_019abcde-0000-7000-8000-000000000001',
+      );
     });
   });
 

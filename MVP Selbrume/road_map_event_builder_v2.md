@@ -13,7 +13,9 @@ Architecture : hybride projet + ancres de map
 Phase A : CLOSED / ACCEPTED le 2026-07-10
 Phase D : CLOSED / ACCEPTED le 2026-07-13
 Phase E : CLOSED / ACCEPTED le 2026-07-14
-Prochaine mission : PHASE F1 - Runtime Authority & Progress
+Phase F1 : CLOSED / ACCEPTED le 2026-07-15
+Phase F2 : READY
+Prochaine mission : PHASE F2 - Runtime Source Bridges
 ```
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
@@ -923,9 +925,11 @@ Les jalons V2-17 et V2-18 restent a realiser dans F1.
 # Phase F1 — Runtime Authority & Progress
 
 ```text
-Mission status : READY
+Mission status : CLOSED / ACCEPTED le 2026-07-15
 Gate d'entrée : ACCEPTED par Phase E et F1-PREREQ le 2026-07-14
 Jalons : V2-17 à V2-18
+V2-17 : PASS
+V2-18 : PASS
 ```
 
 ## Objectif
@@ -954,6 +958,7 @@ lifecycle/persistance avant de brancher une source production.
 
 ### NS-EVENT-V2-17 — Unified Event Dispatch Authority & Eligibility Planner V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** transformer une occurrence, le registry mode/claims, l'index et une vue de progression en décision unique sans effet.
 - **Problème traité :** matching dispersé, fallback concurrent et first-manifest implicite.
@@ -977,6 +982,7 @@ lifecycle/persistance avant de brancher une source production.
 
 ### NS-EVENT-V2-18 — Event Progress Namespace, Lifecycle & Save/Load V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** introduire la progression V2 globale, oneShot/reusable et les points de persistance avant les bridges production.
 - **Problème traité :** IDs legacy nus, références dispersées et lifecycle metadata-only.
@@ -1021,7 +1027,7 @@ Autorité et progression V2 prêtes pour les bridges, sans hook production.
 # Phase F2 — Runtime Source Bridges
 
 ```text
-Mission status : PLANNED
+Mission status : READY
 Jalons : V2-19 à V2-22
 ```
 
@@ -1985,8 +1991,8 @@ Report et demande un ADR de remplacement.
 | D `CLOSED` | V2-09 à V2-12 | 4 | catalogs/read models |
 | E `CLOSED / ACCEPTED` | V2-13 à V2-16 | 4 | authoring/single-write |
 | F1-PREREQ `CLOSED / ACCEPTED` | prérequis F1-0 | 1 | Facts/dual-read/outbox contract |
-| F1 `READY` | V2-17 à V2-18 | 2 | autorité/progression/outbox |
-| F2 | V2-19 à V2-22 | 4 | quatre source bridges |
+| F1 `CLOSED / ACCEPTED` | V2-17 à V2-18 | 2 | autorité/progression/outbox |
+| F2 `READY` | V2-19 à V2-22 | 4 | quatre source bridges |
 | G | V2-23 à V2-25 | 3 | Map Editor bridge |
 | H | V2-26 à V2-30 | 5 | UI V2 |
 | I | V2-31 à V2-33 | 3 | validator |
@@ -1998,13 +2004,12 @@ Report et demande un ADR de remplacement.
 # Prochaine mission exécutable
 
 ```text
-PHASE F1 — Runtime Authority & Progress
-Jalons internes : V2-17 à V2-18
-Gate d'entrée : ACCEPTED par Phase E et F1-PREREQ
+PHASE F2 — Runtime Source Bridges
+Jalons internes : V2-19 à V2-22
+Gate d'entrée : Phase F1 CLOSED / ACCEPTED
 ```
 
-Phase F1 doit construire l'autorité pure de dispatch et la progression V2 à
-partir des contrats d'authoring et de persistance désormais acceptés. Elle doit
-conserver la séparation publication/activation, le mode et les claims, et ne
-doit encore ajouter ni bridge source production, ni UI Flutter, ni migration
-réelle de projet.
+Phase F2 doit brancher les quatre sources canoniques sur l'autorité F1 sans
+double dispatch legacy. Elle doit conserver le mode, les claims, la séparation
+des namespaces et le gate runtime partagé, sans ajouter de source, d'UI Flutter
+ou de migration réelle de projet.

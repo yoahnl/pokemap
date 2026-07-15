@@ -1948,6 +1948,11 @@ mixin _$SaveData {
   @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
   NarrativeFactRuntimeState get narrativeFactRuntimeState =>
       throw _privateConstructorUsedError;
+  @JsonKey(
+      readValue: readNarrativeEventProgressJson,
+      toJson: narrativeEventProgressToJson)
+  NarrativeEventProgress get narrativeEventProgress =>
+      throw _privateConstructorUsedError;
   Map<String, String> get properties => throw _privateConstructorUsedError;
 
   /// Serializes this SaveData to a JSON map.
@@ -1977,6 +1982,10 @@ abstract class $SaveDataCopyWith<$Res> {
       PlayerProgression progression,
       @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
       NarrativeFactRuntimeState narrativeFactRuntimeState,
+      @JsonKey(
+          readValue: readNarrativeEventProgressJson,
+          toJson: narrativeEventProgressToJson)
+      NarrativeEventProgress narrativeEventProgress,
       Map<String, String> properties});
 
   $GridPosCopyWith<$Res> get playerPosition;
@@ -2012,6 +2021,7 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
     Object? bag = null,
     Object? progression = null,
     Object? narrativeFactRuntimeState = null,
+    Object? narrativeEventProgress = null,
     Object? properties = null,
   }) {
     return _then(_value.copyWith(
@@ -2055,6 +2065,10 @@ class _$SaveDataCopyWithImpl<$Res, $Val extends SaveData>
           ? _value.narrativeFactRuntimeState
           : narrativeFactRuntimeState // ignore: cast_nullable_to_non_nullable
               as NarrativeFactRuntimeState,
+      narrativeEventProgress: null == narrativeEventProgress
+          ? _value.narrativeEventProgress
+          : narrativeEventProgress // ignore: cast_nullable_to_non_nullable
+              as NarrativeEventProgress,
       properties: null == properties
           ? _value.properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -2143,6 +2157,10 @@ abstract class _$$SaveDataImplCopyWith<$Res>
       PlayerProgression progression,
       @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
       NarrativeFactRuntimeState narrativeFactRuntimeState,
+      @JsonKey(
+          readValue: readNarrativeEventProgressJson,
+          toJson: narrativeEventProgressToJson)
+      NarrativeEventProgress narrativeEventProgress,
       Map<String, String> properties});
 
   @override
@@ -2182,6 +2200,7 @@ class __$$SaveDataImplCopyWithImpl<$Res>
     Object? bag = null,
     Object? progression = null,
     Object? narrativeFactRuntimeState = null,
+    Object? narrativeEventProgress = null,
     Object? properties = null,
   }) {
     return _then(_$SaveDataImpl(
@@ -2225,6 +2244,10 @@ class __$$SaveDataImplCopyWithImpl<$Res>
           ? _value.narrativeFactRuntimeState
           : narrativeFactRuntimeState // ignore: cast_nullable_to_non_nullable
               as NarrativeFactRuntimeState,
+      narrativeEventProgress: null == narrativeEventProgress
+          ? _value.narrativeEventProgress
+          : narrativeEventProgress // ignore: cast_nullable_to_non_nullable
+              as NarrativeEventProgress,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -2249,6 +2272,10 @@ class _$SaveDataImpl extends _SaveData {
       this.progression = const PlayerProgression(),
       @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
       this.narrativeFactRuntimeState = const NarrativeFactRuntimeState.empty(),
+      @JsonKey(
+          readValue: readNarrativeEventProgressJson,
+          toJson: narrativeEventProgressToJson)
+      this.narrativeEventProgress = const NarrativeEventProgress.empty(),
       final Map<String, String> properties = const {}})
       : _properties = properties,
         super._();
@@ -2285,6 +2312,11 @@ class _$SaveDataImpl extends _SaveData {
   @override
   @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
   final NarrativeFactRuntimeState narrativeFactRuntimeState;
+  @override
+  @JsonKey(
+      readValue: readNarrativeEventProgressJson,
+      toJson: narrativeEventProgressToJson)
+  final NarrativeEventProgress narrativeEventProgress;
   final Map<String, String> _properties;
   @override
   @JsonKey()
@@ -2296,7 +2328,7 @@ class _$SaveDataImpl extends _SaveData {
 
   @override
   String toString() {
-    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, properties: $properties)';
+    return 'SaveData(saveId: $saveId, currentMapId: $currentMapId, playerPosition: $playerPosition, playerFacing: $playerFacing, party: $party, pokemonStorage: $pokemonStorage, trainerProfile: $trainerProfile, bag: $bag, progression: $progression, narrativeFactRuntimeState: $narrativeFactRuntimeState, narrativeEventProgress: $narrativeEventProgress, properties: $properties)';
   }
 
   @override
@@ -2322,6 +2354,8 @@ class _$SaveDataImpl extends _SaveData {
             (identical(other.narrativeFactRuntimeState,
                     narrativeFactRuntimeState) ||
                 other.narrativeFactRuntimeState == narrativeFactRuntimeState) &&
+            (identical(other.narrativeEventProgress, narrativeEventProgress) ||
+                other.narrativeEventProgress == narrativeEventProgress) &&
             const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
@@ -2340,6 +2374,7 @@ class _$SaveDataImpl extends _SaveData {
       bag,
       progression,
       narrativeFactRuntimeState,
+      narrativeEventProgress,
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of SaveData
@@ -2371,6 +2406,10 @@ abstract class _SaveData extends SaveData {
       final PlayerProgression progression,
       @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
       final NarrativeFactRuntimeState narrativeFactRuntimeState,
+      @JsonKey(
+          readValue: readNarrativeEventProgressJson,
+          toJson: narrativeEventProgressToJson)
+      final NarrativeEventProgress narrativeEventProgress,
       final Map<String, String> properties}) = _$SaveDataImpl;
   const _SaveData._() : super._();
 
@@ -2398,6 +2437,11 @@ abstract class _SaveData extends SaveData {
   @override
   @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
   NarrativeFactRuntimeState get narrativeFactRuntimeState;
+  @override
+  @JsonKey(
+      readValue: readNarrativeEventProgressJson,
+      toJson: narrativeEventProgressToJson)
+  NarrativeEventProgress get narrativeEventProgress;
   @override
   Map<String, String> get properties;
 

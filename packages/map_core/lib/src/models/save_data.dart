@@ -2,6 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
 import 'geometry.dart';
+import 'narrative_event_progress.dart';
 import 'narrative_fact_runtime_state.dart';
 
 part 'save_data.freezed.dart';
@@ -375,6 +376,12 @@ class SaveData with _$SaveData {
     @JsonKey(readValue: readNarrativeFactRuntimeStateJson)
     @Default(NarrativeFactRuntimeState.empty())
     NarrativeFactRuntimeState narrativeFactRuntimeState,
+    @JsonKey(
+      readValue: readNarrativeEventProgressJson,
+      toJson: narrativeEventProgressToJson,
+    )
+    @Default(NarrativeEventProgress.empty())
+    NarrativeEventProgress narrativeEventProgress,
     @Default({}) Map<String, String> properties,
   }) = _SaveData;
 
@@ -398,6 +405,7 @@ class SaveData with _$SaveData {
       bag: bag.normalized(),
       progression: progression.normalized(),
       narrativeFactRuntimeState: narrativeFactRuntimeState,
+      narrativeEventProgress: narrativeEventProgress,
       properties: _normalizeStringMap(properties),
     );
   }

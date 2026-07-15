@@ -27,6 +27,7 @@ GameState gameStateFromSaveData(SaveData saveData) {
     progression: normalizedProgression,
     storyFlags: StoryFlags(activeFlags: migratedFlags),
     narrativeFactRuntimeState: normalizedSaveData.narrativeFactRuntimeState,
+    narrativeEventProgress: normalizedSaveData.narrativeEventProgress,
     scriptVariables: const ScriptVariables(),
     consumedEventIds: const {},
     metadata: normalizedSaveData.properties,
@@ -57,6 +58,7 @@ SaveData saveDataFromGameState(GameState gameState) {
     bag: gameState.bag,
     progression: normalizedProgression,
     narrativeFactRuntimeState: gameState.narrativeFactRuntimeState,
+    narrativeEventProgress: gameState.narrativeEventProgress,
     properties: gameState.metadata,
   ).normalized();
 }
