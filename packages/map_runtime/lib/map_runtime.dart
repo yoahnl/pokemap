@@ -51,6 +51,15 @@ export 'src/application/narrative_spatial_production_dispatch_bridge.dart'
         NarrativeSpatialAuthorityPreparation,
         NarrativeSpatialLegacyFallback,
         NarrativeSpatialProductionDispatchBridge;
+export 'src/border/border_runtime_asset_collection.dart'
+    show
+        BorderRuntimeFrameRequest,
+        BorderRuntimeSnapshotRequest,
+        BorderRuntimeAssetCollection;
+export 'src/border/border_runtime_preparation.dart'
+    show BorderRuntimePreparation;
+export 'src/border/border_runtime_readiness.dart'
+    show BorderRuntimeReadinessException, prepareBorderRuntimeBundle;
 export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
     show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;

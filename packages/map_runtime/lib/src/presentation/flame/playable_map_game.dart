@@ -78,6 +78,8 @@ import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../application/world_rules/runtime_world_rule_projection_hook.dart';
+import '../../border/border_runtime_asset_cache.dart';
+import '../../border/border_runtime_readiness.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import '../../shadow/runtime_actor_contact_shadow_collection.dart';
@@ -242,7 +244,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
     _loadGameUseCase = LoadGameUseCase(_saveRepo);
-    _runtimeBundleByMapId[_bundle.map.id] = _bundle;
     _battleSpriteResolver = BattlePokemonSpriteResolver(
       manifest: _bundle.manifest,
       projectRootDirectory: _bundle.projectRootDirectory,
@@ -336,6 +337,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, Future<void>>{};
   final Map<String, RuntimeTilesetImage> _cachedTilesetImagesByPath =
       <String, RuntimeTilesetImage>{};
+  final BorderRuntimeAssetCache _borderRuntimeAssetCache =
+      BorderRuntimeAssetCache();
   final math.Random _encounterRandom = math.Random();
   final GridPathfinder _followPathfinder = const GridPathfinder();
   final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
@@ -1663,6 +1666,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool debugIsMapLoaded(String mapId) => _loadedMapsById.containsKey(mapId);
 
   @visibleForTesting
+  Future<RuntimeMapBundle> debugLoadRuntimeMapBundleCachedForTest(
+    String mapId,
+  ) =>
+      _loadRuntimeMapBundleCached(mapId);
+
+  @visibleForTesting
   void debugUnmountLoadedMapForTest(String mapId) {
     _unmountLoadedMap(mapId);
   }
@@ -2083,7 +2092,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<RuntimeMapBundle> _loadRuntimeMapBundleCached(String mapId) async {
     final cached = _runtimeBundleByMapId[mapId];
     if (cached != null) {
-      return cached;
+      final prepared = await prepareBorderRuntimeBundle(cached);
+      _runtimeBundleByMapId[mapId] = prepared;
+      return prepared;
     }
     final inFlight = _runtimeBundleFutureByMapId[mapId];
     if (inFlight != null) {
@@ -2095,8 +2106,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapId: mapId,
       );
       final resolved = _resolveRuntimeBundle(loaded);
-      _runtimeBundleByMapId[mapId] = resolved;
-      return resolved;
+      final prepared = await prepareBorderRuntimeBundle(resolved);
+      _runtimeBundleByMapId[mapId] = prepared;
+      return prepared;
     }();
     _runtimeBundleFutureByMapId[mapId] = future;
     try {
@@ -2172,6 +2184,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
         '[runtime_game] tileset cache resolve ok result=${result.length}');
     return result;
+  }
+
+  Future<BorderRuntimeAssetBundle> _loadBorderRuntimeAssets(
+    RuntimeMapBundle bundle,
+  ) {
+    final preparation = bundle.borderRuntimePreparation;
+    if (preparation == null) {
+      throw StateError(
+        'Border runtime bundle must be prepared before visual loading: '
+        '${bundle.map.id}',
+      );
+    }
+    return _borderRuntimeAssetCache.loadCollection(
+      projectRoot: bundle.projectRootDirectory,
+      collection: preparation.assetCollection,
+    );
   }
 
   Map<String, TilesetTransparentColor> _transparentColorByTilesetId(
@@ -2524,6 +2552,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _bundle = await _loadRuntimeMapBundleCached(restoredMapId);
       }
     }
+    _bundle = await prepareBorderRuntimeBundle(_bundle);
+    _runtimeBundleByMapId[_bundle.map.id] = _bundle;
+    final rootBorderAssets = await _loadBorderRuntimeAssets(_bundle);
     final activation = _createMapActivation(
       mapId: _bundle.map.id,
       reason: initialMapActivationReason,
@@ -2612,6 +2643,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final rootMap = await _mountLoadedMap(
       bundle: _bundle,
       tileImagesById: images,
+      borderAssets: rootBorderAssets,
       originCellX: 0,
       originCellY: 0,
     );
@@ -5446,11 +5478,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest),
     );
-    _bundle = RuntimeMapBundle(
-      manifest: _bundle.manifest,
+    _bundle = _bundle.copyWith(
       map: updatedMap,
-      projectRootDirectory: _bundle.projectRootDirectory,
-      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
     );
 
     final loaded = _loadedMapsById[_activeMapId];
@@ -5767,11 +5796,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest),
     );
-    _bundle = RuntimeMapBundle(
-      manifest: _bundle.manifest,
+    _bundle = _bundle.copyWith(
       map: updatedMap,
-      projectRootDirectory: _bundle.projectRootDirectory,
-      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
     );
     _syncGameStateFromWorld();
     return true;
@@ -8421,11 +8447,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         mapEntityPresencePredicate:
             _mapEntityPresencePredicateFor(_bundle.manifest),
       );
-      _bundle = RuntimeMapBundle(
-        manifest: _bundle.manifest,
+      _bundle = _bundle.copyWith(
         map: updatedMap,
-        projectRootDirectory: _bundle.projectRootDirectory,
-        tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
       );
       final activeLoaded = _loadedMapsById[_activeMapId];
       if (activeLoaded != null) {
@@ -9077,11 +9100,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     // 3. Charger newImages (avec error handling)
     Map<String, RuntimeTilesetImage> newImages;
+    BorderRuntimeAssetBundle newBorderAssets;
     try {
       newImages = await _loadTilesetImagesCached(
         newBundle.tilesetAbsolutePathsById,
         manifest: newBundle.manifest,
       );
+      newBorderAssets = await _loadBorderRuntimeAssets(newBundle);
+      newBundle = await prepareBorderRuntimeBundle(newBundle);
     } catch (e, st) {
       debugPrint('[load] failed to load tileset images: $e\n$st');
       return false;
@@ -9113,6 +9139,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       await _mountLoadedMap(
         bundle: newBundle,
         tileImagesById: newImages,
+        borderAssets: newBorderAssets,
         originCellX: 0,
         originCellY: 0,
       );
@@ -9337,7 +9364,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
       );
       final warpStopwatch = Stopwatch()..start();
-      final newBundle = await _traceAsync(
+      var newBundle = await _traceAsync(
         'warp',
         'loadBundle',
         () => _loadRuntimeMapBundleCached(warp.targetMapId),
@@ -9388,6 +9415,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           manifest: newBundle.manifest,
         ),
       );
+      final newBorderAssets = await _traceAsync(
+        'warp',
+        'loadBorderAssets',
+        () => _loadBorderRuntimeAssets(newBundle),
+      );
+      if (transitionSpec.style == _WarpTransitionStyle.fade) {
+        debugPrint(
+          '[warp] fade out durationMs=${transitionSpec.fadeOut.inMilliseconds}',
+        );
+        await overlay.fadeOut(duration: transitionSpec.fadeOut);
+      }
+      newBundle = await _traceAsync(
+        'warp',
+        'revalidateBorderBeforeSwap',
+        () => prepareBorderRuntimeBundle(newBundle),
+      );
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
         'warp',
@@ -9395,6 +9438,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         () => _mountLoadedMap(
           bundle: newBundle,
           tileImagesById: newImages,
+          borderAssets: newBorderAssets,
           originCellX: 0,
           originCellY: 0,
         ),
@@ -9554,8 +9598,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     try {
-      _unmountAllLoadedMaps();
-      final fallbackBundle = await _loadRuntimeMapBundleCached(sourceMapId);
+      var fallbackBundle = await _loadRuntimeMapBundleCached(sourceMapId);
       final fallbackWorld = _buildSafeWorldState(
         map: fallbackBundle.map,
         project: fallbackBundle.manifest,
@@ -9568,9 +9611,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         fallbackBundle.tilesetAbsolutePathsById,
         manifest: fallbackBundle.manifest,
       );
+      final fallbackBorderAssets =
+          await _loadBorderRuntimeAssets(fallbackBundle);
+      fallbackBundle = await prepareBorderRuntimeBundle(fallbackBundle);
+      _unmountAllLoadedMaps();
       final root = await _mountLoadedMap(
         bundle: fallbackBundle,
         tileImagesById: fallbackImages,
+        borderAssets: fallbackBorderAssets,
         originCellX: 0,
         originCellY: 0,
       );
@@ -10088,18 +10136,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<_LoadedPlayableMap> _mountLoadedMap({
     required RuntimeMapBundle bundle,
     required Map<String, RuntimeTilesetImage> tileImagesById,
+    BorderRuntimeAssetBundle? borderAssets,
     required int originCellX,
     required int originCellY,
   }) async {
-    final npcPred = _npcPresencePredicateFor(bundle.manifest);
+    final preparedBundle = await prepareBorderRuntimeBundle(bundle);
+    final resolvedBorderAssets =
+        borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle);
+    final npcPred = _npcPresencePredicateFor(preparedBundle.manifest);
     final backgroundLayers = MapLayersComponent(
-      bundle: bundle,
+      bundle: preparedBundle,
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(bundle.manifest),
-      shadowCollectionProvider: _shadowCollectionProviderForMap(bundle.map.id),
+          _mapEntityPresencePredicateFor(preparedBundle.manifest),
+      shadowCollectionProvider:
+          _shadowCollectionProviderForMap(preparedBundle.map.id),
+      borderAssets: resolvedBorderAssets,
     );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -10109,13 +10163,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     await world.add(backgroundLayers);
 
     final foregroundLayers = MapLayersComponent(
-      bundle: bundle,
+      bundle: preparedBundle,
       tileImagesByTilesetId: tileImagesById,
       renderPass: MapLayerRenderPass.foreground,
       showCollisionOverlay: false,
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
-          _mapEntityPresencePredicateFor(bundle.manifest),
+          _mapEntityPresencePredicateFor(preparedBundle.manifest),
     );
     foregroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -10127,7 +10181,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
     final occlusionInstructions =
         resolveStaticPlacedElementOcclusionPatchInstructions(
-      bundle: bundle,
+      bundle: preparedBundle,
       originCellX: originCellX,
       originCellY: originCellY,
     );
@@ -10146,29 +10200,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final npcActors = <OverworldActorComponent>[];
     final npcActorByEntityId = <String, OverworldActorComponent>{};
-    final charById = {for (final c in bundle.manifest.characters) c.id: c};
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
+    final charById = {
+      for (final c in preparedBundle.manifest.characters) c.id: c,
+    };
+    final cw = preparedBundle.cellWidth;
+    final ch = preparedBundle.cellHeight;
     final originPx =
         _originPixels(originCellX: originCellX, originCellY: originCellY);
-    for (final entity in bundle.map.entities) {
+    for (final entity in preparedBundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) continue;
-      if (!npcPred(bundle.map.id, entity)) {
+      if (!npcPred(preparedBundle.map.id, entity)) {
         // Pas de création d'acteur si la règle runtime dit "absent".
         debugPrint(
-          '[step_studio_trace] npc_mount_skipped map=${bundle.map.id} entity=${entity.id} reason=presence_predicate_false',
+          '[step_studio_trace] npc_mount_skipped map=${preparedBundle.map.id} entity=${entity.id} reason=presence_predicate_false',
         );
         continue;
       }
-      final charId = resolveNpcCharacterId(entity, bundle.manifest);
+      final charId = resolveNpcCharacterId(entity, preparedBundle.manifest);
       if (charId == null || charId.isEmpty) continue;
       final char = charById[charId];
       if (char == null) continue;
       final actor = OverworldActorComponent(
         character: char,
         tileImages: tileImagesById,
-        tileWidth: bundle.manifest.settings.tileWidth,
-        tileHeight: bundle.manifest.settings.tileHeight,
+        tileWidth: preparedBundle.manifest.settings.tileWidth,
+        tileHeight: preparedBundle.manifest.settings.tileHeight,
         cellWidth: cw,
         cellHeight: ch,
         facing: entity.npc?.facing ?? EntityFacing.south,
@@ -10184,12 +10240,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _npcActors.add(actor);
       await world.add(actor);
       debugPrint(
-        '[step_studio_trace] npc_mount_added map=${bundle.map.id} entity=${entity.id}',
+        '[step_studio_trace] npc_mount_added map=${preparedBundle.map.id} entity=${entity.id}',
       );
     }
 
     final loaded = _LoadedPlayableMap(
-      bundle: bundle,
+      bundle: preparedBundle,
       originCellX: originCellX,
       originCellY: originCellY,
       backgroundLayers: backgroundLayers,
@@ -10198,9 +10254,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
     );
-    _loadedMapsById[bundle.map.id] = loaded;
-    _refreshProjectedBuildingShadowCollection(bundle);
-    _refreshStaticPlacedElementShadowCollection(bundle);
+    _loadedMapsById[preparedBundle.map.id] = loaded;
+    _runtimeBundleByMapId[preparedBundle.map.id] = preparedBundle;
+    _refreshProjectedBuildingShadowCollection(preparedBundle);
+    _refreshStaticPlacedElementShadowCollection(preparedBundle);
     _applyNpcVisibilityToLoadedMap(loaded);
     return loaded;
   }
@@ -10395,6 +10452,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           bundle.tilesetAbsolutePathsById,
           manifest: bundle.manifest,
         );
+        await _loadBorderRuntimeAssets(bundle);
       } catch (error, stackTrace) {
         debugPrint(
           '[perf][warp][real] prewarmTargetFailed map=$normalizedTargetMapId error=$error\n$stackTrace',
@@ -10802,11 +10860,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(_bundle.manifest),
     );
-    _bundle = RuntimeMapBundle(
-      manifest: _bundle.manifest,
+    _bundle = _bundle.copyWith(
       map: updatedMap,
-      projectRootDirectory: _bundle.projectRootDirectory,
-      tilesetAbsolutePathsById: _bundle.tilesetAbsolutePathsById,
     );
     return true;
   }

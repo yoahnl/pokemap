@@ -18,6 +18,7 @@ final class BorderRuntimeRenderer {
     required BorderRuntimeDrawInstructionCollection collection,
     required BorderRuntimeAssetBundle assets,
     required int elapsedMs,
+    required double displayScale,
     ui.Rect? viewport,
   }) {
     if (!collection.isVisible || collection.opacity <= 0) {
@@ -30,7 +31,11 @@ final class BorderRuntimeRenderer {
       ..color = ui.Color.fromRGBO(255, 255, 255, collection.opacity);
     for (final instruction in collection.instructions) {
       if (viewport != null &&
-          !_intersects(instruction.cullingBoundsPx, viewport)) {
+          !_intersects(
+            instruction.cullingBoundsPx,
+            viewport,
+            displayScale: displayScale,
+          )) {
         continue;
       }
       final snapshot = assets.snapshotById(instruction.snapshotId);
@@ -48,7 +53,7 @@ final class BorderRuntimeRenderer {
           frame.image.drawImageRect(
             canvas,
             sourceRect,
-            _rect(instruction.worldBoundsPx),
+            _scaledRect(instruction.worldBoundsPx, displayScale),
             paint,
           );
         case BorderRuntimePlacementInstruction():
@@ -58,6 +63,7 @@ final class BorderRuntimeRenderer {
             frame: frame,
             sourceRect: sourceRect,
             paint: paint,
+            displayScale: displayScale,
           );
       }
     }
@@ -95,15 +101,17 @@ void _drawPlacement({
   required BorderRuntimeLoadedFrame frame,
   required ui.Rect sourceRect,
   required ui.Paint paint,
+  required double displayScale,
 }) {
   final sourceWidth = sourceRect.width;
   final sourceHeight = sourceRect.height;
   canvas.save();
   try {
     canvas.translate(
-      instruction.topLeftWorldPx.x.toDouble(),
-      instruction.topLeftWorldPx.y.toDouble(),
+      instruction.topLeftWorldPx.x * displayScale,
+      instruction.topLeftWorldPx.y * displayScale,
     );
+    canvas.scale(displayScale, displayScale);
     _applyPositiveBoundsClockwiseRotation(
       canvas,
       quarterTurns: instruction.transform.quarterTurns,
@@ -152,11 +160,16 @@ void _applyPositiveBoundsClockwiseRotation(
   }
 }
 
-bool _intersects(BorderPixelRect bounds, ui.Rect viewport) {
-  return bounds.x < viewport.right &&
-      bounds.right > viewport.left &&
-      bounds.y < viewport.bottom &&
-      bounds.bottom > viewport.top;
+bool _intersects(
+  BorderPixelRect bounds,
+  ui.Rect viewport, {
+  required double displayScale,
+}) {
+  final scaled = _scaledRect(bounds, displayScale);
+  return scaled.left < viewport.right &&
+      scaled.right > viewport.left &&
+      scaled.top < viewport.bottom &&
+      scaled.bottom > viewport.top;
 }
 
 ui.Rect _sourceRect(BorderPixelRect rect) => ui.Rect.fromLTWH(
@@ -166,9 +179,10 @@ ui.Rect _sourceRect(BorderPixelRect rect) => ui.Rect.fromLTWH(
       rect.height.toDouble(),
     );
 
-ui.Rect _rect(BorderPixelRect rect) => ui.Rect.fromLTWH(
-      rect.x.toDouble(),
-      rect.y.toDouble(),
-      rect.width.toDouble(),
-      rect.height.toDouble(),
+ui.Rect _scaledRect(BorderPixelRect rect, double displayScale) =>
+    ui.Rect.fromLTWH(
+      rect.x * displayScale,
+      rect.y * displayScale,
+      rect.width * displayScale,
+      rect.height * displayScale,
     );

@@ -271,6 +271,125 @@ void main() {
       }
     }
   });
+
+  test('scales native ground bounds into runtime display pixels', () async {
+    final red = await _solidImage(const ui.Color(0xffff0000));
+    final bundle = _bundle(<_FrameFixture>[
+      _FrameFixture(
+        image: red,
+        sourceRect: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+        durationMs: 100,
+      ),
+    ]);
+    final collection = _collection(<BorderRuntimeDrawInstruction>[
+      BorderRuntimeGroundInstruction(
+        featureId: 'feature',
+        snapshotId: _snapshotId,
+        cellX: 1,
+        cellY: 1,
+        worldBoundsPx: BorderPixelRect(x: 1, y: 1, width: 1, height: 1),
+      ),
+    ]);
+
+    final rendered = await _render(
+      collection,
+      bundle,
+      width: 4,
+      height: 4,
+      displayScale: 2,
+    );
+
+    expect(await _rgbaAt(rendered, 1, 1), <int>[0, 0, 0, 0]);
+    for (final point in <(int, int)>[(2, 2), (3, 2), (2, 3), (3, 3)]) {
+      expect(
+          await _rgbaAt(rendered, point.$1, point.$2), <int>[255, 0, 0, 255]);
+    }
+  });
+
+  test(
+    'scales transformed placements without leaking transforms to the next '
+    'instruction',
+    () async {
+      const source = <List<ui.Color>>[
+        <ui.Color>[ui.Color(0xffff0000), ui.Color(0xff00ff00)],
+        <ui.Color>[ui.Color(0xff0000ff), ui.Color(0xffffff00)],
+        <ui.Color>[ui.Color(0xffff00ff), ui.Color(0xff00ffff)],
+      ];
+      final image = await _imageFromRows(source);
+      final bundle = _bundle(<_FrameFixture>[
+        _FrameFixture(
+          image: image,
+          sourceRect: BorderPixelRect(x: 0, y: 0, width: 2, height: 3),
+          durationMs: 100,
+        ),
+      ]);
+      final collection = _collection(<BorderRuntimeDrawInstruction>[
+        _placement(
+          topLeft: const BorderPixelPos(x: 0, y: 0),
+          opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 3, height: 2),
+          transform: BorderSpriteTransform(quarterTurns: 1, flipX: true),
+        ),
+        _placement(
+          topLeft: const BorderPixelPos(x: 4, y: 0),
+          opaqueBounds: BorderPixelRect(x: 4, y: 0, width: 2, height: 3),
+        ),
+      ]);
+
+      final rendered = await _render(
+        collection,
+        bundle,
+        width: 12,
+        height: 6,
+        displayScale: 2,
+      );
+
+      // The first source pixel is flipped and rotated to native (2, 1), then
+      // expanded to a 2x2 nearest-neighbor block.
+      for (final point in <(int, int)>[(4, 2), (5, 2), (4, 3), (5, 3)]) {
+        expect(
+            await _rgbaAt(rendered, point.$1, point.$2), <int>[255, 0, 0, 255]);
+      }
+      // The second placement must begin untransformed at native x=4. This
+      // also proves the first placement's scale/rotation/flip were restored.
+      for (final point in <(int, int)>[(8, 0), (9, 0), (8, 1), (9, 1)]) {
+        expect(
+            await _rgbaAt(rendered, point.$1, point.$2), <int>[255, 0, 0, 255]);
+      }
+      expect(await _rgbaAt(rendered, 10, 0), <int>[0, 255, 0, 255]);
+    },
+  );
+
+  test('culls persisted opaque bounds in display-scaled world coordinates',
+      () async {
+    final red = await _solidImage(const ui.Color(0xffff0000));
+    final bundle = _bundle(<_FrameFixture>[
+      _FrameFixture(
+        image: red,
+        sourceRect: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+        durationMs: 100,
+      ),
+    ]);
+    final collection = _collection(<BorderRuntimeDrawInstruction>[
+      _placement(
+        topLeft: const BorderPixelPos(x: 2, y: 0),
+        opaqueBounds: BorderPixelRect(x: 2, y: 0, width: 1, height: 1),
+      ),
+    ]);
+
+    final rendered = await _render(
+      collection,
+      bundle,
+      width: 6,
+      height: 2,
+      displayScale: 2,
+      viewport: const ui.Rect.fromLTWH(4, 0, 2, 2),
+    );
+
+    for (final point in <(int, int)>[(4, 0), (5, 0), (4, 1), (5, 1)]) {
+      expect(
+          await _rgbaAt(rendered, point.$1, point.$2), <int>[255, 0, 0, 255]);
+    }
+  });
 }
 
 BorderRuntimeDrawInstructionCollection _collection(
@@ -352,6 +471,7 @@ Future<ui.Image> _render(
   required int height,
   int elapsedMs = 0,
   ui.Rect? viewport,
+  double displayScale = 1,
 }) {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
@@ -361,6 +481,7 @@ Future<ui.Image> _render(
     assets: bundle,
     elapsedMs: elapsedMs,
     viewport: viewport,
+    displayScale: displayScale,
   );
   return recorder.endRecording().toImage(width, height);
 }
@@ -376,6 +497,7 @@ ui.Picture _record(
     collection: collection,
     assets: bundle,
     elapsedMs: 0,
+    displayScale: 1,
   );
   return recorder.endRecording();
 }

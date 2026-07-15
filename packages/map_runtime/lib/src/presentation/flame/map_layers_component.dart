@@ -7,11 +7,15 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../border/border_runtime_asset_cache.dart';
+import '../../border/border_runtime_draw_instruction.dart';
+import '../../border/border_runtime_renderer.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import '../../surface/surface_runtime_resolver.dart';
 import 'path_pattern_runtime_render_resolution.dart';
+import 'runtime_map_layer_paint_order.dart';
 import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
@@ -43,6 +47,8 @@ class MapLayersComponent extends PositionComponent {
     this.mapEntityPresencePredicate,
     this.shadowCollectionProvider,
     this.shadowRenderer = const ShadowRuntimeRenderer(),
+    this.borderAssets,
+    this.borderRenderer = const BorderRuntimeRenderer(),
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
         _pathAutotileByPresetId = {
           for (final p in bundle.manifest.pathPresets)
@@ -80,6 +86,8 @@ class MapLayersComponent extends PositionComponent {
   MapEntityPresencePredicate? mapEntityPresencePredicate;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final ShadowRuntimeRenderer shadowRenderer;
+  final BorderRuntimeAssetBundle? borderAssets;
+  final BorderRuntimeRenderer borderRenderer;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
   final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
   final Map<String, List<_PathRuleSpec>> _pathRulesByLayerId;
@@ -120,6 +128,9 @@ class MapLayersComponent extends PositionComponent {
   /// `tileLayerOrder: bottom_to_top` suivent le contrat cartographique moderne
   /// et sont peintes dans l'ordre sérialisé, sans modifier le rendu legacy.
   List<TileLayer>? _cachedVisibleTileLayersInPaintOrder;
+
+  late final RuntimeMapLayerPaintOrder _runtimeLayerPaintOrder =
+      buildRuntimeMapLayerPaintOrder(bundle.map);
 
   /// Met à jour le rectangle visible **en coordonnées locales** du composant.
   ///
@@ -318,6 +329,27 @@ class MapLayersComponent extends PositionComponent {
       _paintEntities(canvas);
       return;
     }
+    final paintOrder = _runtimeLayerPaintOrder;
+    if (paintOrder.usesAuthoredVisualLayerOrder) {
+      _renderAuthoredBackground(
+        canvas,
+        paintOrder: paintOrder,
+        visible: visible,
+      );
+      return;
+    }
+    _renderLegacyBackground(
+      canvas,
+      visible: visible,
+      visibleTileLayers: visibleTileLayers,
+    );
+  }
+
+  void _renderLegacyBackground(
+    Canvas canvas, {
+    required List<MapLayer> visible,
+    required List<TileLayer> visibleTileLayers,
+  }) {
     TileLayer? deferredPathGroundLayer;
     final deferredPathLayers = <PathLayer>[];
     // This opt-in is deliberately limited to the first background tile layer.
@@ -412,6 +444,86 @@ class MapLayersComponent extends PositionComponent {
     if (showCollisionOverlay) {
       _paintCollisionOverlays(canvas, visible);
     }
+  }
+
+  void _renderAuthoredBackground(
+    Canvas canvas, {
+    required RuntimeMapLayerPaintOrder paintOrder,
+    required List<MapLayer> visible,
+  }) {
+    for (final entry in paintOrder.authoredLayers) {
+      switch (entry.kind) {
+        case RuntimeMapAuthoredLayerPaintKind.terrain:
+          final layer = entry.layer as TerrainLayer;
+          _paintTerrainLayer(canvas, layer.terrains, layer.opacity);
+        case RuntimeMapAuthoredLayerPaintKind.path:
+          final layer = entry.layer as PathLayer;
+          _paintPathLayer(
+            canvas,
+            layer.id,
+            layer.presetId,
+            layer.cells,
+            layer.opacity,
+          );
+        case RuntimeMapAuthoredLayerPaintKind.surface:
+          _paintSurfaceLayer(canvas, entry.layer as SurfaceLayer);
+        case RuntimeMapAuthoredLayerPaintKind.tileBackground:
+          final layer = entry.layer as TileLayer;
+          _paintTileLayer(
+            canvas,
+            layerId: layer.id,
+            layerName: layer.name,
+            tilesetId: layer.tilesetId,
+            tiles: layer.tiles,
+            opacity: layer.opacity,
+          );
+        case RuntimeMapAuthoredLayerPaintKind.border:
+          _paintBorderLayer(canvas, entry.layer as BorderLayer);
+        case RuntimeMapAuthoredLayerPaintKind.objectNoop:
+        case RuntimeMapAuthoredLayerPaintKind.environmentNoop:
+          break;
+      }
+    }
+
+    _paintShadows(canvas);
+    for (final layer in paintOrder.visibleTileLayersInPaintOrder) {
+      _paintPlacedElementsForLayer(
+        canvas,
+        layerId: layer.id,
+        layerName: layer.name,
+        opacity: layer.opacity,
+      );
+    }
+    _paintEntities(canvas);
+    if (showCollisionOverlay) {
+      _paintCollisionOverlays(canvas, visible);
+    }
+  }
+
+  void _paintBorderLayer(Canvas canvas, BorderLayer layer) {
+    final collection = buildBorderRuntimeDrawInstructions(
+      layer: layer,
+      tileWidthPx: bundle.manifest.settings.tileWidth,
+      tileHeightPx: bundle.manifest.settings.tileHeight,
+    );
+    if (collection.instructions.isEmpty || collection.opacity <= 0) {
+      return;
+    }
+    final assets = borderAssets;
+    if (assets == null) {
+      throw AssetNotFoundException(
+        'Border runtime assets were not supplied for visible layer: '
+        '${layer.id}',
+      );
+    }
+    borderRenderer.renderCollection(
+      canvas,
+      collection: collection,
+      assets: assets,
+      elapsedMs: (_animElapsed * 1000).toInt(),
+      displayScale: bundle.manifest.settings.displayScale,
+      viewport: _visibleLocalRect,
+    );
   }
 
   void _paintTileLayerAndElements(Canvas canvas, TileLayer layer) {

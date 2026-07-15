@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/border/border_runtime_asset_cache.dart';
 import 'package:map_runtime/src/border/border_runtime_asset_collection.dart';
@@ -115,6 +116,80 @@ void main() {
     );
   });
 
+  test(
+    'default loader reads a real snapshot without source element or Surface '
+    'metadata',
+    () async {
+      final fixture = await _writeAsymmetricSnapshot();
+      final cache = BorderRuntimeAssetCache();
+
+      final loaded = await cache.loadFrame(
+        projectRoot: fixture.projectRoot,
+        frame: fixture.frame,
+      );
+
+      expect(loaded.width, 4);
+      expect(loaded.height, 3);
+      expect(loaded.chunkCount, 1);
+      expect(
+        File(p.join(fixture.projectRoot, fixture.frame.relativeAssetPath))
+            .existsSync(),
+        isTrue,
+      );
+      // The fixture deliberately contains only the immutable snapshot file.
+      // Loading therefore cannot fall back to ProjectElementEntry source
+      // metadata or a Surface preset/source asset.
+      expect(
+        Directory(p.join(fixture.projectRoot, 'assets', 'source')).existsSync(),
+        isFalse,
+      );
+    },
+  );
+
+  test(
+    'real snapshot drawing preserves source rect, RGB key, and nearest pixels',
+    () async {
+      final fixture = await _writeAsymmetricSnapshot();
+      final cache = BorderRuntimeAssetCache();
+      final bundle = await cache.loadCollection(
+        projectRoot: fixture.projectRoot,
+        collection: BorderRuntimeAssetCollection(
+          snapshots: <BorderRuntimeSnapshotRequest>[
+            BorderRuntimeSnapshotRequest(
+              snapshotId: fixture.frame.snapshotId,
+              frames: <BorderRuntimeFrameRequest>[fixture.frame],
+            ),
+          ],
+        ),
+      );
+      final loadedFrame =
+          bundle.snapshotById(fixture.frame.snapshotId).frames[0];
+
+      final rendered = await _drawFrameNearest(
+        loadedFrame,
+        width: 4,
+        height: 4,
+      );
+
+      const red = <int>[255, 0, 0, 255];
+      const green = <int>[0, 255, 0, 255];
+      const transparent = <int>[0, 0, 0, 0];
+      const blue = <int>[0, 0, 255, 255];
+      for (final point in <(int, int)>[(0, 0), (1, 0), (0, 1), (1, 1)]) {
+        expect(await _rgbaAt(rendered, point.$1, point.$2), red);
+      }
+      for (final point in <(int, int)>[(2, 0), (3, 0), (2, 1), (3, 1)]) {
+        expect(await _rgbaAt(rendered, point.$1, point.$2), green);
+      }
+      for (final point in <(int, int)>[(0, 2), (1, 2), (0, 3), (1, 3)]) {
+        expect(await _rgbaAt(rendered, point.$1, point.$2), transparent);
+      }
+      for (final point in <(int, int)>[(2, 2), (3, 2), (2, 3), (3, 3)]) {
+        expect(await _rgbaAt(rendered, point.$1, point.$2), blue);
+      }
+    },
+  );
+
   test('loads every ordered frame into a snapshot bundle', () async {
     final image = await _runtimeImage();
     final paths = <String>[];
@@ -183,4 +258,78 @@ Future<RuntimeTilesetImage> _runtimeImage() async {
     width: 1,
     height: 1,
   );
+}
+
+Future<({String projectRoot, BorderRuntimeFrameRequest frame})>
+    _writeAsymmetricSnapshot() async {
+  final projectRoot = Directory.systemTemp.createTempSync(
+    'border_runtime_real_snapshot',
+  );
+  addTearDown(() async {
+    if (await projectRoot.exists()) {
+      await projectRoot.delete(recursive: true);
+    }
+  });
+  const relativePath = 'assets/borders/snapshots/$_digest/frame_asymmetric.png';
+  final file = File(p.join(projectRoot.path, relativePath));
+  await file.parent.create(recursive: true);
+
+  final image = img.Image(width: 4, height: 3, numChannels: 4);
+  img.fill(image, color: img.ColorRgba8(255, 128, 0, 255));
+  image
+    ..setPixelRgba(1, 0, 255, 0, 0, 255)
+    ..setPixelRgba(2, 0, 0, 255, 0, 255)
+    ..setPixelRgba(1, 1, 10, 11, 12, 255)
+    ..setPixelRgba(2, 1, 0, 0, 255, 255)
+    ..setPixelRgba(3, 2, 255, 0, 255, 255);
+  await file.writeAsBytes(img.encodePng(image, level: 0));
+
+  return (
+    projectRoot: projectRoot.path,
+    frame: BorderRuntimeFrameRequest(
+      snapshotId: 'border-snapshot-sha256:$_digest',
+      frameIndex: 0,
+      relativeAssetPath: relativePath,
+      sourceRectPx: BorderPixelRect(x: 1, y: 0, width: 2, height: 2),
+      durationMs: 100,
+      // The alpha byte is intentionally non-canonical: runtime matching uses
+      // only the effective low-24 RGB value 0x0a0b0c.
+      transparentColorArgb: 0x120a0b0c,
+    ),
+  );
+}
+
+Future<ui.Image> _drawFrameNearest(
+  BorderRuntimeLoadedFrame frame, {
+  required int width,
+  required int height,
+}) {
+  final source = frame.request.sourceRectPx;
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  frame.image.drawImageRect(
+    canvas,
+    ui.Rect.fromLTWH(
+      source.x.toDouble(),
+      source.y.toDouble(),
+      source.width.toDouble(),
+      source.height.toDouble(),
+    ),
+    ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    ui.Paint()
+      ..isAntiAlias = false
+      ..filterQuality = ui.FilterQuality.none,
+  );
+  return recorder.endRecording().toImage(width, height);
+}
+
+Future<List<int>> _rgbaAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  final offset = (y * image.width + x) * 4;
+  return <int>[
+    data!.getUint8(offset),
+    data.getUint8(offset + 1),
+    data.getUint8(offset + 2),
+    data.getUint8(offset + 3),
+  ];
 }

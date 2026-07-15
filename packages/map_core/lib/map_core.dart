@@ -63,6 +63,7 @@ export 'src/operations/border_rle_codec.dart';
 export 'src/operations/border_deterministic_rng.dart';
 export 'src/operations/border_slot_keys.dart';
 export 'src/operations/border_fingerprints.dart';
+export 'src/operations/border_snapshot_content_fingerprint.dart';
 export 'src/operations/border_signed_int64_json_codec.dart';
 export 'src/operations/border_visual_snapshot_json_codec.dart';
 export 'src/operations/border_blueprint_json_codec.dart';
