@@ -14,6 +14,8 @@ import 'border_coverage.dart';
 import 'border_deterministic_rng.dart';
 import 'border_fingerprints.dart';
 import 'border_ground_resolution.dart';
+import 'border_local_resolution_scope.dart';
+import 'border_override_resolution.dart';
 import 'border_region_contours.dart';
 import 'border_rle_codec.dart';
 import 'border_slot_keys.dart';
@@ -174,8 +176,9 @@ BorderResolutionResult resolveOrganicEdgeBorder(
 /// Coverage is assessed once; diagnostics and public evidence consume the same
 /// immutable assessment objects.
 OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
-  BorderResolutionRequest request,
-) {
+    BorderResolutionRequest request,
+    {BorderLocalResolutionScope? localScope,
+    BorderLocalResolutionCapture? localCapture}) {
   final diagnostics = <BorderDiagnostic>[];
   final revision = request.blueprintRevision;
   if (revision == null) {
@@ -230,15 +233,6 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
       action: 'border.action.draw_nonempty_region',
     ));
   }
-  if (request.feature.overrides.isNotEmpty) {
-    diagnostics.add(_error(
-      request,
-      code: 'border.resolution.overrides_not_supported',
-      scope: BorderDiagnosticScope.feature,
-      action: 'border.action.remove_overrides_before_resolution',
-    ));
-  }
-
   final keepOutMask = List<bool>.filled(
     request.mapSize.width * request.mapSize.height,
     false,
@@ -302,18 +296,36 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
   }
 
   final ground = switch (definition.ground) {
-    final publishedGround? => resolveBorderGroundBand(
-        region: geometry,
-        ground: publishedGround,
-      )
-          .where(
-            (cell) => !keepOutMask[cell.y * request.mapSize.width + cell.x],
-          )
-          .toList(growable: false),
+    final publishedGround? => (localScope == null
+            ? resolveBorderGroundBand(
+                region: geometry,
+                ground: publishedGround,
+              )
+            : resolveBorderGroundBandLocally(
+                region: geometry,
+                ground: publishedGround,
+                tileSizePx: request.tileSizePx,
+                scope: localScope,
+              ))
+        .where(
+          (cell) => !keepOutMask[cell.y * request.mapSize.width + cell.x],
+        )
+        .toList(growable: false),
     null => <BorderResolvedGroundCell>[],
   };
 
-  final generated = <_GeneratedPlacement>[];
+  final generated = localScope == null
+      ? <_GeneratedPlacement>[]
+      : _rebuildRetainedOrganicPlacements(
+          request: request,
+          scope: localScope,
+          contours: contours,
+          primitives: primitives,
+        );
+  final retainedSlotKeys = <String>{
+    if (localScope != null)
+      for (final item in generated) item.placement.slotKey,
+  };
   for (var contourIndex = 0;
       contourIndex < contours.length;
       contourIndex += 1) {
@@ -372,6 +384,14 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
             .toList(growable: true);
         final occupiedLatticeSites = <(BorderCardinalDirection, int, int)>{};
         for (final edge in contour.edges) {
+          if (localScope != null &&
+              !localScope.recomputesCell(
+                edge.interiorCell,
+                request.tileSizePx,
+              )) {
+            continue;
+          }
+          localScope?.recordRecomputedCell(edge.interiorCell);
           if (_edgeIsKeptOut(edge, keepOutMask, request.mapSize.width)) {
             continue;
           }
@@ -463,6 +483,14 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
         contourIndex < contours.length;
         contourIndex += 1) {
       for (final edge in contours[contourIndex].edges) {
+        if (localScope != null &&
+            !localScope.recomputesCell(
+              edge.interiorCell,
+              request.tileSizePx,
+            )) {
+          continue;
+        }
+        localScope?.recordRecomputedCell(edge.interiorCell);
         if (_edgeIsKeptOut(edge, keepOutMask, request.mapSize.width) ||
             !_includeDecoration(
               request,
@@ -496,10 +524,51 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
     }
   }
 
+  final baseGenerated = List<_GeneratedPlacement>.of(generated);
+  localCapture?.recordBase(
+    ground: ground,
+    placements: baseGenerated.map((item) => item.placement),
+  );
+  final overrideResolution = resolveBorderOverrides(
+    request: request,
+    baseGround: ground,
+    basePlacements: baseGenerated.map((item) => item.placement),
+    alreadyResolvedSlotKeys: retainedSlotKeys,
+    previouslyResolvedPlacementsBySlot:
+        localScope?.previousResolvedPlacementsBySlot ??
+            const <String, BorderResolvedPlacement>{},
+    previouslySuppressedSlotKeys:
+        localScope?.previousSuppressedPlacementSlotKeys ?? const <String>{},
+  );
+  diagnostics.addAll(overrideResolution.diagnostics);
+  final resolvedBySlot = <String, BorderResolvedPlacement>{
+    for (final placement in overrideResolution.placements)
+      placement.slotKey: placement,
+  };
+  final primitiveById = <String, BorderPublishedPrimitive>{
+    for (final primitive in primitives) primitive.id: primitive,
+  };
+  generated
+    ..clear()
+    ..addAll(<_GeneratedPlacement>[
+      for (final item in baseGenerated)
+        if (resolvedBySlot[item.placement.slotKey] case final placement?)
+          _GeneratedPlacement(
+            contourIndex: item.contourIndex,
+            edge: item.edge,
+            primitive: primitiveById[placement.primitiveId]!,
+            placement: placement,
+            eligiblePrimitiveCount: item.eligiblePrimitiveCount,
+            continuitySiteIndex: item.continuitySiteIndex,
+          ),
+    ]);
+
   final contourEvidence = _diagnoseCoverage(
     request,
     contours: contours,
     generated: generated,
+    baseGenerated: baseGenerated,
+    intentionalGapSlotKeys: overrideResolution.intentionalGapSlotKeys,
     keepOutMask: keepOutMask,
     params: params,
     diagnostics: diagnostics,
@@ -524,7 +593,8 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
     ..sort(
       (left, right) => left.stableOrderKey.compareTo(right.stableOrderKey),
     );
-  if (ground.isEmpty && placements.isEmpty) {
+  final resolvedGround = overrideResolution.ground;
+  if (resolvedGround.isEmpty && placements.isEmpty) {
     diagnostics.add(_error(
       request,
       code: 'border.resolution.materialization_empty',
@@ -545,7 +615,7 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
     components: components,
   );
   final outputFingerprint = computeBorderOutputFingerprint(
-    ground: ground,
+    ground: resolvedGround,
     placements: placements,
   );
   final materialization = BorderMaterialization(
@@ -556,7 +626,7 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
       inputFingerprint: inputFingerprint,
       outputFingerprint: outputFingerprint,
     ),
-    ground: ground,
+    ground: resolvedGround,
     placements: placements,
   );
   return OrganicEdgeBorderResolutionEvidence._(
@@ -1118,6 +1188,102 @@ int _floorDiv(int value, int positiveDivisor) {
   return quotient;
 }
 
+List<_GeneratedPlacement> _rebuildRetainedOrganicPlacements({
+  required BorderResolutionRequest request,
+  required BorderLocalResolutionScope scope,
+  required List<BorderRegionContour> contours,
+  required List<BorderPublishedPrimitive> primitives,
+}) {
+  final primitiveById = <String, BorderPublishedPrimitive>{
+    for (final primitive in primitives) primitive.id: primitive,
+  };
+  final retained = <_GeneratedPlacement>[];
+  for (final placement in scope.previousBasePlacements) {
+    if (!scope.retainsBasePlacement(placement, request.tileSizePx)) {
+      continue;
+    }
+    final primitive = primitiveById[placement.primitiveId];
+    if (primitive == null) {
+      throw ValidationException(
+        'Border local regeneration cannot recover primitive '
+        '${placement.primitiveId}',
+      );
+    }
+    (int, BorderRegionContourEdge)? match;
+    for (var contourIndex = 0;
+        contourIndex < contours.length && match == null;
+        contourIndex += 1) {
+      for (final edge in contours[contourIndex].edges) {
+        if (edge.interiorCell != placement.anchorCell) {
+          continue;
+        }
+        final expectedSlotKey = buildBorderRegionSlotKey(
+          featureId: request.feature.id,
+          interiorCell: edge.interiorCell,
+          side: edge.outwardSide,
+          passIndex: placement.stableOrderKey.passIndex,
+          role: primitive.role,
+          rank: placement.stableOrderKey.rank,
+          ordinalLocal: placement.stableOrderKey.ordinalLocal,
+        );
+        if (expectedSlotKey == placement.slotKey) {
+          match = (contourIndex, edge);
+          break;
+        }
+      }
+    }
+    if (match == null) {
+      throw ValidationException(
+        'Border local regeneration cannot associate distant slot '
+        '${placement.slotKey} with the current contour topology',
+      );
+    }
+    final (contourIndex, edge) = match;
+    final roleCandidates = primitives
+        .where((candidate) => candidate.role == primitive.role)
+        .toList(growable: false);
+    final eligible = _eligibleForDirection(roleCandidates, edge.direction);
+    int? continuitySiteIndex;
+    if (placement.drawBand == BorderDrawBand.structure) {
+      final maximumExtent = _maximumTangentOpaqueExtentPx(
+        eligible,
+        edge.direction,
+      );
+      final spacing = _latticeSpacingPx(
+        maximumExtent,
+        maxOverlapPx: (request.feature.paramsOverride ??
+                request.blueprintRevision!.definition.defaults)
+            .maxOverlapPx,
+      );
+      final sites = _latticeSitesIntersectingEdge(
+        request,
+        edge: edge,
+        spacingPx: spacing,
+        maximumTangentExtentPx: maximumExtent,
+      );
+      final ordinal = placement.stableOrderKey.ordinalLocal;
+      if (ordinal >= sites.length) {
+        throw ValidationException(
+          'Border local regeneration cannot recover distant continuity for '
+          '${placement.slotKey}',
+        );
+      }
+      continuitySiteIndex = _floorDiv(sites[ordinal], spacing);
+    }
+    retained.add(
+      _GeneratedPlacement(
+        contourIndex: contourIndex,
+        edge: edge,
+        primitive: primitive,
+        placement: placement,
+        eligiblePrimitiveCount: eligible.length,
+        continuitySiteIndex: continuitySiteIndex,
+      ),
+    );
+  }
+  return retained;
+}
+
 int _edgeNormalWorldAxis(BorderRegionContourEdge edge) =>
     edge.direction == BorderCardinalDirection.east ||
             edge.direction == BorderCardinalDirection.west
@@ -1272,6 +1438,8 @@ List<OrganicEdgeContourEvidence> _diagnoseCoverage(
   BorderResolutionRequest request, {
   required List<BorderRegionContour> contours,
   required List<_GeneratedPlacement> generated,
+  required List<_GeneratedPlacement> baseGenerated,
+  required Set<String> intentionalGapSlotKeys,
   required List<bool> keepOutMask,
   required BorderGenerationParams params,
   required List<BorderDiagnostic> diagnostics,
@@ -1281,11 +1449,23 @@ List<OrganicEdgeContourEvidence> _diagnoseCoverage(
       contourIndex < contours.length;
       contourIndex += 1) {
     final contour = contours[contourIndex];
-    final excluded = _excludedCoverageIntervals(
-      contour,
-      keepOutMask: keepOutMask,
-      mapWidth: request.mapSize.width,
-    );
+    final excluded = <BorderCoverageInterval>[
+      ..._excludedCoverageIntervals(
+        contour,
+        keepOutMask: keepOutMask,
+        mapWidth: request.mapSize.width,
+      ),
+      ..._intentionalCoverageExclusions(
+        contour: contour,
+        generated: baseGenerated.where(
+          (item) =>
+              item.contourIndex == contourIndex &&
+              item.placement.drawBand == BorderDrawBand.structure &&
+              item.placement.stableOrderKey.rank == 0 &&
+              intentionalGapSlotKeys.contains(item.placement.slotKey),
+        ),
+      ),
+    ];
     final projections = <BorderStructuralCoverageProjection>[];
     for (final item in generated) {
       if (item.contourIndex != contourIndex ||
@@ -1349,6 +1529,58 @@ List<OrganicEdgeContourEvidence> _diagnoseCoverage(
     }
   }
   return List<OrganicEdgeContourEvidence>.unmodifiable(evidence);
+}
+
+List<BorderCoverageInterval> _intentionalCoverageExclusions({
+  required BorderRegionContour contour,
+  required Iterable<_GeneratedPlacement> generated,
+}) {
+  final perimeter = BigInt.from(contour.perimeterPx);
+  final result = <BorderCoverageInterval>[];
+  for (final item in generated) {
+    final projected = projectBorderStructuralMaskOntoEdge(
+      metrics: item.primitive.publishedMetrics,
+      transform: item.placement.transform,
+      topLeftWorldPx: item.placement.topLeftWorldPx,
+      edge: item.edge,
+    );
+    for (final interval in projected) {
+      final length = BigInt.from(interval.lengthPx);
+      if (length >= perimeter) {
+        return <BorderCoverageInterval>[
+          BorderCoverageInterval(startPx: 0, endPx: contour.perimeterPx),
+        ];
+      }
+      var start = BigInt.from(interval.startPx).remainder(perimeter);
+      if (start.isNegative) {
+        start += perimeter;
+      }
+      final end = start + length;
+      if (end <= perimeter) {
+        result.add(
+          BorderCoverageInterval(
+            startPx: start.toInt(),
+            endPx: end.toInt(),
+          ),
+        );
+      } else {
+        result
+          ..add(
+            BorderCoverageInterval(
+              startPx: start.toInt(),
+              endPx: contour.perimeterPx,
+            ),
+          )
+          ..add(
+            BorderCoverageInterval(
+              startPx: 0,
+              endPx: (end - perimeter).toInt(),
+            ),
+          );
+      }
+    }
+  }
+  return result;
 }
 
 void _diagnoseRepetition(

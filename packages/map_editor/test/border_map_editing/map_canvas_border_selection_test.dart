@@ -579,8 +579,17 @@ void main() {
     final geometry =
         preview.transaction!.proposedFeature.geometry as BorderStrokeGeometry;
     expect(
-      geometry.strokes.map((stroke) => stroke.id),
+      geometry.strokes.map((stroke) => borderStrokeAuthoredIdV1(stroke.id)),
       orderedEquals(const <String>['wall', 'wall__fragment_2']),
+    );
+    final lineage = geometry.strokes
+        .map(resolveBorderStrokeLineageIdentityV1)
+        .toList(growable: false);
+    expect(lineage.map((identity) => identity.preserveTraversal),
+        everyElement(isTrue));
+    expect(
+      lineage.map((identity) => identity.sourceEdgeOffset),
+      orderedEquals(const <int>[0, 3]),
     );
     expect(
       geometry.strokes.first.points,

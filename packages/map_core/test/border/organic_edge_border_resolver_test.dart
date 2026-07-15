@@ -706,12 +706,28 @@ void main() {
       );
     });
 
-    test('rejects overrides until stable-slot override resolution exists', () {
-      final result = resolveOrganicEdgeBorder(
+    test('applies a stable-slot suppression before final diagnostics', () {
+      final primitive = _primitive(
+        id: 'small-rock',
+        fingerprintChar: '8',
+        width: 8,
+        height: 8,
+      );
+      final baselineEvidence = resolveOrganicEdgeBorderWithEvidence(
         _request(
+          customPrimitives: <BorderPublishedPrimitive>[primitive],
+          params: _params(variationPermille: 0),
+        ),
+      );
+      final baseline = baselineEvidence.result;
+      final target = baseline.materialization!.placements.first;
+      final resolvedEvidence = resolveOrganicEdgeBorderWithEvidence(
+        _request(
+          customPrimitives: <BorderPublishedPrimitive>[primitive],
+          params: _params(variationPermille: 0),
           overrides: <BorderSlotOverride>[
             BorderSlotOverride(
-              slotKey: 'future-slot',
+              slotKey: target.slotKey,
               variationSalt: BorderSignedInt64.zero,
               suppressed: true,
               locked: false,
@@ -719,11 +735,32 @@ void main() {
           ],
         ),
       );
+      final result = resolvedEvidence.result;
 
-      expect(result.canApply, isFalse);
+      expect(
+        result.canApply,
+        isTrue,
+        reason:
+            result.diagnostics.map((diagnostic) => diagnostic.code).join(', '),
+      );
       expect(
         result.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('border.resolution.overrides_not_supported'),
+        isNot(contains('border.resolution.coverage_gap')),
+      );
+      expect(
+        result.materialization!.placements,
+        baseline.materialization!.placements
+            .where((placement) => placement.slotKey != target.slotKey),
+      );
+      final baselineTargetLength = baselineEvidence
+          .contours.single.coverage.targetIntervals
+          .fold<int>(0, (total, interval) => total + interval.lengthPx);
+      final resolvedTargetLength = resolvedEvidence
+          .contours.single.coverage.targetIntervals
+          .fold<int>(0, (total, interval) => total + interval.lengthPx);
+      expect(
+        baselineTargetLength - resolvedTargetLength,
+        primitive.publishedMetrics.pixelSize.width,
       );
     });
   });

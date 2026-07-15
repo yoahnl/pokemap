@@ -77,6 +77,45 @@ void main() {
     }
   });
 
+  test('localizes every diagnostic currently emitted by Border resize', () {
+    const codes = <String>[
+      'invalid_tile_size',
+      'tile_size_exceeds_portable_integer_range',
+      'old_map_size_out_of_border_rle_bounds',
+      'new_map_size_out_of_border_rle_bounds',
+      'region_size_mismatch',
+      'keep_out_region_size_mismatch',
+      'materialization_output_fingerprint_invalid',
+      'materialization_output_fingerprint_mismatch',
+      'stroke_points_clipped',
+      'stroke_fragment_too_short',
+      'stroke_split',
+      'stroke_closed_to_open',
+      'region_cell_clipped',
+      'keep_out_cell_clipped',
+      'region_padding_added',
+      'keep_out_padding_added',
+      'ground_cell_out_of_bounds',
+      'placement_anchor_out_of_bounds',
+      'placement_bounds_out_of_bounds',
+    ];
+
+    for (final code in codes) {
+      final localized = localizeEditorBorderDiagnostic(
+        _diagnostic(
+          code: code,
+          severity: BorderDiagnosticSeverity.warning,
+        ),
+      );
+      expect(
+        localized,
+        isNot('Diagnostic de bordure à vérifier.'),
+        reason: code,
+      );
+      expect(localized, isNot(contains(code)), reason: code);
+    }
+  });
+
   test('template mismatch remediation stays compatible with every template',
       () {
     final diagnostic = _diagnostic(

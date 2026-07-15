@@ -94,9 +94,20 @@ void main() {
         pointerDown: const GridPos(x: 3, y: 0),
       ).sample(const GridPos(x: 5, y: 0));
 
+      final identities = erased.previewGeometry!.strokes
+          .map(resolveBorderStrokeLineageIdentityV1)
+          .toList(growable: false);
       expect(
-        erased.previewGeometry!.strokes.map((stroke) => stroke.id),
+        identities.map((identity) => identity.authoredStrokeId),
         <String>['wall', 'wall__fragment_2'],
+      );
+      expect(
+        identities.map((identity) => identity.sourceEdgeOffset),
+        <int>[0, 6],
+      );
+      expect(
+        identities.map((identity) => identity.preserveTraversal),
+        everyElement(isTrue),
       );
       expect(
         erased.previewGeometry!.strokes.map((stroke) => stroke.points),
@@ -117,7 +128,7 @@ void main() {
       expect(source.strokes.single.points, hasLength(9));
     });
 
-    test('first surviving valid fragment keeps the original id', () {
+    test('first surviving fragment keeps the original authored id', () {
       final source = BorderStrokeGeometry(
         strokes: <BorderStroke>[_openStroke('wall', 0, 4)],
       );
@@ -129,7 +140,12 @@ void main() {
       ).previewGeometry!;
 
       expect(erased.strokes, hasLength(1));
-      expect(erased.strokes.single.id, 'wall');
+      final identity = resolveBorderStrokeLineageIdentityV1(
+        erased.strokes.single,
+      );
+      expect(identity.authoredStrokeId, 'wall');
+      expect(identity.sourceEdgeOffset, 2);
+      expect(identity.preserveTraversal, isTrue);
       expect(
         erased.strokes.single.points,
         const <GridPos>[
@@ -169,7 +185,13 @@ void main() {
       ).sample(const GridPos(x: 5, y: 0));
 
       expect(opened.previewGeometry!.strokes, hasLength(1));
-      expect(opened.previewGeometry!.strokes.single.id, 'loop');
+      final identity = resolveBorderStrokeLineageIdentityV1(
+        opened.previewGeometry!.strokes.single,
+      );
+      expect(identity.authoredStrokeId, 'loop');
+      expect(identity.sourceEdgeOffset, 3);
+      expect(identity.wrapLength, 8);
+      expect(identity.preserveTraversal, isTrue);
       expect(opened.previewGeometry!.strokes.single.closed, isFalse);
       expect(
         opened.previewGeometry!.strokes.single.points,
@@ -196,9 +218,16 @@ void main() {
         pointerDown: const GridPos(x: 2, y: 0),
       ).sample(const GridPos(x: 6, y: 0));
 
+      final identities = erased.previewGeometry!.strokes
+          .map(resolveBorderStrokeLineageIdentityV1)
+          .toList(growable: false);
       expect(
-        erased.previewGeometry!.strokes.map((stroke) => stroke.id),
+        identities.map((identity) => identity.authoredStrokeId),
         <String>['left', 'right'],
+      );
+      expect(
+        identities.map((identity) => identity.sourceEdgeOffset),
+        <int>[0, 2],
       );
       expect(
         erased.previewGeometry!.strokes.map((stroke) => stroke.points),

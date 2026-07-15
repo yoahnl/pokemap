@@ -424,6 +424,87 @@ void main() {
         );
       }
     });
+
+    group('visual snapshot retention', () {
+      test('partial manifest returns candidates without deleting metadata', () {
+        final setup = _retentionSetup();
+
+        final result = cleanupUnreferencedBorderVisualSnapshots(
+          manifest: setup.manifest,
+          loadedMaps: setup.maps,
+          isManifestExhaustive: false,
+        );
+
+        expect(result.hasExhaustiveReferences, isFalse);
+        expect(result.candidateSnapshotIds, <String>[_snapshotId('f')]);
+        expect(result.deletedSnapshotIds, isEmpty);
+        expect(result.catalog, same(setup.manifest.borderCatalog));
+        expect(
+          result.catalog.visualSnapshots,
+          same(setup.manifest.borderCatalog.visualSnapshots),
+        );
+      });
+
+      test('missing manifest map returns unsafe candidates without deletion',
+          () {
+        final setup = _retentionSetup();
+
+        final result = cleanupUnreferencedBorderVisualSnapshots(
+          manifest: setup.manifest,
+          loadedMaps: <MapData>[setup.maps.first],
+          isManifestExhaustive: true,
+        );
+
+        expect(result.hasExhaustiveReferences, isFalse);
+        expect(
+          result.candidateSnapshotIds,
+          <String>[_snapshotId('e'), _snapshotId('f')],
+        );
+        expect(result.deletedSnapshotIds, isEmpty);
+        expect(result.catalog, same(setup.manifest.borderCatalog));
+      });
+
+      test('exhaustive manifest and maps delete only unreferenced snapshots',
+          () {
+        final setup = _retentionSetup();
+
+        final result = cleanupUnreferencedBorderVisualSnapshots(
+          manifest: setup.manifest,
+          loadedMaps: setup.maps,
+          isManifestExhaustive: true,
+        );
+
+        expect(result.hasExhaustiveReferences, isTrue);
+        expect(result.candidateSnapshotIds, <String>[_snapshotId('f')]);
+        expect(result.deletedSnapshotIds, <String>[_snapshotId('f')]);
+        expect(
+          result.catalog.visualSnapshots.map((snapshot) => snapshot.id),
+          <String>[
+            _snapshotId('a'),
+            _snapshotId('b'),
+            _snapshotId('c'),
+            _snapshotId('d'),
+            _snapshotId('e'),
+          ],
+        );
+        expect(
+          result.catalog.records,
+          orderedEquals(setup.manifest.borderCatalog.records),
+        );
+        expect(
+          result.catalog.records.single,
+          same(setup.manifest.borderCatalog.records.single),
+        );
+        for (var index = 0;
+            index < result.catalog.visualSnapshots.length;
+            index += 1) {
+          expect(
+            result.catalog.visualSnapshots[index],
+            same(setup.manifest.borderCatalog.visualSnapshots[index]),
+          );
+        }
+      });
+    });
   });
 }
 
@@ -434,12 +515,14 @@ BorderBlueprintRecord _record(
   int publishedRevision = 1,
   int? publishedSortOrder,
   bool isDeprecated = false,
+  String? publishedSnapshotId,
 }) {
+  final hasPublished = published || publishedSnapshotId != null;
   return BorderBlueprintRecord(
     id: id,
     isDeprecated: isDeprecated,
     draft: BorderBlueprintDraft(
-      baseRevision: published ? publishedRevision : 0,
+      baseRevision: hasPublished ? publishedRevision : 0,
       definition:
           BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
         name: 'Border $id',
@@ -450,7 +533,7 @@ BorderBlueprintRecord _record(
         sortOrder: sortOrder,
       ),
     ),
-    latestPublished: published
+    latestPublished: hasPublished
         ? BorderBlueprintRevision(
             revision: publishedRevision,
             definition: BorderBlueprintDefinition<BorderPublishedPrimitive,
@@ -458,7 +541,10 @@ BorderBlueprintRecord _record(
               name: 'Border $id',
               previewSeed: BorderSignedInt64.zero,
               template: BorderBlueprintTemplate.organicEdge,
-              primitives: const <BorderPublishedPrimitive>[],
+              primitives: <BorderPublishedPrimitive>[
+                if (publishedSnapshotId != null)
+                  _publishedPrimitive(publishedSnapshotId),
+              ],
               defaults: _params(),
               sortOrder: publishedSortOrder ?? sortOrder,
             ),
@@ -466,6 +552,27 @@ BorderBlueprintRecord _record(
         : null,
   );
 }
+
+BorderPublishedPrimitive _publishedPrimitive(String snapshotId) =>
+    BorderPublishedPrimitive(
+      id: 'published-primitive',
+      sourceElementId: 'source-element',
+      visualSnapshotId: snapshotId,
+      role: BorderPrimitiveRole.structureLarge,
+      weight: 1,
+      anchorPx: const BorderPixelPos(x: 0, y: 0),
+      transforms: BorderTransformPolicy(
+        allowFlipX: false,
+        allowedQuarterTurns: const <int>[0],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-fingerprint',
+        pixelSize: const GridSize(width: 1, height: 1),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+        defaultAnchorPx: const BorderPixelPos(x: 0, y: 0),
+        occupancyMaskRle: encodeBorderRleMask(const <bool>[true]),
+      ),
+    );
 
 BorderGenerationParams _params() => BorderGenerationParams(
       irregularityPermille: 0,
@@ -488,5 +595,172 @@ BorderVisualSnapshot _snapshot(String digit) {
         durationMs: 100,
       ),
     ],
+  );
+}
+
+String _snapshotId(String digit) => 'border-snapshot-sha256:${digit * 64}';
+
+({ProjectManifest manifest, List<MapData> maps}) _retentionSetup() {
+  final snapshots = <BorderVisualSnapshot>[
+    for (final digit in <String>['a', 'b', 'c', 'd', 'e', 'f'])
+      _snapshot(digit),
+  ];
+  final catalog = ProjectBorderCatalog(
+    records: <BorderBlueprintRecord>[
+      _record('published', publishedSnapshotId: _snapshotId('a')),
+    ],
+    visualSnapshots: snapshots,
+  );
+  final maps = <MapData>[
+    _mapWithSnapshotReferences(
+      id: 'map-one',
+      groundSnapshotId: _snapshotId('b'),
+      placementSnapshotId: _snapshotId('c'),
+      lockedSnapshotId: _snapshotId('d'),
+    ),
+    _mapWithSnapshotReferences(
+      id: 'map-two',
+      groundSnapshotId: _snapshotId('e'),
+    ),
+  ];
+  return (
+    manifest: ProjectManifest(
+      name: 'Retention project',
+      version: ProjectVersion.v2,
+      maps: <ProjectMapEntry>[
+        for (final map in maps)
+          ProjectMapEntry(
+            id: map.id,
+            name: map.name,
+            relativePath: 'maps/${map.id}.json',
+          ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[],
+      borderCatalog: catalog,
+    ),
+    maps: maps,
+  );
+}
+
+MapData _mapWithSnapshotReferences({
+  required String id,
+  required String groundSnapshotId,
+  String? placementSnapshotId,
+  String? lockedSnapshotId,
+}) {
+  final placements = <BorderResolvedPlacement>[
+    if (placementSnapshotId != null)
+      _resolvedPlacement(
+        id: '$id-placement',
+        slotKey: '$id-placement-slot',
+        snapshotId: placementSnapshotId,
+      ),
+  ];
+  final ground = <BorderResolvedGroundCell>[
+    BorderResolvedGroundCell(
+      x: 0,
+      y: 0,
+      visualSnapshotId: groundSnapshotId,
+      resolvedRole: SurfaceVariantRole.isolated,
+    ),
+  ];
+  final materialization = BorderMaterialization(
+    receipt: _receiptForRetention(ground: ground, placements: placements),
+    ground: ground,
+    placements: placements,
+  );
+  final lockedPlacement = lockedSnapshotId == null
+      ? null
+      : _resolvedPlacement(
+          id: '$id-locked',
+          slotKey: '$id-locked-slot',
+          snapshotId: lockedSnapshotId,
+        );
+  final feature = BorderFeature(
+    id: '$id-feature',
+    name: '$id feature',
+    blueprintId: 'published',
+    seed: BorderSignedInt64.zero,
+    geometry: BorderRegionGeometry(
+      width: 1,
+      height: 1,
+      cells: const <bool>[true],
+    ),
+    overrides: <BorderSlotOverride>[
+      if (lockedPlacement != null)
+        BorderSlotOverride(
+          slotKey: lockedPlacement.slotKey,
+          variationSalt: BorderSignedInt64.zero,
+          suppressed: false,
+          locked: true,
+          lockedPlacement: lockedPlacement,
+        ),
+    ],
+    keepOutRegions: const <BorderKeepOutRegion>[],
+    materialization: materialization,
+  );
+  return MapData(
+    id: id,
+    name: id,
+    version: ProjectVersion.v2,
+    size: const GridSize(width: 1, height: 1),
+    layers: <MapLayer>[
+      MapLayer.border(
+        id: '$id-border',
+        name: 'Border',
+        content: BorderLayerContent(features: <BorderFeature>[feature]),
+      ),
+    ],
+  );
+}
+
+BorderResolvedPlacement _resolvedPlacement({
+  required String id,
+  required String slotKey,
+  required String snapshotId,
+}) =>
+    BorderResolvedPlacement(
+      id: id,
+      slotKey: slotKey,
+      primitiveId: 'published-primitive',
+      visualSnapshotId: snapshotId,
+      anchorCell: const GridPos(x: 0, y: 0),
+      topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+      opaqueWorldBoundsPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
+      transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+      drawBand: BorderDrawBand.structure,
+      stableOrderKey: BorderStableOrderKey(
+        drawBandIndex: 1,
+        anchorRowMajor: 0,
+        passIndex: 0,
+        rank: 0,
+        ordinalLocal: 0,
+        slotKey: slotKey,
+      ),
+    );
+
+BorderResolutionReceipt _receiptForRetention({
+  required List<BorderResolvedGroundCell> ground,
+  required List<BorderResolvedPlacement> placements,
+}) {
+  const hash =
+      'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  return BorderResolutionReceipt(
+    resolverVersion: 1,
+    blueprintRevision: 1,
+    components: BorderInputFingerprints(
+      blueprint: hash,
+      geometryAndSeed: hash,
+      parameters: hash,
+      overrides: hash,
+      keepOutRegions: hash,
+      mapContext: hash,
+      visualSnapshots: hash,
+    ),
+    inputFingerprint: hash,
+    outputFingerprint: computeBorderOutputFingerprint(
+      ground: ground,
+      placements: placements,
+    ),
   );
 }

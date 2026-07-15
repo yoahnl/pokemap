@@ -1,6 +1,9 @@
 import '../models/border_geometry.dart';
 import '../models/geometry.dart';
+import 'border_linear_lattice.dart';
 import 'border_stroke_canonicalization.dart';
+
+typedef _StrokeRun = ({List<GridPos> points, int sourceStartIndex});
 
 /// World Maps gesture supported by the V1 linear Border authoring contract.
 enum BorderStrokeEditingMode { draw, erase }
@@ -79,8 +82,9 @@ final class BorderStrokeEditingDraft {
 
   BorderStrokeGeometry _erasePreview() {
     final erasedCells = _rasterizeGesture(_sampledPoints).toSet();
-    final usedIds = <String>{
-      for (final stroke in baseGeometry.strokes) stroke.id,
+    final usedAuthoredIds = <String>{
+      for (final stroke in baseGeometry.strokes)
+        borderStrokeAuthoredIdV1(stroke.id),
     };
     final output = <BorderStroke>[];
     var changed = false;
@@ -92,26 +96,28 @@ final class BorderStrokeEditingDraft {
         continue;
       }
       changed = true;
+      final sourceIdentity = resolveBorderStrokeLineageIdentityV1(stroke);
       final runs = stroke.closed
           ? _splitTouchedClosedStroke(stroke.points, erasedCells)
           : _splitOpenStroke(stroke.points, erasedCells);
       var retainedFragments = 0;
       for (final run in runs) {
-        if (run.length < 2) continue;
+        if (run.points.length < 2) continue;
         retainedFragments += 1;
-        final id = retainedFragments == 1
-            ? stroke.id
+        final authoredId = retainedFragments == 1
+            ? sourceIdentity.authoredStrokeId
             : _nextFragmentId(
-                stroke.id,
+                sourceIdentity.authoredStrokeId,
                 ordinal: retainedFragments,
-                usedIds: usedIds,
+                usedIds: usedAuthoredIds,
               );
-        usedIds.add(id);
+        usedAuthoredIds.add(authoredId);
         output.add(
-          canonicalizeBorderStrokeV1(
-            id: id,
-            sampledPoints: run,
-            closed: false,
+          buildBorderTraversalPreservedFragmentV1(
+            sourceStroke: stroke,
+            authoredStrokeId: authoredId,
+            sourceStartIndex: run.sourceStartIndex,
+            orderedPoints: run.points,
           ),
         );
       }
@@ -123,7 +129,9 @@ final class BorderStrokeEditingDraft {
 }
 
 String _firstFreeStrokeId(BorderStrokeGeometry geometry) {
-  final used = <String>{for (final stroke in geometry.strokes) stroke.id};
+  final used = <String>{
+    for (final stroke in geometry.strokes) borderStrokeAuthoredIdV1(stroke.id),
+  };
   const base = 'stroke';
   if (!used.contains(base)) return base;
   for (var suffix = 2;; suffix += 1) {
@@ -163,40 +171,56 @@ List<GridPos> _rasterizeGesture(List<GridPos> samples) {
   return result;
 }
 
-List<List<GridPos>> _splitOpenStroke(
+List<_StrokeRun> _splitOpenStroke(
   List<GridPos> points,
   Set<GridPos> erasedCells,
 ) {
-  final runs = <List<GridPos>>[];
+  final runs = <_StrokeRun>[];
   var current = <GridPos>[];
-  for (final point in points) {
+  int? currentStartIndex;
+  for (var index = 0; index < points.length; index += 1) {
+    final point = points[index];
     if (erasedCells.contains(point)) {
-      if (current.isNotEmpty) runs.add(current);
+      if (current.isNotEmpty) {
+        runs.add((points: current, sourceStartIndex: currentStartIndex!));
+      }
       current = <GridPos>[];
+      currentStartIndex = null;
     } else {
+      currentStartIndex ??= index;
       current.add(point);
     }
   }
-  if (current.isNotEmpty) runs.add(current);
+  if (current.isNotEmpty) {
+    runs.add((points: current, sourceStartIndex: currentStartIndex!));
+  }
   return runs;
 }
 
-List<List<GridPos>> _splitTouchedClosedStroke(
+List<_StrokeRun> _splitTouchedClosedStroke(
   List<GridPos> points,
   Set<GridPos> erasedCells,
 ) {
   final firstErased = points.indexWhere(erasedCells.contains);
-  final runs = <List<GridPos>>[];
+  final runs = <_StrokeRun>[];
   var current = <GridPos>[];
+  int? currentStartIndex;
   for (var offset = 1; offset <= points.length; offset += 1) {
-    final point = points[(firstErased + offset) % points.length];
+    final sourceIndex = (firstErased + offset) % points.length;
+    final point = points[sourceIndex];
     if (erasedCells.contains(point)) {
-      if (current.isNotEmpty) runs.add(current);
+      if (current.isNotEmpty) {
+        runs.add((points: current, sourceStartIndex: currentStartIndex!));
+      }
       current = <GridPos>[];
+      currentStartIndex = null;
     } else {
+      currentStartIndex ??= sourceIndex;
       current.add(point);
     }
   }
-  if (current.isNotEmpty) runs.add(current);
+  if (current.isNotEmpty) {
+    runs.add((points: current, sourceStartIndex: currentStartIndex!));
+  }
   return runs;
 }

@@ -126,68 +126,123 @@ void main() {
       expect(afterCollision.toJson(), collisionJson);
     });
 
-    test(
-        'previews a complete compatible state and drops stale materialization on apply',
-        () {
+    test('same-family blueprint change resolves then applies atomically', () {
       const collision = MapLayer.collision(
         id: 'collision',
         name: 'Collision',
       );
-      final created = controller
-          .createFeature(
-            map: _map(collision: collision),
-            layerId: 'borders',
-            blueprint: _record(
-              id: 'coast-a',
-              template: BorderBlueprintTemplate.organicEdge,
-            ),
-            name: 'Côte',
-          )
-          .map;
-      final initialFeature = created.layers
-          .whereType<BorderLayer>()
-          .single
-          .content
-          .features
-          .single;
-      final source = upsertBorderFeature(
-        created,
-        layerId: 'borders',
-        feature: _featureWithAuthoredOutput(initialFeature),
+      final sourceBlueprint = _record(
+        id: 'coast-a',
+        template: BorderBlueprintTemplate.organicEdge,
+        primitives: <BorderPublishedPrimitive>[_primitive()],
       );
-      final beforeFeature =
-          source.layers.whereType<BorderLayer>().single.content.features.single;
+      final targetBlueprint = _record(
+        id: 'coast-b',
+        template: BorderBlueprintTemplate.organicEdge,
+        primitives: <BorderPublishedPrimitive>[_primitive()],
+      );
+      final feature = BorderFeature(
+        id: 'feature',
+        name: 'Côte',
+        blueprintId: sourceBlueprint.id,
+        seed: BorderSignedInt64.fromInt(7),
+        geometry: BorderRegionGeometry(
+          width: 5,
+          height: 4,
+          cells: const <bool>[
+            true,
+            true,
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+          ],
+        ),
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+      );
+      final sourceResult = resolveBorderFeature(
+        BorderResolutionRequest(
+          mapSize: const GridSize(width: 5, height: 4),
+          tileSizePx: const GridSize(width: 16, height: 16),
+          blueprintId: sourceBlueprint.id,
+          blueprintRevision: sourceBlueprint.latestPublished,
+          feature: feature,
+          visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+          resolverVersion: borderResolverVersion,
+        ),
+      );
+      expect(sourceResult.canApply, isTrue);
+      final materialized = BorderFeature(
+        id: feature.id,
+        name: feature.name,
+        blueprintId: feature.blueprintId,
+        seed: feature.seed,
+        geometry: feature.geometry,
+        paramsOverride: feature.paramsOverride,
+        overrides: feature.overrides,
+        keepOutRegions: feature.keepOutRegions,
+        materialization: sourceResult.materialization,
+      );
+      final source = upsertBorderFeature(
+        _map(collision: collision),
+        layerId: 'borders',
+        feature: materialized,
+      );
       final beforeJson = source.toJson();
 
       final preview = controller.previewBlueprintChange(
         map: source,
         layerId: 'borders',
-        featureId: beforeFeature.id,
-        sourceBlueprint: _record(
-          id: 'coast-a',
-          template: BorderBlueprintTemplate.organicEdge,
-        ),
-        targetBlueprint: _record(
-          id: 'coast-b',
-          template: BorderBlueprintTemplate.organicEdge,
-        ),
+        featureId: materialized.id,
+        sourceBlueprint: sourceBlueprint,
+        targetBlueprint: targetBlueprint,
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        tileSizePx: const GridSize(width: 16, height: 16),
+        resolverVersion: borderResolverVersion,
       );
 
       expect(preview.canApply, isTrue);
       expect(preview.canReset, isFalse);
-      expect(preview.before.feature, beforeFeature);
+      expect(preview.before.feature, materialized);
       expect(preview.before.template, BorderBlueprintTemplate.organicEdge);
       expect(preview.before.isMaterialized, isTrue);
       expect(preview.after.feature.blueprintId, 'coast-b');
       expect(preview.after.template, BorderBlueprintTemplate.organicEdge);
-      expect(preview.after.feature.geometry, same(beforeFeature.geometry));
-      expect(preview.after.feature.overrides, beforeFeature.overrides);
-      expect(
-          preview.after.feature.keepOutRegions, beforeFeature.keepOutRegions);
-      expect(preview.after.feature.materialization, isNull);
-      expect(preview.after.isMaterialized, isFalse);
-      expect(preview.consequence, contains('matérialisation'));
+      expect(preview.after.feature.geometry, same(materialized.geometry));
+      expect(preview.after.feature.overrides, materialized.overrides);
+      expect(preview.after.feature.keepOutRegions, materialized.keepOutRegions);
+      expect(preview.after.feature.materialization, isNotNull);
+      expect(preview.after.isMaterialized, isTrue);
+      expect(preview.relink.proposedResult?.canApply, isTrue);
+      expect(preview.consequence, contains('résolu'));
       expect(source.toJson(), beforeJson, reason: 'preview must be read-only');
+
+      final indistinguishableClone = MapData.fromJson(source.toJson());
+      expect(indistinguishableClone.toJson(), source.toJson());
+      expect(indistinguishableClone, isNot(same(source)));
+      expect(
+        () => controller.applyBlueprintChange(
+          map: indistinguishableClone,
+          preview: preview,
+        ),
+        throwsStateError,
+        reason: 'an async confirmation cannot cross editor documents',
+      );
 
       final changed = controller.applyBlueprintChange(
         map: source,
@@ -200,10 +255,11 @@ void main() {
           .features
           .single;
       expect(afterFeature.blueprintId, 'coast-b');
-      expect(afterFeature.geometry, same(beforeFeature.geometry));
-      expect(afterFeature.overrides, beforeFeature.overrides);
-      expect(afterFeature.keepOutRegions, beforeFeature.keepOutRegions);
-      expect(afterFeature.materialization, isNull);
+      expect(afterFeature.geometry, same(materialized.geometry));
+      expect(afterFeature.overrides, materialized.overrides);
+      expect(afterFeature.keepOutRegions, materialized.keepOutRegions);
+      expect(afterFeature.materialization,
+          same(preview.relink.proposedResult!.materialization));
       expect(afterFeature, preview.after.feature);
       expect(
         changed.layers.whereType<CollisionLayer>().single,
@@ -250,11 +306,22 @@ void main() {
           template: BorderBlueprintTemplate.organicEdge,
         ),
         targetBlueprint: wall,
+        visualSnapshots: const <BorderVisualSnapshot>[],
+        tileSizePx: const GridSize(width: 16, height: 16),
       );
 
       expect(preview.canApply, isFalse);
       expect(preview.canReset, isTrue);
       expect(preview.canCreateNewFeature, isTrue);
+      expect(
+        preview.losses,
+        <BorderRelinkLoss>[
+          BorderRelinkLoss.geometry,
+          BorderRelinkLoss.overrides,
+          BorderRelinkLoss.keepOutRegions,
+          BorderRelinkLoss.materialization,
+        ],
+      );
       expect(preview.blockedReason, contains('région'));
       expect(preview.blockedReason, contains('ligne'));
       expect(preview.before.feature.materialization, isNotNull);
@@ -268,6 +335,7 @@ void main() {
       expect(preview.after.feature.keepOutRegions, isEmpty);
       expect(preview.after.feature.materialization, isNull);
       expect(preview.consequence, contains('remise à zéro'));
+      expect(preview.consequence, isNot(contains('paramètres personnalisés')));
       expect(source.toJson(), beforeJson, reason: 'preview must be read-only');
       expect(
         () => controller.applyBlueprintChange(map: source, preview: preview),
@@ -300,6 +368,170 @@ void main() {
       expect(source.toJson(), beforeJson,
           reason: 'separate creation must not mutate the source map');
     });
+
+    test('local variation, replacement and move produce preview-only drafts',
+        () {
+      final feature = BorderFeature(
+        id: 'feature',
+        name: 'Bordure',
+        blueprintId: 'coast',
+        seed: BorderSignedInt64.fromInt(7),
+        geometry: BorderRegionGeometry(
+          width: 5,
+          height: 4,
+          cells: List<bool>.filled(20, false),
+        ),
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+        materialization: _materialization(),
+      );
+
+      final varied = controller.previewLocalVariation(
+        feature: feature,
+        slotKey: 'slot-a',
+      );
+      final variation = varied.overrides.single;
+      expect(variation.slotKey, 'slot-a');
+      expect(variation.variationSalt, isNot(BorderSignedInt64.zero));
+      expect(varied.materialization, isNull);
+
+      final replaced = controller.previewReplacement(
+        feature: varied,
+        slotKey: 'slot-a',
+        primitiveId: 'alternate-primitive',
+      );
+      expect(replaced.overrides.single.replacementPrimitiveId,
+          'alternate-primitive');
+      expect(replaced.overrides.single.variationSalt, variation.variationSalt);
+
+      final moved = controller.previewMove(
+        feature: replaced,
+        slotKey: 'slot-a',
+        offset: const BorderPixelOffset(x: 4, y: -2),
+      );
+      expect(
+        moved.overrides.single.offsetDeltaPx,
+        const BorderPixelOffset(x: 4, y: -2),
+      );
+      expect(feature.overrides, isEmpty);
+      expect(feature.materialization, isNotNull);
+    });
+
+    test('remove and lock create valid mutually exclusive slot corrections',
+        () {
+      final feature = BorderFeature(
+        id: 'feature',
+        name: 'Bordure',
+        blueprintId: 'coast',
+        seed: BorderSignedInt64.fromInt(7),
+        geometry: BorderRegionGeometry(
+          width: 5,
+          height: 4,
+          cells: List<bool>.filled(20, false),
+        ),
+        overrides: <BorderSlotOverride>[
+          BorderSlotOverride(
+            slotKey: 'slot-a',
+            variationSalt: BorderSignedInt64.fromInt(4),
+            suppressed: false,
+            locked: false,
+            replacementPrimitiveId: 'alternate-primitive',
+            offsetDeltaPx: const BorderPixelOffset(x: 2, y: -1),
+          ),
+        ],
+        keepOutRegions: const <BorderKeepOutRegion>[],
+        materialization: _materialization(),
+      );
+
+      final removed = controller.previewRemoval(
+        feature: feature,
+        slotKey: 'slot-a',
+      );
+      final suppression = removed.overrides.single;
+      expect(suppression.suppressed, isTrue);
+      expect(suppression.variationSalt, BorderSignedInt64.zero);
+      expect(suppression.locked, isFalse);
+      expect(suppression.lockedPlacement, isNull);
+      expect(suppression.replacementPrimitiveId, isNull);
+      expect(suppression.offsetDeltaPx, isNull);
+
+      final placement = _placement();
+      final locked = controller.previewLock(
+        feature: feature,
+        placement: placement,
+      );
+      final lock = locked.overrides.single;
+      expect(lock.suppressed, isFalse);
+      expect(lock.variationSalt, BorderSignedInt64.zero);
+      expect(lock.locked, isTrue);
+      expect(lock.lockedPlacement, same(placement));
+      expect(lock.replacementPrimitiveId, isNull);
+      expect(lock.offsetDeltaPx, isNull);
+      expect(feature.materialization, isNotNull);
+    });
+
+    test('keep-out preview creates a clipped stable mask around the slot', () {
+      final existing = BorderKeepOutRegion(
+        id: 'border_keep_out',
+        region: BorderRegionGeometry(
+          width: 5,
+          height: 4,
+          cells: <bool>[true, ...List<bool>.filled(19, false)],
+        ),
+      );
+      final feature = BorderFeature(
+        id: 'feature',
+        name: 'Bordure',
+        blueprintId: 'coast',
+        seed: BorderSignedInt64.fromInt(7),
+        geometry: BorderRegionGeometry(
+          width: 5,
+          height: 4,
+          cells: List<bool>.filled(20, false),
+        ),
+        overrides: const <BorderSlotOverride>[],
+        keepOutRegions: <BorderKeepOutRegion>[existing],
+        materialization: _materialization(),
+      );
+
+      final draft = controller.previewKeepOut(
+        feature: feature,
+        placement: _placement(),
+        mapSize: const GridSize(width: 5, height: 4),
+        radiusCells: 1,
+      );
+
+      expect(draft.keepOutRegions, hasLength(2));
+      expect(draft.keepOutRegions.first, same(existing));
+      expect(draft.keepOutRegions.last.id, 'border_keep_out_2');
+      expect(
+        draft.keepOutRegions.last.region.cells,
+        <bool>[
+          true,
+          true,
+          false,
+          false,
+          false,
+          true,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ],
+      );
+      expect(draft.materialization, isNull);
+      expect(feature.keepOutRegions, <BorderKeepOutRegion>[existing]);
+    });
   });
 }
 
@@ -319,6 +551,8 @@ BorderBlueprintRecord _record({
   required BorderBlueprintTemplate template,
   bool published = true,
   bool isDeprecated = false,
+  List<BorderPublishedPrimitive> primitives =
+      const <BorderPublishedPrimitive>[],
 }) {
   final draftDefinition = BorderBlueprintDraftDefinition(
     name: id,
@@ -341,7 +575,7 @@ BorderBlueprintRecord _record({
               name: id,
               previewSeed: BorderSignedInt64.zero,
               template: template,
-              primitives: const <BorderPublishedPrimitive>[],
+              primitives: primitives,
               defaults: _params(),
               sortOrder: 0,
             ),
@@ -359,6 +593,43 @@ BorderGenerationParams _params() => BorderGenerationParams(
       gapTolerancePx: 0,
       depthRows: 1,
     );
+
+BorderPublishedPrimitive _primitive() => BorderPublishedPrimitive(
+      id: 'structure',
+      sourceElementId: 'structure-source',
+      visualSnapshotId: _snapshotId,
+      role: BorderPrimitiveRole.structureLarge,
+      weight: 1,
+      anchorPx: const BorderPixelPos(x: 8, y: 8),
+      transforms: BorderTransformPolicy(
+        allowFlipX: true,
+        allowedQuarterTurns: const <int>[0, 1, 2, 3],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-structure',
+        pixelSize: const GridSize(width: 16, height: 16),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+        defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
+        occupancyMaskRle: encodeBorderRleMask(
+          List<bool>.filled(16 * 16, true),
+        ),
+      ),
+    );
+
+BorderVisualSnapshot _snapshot() => BorderVisualSnapshot(
+      id: _snapshotId,
+      contentFingerprint: 'a' * 64,
+      frames: <BorderVisualFrameSnapshot>[
+        BorderVisualFrameSnapshot(
+          relativeAssetPath: 'assets/borders/snapshots/a.png',
+          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+          durationMs: 100,
+        ),
+      ],
+    );
+
+const _snapshotId =
+    'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
 
 BorderFeature _featureWithAuthoredOutput(BorderFeature feature) =>
     BorderFeature(
@@ -427,4 +698,25 @@ BorderMaterialization _materialization() => BorderMaterialization(
         ),
       ],
       placements: const <BorderResolvedPlacement>[],
+    );
+
+BorderResolvedPlacement _placement() => BorderResolvedPlacement(
+      id: 'placement-a',
+      slotKey: 'slot-a',
+      primitiveId: 'primitive-a',
+      visualSnapshotId:
+          'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      anchorCell: const GridPos(x: 0, y: 0),
+      topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+      opaqueWorldBoundsPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+      transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+      drawBand: BorderDrawBand.structure,
+      stableOrderKey: BorderStableOrderKey(
+        drawBandIndex: borderDrawBandV1Index(BorderDrawBand.structure),
+        anchorRowMajor: 0,
+        passIndex: 0,
+        rank: 0,
+        ordinalLocal: 0,
+        slotKey: 'slot-a',
+      ),
     );

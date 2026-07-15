@@ -76,12 +76,17 @@ export 'src/operations/border_catalog_operations.dart';
 export 'src/operations/border_layer_operations.dart';
 export 'src/operations/border_project_map_preparation.dart';
 export 'src/operations/border_resize.dart';
+export 'src/operations/border_relink_operations.dart';
+export 'src/operations/border_override_resolution.dart';
 export 'src/operations/border_materialization_freshness.dart';
 export 'src/operations/border_feature_update_operations.dart';
 export 'src/operations/border_region_contours.dart';
 export 'src/operations/border_stroke_canonicalization.dart';
 export 'src/operations/border_stroke_editing.dart';
 export 'src/operations/border_linear_lattice.dart';
+export 'src/operations/border_locality.dart';
+export 'src/operations/border_local_resolution_scope.dart'
+    show BorderLocalResolutionState;
 export 'src/operations/border_ground_resolution.dart';
 export 'src/operations/border_coverage.dart';
 export 'src/operations/border_sprite_geometry.dart';

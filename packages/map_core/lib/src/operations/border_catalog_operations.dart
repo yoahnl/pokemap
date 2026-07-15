@@ -1,6 +1,138 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/border_blueprint.dart';
 import '../models/border_catalog.dart';
+import '../models/map_data.dart';
+import '../models/map_layer.dart';
+import '../models/project_manifest.dart';
+
+/// Pure, conservative result of evaluating immutable Border snapshot cleanup.
+///
+/// [candidateSnapshotIds] may be shown even with partial project information,
+/// but [deletedSnapshotIds] is populated only when [hasExhaustiveReferences]
+/// proves that both the manifest and every manifest map were supplied.
+final class BorderVisualSnapshotRetentionResult {
+  BorderVisualSnapshotRetentionResult({
+    required this.catalog,
+    required Iterable<String> candidateSnapshotIds,
+    required Iterable<String> deletedSnapshotIds,
+    required this.hasExhaustiveReferences,
+  })  : candidateSnapshotIds = List<String>.unmodifiable(
+          candidateSnapshotIds,
+        ),
+        deletedSnapshotIds = List<String>.unmodifiable(deletedSnapshotIds);
+
+  final ProjectBorderCatalog catalog;
+  final List<String> candidateSnapshotIds;
+  final List<String> deletedSnapshotIds;
+  final bool hasExhaustiveReferences;
+}
+
+/// Removes unreferenced snapshot metadata only with exhaustive project proof.
+///
+/// `map_core` never deletes files. The returned [ProjectBorderCatalog] omits
+/// safe-to-delete metadata, while [deletedSnapshotIds] tells an outer storage
+/// layer which immutable snapshot files may be removed in the same transaction.
+/// When [isManifestExhaustive] is false, or [loadedMaps] does not match the
+/// manifest map IDs exactly, the original catalog is returned and potential
+/// cleanup is reported only through [candidateSnapshotIds].
+BorderVisualSnapshotRetentionResult cleanupUnreferencedBorderVisualSnapshots({
+  required ProjectManifest manifest,
+  required Iterable<MapData> loadedMaps,
+  required bool isManifestExhaustive,
+}) {
+  final maps = List<MapData>.unmodifiable(loadedMaps);
+  final referencedSnapshotIds = _referencedSnapshotIds(
+    catalog: manifest.borderCatalog,
+    maps: maps,
+  );
+  final candidates = <String>[
+    for (final snapshot in manifest.borderCatalog.visualSnapshots)
+      if (!referencedSnapshotIds.contains(snapshot.id)) snapshot.id,
+  ];
+  final hasExhaustiveReferences = isManifestExhaustive &&
+      _hasExactManifestMapCoverage(manifest: manifest, loadedMaps: maps);
+  if (!hasExhaustiveReferences || candidates.isEmpty) {
+    return BorderVisualSnapshotRetentionResult(
+      catalog: manifest.borderCatalog,
+      candidateSnapshotIds: candidates,
+      deletedSnapshotIds: const <String>[],
+      hasExhaustiveReferences: hasExhaustiveReferences,
+    );
+  }
+
+  final candidateSet = candidates.toSet();
+  return BorderVisualSnapshotRetentionResult(
+    catalog: ProjectBorderCatalog(
+      formatVersion: manifest.borderCatalog.formatVersion,
+      records: manifest.borderCatalog.records,
+      visualSnapshots: [
+        for (final snapshot in manifest.borderCatalog.visualSnapshots)
+          if (!candidateSet.contains(snapshot.id)) snapshot,
+      ],
+    ),
+    candidateSnapshotIds: candidates,
+    deletedSnapshotIds: candidates,
+    hasExhaustiveReferences: true,
+  );
+}
+
+Set<String> _referencedSnapshotIds({
+  required ProjectBorderCatalog catalog,
+  required Iterable<MapData> maps,
+}) {
+  final referenced = <String>{};
+  for (final record in catalog.records) {
+    final definition = record.latestPublished?.definition;
+    if (definition == null) continue;
+    for (final primitive in definition.primitives) {
+      referenced.add(primitive.visualSnapshotId);
+    }
+    final ground = definition.ground;
+    if (ground != null) {
+      referenced.addAll(ground.visualSnapshotIdsByRole.values);
+    }
+  }
+
+  for (final map in maps) {
+    for (final layer in map.layers.whereType<BorderLayer>()) {
+      for (final feature in layer.content.features) {
+        for (final override in feature.overrides) {
+          final lockedPlacement = override.lockedPlacement;
+          if (lockedPlacement != null) {
+            referenced.add(lockedPlacement.visualSnapshotId);
+          }
+        }
+        final materialization = feature.materialization;
+        if (materialization == null) continue;
+        referenced.addAll(
+          materialization.ground.map((cell) => cell.visualSnapshotId),
+        );
+        referenced.addAll(
+          materialization.placements.map(
+            (placement) => placement.visualSnapshotId,
+          ),
+        );
+      }
+    }
+  }
+  return referenced;
+}
+
+bool _hasExactManifestMapCoverage({
+  required ProjectManifest manifest,
+  required List<MapData> loadedMaps,
+}) {
+  final manifestIds = <String>{};
+  for (final entry in manifest.maps) {
+    if (!manifestIds.add(entry.id)) return false;
+  }
+  final loadedIds = <String>{};
+  for (final map in loadedMaps) {
+    if (!loadedIds.add(map.id)) return false;
+  }
+  return manifestIds.length == loadedIds.length &&
+      manifestIds.containsAll(loadedIds);
+}
 
 /// Returns the Border blueprint record with the exact [recordId], if present.
 BorderBlueprintRecord? findBorderBlueprintRecordById(

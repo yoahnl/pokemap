@@ -792,12 +792,17 @@ void main() {
       );
     });
 
-    test('rejects overrides, keep-outs, and ground until BORD-07', () {
+    test('applies stable-slot suppression and keep-outs before diagnostics',
+        () {
+      final baseline = resolvePostAndRailLineBorder(
+        PostAndRailLineFixture().request,
+      );
+      final target = baseline.materialization!.placements.first;
       final overrideResult = resolvePostAndRailLineBorder(
         PostAndRailLineFixture(
           overrides: <BorderSlotOverride>[
             BorderSlotOverride(
-              slotKey: 'future-slot',
+              slotKey: target.slotKey,
               variationSalt: BorderSignedInt64.fromInt(0),
               suppressed: true,
               locked: false,
@@ -813,32 +818,42 @@ void main() {
               region: BorderRegionGeometry(
                 width: 10,
                 height: 10,
-                cells: List<bool>.filled(100, false),
+                cells: <bool>[
+                  for (var index = 0; index < 100; index += 1)
+                    index == target.anchorCell.y * 10 + target.anchorCell.x,
+                ],
               ),
             ),
           ],
         ).request,
       );
-      final groundResult = resolvePostAndRailLineBorder(
-        PostAndRailLineFixture(ground: _unusedGround()).request,
-      );
 
       for (final result in <BorderResolutionResult>[
         overrideResult,
         keepOutResult,
-        groundResult,
       ]) {
-        expect(result.canApply, isFalse);
-        expect(result.materialization, isNull);
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        expect(
+            _codes(result), isNot(contains('border.resolution.coverage_gap')));
       }
       expect(
-        _codes(overrideResult),
-        contains('border.resolution.overrides_not_supported'),
+        overrideResult.materialization!.placements,
+        baseline.materialization!.placements
+            .where((placement) => placement.slotKey != target.slotKey),
       );
       expect(
-        _codes(keepOutResult),
-        contains('border.resolution.keep_outs_not_supported'),
+        keepOutResult.materialization!.placements.length,
+        lessThan(baseline.materialization!.placements.length),
       );
+    });
+
+    test('continues to reject Surface ground for a linear blueprint', () {
+      final groundResult = resolvePostAndRailLineBorder(
+        PostAndRailLineFixture(ground: _unusedGround()).request,
+      );
+
+      expect(groundResult.canApply, isFalse);
+      expect(groundResult.materialization, isNull);
       expect(
         _codes(groundResult),
         contains('border.resolution.linear_ground_not_supported'),

@@ -7,9 +7,11 @@ import '../models/border_materialization.dart';
 import '../models/border_value_objects.dart';
 import '../models/geometry.dart';
 import 'border_fingerprints.dart';
+import 'border_linear_lattice.dart';
 import 'border_rle_codec.dart';
 
 const int _maximumPortableInteger = 9007199254740991;
+typedef _ResizeStrokeRun = ({List<GridPos> points, int sourceStartIndex});
 
 /// Atomic result of resizing one persisted Border layer content value.
 final class BorderLayerResizeResult {
@@ -51,9 +53,9 @@ final class BorderLayerResizeResult {
 
 /// Resizes authored Border content against a top-left anchored map canvas.
 ///
-/// This operation never clips strokes. A stroke point outside [newMapSize]
-/// rejects the complete resize until the dedicated stroke-clipping lot is
-/// implemented.
+/// Region masks and keep-outs are cropped or padded. Linear strokes are clipped
+/// into independent canonical open fragments without resolving or regenerating
+/// Border output.
 BorderLayerResizeResult resizeBorderLayerContent({
   required BorderLayerContent content,
   required GridSize oldMapSize,
@@ -85,7 +87,6 @@ BorderLayerResizeResult resizeBorderLayerContent({
     _preflightFeature(
       feature: feature,
       oldMapSize: oldMapSize,
-      newMapSize: newMapSize,
       layerId: layerId,
       diagnostics: diagnostics,
     );
@@ -201,7 +202,6 @@ void _validateMapSize({
 void _preflightFeature({
   required BorderFeature feature,
   required GridSize oldMapSize,
-  required GridSize newMapSize,
   required String? layerId,
   required List<BorderDiagnostic> diagnostics,
 }) {
@@ -225,29 +225,8 @@ void _preflightFeature({
           ),
         );
       }
-    case final BorderStrokeGeometry geometry:
-      for (final stroke in geometry.strokes) {
-        for (final point in stroke.points) {
-          if (!_containsCell(newMapSize, point.x, point.y)) {
-            diagnostics.add(
-              _diagnostic(
-                code: 'stroke_clipping_deferred',
-                severity: BorderDiagnosticSeverity.error,
-                scope: BorderDiagnosticScope.stroke,
-                layerId: layerId,
-                featureId: feature.id,
-                strokeId: stroke.id,
-                cell: point,
-                parameters: <String, Object?>{
-                  'newMapWidth': newMapSize.width,
-                  'newMapHeight': newMapSize.height,
-                },
-                suggestedAction: 'border.resize.move_stroke_inside_map',
-              ),
-            );
-          }
-        }
-      }
+    case BorderStrokeGeometry():
+      break;
   }
 
   for (final keepOut in feature.keepOutRegions) {
@@ -334,7 +313,13 @@ BorderFeature _resizeFeature({
         keepOutId: null,
         diagnostics: diagnostics,
       ),
-    final BorderStrokeGeometry geometry => geometry,
+    final BorderStrokeGeometry geometry => _resizeStrokeGeometry(
+        geometry: geometry,
+        newMapSize: newMapSize,
+        layerId: layerId,
+        featureId: feature.id,
+        diagnostics: diagnostics,
+      ),
   };
   final resizedKeepOutRegions = <BorderKeepOutRegion>[
     for (final keepOut in feature.keepOutRegions)
@@ -370,6 +355,206 @@ BorderFeature _resizeFeature({
     keepOutRegions: resizedKeepOutRegions,
     materialization: resizedMaterialization,
   );
+}
+
+BorderStrokeGeometry _resizeStrokeGeometry({
+  required BorderStrokeGeometry geometry,
+  required GridSize newMapSize,
+  required String? layerId,
+  required String featureId,
+  required List<BorderDiagnostic> diagnostics,
+}) {
+  final usedIds = <String>{
+    for (final stroke in geometry.strokes) borderStrokeAuthoredIdV1(stroke.id),
+  };
+  final resized = <BorderStroke>[];
+  var changed = false;
+
+  for (final stroke in geometry.strokes) {
+    final sourceIdentity = resolveBorderStrokeLineageIdentityV1(stroke);
+    final clippedPoints = stroke.points
+        .where((point) => !_containsCell(newMapSize, point.x, point.y))
+        .toList(growable: false);
+    if (clippedPoints.isEmpty) {
+      resized.add(stroke);
+      continue;
+    }
+
+    changed = true;
+    final firstClippedCell = clippedPoints.first;
+    diagnostics.add(
+      _diagnostic(
+        code: 'stroke_points_clipped',
+        severity: BorderDiagnosticSeverity.warning,
+        scope: BorderDiagnosticScope.stroke,
+        layerId: layerId,
+        featureId: featureId,
+        strokeId: sourceIdentity.authoredStrokeId,
+        cell: firstClippedCell,
+        parameters: <String, Object?>{
+          'clippedPointCount': clippedPoints.length,
+          'newMapWidth': newMapSize.width,
+          'newMapHeight': newMapSize.height,
+        },
+        suggestedAction: 'border.resize.review_clipped_stroke',
+      ),
+    );
+
+    final runs = stroke.closed
+        ? _splitClippedClosedStroke(stroke.points, newMapSize)
+        : _splitClippedOpenStroke(stroke.points, newMapSize);
+    var retainedFragmentCount = 0;
+    var removedFragmentCount = 0;
+    GridPos? firstRemovedFragmentCell;
+    for (final run in runs) {
+      if (run.points.length < 2) {
+        removedFragmentCount += 1;
+        firstRemovedFragmentCell ??= run.points.first;
+        continue;
+      }
+      retainedFragmentCount += 1;
+      final authoredFragmentId = retainedFragmentCount == 1
+          ? sourceIdentity.authoredStrokeId
+          : _nextResizeFragmentId(
+              sourceIdentity.authoredStrokeId,
+              ordinal: retainedFragmentCount,
+              usedIds: usedIds,
+            );
+      usedIds.add(authoredFragmentId);
+      resized.add(
+        buildBorderTraversalPreservedFragmentV1(
+          sourceStroke: stroke,
+          authoredStrokeId: authoredFragmentId,
+          sourceStartIndex: run.sourceStartIndex,
+          orderedPoints: run.points,
+        ),
+      );
+    }
+
+    if (removedFragmentCount > 0) {
+      diagnostics.add(
+        _diagnostic(
+          code: 'stroke_fragment_too_short',
+          severity: BorderDiagnosticSeverity.warning,
+          scope: BorderDiagnosticScope.stroke,
+          layerId: layerId,
+          featureId: featureId,
+          strokeId: sourceIdentity.authoredStrokeId,
+          cell: firstRemovedFragmentCell ?? firstClippedCell,
+          parameters: <String, Object?>{
+            'removedFragmentCount': removedFragmentCount,
+            'minimumPointCount': 2,
+          },
+          suggestedAction: 'border.resize.review_removed_stroke_fragment',
+        ),
+      );
+    }
+    if (retainedFragmentCount > 1) {
+      diagnostics.add(
+        _diagnostic(
+          code: 'stroke_split',
+          severity: BorderDiagnosticSeverity.info,
+          scope: BorderDiagnosticScope.stroke,
+          layerId: layerId,
+          featureId: featureId,
+          strokeId: sourceIdentity.authoredStrokeId,
+          cell: firstClippedCell,
+          parameters: <String, Object?>{
+            'retainedFragmentCount': retainedFragmentCount,
+          },
+          suggestedAction: 'border.resize.review_split_stroke',
+        ),
+      );
+    }
+    if (stroke.closed && retainedFragmentCount > 0) {
+      diagnostics.add(
+        _diagnostic(
+          code: 'stroke_closed_to_open',
+          severity: BorderDiagnosticSeverity.warning,
+          scope: BorderDiagnosticScope.stroke,
+          layerId: layerId,
+          featureId: featureId,
+          strokeId: sourceIdentity.authoredStrokeId,
+          cell: firstClippedCell,
+          parameters: <String, Object?>{
+            'retainedFragmentCount': retainedFragmentCount,
+          },
+          suggestedAction: 'border.resize.review_opened_stroke',
+        ),
+      );
+    }
+  }
+
+  return changed ? BorderStrokeGeometry(strokes: resized) : geometry;
+}
+
+List<_ResizeStrokeRun> _splitClippedOpenStroke(
+  List<GridPos> points,
+  GridSize newMapSize,
+) {
+  final runs = <_ResizeStrokeRun>[];
+  var current = <GridPos>[];
+  int? currentStartIndex;
+  for (var index = 0; index < points.length; index += 1) {
+    final point = points[index];
+    if (!_containsCell(newMapSize, point.x, point.y)) {
+      if (current.isNotEmpty) {
+        runs.add((points: current, sourceStartIndex: currentStartIndex!));
+      }
+      current = <GridPos>[];
+      currentStartIndex = null;
+    } else {
+      currentStartIndex ??= index;
+      current.add(point);
+    }
+  }
+  if (current.isNotEmpty) {
+    runs.add((points: current, sourceStartIndex: currentStartIndex!));
+  }
+  return runs;
+}
+
+List<_ResizeStrokeRun> _splitClippedClosedStroke(
+  List<GridPos> points,
+  GridSize newMapSize,
+) {
+  final firstClipped = points.indexWhere(
+    (point) => !_containsCell(newMapSize, point.x, point.y),
+  );
+  final runs = <_ResizeStrokeRun>[];
+  var current = <GridPos>[];
+  int? currentStartIndex;
+  for (var offset = 1; offset <= points.length; offset += 1) {
+    final sourceIndex = (firstClipped + offset) % points.length;
+    final point = points[sourceIndex];
+    if (!_containsCell(newMapSize, point.x, point.y)) {
+      if (current.isNotEmpty) {
+        runs.add((points: current, sourceStartIndex: currentStartIndex!));
+      }
+      current = <GridPos>[];
+      currentStartIndex = null;
+    } else {
+      currentStartIndex ??= sourceIndex;
+      current.add(point);
+    }
+  }
+  if (current.isNotEmpty) {
+    runs.add((points: current, sourceStartIndex: currentStartIndex!));
+  }
+  return runs;
+}
+
+String _nextResizeFragmentId(
+  String sourceId, {
+  required int ordinal,
+  required Set<String> usedIds,
+}) {
+  var suffix = ordinal;
+  while (true) {
+    final candidate = '${sourceId}__fragment_$suffix';
+    if (!usedIds.contains(candidate)) return candidate;
+    suffix += 1;
+  }
 }
 
 BorderRegionGeometry _resizeRegion({

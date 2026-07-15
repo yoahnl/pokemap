@@ -58,6 +58,7 @@ void main() {
       );
       final feature = _feature(
         id: 'feature-z',
+        blueprintId: 'organic-edge-blueprint',
         geometry: _region(
           4,
           3,
@@ -332,7 +333,107 @@ void main() {
       expect(resizedGeometry.strokes[1], same(closed));
     });
 
-    test('blocks the complete resize when any stroke point leaves the map', () {
+    for (final blueprintId in <String>[
+      'masonry-line-blueprint',
+      'post-and-rail-line-blueprint',
+    ]) {
+      test('clips and splits $blueprintId with stable collision-free ids', () {
+        final untouched = BorderStroke(
+          id: 'wall__fragment_2',
+          points: const <GridPos>[
+            GridPos(x: 0, y: 4),
+            GridPos(x: 1, y: 4),
+          ],
+          closed: false,
+        );
+        final result = resizeBorderLayerContent(
+          content: BorderLayerContent(
+            features: <BorderFeature>[
+              _feature(
+                blueprintId: blueprintId,
+                geometry: BorderStrokeGeometry(
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'wall',
+                      points: const <GridPos>[
+                        GridPos(x: 0, y: 0),
+                        GridPos(x: 1, y: 0),
+                        GridPos(x: 2, y: 0),
+                        GridPos(x: 3, y: 0),
+                        GridPos(x: 4, y: 0),
+                        GridPos(x: 4, y: 1),
+                        GridPos(x: 4, y: 2),
+                        GridPos(x: 3, y: 2),
+                        GridPos(x: 2, y: 2),
+                        GridPos(x: 1, y: 2),
+                      ],
+                      closed: false,
+                    ),
+                    untouched,
+                  ],
+                ),
+              ),
+            ],
+          ),
+          oldMapSize: const GridSize(width: 5, height: 5),
+          newMapSize: const GridSize(width: 4, height: 5),
+          tileSizePx: const GridSize(width: 16, height: 16),
+          layerId: 'border-main',
+        );
+
+        expect(result.canApply, isTrue);
+        final geometry =
+            result.content!.features.single.geometry as BorderStrokeGeometry;
+        final identities = geometry.strokes
+            .map(resolveBorderStrokeLineageIdentityV1)
+            .toList(growable: false);
+        expect(
+          identities.map((identity) => identity.authoredStrokeId),
+          <String>['wall', 'wall__fragment_3', 'wall__fragment_2'],
+        );
+        expect(
+          identities.take(2).map((identity) => identity.sourceEdgeOffset),
+          <int>[0, 7],
+        );
+        expect(
+          geometry.strokes[0].points,
+          const <GridPos>[
+            GridPos(x: 0, y: 0),
+            GridPos(x: 1, y: 0),
+            GridPos(x: 2, y: 0),
+            GridPos(x: 3, y: 0),
+          ],
+        );
+        expect(
+          geometry.strokes[1].points,
+          const <GridPos>[
+            GridPos(x: 3, y: 2),
+            GridPos(x: 2, y: 2),
+            GridPos(x: 1, y: 2),
+          ],
+        );
+        expect(geometry.strokes[2], same(untouched));
+        expect(
+          result.diagnosticReport.diagnostics.map((value) => value.code),
+          containsAll(<String>['stroke_points_clipped', 'stroke_split']),
+        );
+        expect(
+          result.diagnosticReport.diagnostics.every(
+            (diagnostic) =>
+                diagnostic.phase == BorderDiagnosticPhase.resize &&
+                diagnostic.scope == BorderDiagnosticScope.stroke &&
+                diagnostic.featureId == 'feature' &&
+                diagnostic.strokeId == 'wall' &&
+                diagnostic.cell == const GridPos(x: 4, y: 0) &&
+                diagnostic.parameters['layerId'] == 'border-main' &&
+                diagnostic.suggestedAction.startsWith('border.resize.'),
+          ),
+          isTrue,
+        );
+      });
+    }
+
+    test('removes too-short fragments and converts a clipped loop to open', () {
       final result = resizeBorderLayerContent(
         content: BorderLayerContent(
           features: <BorderFeature>[
@@ -340,7 +441,117 @@ void main() {
               geometry: BorderStrokeGeometry(
                 strokes: <BorderStroke>[
                   BorderStroke(
-                    id: 'stroke-a',
+                    id: 'short-tail',
+                    points: const <GridPos>[
+                      GridPos(x: 0, y: 0),
+                      GridPos(x: 1, y: 0),
+                      GridPos(x: 2, y: 0),
+                      GridPos(x: 3, y: 0),
+                      GridPos(x: 4, y: 0),
+                      GridPos(x: 4, y: 1),
+                      GridPos(x: 4, y: 2),
+                      GridPos(x: 3, y: 2),
+                      GridPos(x: 2, y: 2),
+                    ],
+                    closed: false,
+                  ),
+                  BorderStroke(
+                    id: 'loop',
+                    points: const <GridPos>[
+                      GridPos(x: 1, y: 3),
+                      GridPos(x: 2, y: 3),
+                      GridPos(x: 3, y: 3),
+                      GridPos(x: 3, y: 4),
+                      GridPos(x: 3, y: 5),
+                      GridPos(x: 2, y: 5),
+                      GridPos(x: 1, y: 5),
+                      GridPos(x: 1, y: 4),
+                    ],
+                    closed: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        oldMapSize: const GridSize(width: 5, height: 6),
+        newMapSize: const GridSize(width: 3, height: 6),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        layerId: 'border-main',
+      );
+
+      expect(result.canApply, isTrue);
+      final strokes =
+          (result.content!.features.single.geometry as BorderStrokeGeometry)
+              .strokes;
+      expect(
+        strokes
+            .map(resolveBorderStrokeLineageIdentityV1)
+            .map((identity) => identity.authoredStrokeId),
+        <String>['short-tail', 'loop'],
+      );
+      expect(
+        strokes
+            .map(resolveBorderStrokeLineageIdentityV1)
+            .map((identity) => identity.sourceEdgeOffset),
+        <int>[0, 5],
+      );
+      expect(
+        resolveBorderStrokeLineageIdentityV1(strokes.last).wrapLength,
+        8,
+      );
+      expect(
+        strokes.first.points,
+        const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 0),
+        ],
+      );
+      expect(strokes.last.closed, isFalse);
+      expect(
+        strokes.last.points,
+        const <GridPos>[
+          GridPos(x: 2, y: 5),
+          GridPos(x: 1, y: 5),
+          GridPos(x: 1, y: 4),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+        ],
+      );
+      final diagnostics = result.diagnosticReport.diagnostics;
+      expect(
+        diagnostics.map((value) => value.code),
+        containsAll(<String>[
+          'stroke_fragment_too_short',
+          'stroke_closed_to_open',
+        ]),
+      );
+      expect(
+        diagnostics.every(
+          (diagnostic) =>
+              diagnostic.cell != null &&
+              diagnostic.featureId == 'feature' &&
+              diagnostic.strokeId != null &&
+              diagnostic.parameters['layerId'] == 'border-main',
+        ),
+        isTrue,
+      );
+    });
+
+    test('does not regenerate or replace an unaffected materialization', () {
+      final materialization = _materialization(
+        ground: <BorderResolvedGroundCell>[_ground(0, 0)],
+        placements: const <BorderResolvedPlacement>[],
+      );
+      final result = resizeBorderLayerContent(
+        content: BorderLayerContent(
+          features: <BorderFeature>[
+            _feature(
+              geometry: BorderStrokeGeometry(
+                strokes: <BorderStroke>[
+                  BorderStroke(
+                    id: 'wall',
                     points: const <GridPos>[
                       GridPos(x: 0, y: 0),
                       GridPos(x: 1, y: 0),
@@ -350,26 +561,24 @@ void main() {
                   ),
                 ],
               ),
+              materialization: materialization,
             ),
           ],
         ),
-        oldMapSize: const GridSize(width: 3, height: 3),
+        oldMapSize: const GridSize(width: 3, height: 2),
         newMapSize: const GridSize(width: 2, height: 2),
         tileSizePx: const GridSize(width: 16, height: 16),
-        layerId: 'border-main',
       );
 
-      expect(result.canApply, isFalse);
-      expect(result.content, isNull);
-      final diagnostic = result.diagnosticReport.diagnostics.single;
-      expect(diagnostic.code, 'stroke_clipping_deferred');
-      expect(diagnostic.severity, BorderDiagnosticSeverity.error);
-      expect(diagnostic.phase, BorderDiagnosticPhase.resize);
-      expect(diagnostic.scope, BorderDiagnosticScope.stroke);
-      expect(diagnostic.featureId, 'feature');
-      expect(diagnostic.strokeId, 'stroke-a');
-      expect(diagnostic.cell, const GridPos(x: 2, y: 0));
-      expect(diagnostic.parameters['layerId'], 'border-main');
+      expect(result.canApply, isTrue);
+      expect(
+        result.content!.features.single.materialization,
+        same(materialization),
+      );
+      expect(
+        result.content!.features.single.materialization!.receipt,
+        same(materialization.receipt),
+      );
     });
   });
 
@@ -739,18 +948,7 @@ void main() {
       );
       final invalid = _feature(
         id: 'invalid',
-        geometry: BorderStrokeGeometry(
-          strokes: <BorderStroke>[
-            BorderStroke(
-              id: 'stroke-invalid',
-              points: const <GridPos>[
-                GridPos(x: 1, y: 1),
-                GridPos(x: 2, y: 1),
-              ],
-              closed: false,
-            ),
-          ],
-        ),
+        geometry: _region(2, 3, List<bool>.filled(6, false)),
       );
       final source = MapData(
         id: 'map',
@@ -822,9 +1020,10 @@ void main() {
       const GridSize(width: 4, height: 4),
     ]) {
       test(
-          'keeps two Collision layers and placed elements byte-equivalent to '
-          'legacy at ${target.width}x${target.height}', () {
+          'keeps Collision and unrelated layers byte-equivalent to legacy at '
+          '${target.width}x${target.height}', () {
         final source = _mapWithCollisionLayersAndBorder();
+        final sourceBytes = jsonEncode(source);
         final withoutBorder = source.copyWith(
           version: ProjectVersion.v1,
           layers: source.layers
@@ -845,7 +1044,12 @@ void main() {
         );
 
         expect(result.canApply, isTrue);
+        expect(jsonEncode(source), sourceBytes);
         final resized = result.map!;
+        final resizedUnrelated = resized.layers
+            .where((layer) => layer is! BorderLayer)
+            .toList(growable: false);
+        expect(jsonEncode(resizedUnrelated), jsonEncode(legacy.layers));
         final resizedCollision =
             resized.layers.whereType<CollisionLayer>().toList(growable: false);
         final legacyCollision =
@@ -871,6 +1075,7 @@ BorderRegionGeometry _region(int width, int height, List<bool> cells) =>
 
 BorderFeature _feature({
   String id = 'feature',
+  String blueprintId = 'blueprint',
   required BorderFeatureGeometry geometry,
   List<BorderKeepOutRegion> keepOutRegions = const <BorderKeepOutRegion>[],
   BorderMaterialization? materialization,
@@ -878,7 +1083,7 @@ BorderFeature _feature({
     BorderFeature(
       id: id,
       name: 'Feature $id',
-      blueprintId: 'blueprint',
+      blueprintId: blueprintId,
       seed: BorderSignedInt64.zero,
       geometry: geometry,
       overrides: const <BorderSlotOverride>[],
@@ -1007,6 +1212,11 @@ MapData _mapWithCollisionLayersAndBorder() => MapData(
       version: ProjectVersion.v2,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
+        MapLayer.tile(
+          id: 'tiles',
+          name: 'Tiles',
+          tiles: List<int>.generate(9, (index) => index + 1),
+        ),
         MapLayer.collision(
           id: 'collision-before',
           name: 'Before',
@@ -1028,6 +1238,7 @@ MapData _mapWithCollisionLayersAndBorder() => MapData(
           name: 'After',
           collisions: List<bool>.generate(9, (index) => index % 3 == 0),
         ),
+        const MapLayer.object(id: 'objects', name: 'Objects'),
       ],
       placedElements: const <MapPlacedElement>[
         MapPlacedElement(

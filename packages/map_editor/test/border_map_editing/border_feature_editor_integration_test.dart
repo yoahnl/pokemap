@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_feature_authoring_controller.dart';
+import 'package:map_editor/src/features/border_map_editing/application/border_preview_controller.dart';
+import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
+import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
@@ -66,7 +69,30 @@ void main() {
       newIndex: 1,
     );
 
-    final mapBeforePreview = notifier.state.activeMap!;
+    final mapBeforePreview = updateBorderFeatureGeometry(
+      notifier.state.activeMap!,
+      layerId: 'borders',
+      featureId: 'border_feature',
+      geometry: BorderRegionGeometry(
+        width: 4,
+        height: 3,
+        cells: const <bool>[
+          true,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ],
+      ),
+    );
+    notifier.state = notifier.state.copyWith(activeMap: mapBeforePreview);
     final preview =
         const BorderFeatureAuthoringController().previewBlueprintChange(
       map: mapBeforePreview,
@@ -74,9 +100,13 @@ void main() {
       featureId: 'border_feature',
       sourceBlueprint: _record('coast-a'),
       targetBlueprint: _record('coast-b'),
+      visualSnapshots: notifier.state.project!.borderCatalog.visualSnapshots,
+      tileSizePx: const GridSize(width: 16, height: 16),
     );
     expect(notifier.state.activeMap, same(mapBeforePreview));
+    final historyBeforeRelink = notifier.state.mapUndoStack.length;
     notifier.changeBorderFeatureBlueprint(preview);
+    expect(notifier.state.mapUndoStack, hasLength(historyBeforeRelink + 1));
     notifier.deleteBorderFeature(
       layerId: 'borders',
       featureId: 'border_feature_2',
@@ -175,6 +205,8 @@ void main() {
       featureId: 'border_feature',
       sourceBlueprint: coast,
       targetBlueprint: wall,
+      visualSnapshots: const <BorderVisualSnapshot>[],
+      tileSizePx: const GridSize(width: 16, height: 16),
     );
 
     notifier.createBorderFeatureFromBlueprintChange(
@@ -194,7 +226,17 @@ void main() {
       features.last.id,
     );
 
-    notifier.resetBorderFeatureBlueprint(preview);
+    final resetPreview =
+        const BorderFeatureAuthoringController().previewBlueprintChange(
+      map: notifier.state.activeMap!,
+      layerId: 'borders',
+      featureId: 'border_feature',
+      sourceBlueprint: coast,
+      targetBlueprint: wall,
+      visualSnapshots: const <BorderVisualSnapshot>[],
+      tileSizePx: const GridSize(width: 16, height: 16),
+    );
+    notifier.resetBorderFeatureBlueprint(resetPreview);
     features = notifier.state.activeMap!.layers
         .whereType<BorderLayer>()
         .single
@@ -204,6 +246,135 @@ void main() {
     expect(features.first.geometry, isA<BorderStrokeGeometry>());
     expect(features.last.name, 'Muret séparé');
   });
+
+  test('notifier rejects a relink preview after target publication drift', () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final coast = _record('coast');
+    final wall = _record(
+      'wall',
+      template: BorderBlueprintTemplate.masonryLine,
+    );
+    notifier.state = EditorState(
+      project: _project(<BorderBlueprintRecord>[coast, wall]),
+      activeMap: const MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v2,
+        size: GridSize(width: 3, height: 3),
+        layers: <MapLayer>[
+          MapLayer.border(id: 'borders', name: 'Bordures'),
+        ],
+      ),
+      activeLayerId: 'borders',
+    );
+    notifier.createBorderFeature(
+      layerId: 'borders',
+      blueprintId: coast.id,
+      name: 'Côte',
+    );
+    final map = notifier.state.activeMap!;
+    final history = notifier.state.mapUndoStack;
+    final preview =
+        const BorderFeatureAuthoringController().previewBlueprintChange(
+      map: map,
+      layerId: 'borders',
+      featureId: 'border_feature',
+      sourceBlueprint: coast,
+      targetBlueprint: wall,
+      visualSnapshots: const <BorderVisualSnapshot>[],
+      tileSizePx: const GridSize(width: 16, height: 16),
+    );
+    final driftedWall = BorderBlueprintRecord(
+      id: wall.id,
+      draft: BorderBlueprintDraft(
+        baseRevision: 2,
+        definition: wall.draft.definition,
+      ),
+      latestPublished: BorderBlueprintRevision(
+        revision: 2,
+        definition: wall.latestPublished!.definition,
+      ),
+    );
+    notifier.state = notifier.state.copyWith(
+      project: _project(<BorderBlueprintRecord>[coast, driftedWall]),
+    );
+
+    notifier.resetBorderFeatureBlueprint(preview);
+
+    expect(notifier.state.activeMap, same(map));
+    expect(notifier.state.mapUndoStack, history);
+    expect(notifier.state.errorMessage, contains('révision publiée a changé'));
+  });
+
+  test('notifier resolves a local correction draft without map history writes',
+      () {
+    final feature = BorderFeature(
+      id: 'feature',
+      name: 'Côte',
+      blueprintId: 'coast',
+      seed: BorderSignedInt64.fromInt(7),
+      geometry: BorderRegionGeometry(
+        width: 3,
+        height: 3,
+        cells: List<bool>.filled(9, false),
+      ),
+      overrides: const <BorderSlotOverride>[],
+      keepOutRegions: const <BorderKeepOutRegion>[],
+      materialization: _materialization(),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 3, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'borders',
+          name: 'Bordures',
+          content: BorderLayerContent(features: <BorderFeature>[feature]),
+        ),
+      ],
+    );
+    final preview = BorderPreviewController(
+      resolver: (_) => BorderResolutionResult(
+        materialization: _materialization(),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: '/projects/border',
+      project: _project(<BorderBlueprintRecord>[_record('coast')]),
+      activeMap: map,
+      activeMapPath: '/projects/border/maps/map.json',
+      activeLayerId: 'borders',
+    );
+    final draft = const BorderFeatureAuthoringController()
+        .previewLocalVariation(feature: feature, slotKey: 'slot-a');
+    final before = map.toJson();
+
+    final prepared = notifier.previewBorderFeatureDraft(
+      layerId: 'borders',
+      featureId: 'feature',
+      draft: draft,
+    );
+
+    expect(prepared, isTrue);
+    expect(preview.state.phase, BorderPreviewPhase.resolved);
+    expect(
+        preview.state.transaction!.proposedFeature.overrides, draft.overrides);
+    expect(notifier.state.activeMap, same(map));
+    expect(notifier.state.activeMap!.toJson(), before);
+    expect(notifier.state.mapUndoStack, isEmpty);
+  });
 }
 
 ProjectManifest _project(List<BorderBlueprintRecord> records) =>
@@ -212,7 +383,10 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
       version: ProjectVersion.v2,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
-      borderCatalog: ProjectBorderCatalog(records: records),
+      borderCatalog: ProjectBorderCatalog(
+        records: records,
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+      ),
     );
 
 BorderBlueprintRecord _record(
@@ -242,7 +416,9 @@ BorderBlueprintRecord _record(
               name: id,
               previewSeed: BorderSignedInt64.zero,
               template: template,
-              primitives: const <BorderPublishedPrimitive>[],
+              primitives: template == BorderBlueprintTemplate.organicEdge
+                  ? <BorderPublishedPrimitive>[_primitive()]
+                  : const <BorderPublishedPrimitive>[],
               defaults: _params(),
               sortOrder: 0,
             ),
@@ -259,4 +435,69 @@ BorderGenerationParams _params() => BorderGenerationParams(
       maxOverlapPx: 0,
       gapTolerancePx: 0,
       depthRows: 1,
+    );
+
+BorderPublishedPrimitive _primitive() => BorderPublishedPrimitive(
+      id: 'structure',
+      sourceElementId: 'structure-source',
+      visualSnapshotId: _snapshotId,
+      role: BorderPrimitiveRole.structureLarge,
+      weight: 1,
+      anchorPx: const BorderPixelPos(x: 8, y: 8),
+      transforms: BorderTransformPolicy(
+        allowFlipX: true,
+        allowedQuarterTurns: const <int>[0, 1, 2, 3],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-structure',
+        pixelSize: const GridSize(width: 16, height: 16),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+        defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
+        occupancyMaskRle: encodeBorderRleMask(
+          List<bool>.filled(16 * 16, true),
+        ),
+      ),
+    );
+
+BorderVisualSnapshot _snapshot() => BorderVisualSnapshot(
+      id: _snapshotId,
+      contentFingerprint: 'a' * 64,
+      frames: <BorderVisualFrameSnapshot>[
+        BorderVisualFrameSnapshot(
+          relativeAssetPath: 'assets/borders/snapshots/a.png',
+          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+          durationMs: 100,
+        ),
+      ],
+    );
+
+const _snapshotId =
+    'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
+BorderMaterialization _materialization() => BorderMaterialization(
+      receipt: BorderResolutionReceipt(
+        resolverVersion: 1,
+        blueprintRevision: 1,
+        components: BorderInputFingerprints(
+          blueprint: 'sha256:${'0' * 64}',
+          geometryAndSeed: 'sha256:${'1' * 64}',
+          parameters: 'sha256:${'2' * 64}',
+          overrides: 'sha256:${'3' * 64}',
+          keepOutRegions: 'sha256:${'4' * 64}',
+          mapContext: 'sha256:${'5' * 64}',
+          visualSnapshots: 'sha256:${'6' * 64}',
+        ),
+        inputFingerprint: 'sha256:${'7' * 64}',
+        outputFingerprint: 'sha256:${'8' * 64}',
+      ),
+      ground: <BorderResolvedGroundCell>[
+        BorderResolvedGroundCell(
+          x: 0,
+          y: 0,
+          visualSnapshotId:
+              'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          resolvedRole: SurfaceVariantRole.isolated,
+        ),
+      ],
+      placements: const <BorderResolvedPlacement>[],
     );

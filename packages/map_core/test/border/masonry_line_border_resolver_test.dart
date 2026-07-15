@@ -679,32 +679,64 @@ void main() {
       );
     });
 
-    test('rejects overrides, keep-outs, and ground instead of ignoring them',
+    test('applies stable-slot suppression and keep-outs before final output',
         () {
+      final baseline = resolveMasonryLineBorder(MasonryLineFixture().request);
+      final target = baseline.materialization!.placements.first;
       final keepOut = BorderKeepOutRegion(
         id: 'opening',
         region: BorderRegionGeometry(
           width: 8,
           height: 8,
           cells: <bool>[
-            for (var index = 0; index < 64; index += 1) index == 27,
+            for (var index = 0; index < 64; index += 1)
+              index == target.anchorCell.y * 8 + target.anchorCell.x,
           ],
         ),
       );
-      final groundSnapshotId = masonrySnapshotId('9');
-      final cases = <BorderResolutionRequest>[
+      final overrideResult = resolveMasonryLineBorder(
         MasonryLineFixture(
           overrides: <BorderSlotOverride>[
             BorderSlotOverride(
-              slotKey: 'future-slot',
+              slotKey: target.slotKey,
               variationSalt: BorderSignedInt64.zero,
               suppressed: true,
               locked: false,
             ),
           ],
         ).request,
+      );
+      final keepOutResult = resolveMasonryLineBorder(
         MasonryLineFixture(keepOutRegions: <BorderKeepOutRegion>[keepOut])
             .request,
+      );
+
+      expect(overrideResult.canApply, isTrue,
+          reason: _diagnostics(overrideResult));
+      expect(
+        overrideResult.materialization!.placements,
+        baseline.materialization!.placements
+            .where((placement) => placement.slotKey != target.slotKey),
+      );
+      expect(
+        overrideResult.diagnostics.map((diagnostic) => diagnostic.code),
+        isNot(contains('border.resolution.coverage_gap')),
+      );
+      expect(keepOutResult.canApply, isTrue,
+          reason: _diagnostics(keepOutResult));
+      expect(
+        keepOutResult.materialization!.placements.length,
+        lessThan(baseline.materialization!.placements.length),
+      );
+      expect(
+        keepOutResult.diagnostics.map((diagnostic) => diagnostic.code),
+        isNot(contains('border.resolution.coverage_gap')),
+      );
+    });
+
+    test('continues to reject Surface ground for a linear blueprint', () {
+      final groundSnapshotId = masonrySnapshotId('9');
+      final result = resolveMasonryLineBorder(
         MasonryLineFixture(
           ground: BorderPublishedGround(
             sourceSurfacePresetId: 'ground',
@@ -715,22 +747,14 @@ void main() {
             },
           ),
         ).request,
-      ];
+      );
 
-      final expectedCodes = <String>[
-        'border.resolution.overrides_not_supported',
-        'border.resolution.keep_outs_not_supported',
-        'border.resolution.linear_ground_not_supported',
-      ];
-      for (var index = 0; index < cases.length; index += 1) {
-        final result = resolveMasonryLineBorder(cases[index]);
-        expect(result.canApply, isFalse);
-        expect(result.materialization, isNull);
-        expect(
-          result.diagnostics.map((diagnostic) => diagnostic.code),
-          contains(expectedCodes[index]),
-        );
-      }
+      expect(result.canApply, isFalse);
+      expect(result.materialization, isNull);
+      expect(
+        result.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('border.resolution.linear_ground_not_supported'),
+      );
     });
 
     test('uses a medium structure when large assets lack the orientation', () {

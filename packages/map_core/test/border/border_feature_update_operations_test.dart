@@ -12,8 +12,7 @@ const _wrongHash =
 
 void main() {
   group('unit Border feature updates', () {
-    test('geometry, seed, and overrides replace only their requested field',
-        () {
+    test('all authored fields replace only their requested field', () {
       final fixture = _fixture();
       final original = fixture.feature;
       final geometry = BorderRegionGeometry(
@@ -23,6 +22,10 @@ void main() {
       );
       final seed = BorderSignedInt64.fromInt(99);
       final overrides = <BorderSlotOverride>[_override('new-slot')];
+      final params = _params(depthRows: 4);
+      final keepOutRegions = <BorderKeepOutRegion>[
+        _keepOut('new-keep-out'),
+      ];
 
       final cases = <(MapData, void Function(BorderFeature))>[
         (
@@ -64,6 +67,32 @@ void main() {
             expect(updated.seed, original.seed);
           },
         ),
+        (
+          updateBorderFeatureParameters(
+            fixture.map,
+            layerId: 'border',
+            featureId: 'feature',
+            paramsOverride: params,
+          ),
+          (updated) {
+            expect(updated.paramsOverride, same(params));
+            expect(updated.geometry, original.geometry);
+            expect(updated.seed, original.seed);
+          },
+        ),
+        (
+          updateBorderFeatureKeepOutRegions(
+            fixture.map,
+            layerId: 'border',
+            featureId: 'feature',
+            keepOutRegions: keepOutRegions,
+          ),
+          (updated) {
+            expect(updated.keepOutRegions, keepOutRegions);
+            expect(updated.geometry, original.geometry);
+            expect(updated.seed, original.seed);
+          },
+        ),
       ];
 
       for (final (map, verifyChanged) in cases) {
@@ -72,12 +101,32 @@ void main() {
         expect(updated.id, original.id);
         expect(updated.name, original.name);
         expect(updated.blueprintId, original.blueprintId);
-        expect(updated.paramsOverride, same(original.paramsOverride));
-        expect(updated.keepOutRegions, original.keepOutRegions);
+        if (!identical(updated.paramsOverride, params)) {
+          expect(updated.paramsOverride, same(original.paramsOverride));
+        }
+        final changedKeepOut = updated.keepOutRegions.length == 1 &&
+            updated.keepOutRegions.single.id == 'new-keep-out';
+        if (!changedKeepOut) {
+          expect(updated.keepOutRegions, original.keepOutRegions);
+        }
         expect(updated.materialization, same(original.materialization));
         expect(map.layers[1], same(fixture.map.layers[1]));
         expect(_otherFeatureOf(map), same(fixture.otherFeature));
       }
+    });
+
+    test('parameter override can be explicitly cleared', () {
+      final fixture = _fixture();
+
+      final updated = updateBorderFeatureParameters(
+        fixture.map,
+        layerId: 'border',
+        featureId: 'feature',
+        paramsOverride: null,
+      );
+
+      expect(_featureOf(updated).paramsOverride, isNull);
+      expect(_featureOf(fixture.map).paramsOverride, isNotNull);
     });
 
     test('invalid layer and feature targets throw without changing the map',

@@ -30,14 +30,16 @@ final class BorderBlueprintFeaturePreviewState {
 ///
 /// The proposal never mutates the map. Applying it is a separate explicit
 /// command. Both sides contain complete [BorderFeature] states so presentation
-/// can describe geometry and materialization without pretending an ID swap is
-/// a resolved visual preview.
+/// can describe geometry and the canonical resolved target materialization.
 final class BorderBlueprintChangePreview {
   const BorderBlueprintChangePreview._({
+    required this.mapIdentity,
     required this.layerId,
     required this.featureId,
     required this.before,
     required this.after,
+    required this.relink,
+    required this.targetRevision,
     required this.canApply,
     required this.canReset,
     required this.canCreateNewFeature,
@@ -45,10 +47,14 @@ final class BorderBlueprintChangePreview {
     required this.blockedReason,
   });
 
+  /// Exact editor document that owned the proposal before an async confirm.
+  final MapData mapIdentity;
   final String layerId;
   final String featureId;
   final BorderBlueprintFeaturePreviewState before;
   final BorderBlueprintFeaturePreviewState after;
+  final BorderFeatureRelinkPreview relink;
+  final BorderBlueprintRevision targetRevision;
   final bool canApply;
   final bool canReset;
   final bool canCreateNewFeature;
@@ -59,6 +65,7 @@ final class BorderBlueprintChangePreview {
   String get afterBlueprintId => after.feature.blueprintId;
   String get afterBlueprintName => after.blueprintName;
   BorderBlueprintTemplate? get afterTemplate => after.template;
+  List<BorderRelinkLoss> get losses => relink.losses;
 }
 
 /// Small, UI-independent authoring façade for Border feature list actions.
@@ -155,71 +162,218 @@ final class BorderFeatureAuthoringController {
         featureId: featureId,
       );
 
+  /// Changes only one slot's deterministic variation in a transient draft.
+  BorderFeature previewLocalVariation({
+    required BorderFeature feature,
+    required String slotKey,
+  }) {
+    final current = _overrideFor(feature, slotKey);
+    return _draftWithOverride(
+      feature,
+      BorderSlotOverride(
+        slotKey: slotKey,
+        variationSalt: _nextLocalVariationSalt(
+          feature: feature,
+          slotKey: slotKey,
+          current: current?.variationSalt ?? BorderSignedInt64.zero,
+        ),
+        suppressed: false,
+        locked: false,
+        replacementPrimitiveId: current?.replacementPrimitiveId,
+        offsetDeltaPx: current?.offsetDeltaPx,
+        transformOverride: current?.transformOverride,
+      ),
+    );
+  }
+
+  /// Selects one published primitive for a slot in a transient draft.
+  BorderFeature previewReplacement({
+    required BorderFeature feature,
+    required String slotKey,
+    required String primitiveId,
+  }) {
+    final current = _overrideFor(feature, slotKey);
+    return _draftWithOverride(
+      feature,
+      BorderSlotOverride(
+        slotKey: slotKey,
+        variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
+        suppressed: false,
+        locked: false,
+        replacementPrimitiveId: primitiveId,
+        offsetDeltaPx: current?.offsetDeltaPx,
+        transformOverride: current?.transformOverride,
+      ),
+    );
+  }
+
+  /// Moves one generated slot by an integer pixel delta in a transient draft.
+  BorderFeature previewMove({
+    required BorderFeature feature,
+    required String slotKey,
+    required BorderPixelOffset offset,
+  }) {
+    final current = _overrideFor(feature, slotKey);
+    return _draftWithOverride(
+      feature,
+      BorderSlotOverride(
+        slotKey: slotKey,
+        variationSalt: current?.variationSalt ?? BorderSignedInt64.zero,
+        suppressed: false,
+        locked: false,
+        replacementPrimitiveId: current?.replacementPrimitiveId,
+        offsetDeltaPx: offset,
+        transformOverride: current?.transformOverride,
+      ),
+    );
+  }
+
+  /// Suppresses one generated slot and clears incompatible correction fields.
+  BorderFeature previewRemoval({
+    required BorderFeature feature,
+    required String slotKey,
+  }) =>
+      _draftWithOverride(
+        feature,
+        BorderSlotOverride(
+          slotKey: slotKey,
+          variationSalt: BorderSignedInt64.zero,
+          suppressed: true,
+          locked: false,
+        ),
+      );
+
+  /// Captures one exact resolved placement as the slot's locked output.
+  BorderFeature previewLock({
+    required BorderFeature feature,
+    required BorderResolvedPlacement placement,
+  }) =>
+      _draftWithOverride(
+        feature,
+        BorderSlotOverride(
+          slotKey: placement.slotKey,
+          variationSalt: BorderSignedInt64.zero,
+          suppressed: false,
+          locked: true,
+          lockedPlacement: placement,
+        ),
+      );
+
+  /// Adds a compact square keep-out mask around one selected slot.
+  BorderFeature previewKeepOut({
+    required BorderFeature feature,
+    required BorderResolvedPlacement placement,
+    required GridSize mapSize,
+    required int radiusCells,
+  }) {
+    if (radiusCells < 0 || radiusCells > 2) {
+      throw ArgumentError.value(
+        radiusCells,
+        'radiusCells',
+        'must be between 0 and 2',
+      );
+    }
+    final cells = List<bool>.filled(mapSize.width * mapSize.height, false);
+    for (var y = placement.anchorCell.y - radiusCells;
+        y <= placement.anchorCell.y + radiusCells;
+        y += 1) {
+      if (y < 0 || y >= mapSize.height) continue;
+      for (var x = placement.anchorCell.x - radiusCells;
+          x <= placement.anchorCell.x + radiusCells;
+          x += 1) {
+        if (x < 0 || x >= mapSize.width) continue;
+        cells[y * mapSize.width + x] = true;
+      }
+    }
+    return BorderFeature(
+      id: feature.id,
+      name: feature.name,
+      blueprintId: feature.blueprintId,
+      seed: feature.seed,
+      geometry: feature.geometry,
+      paramsOverride: feature.paramsOverride,
+      overrides: feature.overrides,
+      keepOutRegions: <BorderKeepOutRegion>[
+        ...feature.keepOutRegions,
+        BorderKeepOutRegion(
+          id: _nextKeepOutId(feature.keepOutRegions),
+          region: BorderRegionGeometry(
+            width: mapSize.width,
+            height: mapSize.height,
+            cells: cells,
+          ),
+        ),
+      ],
+      materialization: null,
+    );
+  }
+
   BorderBlueprintChangePreview previewBlueprintChange({
     required MapData map,
     required String layerId,
     required String featureId,
     required BorderBlueprintRecord? sourceBlueprint,
     required BorderBlueprintRecord targetBlueprint,
+    required Iterable<BorderVisualSnapshot> visualSnapshots,
+    required GridSize tileSizePx,
+    int resolverVersion = borderResolverVersion,
   }) {
     final feature = _feature(_borderLayer(map, layerId), featureId);
     final published = targetBlueprint.latestPublished;
-    final targetDefinition =
-        published?.definition ?? targetBlueprint.draft.definition;
+    if (published == null) {
+      throw StateError('Le blueprint cible doit être publié.');
+    }
+    if (targetBlueprint.isDeprecated) {
+      throw StateError('Le blueprint cible est obsolète.');
+    }
+    if (targetBlueprint.id == feature.blueprintId) {
+      throw StateError('Cette bordure utilise déjà ce blueprint.');
+    }
+    final targetDefinition = published.definition;
     final template = targetDefinition.template;
     final sourceDefinition = sourceBlueprint?.id == feature.blueprintId
         ? sourceBlueprint?.latestPublished?.definition ??
             sourceBlueprint?.draft.definition
         : null;
-    final sourceIsRegion = feature.geometry is BorderRegionGeometry;
-    final targetIsRegion = template == BorderBlueprintTemplate.organicEdge;
-    final changesFamily = sourceIsRegion != targetIsRegion;
-    final sameBlueprint = targetBlueprint.id == feature.blueprintId;
-    final targetIsUsable = published != null && !targetBlueprint.isDeprecated;
-    final afterFeature = sameBlueprint
-        ? feature
-        : changesFamily
-            ? _resetFeatureForTemplate(
-                feature,
-                blueprintId: targetBlueprint.id,
-                template: template,
-                mapSize: map.size,
-              )
-            : _relinkFeature(
-                feature,
-                blueprintId: targetBlueprint.id,
-              );
-
-    String? blockedReason;
-    if (published == null) {
-      blockedReason = 'Le blueprint cible doit être publié.';
-    } else if (targetBlueprint.isDeprecated) {
-      blockedReason = 'Le blueprint cible est obsolète.';
-    } else if (sameBlueprint) {
-      blockedReason = 'Cette bordure utilise déjà ce blueprint.';
-    } else if (sourceIsRegion && !targetIsRegion) {
-      blockedReason = 'Le passage d’une géométrie région à une géométrie ligne '
-          'exige de créer une nouvelle feature ou de confirmer la remise à zéro.';
-    } else if (!sourceIsRegion && targetIsRegion) {
-      blockedReason = 'Le passage d’une géométrie ligne à une géométrie région '
-          'exige de créer une nouvelle feature ou de confirmer la remise à zéro.';
-    } else if (template != BorderBlueprintTemplate.organicEdge) {
-      blockedReason =
-          'Le changement entre blueprints linéaires sera activé avec BORD-06.';
-    }
-
-    final consequence = sameBlueprint
-        ? 'Aucune modification ne sera appliquée.'
-        : changesFamily
-            ? 'La remise à zéro supprime la géométrie actuelle, les paramètres '
-                'personnalisés, les corrections locales, les zones d’exclusion '
-                'et la matérialisation. Une géométrie vide adaptée au nouveau '
-                'template sera créée.'
-            : 'La géométrie, les paramètres, les corrections locales et les '
-                'zones d’exclusion sont conservés. L’ancienne matérialisation '
-                'est supprimée et devra être régénérée avant le runtime.';
+    final relink = prepareBorderFeatureRelink(
+      map: map,
+      layerId: layerId,
+      featureId: featureId,
+      targetBlueprintId: targetBlueprint.id,
+      targetBlueprintRevision: published,
+      visualSnapshots: visualSnapshots,
+      tileSizePx: tileSizePx,
+      resolverVersion: resolverVersion,
+    );
+    final resolvedMaterialization = relink.proposedResult?.materialization;
+    final afterFeature = resolvedMaterialization == null
+        ? relink.proposedFeature
+        : _copyFeatureWithMaterialization(
+            relink.proposedFeature,
+            resolvedMaterialization,
+          );
+    final changesFamily = relink.kind == BorderRelinkKind.requiresFamilyReset;
+    final blockedReason = changesFamily
+        ? 'Le passage d’une géométrie ${_familyLabel(relink.sourceFamily)} à '
+            'une géométrie ${_familyLabel(relink.targetFamily)} exige de créer '
+            'une nouvelle feature ou de confirmer la remise à zéro.'
+        : relink.canApplyResolvedRelink
+            ? null
+            : 'Le nouvel aperçu résolu contient des diagnostics à corriger '
+                'avant de pouvoir être appliqué.';
+    final consequence = changesFamily
+        ? 'La remise à zéro perd exactement : '
+            '${relink.losses.map(_lossLabel).join(', ')}.'
+        : relink.canApplyResolvedRelink
+            ? 'Un aperçu résolu est prêt. La géométrie, les paramètres, les '
+                'corrections locales et les zones d’exclusion sont conservés ; '
+                'la nouvelle matérialisation sera remplacée atomiquement à '
+                'l’application.'
+            : 'La carte et sa matérialisation actuelle restent inchangées tant '
+                'que l’aperçu résolu n’est pas valide.';
 
     return BorderBlueprintChangePreview._(
+      mapIdentity: map,
       layerId: layerId,
       featureId: featureId,
       before: BorderBlueprintFeaturePreviewState(
@@ -232,12 +386,11 @@ final class BorderFeatureAuthoringController {
         blueprintName: targetDefinition.name,
         template: template,
       ),
-      canApply: targetIsUsable &&
-          !sameBlueprint &&
-          !changesFamily &&
-          template == BorderBlueprintTemplate.organicEdge,
-      canReset: targetIsUsable && !sameBlueprint && changesFamily,
-      canCreateNewFeature: targetIsUsable && !sameBlueprint,
+      relink: relink,
+      targetRevision: published,
+      canApply: relink.canApplyResolvedRelink,
+      canReset: changesFamily,
+      canCreateNewFeature: true,
       consequence: consequence,
       blockedReason: blockedReason,
     );
@@ -253,10 +406,9 @@ final class BorderFeatureAuthoringController {
       );
     }
     _assertPreviewIsCurrent(map, preview);
-    return upsertBorderFeature(
+    return applyBorderFeatureRelinkPreview(
       map,
-      layerId: preview.layerId,
-      feature: preview.after.feature,
+      preview: preview.relink,
     );
   }
 
@@ -270,10 +422,9 @@ final class BorderFeatureAuthoringController {
       );
     }
     _assertPreviewIsCurrent(map, preview);
-    return upsertBorderFeature(
+    return applyBorderFeatureFamilyReset(
       map,
-      layerId: preview.layerId,
-      feature: preview.after.feature,
+      preview: preview.relink,
     );
   }
 
@@ -284,7 +435,9 @@ final class BorderFeatureAuthoringController {
     required String name,
   }) {
     if (!preview.canCreateNewFeature ||
-        targetBlueprint.id != preview.afterBlueprintId) {
+        targetBlueprint.id != preview.afterBlueprintId ||
+        targetBlueprint.latestPublished != preview.targetRevision ||
+        targetBlueprint.isDeprecated) {
       throw StateError(
         preview.blockedReason ??
             'The Border blueprint cannot create a separate feature',
@@ -373,53 +526,112 @@ BorderFeature _copyFeature(
       materialization: feature.materialization,
     );
 
-BorderFeature _relinkFeature(
-  BorderFeature feature, {
-  required String blueprintId,
-}) =>
+BorderSlotOverride? _overrideFor(BorderFeature feature, String slotKey) =>
+    feature.overrides
+        .where((override) => override.slotKey == slotKey)
+        .firstOrNull;
+
+BorderFeature _draftWithOverride(
+  BorderFeature feature,
+  BorderSlotOverride replacement,
+) {
+  final overrides = <BorderSlotOverride>[];
+  var replaced = false;
+  for (final override in feature.overrides) {
+    if (override.slotKey == replacement.slotKey) {
+      overrides.add(replacement);
+      replaced = true;
+    } else {
+      overrides.add(override);
+    }
+  }
+  if (!replaced) {
+    overrides.add(replacement);
+  }
+  return BorderFeature(
+    id: feature.id,
+    name: feature.name,
+    blueprintId: feature.blueprintId,
+    seed: feature.seed,
+    geometry: feature.geometry,
+    paramsOverride: feature.paramsOverride,
+    overrides: overrides,
+    keepOutRegions: feature.keepOutRegions,
+    materialization: null,
+  );
+}
+
+BorderSignedInt64 _nextLocalVariationSalt({
+  required BorderFeature feature,
+  required String slotKey,
+  required BorderSignedInt64 current,
+}) {
+  final unsigned = BorderDeterministicRng.fromComponents(
+    <BorderRngKeyComponent>[
+      const BorderRngKeyComponent.text('border-local-variation-v1'),
+      BorderRngKeyComponent.text(feature.id),
+      BorderRngKeyComponent.text(slotKey),
+      BorderRngKeyComponent.signedInt64(feature.seed),
+      BorderRngKeyComponent.signedInt64(current),
+    ],
+  ).nextUint64();
+  final signed =
+      unsigned >= (BigInt.one << 63) ? unsigned - (BigInt.one << 64) : unsigned;
+  final next = BorderSignedInt64(signed);
+  if (next != current) return next;
+  return current == BorderSignedInt64.maximum
+      ? BorderSignedInt64.minimum
+      : BorderSignedInt64(current.value + BigInt.one);
+}
+
+String _nextKeepOutId(List<BorderKeepOutRegion> keepOutRegions) {
+  const base = 'border_keep_out';
+  final used = <String>{for (final region in keepOutRegions) region.id};
+  if (!used.contains(base)) return base;
+  for (var suffix = 2;; suffix += 1) {
+    final candidate = '${base}_$suffix';
+    if (!used.contains(candidate)) return candidate;
+  }
+}
+
+BorderFeature _copyFeatureWithMaterialization(
+  BorderFeature feature,
+  BorderMaterialization materialization,
+) =>
     BorderFeature(
       id: feature.id,
       name: feature.name,
-      blueprintId: blueprintId,
+      blueprintId: feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,
-      materialization: null,
+      materialization: materialization,
     );
 
-BorderFeature _resetFeatureForTemplate(
-  BorderFeature feature, {
-  required String blueprintId,
-  required BorderBlueprintTemplate template,
-  required GridSize mapSize,
-}) =>
-    BorderFeature(
-      id: feature.id,
-      name: feature.name,
-      blueprintId: blueprintId,
-      seed: feature.seed,
-      geometry: switch (template) {
-        BorderBlueprintTemplate.organicEdge => BorderRegionGeometry(
-            width: mapSize.width,
-            height: mapSize.height,
-            cells: List<bool>.filled(mapSize.width * mapSize.height, false),
-          ),
-        BorderBlueprintTemplate.masonryLine ||
-        BorderBlueprintTemplate.postAndRailLine =>
-          BorderStrokeGeometry(strokes: const <BorderStroke>[]),
-      },
-      paramsOverride: null,
-      overrides: const <BorderSlotOverride>[],
-      keepOutRegions: const <BorderKeepOutRegion>[],
-      materialization: null,
-    );
+String _familyLabel(BorderGeometryFamily family) => switch (family) {
+      BorderGeometryFamily.region => 'région',
+      BorderGeometryFamily.linear => 'ligne',
+    };
+
+String _lossLabel(BorderRelinkLoss loss) => switch (loss) {
+      BorderRelinkLoss.geometry => 'géométrie',
+      BorderRelinkLoss.parameters => 'paramètres personnalisés',
+      BorderRelinkLoss.overrides => 'corrections locales',
+      BorderRelinkLoss.keepOutRegions => 'zones d’exclusion',
+      BorderRelinkLoss.materialization => 'matérialisation',
+    };
 
 void _assertPreviewIsCurrent(
   MapData map,
   BorderBlueprintChangePreview preview,
 ) {
+  if (!identical(map, preview.mapIdentity)) {
+    throw StateError(
+      'The active map changed after the blueprint preview was created',
+    );
+  }
   final feature = _feature(
     _borderLayer(map, preview.layerId),
     preview.featureId,

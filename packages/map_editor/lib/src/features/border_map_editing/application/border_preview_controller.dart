@@ -18,6 +18,34 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
 
   BorderPreviewState get current => state;
 
+  /// Starts and resolves an explicit refresh of the persisted authored state.
+  ///
+  /// The old materialization stays on [map] until the shared Apply transaction
+  /// succeeds. Merely opening this preview therefore cannot alter map history.
+  void beginUpdatePreview({
+    required MapData map,
+    required String layerId,
+    required String featureId,
+    required BorderPreviewContext context,
+    required BorderBlueprintRevision? blueprintRevision,
+    required GridSize tileSizePx,
+    required Iterable<BorderVisualSnapshot> visualSnapshots,
+    required int resolverVersion,
+  }) {
+    begin(
+      map: map,
+      layerId: layerId,
+      featureId: featureId,
+      context: context,
+    );
+    resolve(
+      blueprintRevision: blueprintRevision,
+      tileSizePx: tileSizePx,
+      visualSnapshots: visualSnapshots,
+      resolverVersion: resolverVersion,
+    );
+  }
+
   void begin({
     required MapData map,
     required String layerId,
@@ -88,6 +116,55 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
         result: result,
         variationOrdinal: transaction.variationOrdinal,
       ),
+    );
+  }
+
+  /// Resolves a complete transient authored draft through the shared preview.
+  ///
+  /// Local corrections use this seam so overrides and keep-outs never need to
+  /// be written to the map before Apply. The draft must still target the
+  /// transaction's feature and blueprint, and persisted output is always
+  /// discarded before resolution.
+  void previewFeatureDraft(
+    BorderFeature feature, {
+    required BorderBlueprintRevision? blueprintRevision,
+    required GridSize tileSizePx,
+    required Iterable<BorderVisualSnapshot> visualSnapshots,
+    required int resolverVersion,
+  }) {
+    final transaction = _requireTransaction(BorderPreviewPhase.drawing);
+    if (feature.id != transaction.featureId ||
+        feature.blueprintId != transaction.proposedFeature.blueprintId) {
+      throw ArgumentError(
+        'A Border feature draft must keep the transaction feature and '
+        'blueprint identities',
+      );
+    }
+    final draft = BorderFeature(
+      id: feature.id,
+      name: feature.name,
+      blueprintId: feature.blueprintId,
+      seed: feature.seed,
+      geometry: feature.geometry,
+      paramsOverride: feature.paramsOverride,
+      overrides: feature.overrides,
+      keepOutRegions: feature.keepOutRegions,
+      materialization: null,
+    );
+    final request = BorderResolutionRequest(
+      mapSize: transaction.mapSize,
+      tileSizePx: tileSizePx,
+      blueprintId: draft.blueprintId,
+      blueprintRevision: blueprintRevision,
+      feature: draft,
+      visualSnapshots: visualSnapshots,
+      resolverVersion: resolverVersion,
+    );
+    _publishResolution(
+      transaction: transaction,
+      feature: draft,
+      request: request,
+      variationOrdinal: transaction.variationOrdinal,
     );
   }
 
@@ -206,6 +283,9 @@ final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
   void cancel() {
     state = const BorderPreviewState.idle();
   }
+
+  /// Keeps the persisted output exactly as-is and dismisses any repair preview.
+  void keepMaterialized() => cancel();
 
   /// Drops a transient proposal as soon as its owning editor document drifts.
   void reconcileContext(BorderPreviewContext? context) {

@@ -2007,18 +2007,63 @@ class EditorNotifier extends _$EditorNotifier {
     if (map == null) return;
 
     debugPrint('EditorNotifier: resizeActiveMap(${width}x$height)');
+    ref.read(borderResizeFeedbackProvider.notifier).state = null;
     try {
       final useCase = ref.read(resizeMapUseCaseProvider);
-      final resized = useCase.execute(map, width, height);
       final project = state.project;
+      if (project == null && map.layers.any((layer) => layer is BorderLayer)) {
+        state = state.copyWith(
+          statusMessage: null,
+          errorMessage: 'Impossible de redimensionner une carte avec des '
+              'bordures sans les réglages de tuile du projet.',
+        );
+        return;
+      }
+      final settings = project?.settings ?? const ProjectSettings();
+      final result = useCase.execute(
+        map,
+        width,
+        height,
+        tileSizePx: GridSize(
+          width: settings.tileWidth,
+          height: settings.tileHeight,
+        ),
+      );
+      final resized = result.map;
+      if (!result.canApply || resized == null) {
+        if (result.diagnosticReport.hasDiagnostics) {
+          ref.read(borderResizeFeedbackProvider.notifier).state =
+              BorderResizeFeedback(
+            mapIdentity: map,
+            diagnosticReport: result.diagnosticReport,
+          );
+        }
+        final count = result.diagnosticReport.errorCount;
+        state = state.copyWith(
+          statusMessage: null,
+          errorMessage: 'Impossible de redimensionner la carte : '
+              '$count diagnostic${count > 1 ? 's' : ''} '
+              'bloquant${count > 1 ? 's' : ''}.',
+        );
+        return;
+      }
+
+      if (identical(resized, map) || resized == map) {
+        state = state.copyWith(
+          statusMessage:
+              'La carte « ${map.id} » est déjà de taille ${width}x$height',
+          errorMessage: null,
+        );
+        return;
+      }
+
       final committed = project == null
           ? resized
           : _placedElementInstanceIndexer.syncAllTileLayers(
               map: resized,
               project: project,
             );
-
-      if (committed == map) {
+      if (identical(committed, map) || committed == map) {
         state = state.copyWith(
           statusMessage:
               'La carte « ${map.id} » est déjà de taille ${width}x$height',
@@ -2043,6 +2088,16 @@ class EditorNotifier extends _$EditorNotifier {
         updateHoveredTile: true,
         statusMessage: 'Carte « ${map.id} » redimensionnée en ${width}x$height',
       );
+      final activeMap = state.activeMap;
+      if (activeMap != null &&
+          identical(activeMap, committed) &&
+          result.diagnosticReport.hasDiagnostics) {
+        ref.read(borderResizeFeedbackProvider.notifier).state =
+            BorderResizeFeedback(
+          mapIdentity: activeMap,
+          diagnosticReport: result.diagnosticReport,
+        );
+      }
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
       state = state.copyWith(
@@ -8933,6 +8988,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      _assertBorderBlueprintPreviewCatalogCurrent(preview);
       final updated = _borderFeatureAuthoringController.applyBlueprintChange(
         map: map,
         preview: preview,
@@ -8959,6 +9015,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      _assertBorderBlueprintPreviewCatalogCurrent(preview);
       final updated =
           _borderFeatureAuthoringController.resetFeatureForBlueprintChange(
         map: map,
@@ -8998,6 +9055,7 @@ class EditorNotifier extends _$EditorNotifier {
     try {
       final targetBlueprint =
           _publishedBorderBlueprint(preview.afterBlueprintId);
+      _assertBorderBlueprintPreviewCatalogCurrent(preview);
       final result =
           _borderFeatureAuthoringController.createFeatureFromBlueprintChange(
         map: map,
@@ -9034,10 +9092,135 @@ class EditorNotifier extends _$EditorNotifier {
     return record;
   }
 
+  void _assertBorderBlueprintPreviewCatalogCurrent(
+    BorderBlueprintChangePreview preview,
+  ) {
+    final current = _publishedBorderBlueprint(preview.afterBlueprintId);
+    if (current.latestPublished != preview.targetRevision) {
+      throw StateError(
+        'La révision publiée a changé depuis la création de l’aperçu.',
+      );
+    }
+  }
+
   void selectTool(EditorToolType tool) {
     state = _mapSelectionController.selectTool(
       current: state,
       tool: tool,
+    );
+  }
+
+  /// Resolves the current authored Border state into a transient repair preview.
+  bool previewBorderFeatureUpdate({
+    required String layerId,
+    required String featureId,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    final context = _borderPreviewContext(state);
+    if (map == null || project == null || context == null) {
+      return false;
+    }
+    try {
+      final borderLayer = map.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == layerId)
+          .firstOrNull;
+      final feature = borderLayer?.content.featureById(featureId);
+      if (feature == null) {
+        throw StateError('Bordure introuvable : $layerId/$featureId');
+      }
+      final record = project.borderCatalog.recordById(feature.blueprintId);
+      ref.read(borderPreviewControllerProvider.notifier).beginUpdatePreview(
+            map: map,
+            layerId: layerId,
+            featureId: featureId,
+            context: context,
+            blueprintRevision: record?.latestPublished,
+            tileSizePx: GridSize(
+              width: project.settings.tileWidth,
+              height: project.settings.tileHeight,
+            ),
+            visualSnapshots: project.borderCatalog.visualSnapshots,
+            resolverVersion: borderResolverVersion,
+          );
+      state = state.copyWith(
+        statusMessage: 'Aperçu de mise à jour de la bordure préparé',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de préparer la mise à jour : $error',
+      );
+      return false;
+    }
+  }
+
+  /// Resolves one authored Border draft without writing it to the active map.
+  bool previewBorderFeatureDraft({
+    required String layerId,
+    required String featureId,
+    required BorderFeature draft,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    final context = _borderPreviewContext(state);
+    if (map == null || project == null || context == null) {
+      return false;
+    }
+    try {
+      final borderLayer = map.layers
+          .whereType<BorderLayer>()
+          .where((layer) => layer.id == layerId)
+          .firstOrNull;
+      final persisted = borderLayer?.content.featureById(featureId);
+      if (persisted == null) {
+        throw StateError('Bordure introuvable : $layerId/$featureId');
+      }
+      if (draft.id != persisted.id ||
+          draft.blueprintId != persisted.blueprintId) {
+        throw StateError(
+          'Le brouillon doit conserver la bordure et son blueprint.',
+        );
+      }
+      final record = project.borderCatalog.recordById(persisted.blueprintId);
+      final preview = ref.read(borderPreviewControllerProvider.notifier);
+      preview.begin(
+        map: map,
+        layerId: layerId,
+        featureId: featureId,
+        context: context,
+      );
+      preview.previewFeatureDraft(
+        draft,
+        blueprintRevision: record?.latestPublished,
+        tileSizePx: GridSize(
+          width: project.settings.tileWidth,
+          height: project.settings.tileHeight,
+        ),
+        visualSnapshots: project.borderCatalog.visualSnapshots,
+        resolverVersion: borderResolverVersion,
+      );
+      state = state.copyWith(
+        statusMessage: 'Correction locale préparée dans l’aperçu',
+        errorMessage: null,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de préparer la correction : $error',
+      );
+      return false;
+    }
+  }
+
+  /// Explicitly keeps the persisted materialization without touching the map.
+  void keepBorderFeatureMaterialized() {
+    ref.read(borderPreviewControllerProvider.notifier).keepMaterialized();
+    state = state.copyWith(
+      statusMessage: 'Matérialisation existante conservée',
+      errorMessage: null,
     );
   }
 

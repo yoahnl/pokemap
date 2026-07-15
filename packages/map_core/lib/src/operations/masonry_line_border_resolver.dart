@@ -12,6 +12,8 @@ import '../models/geometry.dart';
 import 'border_deterministic_rng.dart';
 import 'border_fingerprints.dart';
 import 'border_linear_lattice.dart';
+import 'border_local_resolution_scope.dart';
+import 'border_override_resolution.dart';
 import 'border_rle_codec.dart';
 import 'border_slot_keys.dart';
 import 'border_sprite_geometry.dart';
@@ -86,8 +88,9 @@ BorderResolutionResult resolveMasonryLineBorder(
 
 /// Resolves masonry and exposes the coverage trace used for diagnostics.
 MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
-  BorderResolutionRequest request,
-) {
+    BorderResolutionRequest request,
+    {BorderLocalResolutionScope? localScope,
+    BorderLocalResolutionCapture? localCapture}) {
   final diagnostics = <BorderDiagnostic>[];
   final revision = request.blueprintRevision;
   if (revision == null) {
@@ -127,22 +130,6 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
       action: 'border.action.draw_nonempty_stroke',
     ));
   }
-  if (request.feature.overrides.isNotEmpty) {
-    diagnostics.add(_error(
-      request,
-      code: 'border.resolution.overrides_not_supported',
-      scope: BorderDiagnosticScope.feature,
-      action: 'border.action.remove_overrides_before_resolution',
-    ));
-  }
-  if (request.feature.keepOutRegions.isNotEmpty) {
-    diagnostics.add(_error(
-      request,
-      code: 'border.resolution.keep_outs_not_supported',
-      scope: BorderDiagnosticScope.feature,
-      action: 'border.action.remove_keep_outs_before_resolution',
-    ));
-  }
   if (definition.ground != null) {
     diagnostics.add(_error(
       request,
@@ -154,6 +141,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
 
   final lattices = <BorderLinearStrokeLattice>[];
   for (final stroke in geometry.strokes) {
+    final authoredStrokeId = borderStrokeAuthoredIdV1(stroke.id);
     final outside = stroke.points.where(
       (cell) =>
           cell.x < 0 ||
@@ -166,24 +154,25 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         request,
         code: 'border.resolution.stroke_out_of_bounds',
         scope: BorderDiagnosticScope.stroke,
-        strokeId: stroke.id,
+        strokeId: authoredStrokeId,
         cell: outside.first,
         action: 'border.action.move_stroke_inside_map',
       ));
       continue;
     }
     try {
+      final lineage = resolveBorderStrokeLineageIdentityV1(stroke);
       final canonical = canonicalizeBorderStrokeV1(
         id: stroke.id,
         sampledPoints: stroke.points,
         closed: stroke.closed,
       );
-      if (!_sameStroke(stroke, canonical)) {
+      if (!lineage.preserveTraversal && !_sameStroke(stroke, canonical)) {
         diagnostics.add(_error(
           request,
           code: 'border.resolution.stroke_not_canonical',
           scope: BorderDiagnosticScope.stroke,
-          strokeId: stroke.id,
+          strokeId: lineage.authoredStrokeId,
           action: 'border.action.redraw_canonical_stroke',
         ));
         continue;
@@ -199,7 +188,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         request,
         code: 'border.resolution.stroke_invalid',
         scope: BorderDiagnosticScope.stroke,
-        strokeId: stroke.id,
+        strokeId: authoredStrokeId,
         action: 'border.action.redraw_valid_stroke',
       ));
     }
@@ -251,13 +240,58 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
   }
 
   final params = request.feature.paramsOverride ?? definition.defaults;
-  final generated = <_GeneratedLinePlacement>[];
+  final generated = localScope == null
+      ? <_GeneratedLinePlacement>[]
+      : _rebuildRetainedMasonryPlacements(
+          request: request,
+          scope: localScope,
+          lattices: lattices,
+          primitives: primitives,
+        );
+  final retainedSlotKeys = <String>{
+    if (localScope != null)
+      for (final entry in generated) entry.placement.slotKey,
+  };
   final edgeEvidence = <MasonryLineEdgeResolutionEvidence>[];
   for (final lattice in lattices) {
     final coverageAccumulator = _StrokeCoverageAccumulator();
+    final retainedStructural = generated
+        .where(
+          (entry) =>
+              retainedSlotKeys.contains(entry.placement.slotKey) &&
+              entry.strokeId == lattice.strokeId &&
+              entry.placement.drawBand == BorderDrawBand.structure,
+        )
+        .toList(growable: false)
+      ..sort(
+        (left, right) => left.placement.stableOrderKey.compareTo(
+          right.placement.stableOrderKey,
+        ),
+      );
+    for (final entry in retainedStructural) {
+      final intervals = _strokePlacementIntervals(
+        request: request,
+        lattice: lattice,
+        generated: <_GeneratedLinePlacement>[entry],
+      );
+      if (intervals.length == 1) {
+        coverageAccumulator.tryAdd(
+          intervals.single,
+          maxOverlapPx: params.maxOverlapPx,
+        );
+      }
+    }
     final occupiedSites =
         <(BorderPrimitiveRole, BorderCardinalDirection, int, int)>{};
-    for (final edge in lattice.edges) {
+    final generationEdges = lattice.edges.toList(growable: false)
+      ..sort(_compareGenerationEdgeIndex);
+    for (final edge in generationEdges) {
+      if (localScope != null &&
+          !localScope.recomputesCell(edge.startCell, request.tileSizePx)) {
+        continue;
+      }
+      localScope?.recordRecomputedCell(edge.startCell);
+      final direction = edge.direction;
       for (final role in const <BorderPrimitiveRole>[
         BorderPrimitiveRole.structureLarge,
         BorderPrimitiveRole.structureMedium,
@@ -266,13 +300,13 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         final candidates = structuralCandidates
             .where((primitive) => primitive.role == role)
             .toList(growable: false);
-        final eligible = _eligibleForDirection(candidates, edge.direction);
+        final eligible = _eligibleForDirection(candidates, direction);
         if (eligible.isEmpty) {
           continue;
         }
         final maximumExtent = _maximumTangentOpaqueExtentPx(
           eligible,
-          edge.direction,
+          direction,
         );
         final spacing = _spacingPx(
           maximumExtent,
@@ -280,7 +314,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         );
         final sites = _sitesForEdge(
           request,
-          strokeId: lattice.strokeId,
+          lineageNamespace: lattice.lineageNamespace,
           edge: edge,
           spacingPx: spacing,
           maximumExtentPx: maximumExtent,
@@ -292,13 +326,14 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
             ordinalLocal += 1) {
           final site = sites[ordinalLocal];
           final normalAxis = _edgeStartNormalWorldPx(request, edge);
-          final siteKey = (role, edge.direction, normalAxis, site);
+          final siteKey = (role, direction, normalAxis, site);
           if (occupiedSites.contains(siteKey)) {
             continue;
           }
           final placement = _resolveStructuralPlacement(
             request: request,
-            strokeId: lattice.strokeId,
+            authoredStrokeId: lattice.strokeId,
+            lineageNamespace: lattice.lineageNamespace,
             edge: edge,
             candidates: eligible,
             role: role,
@@ -327,61 +362,13 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         }
       }
     }
-    final strokeIntervals = coverageAccumulator.intervalsByPlacement;
-    final strokeCoverage = _assessCoverageDomain(
-      intervalsByPlacement: strokeIntervals,
-      domainLengthPx: lattice.totalLengthPx,
-      closed: lattice.closed,
-    );
-    for (final edge in lattice.edges) {
-      final coverage = _assessEdgeCoverage(
-        edge: edge,
-        strokeIntervals: strokeIntervals,
-      );
-      edgeEvidence.add(
-        MasonryLineEdgeResolutionEvidence(
-          strokeId: lattice.strokeId,
-          edgeIndex: edge.index,
-          coveredLengthPx: coverage.coveredLengthPx,
-          longestGapPx: coverage.longestGapPx,
-          maximumPairwiseOverlapPx: coverage.maximumPairwiseOverlapPx,
-        ),
-      );
-    }
-    if (strokeCoverage.longestGapPx > params.gapTolerancePx) {
-      diagnostics.add(_error(
-        request,
-        code: 'border.resolution.coverage_gap',
-        scope: BorderDiagnosticScope.stroke,
-        strokeId: lattice.strokeId,
-        cell: lattice.nodes.first.cell,
-        parameters: <String, Object?>{
-          'longestGapPx': strokeCoverage.longestGapPx,
-          'gapTolerancePx': params.gapTolerancePx,
-        },
-        action: 'border.action.add_or_adjust_filler',
-      ));
-    }
-    if (strokeCoverage.maximumPairwiseOverlapPx > params.maxOverlapPx) {
-      diagnostics.add(_error(
-        request,
-        code: 'border.resolution.coverage_overlap',
-        scope: BorderDiagnosticScope.stroke,
-        strokeId: lattice.strokeId,
-        cell: lattice.nodes.first.cell,
-        parameters: <String, Object?>{
-          'maximumOverlapPx': strokeCoverage.maximumPairwiseOverlapPx,
-          'maxOverlapPx': params.maxOverlapPx,
-        },
-        action: 'border.action.reduce_overlap',
-      ));
-    }
     _resolveTerminations(
       request: request,
       lattice: lattice,
       primitives: primitives,
       generated: generated,
       diagnostics: diagnostics,
+      localScope: localScope,
     );
     _resolveSurfacePatches(
       request: request,
@@ -389,8 +376,56 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
       primitives: primitives,
       params: params,
       generated: generated,
+      localScope: localScope,
     );
   }
+
+  final baseGenerated = List<_GeneratedLinePlacement>.of(generated);
+  localCapture?.recordBase(
+    ground: const <BorderResolvedGroundCell>[],
+    placements: baseGenerated.map((entry) => entry.placement),
+  );
+  final overrideResolution = resolveBorderOverrides(
+    request: request,
+    baseGround: const <BorderResolvedGroundCell>[],
+    basePlacements: baseGenerated.map((entry) => entry.placement),
+    alreadyResolvedSlotKeys: retainedSlotKeys,
+    previouslyResolvedPlacementsBySlot:
+        localScope?.previousResolvedPlacementsBySlot ??
+            const <String, BorderResolvedPlacement>{},
+    previouslySuppressedSlotKeys:
+        localScope?.previousSuppressedPlacementSlotKeys ?? const <String>{},
+  );
+  diagnostics.addAll(overrideResolution.diagnostics);
+  final resolvedBySlot = <String, BorderResolvedPlacement>{
+    for (final placement in overrideResolution.placements)
+      placement.slotKey: placement,
+  };
+  final primitiveById = <String, BorderPublishedPrimitive>{
+    for (final primitive in primitives) primitive.id: primitive,
+  };
+  generated
+    ..clear()
+    ..addAll(<_GeneratedLinePlacement>[
+      for (final entry in baseGenerated)
+        if (resolvedBySlot[entry.placement.slotKey] case final placement?)
+          _GeneratedLinePlacement(
+            strokeId: entry.strokeId,
+            edgeIndex: entry.edgeIndex,
+            primitive: primitiveById[placement.primitiveId]!,
+            placement: placement,
+          ),
+    ]);
+  _diagnoseFinalCoverage(
+    request: request,
+    lattices: lattices,
+    generated: generated,
+    baseGenerated: baseGenerated,
+    intentionalGapSlotKeys: overrideResolution.intentionalGapSlotKeys,
+    params: params,
+    evidence: edgeEvidence,
+    diagnostics: diagnostics,
+  );
 
   if (_hasErrors(diagnostics)) {
     return MasonryLineBorderResolutionEvidence(
@@ -442,6 +477,104 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
     ),
     edges: edgeEvidence,
   );
+}
+
+void _diagnoseFinalCoverage({
+  required BorderResolutionRequest request,
+  required List<BorderLinearStrokeLattice> lattices,
+  required List<_GeneratedLinePlacement> generated,
+  required List<_GeneratedLinePlacement> baseGenerated,
+  required Set<String> intentionalGapSlotKeys,
+  required BorderGenerationParams params,
+  required List<MasonryLineEdgeResolutionEvidence> evidence,
+  required List<BorderDiagnostic> diagnostics,
+}) {
+  for (final lattice in lattices) {
+    final structural = generated
+        .where(
+          (entry) =>
+              entry.strokeId == lattice.strokeId &&
+              entry.placement.drawBand == BorderDrawBand.structure &&
+              _isStructuralRole(entry.primitive.role),
+        )
+        .toList(growable: false);
+    final removed = baseGenerated
+        .where(
+          (entry) =>
+              entry.strokeId == lattice.strokeId &&
+              entry.placement.drawBand == BorderDrawBand.structure &&
+              _isStructuralRole(entry.primitive.role) &&
+              intentionalGapSlotKeys.contains(entry.placement.slotKey),
+        )
+        .toList(growable: false);
+    final strokeIntervals = _strokePlacementIntervals(
+      request: request,
+      lattice: lattice,
+      generated: structural,
+    );
+    final excludedIntervals = <_Interval>[
+      for (final placement in _strokePlacementIntervals(
+        request: request,
+        lattice: lattice,
+        generated: removed,
+      ))
+        ...placement.intervals,
+    ];
+    final strokeCoverage = _assessCoverageDomain(
+      intervalsByPlacement: strokeIntervals,
+      excludedIntervals: excludedIntervals,
+      domainLengthPx: lattice.totalLengthPx,
+      closed: lattice.closed,
+    );
+    for (final edge in lattice.edges) {
+      final coverage = _assessEdgeCoverage(
+        edge: edge,
+        strokeIntervals: strokeIntervals,
+        excludedStrokeIntervals: excludedIntervals,
+      );
+      evidence.add(
+        MasonryLineEdgeResolutionEvidence(
+          strokeId: lattice.strokeId,
+          edgeIndex: edge.index,
+          coveredLengthPx: coverage.coveredLengthPx,
+          longestGapPx: coverage.longestGapPx,
+          maximumPairwiseOverlapPx: coverage.maximumPairwiseOverlapPx,
+        ),
+      );
+    }
+    if (strokeCoverage.longestGapPx > params.gapTolerancePx) {
+      diagnostics.add(
+        _error(
+          request,
+          code: 'border.resolution.coverage_gap',
+          scope: BorderDiagnosticScope.stroke,
+          strokeId: lattice.strokeId,
+          cell: lattice.nodes.first.cell,
+          parameters: <String, Object?>{
+            'longestGapPx': strokeCoverage.longestGapPx,
+            'gapTolerancePx': params.gapTolerancePx,
+          },
+          action: 'border.action.add_or_adjust_filler',
+        ),
+      );
+    }
+    if (strokeCoverage.maximumPairwiseOverlapPx > params.maxOverlapPx) {
+      diagnostics.add(
+        _error(
+          request,
+          code: 'border.resolution.coverage_overlap',
+          scope: BorderDiagnosticScope.stroke,
+          strokeId: lattice.strokeId,
+          cell: lattice.nodes.first.cell,
+          parameters: <String, Object?>{
+            'maximumOverlapPx': strokeCoverage.maximumPairwiseOverlapPx,
+            'maxOverlapPx': params.maxOverlapPx,
+          },
+          action: 'border.action.reduce_overlap',
+        ),
+      );
+    }
+  }
 }
 
 void _diagnosePublishedInputs(
@@ -617,7 +750,7 @@ int _spacingPx(int extentPx, {required int maxOverlapPx}) {
 
 List<int> _sitesForEdge(
   BorderResolutionRequest request, {
-  required String strokeId,
+  required String lineageNamespace,
   required BorderLinearEdge edge,
   required int spacingPx,
   required int maximumExtentPx,
@@ -638,7 +771,7 @@ List<int> _sitesForEdge(
   final phase = BorderDeterministicRng.fromComponents(
     <BorderRngKeyComponent>[
       BorderRngKeyComponent.text(request.feature.id),
-      BorderRngKeyComponent.text(strokeId),
+      BorderRngKeyComponent.text(lineageNamespace),
       BorderRngKeyComponent.text(
         borderCardinalDirectionV1WireName(edge.direction),
       ),
@@ -663,7 +796,8 @@ List<int> _sitesForEdge(
 
 _GeneratedLinePlacement? _resolveStructuralPlacement({
   required BorderResolutionRequest request,
-  required String strokeId,
+  required String authoredStrokeId,
+  required String lineageNamespace,
   required BorderLinearEdge edge,
   required List<BorderPublishedPrimitive> candidates,
   required BorderPrimitiveRole role,
@@ -676,12 +810,13 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
   if (candidates.isEmpty) {
     return null;
   }
+  final direction = edge.direction;
   var selected = candidates.first;
   if (params.variationPermille > 0 &&
       _passesPermille(
         _decisionRng(
           request,
-          strokeId: strokeId,
+          lineageNamespace: lineageNamespace,
           edge: edge,
           passIndex: passIndex,
           role: role,
@@ -693,7 +828,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     selected = chooseBorderWeightedCandidate(
       _decisionRng(
         request,
-        strokeId: strokeId,
+        lineageNamespace: lineageNamespace,
         edge: edge,
         passIndex: passIndex,
         role: role,
@@ -715,7 +850,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
       params.variationPermille > 0 &&
       _decisionRng(
             request,
-            strokeId: strokeId,
+            lineageNamespace: lineageNamespace,
             edge: edge,
             passIndex: passIndex,
             role: role,
@@ -724,7 +859,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
           ).nextIndex(1000) <
           params.variationPermille ~/ 2;
   final transform = BorderSpriteTransform(
-    quarterTurns: borderCardinalDirectionV1Rank(edge.direction),
+    quarterTurns: borderCardinalDirectionV1Rank(direction),
     flipX: flipX,
   );
   final origin = resolveBorderSpriteGeometry(
@@ -733,7 +868,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     transform: transform,
     targetAnchorWorldPx: const BorderPixelPos(x: 0, y: 0),
   );
-  final tangentIsX = _tangentIsX(edge.direction);
+  final tangentIsX = _tangentIsX(direction);
   final targetTangent = latticeSitePx +
       (tangentIsX
           ? origin.transformedAnchorPx.x - origin.transformedOpaqueBoundsPx.x
@@ -748,7 +883,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
       ? 0
       : _decisionRng(
             request,
-            strokeId: strokeId,
+            lineageNamespace: lineageNamespace,
             edge: edge,
             passIndex: passIndex,
             role: role,
@@ -777,7 +912,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
   }
   final slotKey = buildBorderLineSlotKey(
     featureId: request.feature.id,
-    strokeId: strokeId,
+    strokeId: lineageNamespace,
     edgeStart: edge.startCell,
     edgeEnd: edge.endCell,
     passIndex: passIndex,
@@ -795,6 +930,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     slotKey: slotKey,
   );
   return _GeneratedLinePlacement(
+    strokeId: authoredStrokeId,
     edgeIndex: edge.index,
     primitive: selected,
     placement: BorderResolvedPlacement(
@@ -818,6 +954,7 @@ void _resolveTerminations({
   required List<BorderPublishedPrimitive> primitives,
   required List<_GeneratedLinePlacement> generated,
   required List<BorderDiagnostic> diagnostics,
+  BorderLocalResolutionScope? localScope,
 }) {
   if (lattice.closed) {
     return;
@@ -861,6 +998,11 @@ void _resolveTerminations({
       ));
       continue;
     }
+    if (localScope != null &&
+        !localScope.recomputesCell(node.cell, request.tileSizePx)) {
+      continue;
+    }
+    localScope?.recordRecomputedCell(node.cell);
     final primitive = eligible.first;
     final edge = node.index == 0 ? lattice.edges.first : lattice.edges.last;
     final transform = BorderSpriteTransform(
@@ -896,7 +1038,7 @@ void _resolveTerminations({
     final ordinalLocal = node.index == 0 ? 0 : 1;
     final slotKey = buildBorderLineSlotKey(
       featureId: request.feature.id,
-      strokeId: lattice.strokeId,
+      strokeId: lattice.lineageNamespace,
       edgeStart: edge.startCell,
       edgeEnd: edge.endCell,
       passIndex: 3,
@@ -915,6 +1057,7 @@ void _resolveTerminations({
     );
     generated.add(
       _GeneratedLinePlacement(
+        strokeId: lattice.strokeId,
         edgeIndex: edge.index,
         primitive: primitive,
         placement: BorderResolvedPlacement(
@@ -940,6 +1083,7 @@ void _resolveSurfacePatches({
   required List<BorderPublishedPrimitive> primitives,
   required BorderGenerationParams params,
   required List<_GeneratedLinePlacement> generated,
+  BorderLocalResolutionScope? localScope,
 }) {
   if (params.detailDensityPermille == 0) {
     return;
@@ -948,18 +1092,26 @@ void _resolveSurfacePatches({
       .where((primitive) => primitive.role == BorderPrimitiveRole.surfacePatch)
       .toList(growable: false);
   final occupiedSites = <(BorderCardinalDirection, int, int)>{};
-  for (final edge in lattice.edges) {
-    final eligible = _eligibleForDirection(source, edge.direction);
+  final generationEdges = lattice.edges.toList(growable: false)
+    ..sort(_compareGenerationEdgeIndex);
+  for (final edge in generationEdges) {
+    if (localScope != null &&
+        !localScope.recomputesCell(edge.startCell, request.tileSizePx)) {
+      continue;
+    }
+    localScope?.recordRecomputedCell(edge.startCell);
+    final direction = edge.direction;
+    final eligible = _eligibleForDirection(source, direction);
     if (eligible.isEmpty) {
       continue;
     }
     final maximumExtent = _maximumTangentOpaqueExtentPx(
       eligible,
-      edge.direction,
+      direction,
     );
     final sites = _sitesForEdge(
       request,
-      strokeId: lattice.strokeId,
+      lineageNamespace: lattice.lineageNamespace,
       edge: edge,
       spacingPx: maximumExtent,
       maximumExtentPx: maximumExtent,
@@ -967,7 +1119,7 @@ void _resolveSurfacePatches({
     for (var ordinalLocal = 0; ordinalLocal < sites.length; ordinalLocal += 1) {
       final site = sites[ordinalLocal];
       if (!occupiedSites.add((
-        edge.direction,
+        direction,
         _edgeStartNormalWorldPx(request, edge),
         site,
       ))) {
@@ -975,7 +1127,7 @@ void _resolveSurfacePatches({
       }
       if (_decisionRng(
             request,
-            strokeId: lattice.strokeId,
+            lineageNamespace: lattice.lineageNamespace,
             edge: edge,
             passIndex: 4,
             role: BorderPrimitiveRole.surfacePatch,
@@ -987,7 +1139,8 @@ void _resolveSurfacePatches({
       }
       final placement = _resolveStructuralPlacement(
         request: request,
-        strokeId: lattice.strokeId,
+        authoredStrokeId: lattice.strokeId,
+        lineageNamespace: lattice.lineageNamespace,
         edge: edge,
         candidates: eligible,
         role: BorderPrimitiveRole.surfacePatch,
@@ -1057,6 +1210,7 @@ List<_PlacementIntervals> _strokePlacementIntervals({
 _EdgeCoverage _assessEdgeCoverage({
   required BorderLinearEdge edge,
   required List<_PlacementIntervals> strokeIntervals,
+  required List<_Interval> excludedStrokeIntervals,
 }) {
   final intervalsByPlacement = <_PlacementIntervals>[];
   for (final entry in strokeIntervals) {
@@ -1082,8 +1236,20 @@ _EdgeCoverage _assessEdgeCoverage({
       );
     }
   }
+  final excluded = <_Interval>[
+    for (final interval in _clipIntervals(
+      excludedStrokeIntervals,
+      startPx: edge.startAbscissaPx,
+      endPx: edge.endAbscissaPx,
+    ))
+      _Interval(
+        startPx: interval.startPx - edge.startAbscissaPx,
+        endPx: interval.endPx - edge.startAbscissaPx,
+      ),
+  ];
   return _assessCoverageDomain(
     intervalsByPlacement: intervalsByPlacement,
+    excludedIntervals: excluded,
     domainLengthPx: edge.lengthPx,
     closed: false,
   );
@@ -1091,31 +1257,39 @@ _EdgeCoverage _assessEdgeCoverage({
 
 _EdgeCoverage _assessCoverageDomain({
   required List<_PlacementIntervals> intervalsByPlacement,
+  List<_Interval> excludedIntervals = const <_Interval>[],
   required int domainLengthPx,
   required bool closed,
 }) {
   final intervals = _mergeIntervals(<_Interval>[
     for (final placement in intervalsByPlacement) ...placement.intervals,
   ]);
-  var cursor = 0;
-  var covered = 0;
-  var longestGap = 0;
-  for (final interval in intervals) {
-    if (interval.startPx > cursor) {
-      final gap = interval.startPx - cursor;
-      if (gap > longestGap) longestGap = gap;
-    }
-    final start = interval.startPx > cursor ? interval.startPx : cursor;
-    if (interval.endPx > start) covered += interval.endPx - start;
-    if (interval.endPx > cursor) cursor = interval.endPx;
-  }
-  if (cursor < domainLengthPx) {
-    final gap = domainLengthPx - cursor;
-    if (gap > longestGap) longestGap = gap;
-  }
-  if (closed && intervals.isNotEmpty) {
+  final target = _subtractIntervals(
+    <_Interval>[_Interval(startPx: 0, endPx: domainLengthPx)],
+    _clipIntervals(
+      excludedIntervals,
+      startPx: 0,
+      endPx: domainLengthPx,
+    ),
+  );
+  final coveredIntervals = _intersectIntervals(target, intervals);
+  final uncovered = _subtractIntervals(target, coveredIntervals);
+  final covered = _intervalLength(coveredIntervals);
+  var longestGap = uncovered.fold<int>(
+    0,
+    (maximum, interval) => interval.endPx - interval.startPx > maximum
+        ? interval.endPx - interval.startPx
+        : maximum,
+  );
+  if (closed &&
+      target.isNotEmpty &&
+      target.first.startPx == 0 &&
+      target.last.endPx == domainLengthPx &&
+      uncovered.isNotEmpty &&
+      uncovered.first.startPx == 0 &&
+      uncovered.last.endPx == domainLengthPx) {
     final wrapGap =
-        intervals.first.startPx + (domainLengthPx - intervals.last.endPx);
+        uncovered.first.endPx + (domainLengthPx - uncovered.last.startPx);
     if (wrapGap > longestGap) longestGap = wrapGap;
   }
   return _EdgeCoverage(
@@ -1331,6 +1505,71 @@ List<_Interval> _mergeIntervals(Iterable<_Interval> source) {
   return result;
 }
 
+List<_Interval> _subtractIntervals(
+  Iterable<_Interval> source,
+  Iterable<_Interval> exclusions,
+) {
+  final result = <_Interval>[];
+  final cuts = _mergeIntervals(exclusions);
+  for (final interval in _mergeIntervals(source)) {
+    var cursor = interval.startPx;
+    for (final cut in cuts) {
+      if (cut.endPx <= cursor) {
+        continue;
+      }
+      if (cut.startPx >= interval.endPx) {
+        break;
+      }
+      if (cut.startPx > cursor) {
+        result.add(
+          _Interval(
+            startPx: cursor,
+            endPx: _minimum(cut.startPx, interval.endPx),
+          ),
+        );
+      }
+      cursor = _maximum(cursor, cut.endPx);
+      if (cursor >= interval.endPx) {
+        break;
+      }
+    }
+    if (cursor < interval.endPx) {
+      result.add(_Interval(startPx: cursor, endPx: interval.endPx));
+    }
+  }
+  return result;
+}
+
+List<_Interval> _intersectIntervals(
+  Iterable<_Interval> first,
+  Iterable<_Interval> second,
+) {
+  final left = _mergeIntervals(first);
+  final right = _mergeIntervals(second);
+  final result = <_Interval>[];
+  var leftIndex = 0;
+  var rightIndex = 0;
+  while (leftIndex < left.length && rightIndex < right.length) {
+    final start = _maximum(
+      left[leftIndex].startPx,
+      right[rightIndex].startPx,
+    );
+    final end = _minimum(
+      left[leftIndex].endPx,
+      right[rightIndex].endPx,
+    );
+    if (end > start) {
+      result.add(_Interval(startPx: start, endPx: end));
+    }
+    if (left[leftIndex].endPx <= right[rightIndex].endPx) {
+      leftIndex += 1;
+    } else {
+      rightIndex += 1;
+    }
+  }
+  return result;
+}
+
 List<_Interval> _unionMergedIntervals(
   List<_Interval> left,
   List<_Interval> right,
@@ -1381,7 +1620,7 @@ int _intersectionLength(List<_Interval> left, List<_Interval> right) {
 
 BorderDeterministicRng _decisionRng(
   BorderResolutionRequest request, {
-  required String strokeId,
+  required String lineageNamespace,
   required BorderLinearEdge edge,
   required int passIndex,
   required BorderPrimitiveRole role,
@@ -1390,7 +1629,7 @@ BorderDeterministicRng _decisionRng(
 }) =>
     BorderDeterministicRng.fromComponents(<BorderRngKeyComponent>[
       BorderRngKeyComponent.text(request.feature.id),
-      BorderRngKeyComponent.text(strokeId),
+      BorderRngKeyComponent.text(lineageNamespace),
       BorderRngKeyComponent.text('${edge.startCell.x},${edge.startCell.y}'),
       BorderRngKeyComponent.text('${edge.endCell.x},${edge.endCell.y}'),
       BorderRngKeyComponent.text('$passIndex'),
@@ -1441,6 +1680,12 @@ BorderPixelPos _cellCenterWorldPx(
       x: cell.x * request.tileSizePx.width + request.tileSizePx.width ~/ 2,
       y: cell.y * request.tileSizePx.height + request.tileSizePx.height ~/ 2,
     );
+
+int _compareGenerationEdgeIndex(
+  BorderLinearEdge left,
+  BorderLinearEdge right,
+) =>
+    left.generationEdgeIndex.compareTo(right.generationEdgeIndex);
 
 bool _sameStroke(BorderStroke left, BorderStroke right) {
   if (left.id != right.id ||
@@ -1559,13 +1804,75 @@ BorderDiagnostic _warning(
       suggestedAction: action,
     );
 
+List<_GeneratedLinePlacement> _rebuildRetainedMasonryPlacements({
+  required BorderResolutionRequest request,
+  required BorderLocalResolutionScope scope,
+  required List<BorderLinearStrokeLattice> lattices,
+  required List<BorderPublishedPrimitive> primitives,
+}) {
+  final primitiveById = <String, BorderPublishedPrimitive>{
+    for (final primitive in primitives) primitive.id: primitive,
+  };
+  final retained = <_GeneratedLinePlacement>[];
+  for (final placement in scope.previousBasePlacements) {
+    if (!scope.retainsBasePlacement(placement, request.tileSizePx)) {
+      continue;
+    }
+    final primitive = primitiveById[placement.primitiveId];
+    if (primitive == null) {
+      throw ValidationException(
+        'Border local regeneration cannot recover primitive '
+        '${placement.primitiveId}',
+      );
+    }
+    (BorderLinearStrokeLattice, BorderLinearEdge)? match;
+    for (final lattice in lattices) {
+      for (final edge in lattice.edges) {
+        final expectedSlotKey = buildBorderLineSlotKey(
+          featureId: request.feature.id,
+          strokeId: lattice.lineageNamespace,
+          edgeStart: edge.startCell,
+          edgeEnd: edge.endCell,
+          passIndex: placement.stableOrderKey.passIndex,
+          role: primitive.role,
+          rank: placement.stableOrderKey.rank,
+          ordinalLocal: placement.stableOrderKey.ordinalLocal,
+        );
+        if (expectedSlotKey == placement.slotKey) {
+          match = (lattice, edge);
+          break;
+        }
+      }
+      if (match != null) break;
+    }
+    if (match == null) {
+      throw ValidationException(
+        'Border local regeneration cannot associate distant slot '
+        '${placement.slotKey} with the current stroke topology',
+      );
+    }
+    final (lattice, edge) = match;
+    retained.add(
+      _GeneratedLinePlacement(
+        strokeId: lattice.strokeId,
+        edgeIndex: edge.index,
+        primitive: primitive,
+        placement: placement,
+      ),
+    );
+  }
+  return retained;
+}
+
 final class _GeneratedLinePlacement {
   const _GeneratedLinePlacement({
+    required this.strokeId,
     required this.edgeIndex,
     required this.primitive,
     required this.placement,
   });
 
+  final String strokeId;
   final int edgeIndex;
   final BorderPublishedPrimitive primitive;
   final BorderResolvedPlacement placement;

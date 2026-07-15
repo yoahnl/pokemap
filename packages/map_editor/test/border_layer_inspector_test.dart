@@ -84,7 +84,20 @@ void main() {
                 geometry: BorderRegionGeometry(
                   width: 4,
                   height: 3,
-                  cells: List<bool>.filled(12, false),
+                  cells: const <bool>[
+                    true,
+                    true,
+                    false,
+                    false,
+                    true,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                    false,
+                  ],
                 ),
                 overrides: const <BorderSlotOverride>[],
                 keepOutRegions: const <BorderKeepOutRegion>[],
@@ -165,7 +178,7 @@ void main() {
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('border-blueprint-after-state')),
-        matching: find.textContaining('Non matérialisée'),
+        matching: find.textContaining('Matérialisée'),
       ),
       findsOneWidget,
     );
@@ -199,7 +212,7 @@ void main() {
         .features
         .single;
     expect(changed.blueprintId, 'coast-b');
-    expect(changed.materialization, isNull);
+    expect(changed.materialization, isNotNull);
 
     final updatedPicker = tester.widget<PokeMapDropdownField<String>>(
       find.byKey(const ValueKey('border-blueprint-change-picker')),
@@ -208,6 +221,26 @@ void main() {
     await tester.pump();
     expect(find.textContaining('région'), findsWidgets);
     expect(find.textContaining('ligne'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('border-relink-loss-geometry')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('border-relink-loss-materialization')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('border-relink-loss-parameters')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('border-relink-loss-overrides')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('border-relink-loss-keepOutRegions')),
+      findsNothing,
+    );
     final createSeparate = tester.widget<PokeMapButton>(
       find.byKey(
         const ValueKey('border-create-feature-from-blueprint-change'),
@@ -265,6 +298,158 @@ void main() {
     expect(find.text('Tracer la ligne'), findsOneWidget);
     expect(find.text('Créer une ouverture'), findsOneWidget);
     expect(find.text('Peindre le contour'), findsNothing);
+  });
+
+  testWidgets(
+      'Border inspector keeps lifecycle and local corrections preview-only until shared Apply',
+      (tester) async {
+    final project = _project(<BorderBlueprintRecord>[
+      _record('coast-a', name: 'Côte A'),
+    ]);
+    final feature = BorderFeature(
+      id: 'feature',
+      name: 'Rivage',
+      blueprintId: 'coast-a',
+      seed: BorderSignedInt64.fromInt(7),
+      geometry: BorderRegionGeometry(
+        width: 4,
+        height: 3,
+        cells: const <bool>[
+          true,
+          true,
+          false,
+          false,
+          true,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+          false,
+        ],
+      ),
+      overrides: const <BorderSlotOverride>[],
+      keepOutRegions: const <BorderKeepOutRegion>[],
+      materialization: _materialization(),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Border Map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 4, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'border',
+          name: 'Côte',
+          content: BorderLayerContent(features: <BorderFeature>[feature]),
+        ),
+      ],
+    );
+    final before = map.toJson();
+    final container = await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/border_local_corrections',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeMapPath: '/tmp/border_local_corrections/map.json',
+        activeLayerId: 'border',
+      ),
+    );
+
+    final update = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey('border-update-preview-button')),
+    );
+    final keep = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey('border-keep-materialized-button')),
+    );
+    expect(update.onPressed, isNotNull);
+    expect(keep.onPressed, isNotNull);
+    expect(find.text('Update preview'), findsOneWidget);
+    expect(find.text('Conserver la matérialisation'), findsOneWidget);
+
+    update.onPressed!.call();
+    await tester.pump();
+    expect(
+      container.read(borderPreviewControllerProvider).phase,
+      BorderPreviewPhase.resolved,
+    );
+    expect(container.read(editorNotifierProvider).activeMap, same(map));
+    expect(container.read(editorNotifierProvider).activeMap!.toJson(), before);
+    expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    keep.onPressed!.call();
+    await tester.pump();
+    expect(
+      container.read(borderPreviewControllerProvider),
+      const BorderPreviewState.idle(),
+    );
+    expect(container.read(editorNotifierProvider).activeMap, same(map));
+    expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    final slotPicker = tester.widget<PokeMapDropdownField<String>>(
+      find.byKey(const ValueKey('border-local-slot-picker')),
+    );
+    expect(slotPicker.items, hasLength(1));
+    expect(slotPicker.items.single.label, contains('Emplacement 1'));
+    expect(slotPicker.items.single.label, isNot(contains('slot-a')));
+    for (final key in <String>[
+      'border-local-variation-button',
+      'border-local-replace-button',
+      'border-local-move-button',
+      'border-local-remove-button',
+      'border-local-lock-button',
+      'border-local-keep-out-button',
+    ]) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget);
+      expect(
+        tester.widget<PokeMapButton>(find.byKey(ValueKey(key))).onPressed,
+        isNotNull,
+      );
+    }
+    expect(find.text('Nouvelle variation locale'), findsOneWidget);
+    expect(find.text('Remplacer'), findsOneWidget);
+    expect(find.text('Déplacer'), findsOneWidget);
+    expect(find.text('Retirer'), findsOneWidget);
+    expect(find.text('Verrouiller'), findsOneWidget);
+    expect(find.text('Zone interdite'), findsOneWidget);
+
+    tester
+        .widget<PokeMapButton>(
+          find.byKey(const ValueKey('border-local-variation-button')),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    final preview = container.read(borderPreviewControllerProvider);
+    expect(preview.phase, BorderPreviewPhase.resolved);
+    expect(preview.transaction!.proposedFeature.overrides, hasLength(1));
+    expect(container.read(editorNotifierProvider).activeMap, same(map));
+    expect(container.read(editorNotifierProvider).activeMap!.toJson(), before);
+    expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    tester
+        .widget<PokeMapButton>(
+          find.byKey(const ValueKey('border-preview-apply-button')),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    final applied = container
+        .read(editorNotifierProvider)
+        .activeMap!
+        .layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    expect(applied.overrides, hasLength(1));
+    expect(container.read(editorNotifierProvider).mapUndoStack, hasLength(1));
   });
 
   testWidgets(
@@ -465,6 +650,69 @@ void main() {
       reason: 'the fifth diagnostic must not be silently truncated',
     );
   });
+
+  testWidgets(
+      'Border inspector localizes resize feedback only for its map identity',
+      (tester) async {
+    final fixture = _previewFixture();
+    final container = await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/border_resize_feedback',
+        project: fixture.project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: fixture.map,
+        activeLayerId: 'border',
+      ),
+    );
+    container.read(borderResizeFeedbackProvider.notifier).state =
+        BorderResizeFeedback(
+      mapIdentity: fixture.map,
+      diagnosticReport: BorderDiagnosticsReport(
+        diagnostics: <BorderDiagnostic>[
+          BorderDiagnostic(
+            code: 'region_cell_clipped',
+            severity: BorderDiagnosticSeverity.warning,
+            phase: BorderDiagnosticPhase.resize,
+            scope: BorderDiagnosticScope.geometry,
+            featureId: 'coast',
+            cell: const GridPos(x: 3, y: 0),
+            suggestedAction: 'border.resize.review_clipped_cells',
+          ),
+          BorderDiagnostic(
+            code: 'region_padding_added',
+            severity: BorderDiagnosticSeverity.info,
+            phase: BorderDiagnosticPhase.resize,
+            scope: BorderDiagnosticScope.geometry,
+            featureId: 'coast',
+            cell: const GridPos(x: 4, y: 0),
+            suggestedAction: 'border.resize.review_padded_cells',
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('border-resize-diagnostics')),
+      findsOneWidget,
+    );
+    expect(find.text('Redimensionnement de la carte'), findsOneWidget);
+    expect(find.textContaining('La zone a été coupée'), findsOneWidget);
+    expect(find.textContaining('La zone a été agrandie'), findsOneWidget);
+    expect(find.text('region_cell_clipped'), findsNothing);
+
+    container.read(editorNotifierProvider.notifier).state = container
+        .read(editorNotifierProvider)
+        .copyWith(activeMap: fixture.map.copyWith(name: 'Autre identité'));
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('border-resize-diagnostics')),
+      findsNothing,
+      reason: 'feedback must never leak to another map object',
+    );
+  });
 }
 
 BorderDiagnostic _previewDiagnostic(String code) => BorderDiagnostic(
@@ -570,7 +818,10 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
       version: ProjectVersion.v2,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
-      borderCatalog: ProjectBorderCatalog(records: records),
+      borderCatalog: ProjectBorderCatalog(
+        records: records,
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+      ),
     );
 
 BorderBlueprintRecord _record(
@@ -601,7 +852,12 @@ BorderBlueprintRecord _record(
               name: name ?? id,
               previewSeed: BorderSignedInt64.zero,
               template: template,
-              primitives: const <BorderPublishedPrimitive>[],
+              primitives: template == BorderBlueprintTemplate.organicEdge
+                  ? <BorderPublishedPrimitive>[
+                      _primitive('structure'),
+                      _primitive('structure-alt'),
+                    ]
+                  : const <BorderPublishedPrimitive>[],
               defaults: _params(),
               sortOrder: 0,
             ),
@@ -654,5 +910,63 @@ BorderMaterialization _materialization() => BorderMaterialization(
           resolvedRole: SurfaceVariantRole.isolated,
         ),
       ],
-      placements: const <BorderResolvedPlacement>[],
+      placements: <BorderResolvedPlacement>[
+        BorderResolvedPlacement(
+          id: 'placement-a',
+          slotKey: 'slot-a',
+          primitiveId: 'structure',
+          visualSnapshotId: _snapshotId,
+          anchorCell: const GridPos(x: 0, y: 0),
+          topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
+          opaqueWorldBoundsPx:
+              BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+          transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
+          drawBand: BorderDrawBand.structure,
+          stableOrderKey: BorderStableOrderKey(
+            drawBandIndex: borderDrawBandV1Index(BorderDrawBand.structure),
+            anchorRowMajor: 0,
+            passIndex: 0,
+            rank: 0,
+            ordinalLocal: 0,
+            slotKey: 'slot-a',
+          ),
+        ),
+      ],
     );
+
+BorderPublishedPrimitive _primitive(String id) => BorderPublishedPrimitive(
+      id: id,
+      sourceElementId: '$id-source',
+      visualSnapshotId: _snapshotId,
+      role: BorderPrimitiveRole.structureLarge,
+      weight: 1,
+      anchorPx: const BorderPixelPos(x: 8, y: 8),
+      transforms: BorderTransformPolicy(
+        allowFlipX: true,
+        allowedQuarterTurns: const <int>[0, 1, 2, 3],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-$id',
+        pixelSize: const GridSize(width: 16, height: 16),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+        defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
+        occupancyMaskRle: encodeBorderRleMask(
+          List<bool>.filled(16 * 16, true),
+        ),
+      ),
+    );
+
+BorderVisualSnapshot _snapshot() => BorderVisualSnapshot(
+      id: _snapshotId,
+      contentFingerprint: 'a' * 64,
+      frames: <BorderVisualFrameSnapshot>[
+        BorderVisualFrameSnapshot(
+          relativeAssetPath: 'assets/borders/snapshots/a.png',
+          sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+          durationMs: 100,
+        ),
+      ],
+    );
+
+const _snapshotId =
+    'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';

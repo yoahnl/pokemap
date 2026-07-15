@@ -84,6 +84,40 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Ajoutez des éléments compatibles pour générer la bordure.',
     'border.resolution.visual_snapshot_invalid' =>
       'Republiez le visuel absent ou invalide utilisé par le blueprint.',
+    'invalid_tile_size' =>
+      'Choisissez des dimensions de tuile strictement positives.',
+    'tile_size_exceeds_portable_integer_range' =>
+      'Réduisez les dimensions de tuile à une valeur portable.',
+    'old_map_size_out_of_border_rle_bounds' =>
+      'Réduisez la carte source aux limites prises en charge.',
+    'new_map_size_out_of_border_rle_bounds' =>
+      'Choisissez une nouvelle taille de carte prise en charge.',
+    'region_size_mismatch' =>
+      'Réparez la zone pour qu’elle corresponde à la taille actuelle de la carte.',
+    'keep_out_region_size_mismatch' =>
+      'Réparez la zone d’exclusion pour qu’elle corresponde à la carte.',
+    'materialization_output_fingerprint_invalid' =>
+      'Régénérez la bordure avant de redimensionner la carte.',
+    'materialization_output_fingerprint_mismatch' =>
+      'Régénérez la bordure : son résultat publié a changé.',
+    'stroke_points_clipped' =>
+      'Le tracé a été coupé aux nouvelles limites de la carte.',
+    'stroke_fragment_too_short' =>
+      'Un fragment de tracé devenu trop court a été retiré.',
+    'stroke_split' => 'Le tracé coupé a été séparé en plusieurs fragments.',
+    'stroke_closed_to_open' => 'La boucle coupée est devenue un tracé ouvert.',
+    'region_cell_clipped' =>
+      'La zone a été coupée aux nouvelles limites de la carte.',
+    'keep_out_cell_clipped' =>
+      'La zone d’exclusion a été coupée aux nouvelles limites.',
+    'region_padding_added' => 'La zone a été agrandie avec des cases vides.',
+    'keep_out_padding_added' =>
+      'La zone d’exclusion a été agrandie avec des cases vides.',
+    'ground_cell_out_of_bounds' => 'Une case de sol hors cadre a été retirée.',
+    'placement_anchor_out_of_bounds' =>
+      'Un élément dont l’ancre est hors cadre a été retiré.',
+    'placement_bounds_out_of_bounds' =>
+      'Un élément devenu entièrement hors cadre a été retiré.',
     _ => 'Diagnostic de bordure à vérifier.',
   };
   final location = <String>[

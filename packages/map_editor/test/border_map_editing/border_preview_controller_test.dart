@@ -145,6 +145,134 @@ void main() {
       expect(map.toJson(), before);
     });
 
+    test(
+        'Update preview is explicit and Keep Materialized is a strict map no-op',
+        () {
+      final map = _map();
+      final before = map.toJson();
+      final oldMaterialization = _feature(map, 'coast').materialization;
+      final controller = BorderPreviewController(resolver: _success);
+
+      controller.beginUpdatePreview(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: borderResolverVersion,
+      );
+
+      expect(controller.state.phase, BorderPreviewPhase.resolved);
+      expect(controller.state.transaction!.proposedFeature.geometry,
+          _feature(map, 'coast').geometry);
+      expect(controller.state.transaction!.proposedFeature.materialization,
+          isNull);
+      expect(map.toJson(), before);
+      expect(_feature(map, 'coast').materialization, same(oldMaterialization));
+
+      controller.keepMaterialized();
+
+      expect(controller.state, const BorderPreviewState.idle());
+      expect(map.toJson(), before);
+      expect(_feature(map, 'coast').materialization, same(oldMaterialization));
+    });
+
+    test('feature draft resolves overrides without mutating the map', () {
+      final map = _map();
+      final before = map.toJson();
+      final controller = BorderPreviewController(resolver: _success);
+      controller.begin(
+        map: map,
+        layerId: 'borders',
+        featureId: 'coast',
+        context: _contextFor(map),
+      );
+      final source = _feature(map, 'coast');
+      final override = BorderSlotOverride(
+        slotKey: source.materialization!.placements.first.slotKey,
+        variationSalt: BorderSignedInt64.fromInt(41),
+        suppressed: false,
+        locked: false,
+      );
+      final draft = BorderFeature(
+        id: source.id,
+        name: source.name,
+        blueprintId: source.blueprintId,
+        seed: source.seed,
+        geometry: source.geometry,
+        paramsOverride: source.paramsOverride,
+        overrides: <BorderSlotOverride>[override],
+        keepOutRegions: source.keepOutRegions,
+        materialization: source.materialization,
+      );
+
+      controller.previewFeatureDraft(
+        draft,
+        blueprintRevision: _revision(),
+        tileSizePx: const GridSize(width: 16, height: 16),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: 1,
+      );
+
+      expect(controller.state.phase, BorderPreviewPhase.resolved);
+      expect(controller.state.transaction!.proposedFeature.overrides,
+          <BorderSlotOverride>[override]);
+      expect(controller.state.transaction!.proposedFeature.materialization,
+          isNull);
+      expect(controller.state.transaction!.request!.feature.materialization,
+          isNull);
+      expect(map.toJson(), before);
+    });
+
+    test('feature draft rejects feature and blueprint identity drift', () {
+      final map = _map();
+      final source = _feature(map, 'coast');
+      for (final drifted in <BorderFeature>[
+        BorderFeature(
+          id: 'other-feature',
+          name: source.name,
+          blueprintId: source.blueprintId,
+          seed: source.seed,
+          geometry: source.geometry,
+          paramsOverride: source.paramsOverride,
+          overrides: source.overrides,
+          keepOutRegions: source.keepOutRegions,
+        ),
+        BorderFeature(
+          id: source.id,
+          name: source.name,
+          blueprintId: 'other-blueprint',
+          seed: source.seed,
+          geometry: source.geometry,
+          paramsOverride: source.paramsOverride,
+          overrides: source.overrides,
+          keepOutRegions: source.keepOutRegions,
+        ),
+      ]) {
+        final controller = BorderPreviewController(resolver: _success);
+        controller.begin(
+          map: map,
+          layerId: 'borders',
+          featureId: 'coast',
+          context: _contextFor(map),
+        );
+
+        expect(
+          () => controller.previewFeatureDraft(
+            drifted,
+            blueprintRevision: _revision(),
+            tileSizePx: const GridSize(width: 16, height: 16),
+            visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+            resolverVersion: 1,
+          ),
+          throwsArgumentError,
+        );
+        expect(controller.state.phase, BorderPreviewPhase.drawing);
+      }
+    });
+
     test('resolves transient drag updates and freezes only on release', () {
       final map = _map();
       final before = map.toJson();
@@ -354,6 +482,48 @@ void main() {
       notifier.undoMap();
       expect(
           notifier.state.activeMap!.toJson(), mapWithExistingHistory.toJson());
+    });
+
+    test('EditorNotifier Update and Keep do not write map history', () {
+      final map = _map();
+      final before = map.toJson();
+      final project = _project();
+      final preview = BorderPreviewController(resolver: _success);
+      final container = ProviderContainer(
+        overrides: <Override>[
+          borderPreviewControllerProvider.overrideWith((ref) => preview),
+        ],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = EditorState(
+        projectRootPath: '/projects/editor',
+        project: project,
+        activeMap: map,
+        activeMapPath: '/projects/editor/maps/map.json',
+        activeLayerId: 'borders',
+        savedMapSnapshot: map,
+      );
+
+      expect(
+        notifier.previewBorderFeatureUpdate(
+          layerId: 'borders',
+          featureId: 'coast',
+        ),
+        isTrue,
+      );
+      expect(preview.state.phase, BorderPreviewPhase.invalid,
+          reason: 'the fixture intentionally has no published blueprint');
+      expect(notifier.state.activeMap, same(map));
+      expect(notifier.state.activeMap!.toJson(), before);
+      expect(notifier.state.mapUndoStack, isEmpty);
+
+      notifier.keepBorderFeatureMaterialized();
+
+      expect(preview.state, const BorderPreviewState.idle());
+      expect(notifier.state.activeMap, same(map));
+      expect(notifier.state.activeMap!.toJson(), before);
+      expect(notifier.state.mapUndoStack, isEmpty);
     });
 
     test(

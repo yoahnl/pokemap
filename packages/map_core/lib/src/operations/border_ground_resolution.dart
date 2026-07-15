@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import '../models/border_blueprint.dart';
 import '../models/border_geometry.dart';
 import '../models/border_materialization.dart';
+import '../models/border_value_objects.dart';
+import '../models/geometry.dart';
+import 'border_local_resolution_scope.dart';
 import 'border_rle_codec.dart';
 import 'surface_variant_role_resolver.dart';
 
@@ -46,6 +49,136 @@ List<BorderResolvedGroundCell> resolveBorderGroundBand({
   }
 
   return List<BorderResolvedGroundCell>.unmodifiable(result);
+}
+
+/// Resolves only ground cells intersecting [scope] and retains distant cells.
+///
+/// The bounded distance query is equivalent to the complete distance
+/// transform for the published edge-band depth, without visiting distant
+/// ground subproblems.
+List<BorderResolvedGroundCell> resolveBorderGroundBandLocally({
+  required BorderRegionGeometry region,
+  required BorderPublishedGround ground,
+  required GridSize tileSizePx,
+  required BorderLocalResolutionScope scope,
+}) {
+  final result = <BorderResolvedGroundCell>[
+    for (final cell in scope.previousBaseGround)
+      if (scope.retainsGround(cell, tileSizePx)) cell,
+  ];
+
+  bool matchesAt(int x, int y) => _isFilled(region, x, y);
+
+  for (final cell in _affectedGroundCells(
+    region: region,
+    tileSizePx: tileSizePx,
+    affectedBoundsPx: scope.affectedBoundsPx,
+  )) {
+    scope.recordRecomputedCell(cell);
+    if (!_isFilled(region, cell.x, cell.y) ||
+        !_withinBoundaryDistance(
+          region,
+          x: cell.x,
+          y: cell.y,
+          maximumDistance: ground.edgeBandCells,
+        )) {
+      continue;
+    }
+    final role = resolveSurfaceVariantRoleAt(
+      x: cell.x,
+      y: cell.y,
+      matchesAt: matchesAt,
+    );
+    result.add(
+      BorderResolvedGroundCell(
+        x: cell.x,
+        y: cell.y,
+        visualSnapshotId: ground.visualSnapshotIdsByRole[role]!,
+        resolvedRole: role,
+      ),
+    );
+  }
+  result.sort((first, second) {
+    final row = first.y.compareTo(second.y);
+    return row != 0 ? row : first.x.compareTo(second.x);
+  });
+  return List<BorderResolvedGroundCell>.unmodifiable(result);
+}
+
+List<GridPos> _affectedGroundCells({
+  required BorderRegionGeometry region,
+  required GridSize tileSizePx,
+  required List<BorderPixelRect> affectedBoundsPx,
+}) {
+  final cells = <GridPos>{};
+  for (final bounds in affectedBoundsPx) {
+    if (bounds.right <= 0 ||
+        bounds.bottom <= 0 ||
+        bounds.x >= region.width * tileSizePx.width ||
+        bounds.y >= region.height * tileSizePx.height) {
+      continue;
+    }
+    final firstX = _clamp(
+      _floorDiv(bounds.x, tileSizePx.width),
+      0,
+      region.width - 1,
+    );
+    final lastX = _clamp(
+      _floorDiv(bounds.right - 1, tileSizePx.width),
+      0,
+      region.width - 1,
+    );
+    final firstY = _clamp(
+      _floorDiv(bounds.y, tileSizePx.height),
+      0,
+      region.height - 1,
+    );
+    final lastY = _clamp(
+      _floorDiv(bounds.bottom - 1, tileSizePx.height),
+      0,
+      region.height - 1,
+    );
+    for (var y = firstY; y <= lastY; y += 1) {
+      for (var x = firstX; x <= lastX; x += 1) {
+        cells.add(GridPos(x: x, y: y));
+      }
+    }
+  }
+  final ordered = cells.toList(growable: false)
+    ..sort((first, second) {
+      final row = first.y.compareTo(second.y);
+      return row != 0 ? row : first.x.compareTo(second.x);
+    });
+  return ordered;
+}
+
+int _floorDiv(int value, int positiveDivisor) {
+  var result = value ~/ positiveDivisor;
+  if (value.isNegative && value.remainder(positiveDivisor) != 0) {
+    result -= 1;
+  }
+  return result;
+}
+
+int _clamp(int value, int minimum, int maximum) =>
+    value < minimum ? minimum : (value > maximum ? maximum : value);
+
+bool _withinBoundaryDistance(
+  BorderRegionGeometry region, {
+  required int x,
+  required int y,
+  required int maximumDistance,
+}) {
+  for (var distance = 1; distance <= maximumDistance; distance += 1) {
+    for (var deltaX = -distance; deltaX <= distance; deltaX += 1) {
+      final deltaY = distance - deltaX.abs();
+      if (!_isFilled(region, x + deltaX, y + deltaY) ||
+          (deltaY != 0 && !_isFilled(region, x + deltaX, y - deltaY))) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 /// Returns one-based cardinal distance from the exterior for filled cells.

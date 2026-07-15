@@ -29,12 +29,17 @@ class _BorderLayerInspectorPanelState
   String? _pendingBlueprintId;
   String? _pendingFeatureId;
   String? _pendingBeforeBlueprintId;
+  String? _correctionSlotKey;
+  String? _replacementPrimitiveId;
+  String _movePresetId = 'right-1';
+  int _keepOutRadiusCells = 0;
 
   @override
   Widget build(BuildContext context) {
     final editor = ref.watch(editorNotifierProvider);
     final selection = ref.watch(activeBorderFeatureControllerProvider);
     final previewState = ref.watch(borderPreviewControllerProvider);
+    final resizeFeedback = ref.watch(borderResizeFeedbackProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = editor.activeMap;
     if (map == null) {
@@ -93,6 +98,10 @@ class _BorderLayerInspectorPanelState
       );
     }
 
+    final resizeDiagnostics = resizeFeedback?.appliesTo(map) == true
+        ? resizeFeedback!.diagnosticReport.diagnostics
+        : const <BorderDiagnostic>[];
+
     final activeFeature = selection.activeLayerId == activeLayer.id
         ? activeLayer.content.featureById(selection.activeFeatureId ?? '')
         : null;
@@ -102,7 +111,8 @@ class _BorderLayerInspectorPanelState
             : publishedBlueprints.firstOrNull?.id;
     final pendingBlueprintId = activeFeature != null &&
             _pendingFeatureId == activeFeature.id &&
-            _pendingBeforeBlueprintId == activeFeature.blueprintId
+            _pendingBeforeBlueprintId == activeFeature.blueprintId &&
+            _pendingBlueprintId != activeFeature.blueprintId
         ? _pendingBlueprintId
         : null;
     final targetBlueprint = publishedBlueprints
@@ -116,6 +126,11 @@ class _BorderLayerInspectorPanelState
             sourceBlueprint: editor.project?.borderCatalog
                 .recordById(activeFeature.blueprintId),
             targetBlueprint: targetBlueprint,
+            visualSnapshots: editor.project!.borderCatalog.visualSnapshots,
+            tileSizePx: GridSize(
+              width: editor.project!.settings.tileWidth,
+              height: editor.project!.settings.tileHeight,
+            ),
           )
         : null;
     final toolAvailability = assessBorderToolAvailability(
@@ -124,6 +139,44 @@ class _BorderLayerInspectorPanelState
       activeLayerId: activeLayer.id,
       activeFeatureId: activeFeature?.id,
     );
+    final activePreview = previewState.transaction;
+    final previewTargetsFeature = activeFeature != null &&
+        activePreview?.layerId == activeLayer.id &&
+        activePreview?.featureId == activeFeature.id;
+    final correctionDraft =
+        previewTargetsFeature ? activePreview!.proposedFeature : activeFeature;
+    final correctionMaterialization = previewTargetsFeature
+        ? activePreview!.result?.materialization ??
+            activeFeature.materialization
+        : activeFeature?.materialization;
+    final correctionPlacements = correctionMaterialization?.placements ??
+        const <BorderResolvedPlacement>[];
+    final correctionSlotKey = correctionPlacements.any(
+      (placement) => placement.slotKey == _correctionSlotKey,
+    )
+        ? _correctionSlotKey
+        : correctionPlacements.firstOrNull?.slotKey;
+    final selectedCorrectionPlacement = correctionPlacements
+        .where((placement) => placement.slotKey == correctionSlotKey)
+        .firstOrNull;
+    final activeRevision = activeFeature == null
+        ? null
+        : editor.project?.borderCatalog
+            .recordById(activeFeature.blueprintId)
+            ?.latestPublished;
+    final replacementPrimitives = _compatibleReplacementPrimitives(
+      activeRevision,
+      selectedCorrectionPlacement,
+    );
+    final replacementPrimitiveId = replacementPrimitives.any(
+      (primitive) => primitive.id == _replacementPrimitiveId,
+    )
+        ? _replacementPrimitiveId
+        : replacementPrimitives.firstOrNull?.id;
+    final movePreset = _borderMovePresets
+            .where((preset) => preset.id == _movePresetId)
+            .firstOrNull ??
+        _borderMovePresets.first;
 
     return _withSafetyMessage(
       context,
@@ -141,6 +194,10 @@ class _BorderLayerInspectorPanelState
               toolAvailability,
               lineGeometry: activeFeature?.geometry is BorderStrokeGeometry,
             ),
+            if (resizeDiagnostics.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              _resizeDiagnosticsCard(context, resizeDiagnostics),
+            ],
             if (previewState.transaction case final preview?) ...[
               const SizedBox(height: 10),
               _previewActions(
@@ -230,12 +287,32 @@ class _BorderLayerInspectorPanelState
                 activeLayer,
                 activeFeature,
               ),
+              const SizedBox(height: 8),
+              _materializationLifecycleActions(
+                notifier,
+                activeLayer,
+                activeFeature,
+              ),
+              const SizedBox(height: 8),
+              _localCorrectionActions(
+                notifier,
+                map: map,
+                layer: activeLayer,
+                persistedFeature: activeFeature,
+                draftFeature: correctionDraft!,
+                placements: correctionPlacements,
+                selectedPlacement: selectedCorrectionPlacement,
+                selectedSlotKey: correctionSlotKey,
+                replacementPrimitives: replacementPrimitives,
+                replacementPrimitiveId: replacementPrimitiveId,
+                movePreset: movePreset,
+              ),
               if (publishedBlueprints.isNotEmpty) ...[
                 const SizedBox(height: 14),
                 const PokeMapSectionHeader(
                   title: 'Changer de blueprint',
                   description:
-                      'Le sélecteur prépare un aperçu structurel avant/après. La résolution visuelle sera recalculée séparément.',
+                      'Le sélecteur prépare un aperçu résolu avant/après sans modifier la carte.',
                 ),
                 PokeMapDropdownField<String>(
                   key: const ValueKey('border-blueprint-change-picker'),
@@ -545,6 +622,78 @@ class _BorderLayerInspectorPanelState
     );
   }
 
+  Widget _resizeDiagnosticsCard(
+    BuildContext context,
+    List<BorderDiagnostic> diagnostics,
+  ) {
+    final colors = context.pokeMapColors;
+    final hasErrors = diagnostics.any(
+      (diagnostic) => diagnostic.severity == BorderDiagnosticSeverity.error,
+    );
+    final hasWarnings = diagnostics.any(
+      (diagnostic) => diagnostic.severity == BorderDiagnosticSeverity.warning,
+    );
+    final badgeVariant = hasErrors
+        ? PokeMapBadgeVariant.error
+        : hasWarnings
+            ? PokeMapBadgeVariant.warning
+            : PokeMapBadgeVariant.info;
+
+    return PokeMapCard(
+      key: const ValueKey('border-resize-diagnostics'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: 'Redimensionnement de la carte',
+            description:
+                'Vérifiez les adaptations automatiques avant de poursuivre.',
+            trailing: PokeMapBadge(
+              label:
+                  '${diagnostics.length} diagnostic${diagnostics.length > 1 ? 's' : ''}',
+              variant: badgeVariant,
+            ),
+          ),
+          for (var index = 0; index < diagnostics.length; index++) ...[
+            if (index > 0) const SizedBox(height: 6),
+            Row(
+              key: ValueKey('border-resize-diagnostic-$index'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  switch (diagnostics[index].severity) {
+                    BorderDiagnosticSeverity.error =>
+                      CupertinoIcons.exclamationmark_circle,
+                    BorderDiagnosticSeverity.warning =>
+                      CupertinoIcons.exclamationmark_triangle,
+                    BorderDiagnosticSeverity.info => CupertinoIcons.info_circle,
+                  },
+                  size: 14,
+                  color: switch (diagnostics[index].severity) {
+                    BorderDiagnosticSeverity.error => colors.error,
+                    BorderDiagnosticSeverity.warning => colors.warning,
+                    BorderDiagnosticSeverity.info => colors.info,
+                  },
+                ),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    localizeEditorBorderDiagnostic(diagnostics[index]),
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 11,
+                      height: 1.3,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _featureCard(
     BuildContext context,
     EditorNotifier notifier,
@@ -666,6 +815,273 @@ class _BorderLayerInspectorPanelState
     );
   }
 
+  Widget _materializationLifecycleActions(
+    EditorNotifier notifier,
+    BorderLayer layer,
+    BorderFeature feature,
+  ) {
+    return PokeMapCard(
+      key: const ValueKey('border-materialization-lifecycle'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: 'Matérialisation',
+            description:
+                'Préparez une mise à jour sans remplacer le visuel enregistré.',
+            trailing: PokeMapBadge(
+              label: feature.materialization == null ? 'Absente' : 'Conservée',
+              variant: feature.materialization == null
+                  ? PokeMapBadgeVariant.warning
+                  : PokeMapBadgeVariant.success,
+            ),
+          ),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('border-update-preview-button'),
+                onPressed: () => notifier.previewBorderFeatureUpdate(
+                  layerId: layer.id,
+                  featureId: feature.id,
+                ),
+                size: PokeMapButtonSize.small,
+                leading: const Icon(CupertinoIcons.arrow_clockwise),
+                child: const Text('Update preview'),
+              ),
+              PokeMapButton(
+                key: const ValueKey('border-keep-materialized-button'),
+                onPressed: notifier.keepBorderFeatureMaterialized,
+                size: PokeMapButtonSize.small,
+                variant: PokeMapButtonVariant.secondary,
+                leading: const Icon(CupertinoIcons.pin),
+                child: const Text('Conserver la matérialisation'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _localCorrectionActions(
+    EditorNotifier notifier, {
+    required MapData map,
+    required BorderLayer layer,
+    required BorderFeature persistedFeature,
+    required BorderFeature draftFeature,
+    required List<BorderResolvedPlacement> placements,
+    required BorderResolvedPlacement? selectedPlacement,
+    required String? selectedSlotKey,
+    required List<BorderPublishedPrimitive> replacementPrimitives,
+    required String? replacementPrimitiveId,
+    required _BorderMovePreset movePreset,
+  }) {
+    const controller = BorderFeatureAuthoringController();
+    void preview(BorderFeature draft) {
+      notifier.previewBorderFeatureDraft(
+        layerId: layer.id,
+        featureId: persistedFeature.id,
+        draft: draft,
+      );
+    }
+
+    return PokeMapCard(
+      key: const ValueKey('border-local-corrections'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: 'Corrections locales',
+            description:
+                'Sélectionnez un emplacement matérialisé. Chaque action reste dans l’aperçu jusqu’à Appliquer.',
+            trailing: PokeMapBadge(
+              label: '${draftFeature.overrides.length} correction(s)',
+            ),
+          ),
+          if (placements.isEmpty ||
+              selectedPlacement == null ||
+              selectedSlotKey == null)
+            const PokeMapEmptyState(
+              title: 'Aucun emplacement matérialisé',
+              description:
+                  'Utilisez Update preview pour obtenir des emplacements corrigibles.',
+              icon: Icon(CupertinoIcons.square),
+            )
+          else ...[
+            PokeMapDropdownField<String>(
+              key: const ValueKey('border-local-slot-picker'),
+              label: 'Emplacement à corriger',
+              value: selectedSlotKey,
+              items: <PokeMapDropdownItem<String>>[
+                for (var index = 0; index < placements.length; index += 1)
+                  PokeMapDropdownItem<String>(
+                    value: placements[index].slotKey,
+                    label: 'Emplacement ${index + 1} · case '
+                        '${placements[index].anchorCell.x + 1}, '
+                        '${placements[index].anchorCell.y + 1}',
+                  ),
+              ],
+              onChanged: (slotKey) => setState(() {
+                _correctionSlotKey = slotKey;
+                _replacementPrimitiveId = null;
+              }),
+            ),
+            const SizedBox(height: 8),
+            if (replacementPrimitives.isNotEmpty &&
+                replacementPrimitiveId != null) ...[
+              PokeMapDropdownField<String>(
+                key: const ValueKey('border-local-replacement-picker'),
+                label: 'Alternative compatible',
+                value: replacementPrimitiveId,
+                items: <PokeMapDropdownItem<String>>[
+                  for (var index = 0;
+                      index < replacementPrimitives.length;
+                      index += 1)
+                    PokeMapDropdownItem<String>(
+                      value: replacementPrimitives[index].id,
+                      label: 'Alternative ${index + 1} · '
+                          '${_primitiveRoleLabel(replacementPrimitives[index].role)}',
+                    ),
+                ],
+                onChanged: (primitiveId) => setState(() {
+                  _replacementPrimitiveId = primitiveId;
+                }),
+              ),
+              const SizedBox(height: 8),
+            ],
+            PokeMapDropdownField<String>(
+              key: const ValueKey('border-local-move-picker'),
+              label: 'Déplacement guidé',
+              value: movePreset.id,
+              items: <PokeMapDropdownItem<String>>[
+                for (final preset in _borderMovePresets)
+                  PokeMapDropdownItem<String>(
+                    value: preset.id,
+                    label: preset.label,
+                  ),
+              ],
+              onChanged: (presetId) => setState(() {
+                _movePresetId = presetId;
+              }),
+            ),
+            const SizedBox(height: 8),
+            PokeMapDropdownField<int>(
+              key: const ValueKey('border-local-keep-out-size-picker'),
+              label: 'Taille de la zone interdite',
+              value: _keepOutRadiusCells,
+              items: const <PokeMapDropdownItem<int>>[
+                PokeMapDropdownItem<int>(value: 0, label: '1 case'),
+                PokeMapDropdownItem<int>(value: 1, label: '3 × 3 cases'),
+                PokeMapDropdownItem<int>(value: 2, label: '5 × 5 cases'),
+              ],
+              onChanged: (radius) => setState(() {
+                _keepOutRadiusCells = radius;
+              }),
+            ),
+            const SizedBox(height: 9),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                PokeMapButton(
+                  key: const ValueKey('border-local-variation-button'),
+                  onPressed: () => preview(
+                    controller.previewLocalVariation(
+                      feature: draftFeature,
+                      slotKey: selectedSlotKey,
+                    ),
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.shuffle),
+                  child: const Text('Nouvelle variation locale'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('border-local-replace-button'),
+                  onPressed: replacementPrimitiveId == null
+                      ? null
+                      : () => preview(
+                            controller.previewReplacement(
+                              feature: draftFeature,
+                              slotKey: selectedSlotKey,
+                              primitiveId: replacementPrimitiveId,
+                            ),
+                          ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.arrow_2_circlepath),
+                  child: const Text('Remplacer'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('border-local-move-button'),
+                  onPressed: () => preview(
+                    controller.previewMove(
+                      feature: draftFeature,
+                      slotKey: selectedSlotKey,
+                      offset: BorderPixelOffset(
+                        x: movePreset.x,
+                        y: movePreset.y,
+                      ),
+                    ),
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.move),
+                  child: const Text('Déplacer'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('border-local-remove-button'),
+                  onPressed: () => preview(
+                    controller.previewRemoval(
+                      feature: draftFeature,
+                      slotKey: selectedSlotKey,
+                    ),
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.clear),
+                  child: const Text('Retirer'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('border-local-lock-button'),
+                  onPressed: () => preview(
+                    controller.previewLock(
+                      feature: draftFeature,
+                      placement: selectedPlacement,
+                    ),
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.lock),
+                  child: const Text('Verrouiller'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('border-local-keep-out-button'),
+                  onPressed: () => preview(
+                    controller.previewKeepOut(
+                      feature: draftFeature,
+                      placement: selectedPlacement,
+                      mapSize: map.size,
+                      radiusCells: _keepOutRadiusCells,
+                    ),
+                  ),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.nosign),
+                  child: const Text('Zone interdite'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _blueprintPreview(
     BuildContext context,
     EditorNotifier notifier,
@@ -730,6 +1146,27 @@ class _BorderLayerInspectorPanelState
               height: 1.3,
             ),
           ),
+          if (preview.losses.isNotEmpty) ...[
+            const SizedBox(height: 7),
+            PokeMapCard(
+              key: const ValueKey('border-relink-losses'),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+              child: Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: [
+                  for (final loss in preview.losses)
+                    KeyedSubtree(
+                      key: ValueKey('border-relink-loss-${loss.name}'),
+                      child: PokeMapBadge(
+                        label: _relinkLossLabel(loss),
+                        variant: PokeMapBadgeVariant.warning,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
           if (preview.blockedReason case final reason?) ...[
             const SizedBox(height: 7),
             Text(
@@ -989,3 +1426,66 @@ String _featurePreviewStateLabel(BorderBlueprintFeaturePreviewState state) {
       '${state.feature.overrides.length} correction(s) · '
       '${state.feature.keepOutRegions.length} zone(s) d’exclusion';
 }
+
+List<BorderPublishedPrimitive> _compatibleReplacementPrimitives(
+  BorderBlueprintRevision? revision,
+  BorderResolvedPlacement? placement,
+) {
+  if (revision == null || placement == null) {
+    return const <BorderPublishedPrimitive>[];
+  }
+  final source = revision.definition.primitives
+      .where((primitive) => primitive.id == placement.primitiveId)
+      .firstOrNull;
+  if (source == null) {
+    return const <BorderPublishedPrimitive>[];
+  }
+  return <BorderPublishedPrimitive>[
+    for (final primitive in revision.definition.primitives)
+      if (primitive.role == source.role && primitive.id != source.id) primitive,
+  ];
+}
+
+String _primitiveRoleLabel(BorderPrimitiveRole role) => switch (role) {
+      BorderPrimitiveRole.structureLarge => 'Grande structure',
+      BorderPrimitiveRole.structureMedium => 'Structure moyenne',
+      BorderPrimitiveRole.filler => 'Remplissage',
+      BorderPrimitiveRole.accent => 'Accent',
+      BorderPrimitiveRole.post => 'Poteau',
+      BorderPrimitiveRole.span => 'Traverse',
+      BorderPrimitiveRole.surfacePatch => 'Surface',
+      BorderPrimitiveRole.outerAccent => 'Accent extérieur',
+    };
+
+String _relinkLossLabel(BorderRelinkLoss loss) => switch (loss) {
+      BorderRelinkLoss.geometry => 'Géométrie',
+      BorderRelinkLoss.parameters => 'Paramètres personnalisés',
+      BorderRelinkLoss.overrides => 'Corrections locales',
+      BorderRelinkLoss.keepOutRegions => 'Zones d’exclusion',
+      BorderRelinkLoss.materialization => 'Matérialisation',
+    };
+
+final class _BorderMovePreset {
+  const _BorderMovePreset({
+    required this.id,
+    required this.label,
+    required this.x,
+    required this.y,
+  });
+
+  final String id;
+  final String label;
+  final int x;
+  final int y;
+}
+
+const List<_BorderMovePreset> _borderMovePresets = <_BorderMovePreset>[
+  _BorderMovePreset(id: 'right-1', label: '1 px vers la droite', x: 1, y: 0),
+  _BorderMovePreset(id: 'left-1', label: '1 px vers la gauche', x: -1, y: 0),
+  _BorderMovePreset(id: 'down-1', label: '1 px vers le bas', x: 0, y: 1),
+  _BorderMovePreset(id: 'up-1', label: '1 px vers le haut', x: 0, y: -1),
+  _BorderMovePreset(id: 'right-4', label: '4 px vers la droite', x: 4, y: 0),
+  _BorderMovePreset(id: 'left-4', label: '4 px vers la gauche', x: -4, y: 0),
+  _BorderMovePreset(id: 'down-4', label: '4 px vers le bas', x: 0, y: 4),
+  _BorderMovePreset(id: 'up-4', label: '4 px vers le haut', x: 0, y: -4),
+];

@@ -5,6 +5,7 @@ import '../models/border_layer.dart';
 import '../models/border_materialization.dart';
 import '../models/border_resolution.dart';
 import '../models/border_signed_int64.dart';
+import '../models/border_value_objects.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import 'border_feature_json_codec.dart';
@@ -52,6 +53,54 @@ MapData updateBorderFeatureOverrides(
       layerId: layerId,
       featureId: featureId,
       update: (feature) => _copyFeature(feature, overrides: overrides),
+    );
+
+/// Replaces the authored parameter override, including explicitly clearing it.
+MapData updateBorderFeatureParameters(
+  MapData map, {
+  required String layerId,
+  required String featureId,
+  required BorderGenerationParams? paramsOverride,
+}) =>
+    _updateBorderFeature(
+      map,
+      layerId: layerId,
+      featureId: featureId,
+      update: (feature) => BorderFeature(
+        id: feature.id,
+        name: feature.name,
+        blueprintId: feature.blueprintId,
+        seed: feature.seed,
+        geometry: feature.geometry,
+        paramsOverride: paramsOverride,
+        overrides: feature.overrides,
+        keepOutRegions: feature.keepOutRegions,
+        materialization: feature.materialization,
+      ),
+    );
+
+/// Replaces only the authored stable keep-out regions of one Border feature.
+MapData updateBorderFeatureKeepOutRegions(
+  MapData map, {
+  required String layerId,
+  required String featureId,
+  required List<BorderKeepOutRegion> keepOutRegions,
+}) =>
+    _updateBorderFeature(
+      map,
+      layerId: layerId,
+      featureId: featureId,
+      update: (feature) => BorderFeature(
+        id: feature.id,
+        name: feature.name,
+        blueprintId: feature.blueprintId,
+        seed: feature.seed,
+        geometry: feature.geometry,
+        paramsOverride: feature.paramsOverride,
+        overrides: feature.overrides,
+        keepOutRegions: keepOutRegions,
+        materialization: feature.materialization,
+      ),
     );
 
 /// Fingerprint used for optimistic Border preview application.
