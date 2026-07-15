@@ -173,6 +173,25 @@ void main() {
     expect(sourceYs, <int>{0, 1});
   });
 
+  test('registered legacy ponton compatibility asset', () async {
+    final manifest = await SelbrumeMapTestFixture.loadManifest();
+    final tileset = manifest.tilesets.singleWhere(
+      (entry) => entry.id == 'ponton_selbrume',
+    );
+    expect(tileset.relativePath, 'assets/tilesets/ponton_selbrume.png');
+
+    final image = img.decodePng(
+      await File(
+        p.join(
+          SelbrumeMapTestFixture.projectRoot.path,
+          tileset.relativePath,
+        ),
+      ).readAsBytes(),
+    );
+    expect(image, isNotNull);
+    expect((image!.width, image.height, image.numChannels), (280, 230, 4));
+  });
+
   test('port reference v3 atlases and provenance are runtime-ready', () async {
     final manifest = await SelbrumeMapTestFixture.loadManifest();
     final bundle = await loadRuntimeMapBundle(
@@ -185,7 +204,7 @@ void main() {
         relativePath:
             'assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png',
         width: 1536,
-        height: 1408,
+        height: 2368,
       ),
       'ts_selbrume_port_ground_v3': (
         relativePath:
@@ -243,18 +262,19 @@ void main() {
         .map((entry) => entry.cast<String, dynamic>())
         .toList(growable: false);
     expect(entries, hasLength(35));
-    final provenanceIds = <String>{
-      for (final entry in entries) entry['id'] as String,
+    final provenanceById = <String, Map<String, dynamic>>{
+      for (final entry in entries) entry['id'] as String: entry,
     };
     final portElements = <String, ProjectElementEntry>{
       for (final element in manifest.elements)
         if (element.id.startsWith('el_port_ref_')) element.id: element,
     };
-    expect(portElements.keys, unorderedEquals(provenanceIds));
-    for (final entry in entries) {
-      final id = entry['id'] as String;
+    expect(portElements.keys, unorderedEquals(provenanceById.keys));
+    for (final elementContract in portElements.entries) {
+      final id = elementContract.key;
+      final entry = provenanceById[id]!;
       final source = (entry['source'] as Map).cast<String, dynamic>();
-      final element = portElements[id]!;
+      final element = elementContract.value;
       expect(element.tilesetId, 'ts_selbrume_port_reference_v3', reason: id);
       expect(element.frames, hasLength(1), reason: id);
       expect(
@@ -273,12 +293,38 @@ void main() {
         reason: id,
       );
     }
+    final placedPortElementIds = bundle.map.placedElements
+        .map((placed) => placed.elementId)
+        .where((id) => id.startsWith('el_port_ref_'))
+        .toSet();
     expect(
-      bundle.map.placedElements
-          .map((placed) => placed.elementId)
-          .where((id) => id.startsWith('el_port_ref_'))
-          .toSet(),
-      unorderedEquals(provenanceIds),
+      placedPortElementIds,
+      unorderedEquals(const <String>{
+        'el_port_ref_barrel_buoy_small',
+        'el_port_ref_bench',
+        'el_port_ref_boat_large',
+        'el_port_ref_boat_medium',
+        'el_port_ref_boat_small',
+        'el_port_ref_chandlery',
+        'el_port_ref_fish_basket_small',
+        'el_port_ref_fish_crates_small',
+        'el_port_ref_fish_market',
+        'el_port_ref_forest_cluster',
+        'el_port_ref_harbor_master',
+        'el_port_ref_house_blue',
+        'el_port_ref_house_orange',
+        'el_port_ref_lamp',
+        'el_port_ref_lobster_pots_small',
+        'el_port_ref_nest',
+        'el_port_ref_rock_cluster',
+        'el_port_ref_rock_pair',
+        'el_port_ref_rock_small',
+        'el_port_ref_rock_trio',
+        'el_port_ref_rope_coil_small',
+        'el_port_ref_sign_small',
+        'el_port_ref_tree',
+        'el_port_ref_walled_garden',
+      }),
     );
     expect(
       manifest.tilesets.where(
@@ -582,9 +628,6 @@ void main() {
       expectedPlacedTilesetIds,
       containsAll(<String>{
         'arbre_pixellab',
-        'fleurs_selbrume_de_toure_es',
-        'grass_elements',
-        'ponton_selbrume',
         'selbrume_all_sprite',
       }),
     );

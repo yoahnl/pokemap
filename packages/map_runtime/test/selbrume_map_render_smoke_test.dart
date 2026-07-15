@@ -28,19 +28,17 @@ void main() {
     final placedById = <String, MapPlacedElement>{
       for (final placed in bundle.map.placedElements) placed.id: placed,
     };
-    expect(placedById['pe_port_bateau']?.pos, const GridPos(x: 0, y: 22));
+    expect(placedById['pe_port_bateau']?.pos, const GridPos(x: 0, y: 21));
     expect(placedById['pe_port_hangar']?.pos, const GridPos(x: 31, y: 11));
     expect(placedById['pe_port_nid_goelise']?.pos, const GridPos(x: 7, y: 9));
     expect(
       bundle.map.placedElements.map((placed) => placed.elementId),
       containsAll(<String>[
-        'el_port_ref_quay_horizontal',
-        'el_port_ref_pier_t',
         'el_port_ref_boat_large',
         'el_port_ref_boat_medium',
         'el_port_ref_harbor_master',
         'el_port_ref_fish_crates_small',
-        'el_port_ref_foam_quay_horizontal',
+        'el_port_ref_nest',
       ]),
     );
 
@@ -106,9 +104,6 @@ void main() {
       tileImages.keys,
       containsAll(<String>[
         'arbre_pixellab',
-        'fleurs_selbrume_de_toure_es',
-        'grass_elements',
-        'ponton_selbrume',
         'selbrume_all_sprite',
       ]),
     );

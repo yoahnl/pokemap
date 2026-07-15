@@ -5808,8 +5808,8 @@
         true,
         true,
         true,
-        false,
-        false,
+        true,
+        true,
         true,
         true,
         true,
@@ -19299,6 +19299,25 @@
       "behaviors": [],
       "properties": {
         "pokemapPlacementOrigin": "environment"
+      }
+    },
+    {
+      "id": "pe_port_nid_goelise",
+      "layerId": "l_tile_port_ref_ground",
+      "elementId": "el_port_ref_nest",
+      "pos": {
+        "x": 7,
+        "y": 9
+      },
+      "applyCollision": false,
+      "opacity": 1.0,
+      "animation": null,
+      "shadowOverride": null,
+      "behaviors": [],
+      "properties": {
+        "pokemapPlacementOrigin": "authored",
+        "eventId": "event_goelise_nest_found",
+        "reservedForNarrative": "true"
       }
     }
   ],

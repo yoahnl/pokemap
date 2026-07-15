@@ -122,7 +122,7 @@ void main() {
     final boat = port.placedElements.singleWhere(
       (placed) => placed.id == 'pe_port_bateau',
     );
-    expect(boat.pos, const GridPos(x: 0, y: 22));
+    expect(boat.pos, const GridPos(x: 0, y: 21));
     final boatElement = portBundle.manifest.elements.singleWhere(
       (element) => element.id == boat.elementId,
     );

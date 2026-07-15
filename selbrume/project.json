@@ -409,18 +409,6 @@
       "paletteEntries": []
     },
     {
-      "id": "ponton_selbrume",
-      "name": "ponton selbrume",
-      "relativePath": "assets/tilesets/ponton_selbrume.png",
-      "scope": "global",
-      "groupId": null,
-      "folderId": "batiments_1",
-      "sortOrder": 1,
-      "isWorldTileset": false,
-      "elementGroups": [],
-      "paletteEntries": []
-    },
-    {
       "id": "ts_selbrume_cabin_interior",
       "name": "Interieurs des cabanes de Selbrume",
       "relativePath": "assets/tilesets/selbrume_cabin_interior.png",
@@ -505,6 +493,18 @@
       "paletteEntries": []
     },
     {
+      "id": "ts_selbrume_open_sea_loop",
+      "name": "Boucle marine de Selbrume",
+      "relativePath": "assets/tilesets/selbrume_open_sea_loop.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "tsf_selbrume_beta_port",
+      "sortOrder": 0,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
+    },
+    {
       "id": "ts_selbrume_port_reference_v3",
       "name": "Port des Brisants - Famille visuelle de reference",
       "relativePath": "assets/tilesets/port_reference_v3/selbrume_port_reference_v3.png",
@@ -560,6 +560,18 @@
       "groupId": null,
       "folderId": "objectif",
       "sortOrder": 0,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
+    },
+    {
+      "id": "ponton_selbrume",
+      "name": "ponton selbrume",
+      "relativePath": "assets/tilesets/ponton_selbrume.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "batiments_1",
+      "sortOrder": 1,
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
@@ -5113,32 +5125,6 @@
       "recommendedLayerId": null,
       "tags": [],
       "sortOrder": 2
-    },
-    {
-      "id": "ponton_selbrume",
-      "name": "ponton selbrume",
-      "tilesetId": "ponton_selbrume",
-      "categoryId": "batiments",
-      "tilesetGroupId": null,
-      "frames": [
-        {
-          "tilesetId": "",
-          "source": {
-            "x": 0,
-            "y": 0,
-            "width": 8,
-            "height": 7
-          },
-          "durationMs": null
-        }
-      ],
-      "presetKind": "generic",
-      "collisionProfile": null,
-      "shadow": null,
-      "groupId": "group_selbrume_bourg",
-      "recommendedLayerId": null,
-      "tags": [],
-      "sortOrder": 0
     },
     {
       "id": "el_selbrume_cabane_sol_bois",
@@ -16880,6 +16866,32 @@
       "recommendedLayerId": "l_tile_objectif",
       "tags": [],
       "sortOrder": 0
+    },
+    {
+      "id": "ponton_selbrume",
+      "name": "ponton selbrume",
+      "tilesetId": "ponton_selbrume",
+      "categoryId": "batiments",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 8,
+            "height": 7
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "generic",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": "group_selbrume_bourg",
+      "recommendedLayerId": null,
+      "tags": [],
+      "sortOrder": 0
     }
   ],
   "terrainCategories": [],
@@ -16913,6 +16925,15 @@
     }
   ],
   "pathPresets": [
+    {
+      "id": "nouveau-chemin",
+      "name": "Nouveau chemin",
+      "surfaceKind": "water",
+      "categoryId": null,
+      "tilesetId": "deep_water",
+      "variants": [],
+      "sortOrder": 0
+    },
     {
       "id": "dirth_path",
       "name": "dirth path",
@@ -27671,13 +27692,10 @@
           "shiny": false
         },
         {
-          "speciesId": "dratini",
+          "speciesId": "metapod",
           "level": 25,
           "moves": [
-            "harden",
-            "wrap",
-            "thunder_wave",
-            "dragon_rage"
+            "harden"
           ],
           "heldItemId": null,
           "formId": null,

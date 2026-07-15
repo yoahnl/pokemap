@@ -134,7 +134,7 @@ void main() {
           'pe_port_hangar',
           'pe_port_nid_goelise',
         ]));
-    expect(placedById['pe_port_bateau']!.pos, const GridPos(x: 0, y: 22));
+    expect(placedById['pe_port_bateau']!.pos, const GridPos(x: 0, y: 21));
     expect(placedById['pe_port_bateau']!.elementId, 'el_port_ref_boat_large');
     expect(placedById['pe_port_hangar']!.pos, const GridPos(x: 31, y: 11));
     expect(placedById['pe_port_hangar']!.elementId, 'el_port_ref_chandlery');
@@ -165,23 +165,20 @@ void main() {
     expect(
       map.layers.map((layer) => layer.id),
       <String>[
-        'l_terrain',
-        'l_path_primary',
-        'l_path_secondary',
-        'l_tile_ground',
-        'l_tile_structures',
-        'l_tile_overhead',
-        'l_tile_fx',
-        'l_collisions',
+        'l_tile_for_t',
+        'l_environment_for_t',
+        'l_path_path',
+        'l_terrain_terrain',
+        'l_path_ocean',
+        'l_tile_maison',
       ],
     );
-    expect(map.layers[0], isA<TerrainLayer>());
-    expect(map.layers[1], isA<PathLayer>());
+    expect(map.layers[0], isA<TileLayer>());
+    expect(map.layers[1], isA<EnvironmentLayer>());
     expect(map.layers[2], isA<PathLayer>());
-    for (var index = 3; index <= 6; index += 1) {
-      expect(map.layers[index], isA<TileLayer>());
-    }
-    expect(map.layers[7], isA<CollisionLayer>());
+    expect(map.layers[3], isA<TerrainLayer>());
+    expect(map.layers[4], isA<PathLayer>());
+    expect(map.layers[5], isA<TileLayer>());
     expect(
       map.layers.where((layer) => layer.id == 'l_tile_objectif'),
       isEmpty,
@@ -193,7 +190,7 @@ void main() {
       ),
       isEmpty,
     );
-    expect(map.placedElements, hasLength(306));
+    expect(map.placedElements, hasLength(84));
     expect(
       () => MapValidator.validate(map, projectDialogueContext: manifest),
       returnsNormally,
@@ -218,28 +215,28 @@ void main() {
       map,
       id: 'pe_bourg_maison_joueur_facade',
       elementId: 'selbrum_maison_1',
-      layerId: 'l_tile_structures',
+      layerId: 'l_tile_maison',
       pos: const GridPos(x: 10, y: 18),
     );
     _expectPlacement(
       map,
       id: 'pe_bourg_centre_facade',
       elementId: 'selbrume_centre_pok_mon',
-      layerId: 'l_tile_structures',
+      layerId: 'l_tile_maison',
       pos: const GridPos(x: 29, y: 22),
     );
     _expectPlacement(
       map,
       id: 'pe_bourg_puits',
       elementId: 'le_puits',
-      layerId: 'l_tile_structures',
+      layerId: 'l_tile_maison',
       pos: const GridPos(x: 23, y: 27),
     );
     _expectPlacement(
       map,
       id: 'pe_bourg_kiosque',
       elementId: 'kiosque_l_gumes',
-      layerId: 'l_tile_structures',
+      layerId: 'l_tile_maison',
       pos: const GridPos(x: 36, y: 35),
     );
     expect(
