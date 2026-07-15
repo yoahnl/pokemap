@@ -110,7 +110,7 @@ void main() {
             fixture.primitive('same', BorderPrimitiveRole.surfacePatch),
             fixture.primitive('empty', BorderPrimitiveRole.outerAccent),
           ],
-          <String>['outerAccent', 'post', 'span', 'surfacePatch'],
+          <String>['outerAccent', 'span'],
         ),
         (
           BorderBlueprintTemplate.postAndRailLine,
@@ -135,7 +135,6 @@ void main() {
             'outerAccent',
             'structureLarge',
             'structureMedium',
-            'surfacePatch',
           ],
         ),
       ];
@@ -190,7 +189,9 @@ void main() {
           BorderPrimitiveRole.structureLarge,
           BorderPrimitiveRole.structureMedium,
           BorderPrimitiveRole.filler,
+          BorderPrimitiveRole.post,
           BorderPrimitiveRole.accent,
+          BorderPrimitiveRole.surfacePatch,
         },
       );
       final lineRoles = borderAllowedPrimitiveRolesForTemplate(
@@ -202,12 +203,112 @@ void main() {
           BorderPrimitiveRole.post,
           BorderPrimitiveRole.span,
           BorderPrimitiveRole.accent,
+          BorderPrimitiveRole.surfacePatch,
         },
       );
       expect(
         () => lineRoles.add(BorderPrimitiveRole.filler),
         throwsUnsupportedError,
       );
+    });
+
+    test('accepts the production fence draw passes in canonical evidence', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.postAndRailLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive('post', BorderPrimitiveRole.post, snapshot: 0),
+          fixture.primitive('span', BorderPrimitiveRole.span, snapshot: 1),
+        ],
+      );
+      final samples = <BorderPublicationGallerySample>[
+        for (final galleryCase in borderCanonicalGalleryCasesForTemplate(
+          BorderBlueprintTemplate.postAndRailLine,
+        ))
+          BorderPublicationGallerySample(
+            galleryCase: galleryCase,
+            coverageChecks: _passingCoverageChecks(galleryCase, definition),
+            structuralRuns: galleryCase == BorderCanonicalGalleryCase.longEdge
+                ? <BorderPublicationStructuralRun>[
+                    BorderPublicationStructuralRun(
+                      id: 'span-pass',
+                      role: BorderPrimitiveRole.span,
+                      quarterTurns: 0,
+                      passIndex: 0,
+                      primitiveIds: const <String>['span'],
+                    ),
+                    BorderPublicationStructuralRun(
+                      id: 'post-pass',
+                      role: BorderPrimitiveRole.post,
+                      quarterTurns: 0,
+                      passIndex: 1,
+                      primitiveIds: const <String>['post'],
+                    ),
+                  ]
+                : const <BorderPublicationStructuralRun>[],
+          ),
+      ];
+
+      final result = _assess(
+        fixture,
+        definition: definition,
+        samples: samples,
+      );
+
+      expect(
+        _codes(result),
+        isNot(contains('border.publication.gallery_run_contract_invalid')),
+      );
+    });
+
+    test('accepts real canonical galleries for both line templates', () {
+      final fixture = _Fixture.complete();
+      final definitions = <BorderBlueprintPublishedDefinition>[
+        fixture.definitionFor(
+          template: BorderBlueprintTemplate.masonryLine,
+          primitives: <BorderPublishedPrimitive>[
+            fixture.primitive(
+              'large-a',
+              BorderPrimitiveRole.structureLarge,
+              snapshot: 0,
+            ),
+          ],
+        ),
+        fixture.definitionFor(
+          template: BorderBlueprintTemplate.postAndRailLine,
+          primitives: <BorderPublishedPrimitive>[
+            fixture.primitive('post', BorderPrimitiveRole.post, snapshot: 0),
+            fixture.primitive('span', BorderPrimitiveRole.span, snapshot: 1),
+          ],
+        ),
+      ];
+
+      for (final definition in definitions) {
+        final gallery = resolveBorderCanonicalGallery(
+          blueprintId: 'coast',
+          blueprintRevision: BorderBlueprintRevision(
+            revision: 1,
+            definition: definition,
+          ),
+          visualSnapshots: fixture.snapshots,
+          tileSizePx: const GridSize(width: 2, height: 2),
+          resolverVersion: _resolverVersion,
+        );
+        final readiness = _assess(
+          fixture,
+          definition: definition,
+          galleryReport: gallery.report,
+        );
+
+        expect(gallery.allCasesResolved, isTrue,
+            reason: definition.template.name);
+        expect(readiness.canPublish, isTrue, reason: definition.template.name);
+        expect(
+          _codes(readiness),
+          isNot(contains('border.publication.gallery_run_contract_invalid')),
+          reason: definition.template.name,
+        );
+      }
     });
 
     test('reports every missing required orientation deterministically', () {
@@ -455,6 +556,56 @@ void main() {
       );
       expect(missingElement.canPublish, isFalse);
       expect(missingSurface.canPublish, isFalse);
+    });
+
+    test('rejects ground for every linear template', () {
+      final fixture = _Fixture.complete();
+      final ground = _ground(
+        presetId: 'sand',
+        snapshotId: fixture.snapshotId(0),
+      );
+      final definitions = <BorderBlueprintPublishedDefinition>[
+        fixture.definitionFor(
+          template: BorderBlueprintTemplate.masonryLine,
+          ground: ground,
+        ),
+        fixture.definitionFor(
+          template: BorderBlueprintTemplate.postAndRailLine,
+          primitives: <BorderPublishedPrimitive>[
+            fixture.primitive('post', BorderPrimitiveRole.post, snapshot: 0),
+            fixture.primitive('span', BorderPrimitiveRole.span, snapshot: 1),
+          ],
+          ground: ground,
+        ),
+      ];
+
+      for (final definition in definitions) {
+        final result = _assess(fixture, definition: definition);
+        final errors = result.diagnosticReport.diagnostics
+            .where(
+              (diagnostic) =>
+                  diagnostic.severity == BorderDiagnosticSeverity.error,
+            )
+            .toList(growable: false);
+
+        expect(result.canPublish, isFalse, reason: definition.template.name);
+        expect(errors, hasLength(1), reason: definition.template.name);
+        expect(
+          errors.single.code,
+          'border.publication.linear_ground_not_supported',
+          reason: definition.template.name,
+        );
+        expect(
+          errors.single.parameters,
+          <String, Object?>{'template': definition.template.name},
+          reason: definition.template.name,
+        );
+        expect(
+          errors.single.suggestedAction,
+          'border.action.remove_ground_from_linear_blueprint',
+          reason: definition.template.name,
+        );
+      }
     });
 
     test('ground role snapshots and isolated Surface fallback must resolve',
@@ -1177,8 +1328,8 @@ int _passIndex(
         BorderPrimitiveRole.filler,
       ) =>
         2,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 0,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 1,
+      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
+      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
       _ => throw StateError('Non-structural publication run role'),
     };
 

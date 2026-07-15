@@ -729,20 +729,26 @@ void main() {
   });
 
   group('resolveBorderFeature', () {
-    test('dispatches organic edges and refuses unfinished line solvers', () {
+    test('dispatches every V1 solver without geometry-family fallback', () {
       expect(resolveBorderFeature(_request()).canApply, isTrue);
 
-      for (final template in <BorderBlueprintTemplate>[
-        BorderBlueprintTemplate.masonryLine,
-        BorderBlueprintTemplate.postAndRailLine,
-      ]) {
-        final result = resolveBorderFeature(_request(template: template));
-        expect(result.canApply, isFalse);
-        expect(
-          result.diagnostics.map((diagnostic) => diagnostic.code),
-          contains('border.resolution.template_solver_unavailable'),
-        );
-      }
+      final masonry = resolveBorderFeature(
+        _request(template: BorderBlueprintTemplate.masonryLine),
+      );
+      expect(masonry.canApply, isFalse);
+      expect(
+        masonry.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('border.resolution.stroke_geometry_required'),
+      );
+
+      final fence = resolveBorderFeature(
+        _request(template: BorderBlueprintTemplate.postAndRailLine),
+      );
+      expect(fence.canApply, isFalse);
+      expect(
+        fence.diagnostics.map((diagnostic) => diagnostic.code),
+        contains('border.resolution.stroke_geometry_required'),
+      );
     });
 
     test('rejects a coherently rehashed but noncanonical proposal', () {

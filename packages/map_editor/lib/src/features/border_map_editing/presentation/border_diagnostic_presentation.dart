@@ -19,7 +19,7 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
     'border.resolution.template_solver_unavailable' =>
       'Ce type de blueprint ne peut pas encore être résolu sur la carte.',
     'border.resolution.template_mismatch' =>
-      'Choisissez un blueprint organique compatible avec cette bordure.',
+      'Choisissez un blueprint compatible avec cette géométrie de bordure.',
     'border.resolution.contour_empty' =>
       'Élargissez la zone pour obtenir un contour exploitable.',
     'border.resolution.anchor_outside_asset' =>
@@ -30,28 +30,58 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Publiez le visuel de sol utilisé par cette bordure.',
     'border.resolution.keep_out_size_mismatch' =>
       'Adaptez les zones d’exclusion aux dimensions de la carte.',
+    'border.resolution.keep_outs_not_supported' =>
+      'Retirez les zones d’exclusion avant de générer cette bordure linéaire.',
+    'border.resolution.linear_ground_not_supported' =>
+      'Retirez le sol intérieur : il n’est pas disponible pour une bordure linéaire.',
+    'border.resolution.masonry_end_finish_missing' =>
+      'Ajoutez une finition d’extrémité adaptée au muret.',
+    'border.resolution.masonry_end_finish_outside_canvas' =>
+      'Déplacez l’extrémité du muret pour garder sa finition dans la carte.',
     'border.resolution.overrides_not_supported' =>
       'Retirez les remplacements manuels incompatibles avec ce blueprint.',
+    'border.resolution.occupancy_empty' =>
+      'Ajoutez des pixels opaques au visuel publié.',
+    'border.resolution.occupancy_invalid' =>
+      'Republiez le visuel avec un masque d’occupation valide.',
+    'border.resolution.placement_outside_canvas' =>
+      'Déplacez le tracé pour que ses éléments restent visibles dans la carte.',
+    'border.resolution.post_role_missing' =>
+      'Ajoutez au moins un poteau au blueprint de clôture.',
     'border.resolution.role_not_supported_by_template' =>
-      'Remplacez cet élément par un rôle accepté par le blueprint organique.',
+      'Attribuez à cet élément un rôle accepté par le type de bordure sélectionné.',
     'border.resolution.structural_role_missing' =>
       'Ajoutez au moins un élément structurel au blueprint.',
+    'border.resolution.span_role_missing' =>
+      'Ajoutez au moins une traverse au blueprint de clôture.',
+    'border.resolution.span_too_short' =>
+      'Élargissez ce segment ou choisissez une traverse plus courte.',
+    'border.resolution.stroke_geometry_empty' =>
+      'Tracez au moins une ligne de deux cases.',
+    'border.resolution.stroke_geometry_required' =>
+      'Utilisez une géométrie de ligne pour ce blueprint.',
+    'border.resolution.stroke_invalid' =>
+      'Simplifiez le tracé pour supprimer ses raccords invalides.',
+    'border.resolution.stroke_not_canonical' =>
+      'Recréez le tracé afin de le remettre dans son ordre canonique.',
+    'border.resolution.stroke_out_of_bounds' =>
+      'Replacez le tracé entièrement dans les limites de la carte.',
     'border.resolution.structural_occupancy_empty' =>
       'Ajoutez des pixels opaques à l’élément structurel publié.',
     'border.resolution.structural_occupancy_invalid' =>
       'Republiez l’élément structurel avec une empreinte valide.',
-      'border.resolution.coverage_gap' =>
-        'Réduisez l’ouverture ou ajustez les éléments de bordure.',
-      'border.resolution.coverage_overlap' =>
-        'Réduisez le chevauchement ou ajustez les éléments de bordure.',
-      'border.resolution.orientation_unavailable' =>
-        'Autorisez l’orientation manquante dans le blueprint.',
+    'border.resolution.coverage_gap' =>
+      'Réduisez l’ouverture ou ajustez les éléments de bordure.',
+    'border.resolution.coverage_overlap' =>
+      'Réduisez le chevauchement ou ajustez les éléments de bordure.',
+    'border.resolution.orientation_unavailable' =>
+      'Autorisez l’orientation manquante dans le blueprint.',
     'border.resolution.repetition_four_identical' =>
       'Ajoutez des variantes pour éviter quatre éléments identiques de suite.',
     'border.resolution.repetition_low_window_variety' =>
       'Augmentez la variété des éléments sur cette portion de bordure.',
-      'border.resolution.materialization_empty' =>
-        'Ajoutez des éléments compatibles pour générer la bordure.',
+    'border.resolution.materialization_empty' =>
+      'Ajoutez des éléments compatibles pour générer la bordure.',
     'border.resolution.visual_snapshot_invalid' =>
       'Republiez le visuel absent ou invalide utilisé par le blueprint.',
     _ => 'Diagnostic de bordure à vérifier.',

@@ -89,9 +89,17 @@ void main() {
           BorderBlueprintTemplate.masonryLine,
         ),
       );
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(id: 'stone', role: BorderPrimitiveRole.structureLarge),
+        _primitive(id: 'post', role: BorderPrimitiveRole.post),
+        _primitive(
+          id: 'finish',
+          role: BorderPrimitiveRole.surfacePatch,
+        ),
+      ]);
       expect(
         () => controller.replacePrimitives(<BorderPrimitiveDraft>[
-          _primitive(id: 'post', role: BorderPrimitiveRole.post),
+          _primitive(id: 'span', role: BorderPrimitiveRole.span),
         ]),
         throwsArgumentError,
       );
@@ -286,7 +294,42 @@ void main() {
       );
     });
 
-    test('enables only organic edges for the BORD-03 publication lot', () {
+    test('creates deterministic preview variations for every line template',
+        () {
+      for (final template in <BorderBlueprintTemplate>[
+        BorderBlueprintTemplate.masonryLine,
+        BorderBlueprintTemplate.postAndRailLine,
+      ]) {
+        final manifest = _manifest(
+          records: <BorderBlueprintRecord>[
+            _record(
+              id: 'line-${template.name}',
+              name: template.name,
+              template: template,
+            ),
+          ],
+        );
+        final first = BorderStudioDraftController()
+          ..loadFromManifest(manifest)
+          ..setDiagnostics(const BorderDiagnosticsReport.empty());
+        final second = BorderStudioDraftController()
+          ..loadFromManifest(manifest)
+          ..setDiagnostics(const BorderDiagnosticsReport.empty());
+
+        first.newPreviewVariation();
+        second.newPreviewVariation();
+
+        expect(
+          first.state.previewSeed,
+          second.state.previewSeed,
+          reason: '${template.name} must vary deterministically',
+        );
+        expect(first.state.diagnosticsAreCurrent, isFalse);
+        expect(first.state.canPublish, isFalse);
+      }
+    });
+
+    test('enables every V1 template only after a current preview', () {
       final controller = BorderStudioDraftController()
         ..loadFromManifest(
           _manifest(records: <BorderBlueprintRecord>[
@@ -304,15 +347,19 @@ void main() {
       expect(controller.state.canPublish, isFalse);
       expect(
         controller.state.publicationAvailability.disabledReason,
-        contains('BORD-06'),
+        contains('Regénérez'),
       );
+      controller.setDiagnostics(const BorderDiagnosticsReport.empty());
+      expect(controller.state.canPublish, isTrue);
 
       controller.setTemplate(BorderBlueprintTemplate.postAndRailLine);
       expect(controller.state.canPublish, isFalse);
       expect(
         controller.state.publicationAvailability.disabledReason,
-        contains('BORD-06'),
+        contains('Regénérez'),
       );
+      controller.setDiagnostics(const BorderDiagnosticsReport.empty());
+      expect(controller.state.canPublish, isTrue);
     });
 
     test('requires explicit acknowledgement of every warning code', () {

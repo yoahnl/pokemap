@@ -106,14 +106,10 @@ abstract interface class BorderPublicationManifestPort {
   void applyInMemory(ProjectManifest manifest);
 }
 
-/// Pure-core publication validation plus the temporary BORD-02A template gate.
+/// Pure-core publication validation shared by every published V1 template.
 final class CoreBorderPublicationCandidateValidator
     implements BorderPublicationCandidateValidator {
-  const CoreBorderPublicationCandidateValidator({
-    this.enabledTemplates = const <BorderBlueprintTemplate>{},
-  });
-
-  final Set<BorderBlueprintTemplate> enabledTemplates;
+  const CoreBorderPublicationCandidateValidator();
 
   @override
   BorderDiagnosticsReport validate(BorderPublicationRequest request) {
@@ -135,22 +131,7 @@ final class CoreBorderPublicationCandidateValidator
       snapshotIntegrity: request.snapshotIntegrity,
       canonicalGalleryReport: request.canonicalGalleryReport,
     );
-    final diagnostics = <BorderDiagnostic>[
-      ...readiness.diagnosticReport.diagnostics,
-    ];
-    if (!enabledTemplates.contains(revision.definition.template)) {
-      diagnostics.add(
-        _publicationDiagnostic(
-          code: 'border.publication.template_not_enabled_in_editor',
-          blueprintId: request.blueprintId,
-          parameters: <String, Object?>{
-            'template': revision.definition.template.name,
-          },
-          suggestedAction: 'border.action.wait_for_line_solver',
-        ),
-      );
-    }
-    return BorderDiagnosticsReport(diagnostics: diagnostics);
+    return readiness.diagnosticReport;
   }
 }
 

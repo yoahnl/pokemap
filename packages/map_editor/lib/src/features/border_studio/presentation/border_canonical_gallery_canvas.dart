@@ -20,6 +20,7 @@ class BorderCanonicalGalleryCanvas extends StatefulWidget {
   const BorderCanonicalGalleryCanvas({
     super.key,
     required this.semanticsLabel,
+    required this.mapSize,
     required this.geometry,
     required this.tileSizePx,
     required this.materialization,
@@ -28,7 +29,8 @@ class BorderCanonicalGalleryCanvas extends StatefulWidget {
   });
 
   final String semanticsLabel;
-  final BorderRegionGeometry geometry;
+  final GridSize mapSize;
+  final BorderFeatureGeometry geometry;
   final GridSize tileSizePx;
   final BorderMaterialization? materialization;
   final ProjectBorderCatalog catalog;
@@ -80,8 +82,8 @@ class _BorderCanonicalGalleryCanvasState
         icon: Icon(CupertinoIcons.exclamationmark_triangle),
       );
     }
-    final worldWidth = widget.geometry.width * widget.tileSizePx.width;
-    final worldHeight = widget.geometry.height * widget.tileSizePx.height;
+    final worldWidth = widget.mapSize.width * widget.tileSizePx.width;
+    final worldHeight = widget.mapSize.height * widget.tileSizePx.height;
     final colors = context.pokeMapColors;
     return Semantics(
       label: widget.semanticsLabel,
@@ -104,7 +106,13 @@ class _BorderCanonicalGalleryCanvasState
                     children: <Widget>[
                       Positioned.fill(
                         child: CustomPaint(
-                          painter: _GalleryRegionPainter(
+                          key: ValueKey<String>(
+                            widget.geometry is BorderStrokeGeometry
+                                ? 'border-gallery-stroke-guide'
+                                : 'border-gallery-region-guide',
+                          ),
+                          painter: _GalleryGeometryPainter(
+                            mapSize: widget.mapSize,
                             geometry: widget.geometry,
                             tileSizePx: widget.tileSizePx,
                             backgroundColor: colors.surfaceSubtle,
@@ -258,8 +266,9 @@ class _BorderCanonicalGalleryCanvasState
   }
 }
 
-final class _GalleryRegionPainter extends CustomPainter {
-  const _GalleryRegionPainter({
+final class _GalleryGeometryPainter extends CustomPainter {
+  const _GalleryGeometryPainter({
+    required this.mapSize,
     required this.geometry,
     required this.tileSizePx,
     required this.backgroundColor,
@@ -267,7 +276,8 @@ final class _GalleryRegionPainter extends CustomPainter {
     required this.gridColor,
   });
 
-  final BorderRegionGeometry geometry;
+  final GridSize mapSize;
+  final BorderFeatureGeometry geometry;
   final GridSize tileSizePx;
   final Color backgroundColor;
   final Color landColor;
@@ -277,9 +287,39 @@ final class _GalleryRegionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.drawRect(Offset.zero & size, Paint()..color = backgroundColor);
     final landPaint = Paint()..color = landColor;
-    for (var y = 0; y < geometry.height; y += 1) {
-      for (var x = 0; x < geometry.width; x += 1) {
-        if (!geometry.cells[y * geometry.width + x]) continue;
+    switch (geometry) {
+      case final BorderRegionGeometry region:
+        _paintRegion(canvas, region, landPaint);
+      case final BorderStrokeGeometry strokes:
+        _paintStrokes(canvas, strokes, landPaint);
+    }
+    final gridPaint = Paint()
+      ..color = gridColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5;
+    for (var x = 0; x <= mapSize.width; x += 1) {
+      final position = (x * tileSizePx.width).toDouble();
+      canvas.drawLine(
+        Offset(position, 0),
+        Offset(position, size.height),
+        gridPaint,
+      );
+    }
+    for (var y = 0; y <= mapSize.height; y += 1) {
+      final position = (y * tileSizePx.height).toDouble();
+      canvas.drawLine(
+          Offset(0, position), Offset(size.width, position), gridPaint);
+    }
+  }
+
+  void _paintRegion(
+    Canvas canvas,
+    BorderRegionGeometry region,
+    Paint landPaint,
+  ) {
+    for (var y = 0; y < region.height; y += 1) {
+      for (var x = 0; x < region.width; x += 1) {
+        if (!region.cells[y * region.width + x]) continue;
         canvas.drawRect(
           Rect.fromLTWH(
             (x * tileSizePx.width).toDouble(),
@@ -291,27 +331,44 @@ final class _GalleryRegionPainter extends CustomPainter {
         );
       }
     }
-    final gridPaint = Paint()
-      ..color = gridColor
+  }
+
+  void _paintStrokes(
+    Canvas canvas,
+    BorderStrokeGeometry geometry,
+    Paint landPaint,
+  ) {
+    final guidePaint = Paint()
+      ..color = landPaint.color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5;
-    for (var x = 0; x <= geometry.width; x += 1) {
-      final position = (x * tileSizePx.width).toDouble();
-      canvas.drawLine(
-        Offset(position, 0),
-        Offset(position, size.height),
-        gridPaint,
-      );
-    }
-    for (var y = 0; y <= geometry.height; y += 1) {
-      final position = (y * tileSizePx.height).toDouble();
-      canvas.drawLine(
-          Offset(0, position), Offset(size.width, position), gridPaint);
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = (tileSizePx.width < tileSizePx.height
+              ? tileSizePx.width
+              : tileSizePx.height) /
+          5;
+    for (final stroke in geometry.strokes) {
+      if (stroke.points.isEmpty) continue;
+      final path = Path();
+      final first = _cellCenter(stroke.points.first);
+      path.moveTo(first.dx, first.dy);
+      for (final point in stroke.points.skip(1)) {
+        final center = _cellCenter(point);
+        path.lineTo(center.dx, center.dy);
+      }
+      if (stroke.closed) path.close();
+      canvas.drawPath(path, guidePaint);
     }
   }
 
+  Offset _cellCenter(GridPos point) => Offset(
+        (point.x + 0.5) * tileSizePx.width,
+        (point.y + 0.5) * tileSizePx.height,
+      );
+
   @override
-  bool shouldRepaint(_GalleryRegionPainter oldDelegate) =>
+  bool shouldRepaint(_GalleryGeometryPainter oldDelegate) =>
+      mapSize != oldDelegate.mapSize ||
       geometry != oldDelegate.geometry ||
       tileSizePx != oldDelegate.tileSizePx ||
       backgroundColor != oldDelegate.backgroundColor ||

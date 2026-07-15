@@ -776,7 +776,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
         _publicationPreview = prepared;
         _feedback = prepared.diagnostics.hasErrors
             ? 'La galerie a été générée avec des erreurs bloquantes.'
-            : 'Les six cas canoniques ont été générés avec les pixels candidats.';
+            : '${prepared.canonicalGalleryCases.length} cas canoniques ont été générés avec les pixels candidats.';
       });
     } on BorderStudioPublicationCoordinatorException catch (error) {
       if (!mounted) return;
@@ -909,7 +909,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
       setState(() {
         _publicationPreview = null;
         _feedback =
-            'L’aperçu n’est plus à jour. Régénérez les six cas avant de publier.';
+            'L’aperçu n’est plus à jour. Régénérez les cas canoniques avant de publier.';
       });
       return;
     }

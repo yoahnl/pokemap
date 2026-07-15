@@ -40,6 +40,8 @@ void main() {
     expect(find.text('Côte organique'), findsOneWidget);
     expect(find.text('Muret maçonné'), findsOneWidget);
     expect(find.text('Clôture poteaux-traverses'), findsOneWidget);
+    expect(find.text('Publication disponible'), findsNWidgets(3));
+    expect(find.text('Publication après BORD-06'), findsNothing);
 
     final fenceTemplate =
         find.byKey(const ValueKey<String>('border-studio-template-fence'));
@@ -53,8 +55,44 @@ void main() {
 
     expect(find.text('Poteau'), findsOneWidget);
     expect(find.text('Traverse'), findsOneWidget);
+    expect(find.text('Finition intérieure'), findsOneWidget);
     expect(find.text('Structure principale'), findsNothing);
-    expect(find.text('Publication après BORD-06'), findsOneWidget);
+    expect(
+      find.text(
+          'Poteau et Traverse sont requis. Les autres rôles sont optionnels.'),
+      findsOneWidget,
+    );
+    expect(find.text('Publication après BORD-06'), findsNothing);
+  });
+
+  testWidgets('masonry roles require one structure and keep finishes optional',
+      (tester) async {
+    final container = await _pumpWorkspace(tester, _manifest());
+    container
+        .read(borderStudioDraftControllerProvider.notifier)
+        .createBlueprint(
+          id: 'wall',
+          name: 'Muret',
+          template: BorderBlueprintTemplate.masonryLine,
+        );
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+    );
+    await tester.pump();
+
+    expect(find.text('Structure principale'), findsOneWidget);
+    expect(find.text('Structure secondaire'), findsOneWidget);
+    expect(find.text('Remplissage'), findsOneWidget);
+    expect(find.text('Poteau'), findsOneWidget);
+    expect(find.text('Finition intérieure'), findsOneWidget);
+    expect(
+      find.text(
+        'Au moins une Structure principale, Structure secondaire ou Remplissage est requise. Les autres rôles sont optionnels.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('reports asset validation without exposing internal identifiers',
@@ -122,6 +160,56 @@ void main() {
     expect(rules.detailDensityPermille, 700);
     expect(rules.variationPermille, 700);
     expect(find.text('Profil sauvage appliqué'), findsOneWidget);
+  });
+
+  testWidgets('masonry rules use aligned and aged labels without depth rows',
+      (tester) async {
+    final container = await _pumpWorkspace(tester, _manifest());
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier);
+    controller.createBlueprint(
+      id: 'wall',
+      name: 'Muret',
+      template: BorderBlueprintTemplate.masonryLine,
+    );
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Règles')),
+    );
+    await tester.pump();
+
+    expect(find.text('Aligné'), findsOneWidget);
+    expect(find.text('Vieilli'), findsOneWidget);
+    expect(find.textContaining('profondeur'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-profile-strict')),
+    );
+    await tester.pump();
+    expect(find.text('Profil aligné appliqué'), findsOneWidget);
+  });
+
+  testWidgets('fence rules use regular and rustic labels without depth rows',
+      (tester) async {
+    final container = await _pumpWorkspace(tester, _manifest());
+    container
+        .read(borderStudioDraftControllerProvider.notifier)
+        .createBlueprint(
+          id: 'fence',
+          name: 'Clôture',
+          template: BorderBlueprintTemplate.postAndRailLine,
+        );
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Règles')),
+    );
+    await tester.pump();
+
+    expect(find.text('Régulier'), findsOneWidget);
+    expect(find.text('Rustique'), findsOneWidget);
+    expect(find.textContaining('profondeur'), findsNothing);
   });
 
   testWidgets('assigns functional roles with a guided picker', (tester) async {
@@ -230,7 +318,7 @@ void main() {
     expect(controller.state.previewSeed, isNot(previousSeed));
   });
 
-  testWidgets('line templates keep publication visibly disabled until BORD-06',
+  testWidgets('line templates report missing roles instead of a lot gate',
       (tester) async {
     final container = await _pumpWorkspace(tester, _manifest());
     final controller =
@@ -252,12 +340,8 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.text(
-        'La publication des murets et clôtures reste désactivée jusqu’au lot BORD-06.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.textContaining('Attribuez les rôles requis'), findsOneWidget);
+    expect(find.textContaining('BORD-06'), findsNothing);
     final publish = find.byKey(
       const ValueKey<String>('border-studio-publish'),
     );
@@ -653,6 +737,7 @@ BorderStudioCanonicalGalleryResolution _passingGallery({
       for (var index = 0; index < samples.length; index += 1)
         BorderStudioCanonicalGalleryCasePreview(
           galleryCase: samples[index].galleryCase,
+          mapSize: const GridSize(width: 1, height: 1),
           geometry: BorderRegionGeometry(
             width: 1,
             height: 1,

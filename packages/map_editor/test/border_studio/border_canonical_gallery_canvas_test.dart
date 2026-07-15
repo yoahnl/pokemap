@@ -19,6 +19,7 @@ void main() {
               width: 320,
               child: BorderCanonicalGalleryCanvas(
                 semanticsLabel: 'Courbe douce générée',
+                mapSize: const GridSize(width: 2, height: 2),
                 geometry: BorderRegionGeometry(
                   width: 2,
                   height: 2,
@@ -73,6 +74,7 @@ void main() {
         home: Scaffold(
           body: BorderCanonicalGalleryCanvas(
             semanticsLabel: 'Cas invalide',
+            mapSize: const GridSize(width: 1, height: 1),
             geometry: BorderRegionGeometry(
               width: 1,
               height: 1,
@@ -105,6 +107,7 @@ void main() {
             width: 320,
             child: BorderCanonicalGalleryCanvas(
               semanticsLabel: 'Animation candidate',
+              mapSize: const GridSize(width: 2, height: 2),
               geometry: BorderRegionGeometry(
                 width: 2,
                 height: 2,
@@ -136,6 +139,53 @@ void main() {
     expect(_displayedBytes(tester), orderedEquals(firstBytes));
 
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('renders a line gallery guide inside its declared map size',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: BorderCanonicalGalleryCanvas(
+              semanticsLabel: 'Muret généré',
+              mapSize: const GridSize(width: 4, height: 3),
+              geometry: BorderStrokeGeometry(
+                strokes: <BorderStroke>[
+                  BorderStroke(
+                    id: 'wall',
+                    points: const <GridPos>[
+                      GridPos(x: 0, y: 1),
+                      GridPos(x: 1, y: 1),
+                      GridPos(x: 2, y: 1),
+                    ],
+                    closed: false,
+                  ),
+                ],
+              ),
+              tileSizePx: const GridSize(width: 16, height: 16),
+              materialization: _materialization(),
+              catalog: ProjectBorderCatalog(
+                visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+              ),
+              framesBySnapshotId: <String, List<BorderCanonicalGalleryFrame>>{
+                _snapshotId: <BorderCanonicalGalleryFrame>[
+                  (bytes: _png(), metadata: _snapshot().frames.single),
+                ],
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('Muret généré'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('border-gallery-stroke-guide')),
+      findsOneWidget,
+    );
   });
 }
 

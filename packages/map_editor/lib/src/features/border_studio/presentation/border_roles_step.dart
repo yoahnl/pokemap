@@ -64,19 +64,21 @@ class BorderRolesStep extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                   ],
-                  const SizedBox(height: 4),
-                  const PokeMapSectionHeader(
-                    title: 'Couverture des rôles',
-                    description:
-                        'Le Studio signale ce qui est présent et ce qui reste à fournir.',
-                  ),
-                  const SizedBox(height: 8),
                 ],
+                const SizedBox(height: 4),
+                PokeMapSectionHeader(
+                  title: 'Couverture des rôles',
+                  description: _roleRequirementDescription(
+                    definition.template,
+                  ),
+                ),
+                const SizedBox(height: 8),
                 for (final role in roles) ...[
                   PokeMapStatusTile(
-                    label: isRequiredBorderRole(definition.template, role)
-                        ? 'Rôle de raccord requis'
-                        : 'Rôle optionnel',
+                    label: _roleRequirementLabel(
+                      definition.template,
+                      role,
+                    ),
                     value: borderRoleLabel(role),
                     icon: _roleIcon(role),
                     tone: definition.primitives.any(
@@ -98,14 +100,6 @@ class BorderRolesStep extends StatelessWidget {
                     icon: CupertinoIcons.exclamationmark_triangle,
                   ),
                 ],
-                if (definition.template !=
-                    BorderBlueprintTemplate.organicEdge) ...[
-                  const SizedBox(height: 10),
-                  const PokeMapBadge(
-                    label: 'Publication après BORD-06',
-                    variant: PokeMapBadgeVariant.warning,
-                  ),
-                ],
               ],
             ),
     );
@@ -120,4 +114,26 @@ class BorderRolesStep extends StatelessWidget {
         BorderPrimitiveRole.surfacePatch => CupertinoIcons.square_fill,
         _ => CupertinoIcons.square_stack_3d_down_right,
       };
+
+  String _roleRequirementDescription(BorderBlueprintTemplate template) =>
+      switch (template) {
+        BorderBlueprintTemplate.organicEdge ||
+        BorderBlueprintTemplate.masonryLine =>
+          'Au moins une Structure principale, Structure secondaire ou Remplissage est requise. Les autres rôles sont optionnels.',
+        BorderBlueprintTemplate.postAndRailLine =>
+          'Poteau et Traverse sont requis. Les autres rôles sont optionnels.',
+      };
+
+  String _roleRequirementLabel(
+    BorderBlueprintTemplate template,
+    BorderPrimitiveRole role,
+  ) {
+    if (!isRequiredBorderRole(template, role)) return 'Rôle optionnel';
+    return switch (template) {
+      BorderBlueprintTemplate.organicEdge ||
+      BorderBlueprintTemplate.masonryLine =>
+        'Alternative de structure requise',
+      BorderBlueprintTemplate.postAndRailLine => 'Rôle requis',
+    };
+  }
 }

@@ -53,10 +53,6 @@ void main() {
     );
     final validator = transaction.candidateValidator;
     expect(validator, isA<CoreBorderPublicationCandidateValidator>());
-    expect(
-      (validator as CoreBorderPublicationCandidateValidator).enabledTemplates,
-      <BorderBlueprintTemplate>{BorderBlueprintTemplate.organicEdge},
-    );
     const manifest = ProjectManifest(
       name: 'Provider',
       maps: <ProjectMapEntry>[],

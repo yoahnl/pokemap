@@ -262,6 +262,9 @@ void main() {
     expect(reset.overrides, isEmpty);
     expect(reset.keepOutRegions, isEmpty);
     expect(reset.materialization, isNull);
+    expect(find.text('Tracer la ligne'), findsOneWidget);
+    expect(find.text('Créer une ouverture'), findsOneWidget);
+    expect(find.text('Peindre le contour'), findsNothing);
   });
 
   testWidgets(

@@ -193,6 +193,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   /// Dedicated Border drag de-duplication; never enters map/collision strokes.
   GridPos? _lastBorderPaintCell;
 
+  /// Pointer-down snapshot for one transient linear Border gesture.
+  BorderStrokeEditingDraft? _borderStrokeEditingDraft;
+
+  /// Keeps every suffix of an invalid linear Border drag rejected until the
+  /// owning pointer ends; this transient guard never enters map/collision IO.
+  bool _borderStrokeGestureRejected = false;
+
   Timer? _entityEditorAnimTimer;
   bool _entityEditorAnimTimerRunning = false;
   int _editorEntityAnimationMs = 0;
@@ -391,7 +398,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           activeLayerId: state.activeLayerId,
           activeFeatureId: activeBorderFeature.activeFeatureId,
         );
-        final isBorderRegionEditing = borderToolAvailability.isEnabled &&
+        final isBorderEditing = borderToolAvailability.isEnabled &&
             (state.activeTool == EditorToolType.borderPaint ||
                 state.activeTool == EditorToolType.borderErase) &&
             (borderPreviewState.phase == BorderPreviewPhase.idle ||
@@ -404,7 +411,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 state.activeTool == EditorToolType.eraser ||
                 isEnvironmentMaskEditing;
         final isStrokeEditingTool =
-            isLegacyStrokeEditingTool || isBorderRegionEditing;
+            isLegacyStrokeEditingTool || isBorderEditing;
         final isNpcWaypointPlacementActive =
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool = isStrokeEditingTool ||
@@ -436,7 +443,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                   )
                 : null;
 
-        void previewBorderGeometry(BorderRegionGeometry geometry) {
+        void previewBorderGeometry(BorderFeatureGeometry geometry) {
           final transaction = borderPreviewController.current.transaction;
           if (transaction == null) return;
           final catalog = state.project?.borderCatalog;
@@ -457,7 +464,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         }
 
         void applyToolAt(GridPos gridPos, {bool partOfStroke = false}) {
-          if (isBorderRegionEditing) {
+          if (isBorderEditing) {
+            if (_borderStrokeGestureRejected) return;
             if (borderPreviewController.current.phase ==
                 BorderPreviewPhase.idle) {
               final previewContext =
@@ -473,19 +481,45 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             final transaction = borderPreviewController.current.transaction;
             final geometry = transaction?.proposedFeature.geometry;
             if (borderPreviewController.current.phase !=
-                    BorderPreviewPhase.drawing ||
-                geometry is! BorderRegionGeometry) {
+                BorderPreviewPhase.drawing) {
               return;
             }
-            final previousCell =
-                partOfStroke ? _lastBorderPaintCell ?? gridPos : gridPos;
-            final updated = editBorderRegionSegment(
-              geometry,
-              previousCell,
-              gridPos,
-              filled: state.activeTool == EditorToolType.borderPaint,
-            );
-            previewBorderGeometry(updated);
+            if (geometry is BorderRegionGeometry) {
+              final previousCell =
+                  partOfStroke ? _lastBorderPaintCell ?? gridPos : gridPos;
+              final updated = editBorderRegionSegment(
+                geometry,
+                previousCell,
+                gridPos,
+                filled: state.activeTool == EditorToolType.borderPaint,
+              );
+              previewBorderGeometry(updated);
+              return;
+            }
+            if (geometry is BorderStrokeGeometry) {
+              final mode = state.activeTool == EditorToolType.borderPaint
+                  ? BorderStrokeEditingMode.draw
+                  : BorderStrokeEditingMode.erase;
+              final currentDraft = _borderStrokeEditingDraft ??
+                  BorderStrokeEditingDraft.begin(
+                    baseGeometry: geometry,
+                    mode: mode,
+                    pointerDown: gridPos,
+                  );
+              final sampledDraft = currentDraft.sample(gridPos);
+              try {
+                final updated = sampledDraft.previewGeometry;
+                if (updated != null) previewBorderGeometry(updated);
+                _borderStrokeEditingDraft = sampledDraft;
+              } on ValidationException {
+                // Invalid V1 input is a rejected editor gesture, not a Flutter
+                // failure. Drop the whole transient proposal so a previously
+                // valid prefix can never be applied as a silent truncation.
+                _borderStrokeEditingDraft = null;
+                _borderStrokeGestureRejected = true;
+                borderPreviewController.cancel();
+              }
+            }
             return;
           }
           if (isEnvironmentMaskEditing) {
@@ -540,7 +574,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         }
 
         void finishBorderPreview() {
-          if (!isBorderRegionEditing ||
+          if (!isBorderEditing ||
               borderPreviewController.current.phase !=
                   BorderPreviewPhase.drawing) {
             return;
@@ -550,9 +584,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             final geometry = transaction.proposedFeature.geometry;
             if (geometry is BorderRegionGeometry) {
               previewBorderGeometry(geometry);
+            } else if (geometry is BorderStrokeGeometry) {
+              _borderStrokeEditingDraft = null;
+              borderPreviewController.cancel();
+              return;
             }
           }
           borderPreviewController.finishDrawing();
+          _borderStrokeEditingDraft = null;
         }
 
         return Listener(
@@ -681,7 +720,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 notifier.beginMapStroke();
               }
               applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
-              if (isBorderRegionEditing) {
+              if (isBorderEditing) {
                 finishBorderPreview();
               } else if (isLegacyStrokeEditingTool) {
                 notifier.endMapStroke();
@@ -721,8 +760,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (isEnvironmentMaskEditing) {
                 _lastEnvironmentMaskPaintCell = null;
               }
-              if (isBorderRegionEditing) {
+              if (isBorderEditing) {
                 _lastBorderPaintCell = null;
+                _borderStrokeEditingDraft = null;
+                _borderStrokeGestureRejected = false;
               } else {
                 notifier.beginMapStroke();
               }
@@ -730,7 +771,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (isEnvironmentMaskEditing) {
                 _lastEnvironmentMaskPaintCell = gridPos;
               }
-              if (isBorderRegionEditing) {
+              if (isBorderEditing) {
                 _lastBorderPaintCell = gridPos;
               }
             },
@@ -767,19 +808,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                     _lastEnvironmentMaskPaintCell == gridPos) {
                   return;
                 }
-                if (isBorderRegionEditing && _lastBorderPaintCell == gridPos) {
+                if (isBorderEditing && _lastBorderPaintCell == gridPos) {
                   return;
                 }
                 applyToolAt(gridPos, partOfStroke: true);
                 if (isEnvironmentMaskEditing) {
                   _lastEnvironmentMaskPaintCell = gridPos;
                 }
-                if (isBorderRegionEditing) {
+                if (isBorderEditing) {
                   _lastBorderPaintCell = gridPos;
                 }
               }
             },
             onPanEnd: (_) {
+              _borderStrokeGestureRejected = false;
               if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
                   _zoneDragStart != null) {
@@ -791,7 +833,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 if (isEnvironmentMaskEditing) {
                   _lastEnvironmentMaskPaintCell = null;
                 }
-                if (isBorderRegionEditing) {
+                if (isBorderEditing) {
                   _lastBorderPaintCell = null;
                   finishBorderPreview();
                 } else {
@@ -800,6 +842,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanCancel: () {
+              _borderStrokeGestureRejected = false;
               if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
                   _zoneDragStart != null) {
@@ -811,8 +854,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 if (isEnvironmentMaskEditing) {
                   _lastEnvironmentMaskPaintCell = null;
                 }
-                if (isBorderRegionEditing) {
+                if (isBorderEditing) {
                   _lastBorderPaintCell = null;
+                  _borderStrokeEditingDraft = null;
                   borderPreviewController.cancel();
                 } else {
                   notifier.endMapStroke();

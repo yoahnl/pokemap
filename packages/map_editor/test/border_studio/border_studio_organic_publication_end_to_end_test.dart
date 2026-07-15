@@ -91,11 +91,7 @@ void main() {
           applyInMemoryManifest: (manifest) => appliedInMemory = manifest,
           stageIdFactory: () => 'manifest_${manifestStageIndex++}',
         ),
-        candidateValidator: const CoreBorderPublicationCandidateValidator(
-          enabledTemplates: <BorderBlueprintTemplate>{
-            BorderBlueprintTemplate.organicEdge,
-          },
-        ),
+        candidateValidator: const CoreBorderPublicationCandidateValidator(),
       );
       final coordinator = BorderStudioPublicationCoordinator(
         prepareProjectElementAsset: assetService.prepare,
@@ -108,7 +104,7 @@ void main() {
           required resolverVersion,
         }) =>
             BorderStudioCanonicalGalleryResolution.fromCore(
-          resolveOrganicEdgeCanonicalGallery(
+          resolveBorderCanonicalGallery(
             blueprintId: blueprintId,
             blueprintRevision: blueprintRevision,
             visualSnapshots: visualSnapshots,

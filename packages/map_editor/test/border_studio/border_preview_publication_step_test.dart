@@ -117,6 +117,19 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('uses the selected template canonical case count',
+      (tester) async {
+    await _pumpStep(
+      tester,
+      state: _state(template: BorderBlueprintTemplate.masonryLine),
+      preview: _preview(template: BorderBlueprintTemplate.masonryLine),
+    );
+
+    expect(find.text('3/3'), findsOneWidget);
+    expect(find.textContaining('Générez les 3 cas canoniques'), findsOneWidget);
+    expect(find.textContaining('six cas'), findsNothing);
+  });
 }
 
 Future<void> _pumpStep(
@@ -157,9 +170,10 @@ Future<void> _pumpStep(
 }
 
 BorderStudioDraftState _state({
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
   BorderDiagnosticsReport diagnostics = const BorderDiagnosticsReport.empty(),
 }) {
-  final record = _record();
+  final record = _record(template: template);
   return BorderStudioDraftState(
     catalogRecords: <BorderBlueprintRecord>[record],
     selectedBlueprintId: record.id,
@@ -172,8 +186,12 @@ BorderStudioDraftState _state({
   );
 }
 
-BorderStudioPublicationPreview _preview({bool animated = false}) {
-  final record = _record();
+BorderStudioPublicationPreview _preview({
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
+  bool animated = false,
+}) {
+  final record = _record(template: template);
+  final galleryCases = borderCanonicalGalleryCasesForTemplate(template);
   final snapshot = _snapshot(animated: animated);
   final manifest = ProjectManifest(
     name: 'Gallery',
@@ -212,7 +230,7 @@ BorderStudioPublicationPreview _preview({bool animated = false}) {
     groundSnapshotIdsByRole: const <SurfaceVariantRole, String>{},
   );
   final samples = <BorderPublicationGallerySample>[
-    for (final galleryCase in _organicCases)
+    for (final galleryCase in galleryCases)
       BorderPublicationGallerySample(
         galleryCase: galleryCase,
         coverageChecks: <BorderPublicationCoverageCheck>[
@@ -240,14 +258,31 @@ BorderStudioPublicationPreview _preview({bool animated = false}) {
     resolverVersion: 1,
     canonicalGalleryReport: report,
     canonicalGalleryCases: <BorderStudioCanonicalGalleryCasePreview>[
-      for (var index = 0; index < _organicCases.length; index += 1)
+      for (var index = 0; index < galleryCases.length; index += 1)
         BorderStudioCanonicalGalleryCasePreview(
-          galleryCase: _organicCases[index],
-          geometry: BorderRegionGeometry(
-            width: 1,
-            height: 1,
-            cells: const <bool>[true],
-          ),
+          galleryCase: galleryCases[index],
+          mapSize: template == BorderBlueprintTemplate.organicEdge
+              ? const GridSize(width: 1, height: 1)
+              : const GridSize(width: 4, height: 3),
+          geometry: template == BorderBlueprintTemplate.organicEdge
+              ? BorderRegionGeometry(
+                  width: 1,
+                  height: 1,
+                  cells: const <bool>[true],
+                )
+              : BorderStrokeGeometry(
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'line',
+                      points: const <GridPos>[
+                        GridPos(x: 0, y: 1),
+                        GridPos(x: 1, y: 1),
+                        GridPos(x: 2, y: 1),
+                      ],
+                      closed: false,
+                    ),
+                  ],
+                ),
           resolution: _resolution(index),
           publicationSample: samples[index],
         ),
@@ -257,14 +292,17 @@ BorderStudioPublicationPreview _preview({bool animated = false}) {
   );
 }
 
-BorderBlueprintRecord _record() => BorderBlueprintRecord(
+BorderBlueprintRecord _record({
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
+}) =>
+    BorderBlueprintRecord(
       id: 'coast',
       draft: BorderBlueprintDraft(
         baseRevision: 0,
         definition: BorderBlueprintDraftDefinition(
           name: 'Côte',
           previewSeed: BorderSignedInt64.fromInt(7),
-          template: BorderBlueprintTemplate.organicEdge,
+          template: template,
           primitives: <BorderPrimitiveDraft>[
             BorderPrimitiveDraft(
               id: 'rock',

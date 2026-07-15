@@ -11,7 +11,6 @@ const String borderStudioPublicationSourceAssetDivergedDiagnosticCode =
     'border.studio.publication.source_asset_diverged';
 
 enum BorderStudioPublicationCoordinatorErrorCode {
-  unsupportedTemplate,
   sourceAssetDiverged,
   validationFailed,
   warningsNotAcknowledged,
@@ -79,7 +78,7 @@ typedef BorderStudioPublishRequest = Future<BorderPublicationResult> Function(
   BorderPublicationRequest request,
 );
 
-/// Editor-facing projection of the pure-core organic gallery result.
+/// Editor-facing projection of the pure-core canonical gallery result.
 ///
 /// Keeping the three payloads explicit lets the workspace render real cases,
 /// show resolver diagnostics, and pass the exact publication report without
@@ -93,7 +92,7 @@ final class BorderStudioCanonicalGalleryResolution {
             List<BorderStudioCanonicalGalleryCasePreview>.unmodifiable(cases);
 
   factory BorderStudioCanonicalGalleryResolution.fromCore(
-    OrganicEdgeCanonicalGalleryResult result,
+    BorderCanonicalGalleryResult result,
   ) =>
       BorderStudioCanonicalGalleryResolution(
         report: result.report,
@@ -101,8 +100,9 @@ final class BorderStudioCanonicalGalleryResolution {
           for (final item in result.cases)
             BorderStudioCanonicalGalleryCasePreview(
               galleryCase: item.galleryCase,
+              mapSize: item.mapSize,
               geometry: item.geometry,
-              resolution: item.resolverEvidence.result,
+              resolution: item.resolverResult,
               publicationSample: item.publicationSample,
             ),
         ],
@@ -118,13 +118,15 @@ final class BorderStudioCanonicalGalleryResolution {
 final class BorderStudioCanonicalGalleryCasePreview {
   const BorderStudioCanonicalGalleryCasePreview({
     required this.galleryCase,
+    required this.mapSize,
     required this.geometry,
     required this.resolution,
     required this.publicationSample,
   });
 
   final BorderCanonicalGalleryCase galleryCase;
-  final BorderRegionGeometry geometry;
+  final GridSize mapSize;
+  final BorderFeatureGeometry geometry;
   final BorderResolutionResult resolution;
   final BorderPublicationGallerySample publicationSample;
 }
@@ -167,11 +169,12 @@ final class BorderStudioPublicationPreview {
       );
 }
 
-/// Prepares and publishes one BORD-03 organic blueprint revision.
+/// Prepares and publishes one V1 border blueprint revision.
 ///
 /// This application service owns no UI state and performs no runtime solving.
 /// It freshly reads every weighted primitive, builds one immutable candidate,
-/// resolves the six real canonical cases, then publishes that exact session.
+/// resolves the template's real canonical cases, then publishes that exact
+/// session.
 final class BorderStudioPublicationCoordinator {
   const BorderStudioPublicationCoordinator({
     required BorderStudioPrepareProjectElementAsset prepareProjectElementAsset,
@@ -197,15 +200,6 @@ final class BorderStudioPublicationCoordinator {
     Map<SurfaceVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole =
         const <SurfaceVariantRole, BorderAssetSnapshotPreparation>{},
   }) async {
-    if (draftRecord.draft.definition.template !=
-        BorderBlueprintTemplate.organicEdge) {
-      throw BorderStudioPublicationCoordinatorException(
-        code: BorderStudioPublicationCoordinatorErrorCode.unsupportedTemplate,
-        userMessage:
-            'Seules les bordures organiques sont publiables dans BORD-03.',
-      );
-    }
-
     final preparations = <String, BorderAssetSnapshotPreparation>{};
     final divergenceDiagnostics = <BorderDiagnostic>[];
     final weightedPrimitives = draftRecord.draft.definition.primitives

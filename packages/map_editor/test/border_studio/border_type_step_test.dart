@@ -37,7 +37,7 @@ void main() {
 
       expect(masonryButton.onPressed, isNotNull);
       expect(fenceButton.onPressed, isNull);
-      expect(find.text('Publication disponible'), findsOneWidget);
+      expect(find.text('Publication disponible'), findsNWidgets(3));
       expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(

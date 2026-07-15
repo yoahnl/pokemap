@@ -65,6 +65,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
       unresolved: unresolved,
       hasPreview: preview != null,
       hasCompleteGallery: hasCompleteGallery,
+      expectedCases: expectedCases,
     );
     final previewFrames = preview == null
         ? const <String, List<BorderCanonicalGalleryFrame>>{}
@@ -73,7 +74,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     return BorderStudioStepScaffold(
       title: '5. Aperçu et publication',
       description:
-          'Générez les six cas canoniques dans un bac à sable neutre, puis publiez exactement les pixels affichés.',
+          'Générez les $expectedCases cas canoniques dans un bac à sable neutre, puis publiez exactement les pixels affichés.',
       child: definition == null
           ? const PokeMapEmptyState(
               title: 'Créez un blueprint pour afficher sa galerie',
@@ -130,14 +131,14 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     ),
                   ),
                   child: preview == null
-                      ? const PokeMapEmptyState(
-                          key: ValueKey<String>(
+                      ? PokeMapEmptyState(
+                          key: const ValueKey<String>(
                             'border-studio-gallery-not-prepared',
                           ),
                           title: 'Aucun aperçu canonique préparé',
                           description:
-                              'La publication reste bloquée tant que les six cas réels ne sont pas générés.',
-                          icon: Icon(CupertinoIcons.rectangle_grid_2x2),
+                              'La publication reste bloquée tant que les $expectedCases cas réels ne sont pas générés.',
+                          icon: const Icon(CupertinoIcons.rectangle_grid_2x2),
                         )
                       : Wrap(
                           spacing: 10,
@@ -167,6 +168,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                       BorderCanonicalGalleryCanvas(
                                         semanticsLabel:
                                             '${_galleryCaseLabel(sample.galleryCase)} généré',
+                                        mapSize: sample.mapSize,
                                         geometry: sample.geometry,
                                         tileSizePx: GridSize(
                                           width: preview!.candidate.nextManifest
@@ -368,11 +370,8 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     required List<String> unresolved,
     required bool hasPreview,
     required bool hasCompleteGallery,
+    required int expectedCases,
   }) {
-    final templateGate = publication.disabledReason;
-    if (templateGate != null && templateGate.contains('BORD-06')) {
-      return templateGate;
-    }
     if (unresolved.isNotEmpty) {
       return 'Attribuez les rôles requis avant de publier : ${unresolved.join(', ')}.';
     }
@@ -380,7 +379,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
       return 'Générez l’aperçu canonique avant de publier.';
     }
     if (!hasCompleteGallery) {
-      return 'Les six cas canoniques doivent être résolus sans erreur avant de publier.';
+      return 'Les $expectedCases cas canoniques doivent être résolus sans erreur avant de publier.';
     }
     return publication.disabledReason;
   }
@@ -428,7 +427,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
 
   String _warningLabel(String code) {
     if (code.contains('repetition')) {
-      return 'Certaines séquences visuelles se répètent. Vérifiez que le résultat reste naturel sur les six cas.';
+      return 'Certaines séquences visuelles se répètent. Vérifiez que le résultat reste naturel sur tous les cas.';
     }
     return 'Le solveur a détecté un point non bloquant qui demande votre validation visuelle.';
   }

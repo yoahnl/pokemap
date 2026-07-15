@@ -401,6 +401,7 @@ BorderPublicationReadinessResult assessBorderPublicationReadiness({
 
   _diagnoseDuplicatePrimitiveIds(blueprintId, definition, diagnostics);
   _diagnoseTemplatePrimitiveRoles(blueprintId, definition, diagnostics);
+  _diagnoseTemplateGround(blueprintId, definition, diagnostics);
   _diagnoseProjectReferences(
     blueprintId,
     definition,
@@ -463,6 +464,34 @@ void _diagnoseTemplatePrimitiveRoles(
   }
 }
 
+/// Keeps publication capability aligned with the V1 resolver families.
+///
+/// A Surface ground band is defined by organic region geometry. Linear
+/// resolvers deliberately have no equivalent ground contract, so allowing it
+/// through publication would create a revision that cannot be resolved.
+void _diagnoseTemplateGround(
+  String blueprintId,
+  BorderBlueprintPublishedDefinition definition,
+  List<BorderDiagnostic> diagnostics,
+) {
+  if (definition.ground == null) return;
+  switch (definition.template) {
+    case BorderBlueprintTemplate.organicEdge:
+      return;
+    case BorderBlueprintTemplate.masonryLine:
+    case BorderBlueprintTemplate.postAndRailLine:
+      diagnostics.add(_diagnostic(
+        code: 'border.publication.linear_ground_not_supported',
+        scope: BorderDiagnosticScope.blueprint,
+        blueprintId: blueprintId,
+        parameters: <String, Object?>{
+          'template': _templateV1WireName(definition.template),
+        },
+        action: 'border.action.remove_ground_from_linear_blueprint',
+      ));
+  }
+}
+
 /// Returns the exact immutable primitive-role contract for [template].
 ///
 /// Editor pickers and publication validation must share this matrix so a role
@@ -483,12 +512,15 @@ Set<BorderPrimitiveRole> borderAllowedPrimitiveRolesForTemplate(
           BorderPrimitiveRole.structureLarge,
           BorderPrimitiveRole.structureMedium,
           BorderPrimitiveRole.filler,
+          BorderPrimitiveRole.post,
           BorderPrimitiveRole.accent,
+          BorderPrimitiveRole.surfacePatch,
         },
       BorderBlueprintTemplate.postAndRailLine => const <BorderPrimitiveRole>{
           BorderPrimitiveRole.post,
           BorderPrimitiveRole.span,
           BorderPrimitiveRole.accent,
+          BorderPrimitiveRole.surfacePatch,
         },
     };
 
@@ -1342,8 +1374,8 @@ int? _structuralPassIndex(
         BorderPrimitiveRole.filler,
       ) =>
         2,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 0,
-      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 1,
+      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
+      (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
       _ => null,
     };
 

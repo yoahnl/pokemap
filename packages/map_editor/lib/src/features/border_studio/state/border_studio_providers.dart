@@ -90,15 +90,11 @@ final borderPublicationTransactionProvider =
       manifestPath: p.join(projectRootPath, 'project.json'),
       applyInMemoryManifest: applyInMemory,
     ),
-    candidateValidator: const CoreBorderPublicationCandidateValidator(
-      enabledTemplates: <BorderBlueprintTemplate>{
-        BorderBlueprintTemplate.organicEdge,
-      },
-    ),
+    candidateValidator: const CoreBorderPublicationCandidateValidator(),
   );
 });
 
-/// Project-scoped BORD-03 organic publication orchestration.
+/// Project-scoped V1 Border publication orchestration.
 ///
 /// Surface snapshot preparations remain explicit inputs to [prepare]; this
 /// provider wires only the current-source primitive reader, pure candidate
@@ -125,7 +121,7 @@ final borderStudioPublicationCoordinatorProvider =
       required resolverVersion,
     }) =>
         BorderStudioCanonicalGalleryResolution.fromCore(
-      resolveOrganicEdgeCanonicalGallery(
+      resolveBorderCanonicalGallery(
         blueprintId: blueprintId,
         blueprintRevision: blueprintRevision,
         visualSnapshots: visualSnapshots,

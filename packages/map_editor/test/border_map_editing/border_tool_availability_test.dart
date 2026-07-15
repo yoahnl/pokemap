@@ -58,17 +58,22 @@ void main() {
       expect(line.disabledReason, contains('géométrie'));
     });
 
-    test('matching line geometry reaches the deferred line-solver guard', () {
-      final result = assessBorderToolAvailability(
-        manifest: _manifest(BorderBlueprintTemplate.masonryLine),
-        map: _lineMap(),
-        activeLayerId: 'borders',
-        activeFeatureId: 'wall',
-      );
+    test('enables both published V1 line templates with stroke geometry', () {
+      for (final template in <BorderBlueprintTemplate>[
+        BorderBlueprintTemplate.masonryLine,
+        BorderBlueprintTemplate.postAndRailLine,
+      ]) {
+        final result = assessBorderToolAvailability(
+          manifest: _manifest(template),
+          map: _lineMap(),
+          activeLayerId: 'borders',
+          activeFeatureId: 'wall',
+        );
 
-      expect(result.isEnabled, isFalse);
-      expect(result.disabledReason, contains('BORD-06'));
-      expect(result.disabledReason, isNot(contains('géométrie')));
+        expect(result.isEnabled, isTrue, reason: template.name);
+        expect(result.disabledReason, isNull, reason: template.name);
+        expect(result.blueprintRevision, 1, reason: template.name);
+      }
     });
 
     test('rejects a deprecated published blueprint', () {

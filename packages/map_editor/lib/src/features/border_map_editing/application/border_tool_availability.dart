@@ -41,6 +41,8 @@ BorderToolAvailability assessBorderToolAvailability({
   Set<BorderBlueprintTemplate> enabledTemplates =
       const <BorderBlueprintTemplate>{
     BorderBlueprintTemplate.organicEdge,
+    BorderBlueprintTemplate.masonryLine,
+    BorderBlueprintTemplate.postAndRailLine,
   },
 }) {
   if (map == null || activeLayerId == null) {
@@ -91,7 +93,7 @@ BorderToolAvailability assessBorderToolAvailability({
   }
   if (!enabledTemplates.contains(template)) {
     return const BorderToolAvailability.disabled(
-      'Le dessin des murets et clôtures sera activé avec le lot BORD-06.',
+      'Ce type de bordure ne peut pas encore être dessiné.',
     );
   }
   return BorderToolAvailability.enabled(

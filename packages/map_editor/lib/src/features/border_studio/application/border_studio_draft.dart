@@ -121,18 +121,11 @@ final class BorderStudioDraftState {
         'Sélectionnez ou créez un blueprint avant de publier.',
       );
     }
-    return switch (draft.blueprint.definition.template) {
-      BorderBlueprintTemplate.organicEdge => _organicPublicationAvailability,
-      BorderBlueprintTemplate.masonryLine ||
-      BorderBlueprintTemplate.postAndRailLine =>
-        const BorderStudioPublicationAvailability.disabled(
-          'La publication des murets et clôtures reste désactivée jusqu’au lot '
-          'BORD-06.',
-        ),
-    };
+    return _currentPreviewPublicationAvailability;
   }
 
-  BorderStudioPublicationAvailability get _organicPublicationAvailability {
+  BorderStudioPublicationAvailability
+      get _currentPreviewPublicationAvailability {
     if (!diagnosticsAreCurrent) {
       return const BorderStudioPublicationAvailability.disabled(
         'Regénérez l’aperçu canonique avant de publier.',

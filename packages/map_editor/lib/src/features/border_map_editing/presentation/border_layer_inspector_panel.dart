@@ -135,7 +135,12 @@ class _BorderLayerInspectorPanelState
           children: [
             _layerControls(context, notifier, activeLayer),
             const SizedBox(height: 10),
-            _toolStatus(context, notifier, toolAvailability),
+            _toolStatus(
+              context,
+              notifier,
+              toolAvailability,
+              lineGeometry: activeFeature?.geometry is BorderStrokeGeometry,
+            ),
             if (previewState.transaction case final preview?) ...[
               const SizedBox(height: 10),
               _previewActions(
@@ -345,8 +350,9 @@ class _BorderLayerInspectorPanelState
   Widget _toolStatus(
     BuildContext context,
     EditorNotifier notifier,
-    BorderToolAvailability availability,
-  ) {
+    BorderToolAvailability availability, {
+    required bool lineGeometry,
+  }) {
     final colors = context.pokeMapColors;
     return PokeMapCard(
       child: Column(
@@ -383,7 +389,9 @@ class _BorderLayerInspectorPanelState
                     : null,
                 size: PokeMapButtonSize.small,
                 leading: const Icon(CupertinoIcons.paintbrush),
-                child: const Text('Peindre le contour'),
+                child: Text(
+                  lineGeometry ? 'Tracer la ligne' : 'Peindre le contour',
+                ),
               ),
               PokeMapButton(
                 key: const ValueKey('border-inspector-erase-button'),
@@ -393,7 +401,9 @@ class _BorderLayerInspectorPanelState
                 size: PokeMapButtonSize.small,
                 variant: PokeMapButtonVariant.secondary,
                 leading: const Icon(CupertinoIcons.clear_circled),
-                child: const Text('Effacer la bordure'),
+                child: Text(
+                  lineGeometry ? 'Créer une ouverture' : 'Effacer la bordure',
+                ),
               ),
             ],
           ),

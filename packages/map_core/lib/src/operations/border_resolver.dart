@@ -1,7 +1,9 @@
 import '../models/border_diagnostics.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
+import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
+import 'post_and_rail_line_border_resolver.dart';
 
 /// Current deterministic Border resolver contract used by editor/runtime
 /// freshness checks.
@@ -9,9 +11,8 @@ const int borderResolverVersion = 1;
 
 /// Dispatches a Border request to the closed V1 template solver set.
 ///
-/// The two line templates remain deliberately unavailable until their
-/// specialized canonical stroke solvers are installed. No fallback silently
-/// treats a line as an organic region.
+/// Every published V1 template has its specialized canonical solver. No
+/// fallback silently treats a line as an organic region.
 BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
   final revision = request.blueprintRevision;
   if (revision == null) {
@@ -23,13 +24,9 @@ BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
   }
   return switch (revision.definition.template) {
     BorderBlueprintTemplate.organicEdge => resolveOrganicEdgeBorder(request),
-    BorderBlueprintTemplate.masonryLine ||
+    BorderBlueprintTemplate.masonryLine => resolveMasonryLineBorder(request),
     BorderBlueprintTemplate.postAndRailLine =>
-      _unsupported(
-        request,
-        code: 'border.resolution.template_solver_unavailable',
-        action: 'border.action.wait_for_line_solver',
-      ),
+      resolvePostAndRailLineBorder(request),
   };
 }
 

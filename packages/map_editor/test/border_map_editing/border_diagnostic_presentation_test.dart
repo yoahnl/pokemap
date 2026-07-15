@@ -34,9 +34,17 @@ void main() {
       'border.resolution.duplicate_primitive_id',
       'border.resolution.ground_snapshot_missing',
       'border.resolution.keep_out_size_mismatch',
+      'border.resolution.keep_outs_not_supported',
+      'border.resolution.linear_ground_not_supported',
+      'border.resolution.masonry_end_finish_missing',
+      'border.resolution.masonry_end_finish_outside_canvas',
       'border.resolution.materialization_empty',
+      'border.resolution.occupancy_empty',
+      'border.resolution.occupancy_invalid',
       'border.resolution.orientation_unavailable',
       'border.resolution.overrides_not_supported',
+      'border.resolution.placement_outside_canvas',
+      'border.resolution.post_role_missing',
       'border.resolution.proposal_not_canonical',
       'border.resolution.region_empty',
       'border.resolution.region_geometry_required',
@@ -44,6 +52,13 @@ void main() {
       'border.resolution.repetition_four_identical',
       'border.resolution.repetition_low_window_variety',
       'border.resolution.role_not_supported_by_template',
+      'border.resolution.span_role_missing',
+      'border.resolution.span_too_short',
+      'border.resolution.stroke_geometry_empty',
+      'border.resolution.stroke_geometry_required',
+      'border.resolution.stroke_invalid',
+      'border.resolution.stroke_not_canonical',
+      'border.resolution.stroke_out_of_bounds',
       'border.resolution.structural_occupancy_empty',
       'border.resolution.structural_occupancy_invalid',
       'border.resolution.structural_role_missing',
@@ -60,6 +75,31 @@ void main() {
           reason: code);
       expect(localized, isNot(contains(code)), reason: code);
     }
+  });
+
+  test('template mismatch remediation stays compatible with every template',
+      () {
+    final diagnostic = _diagnostic(
+      code: 'border.resolution.template_mismatch',
+      severity: BorderDiagnosticSeverity.error,
+    );
+
+    expect(
+      localizeEditorBorderDiagnostic(diagnostic),
+      'Choisissez un blueprint compatible avec cette géométrie de bordure.',
+    );
+  });
+
+  test('unsupported role remediation stays compatible with every template', () {
+    final diagnostic = _diagnostic(
+      code: 'border.resolution.role_not_supported_by_template',
+      severity: BorderDiagnosticSeverity.error,
+    );
+
+    expect(
+      localizeEditorBorderDiagnostic(diagnostic),
+      'Attribuez à cet élément un rôle accepté par le type de bordure sélectionné.',
+    );
   });
 
   test('builds cell-local warning/error marks and ignores global info', () {

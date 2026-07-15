@@ -63,7 +63,22 @@ void main() {
             groundSnapshotsByRole: groundSnapshotsByRole,
           );
         },
-        resolveCanonicalGallery: _resolvePassingGallery,
+        resolveCanonicalGallery: ({
+          required blueprintId,
+          required blueprintRevision,
+          required visualSnapshots,
+          required tileSizePx,
+          required resolverVersion,
+        }) =>
+            BorderStudioCanonicalGalleryResolution.fromCore(
+          resolveBorderCanonicalGallery(
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: visualSnapshots,
+            tileSizePx: tileSizePx,
+            resolverVersion: resolverVersion,
+          ),
+        ),
         publishRequest: (_) => throw StateError('must not publish in prepare'),
       );
 
@@ -78,6 +93,186 @@ void main() {
       expect(preview.canonicalGalleryCases, hasLength(6));
       expect(preview.diagnostics.hasErrors, isFalse);
       expect(preview.canPublish, isTrue);
+    });
+
+    test('prepares masonry through the same publication flow', () async {
+      final target = _record(
+        template: BorderBlueprintTemplate.masonryLine,
+        primitives: <BorderPrimitiveDraft>[
+          _primitive(id: 'block', sourceElementId: 'element-block'),
+        ],
+      );
+      final manifest = _manifest(
+        record: target,
+        elements: <ProjectElementEntry>[_element('element-block')],
+      );
+      BorderPublicationRequest? request;
+      final coordinator = BorderStudioPublicationCoordinator(
+        prepareProjectElementAsset: ({
+          required manifest,
+          required projectRootPath,
+          required sourceElementId,
+          required primitiveId,
+          required role,
+          required weight,
+          required transforms,
+          anchorPx,
+        }) async =>
+            _preparedProjectElement(
+          primitive: target.draft.definition.primitives.single,
+        ),
+        buildCandidate: const BorderPublicationCandidateBuilder().build,
+        resolveCanonicalGallery: ({
+          required blueprintId,
+          required blueprintRevision,
+          required visualSnapshots,
+          required tileSizePx,
+          required resolverVersion,
+        }) =>
+            BorderStudioCanonicalGalleryResolution.fromCore(
+          resolveBorderCanonicalGallery(
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: visualSnapshots,
+            tileSizePx: tileSizePx,
+            resolverVersion: resolverVersion,
+          ),
+        ),
+        publishRequest: (value) async {
+          request = value;
+          return BorderPublicationResult(
+            manifest: value.nextManifest,
+            diagnostics: const BorderDiagnosticsReport.empty(),
+            snapshotFinalize: BorderAssetSnapshotFinalizeResult(
+              createdRelativePaths: const <String>[],
+              deduplicatedRelativePaths: const <String>[],
+            ),
+          );
+        },
+      );
+
+      final preview = await coordinator.prepare(
+        manifest: manifest,
+        projectRootPath: '/project',
+        draftRecord: target,
+      );
+      final result = await coordinator.publish(
+        preview: preview,
+        currentManifest: manifest,
+        currentDraftRecord: target,
+        acknowledgedWarningCodes: preview.warningCodes,
+      );
+
+      expect(preview.canonicalGalleryCases, hasLength(3));
+      expect(
+        preview.canonicalGalleryCases.first.mapSize,
+        const GridSize(width: 12, height: 10),
+      );
+      expect(
+        preview.canonicalGalleryCases.first.geometry,
+        isA<BorderStrokeGeometry>(),
+      );
+      expect(request!.canonicalGalleryReport, preview.canonicalGalleryReport);
+      expect(
+        result.manifest.borderCatalog.records.single.latestPublished!.definition
+            .template,
+        BorderBlueprintTemplate.masonryLine,
+      );
+    });
+
+    test('prepares and publishes a fence from its generic gallery', () async {
+      final target = _record(
+        template: BorderBlueprintTemplate.postAndRailLine,
+        primitives: <BorderPrimitiveDraft>[
+          _primitive(
+            id: 'post',
+            sourceElementId: 'element-post',
+            role: BorderPrimitiveRole.post,
+          ),
+          _primitive(
+            id: 'span',
+            sourceElementId: 'element-span',
+            role: BorderPrimitiveRole.span,
+          ),
+        ],
+      );
+      final manifest = _manifest(
+        record: target,
+        elements: <ProjectElementEntry>[
+          _element('element-post'),
+          _element('element-span'),
+        ],
+      );
+      BorderPublicationRequest? request;
+      final coordinator = BorderStudioPublicationCoordinator(
+        prepareProjectElementAsset: ({
+          required manifest,
+          required projectRootPath,
+          required sourceElementId,
+          required primitiveId,
+          required role,
+          required weight,
+          required transforms,
+          anchorPx,
+        }) async =>
+            _preparedProjectElement(
+          primitive: target.draft.definition.primitives.firstWhere(
+            (primitive) => primitive.id == primitiveId,
+          ),
+        ),
+        buildCandidate: const BorderPublicationCandidateBuilder().build,
+        resolveCanonicalGallery: ({
+          required blueprintId,
+          required blueprintRevision,
+          required visualSnapshots,
+          required tileSizePx,
+          required resolverVersion,
+        }) =>
+            BorderStudioCanonicalGalleryResolution.fromCore(
+          resolveBorderCanonicalGallery(
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: visualSnapshots,
+            tileSizePx: tileSizePx,
+            resolverVersion: resolverVersion,
+          ),
+        ),
+        publishRequest: (value) async {
+          request = value;
+          return BorderPublicationResult(
+            manifest: value.nextManifest,
+            diagnostics: const BorderDiagnosticsReport.empty(),
+            snapshotFinalize: BorderAssetSnapshotFinalizeResult(
+              createdRelativePaths: const <String>[],
+              deduplicatedRelativePaths: const <String>[],
+            ),
+          );
+        },
+      );
+
+      final preview = await coordinator.prepare(
+        manifest: manifest,
+        projectRootPath: '/project',
+        draftRecord: target,
+      );
+      final result = await coordinator.publish(
+        preview: preview,
+        currentManifest: manifest,
+        currentDraftRecord: target,
+        acknowledgedWarningCodes: preview.warningCodes,
+      );
+
+      expect(preview.canonicalGalleryCases, hasLength(4));
+      expect(
+        preview.canonicalGalleryCases.last.galleryCase,
+        BorderCanonicalGalleryCase.opening,
+      );
+      expect(request!.canonicalGalleryReport, preview.canonicalGalleryReport);
+      expect(
+        result.manifest.borderCatalog.records.single.latestPublished!.definition
+            .template,
+        BorderBlueprintTemplate.postAndRailLine,
+      );
     });
 
     test('forwards every injected ground snapshot role to the candidate',
@@ -508,6 +703,7 @@ BorderStudioCanonicalGalleryResolution _resolvePassingGallery({
       for (var index = 0; index < report.samples.length; index += 1)
         BorderStudioCanonicalGalleryCasePreview(
           galleryCase: report.samples[index].galleryCase,
+          mapSize: const GridSize(width: 1, height: 1),
           geometry: BorderRegionGeometry(
             width: 1,
             height: 1,
@@ -627,6 +823,7 @@ ProjectManifest _manifest({
 }
 
 BorderBlueprintRecord _record({
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
   BorderSignedInt64? previewSeed,
   List<BorderPrimitiveDraft> primitives = const <BorderPrimitiveDraft>[],
   BorderGroundDraft? ground,
@@ -638,7 +835,7 @@ BorderBlueprintRecord _record({
       definition: BorderBlueprintDraftDefinition(
         name: 'Coast',
         previewSeed: previewSeed ?? BorderSignedInt64.fromInt(7),
-        template: BorderBlueprintTemplate.organicEdge,
+        template: template,
         primitives: primitives,
         defaults: _params(),
         ground: ground,
@@ -651,12 +848,13 @@ BorderBlueprintRecord _record({
 BorderPrimitiveDraft _primitive({
   required String id,
   required String sourceElementId,
+  BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
   int weight = 100,
 }) {
   return BorderPrimitiveDraft(
     id: id,
     sourceElementId: sourceElementId,
-    role: BorderPrimitiveRole.structureLarge,
+    role: role,
     weight: weight,
     anchorPx: const BorderPixelPos(x: 1, y: 1),
     transforms: BorderTransformPolicy(

@@ -78,6 +78,38 @@ void main() {
       expect(manifest.applied, isNull);
     });
 
+    test('core gate rejects masonry ground before committing the manifest',
+        () async {
+      final events = <String>[];
+      final manifest = _ManifestPort(events);
+      final transaction = BorderPublicationTransaction(
+        snapshotStore: _SnapshotStore(events),
+        manifestPort: manifest,
+      );
+
+      await expectLater(
+        transaction.publish(_masonryGroundRequest()),
+        throwsA(
+          isA<BorderPublicationTransactionException>()
+              .having(
+                (error) => error.code,
+                'code',
+                BorderPublicationTransactionErrorCode.validationFailed,
+              )
+              .having(
+                (error) => error.diagnostics.diagnostics
+                    .map((diagnostic) => diagnostic.code),
+                'diagnostic codes',
+                contains('border.publication.linear_ground_not_supported'),
+              ),
+        ),
+      );
+
+      expect(events, <String>['stage', 'discard-stage']);
+      expect(manifest.replaced, isNull);
+      expect(manifest.applied, isNull);
+    });
+
     test('requires explicit acknowledgement for every warning code', () async {
       final events = <String>[];
       final transaction = BorderPublicationTransaction(
@@ -436,22 +468,7 @@ void main() {
   });
 
   group('CoreBorderPublicationCandidateValidator', () {
-    const validator = CoreBorderPublicationCandidateValidator(
-      enabledTemplates: <BorderBlueprintTemplate>{
-        BorderBlueprintTemplate.organicEdge,
-      },
-    );
-
-    test('default gate keeps organic publication disabled until BORD-03', () {
-      const defaultValidator = CoreBorderPublicationCandidateValidator();
-
-      final result = defaultValidator.validate(_completeCoreRequest());
-
-      expect(
-        result.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('border.publication.template_not_enabled_in_editor'),
-      );
-    });
+    const validator = CoreBorderPublicationCandidateValidator();
 
     test('accepts a complete organic revision and exact manifest transition',
         () {
@@ -482,7 +499,8 @@ void main() {
       );
     });
 
-    test('keeps line-template publication disabled until BORD-06', () {
+    test('accepts a complete masonry revision through the common validator',
+        () {
       final request = _completeCoreRequest();
       final record = request.nextManifest.borderCatalog.records.single;
       final revision = record.latestPublished!;
@@ -523,10 +541,7 @@ void main() {
 
       final result = validator.validate(masonry);
 
-      expect(
-        result.diagnostics.map((diagnostic) => diagnostic.code),
-        contains('border.publication.template_not_enabled_in_editor'),
-      );
+      expect(result, const BorderDiagnosticsReport.empty());
     });
   });
 }
@@ -544,6 +559,104 @@ BorderPublicationRequest _request({
     canonicalGalleryReport: complete.canonicalGalleryReport,
     files: complete.files,
     acceptedWarningCodes: acceptedWarningCodes,
+  );
+}
+
+BorderPublicationRequest _masonryGroundRequest() {
+  final complete = _completeCoreRequest();
+  final record = complete.nextManifest.borderCatalog.records.single;
+  final revision = record.latestPublished!;
+  final snapshotId =
+      complete.nextManifest.borderCatalog.visualSnapshots.first.id;
+  final surfaceCatalog = ProjectSurfaceCatalog(
+    atlases: <ProjectSurfaceAtlas>[
+      ProjectSurfaceAtlas(
+        id: 'ground-atlas',
+        name: 'Ground atlas',
+        tilesetId: 'tileset',
+        geometry: SurfaceAtlasGeometry(
+          tileSize: SurfaceAtlasTileSize(width: 2, height: 2),
+          gridSize: SurfaceAtlasGridSize(columns: 1, rows: 1),
+        ),
+      ),
+    ],
+    animations: <ProjectSurfaceAnimation>[
+      ProjectSurfaceAnimation(
+        id: 'ground-isolated',
+        name: 'Ground isolated',
+        timeline: SurfaceAnimationTimeline(
+          frames: <SurfaceAnimationFrame>[
+            SurfaceAnimationFrame(
+              tileRef: SurfaceAtlasTileRef(
+                atlasId: 'ground-atlas',
+                column: 0,
+                row: 0,
+              ),
+              durationMs: 100,
+            ),
+          ],
+        ),
+      ),
+    ],
+    presets: <ProjectSurfacePreset>[
+      ProjectSurfacePreset(
+        id: 'ground-preset',
+        name: 'Ground preset',
+        variantAnimations: SurfaceVariantAnimationRefSet(
+          refs: <SurfaceVariantAnimationRef>[
+            SurfaceVariantAnimationRef(
+              role: SurfaceVariantRole.isolated,
+              animationId: 'ground-isolated',
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+  final definition = BorderBlueprintPublishedDefinition(
+    name: revision.definition.name,
+    previewSeed: revision.definition.previewSeed,
+    template: BorderBlueprintTemplate.masonryLine,
+    primitives: revision.definition.primitives,
+    defaults: revision.definition.defaults,
+    ground: BorderPublishedGround(
+      sourceSurfacePresetId: 'ground-preset',
+      edgeBandCells: 1,
+      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
+        for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,
+      },
+    ),
+    sortOrder: revision.definition.sortOrder,
+  );
+  final nextRecord = BorderBlueprintRecord(
+    id: record.id,
+    draft: record.draft,
+    latestPublished: BorderBlueprintRevision(
+      revision: revision.revision,
+      definition: definition,
+    ),
+  );
+  final previous = complete.previousManifest.copyWith(
+    surfaceCatalog: surfaceCatalog,
+  );
+  final next = complete.nextManifest.copyWith(
+    surfaceCatalog: surfaceCatalog,
+    borderCatalog: ProjectBorderCatalog(
+      records: <BorderBlueprintRecord>[nextRecord],
+      visualSnapshots: complete.nextManifest.borderCatalog.visualSnapshots,
+    ),
+  );
+  return BorderPublicationRequest(
+    previousManifest: previous,
+    nextManifest: next,
+    blueprintId: complete.blueprintId,
+    resolverVersion: complete.resolverVersion,
+    snapshotIntegrity: complete.snapshotIntegrity,
+    canonicalGalleryReport: _gallery(
+      blueprintId: complete.blueprintId,
+      definition: definition,
+    ),
+    files: complete.files,
   );
 }
 

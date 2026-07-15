@@ -17,7 +17,9 @@ class BorderRulesStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rules = state.workingDraft?.blueprint.definition.defaults;
+    final definition = state.workingDraft?.blueprint.definition;
+    final rules = definition?.defaults;
+    final template = definition?.template;
     return BorderStudioStepScaffold(
       title: '4. Règles',
       description:
@@ -42,7 +44,7 @@ class BorderRulesStep extends StatelessWidget {
                       variant: PokeMapButtonVariant.secondary,
                       isSelected: _isStrict(rules),
                       leading: const Icon(CupertinoIcons.rectangle_grid_1x2),
-                      child: const Text('Strict et régulier'),
+                      child: Text(_strictProfileLabel(template!)),
                     ),
                     PokeMapButton(
                       key: const ValueKey<String>(
@@ -52,16 +54,16 @@ class BorderRulesStep extends StatelessWidget {
                       variant: PokeMapButtonVariant.secondary,
                       isSelected: _isWild(rules),
                       leading: const Icon(CupertinoIcons.wind),
-                      child: const Text('Organique et sauvage'),
+                      child: Text(_wildProfileLabel(template)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 BorderStudioNotice(
                   title: _isStrict(rules)
-                      ? 'Profil strict appliqué'
+                      ? _strictAppliedLabel(template)
                       : _isWild(rules)
-                          ? 'Profil sauvage appliqué'
+                          ? _wildAppliedLabel(template)
                           : 'Réglage personnalisé',
                   description:
                       'Les valeurs restent entières et déterministes pour chaque seed.',
@@ -146,8 +148,9 @@ class BorderRulesStep extends StatelessWidget {
                 PokeMapCard(
                   child: PokeMapSectionHeader(
                     title: 'Réglages avancés',
-                    description:
-                        'Chevauchement ${rules.maxOverlapPx} px · vide toléré ${rules.gapTolerancePx} px · profondeur ${rules.depthRows} rangée(s)',
+                    description: template == BorderBlueprintTemplate.organicEdge
+                        ? 'Chevauchement ${rules.maxOverlapPx} px · vide toléré ${rules.gapTolerancePx} px · profondeur ${rules.depthRows} rangée(s)'
+                        : 'Chevauchement ${rules.maxOverlapPx} px · vide toléré ${rules.gapTolerancePx} px',
                     trailing: const PokeMapBadge(
                       label: 'Guidés',
                       variant: PokeMapBadgeVariant.neutral,
@@ -201,4 +204,32 @@ class BorderRulesStep extends StatelessWidget {
         gapTolerancePx: source.gapTolerancePx,
         depthRows: source.depthRows,
       );
+
+  String _strictProfileLabel(BorderBlueprintTemplate template) =>
+      switch (template) {
+        BorderBlueprintTemplate.organicEdge => 'Strict et régulier',
+        BorderBlueprintTemplate.masonryLine => 'Aligné',
+        BorderBlueprintTemplate.postAndRailLine => 'Régulier',
+      };
+
+  String _wildProfileLabel(BorderBlueprintTemplate template) =>
+      switch (template) {
+        BorderBlueprintTemplate.organicEdge => 'Organique et sauvage',
+        BorderBlueprintTemplate.masonryLine => 'Vieilli',
+        BorderBlueprintTemplate.postAndRailLine => 'Rustique',
+      };
+
+  String _strictAppliedLabel(BorderBlueprintTemplate template) =>
+      switch (template) {
+        BorderBlueprintTemplate.organicEdge => 'Profil strict appliqué',
+        BorderBlueprintTemplate.masonryLine => 'Profil aligné appliqué',
+        BorderBlueprintTemplate.postAndRailLine => 'Profil régulier appliqué',
+      };
+
+  String _wildAppliedLabel(BorderBlueprintTemplate template) =>
+      switch (template) {
+        BorderBlueprintTemplate.organicEdge => 'Profil sauvage appliqué',
+        BorderBlueprintTemplate.masonryLine => 'Profil vieilli appliqué',
+        BorderBlueprintTemplate.postAndRailLine => 'Profil rustique appliqué',
+      };
 }
