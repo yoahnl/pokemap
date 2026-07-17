@@ -98,6 +98,32 @@ void main() {
       expect((source.layers.last as BorderLayer).content.isEmpty, isTrue);
     });
 
+    test('set content promotes an inverted V1 feature payload to V2', () {
+      final source = _map(
+        layers: <MapLayer>[
+          const MapLayer.border(id: 'borders', name: 'Bordures'),
+        ],
+      );
+      final inverted = _feature(
+        'inverted',
+        lineSide: BorderLineSide.inverted,
+      );
+      final invalidV1 = BorderLayerContent(
+        formatVersion: BorderLayerContent.formatVersionV1,
+        features: <BorderFeature>[inverted],
+      );
+
+      final updated = setBorderLayerContent(
+        source,
+        layerId: 'borders',
+        content: invalidV1,
+      );
+      final stored = (updated.layers.single as BorderLayer).content;
+
+      expect(stored.formatVersion, BorderLayerContent.formatVersionV2);
+      expect(stored.features.single, inverted);
+    });
+
     test('set content rejects missing and non-Border target layers', () {
       final source = _map(layers: <MapLayer>[_tileLayer()]);
 
@@ -146,6 +172,72 @@ void main() {
         ((source.layers.last as BorderLayer).content.features.single).name,
         'Before',
       );
+    });
+
+    test('upsert promotes connectedLine or inverted side but not legacy', () {
+      final source = _mapWithBorder(<BorderFeature>[_feature('existing')]);
+
+      final legacy = upsertBorderFeature(
+        source,
+        layerId: 'borders',
+        feature: _feature('legacy'),
+        template: BorderBlueprintTemplate.organicEdge,
+      );
+      final connected = upsertBorderFeature(
+        source,
+        layerId: 'borders',
+        feature: _feature('connected'),
+        template: BorderBlueprintTemplate.connectedLine,
+      );
+      final inverted = upsertBorderFeature(
+        source,
+        layerId: 'borders',
+        feature: _feature('inverted', lineSide: BorderLineSide.inverted),
+      );
+
+      expect(
+        (legacy.layers.last as BorderLayer).content.formatVersion,
+        BorderLayerContent.formatVersionV1,
+      );
+      expect(
+        (connected.layers.last as BorderLayer).content.formatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
+      expect(
+        (inverted.layers.last as BorderLayer).content.formatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
+    });
+
+    test('complete writes and upserts promote disabled rotation to V2', () {
+      final source = _mapWithBorder(<BorderFeature>[_feature('existing')]);
+      final disabled = _feature('disabled', allowAutoRotation: false);
+      final invalidV1 = BorderLayerContent(
+        features: <BorderFeature>[disabled],
+      );
+
+      final replaced = setBorderLayerContent(
+        source,
+        layerId: 'borders',
+        content: invalidV1,
+      );
+      final upserted = upsertBorderFeature(
+        source,
+        layerId: 'borders',
+        feature: disabled,
+      );
+
+      for (final map in <MapData>[replaced, upserted]) {
+        final content = (map.layers.last as BorderLayer).content;
+        expect(content.formatVersion, BorderLayerContent.formatVersionV2);
+        final reloaded = decodeBorderLayerContentJson(
+          encodeBorderLayerContentJson(content),
+        );
+        expect(
+          reloaded.featureById('disabled')!.paramsOverride!.allowAutoRotation,
+          isFalse,
+        );
+      }
     });
 
     test('remove deletes only the requested feature and rejects absence', () {
@@ -282,7 +374,13 @@ MapLayer _tileLayer() => const MapLayer.tile(
       tiles: <int>[0, 0, 0, 0],
     );
 
-BorderFeature _feature(String id, {String? name}) => BorderFeature(
+BorderFeature _feature(
+  String id, {
+  String? name,
+  BorderLineSide lineSide = BorderLineSide.primary,
+  bool allowAutoRotation = true,
+}) =>
+    BorderFeature(
       id: id,
       name: name ?? 'Feature $id',
       blueprintId: 'coast',
@@ -291,6 +389,16 @@ BorderFeature _feature(String id, {String? name}) => BorderFeature(
         width: 1,
         height: 1,
         cells: const <bool>[true],
+      ),
+      lineSide: lineSide,
+      paramsOverride: BorderGenerationParams(
+        irregularityPermille: 0,
+        detailDensityPermille: 0,
+        variationPermille: 0,
+        maxOverlapPx: 0,
+        gapTolerancePx: 0,
+        depthRows: 1,
+        allowAutoRotation: allowAutoRotation,
       ),
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],

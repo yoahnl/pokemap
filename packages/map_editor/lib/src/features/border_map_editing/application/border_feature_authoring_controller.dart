@@ -111,7 +111,8 @@ final class BorderFeatureAuthoringController {
             ),
           ),
         BorderBlueprintTemplate.masonryLine ||
-        BorderBlueprintTemplate.postAndRailLine =>
+        BorderBlueprintTemplate.postAndRailLine ||
+        BorderBlueprintTemplate.connectedLine =>
           BorderStrokeGeometry(strokes: const <BorderStroke>[]),
       },
       overrides: const <BorderSlotOverride>[],
@@ -119,7 +120,12 @@ final class BorderFeatureAuthoringController {
     );
 
     return BorderFeatureCreationResult(
-      map: upsertBorderFeature(map, layerId: layer.id, feature: feature),
+      map: upsertBorderFeature(
+        map,
+        layerId: layer.id,
+        feature: feature,
+        template: published.definition.template,
+      ),
       feature: feature,
     );
   }
@@ -291,6 +297,7 @@ final class BorderFeatureAuthoringController {
       blueprintId: feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: <BorderKeepOutRegion>[
@@ -307,6 +314,14 @@ final class BorderFeatureAuthoringController {
       materialization: null,
     );
   }
+
+  /// Toggles the asymmetric side as a transient feature draft.
+  ///
+  /// The core operation preserves authored intent and discards only the old
+  /// materialization. World Maps must still resolve and Apply this draft
+  /// through its shared preview transaction.
+  BorderFeature previewLineSideToggle(BorderFeature feature) =>
+      toggleBorderFeatureLineSide(feature);
 
   BorderBlueprintChangePreview previewBlueprintChange({
     required MapData map,
@@ -520,6 +535,7 @@ BorderFeature _copyFeature(
       blueprintId: blueprintId ?? feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,
@@ -554,6 +570,7 @@ BorderFeature _draftWithOverride(
     blueprintId: feature.blueprintId,
     seed: feature.seed,
     geometry: feature.geometry,
+    lineSide: feature.lineSide,
     paramsOverride: feature.paramsOverride,
     overrides: overrides,
     keepOutRegions: feature.keepOutRegions,
@@ -604,6 +621,7 @@ BorderFeature _copyFeatureWithMaterialization(
       blueprintId: feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,

@@ -8,7 +8,7 @@ const Set<String> _layerContentKeys = <String>{
   'features',
 };
 
-/// Encodes the strict V1 payload stored by one dedicated Border layer.
+/// Encodes one strict versioned payload stored by a dedicated Border layer.
 ///
 /// Feature order is authored data and is preserved exactly. Encoding does not
 /// resolve blueprints or regenerate materialization.
@@ -17,7 +17,7 @@ Map<String, Object?> encodeBorderLayerContentJson(
   String path = r'$',
 }) {
   final versionPath = borderJsonPropertyPath(path, 'formatVersion');
-  _requireCurrentVersion(content.formatVersion, versionPath);
+  _requireSupportedVersion(content.formatVersion, versionPath);
 
   final featuresPath = borderJsonPropertyPath(path, 'features');
   final features = <Object?>[];
@@ -30,7 +30,13 @@ Map<String, Object?> encodeBorderLayerContentJson(
       featurePath: featurePath,
       firstIdPaths: firstIdPaths,
     );
-    features.add(encodeBorderFeatureJson(feature, path: featurePath));
+    features.add(
+      encodeBorderFeatureJson(
+        feature,
+        path: featurePath,
+        formatVersion: content.formatVersion,
+      ),
+    );
   }
 
   return <String, Object?>{
@@ -39,7 +45,7 @@ Map<String, Object?> encodeBorderLayerContentJson(
   };
 }
 
-/// Decodes one standalone strict V1 Border layer payload.
+/// Decodes one standalone strict V1 or V2 Border layer payload.
 ///
 /// Null, missing, malformed, legacy, and future payloads are rejected here.
 /// Migration tolerance belongs to the future map schema boundary.
@@ -59,7 +65,7 @@ BorderLayerContent decodeBorderLayerContentJson(
     borderJsonRequireField(value, 'formatVersion', path),
     versionPath,
   );
-  _requireCurrentVersion(formatVersion, versionPath);
+  _requireSupportedVersion(formatVersion, versionPath);
 
   final featuresPath = borderJsonPropertyPath(path, 'features');
   final featureValues = borderJsonRequireList(
@@ -73,6 +79,7 @@ BorderLayerContent decodeBorderLayerContentJson(
     final feature = decodeBorderFeatureJson(
       featureValues[index],
       path: featurePath,
+      formatVersion: formatVersion,
     );
     _rejectDuplicateFeatureId(
       feature: feature,
@@ -91,11 +98,11 @@ BorderLayerContent decodeBorderLayerContentJson(
   );
 }
 
-void _requireCurrentVersion(int value, String path) {
-  if (value != BorderLayerContent.currentFormatVersion) {
+void _requireSupportedVersion(int value, String path) {
+  if (value != BorderLayerContent.formatVersionV1 &&
+      value != BorderLayerContent.formatVersionV2) {
     throw FormatException(
-      '$path: expected BorderLayerContent format version '
-      '${BorderLayerContent.currentFormatVersion}',
+      '$path: expected BorderLayerContent format version 1 or 2',
     );
   }
 }

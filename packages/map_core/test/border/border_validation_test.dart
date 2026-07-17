@@ -315,6 +315,52 @@ void main() {
       );
     });
 
+    test('connected-line accepts strokes and rejects region geometry', () {
+      final region = diagnoseBorderFeature(
+        _request(template: BorderBlueprintTemplate.connectedLine),
+        materialization: null,
+        purpose: BorderFeatureValidationPurpose.resolution,
+        snapshotIntegrity: _integrity(),
+      );
+      final stroke = diagnoseBorderFeature(
+        _request(
+          template: BorderBlueprintTemplate.connectedLine,
+          feature: BorderFeature(
+            id: 'feature',
+            name: 'Feature',
+            blueprintId: 'blueprint',
+            seed: BorderSignedInt64.zero,
+            geometry: BorderStrokeGeometry(
+              strokes: <BorderStroke>[
+                BorderStroke(
+                  id: 'stroke',
+                  points: const <GridPos>[
+                    GridPos(x: 0, y: 0),
+                    GridPos(x: 1, y: 0),
+                  ],
+                  closed: false,
+                ),
+              ],
+            ),
+            overrides: const <BorderSlotOverride>[],
+            keepOutRegions: const <BorderKeepOutRegion>[],
+          ),
+        ),
+        materialization: null,
+        purpose: BorderFeatureValidationPurpose.resolution,
+        snapshotIntegrity: _integrity(),
+      );
+
+      expect(
+        _codes(region),
+        contains('border.feature.geometry_template_mismatch'),
+      );
+      expect(
+        _codes(stroke),
+        isNot(contains('border.feature.geometry_template_mismatch')),
+      );
+    });
+
     test('diagnoses dangling primitive and locked snapshot override references',
         () {
       final feature = BorderFeature(

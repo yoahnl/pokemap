@@ -9215,6 +9215,47 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  /// Prepares the opposite connected-line side without writing map history.
+  bool previewBorderFeatureLineSideToggle({
+    required String layerId,
+    required String featureId,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) return false;
+    try {
+      final layer = map.layers
+          .whereType<BorderLayer>()
+          .where((candidate) => candidate.id == layerId)
+          .firstOrNull;
+      final feature = layer?.content.featureById(featureId);
+      if (feature == null) {
+        throw StateError('Bordure introuvable : $layerId/$featureId');
+      }
+      final revision = project.borderCatalog
+          .recordById(feature.blueprintId)
+          ?.latestPublished;
+      if (revision?.definition.template !=
+          BorderBlueprintTemplate.connectedLine) {
+        throw StateError(
+          'Seule une ligne connectée peut inverser son côté visuel.',
+        );
+      }
+      final draft =
+          _borderFeatureAuthoringController.previewLineSideToggle(feature);
+      return previewBorderFeatureDraft(
+        layerId: layerId,
+        featureId: featureId,
+        draft: draft,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’inverser le côté de la bordure : $error',
+      );
+      return false;
+    }
+  }
+
   /// Explicitly keeps the persisted materialization without touching the map.
   void keepBorderFeatureMaterialized() {
     ref.read(borderPreviewControllerProvider.notifier).keepMaterialized();

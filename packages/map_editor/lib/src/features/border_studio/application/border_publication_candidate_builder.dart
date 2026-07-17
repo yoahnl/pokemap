@@ -314,7 +314,10 @@ final class BorderPublicationCandidateBuilder {
     );
     records[recordIndex] = replacement;
     final nextCatalog = ProjectBorderCatalog(
-      formatVersion: manifest.borderCatalog.formatVersion,
+      formatVersion:
+          draftDefinition.template == BorderBlueprintTemplate.connectedLine
+              ? ProjectBorderCatalog.formatVersionV2
+              : manifest.borderCatalog.formatVersion,
       records: records,
       visualSnapshots: snapshots,
     );

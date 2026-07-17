@@ -10,6 +10,7 @@ import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
 import 'post_and_rail_line_border_resolver.dart';
 import 'border_sprite_geometry.dart';
+import 'connected_line_border_resolver.dart';
 
 /// One authoring edit expressed as the pixel domains it can influence.
 final class BorderLocalEdit {
@@ -200,6 +201,11 @@ BorderLocalResolutionState resolveBorderFeatureLocalBaseline(
         request,
         localCapture: capture,
       ).result,
+    BorderBlueprintTemplate.connectedLine =>
+      resolveConnectedLineBorderWithEvidence(
+        request,
+        localCapture: capture,
+      ).result,
   };
   return capture.finish(request: request, result: result);
 }
@@ -240,6 +246,12 @@ BorderLocalResolutionResult resolveBorderFeatureLocally({
       ).result,
     BorderBlueprintTemplate.postAndRailLine =>
       resolvePostAndRailLineBorderWithEvidence(
+        request,
+        localScope: scope,
+        localCapture: capture,
+      ).result,
+    BorderBlueprintTemplate.connectedLine =>
+      resolveConnectedLineBorderWithEvidence(
         request,
         localScope: scope,
         localCapture: capture,
@@ -306,6 +318,7 @@ void _validateLocalBaselineCompatibility(
           request.blueprintId == previousRequest.blueprintId &&
           request.feature.id == previousRequest.feature.id &&
           request.feature.seed == previousRequest.feature.seed &&
+          request.feature.lineSide == previousRequest.feature.lineSide &&
           current.blueprint == previousReceipt.components.blueprint &&
           current.parameters == previousReceipt.components.parameters &&
           current.mapContext == previousReceipt.components.mapContext &&

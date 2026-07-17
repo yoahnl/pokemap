@@ -338,6 +338,58 @@ void main() {
   });
 
   testWidgets(
+      'connected line reuses cardinal drag without mutating the map before Apply',
+      (tester) async {
+    final fixture = await _pumpLineCanvas(
+      tester,
+      tool: EditorToolType.borderPaint,
+      template: BorderBlueprintTemplate.connectedLine,
+    );
+    final beforeJson = fixture.map.toJson();
+    final gesture = await tester.startGesture(
+      fixture.canvas.topLeft + const Offset(16, 16),
+    );
+    await gesture.moveTo(fixture.canvas.topLeft + const Offset(112, 16));
+    await tester.pump();
+    await gesture.moveTo(fixture.canvas.topLeft + const Offset(112, 80));
+    await tester.pump();
+
+    final drawing = fixture.container.read(borderPreviewControllerProvider);
+    final geometry =
+        drawing.transaction!.proposedFeature.geometry as BorderStrokeGeometry;
+    expect(drawing.phase, BorderPreviewPhase.drawing);
+    expect(geometry.strokes, hasLength(1));
+    for (var index = 1;
+        index < geometry.strokes.single.points.length;
+        index++) {
+      final previous = geometry.strokes.single.points[index - 1];
+      final current = geometry.strokes.single.points[index];
+      expect(
+        (current.x - previous.x).abs() + (current.y - previous.y).abs(),
+        1,
+      );
+    }
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+    expect(
+        fixture.container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    await gesture.up();
+    await tester.pump();
+
+    expect(
+      fixture.container.read(borderPreviewControllerProvider).phase,
+      BorderPreviewPhase.resolved,
+    );
+    expect(
+      fixture.container.read(editorNotifierProvider).activeMap!.toJson(),
+      beforeJson,
+    );
+  });
+
+  testWidgets(
       'line draw backtrack cancels the whole gesture without leaking an exception',
       (tester) async {
     final fixture = await _pumpLineCanvas(
@@ -624,6 +676,7 @@ Future<
   WidgetTester tester, {
   required EditorToolType tool,
   List<BorderStroke> strokes = const <BorderStroke>[],
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.masonryLine,
 }) async {
   final feature = _lineFeature('wall', strokes: strokes);
   final map = MapData(
@@ -650,7 +703,7 @@ Future<
   addTearDown(subscription.close);
   container.read(editorNotifierProvider.notifier).state = EditorState(
     projectRootPath: '/projects/border-line-test',
-    project: _publishedLineManifest(),
+    project: _publishedLineManifest(template: template),
     workspaceMode: EditorWorkspaceMode.map,
     activeMap: map,
     activeMapPath: '/projects/border-line-test/maps/map.json',
@@ -777,7 +830,9 @@ ProjectManifest _publishedManifest() {
   );
 }
 
-ProjectManifest _publishedLineManifest() {
+ProjectManifest _publishedLineManifest({
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.masonryLine,
+}) {
   final params = BorderGenerationParams(
     irregularityPermille: 0,
     detailDensityPermille: 0,
@@ -792,6 +847,9 @@ ProjectManifest _publishedLineManifest() {
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
+      formatVersion: template == BorderBlueprintTemplate.connectedLine
+          ? ProjectBorderCatalog.formatVersionV2
+          : ProjectBorderCatalog.formatVersionV1,
       records: <BorderBlueprintRecord>[
         BorderBlueprintRecord(
           id: 'wall-blueprint',
@@ -800,7 +858,7 @@ ProjectManifest _publishedLineManifest() {
             definition: BorderBlueprintDraftDefinition(
               name: 'Muret',
               previewSeed: BorderSignedInt64.zero,
-              template: BorderBlueprintTemplate.masonryLine,
+              template: template,
               primitives: const <BorderPrimitiveDraft>[],
               defaults: params,
               sortOrder: 0,
@@ -811,7 +869,7 @@ ProjectManifest _publishedLineManifest() {
             definition: BorderBlueprintPublishedDefinition(
               name: 'Muret',
               previewSeed: BorderSignedInt64.zero,
-              template: BorderBlueprintTemplate.masonryLine,
+              template: template,
               primitives: const <BorderPublishedPrimitive>[],
               defaults: params,
               sortOrder: 0,

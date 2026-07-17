@@ -129,6 +129,64 @@ void main() {
       expect(decoded, feature);
     });
 
+    test('V2 round-trips inverted line side while V1 remains key-exact', () {
+      final feature = _feature(
+        lineSide: BorderLineSide.inverted,
+        geometry: BorderStrokeGeometry(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'cliff',
+              points: const <GridPos>[
+                GridPos(x: 1, y: 1),
+                GridPos(x: 2, y: 1),
+              ],
+              closed: false,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        () => encodeBorderFeatureJson(feature),
+        _formatAt(r'$.lineSide'),
+      );
+
+      final encoded = encodeBorderFeatureJson(feature, formatVersion: 2);
+      expect(encoded['lineSide'], 'inverted');
+      expect(
+        decodeBorderFeatureJson(encoded, formatVersion: 2),
+        feature,
+      );
+      expect(
+        () => decodeBorderFeatureJson(encoded),
+        _formatAt(r'$.lineSide'),
+      );
+
+      final historical = _minimalFeatureJson();
+      final decodedHistorical = decodeBorderFeatureJson(historical);
+      expect(decodedHistorical.lineSide, BorderLineSide.primary);
+      expect(encodeBorderFeatureJson(decodedHistorical), historical);
+    });
+
+    test('V2 round-trips disabled rotation while V1 rejects data loss', () {
+      final feature = _feature(
+        paramsOverride: _params(allowAutoRotation: false),
+      );
+
+      expect(
+        () => encodeBorderFeatureJson(feature),
+        _formatAt(r'$.paramsOverride.allowAutoRotation'),
+      );
+
+      final encoded = encodeBorderFeatureJson(feature, formatVersion: 2);
+      final encodedParams = encoded['paramsOverride']! as Map<String, Object?>;
+      expect(encodedParams['allowAutoRotation'], isFalse);
+      expect(
+        decodeBorderFeatureJson(encoded, formatVersion: 2),
+        feature,
+      );
+    });
+
     test('accepts absent or null optional fields and emits canonical absence',
         () {
       final absent = _minimalFeatureJson();
@@ -529,7 +587,9 @@ void main() {
 
 BorderFeature _feature({
   BorderFeatureGeometry? geometry,
+  BorderLineSide lineSide = BorderLineSide.primary,
   bool includeParams = true,
+  BorderGenerationParams? paramsOverride,
   List<BorderSlotOverride>? overrides,
   List<BorderKeepOutRegion>? keepOutRegions,
   BorderMaterialization? materialization,
@@ -540,7 +600,8 @@ BorderFeature _feature({
       blueprintId: 'blueprint-a',
       seed: BorderSignedInt64.fromInt(-7),
       geometry: geometry ?? _region(),
-      paramsOverride: includeParams ? _params() : null,
+      lineSide: lineSide,
+      paramsOverride: includeParams ? paramsOverride ?? _params() : null,
       overrides: overrides ?? <BorderSlotOverride>[_simpleOverride('slot-a')],
       keepOutRegions: keepOutRegions ?? const <BorderKeepOutRegion>[],
       materialization: materialization,
@@ -561,13 +622,15 @@ BorderKeepOutRegion _keepOut(String id) => BorderKeepOutRegion(
       ),
     );
 
-BorderGenerationParams _params() => BorderGenerationParams(
+BorderGenerationParams _params({bool allowAutoRotation = true}) =>
+    BorderGenerationParams(
       irregularityPermille: 100,
       detailDensityPermille: 200,
       variationPermille: 300,
       maxOverlapPx: 4,
       gapTolerancePx: 2,
       depthRows: 1,
+      allowAutoRotation: allowAutoRotation,
     );
 
 BorderSlotOverride _simpleOverride(

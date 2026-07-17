@@ -196,8 +196,13 @@ void _diagnoseFeatureGeometry(
 }) {
   final geometry = request.feature.geometry;
   final template = request.blueprintRevision?.definition.template;
-  final expectsRegion =
-      template == null || template == BorderBlueprintTemplate.organicEdge;
+  final expectsRegion = switch (template) {
+    null || BorderBlueprintTemplate.organicEdge => true,
+    BorderBlueprintTemplate.masonryLine ||
+    BorderBlueprintTemplate.postAndRailLine ||
+    BorderBlueprintTemplate.connectedLine =>
+      false,
+  };
   final intentErrorSeverity =
       purpose == BorderFeatureValidationPurpose.playExport
           ? BorderDiagnosticSeverity.warning

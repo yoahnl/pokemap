@@ -330,7 +330,11 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
       contourIndex < contours.length;
       contourIndex += 1) {
     for (final edge in contours[contourIndex].edges) {
-      if (_edgeIsKeptOut(edge, keepOutMask, request.mapSize.width)) {
+      if (_edgeIsExcluded(
+        edge,
+        keepOutMask: keepOutMask,
+        mapSize: request.mapSize,
+      )) {
         continue;
       }
       final quarterTurns = borderCardinalDirectionV1Rank(edge.direction);
@@ -371,7 +375,7 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
       final excluded = _excludedCoverageIntervals(
         contour,
         keepOutMask: keepOutMask,
-        mapWidth: request.mapSize.width,
+        mapSize: request.mapSize,
       );
       for (var rank = 0; rank < params.depthRows; rank += 1) {
         final acceptedForRank = generated
@@ -392,7 +396,11 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
             continue;
           }
           localScope?.recordRecomputedCell(edge.interiorCell);
-          if (_edgeIsKeptOut(edge, keepOutMask, request.mapSize.width)) {
+          if (_edgeIsExcluded(
+            edge,
+            keepOutMask: keepOutMask,
+            mapSize: request.mapSize,
+          )) {
             continue;
           }
           final eligible = _eligibleForDirection(candidates, edge.direction);
@@ -491,7 +499,11 @@ OrganicEdgeBorderResolutionEvidence resolveOrganicEdgeBorderWithEvidence(
           continue;
         }
         localScope?.recordRecomputedCell(edge.interiorCell);
-        if (_edgeIsKeptOut(edge, keepOutMask, request.mapSize.width) ||
+        if (_edgeIsExcluded(
+              edge,
+              keepOutMask: keepOutMask,
+              mapSize: request.mapSize,
+            ) ||
             !_includeDecoration(
               request,
               edge: edge,
@@ -766,7 +778,10 @@ int _passForRole(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.outerAccent => 4,
       BorderPrimitiveRole.accent => 5,
       BorderPrimitiveRole.post ||
-      BorderPrimitiveRole.span =>
+      BorderPrimitiveRole.span ||
+      BorderPrimitiveRole.lineCap ||
+      BorderPrimitiveRole.lineStraight ||
+      BorderPrimitiveRole.lineCorner =>
         throw const ValidationException('Linear role has no organic pass'),
     };
 
@@ -1239,6 +1254,9 @@ List<_GeneratedPlacement> _rebuildRetainedOrganicPlacements({
       );
     }
     final (contourIndex, edge) = match;
+    if (_edgeIsOnMapBoundary(edge, request.mapSize)) {
+      continue;
+    }
     final roleCandidates = primitives
         .where((candidate) => candidate.role == primitive.role)
         .toList(growable: false);
@@ -1297,11 +1315,15 @@ bool _directionIsForward(BorderCardinalDirection direction) =>
 List<BorderCoverageInterval> _excludedCoverageIntervals(
   BorderRegionContour contour, {
   required List<bool> keepOutMask,
-  required int mapWidth,
+  required GridSize mapSize,
 }) =>
     <BorderCoverageInterval>[
       for (final edge in contour.edges)
-        if (_edgeIsKeptOut(edge, keepOutMask, mapWidth))
+        if (_edgeIsExcluded(
+          edge,
+          keepOutMask: keepOutMask,
+          mapSize: mapSize,
+        ))
           BorderCoverageInterval(
             startPx: edge.startAbscissaPx,
             endPx: edge.endAbscissaPx,
@@ -1453,7 +1475,7 @@ List<OrganicEdgeContourEvidence> _diagnoseCoverage(
       ..._excludedCoverageIntervals(
         contour,
         keepOutMask: keepOutMask,
-        mapWidth: request.mapSize.width,
+        mapSize: request.mapSize,
       ),
       ..._intentionalCoverageExclusions(
         contour: contour,
@@ -1846,6 +1868,26 @@ bool _edgeIsKeptOut(
   int mapWidth,
 ) =>
     keepOutMask[edge.interiorCell.y * mapWidth + edge.interiorCell.x];
+
+bool _edgeIsExcluded(
+  BorderRegionContourEdge edge, {
+  required List<bool> keepOutMask,
+  required GridSize mapSize,
+}) =>
+    _edgeIsKeptOut(edge, keepOutMask, mapSize.width) ||
+    _edgeIsOnMapBoundary(edge, mapSize);
+
+bool _edgeIsOnMapBoundary(
+  BorderRegionContourEdge edge,
+  GridSize mapSize,
+) =>
+    switch (edge.outwardSide) {
+      BorderCardinalDirection.north => edge.interiorCell.y == 0,
+      BorderCardinalDirection.east => edge.interiorCell.x == mapSize.width - 1,
+      BorderCardinalDirection.south =>
+        edge.interiorCell.y == mapSize.height - 1,
+      BorderCardinalDirection.west => edge.interiorCell.x == 0,
+    };
 
 (int, int) _directionVector(BorderCardinalDirection direction) =>
     switch (direction) {

@@ -7,24 +7,31 @@ import 'border_visual_snapshot.dart';
 /// Project-owned catalog of Border blueprint records and immutable snapshots.
 @immutable
 final class ProjectBorderCatalog {
-  static const int currentFormatVersion = 1;
+  static const int formatVersionV1 = 1;
+  static const int formatVersionV2 = 2;
+  static const int latestSupportedFormatVersion = formatVersionV2;
+
+  /// Backward-compatible alias for [latestSupportedFormatVersion].
+  ///
+  /// New empty catalogs still default to [formatVersionV1] so merely reading
+  /// or authoring unrelated legacy content does not promote the sub-format.
+  static const int currentFormatVersion = latestSupportedFormatVersion;
 
   const ProjectBorderCatalog.empty()
-      : formatVersion = currentFormatVersion,
+      : formatVersion = formatVersionV1,
         _records = const <BorderBlueprintRecord>[],
         _visualSnapshots = const <BorderVisualSnapshot>[];
 
   ProjectBorderCatalog({
-    this.formatVersion = currentFormatVersion,
+    this.formatVersion = formatVersionV1,
     List<BorderBlueprintRecord> records = const <BorderBlueprintRecord>[],
     List<BorderVisualSnapshot> visualSnapshots = const <BorderVisualSnapshot>[],
   })  : _records = List<BorderBlueprintRecord>.unmodifiable(records),
         _visualSnapshots =
             List<BorderVisualSnapshot>.unmodifiable(visualSnapshots) {
-    if (formatVersion != currentFormatVersion) {
+    if (formatVersion != formatVersionV1 && formatVersion != formatVersionV2) {
       throw ValidationException(
-        'ProjectBorderCatalog.formatVersion must be '
-        '$currentFormatVersion',
+        'ProjectBorderCatalog.formatVersion must be 1 or 2',
       );
     }
     _rejectDuplicateIds<BorderBlueprintRecord>(

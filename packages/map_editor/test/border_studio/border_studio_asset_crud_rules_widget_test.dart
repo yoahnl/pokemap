@@ -7,6 +7,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_publication_candidate_builder.dart';
+import 'package:map_editor/src/features/border_studio/application/border_studio_publication_coordinator.dart';
 import 'package:map_editor/src/features/border_studio/border_studio_workspace.dart';
 import 'package:map_editor/src/features/border_studio/presentation/border_assets_step.dart';
 import 'package:map_editor/src/features/border_studio/state/border_studio_providers.dart';
@@ -17,6 +20,108 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
+  testWidgets(
+    'connected-line imports are publishable through candidate readiness',
+    (tester) async {
+      final projectRoot = Directory.systemTemp.createTempSync(
+        'pokemap_connected_line_import_',
+      );
+      addTearDown(() {
+        if (projectRoot.existsSync()) {
+          projectRoot.deleteSync(recursive: true);
+        }
+      });
+      final atlas = File(
+        p.join(projectRoot.path, 'assets', 'tilesets', 'coast.png'),
+      );
+      atlas.parent.createSync(recursive: true);
+      atlas.writeAsBytesSync(_atlasBytes(), flush: true);
+      final manifest = _manifestWithAsset();
+      final container = await _pumpWorkspace(
+        tester,
+        manifest,
+        projectRoot.path,
+      );
+      final controller =
+          container.read(borderStudioDraftControllerProvider.notifier)
+            ..createBlueprint(
+              id: 'connected-cliff',
+              name: 'Falaise connectée',
+              template: BorderBlueprintTemplate.connectedLine,
+            );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+      );
+      await tester.pump();
+
+      for (var index = 0; index < 3; index += 1) {
+        await tester.runAsync(
+          () => tester
+              .widget<BorderAssetsStep>(find.byType(BorderAssetsStep))
+              .onAnalyzeSelected(),
+        );
+        await tester.pump();
+      }
+
+      final imported =
+          controller.state.workingDraft!.blueprint.definition.primitives;
+      expect(imported, hasLength(3));
+      expect(
+        imported.map((primitive) => primitive.transforms.allowFlipX),
+        everyElement(isTrue),
+      );
+      const roles = <BorderPrimitiveRole>[
+        BorderPrimitiveRole.lineCap,
+        BorderPrimitiveRole.lineStraight,
+        BorderPrimitiveRole.lineCorner,
+      ];
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        for (final (index, primitive) in imported.indexed)
+          _primitiveWithRole(primitive, roles[index]),
+      ]);
+      final candidateManifest = controller.saveDraft();
+      final candidateRecord =
+          candidateManifest.borderCatalog.recordById('connected-cliff')!;
+      const service = BorderProjectElementAssetService();
+      final coordinator = BorderStudioPublicationCoordinator(
+        prepareProjectElementAsset: service.prepare,
+        buildCandidate: const BorderPublicationCandidateBuilder().build,
+        resolveCanonicalGallery: ({
+          required blueprintId,
+          required blueprintRevision,
+          required visualSnapshots,
+          required tileSizePx,
+          required resolverVersion,
+        }) =>
+            BorderStudioCanonicalGalleryResolution.fromCore(
+          resolveBorderCanonicalGallery(
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: visualSnapshots,
+            tileSizePx: tileSizePx,
+            resolverVersion: resolverVersion,
+          ),
+        ),
+        publishRequest: (_) async => throw StateError('not used'),
+      );
+      BorderStudioPublicationPreview? preview;
+      await tester.runAsync(() async {
+        preview = await coordinator.prepare(
+          manifest: candidateManifest,
+          projectRootPath: projectRoot.path,
+          draftRecord: candidateRecord,
+        );
+      });
+
+      expect(preview, isNotNull);
+      expect(preview!.candidate.nextManifest.borderCatalog.formatVersion,
+          ProjectBorderCatalog.formatVersionV2);
+      expect(preview!.diagnostics.hasErrors, isFalse);
+      expect(preview!.canPublish, isTrue);
+    },
+  );
+
   testWidgets(
     'selects a named project element, analyzes it, previews it, and removes it',
     (tester) async {
@@ -163,6 +268,102 @@ void main() {
     expect(find.text('Quantité de détails'), findsWidgets);
     expect(find.text('Variété'), findsWidgets);
   });
+
+  testWidgets(
+    'connected-line rules hide ineffective controls and retain useful ones',
+    (tester) async {
+      final container = await _pumpWorkspace(
+        tester,
+        _emptyManifest(),
+        Directory.systemTemp.path,
+      );
+      container
+          .read(borderStudioDraftControllerProvider.notifier)
+          .createBlueprint(
+            id: 'connected-rules',
+            name: 'Ligne connectée',
+            template: BorderBlueprintTemplate.connectedLine,
+          );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Règles')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(
+          const ValueKey<String>('border-studio-regularity-control'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-details-control')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-variety-control')),
+        findsOneWidget,
+      );
+      expect(find.text('Variété'), findsWidgets);
+      expect(find.text('Réglages avancés'), findsOneWidget);
+      expect(find.textContaining('Chevauchement'), findsOneWidget);
+      final rotationToggle = find.byKey(
+        const ValueKey<String>('border-studio-auto-rotation-toggle'),
+      );
+      expect(rotationToggle, findsOneWidget);
+      expect(find.text('Rotation automatique'), findsOneWidget);
+
+      tester.widget<PokeMapToggleTile>(rotationToggle).onChanged(false);
+      await tester.pump();
+      expect(find.text('Conserve l\'asset sans rotation.'), findsOneWidget);
+      expect(
+        container
+            .read(borderStudioDraftControllerProvider)
+            .workingDraft!
+            .blueprint
+            .definition
+            .defaults
+            .allowAutoRotation,
+        isFalse,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-profile-wild')),
+      );
+      await tester.pump();
+
+      final naturalRules = container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults;
+      expect(naturalRules.variationPermille, 700);
+      expect(naturalRules.maxOverlapPx, 32);
+      expect(naturalRules.gapTolerancePx, 6);
+      expect(naturalRules.allowAutoRotation, isFalse);
+      expect(find.text('Profil varié appliqué'), findsOneWidget);
+      expect(
+        find.text('Chevauchement 32 px · vide toléré 6 px'),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-profile-strict')),
+      );
+      await tester.pump();
+
+      final strictRules = container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults;
+      expect(strictRules.variationPermille, 100);
+      expect(strictRules.maxOverlapPx, 4);
+      expect(strictRules.gapTolerancePx, 1);
+    },
+  );
 
   testWidgets('duplicates, deletes, and renames drafts from guided actions',
       (tester) async {
@@ -531,3 +732,17 @@ Uint8List _changedAtlasBytes() {
     ..setPixelRgba(1, 0, 80, 100, 120, 255);
   return Uint8List.fromList(img.encodePng(image));
 }
+
+BorderPrimitiveDraft _primitiveWithRole(
+  BorderPrimitiveDraft primitive,
+  BorderPrimitiveRole role,
+) =>
+    BorderPrimitiveDraft(
+      id: primitive.id,
+      sourceElementId: primitive.sourceElementId,
+      role: role,
+      weight: primitive.weight,
+      anchorPx: primitive.anchorPx,
+      transforms: primitive.transforms,
+      currentMetrics: primitive.currentMetrics,
+    );

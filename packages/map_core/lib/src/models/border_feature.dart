@@ -113,6 +113,7 @@ final class BorderFeature {
     required this.blueprintId,
     required this.seed,
     required this.geometry,
+    this.lineSide = BorderLineSide.primary,
     this.paramsOverride,
     required List<BorderSlotOverride> overrides,
     required List<BorderKeepOutRegion> keepOutRegions,
@@ -132,6 +133,7 @@ final class BorderFeature {
   final String blueprintId;
   final BorderSignedInt64 seed;
   final BorderFeatureGeometry geometry;
+  final BorderLineSide lineSide;
   final BorderGenerationParams? paramsOverride;
   final List<BorderSlotOverride> _overrides;
   final List<BorderKeepOutRegion> _keepOutRegions;
@@ -150,6 +152,7 @@ final class BorderFeature {
           blueprintId == other.blueprintId &&
           seed == other.seed &&
           geometry == other.geometry &&
+          lineSide == other.lineSide &&
           paramsOverride == other.paramsOverride &&
           _listsEqual(_overrides, other._overrides) &&
           _listsEqual(_keepOutRegions, other._keepOutRegions) &&
@@ -162,6 +165,7 @@ final class BorderFeature {
         blueprintId,
         seed,
         geometry,
+        lineSide,
         paramsOverride,
         Object.hashAll(_overrides),
         Object.hashAll(_keepOutRegions),

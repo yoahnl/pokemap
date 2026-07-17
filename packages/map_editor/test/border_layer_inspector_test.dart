@@ -359,6 +359,11 @@ void main() {
       ),
     );
 
+    expect(
+      find.byKey(const ValueKey('border-invert-side-button')),
+      findsNothing,
+    );
+
     final update = tester.widget<PokeMapButton>(
       find.byKey(const ValueKey('border-update-preview-button')),
     );
@@ -450,6 +455,107 @@ void main() {
         .single;
     expect(applied.overrides, hasLength(1));
     expect(container.read(editorNotifierProvider).mapUndoStack, hasLength(1));
+  });
+
+  testWidgets(
+      'connected line side button creates a cancellable preview without map writes',
+      (tester) async {
+    final project = _project(<BorderBlueprintRecord>[
+      _record(
+        'cliff',
+        name: 'Falaise',
+        template: BorderBlueprintTemplate.connectedLine,
+      ),
+    ]);
+    final map = MapData(
+      id: 'map',
+      name: 'Connected line map',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 4, height: 3),
+      layers: <MapLayer>[
+        MapLayer.border(
+          id: 'border',
+          name: 'Falaises',
+          content: BorderLayerContent(
+            features: <BorderFeature>[
+              BorderFeature(
+                id: 'cliff-feature',
+                name: 'Falaise libre',
+                blueprintId: 'cliff',
+                seed: BorderSignedInt64.fromInt(7),
+                geometry: BorderStrokeGeometry(
+                  strokes: <BorderStroke>[
+                    BorderStroke(
+                      id: 'stroke',
+                      points: const <GridPos>[
+                        GridPos(x: 0, y: 1),
+                        GridPos(x: 1, y: 1),
+                        GridPos(x: 2, y: 1),
+                      ],
+                      closed: false,
+                    ),
+                  ],
+                ),
+                overrides: const <BorderSlotOverride>[],
+                keepOutRegions: const <BorderKeepOutRegion>[],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final preview = BorderPreviewController(
+      resolver: (_) => BorderResolutionResult(
+        materialization: _materialization(),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+    );
+    final before = map.toJson();
+    final container = await pumpEditorShellPage(
+      tester,
+      initialState: EditorState(
+        projectRootPath: '/tmp/connected_line_side',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeMapPath: '/tmp/connected_line_side/map.json',
+        activeLayerId: 'border',
+      ),
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+
+    expect(find.text('Côté principal'), findsOneWidget);
+    final invert = tester.widget<PokeMapButton>(
+      find.byKey(const ValueKey('border-invert-side-button')),
+    );
+    expect(invert.onPressed, isNotNull);
+
+    invert.onPressed!.call();
+    await tester.pump();
+
+    expect(preview.state.phase, BorderPreviewPhase.resolved);
+    expect(
+      preview.state.transaction!.proposedFeature.lineSide,
+      BorderLineSide.inverted,
+    );
+    expect(find.text('Côté inversé'), findsOneWidget);
+    expect(container.read(editorNotifierProvider).activeMap, same(map));
+    expect(container.read(editorNotifierProvider).activeMap!.toJson(), before);
+    expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+
+    tester
+        .widget<PokeMapButton>(
+          find.byKey(const ValueKey('border-preview-cancel-button')),
+        )
+        .onPressed!
+        .call();
+    await tester.pump();
+
+    expect(preview.state, const BorderPreviewState.idle());
+    expect(container.read(editorNotifierProvider).activeMap!.toJson(), before);
+    expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
   });
 
   testWidgets(
@@ -819,6 +925,13 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(
+        formatVersion: records.any(
+          (record) =>
+              record.draft.definition.template ==
+              BorderBlueprintTemplate.connectedLine,
+        )
+            ? ProjectBorderCatalog.formatVersionV2
+            : ProjectBorderCatalog.formatVersionV1,
         records: records,
         visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
       ),

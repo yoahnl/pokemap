@@ -71,14 +71,14 @@ void main() {
       }
     });
 
-    test('requires strict V1 integer version and a feature list', () {
+    test('accepts V1/V2 and rejects unsupported strict integer versions', () {
       for (final invalidVersion in <Object?>[
         null,
         true,
         1.0,
         '1',
         0,
-        2,
+        3,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(
@@ -99,6 +99,34 @@ void main() {
           _formatAt(r'$.features'),
         );
       }
+    });
+
+    test('V2 round-trips inverted side and V1 preserves historical shape', () {
+      final content = BorderLayerContent(
+        formatVersion: 2,
+        features: <BorderFeature>[
+          _feature('cliff', lineSide: BorderLineSide.inverted),
+        ],
+      );
+
+      final encoded = encodeBorderLayerContentJson(content);
+      expect(encoded['formatVersion'], 2);
+      expect(
+        ((encoded['features']! as List<Object?>).single!
+            as Map<String, Object?>)['lineSide'],
+        'inverted',
+      );
+      expect(decodeBorderLayerContentJson(encoded), content);
+
+      final historical = _emptyJson()
+        ..['features'] = <Object?>[
+          encodeBorderFeatureJson(_feature('old')),
+        ];
+      final decodedHistorical = decodeBorderLayerContentJson(historical);
+      expect(decodedHistorical.formatVersion, 1);
+      expect(
+          decodedHistorical.features.single.lineSide, BorderLineSide.primary);
+      expect(encodeBorderLayerContentJson(decodedHistorical), historical);
     });
 
     test('delegates child validation with indexed paths', () {
@@ -174,7 +202,11 @@ Matcher _formatAt(String path) => throwsA(
       ),
     );
 
-BorderFeature _feature(String id) => BorderFeature(
+BorderFeature _feature(
+  String id, {
+  BorderLineSide lineSide = BorderLineSide.primary,
+}) =>
+    BorderFeature(
       id: id,
       name: 'Feature $id',
       blueprintId: 'blueprint-a',
@@ -184,6 +216,7 @@ BorderFeature _feature(String id) => BorderFeature(
         height: 1,
         cells: const <bool>[true],
       ),
+      lineSide: lineSide,
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],
     );

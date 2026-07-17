@@ -43,6 +43,77 @@ void main() {
       );
     });
 
+    test('creates connected lines and previews side inversion without writes',
+        () {
+      final map = _map();
+      final created = controller.createFeature(
+        map: map,
+        layerId: 'borders',
+        blueprint: _record(
+          id: 'cliff',
+          template: BorderBlueprintTemplate.connectedLine,
+        ),
+        name: 'Falaise',
+      );
+
+      expect(created.feature.geometry, isA<BorderStrokeGeometry>());
+      expect(
+        (created.feature.geometry as BorderStrokeGeometry).strokes,
+        isEmpty,
+      );
+      expect(created.feature.lineSide, BorderLineSide.primary);
+
+      final source = _featureWithAuthoredOutput(created.feature);
+      final preview = controller.previewLineSideToggle(source);
+
+      expect(preview.lineSide, BorderLineSide.inverted);
+      expect(preview.id, source.id);
+      expect(preview.name, source.name);
+      expect(preview.blueprintId, source.blueprintId);
+      expect(preview.seed, source.seed);
+      expect(preview.geometry, source.geometry);
+      expect(preview.paramsOverride, source.paramsOverride);
+      expect(preview.overrides, source.overrides);
+      expect(preview.keepOutRegions, source.keepOutRegions);
+      expect(preview.materialization, isNull);
+      expect(
+        (created.map.layers.whereType<BorderLayer>().single)
+            .content
+            .features
+            .single
+            .lineSide,
+        BorderLineSide.primary,
+      );
+    });
+
+    test('promotes an empty V1 layer when creating a primary connected line',
+        () {
+      final map = _map();
+      final before = map.layers.whereType<BorderLayer>().single.content;
+      expect(before.formatVersion, BorderLayerContent.formatVersionV1);
+      expect(before.features, isEmpty);
+
+      final created = controller.createFeature(
+        map: map,
+        layerId: 'borders',
+        blueprint: _record(
+          id: 'cliff',
+          template: BorderBlueprintTemplate.connectedLine,
+        ),
+        name: 'Falaise',
+      );
+
+      expect(created.feature.lineSide, BorderLineSide.primary);
+      expect(
+        created.map.layers
+            .whereType<BorderLayer>()
+            .single
+            .content
+            .formatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
+    });
+
     test('rejects unpublished or deprecated blueprints for new features', () {
       expect(
         () => controller.createFeature(
@@ -638,6 +709,7 @@ BorderFeature _featureWithAuthoredOutput(BorderFeature feature) =>
       blueprintId: feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: <BorderSlotOverride>[
         BorderSlotOverride(

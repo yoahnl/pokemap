@@ -217,6 +217,18 @@ void main() {
       expect(changed.parameters, isNot(inherited.parameters));
     });
 
+    test('rotation policy participates in parameter freshness', () {
+      final automatic = computeBorderInputFingerprints(
+        _request(defaults: _params()),
+      );
+      final authored = computeBorderInputFingerprints(
+        _request(defaults: _params(allowAutoRotation: false)),
+      );
+
+      expect(authored.parameters, isNot(automatic.parameters));
+      expect(authored.blueprint, isNot(automatic.blueprint));
+    });
+
     test('preserves exact signed int64 seed and salt bounds', () {
       final minimum = computeBorderInputFingerprints(
         _request(
@@ -351,6 +363,58 @@ void main() {
               index == changedIndex ? isNot(before[index]) : before[index]);
         }
       }
+    });
+
+    test('connected line side changes only geometryAndSeed and aggregate', () {
+      final primary = computeBorderInputFingerprints(
+        _request(
+          template: BorderBlueprintTemplate.connectedLine,
+          lineSide: BorderLineSide.primary,
+        ),
+      );
+      final inverted = computeBorderInputFingerprints(
+        _request(
+          template: BorderBlueprintTemplate.connectedLine,
+          lineSide: BorderLineSide.inverted,
+        ),
+      );
+
+      final primaryComponents = _fingerprintComponents(primary);
+      final invertedComponents = _fingerprintComponents(inverted);
+      for (var index = 0; index < primaryComponents.length; index += 1) {
+        expect(
+          invertedComponents[index],
+          index == 1
+              ? isNot(primaryComponents[index])
+              : primaryComponents[index],
+        );
+      }
+      expect(
+        computeBorderAggregateInputFingerprint(
+          resolverVersion: 3,
+          blueprintRevision: 2,
+          components: inverted,
+        ),
+        isNot(
+          computeBorderAggregateInputFingerprint(
+            resolverVersion: 3,
+            blueprintRevision: 2,
+            components: primary,
+          ),
+        ),
+      );
+    });
+
+    test('line side does not alter historical template projections', () {
+      final primary = computeBorderInputFingerprints(
+        _request(lineSide: BorderLineSide.primary),
+      );
+      final inverted = computeBorderInputFingerprints(
+        _request(lineSide: BorderLineSide.inverted),
+      );
+
+      expect(inverted, primary);
+      expect(primary.geometryAndSeed, borderGeometryAndSeedFingerprintGolden);
     });
 
     test('blueprint projection includes every published structural field', () {
@@ -946,6 +1010,7 @@ BorderResolutionRequest _request({
   String featureName = 'North coast',
   BorderSignedInt64? seed,
   BorderFeatureGeometry? geometry,
+  BorderLineSide lineSide = BorderLineSide.primary,
   BorderGenerationParams? paramsOverride,
   List<BorderSlotOverride>? overrides,
   List<BorderKeepOutRegion>? keepOutRegions,
@@ -998,6 +1063,7 @@ BorderResolutionRequest _request({
             height: 2,
             cells: const <bool>[true, false, true, true],
           ),
+      lineSide: lineSide,
       paramsOverride: paramsOverride,
       overrides: effectiveOverrides,
       keepOutRegions: effectiveKeepOuts,
@@ -1031,6 +1097,7 @@ BorderGenerationParams _params({
   int maxOverlapPx = 4,
   int gapTolerancePx = 5,
   int depthRows = 2,
+  bool allowAutoRotation = true,
 }) =>
     BorderGenerationParams(
       irregularityPermille: irregularityPermille,
@@ -1039,6 +1106,7 @@ BorderGenerationParams _params({
       maxOverlapPx: maxOverlapPx,
       gapTolerancePx: gapTolerancePx,
       depthRows: depthRows,
+      allowAutoRotation: allowAutoRotation,
     );
 
 BorderPublishedPrimitive _primitive({

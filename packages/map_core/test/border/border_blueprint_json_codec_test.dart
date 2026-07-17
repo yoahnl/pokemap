@@ -73,6 +73,33 @@ void main() {
       );
       expect(input, before);
     });
+
+    test('persists the rotation toggle in V2 and rejects destructive V1 writes',
+        () {
+      final disabled = _params(allowAutoRotation: false);
+
+      final encodedV2 = encodeBorderGenerationParamsJson(
+        disabled,
+        formatVersion: 2,
+      );
+      expect(encodedV2['allowAutoRotation'], isFalse);
+      expect(
+        decodeBorderGenerationParamsJson(encodedV2, formatVersion: 2),
+        disabled,
+      );
+
+      expect(
+        () => encodeBorderGenerationParamsJson(disabled),
+        _formatAt(r'$.allowAutoRotation'),
+      );
+
+      final encodedV1 = encodeBorderGenerationParamsJson(_params());
+      expect(encodedV1, isNot(contains('allowAutoRotation')));
+      expect(
+        decodeBorderGenerationParamsJson(encodedV1).allowAutoRotation,
+        isTrue,
+      );
+    });
   });
 
   group('BorderBlueprintRecord JSON codec', () {
@@ -204,7 +231,7 @@ void main() {
       }
     });
 
-    test('round-trips all three templates through explicit wire names', () {
+    test('round-trips all three V1 templates through explicit wire names', () {
       const cases = <BorderBlueprintTemplate, String>{
         BorderBlueprintTemplate.organicEdge: 'organicEdge',
         BorderBlueprintTemplate.masonryLine: 'masonryLine',
@@ -219,6 +246,44 @@ void main() {
         expect(definition['template'], entry.value);
         expect(decodeBorderBlueprintRecordJson(encoded), record);
       }
+    });
+
+    test('round-trips connectedLine roles only through Border catalog V2', () {
+      const roles = <BorderPrimitiveRole>[
+        BorderPrimitiveRole.lineCap,
+        BorderPrimitiveRole.lineStraight,
+        BorderPrimitiveRole.lineCorner,
+      ];
+      final record = _record(
+        template: BorderBlueprintTemplate.connectedLine,
+        draftRoles: roles,
+        publishedRoles: roles,
+        withGround: false,
+      );
+
+      expect(
+        () => encodeBorderBlueprintRecordJson(record),
+        _formatAt(r'$.draft.definition.template'),
+      );
+
+      final encoded = encodeBorderBlueprintRecordJson(
+        record,
+        formatVersion: 2,
+      );
+      expect(_draftDefinitionJson(encoded)['template'], 'connectedLine');
+      expect(
+        _primitiveJsonList(encoded, published: false)
+            .map((value) => value['role']),
+        <String>['lineCap', 'lineStraight', 'lineCorner'],
+      );
+      expect(
+        decodeBorderBlueprintRecordJson(encoded, formatVersion: 2),
+        record,
+      );
+      expect(
+        () => decodeBorderBlueprintRecordJson(encoded),
+        _formatAt(r'$.draft.definition.template'),
+      );
     });
 
     test('round-trips all eight primitive roles without reordering', () {
@@ -679,13 +744,15 @@ BorderTransformPolicy _transforms() => BorderTransformPolicy(
       allowedQuarterTurns: <int>[0, 2, 3],
     );
 
-BorderGenerationParams _params() => BorderGenerationParams(
+BorderGenerationParams _params({bool allowAutoRotation = true}) =>
+    BorderGenerationParams(
       irregularityPermille: 101,
       detailDensityPermille: 202,
       variationPermille: 303,
       maxOverlapPx: 4,
       gapTolerancePx: 5,
       depthRows: 2,
+      allowAutoRotation: allowAutoRotation,
     );
 
 Map<String, Object?> _paramsJson() => <String, Object?>{

@@ -694,7 +694,12 @@ bool _masonryRoleAllowed(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.accent ||
       BorderPrimitiveRole.surfacePatch =>
         true,
-      BorderPrimitiveRole.span || BorderPrimitiveRole.outerAccent => false,
+      BorderPrimitiveRole.span ||
+      BorderPrimitiveRole.outerAccent ||
+      BorderPrimitiveRole.lineCap ||
+      BorderPrimitiveRole.lineStraight ||
+      BorderPrimitiveRole.lineCorner =>
+        false,
     };
 
 List<BorderPublishedPrimitive> _eligibleForDirection(

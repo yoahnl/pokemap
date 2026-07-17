@@ -277,7 +277,8 @@ class MapGridPainter extends CustomPainter {
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
     final usesAuthoredBorderOrder =
-        map.layers.any((layer) => layer is BorderLayer);
+        map.properties['tileLayerOrder'] == 'bottom_to_top' &&
+            map.layers.any((layer) => layer is BorderLayer);
     final layerPaintOrder = buildEditorMapLayerPaintOrder(map);
     final tileLayersInPaintOrder = usesAuthoredBorderOrder
         ? layerPaintOrder.authoredLayers
@@ -460,6 +461,26 @@ class MapGridPainter extends CustomPainter {
           );
         }
         paintVisibleSurfaceLayers();
+      }
+
+      final borderCatalog = project?.borderCatalog;
+      if (borderCatalog != null) {
+        for (final entry in layerPaintOrder.authoredLayers) {
+          if (entry.kind != EditorMapAuthoredLayerPaintKind.border) continue;
+          const BorderPreviewPainter().paintLayer(
+            canvas,
+            map: map,
+            layer: entry.layer as BorderLayer,
+            catalog: borderCatalog,
+            frameImagesByKey: tilesetImagesById,
+            sourceTileWidth: sourceTileWidth,
+            sourceTileHeight: sourceTileHeight,
+            displayScale:
+                sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
+            elapsedMs: editorEntityAnimationMs,
+            preview: borderPreview,
+          );
+        }
       }
     }
 

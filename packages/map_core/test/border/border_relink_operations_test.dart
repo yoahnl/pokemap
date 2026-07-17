@@ -14,6 +14,7 @@ void main() {
       expect(sourceResult.canApply, isTrue);
       final sourceFeature = _copyFeature(
         sourceRequest.feature,
+        lineSide: BorderLineSide.inverted,
         materialization: sourceResult.materialization,
       );
       final map = _mapWith(sourceFeature);
@@ -52,8 +53,13 @@ void main() {
       expect(applied.paramsOverride, same(sourceFeature.paramsOverride));
       expect(applied.overrides, sourceFeature.overrides);
       expect(applied.keepOutRegions, sourceFeature.keepOutRegions);
+      expect(applied.lineSide, BorderLineSide.inverted);
       expect(applied.materialization,
           same(preview.proposedResult!.materialization));
+      expect(
+        (updated.layers.first as BorderLayer).content.formatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
       expect(updated.layers[1], same(map.layers[1]),
           reason: 'unrelated layers, including collision, stay untouched');
     });
@@ -100,6 +106,7 @@ void main() {
         blueprintId: sourceRequest.feature.blueprintId,
         seed: sourceRequest.feature.seed,
         geometry: sourceRequest.feature.geometry,
+        lineSide: BorderLineSide.inverted,
         paramsOverride: sourceRequest.feature.paramsOverride,
         overrides: <BorderSlotOverride>[
           BorderSlotOverride(
@@ -169,6 +176,7 @@ void main() {
       expect(applied.paramsOverride, isNull);
       expect(applied.overrides, isEmpty);
       expect(applied.keepOutRegions, isEmpty);
+      expect(applied.lineSide, BorderLineSide.inverted);
       expect(applied.materialization, isNull);
       expect(reset.layers[1], same(map.layers[1]));
     });
@@ -291,6 +299,7 @@ MapData _mapWith(BorderFeature feature) => MapData(
 BorderFeature _copyFeature(
   BorderFeature source, {
   String? blueprintId,
+  BorderLineSide? lineSide,
   BorderMaterialization? materialization,
 }) =>
     BorderFeature(
@@ -299,6 +308,7 @@ BorderFeature _copyFeature(
       blueprintId: blueprintId ?? source.blueprintId,
       seed: source.seed,
       geometry: source.geometry,
+      lineSide: lineSide ?? source.lineSide,
       paramsOverride: source.paramsOverride,
       overrides: source.overrides,
       keepOutRegions: source.keepOutRegions,

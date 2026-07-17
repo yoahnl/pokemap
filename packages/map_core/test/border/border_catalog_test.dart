@@ -3,6 +3,19 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectBorderCatalog', () {
+    test('distinguishes the V1 default from the latest supported version', () {
+      expect(ProjectBorderCatalog().formatVersion,
+          ProjectBorderCatalog.formatVersionV1);
+      expect(
+        ProjectBorderCatalog.latestSupportedFormatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
+      expect(
+        ProjectBorderCatalog.currentFormatVersion,
+        ProjectBorderCatalog.latestSupportedFormatVersion,
+      );
+    });
+
     test('freezes records and snapshots with ordered value equality', () {
       final records = <BorderBlueprintRecord>[_record('coast')];
       final snapshots = <BorderVisualSnapshot>[_snapshot()];
@@ -14,7 +27,7 @@ void main() {
       records.clear();
       snapshots.clear();
 
-      expect(catalog.formatVersion, ProjectBorderCatalog.currentFormatVersion);
+      expect(catalog.formatVersion, ProjectBorderCatalog.formatVersionV1);
       expect(catalog.records, hasLength(1));
       expect(catalog.visualSnapshots, hasLength(1));
       expect(catalog.recordById('coast'), isNotNull);
@@ -49,11 +62,20 @@ void main() {
       expect(() => catalog.records.add(_record('x')), throwsUnsupportedError);
     });
 
-    test('rejects unknown versions and duplicate stable identities', () {
+    test('accepts V2 and rejects unknown versions and duplicate identities',
+        () {
       expect(
-        () => ProjectBorderCatalog(formatVersion: 2),
-        throwsA(isA<ValidationException>()),
+        ProjectBorderCatalog(
+          formatVersion: ProjectBorderCatalog.formatVersionV2,
+        ).formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
       );
+      for (final version in <int>[0, 3]) {
+        expect(
+          () => ProjectBorderCatalog(formatVersion: version),
+          throwsA(isA<ValidationException>()),
+        );
+      }
       expect(
         () => ProjectBorderCatalog(
           records: <BorderBlueprintRecord>[_record('same'), _record('same')],

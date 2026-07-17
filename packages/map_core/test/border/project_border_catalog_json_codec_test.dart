@@ -115,14 +115,14 @@ void main() {
       }
     });
 
-    test('requires strict V1 integer version and strict list fields', () {
+    test('accepts V1/V2 and rejects unsupported strict integer versions', () {
       for (final invalidVersion in <Object?>[
         null,
         true,
         1.0,
         '1',
         0,
-        2,
+        3,
       ]) {
         final invalid = _emptyJson()..['formatVersion'] = invalidVersion;
         expect(
@@ -142,6 +142,31 @@ void main() {
           );
         }
       }
+    });
+
+    test('V2 round-trips connectedLine while V1 rejects its enum values', () {
+      final record = _record(
+        template: BorderBlueprintTemplate.connectedLine,
+        role: BorderPrimitiveRole.lineCap,
+      );
+      final catalog = ProjectBorderCatalog(
+        formatVersion: 2,
+        records: <BorderBlueprintRecord>[record],
+      );
+
+      final encoded = encodeProjectBorderCatalogJson(catalog);
+      expect(encoded['formatVersion'], 2);
+      final definition = ((((encoded['records']! as List<Object?>).single!
+              as Map<String, Object?>)['draft']!
+          as Map<String, Object?>)['definition']! as Map<String, Object?>);
+      expect(definition['template'], 'connectedLine');
+      expect(decodeProjectBorderCatalogJson(encoded), catalog);
+
+      final mislabeledV1 = _deepCopy(encoded)..['formatVersion'] = 1;
+      expect(
+        () => decodeProjectBorderCatalogJson(mislabeledV1),
+        _formatAt(r'$.records[0].draft.definition.template'),
+      );
     });
 
     test('reports duplicate record and snapshot ids at the second id path', () {
@@ -304,6 +329,8 @@ BorderBlueprintRecord _record({
   String id = 'coast',
   String? publishedSnapshotId,
   String occupancyMaskRle = 'border-rle-v1:4:1:4',
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
+  BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
 }) {
   final metrics = BorderPrimitiveAssetMetrics(
     assetFingerprint: 'asset-sha256:fixture',
@@ -329,12 +356,12 @@ BorderBlueprintRecord _record({
     definition: BorderBlueprintDraftDefinition(
       name: 'Coast $id',
       previewSeed: BorderSignedInt64.fromInt(-7),
-      template: BorderBlueprintTemplate.organicEdge,
+      template: template,
       primitives: <BorderPrimitiveDraft>[
         BorderPrimitiveDraft(
           id: 'draft-stone',
           sourceElementId: 'stone-element',
-          role: BorderPrimitiveRole.structureLarge,
+          role: role,
           weight: 100,
           anchorPx: const BorderPixelPos(x: 1, y: 2),
           transforms: transforms,
@@ -355,13 +382,13 @@ BorderBlueprintRecord _record({
             definition: BorderBlueprintPublishedDefinition(
               name: 'Published coast $id',
               previewSeed: BorderSignedInt64.fromInt(9),
-              template: BorderBlueprintTemplate.organicEdge,
+              template: template,
               primitives: <BorderPublishedPrimitive>[
                 BorderPublishedPrimitive(
                   id: 'published-stone',
                   sourceElementId: 'stone-element',
                   visualSnapshotId: publishedSnapshotId,
-                  role: BorderPrimitiveRole.structureLarge,
+                  role: role,
                   weight: 100,
                   anchorPx: const BorderPixelPos(x: 1, y: 2),
                   transforms: transforms,

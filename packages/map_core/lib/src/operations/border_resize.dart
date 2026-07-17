@@ -350,6 +350,7 @@ BorderFeature _resizeFeature({
     blueprintId: feature.blueprintId,
     seed: feature.seed,
     geometry: resizedGeometry,
+    lineSide: feature.lineSide,
     paramsOverride: feature.paramsOverride,
     overrides: feature.overrides,
     keepOutRegions: resizedKeepOutRegions,

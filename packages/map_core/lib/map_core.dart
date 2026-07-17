@@ -93,6 +93,7 @@ export 'src/operations/border_sprite_geometry.dart';
 export 'src/operations/organic_edge_border_resolver.dart';
 export 'src/operations/post_and_rail_line_border_resolver.dart';
 export 'src/operations/masonry_line_border_resolver.dart';
+export 'src/operations/connected_line_border_resolver.dart';
 export 'src/operations/organic_edge_canonical_gallery.dart';
 export 'src/operations/border_canonical_gallery.dart';
 export 'src/operations/border_resolver.dart';

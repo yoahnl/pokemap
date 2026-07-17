@@ -764,7 +764,10 @@ bool _roleAllowed(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.structureLarge ||
       BorderPrimitiveRole.structureMedium ||
       BorderPrimitiveRole.filler ||
-      BorderPrimitiveRole.outerAccent =>
+      BorderPrimitiveRole.outerAccent ||
+      BorderPrimitiveRole.lineCap ||
+      BorderPrimitiveRole.lineStraight ||
+      BorderPrimitiveRole.lineCorner =>
         false,
     };
 

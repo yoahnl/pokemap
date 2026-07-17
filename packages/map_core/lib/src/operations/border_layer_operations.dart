@@ -1,9 +1,11 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/border_feature.dart';
 import '../models/border_layer.dart';
+import '../models/border_value_objects.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
+import 'border_format_version.dart';
 import 'map_layers.dart';
 
 /// Adds one dedicated Border layer using the generic layer identity rules.
@@ -37,7 +39,20 @@ MapData setBorderLayerContent(
   return _updateBorderLayer(
     map,
     layerId: layerId,
-    update: (layer) => layer.copyWith(content: content),
+    update: (layer) => layer.copyWith(
+      content: _contentForCompleteWrite(content),
+    ),
+  );
+}
+
+BorderLayerContent _contentForCompleteWrite(BorderLayerContent content) {
+  if (content.formatVersion == BorderLayerContent.formatVersionV2 ||
+      !borderFeaturesRequireFormatV2(content.features)) {
+    return content;
+  }
+  return BorderLayerContent(
+    formatVersion: BorderLayerContent.formatVersionV2,
+    features: content.features,
   );
 }
 
@@ -47,6 +62,7 @@ MapData upsertBorderFeature(
   MapData map, {
   required String layerId,
   required BorderFeature feature,
+  BorderBlueprintTemplate? template,
 }) {
   return _updateBorderLayer(
     map,
@@ -62,12 +78,29 @@ MapData upsertBorderFeature(
       }
       return layer.copyWith(
         content: BorderLayerContent(
-          formatVersion: layer.content.formatVersion,
+          formatVersion: _formatVersionForFeatureWrite(
+            layer.content,
+            features: features,
+            template: template,
+          ),
           features: features,
         ),
       );
     },
   );
+}
+
+int _formatVersionForFeatureWrite(
+  BorderLayerContent content, {
+  required List<BorderFeature> features,
+  required BorderBlueprintTemplate? template,
+}) {
+  if (content.formatVersion == BorderLayerContent.formatVersionV2 ||
+      template == BorderBlueprintTemplate.connectedLine ||
+      borderFeaturesRequireFormatV2(features)) {
+    return BorderLayerContent.formatVersionV2;
+  }
+  return BorderLayerContent.formatVersionV1;
 }
 
 /// Removes one feature while preserving every other feature in authored order.

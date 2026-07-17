@@ -177,6 +177,7 @@ BorderFeature _withoutMaterialization(BorderFeature feature) => BorderFeature(
       blueprintId: feature.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,

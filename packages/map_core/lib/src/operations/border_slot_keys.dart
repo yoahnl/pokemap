@@ -102,6 +102,52 @@ String buildBorderLineSlotKey({
   ]);
 }
 
+/// Builds a topology- and side-independent V1 key for one connected-line node.
+///
+/// A node keeps the same identity when its authored neighbours change (for
+/// example, from a cap to a straight segment) or when the visual side is
+/// inverted. This lets local overrides and deterministic variant selection
+/// survive those edits.
+String buildBorderConnectedLineNodeSlotKey({
+  required String featureId,
+  required String strokeId,
+  required GridPos cell,
+  required int passIndex,
+  required BorderPrimitiveRole role,
+  required int rank,
+  required int ordinalLocal,
+}) {
+  _requireStableText(featureId, 'featureId');
+  _requireStableText(strokeId, 'strokeId');
+  _requireNonNegativeCell(cell, 'cell');
+  _requireNonNegative(passIndex, 'passIndex');
+  _requireNonNegative(rank, 'rank');
+  _requireNonNegative(ordinalLocal, 'ordinalLocal');
+
+  return _slotKey(<_SlotComponent>[
+    const _TextSlotComponent('connected-line-node'),
+    _TextSlotComponent(featureId),
+    _TextSlotComponent(strokeId),
+    _IntegerSlotComponent(cell.x),
+    _IntegerSlotComponent(cell.y),
+    _IntegerSlotComponent(passIndex),
+    _TextSlotComponent(_connectedLineNodeRoleWireName(role)),
+    _IntegerSlotComponent(rank),
+    _IntegerSlotComponent(ordinalLocal),
+  ]);
+}
+
+String _connectedLineNodeRoleWireName(BorderPrimitiveRole role) =>
+    switch (role) {
+      BorderPrimitiveRole.lineCap ||
+      BorderPrimitiveRole.lineStraight ||
+      BorderPrimitiveRole.lineCorner =>
+        'lineNode',
+      _ => throw const ValidationException(
+          'connected-line node role must be cap, straight, or corner',
+        ),
+    };
+
 /// Captures the complete persisted V1 draw-order tuple at resolution time.
 BorderStableOrderKey buildBorderStableOrderKey({
   required BorderDrawBand drawBand,

@@ -375,6 +375,114 @@ void main() {
     expect(notifier.state.activeMap!.toJson(), before);
     expect(notifier.state.mapUndoStack, isEmpty);
   });
+
+  test('line side inversion stays preview-only until one atomic Apply', () {
+    final preview = BorderPreviewController(
+      resolver: (_) => BorderResolutionResult(
+        materialization: _materialization(),
+        diagnosticReport: const BorderDiagnosticsReport.empty(),
+      ),
+      applier: _applyProposedFeature,
+    );
+    final container = ProviderContainer(
+      overrides: <Override>[
+        borderPreviewControllerProvider.overrideWith((ref) => preview),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: '/projects/connected-line',
+      project: _project(<BorderBlueprintRecord>[
+        _record(
+          'cliff',
+          template: BorderBlueprintTemplate.connectedLine,
+        ),
+      ]),
+      activeMap: const MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v2,
+        size: GridSize(width: 4, height: 3),
+        layers: <MapLayer>[
+          MapLayer.border(id: 'borders', name: 'Bordures'),
+        ],
+      ),
+      activeMapPath: '/projects/connected-line/maps/map.json',
+      activeLayerId: 'borders',
+    );
+    container.read(activeBorderFeatureControllerProvider);
+    notifier.createBorderFeature(
+      layerId: 'borders',
+      blueprintId: 'cliff',
+      name: 'Falaise',
+    );
+    final authoredMap = updateBorderFeatureGeometry(
+      notifier.state.activeMap!,
+      layerId: 'borders',
+      featureId: 'border_feature',
+      geometry: BorderStrokeGeometry(
+        strokes: <BorderStroke>[
+          BorderStroke(
+            id: 'stroke',
+            points: const <GridPos>[
+              GridPos(x: 0, y: 1),
+              GridPos(x: 1, y: 1),
+              GridPos(x: 2, y: 1),
+            ],
+            closed: false,
+          ),
+        ],
+      ),
+    );
+    notifier.state = notifier.state.copyWith(activeMap: authoredMap);
+    container
+        .read(activeBorderFeatureControllerProvider.notifier)
+        .selectFeature(
+          map: authoredMap,
+          layerId: 'borders',
+          featureId: 'border_feature',
+        );
+    final beforeJson = authoredMap.toJson();
+    final historyBefore = notifier.state.mapUndoStack.length;
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: 'border_feature',
+      ),
+      isTrue,
+    );
+    expect(preview.state.phase, BorderPreviewPhase.resolved);
+    expect(
+      preview.state.transaction!.proposedFeature.lineSide,
+      BorderLineSide.inverted,
+    );
+    expect(notifier.state.activeMap, same(authoredMap));
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBefore));
+
+    preview.cancel();
+    expect(notifier.state.activeMap!.toJson(), beforeJson);
+    expect(notifier.state.mapUndoStack, hasLength(historyBefore));
+
+    expect(
+      notifier.previewBorderFeatureLineSideToggle(
+        layerId: 'borders',
+        featureId: 'border_feature',
+      ),
+      isTrue,
+    );
+    expect(notifier.applyPendingBorderPreview(), isTrue);
+    final applied = notifier.state.activeMap!.layers
+        .whereType<BorderLayer>()
+        .single
+        .content
+        .features
+        .single;
+    expect(applied.lineSide, BorderLineSide.inverted);
+    expect(notifier.state.mapUndoStack, hasLength(historyBefore + 1));
+  });
 }
 
 ProjectManifest _project(List<BorderBlueprintRecord> records) =>
@@ -384,6 +492,13 @@ ProjectManifest _project(List<BorderBlueprintRecord> records) =>
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(
+        formatVersion: records.any(
+          (record) =>
+              record.draft.definition.template ==
+              BorderBlueprintTemplate.connectedLine,
+        )
+            ? ProjectBorderCatalog.formatVersionV2
+            : ProjectBorderCatalog.formatVersionV1,
         records: records,
         visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
       ),
@@ -501,3 +616,41 @@ BorderMaterialization _materialization() => BorderMaterialization(
       ],
       placements: const <BorderResolvedPlacement>[],
     );
+
+MapData _applyProposedFeature({
+  required MapData map,
+  required BorderPreviewTransaction transaction,
+}) {
+  final layerIndex = map.layers.indexWhere(
+    (layer) => layer.id == transaction.layerId && layer is BorderLayer,
+  );
+  if (layerIndex < 0) return map;
+  final layer = map.layers[layerIndex] as BorderLayer;
+  final featureIndex = layer.content.features.indexWhere(
+    (feature) => feature.id == transaction.featureId,
+  );
+  if (featureIndex < 0) return map;
+
+  final proposed = transaction.proposedFeature;
+  final features = List<BorderFeature>.from(layer.content.features);
+  features[featureIndex] = BorderFeature(
+    id: proposed.id,
+    name: proposed.name,
+    blueprintId: proposed.blueprintId,
+    seed: proposed.seed,
+    geometry: proposed.geometry,
+    lineSide: proposed.lineSide,
+    paramsOverride: proposed.paramsOverride,
+    overrides: proposed.overrides,
+    keepOutRegions: proposed.keepOutRegions,
+    materialization: transaction.result?.materialization,
+  );
+  final layers = List<MapLayer>.from(map.layers);
+  layers[layerIndex] = layer.copyWith(
+    content: BorderLayerContent(
+      formatVersion: BorderLayerContent.formatVersionV2,
+      features: features,
+    ),
+  );
+  return map.copyWith(layers: layers);
+}

@@ -58,10 +58,11 @@ void main() {
       expect(line.disabledReason, contains('géométrie'));
     });
 
-    test('enables both published V1 line templates with stroke geometry', () {
+    test('enables every published line template with stroke geometry', () {
       for (final template in <BorderBlueprintTemplate>[
         BorderBlueprintTemplate.masonryLine,
         BorderBlueprintTemplate.postAndRailLine,
+        BorderBlueprintTemplate.connectedLine,
       ]) {
         final result = assessBorderToolAvailability(
           manifest: _manifest(template),

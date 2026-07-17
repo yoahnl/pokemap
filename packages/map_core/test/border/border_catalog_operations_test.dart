@@ -36,6 +36,58 @@ void main() {
       expect(result.formatVersion, catalog.formatVersion);
     });
 
+    test('add promotes only a connectedLine record to catalog V2', () {
+      final source = ProjectBorderCatalog(
+        formatVersion: ProjectBorderCatalog.formatVersionV1,
+        records: <BorderBlueprintRecord>[_record('legacy')],
+      );
+
+      final legacyResult = addBorderBlueprintRecord(source, _record('other'));
+      final connectedResult = addBorderBlueprintRecord(
+        source,
+        _record(
+          'cliff',
+          template: BorderBlueprintTemplate.connectedLine,
+        ),
+      );
+
+      expect(source.formatVersion, ProjectBorderCatalog.formatVersionV1);
+      expect(legacyResult.formatVersion, ProjectBorderCatalog.formatVersionV1);
+      expect(
+        connectedResult.formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
+    });
+
+    test('add and replace promote disabled rotation and survive save/reload',
+        () {
+      final added = addBorderBlueprintRecord(
+        const ProjectBorderCatalog.empty(),
+        _record('authored', allowAutoRotation: false),
+      );
+      final source = ProjectBorderCatalog(
+        records: <BorderBlueprintRecord>[_record('edited')],
+      );
+      final replaced = replaceBorderBlueprintRecord(
+        source,
+        _record('edited', allowAutoRotation: false),
+      );
+
+      for (final catalog in <ProjectBorderCatalog>[added, replaced]) {
+        expect(
+          catalog.formatVersion,
+          ProjectBorderCatalog.formatVersionV2,
+        );
+        final reloaded = decodeProjectBorderCatalogJson(
+          encodeProjectBorderCatalogJson(catalog),
+        );
+        expect(
+          reloaded.records.single.draft.definition.defaults.allowAutoRotation,
+          isFalse,
+        );
+      }
+    });
+
     test('add rejects an existing record id', () {
       final catalog = ProjectBorderCatalog(
         records: <BorderBlueprintRecord>[_record('same')],
@@ -510,12 +562,14 @@ void main() {
 
 BorderBlueprintRecord _record(
   String id, {
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
   int sortOrder = 0,
   bool published = false,
   int publishedRevision = 1,
   int? publishedSortOrder,
   bool isDeprecated = false,
   String? publishedSnapshotId,
+  bool allowAutoRotation = true,
 }) {
   final hasPublished = published || publishedSnapshotId != null;
   return BorderBlueprintRecord(
@@ -527,9 +581,9 @@ BorderBlueprintRecord _record(
           BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
         name: 'Border $id',
         previewSeed: BorderSignedInt64.zero,
-        template: BorderBlueprintTemplate.organicEdge,
+        template: template,
         primitives: const <BorderPrimitiveDraft>[],
-        defaults: _params(),
+        defaults: _params(allowAutoRotation: allowAutoRotation),
         sortOrder: sortOrder,
       ),
     ),
@@ -540,12 +594,12 @@ BorderBlueprintRecord _record(
                 BorderPublishedGround>(
               name: 'Border $id',
               previewSeed: BorderSignedInt64.zero,
-              template: BorderBlueprintTemplate.organicEdge,
+              template: template,
               primitives: <BorderPublishedPrimitive>[
                 if (publishedSnapshotId != null)
                   _publishedPrimitive(publishedSnapshotId),
               ],
-              defaults: _params(),
+              defaults: _params(allowAutoRotation: allowAutoRotation),
               sortOrder: publishedSortOrder ?? sortOrder,
             ),
           )
@@ -574,13 +628,15 @@ BorderPublishedPrimitive _publishedPrimitive(String snapshotId) =>
       ),
     );
 
-BorderGenerationParams _params() => BorderGenerationParams(
+BorderGenerationParams _params({bool allowAutoRotation = true}) =>
+    BorderGenerationParams(
       irregularityPermille: 0,
       detailDensityPermille: 0,
       variationPermille: 0,
       maxOverlapPx: 0,
       gapTolerancePx: 0,
       depthRows: 1,
+      allowAutoRotation: allowAutoRotation,
     );
 
 BorderVisualSnapshot _snapshot(String digit) {

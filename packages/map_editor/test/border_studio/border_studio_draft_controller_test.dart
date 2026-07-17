@@ -128,6 +128,28 @@ void main() {
           BorderBlueprintTemplate.organicEdge,
         ),
       );
+
+      controller.replacePrimitives(const <BorderPrimitiveDraft>[]);
+      controller.setTemplate(BorderBlueprintTemplate.connectedLine);
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(id: 'cap-a', role: BorderPrimitiveRole.lineCap),
+        _primitive(id: 'cap-b', role: BorderPrimitiveRole.lineCap),
+        _primitive(id: 'straight', role: BorderPrimitiveRole.lineStraight),
+        _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+      ]);
+      expect(
+        controller.state.allowedPrimitiveRoles,
+        const <BorderPrimitiveRole>{
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        },
+      );
+      expect(
+        controller.state.workingDraft!.blueprint.definition.primitives.where(
+            (primitive) => primitive.role == BorderPrimitiveRole.lineCap),
+        hasLength(2),
+      );
       expect(controller.state.isDirty, isTrue);
     });
 
@@ -156,6 +178,42 @@ void main() {
       expect(updated.borderCatalog.visualSnapshots.single, same(snapshot));
       expect(updated.maps, manifest.maps);
       expect(manifest.borderCatalog.records.single, same(record));
+      expect(controller.state.isDirty, isFalse);
+    });
+
+    test('saves connected-line variants and promotes the Border catalog', () {
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(_manifest())
+        ..createBlueprint(
+          id: 'cliff',
+          name: 'Falaise libre',
+          template: BorderBlueprintTemplate.connectedLine,
+        )
+        ..replacePrimitives(<BorderPrimitiveDraft>[
+          _primitive(id: 'cap-a', role: BorderPrimitiveRole.lineCap),
+          _primitive(id: 'cap-b', role: BorderPrimitiveRole.lineCap),
+          _primitive(
+            id: 'straight',
+            role: BorderPrimitiveRole.lineStraight,
+          ),
+          _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+        ]);
+
+      final saved = controller.saveDraft();
+      final definition = saved.borderCatalog.records.single.draft.definition;
+
+      expect(saved.borderCatalog.formatVersion,
+          ProjectBorderCatalog.formatVersionV2);
+      expect(definition.template, BorderBlueprintTemplate.connectedLine);
+      expect(
+        definition.primitives.map((primitive) => primitive.role),
+        <BorderPrimitiveRole>[
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        ],
+      );
       expect(controller.state.isDirty, isFalse);
     });
 
@@ -299,6 +357,7 @@ void main() {
       for (final template in <BorderBlueprintTemplate>[
         BorderBlueprintTemplate.masonryLine,
         BorderBlueprintTemplate.postAndRailLine,
+        BorderBlueprintTemplate.connectedLine,
       ]) {
         final manifest = _manifest(
           records: <BorderBlueprintRecord>[
@@ -327,6 +386,45 @@ void main() {
         expect(first.state.diagnosticsAreCurrent, isFalse);
         expect(first.state.canPublish, isFalse);
       }
+    });
+
+    test('connected-line variation preserves every authored primitive and role',
+        () {
+      final primitives = <BorderPrimitiveDraft>[
+        _primitive(id: 'cap', role: BorderPrimitiveRole.lineCap),
+        _primitive(id: 'straight', role: BorderPrimitiveRole.lineStraight),
+        _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+      ];
+      final controller = BorderStudioDraftController()
+        ..loadFromManifest(
+          _manifest(
+            records: <BorderBlueprintRecord>[
+              _record(
+                id: 'connected',
+                name: 'Falaise connectée',
+                template: BorderBlueprintTemplate.connectedLine,
+                primitives: primitives,
+              ),
+            ],
+          ),
+        );
+      final before = controller.state.workingDraft!.blueprint.definition;
+
+      controller.newPreviewVariation();
+
+      final after = controller.state.workingDraft!.blueprint.definition;
+      expect(after.previewSeed, isNot(before.previewSeed));
+      expect(after.primitives, before.primitives);
+      expect(
+        after.primitives.map((primitive) => primitive.role),
+        const <BorderPrimitiveRole>[
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        ],
+      );
+      expect(after.template, BorderBlueprintTemplate.connectedLine);
+      expect(after.defaults, before.defaults);
     });
 
     test('enables every V1 template only after a current preview', () {
@@ -360,6 +458,13 @@ void main() {
       );
       controller.setDiagnostics(const BorderDiagnosticsReport.empty());
       expect(controller.state.canPublish, isTrue);
+
+      controller.setTemplate(BorderBlueprintTemplate.connectedLine);
+      expect(controller.state.canPublish, isFalse);
+      expect(
+        controller.state.publicationAvailability.disabledReason,
+        contains('Regénérez'),
+      );
     });
 
     test('requires explicit acknowledgement of every warning code', () {

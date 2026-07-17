@@ -3,6 +3,19 @@ import 'package:test/test.dart';
 
 void main() {
   group('BorderLayerContent', () {
+    test('distinguishes the V1 default from the latest supported version', () {
+      expect(BorderLayerContent().formatVersion,
+          BorderLayerContent.formatVersionV1);
+      expect(
+        BorderLayerContent.latestSupportedFormatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
+      expect(
+        BorderLayerContent.currentFormatVersion,
+        BorderLayerContent.latestSupportedFormatVersion,
+      );
+    });
+
     test('exposes one immutable empty V1 value', () {
       const content = BorderLayerContent.emptyContent;
 
@@ -49,11 +62,19 @@ void main() {
       expect(first, isNot(reordered));
     });
 
-    test('rejects unsupported versions and duplicate feature ids', () {
+    test('accepts V2 and rejects unsupported versions and duplicate ids', () {
       expect(
-        () => BorderLayerContent(formatVersion: 2),
-        throwsA(isA<ValidationException>()),
+        BorderLayerContent(
+          formatVersion: BorderLayerContent.formatVersionV2,
+        ).formatVersion,
+        BorderLayerContent.formatVersionV2,
       );
+      for (final version in <int>[0, 3]) {
+        expect(
+          () => BorderLayerContent(formatVersion: version),
+          throwsA(isA<ValidationException>()),
+        );
+      }
       expect(
         () => BorderLayerContent(
           features: <BorderFeature>[_feature('same'), _feature('same')],

@@ -10,6 +10,7 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import 'border_feature_update_operations.dart';
+import 'border_format_version.dart';
 import 'border_resolver.dart';
 
 /// The two persisted geometry families supported by Border V1.
@@ -37,6 +38,7 @@ final class BorderFeatureRelinkPreview {
     required this.expectedBaseFeatureFingerprint,
     required this.sourceFamily,
     required this.targetFamily,
+    required this.targetTemplate,
     required this.kind,
     required List<BorderRelinkLoss> losses,
     required this.proposedFeature,
@@ -51,6 +53,7 @@ final class BorderFeatureRelinkPreview {
   final String expectedBaseFeatureFingerprint;
   final BorderGeometryFamily sourceFamily;
   final BorderGeometryFamily targetFamily;
+  final BorderBlueprintTemplate targetTemplate;
   final BorderRelinkKind kind;
   final List<BorderRelinkLoss> losses;
   final BorderFeature proposedFeature;
@@ -101,6 +104,7 @@ BorderFeatureRelinkPreview prepareBorderFeatureRelink({
       blueprintId: normalizedTargetId,
       seed: feature.seed,
       geometry: _emptyGeometryFor(targetFamily, mapSize: map.size),
+      lineSide: feature.lineSide,
       paramsOverride: null,
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],
@@ -114,6 +118,7 @@ BorderFeatureRelinkPreview prepareBorderFeatureRelink({
       expectedBaseFeatureFingerprint: baseFingerprint,
       sourceFamily: sourceFamily,
       targetFamily: targetFamily,
+      targetTemplate: targetBlueprintRevision.definition.template,
       kind: BorderRelinkKind.requiresFamilyReset,
       losses: _actualResetLosses(feature),
       proposedFeature: resetFeature,
@@ -128,6 +133,7 @@ BorderFeatureRelinkPreview prepareBorderFeatureRelink({
     blueprintId: normalizedTargetId,
     seed: feature.seed,
     geometry: feature.geometry,
+    lineSide: feature.lineSide,
     paramsOverride: feature.paramsOverride,
     overrides: feature.overrides,
     keepOutRegions: feature.keepOutRegions,
@@ -151,6 +157,7 @@ BorderFeatureRelinkPreview prepareBorderFeatureRelink({
     expectedBaseFeatureFingerprint: baseFingerprint,
     sourceFamily: sourceFamily,
     targetFamily: targetFamily,
+    targetTemplate: targetBlueprintRevision.definition.template,
     kind: BorderRelinkKind.sameFamily,
     losses: const <BorderRelinkLoss>[],
     proposedFeature: targetFeature,
@@ -192,6 +199,7 @@ MapData applyBorderFeatureRelinkPreview(
       request.feature.blueprintId != preview.proposedFeature.blueprintId ||
       request.feature.seed != feature.seed ||
       request.feature.geometry != feature.geometry ||
+      request.feature.lineSide != feature.lineSide ||
       request.feature.paramsOverride != feature.paramsOverride ||
       !_listEquals(request.feature.overrides, feature.overrides) ||
       !_listEquals(request.feature.keepOutRegions, feature.keepOutRegions)) {
@@ -218,11 +226,13 @@ MapData applyBorderFeatureRelinkPreview(
       blueprintId: request.blueprintId,
       seed: feature.seed,
       geometry: feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: feature.overrides,
       keepOutRegions: feature.keepOutRegions,
       materialization: result.materialization,
     ),
+    template: preview.targetTemplate,
   );
 }
 
@@ -250,6 +260,7 @@ MapData applyBorderFeatureFamilyReset(
     featureIndex: target.featureIndex,
     layer: target.layer,
     feature: preview.proposedFeature,
+    template: preview.targetTemplate,
   );
 }
 
@@ -265,7 +276,8 @@ BorderGeometryFamily borderTemplateGeometryFamily(
     switch (template) {
       BorderBlueprintTemplate.organicEdge => BorderGeometryFamily.region,
       BorderBlueprintTemplate.masonryLine ||
-      BorderBlueprintTemplate.postAndRailLine =>
+      BorderBlueprintTemplate.postAndRailLine ||
+      BorderBlueprintTemplate.connectedLine =>
         BorderGeometryFamily.linear,
     };
 
@@ -329,13 +341,19 @@ MapData _replaceFeature(
   required int featureIndex,
   required BorderLayer layer,
   required BorderFeature feature,
+  BorderBlueprintTemplate? template,
 }) {
   final features = List<BorderFeature>.from(layer.content.features);
   features[featureIndex] = feature;
   final layers = List<MapLayer>.from(map.layers);
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion: layer.content.formatVersion,
+      formatVersion:
+          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
+                  template == BorderBlueprintTemplate.connectedLine ||
+                  borderFeaturesRequireFormatV2(features)
+              ? BorderLayerContent.formatVersionV2
+              : BorderLayerContent.formatVersionV1,
       features: features,
     ),
   );

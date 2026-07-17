@@ -480,6 +480,7 @@ void _diagnoseTemplateGround(
       return;
     case BorderBlueprintTemplate.masonryLine:
     case BorderBlueprintTemplate.postAndRailLine:
+    case BorderBlueprintTemplate.connectedLine:
       diagnostics.add(_diagnostic(
         code: 'border.publication.linear_ground_not_supported',
         scope: BorderDiagnosticScope.blueprint,
@@ -521,6 +522,11 @@ Set<BorderPrimitiveRole> borderAllowedPrimitiveRolesForTemplate(
           BorderPrimitiveRole.span,
           BorderPrimitiveRole.accent,
           BorderPrimitiveRole.surfacePatch,
+        },
+      BorderBlueprintTemplate.connectedLine => const <BorderPrimitiveRole>{
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
         },
     };
 
@@ -638,6 +644,56 @@ void _diagnoseRequiredRolesAndOrientations(
             primitives: eligible,
             diagnostics: diagnostics,
           );
+        }
+      }
+    case BorderBlueprintTemplate.connectedLine:
+      for (final role in const <BorderPrimitiveRole>[
+        BorderPrimitiveRole.lineCap,
+        BorderPrimitiveRole.lineStraight,
+        BorderPrimitiveRole.lineCorner,
+      ]) {
+        final eligible = definition.primitives
+            .where((primitive) => primitive.role == role)
+            .toList(growable: false);
+        if (eligible.isEmpty) {
+          diagnostics.add(_diagnostic(
+            code: 'border.publication.required_role_missing',
+            scope: BorderDiagnosticScope.blueprint,
+            blueprintId: blueprintId,
+            parameters: <String, Object?>{
+              'roles': <String>[borderPrimitiveRoleV1WireName(role)],
+            },
+            action: 'border.action.add_required_connected_line_primitive',
+          ));
+          continue;
+        }
+        final quarterTurns = !definition.defaults.allowAutoRotation
+            ? const <int>[0]
+            : role == BorderPrimitiveRole.lineStraight
+                ? const <int>[0, 1]
+                : _requiredQuarterTurns;
+        for (final quarterTurn in quarterTurns) {
+          for (final flipX in const <bool>[false, true]) {
+            if (eligible.any(
+              (primitive) =>
+                  primitive.transforms.allowedQuarterTurns
+                      .contains(quarterTurn) &&
+                  (!flipX || primitive.transforms.allowFlipX),
+            )) {
+              continue;
+            }
+            diagnostics.add(_diagnostic(
+              code: 'border.publication.connected_line_transform_unavailable',
+              scope: BorderDiagnosticScope.blueprint,
+              blueprintId: blueprintId,
+              parameters: <String, Object?>{
+                'role': borderPrimitiveRoleV1WireName(role),
+                'quarterTurns': quarterTurn,
+                'flipX': flipX,
+              },
+              action: 'border.action.allow_required_connected_line_transform',
+            ));
+          }
         }
       }
   }
@@ -1084,6 +1140,11 @@ void _diagnoseCanonicalGallery(
       if (check.longestContiguousGapPx > expectedGapTolerance) {
         diagnostics.add(_diagnostic(
           code: 'border.publication.coverage_gap_exceeded',
+          severity:
+              definition.template == BorderBlueprintTemplate.connectedLine &&
+                      !definition.defaults.allowAutoRotation
+                  ? BorderDiagnosticSeverity.warning
+                  : BorderDiagnosticSeverity.error,
           scope: BorderDiagnosticScope.blueprint,
           blueprintId: blueprintId,
           parameters: <String, Object?>{
@@ -1298,6 +1359,13 @@ List<BorderCanonicalGalleryCase> borderCanonicalGalleryCasesForTemplate(
           BorderCanonicalGalleryCase.endpoint,
           BorderCanonicalGalleryCase.opening,
         ],
+      BorderBlueprintTemplate.connectedLine =>
+        const <BorderCanonicalGalleryCase>[
+          BorderCanonicalGalleryCase.longEdge,
+          BorderCanonicalGalleryCase.sharpCorner,
+          BorderCanonicalGalleryCase.endpoint,
+          BorderCanonicalGalleryCase.opening,
+        ],
     };
 
 /// Returns the exact immutable coverage components required for one sample.
@@ -1376,6 +1444,13 @@ int? _structuralPassIndex(
         2,
       (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
       (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
+      (
+        BorderBlueprintTemplate.connectedLine,
+        BorderPrimitiveRole.lineCap ||
+            BorderPrimitiveRole.lineStraight ||
+            BorderPrimitiveRole.lineCorner,
+      ) =>
+        0,
       _ => null,
     };
 
@@ -1414,6 +1489,7 @@ Object _publicationCandidateProjection(
       'maxOverlapPx': definition.defaults.maxOverlapPx.toString(),
       'gapTolerancePx': definition.defaults.gapTolerancePx.toString(),
       'depthRows': definition.defaults.depthRows.toString(),
+      if (!definition.defaults.allowAutoRotation) 'allowAutoRotation': 'false',
     },
     'primitives': primitives,
     'ground': ground == null
@@ -1474,6 +1550,7 @@ String _templateV1WireName(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.organicEdge => 'organicEdge',
       BorderBlueprintTemplate.masonryLine => 'masonryLine',
       BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
+      BorderBlueprintTemplate.connectedLine => 'connectedLine',
     };
 
 String _surfaceRoleV1WireName(SurfaceVariantRole role) => switch (role) {

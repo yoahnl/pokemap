@@ -179,6 +179,149 @@ void main() {
       );
     });
 
+    test('resolves connected-line topology cases on both visual sides', () {
+      final fixture = PostAndRailLineFixture(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          fencePrimitive(
+            id: 'cap',
+            fingerprintCharacter: 'a',
+            role: BorderPrimitiveRole.lineCap,
+            width: 16,
+            height: 16,
+            allowFlipX: true,
+          ),
+          fencePrimitive(
+            id: 'straight',
+            fingerprintCharacter: 'b',
+            role: BorderPrimitiveRole.lineStraight,
+            width: 16,
+            height: 16,
+            allowFlipX: true,
+          ),
+          fencePrimitive(
+            id: 'corner',
+            fingerprintCharacter: 'c',
+            role: BorderPrimitiveRole.lineCorner,
+            width: 16,
+            height: 16,
+            allowFlipX: true,
+          ),
+        ],
+      );
+
+      final gallery = _galleryFor(fixture.request);
+
+      expect(gallery.template, BorderBlueprintTemplate.connectedLine);
+      expect(gallery.allCasesResolved, isTrue);
+      expect(
+        gallery.cases.map((item) => item.galleryCase),
+        orderedEquals(const <BorderCanonicalGalleryCase>[
+          BorderCanonicalGalleryCase.longEdge,
+          BorderCanonicalGalleryCase.sharpCorner,
+          BorderCanonicalGalleryCase.endpoint,
+          BorderCanonicalGalleryCase.opening,
+        ]),
+      );
+      final sharpCorner = gallery.cases.singleWhere(
+        (item) => item.galleryCase == BorderCanonicalGalleryCase.sharpCorner,
+      );
+      expect(
+        (sharpCorner.geometry as BorderStrokeGeometry)
+            .strokes
+            .map((stroke) => stroke.id),
+        orderedEquals(const <String>['leftTurn', 'rightTurn']),
+      );
+      expect(
+        sharpCorner.resolverResult.materialization!.placements
+            .where((placement) => placement.primitiveId == 'corner'),
+        hasLength(2),
+      );
+      expect(
+        sharpCorner.invertedResolverResult!.materialization!.placements
+            .where((placement) => placement.primitiveId == 'corner'),
+        hasLength(2),
+      );
+      for (final caseResult in gallery.cases) {
+        expect(caseResult.resolverResult.canApply, isTrue);
+        expect(caseResult.invertedResolverResult, isNotNull);
+        expect(caseResult.invertedResolverResult!.canApply, isTrue);
+        expect(
+          caseResult.resolverResult.materialization!.placements
+              .map((placement) => placement.transform.flipX),
+          everyElement(isFalse),
+        );
+        expect(
+          caseResult.invertedResolverResult!.materialization!.placements
+              .map((placement) => placement.transform.flipX),
+          everyElement(isTrue),
+        );
+        final sample = caseResult.publicationSample;
+        expect(
+          sample.structuralRuns.map((run) => run.id),
+          anyElement(startsWith('primary:')),
+        );
+        expect(
+          sample.structuralRuns.map((run) => run.id),
+          anyElement(startsWith('inverted:')),
+        );
+      }
+    });
+
+    test('measures connected-line gaps and overlaps from real placements', () {
+      PostAndRailLineFixture connectedFixture(int size, String suffix) =>
+          PostAndRailLineFixture(
+            template: BorderBlueprintTemplate.connectedLine,
+            primitives: <BorderPublishedPrimitive>[
+              fencePrimitive(
+                id: 'cap-$suffix',
+                fingerprintCharacter: 'a',
+                role: BorderPrimitiveRole.lineCap,
+                width: size,
+                height: size,
+                allowFlipX: true,
+              ),
+              fencePrimitive(
+                id: 'straight-$suffix',
+                fingerprintCharacter: 'b',
+                role: BorderPrimitiveRole.lineStraight,
+                width: size,
+                height: size,
+                allowFlipX: true,
+              ),
+              fencePrimitive(
+                id: 'corner-$suffix',
+                fingerprintCharacter: 'c',
+                role: BorderPrimitiveRole.lineCorner,
+                width: size,
+                height: size,
+                allowFlipX: true,
+              ),
+            ],
+          );
+
+      BorderPublicationCoverageCheck longEdgeCheck(
+        PostAndRailLineFixture fixture,
+      ) =>
+          _galleryFor(fixture.request)
+              .report
+              .samples
+              .singleWhere(
+                (sample) =>
+                    sample.galleryCase == BorderCanonicalGalleryCase.longEdge,
+              )
+              .coverageChecks
+              .single;
+
+      final narrow = longEdgeCheck(connectedFixture(4, 'narrow'));
+      final wide = longEdgeCheck(connectedFixture(24, 'wide'));
+
+      expect(narrow.longestContiguousGapPx, 13);
+      expect(narrow.maximumPairwiseOverlapPx, 0);
+      expect(wide.longestContiguousGapPx, 0);
+      expect(wide.maximumPairwiseOverlapPx, 8);
+    });
+
     test('adapts the existing organic gallery without changing its API', () {
       final fixture = OrganicEdgeReferenceCoastFixture();
 

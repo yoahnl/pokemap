@@ -1,6 +1,6 @@
 {
   "name": "Selbrume",
-  "version": "v1",
+  "version": "v2",
   "maps": [
     {
       "id": "map_bourg_selbrume",
@@ -261,6 +261,12 @@
       "name": "terrain",
       "parentFolderId": null,
       "sortOrder": 102
+    },
+    {
+      "id": "tsf_selbrume_beta_borders",
+      "name": "Falaises et bordures",
+      "parentFolderId": "tsf_selbrume_beta",
+      "sortOrder": 70
     }
   ],
   "tilesets": [
@@ -575,6 +581,18 @@
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
+    },
+    {
+      "id": "ts_selbrume_cliff_connected_v1",
+      "name": "Falaises Selbrume - pierres",
+      "relativePath": "assets/tilesets/borders/cliff_coastal_deep_atlas_64px_v3.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "tsf_selbrume_beta_borders",
+      "sortOrder": 0,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
     }
   ],
   "elementCategories": [
@@ -649,6 +667,12 @@
       "name": "Selbrume - Effets",
       "parentCategoryId": "environnement",
       "sortOrder": 160
+    },
+    {
+      "id": "cat_selbrume_borders",
+      "name": "Selbrume - Falaises",
+      "parentCategoryId": "environnement",
+      "sortOrder": 170
     }
   ],
   "elements": [
@@ -16892,6 +16916,366 @@
       "recommendedLayerId": null,
       "tags": [],
       "sortOrder": 0
+    },
+    {
+      "id": "el_selbrume_cliff_cap_01",
+      "name": "Falaise Selbrume - Extrémité 01",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 0
+    },
+    {
+      "id": "el_selbrume_cliff_cap_02",
+      "name": "Falaise Selbrume - Extrémité 02",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 1
+    },
+    {
+      "id": "el_selbrume_cliff_cap_03",
+      "name": "Falaise Selbrume - Extrémité 03",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 2
+    },
+    {
+      "id": "el_selbrume_cliff_cap_04",
+      "name": "Falaise Selbrume - Extrémité 04",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 6,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 3
+    },
+    {
+      "id": "el_selbrume_cliff_straight_01",
+      "name": "Falaise Selbrume - Segment droit 01",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 0
+    },
+    {
+      "id": "el_selbrume_cliff_straight_02",
+      "name": "Falaise Selbrume - Segment droit 02",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 1
+    },
+    {
+      "id": "el_selbrume_cliff_straight_03",
+      "name": "Falaise Selbrume - Segment droit 03",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 2
+    },
+    {
+      "id": "el_selbrume_cliff_straight_04",
+      "name": "Falaise Selbrume - Segment droit 04",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 6,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 3
+    },
+    {
+      "id": "el_selbrume_cliff_corner_01",
+      "name": "Falaise Selbrume - Angle 01",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 0,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 0
+    },
+    {
+      "id": "el_selbrume_cliff_corner_02",
+      "name": "Falaise Selbrume - Angle 02",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 2,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 1
+    },
+    {
+      "id": "el_selbrume_cliff_corner_03",
+      "name": "Falaise Selbrume - Angle 03",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 4,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 2
+    },
+    {
+      "id": "el_selbrume_cliff_corner_04",
+      "name": "Falaise Selbrume - Angle 04",
+      "tilesetId": "ts_selbrume_cliff_connected_v1",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 6,
+            "width": 2,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 3
     }
   ],
   "terrainCategories": [],
@@ -38396,6 +38780,1194 @@
     "atlases": [],
     "animations": [],
     "presets": []
+  },
+  "borderCatalog": {
+    "formatVersion": 2,
+    "records": [
+      {
+        "id": "border-blueprint-1",
+        "draft": {
+          "baseRevision": 2,
+          "definition": {
+            "name": "Falaises Selbrume — pierres",
+            "previewSeed": "-5119589899603360719",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "border-primitive-1",
+                "sourceElementId": "el_selbrume_cliff_cap_02",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:a377c82cce126373f4f824719cc1a775f6aaf0693910a0aa85cc9f9edd88fcb3",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,5,23,8,27,8,10,4,6,10,6,6,13,11,6,9,2,23,1,2,10,14,1,42,6,59,5,60,4,60,4,60,4,60,4,60,4,60,4,60,4,60,5,58,6,58,8,56,9,55,9,55,9,55,9,56,8,56,8,56,9,55,9,55,10,54,11,53,12,52,12,52,13,51,13,50,14,49,15,48,16,46,19,45,19,45,20,44,20,43,21,42,23,40,24,40,25,39,26,38,27,36,30,3,1,29,35,24,41,10,1,10,44,8,4,6,47,6,544"
+                }
+              },
+              {
+                "id": "border-primitive-2",
+                "sourceElementId": "el_selbrume_cliff_straight_01",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:6061bb54a3969d188346f93de68da6eab2ae9d4ee2e1f5cf7f538de28fc4d7d5",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:515,5,11,4,13,7,24,6,9,6,3,4,4,9,8,5,8,24,1,7,1,24,6,61,3,63,1,639,1,63,1,63,1,63,1,63,1,575,1,511,2,62,3,60,5,8,1,50,10,2,2,38,2,9,15,13,1,23,3,8,19,9,3,15,1,3,8,4,24,4,6,13,52,5,4,2,792"
+                }
+              },
+              {
+                "id": "border-primitive-3",
+                "sourceElementId": "el_selbrume_cliff_corner_01",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:7d2b96c5f9a20b3a408b036e8aa5f8cf436337640790ca79b51271b7f4627721",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:153,5,14,8,36,8,10,12,32,11,8,14,17,6,7,13,7,14,16,27,1,20,13,52,11,53,10,54,10,54,10,56,8,57,7,58,6,59,6,58,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,60,4,60,4,60,5,59,5,59,6,58,5,59,5,59,5,59,6,58,6,58,7,57,8,56,9,11,1,43,11,7,4,41,24,40,25,5,3,31,34,30,35,29,35,29,35,30,35,29,35,29,36,28,36,28,37,27,39,25,38,26,39,25,39,25,40,24,42,21,43,21,43,21,44,19,46,15,50,13,52,5,1,5,137"
+                }
+              },
+              {
+                "id": "border-primitive-4",
+                "sourceElementId": "el_selbrume_cliff_straight_02",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:39099d77510b395d39bd167e5c37dd879850dc5a3b5b49bdb772ae62cf6549c9",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:535,6,11,4,9,4,12,5,12,8,8,8,7,4,11,7,10,9,1,5,1,24,4,1,1,16,1,43,1,704,1,1279,1,63,1,62,3,61,3,8,1,51,5,7,1,51,6,5,2,50,15,7,2,8,1,10,1,7,1,11,16,6,4,7,3,7,4,3,4,6,1,2,18,4,7,4,6,4,12,5,777"
+                }
+              },
+              {
+                "id": "border-primitive-5",
+                "sourceElementId": "el_selbrume_cliff_cap_01",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:3f57f26db1461ab8a525c0951ded6493a59fd0b76bffb95024d3e0aa5ea19eea",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:530,4,9,5,6,7,32,8,4,8,4,9,20,5,5,9,4,9,1,13,17,9,1,40,13,53,11,54,10,55,9,55,9,55,8,56,8,57,7,57,6,58,6,58,6,58,6,58,6,58,6,58,6,58,7,57,8,57,7,58,6,58,6,58,7,57,8,56,9,3,1,51,13,51,14,50,15,49,14,49,15,49,15,49,15,49,15,49,16,47,18,45,20,44,22,41,25,5,1,33,31,33,32,10,4,18,33,8,5,18,34,5,7,17,47,16,49,14,51,11,55,7,525"
+                }
+              },
+              {
+                "id": "border-primitive-6",
+                "sourceElementId": "el_selbrume_cliff_cap_03",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:ad95e290080a48f2ffb0316a59f3510c2a0e475cf51a397883d4694bc3af8bcc",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,5,14,7,14,9,14,9,5,15,12,10,12,11,3,16,2,5,3,13,11,56,7,58,6,59,5,59,5,60,4,60,4,60,4,60,4,60,4,60,4,60,5,59,5,58,7,57,7,56,8,57,8,57,8,56,7,57,7,57,7,57,8,56,8,56,8,56,9,55,10,54,11,52,15,48,17,46,18,45,20,44,20,44,20,44,20,43,22,40,24,39,26,38,27,36,29,5,1,28,38,26,38,26,38,25,40,11,2,10,42,9,6,5,45,7,540"
+                }
+              },
+              {
+                "id": "border-primitive-7",
+                "sourceElementId": "el_selbrume_cliff_cap_04",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:bd0602d237dcab51195109490d56e8e0bb0454205de842e92d540956ba601adf",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:522,7,21,5,30,11,16,9,6,5,13,17,9,15,3,9,10,18,7,18,1,12,7,22,3,33,6,23,1,34,6,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,4,60,4,60,4,60,4,60,4,59,5,59,6,58,6,57,8,56,9,55,11,53,11,53,10,54,10,53,11,53,11,52,13,50,14,50,15,49,16,6,1,40,23,39,25,37,27,37,27,37,27,35,31,27,37,27,46,18,47,17,48,3,2,10,55,9,57,5,535"
+                }
+              },
+              {
+                "id": "border-primitive-8",
+                "sourceElementId": "el_selbrume_cliff_straight_03",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:72d5954bae1fa8eb56ff07c34ac7dfc22f43ca2c5b9a150761931219208ecaad",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,6,25,4,26,11,3,9,10,7,3,9,11,13,1,11,7,10,1,11,9,27,5,29,3,63,1,1087,1,192,1,63,1,63,1,63,2,62,2,62,2,62,2,62,2,62,2,62,2,62,3,60,5,59,5,58,7,54,10,54,11,52,13,6,1,6,1,19,1,9,2,5,14,5,3,3,5,8,3,4,5,4,41,6,5,3,794"
+                }
+              },
+              {
+                "id": "border-primitive-9",
+                "sourceElementId": "el_selbrume_cliff_straight_04",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:e8480c72bc7f797bdc8685a70d27e2a454f61ba9bcab5d0549eec4a19f95c94f",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:522,7,23,5,28,9,5,2,8,4,2,9,17,4,3,19,5,6,1,10,2,3,4,4,3,28,2,32,1,63,1,63,1,63,1,63,1,63,1,63,2,62,2,63,1,638,1,63,1,64,1,63,1,63,1,63,1,63,1,63,1,63,1,63,2,62,2,62,2,61,4,58,7,56,9,3,1,50,15,49,16,6,1,40,18,3,4,23,2,10,30,22,3,9,30,12,1,7,6,8,34,7,2,6,8,6,36,5,4,4,10,4,780"
+                }
+              },
+              {
+                "id": "border-primitive-10",
+                "sourceElementId": "el_selbrume_cliff_corner_02",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:ce525b6c9b3d75613440c256a6775a3d0ed243883c172130a428d835effae561",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:166,7,45,6,5,10,42,8,2,13,40,10,1,14,31,34,1,2,22,43,19,47,17,48,13,53,9,55,8,57,6,58,6,58,6,59,5,59,5,59,5,59,5,59,5,58,6,57,7,58,6,58,6,58,6,58,6,58,6,59,5,59,5,59,5,59,6,58,6,58,6,58,6,58,6,59,5,59,5,59,6,7,4,47,18,6,6,34,30,34,30,34,30,34,31,32,33,31,35,30,34,30,34,30,34,30,34,30,34,30,35,29,35,29,36,28,36,28,37,27,38,26,39,24,41,4,3,15,49,13,52,12,56,7,135"
+                }
+              },
+              {
+                "id": "border-primitive-11",
+                "sourceElementId": "el_selbrume_cliff_corner_03",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:41f76e91c0fc1d14e5c638c9e179116974f8d8005dfe8d9193c250c11e3b00d6",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:161,10,53,13,49,16,28,6,13,18,26,8,12,19,24,11,3,4,3,24,15,51,13,53,10,56,7,58,6,58,6,59,5,59,5,59,5,59,5,59,5,59,5,58,6,58,6,59,5,60,4,60,4,60,4,60,4,60,4,60,5,58,6,58,7,57,7,56,8,57,7,57,7,58,6,58,7,57,8,56,9,55,17,47,22,42,22,42,23,7,2,32,33,31,33,30,35,29,35,29,36,28,36,28,39,25,39,24,40,23,42,22,43,21,44,20,44,20,44,20,44,20,45,18,47,16,49,9,2,3,52,6,142"
+                }
+              },
+              {
+                "id": "border-primitive-12",
+                "sourceElementId": "el_selbrume_cliff_corner_04",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:a56e7d917a20795afd5a402311bc0e168148c4225c06364904af8b453d5b4116",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:159,9,53,13,31,7,5,6,1,15,2,4,23,10,2,31,18,48,15,50,13,51,12,54,10,56,8,57,7,58,6,59,5,60,4,60,4,60,4,60,4,60,5,59,5,59,4,60,4,60,4,59,5,59,5,59,6,58,5,58,6,58,6,59,5,59,5,60,4,60,5,59,5,59,6,58,7,57,10,11,1,41,13,7,4,41,24,39,26,38,27,8,1,28,28,6,2,29,35,29,35,29,35,29,36,28,36,28,37,27,37,27,37,26,38,26,38,26,39,24,41,23,45,19,45,18,46,17,48,17,48,14,51,12,53,9,138"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 750,
+              "detailDensityPermille": 700,
+              "variationPermille": 1000,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 6,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        },
+        "latestPublished": {
+          "revision": 2,
+          "definition": {
+            "name": "Falaises Selbrume — pierres",
+            "previewSeed": "-5119589899603360719",
+            "template": "connectedLine",
+            "primitives": [
+              {
+                "id": "border-primitive-1",
+                "sourceElementId": "el_selbrume_cliff_cap_02",
+                "visualSnapshotId": "border-snapshot-sha256:6cd95647186e2b82b9770cc391ec4c409166b311eeb9b1b146f9e496c9ff4b48",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:a377c82cce126373f4f824719cc1a775f6aaf0693910a0aa85cc9f9edd88fcb3",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,5,23,8,27,8,10,4,6,10,6,6,13,11,6,9,2,23,1,2,10,14,1,42,6,59,5,60,4,60,4,60,4,60,4,60,4,60,4,60,4,60,5,58,6,58,8,56,9,55,9,55,9,55,9,56,8,56,8,56,9,55,9,55,10,54,11,53,12,52,12,52,13,51,13,50,14,49,15,48,16,46,19,45,19,45,20,44,20,43,21,42,23,40,24,40,25,39,26,38,27,36,30,3,1,29,35,24,41,10,1,10,44,8,4,6,47,6,544"
+                }
+              },
+              {
+                "id": "border-primitive-2",
+                "sourceElementId": "el_selbrume_cliff_straight_01",
+                "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:6061bb54a3969d188346f93de68da6eab2ae9d4ee2e1f5cf7f538de28fc4d7d5",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:515,5,11,4,13,7,24,6,9,6,3,4,4,9,8,5,8,24,1,7,1,24,6,61,3,63,1,639,1,63,1,63,1,63,1,63,1,575,1,511,2,62,3,60,5,8,1,50,10,2,2,38,2,9,15,13,1,23,3,8,19,9,3,15,1,3,8,4,24,4,6,13,52,5,4,2,792"
+                }
+              },
+              {
+                "id": "border-primitive-3",
+                "sourceElementId": "el_selbrume_cliff_corner_01",
+                "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:7d2b96c5f9a20b3a408b036e8aa5f8cf436337640790ca79b51271b7f4627721",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:153,5,14,8,36,8,10,12,32,11,8,14,17,6,7,13,7,14,16,27,1,20,13,52,11,53,10,54,10,54,10,56,8,57,7,58,6,59,6,58,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,60,4,60,4,60,5,59,5,59,6,58,5,59,5,59,5,59,6,58,6,58,7,57,8,56,9,11,1,43,11,7,4,41,24,40,25,5,3,31,34,30,35,29,35,29,35,30,35,29,35,29,36,28,36,28,37,27,39,25,38,26,39,25,39,25,40,24,42,21,43,21,43,21,44,19,46,15,50,13,52,5,1,5,137"
+                }
+              },
+              {
+                "id": "border-primitive-4",
+                "sourceElementId": "el_selbrume_cliff_straight_02",
+                "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:39099d77510b395d39bd167e5c37dd879850dc5a3b5b49bdb772ae62cf6549c9",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:535,6,11,4,9,4,12,5,12,8,8,8,7,4,11,7,10,9,1,5,1,24,4,1,1,16,1,43,1,704,1,1279,1,63,1,62,3,61,3,8,1,51,5,7,1,51,6,5,2,50,15,7,2,8,1,10,1,7,1,11,16,6,4,7,3,7,4,3,4,6,1,2,18,4,7,4,6,4,12,5,777"
+                }
+              },
+              {
+                "id": "border-primitive-5",
+                "sourceElementId": "el_selbrume_cliff_cap_01",
+                "visualSnapshotId": "border-snapshot-sha256:6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:3f57f26db1461ab8a525c0951ded6493a59fd0b76bffb95024d3e0aa5ea19eea",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:530,4,9,5,6,7,32,8,4,8,4,9,20,5,5,9,4,9,1,13,17,9,1,40,13,53,11,54,10,55,9,55,9,55,8,56,8,57,7,57,6,58,6,58,6,58,6,58,6,58,6,58,6,58,7,57,8,57,7,58,6,58,6,58,7,57,8,56,9,3,1,51,13,51,14,50,15,49,14,49,15,49,15,49,15,49,15,49,16,47,18,45,20,44,22,41,25,5,1,33,31,33,32,10,4,18,33,8,5,18,34,5,7,17,47,16,49,14,51,11,55,7,525"
+                }
+              },
+              {
+                "id": "border-primitive-6",
+                "sourceElementId": "el_selbrume_cliff_cap_03",
+                "visualSnapshotId": "border-snapshot-sha256:dcaf73d2574c7a44e71fedccf5557b2eb5e512dc37d38bd5918bcf93b9a436c8",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:ad95e290080a48f2ffb0316a59f3510c2a0e475cf51a397883d4694bc3af8bcc",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,5,14,7,14,9,14,9,5,15,12,10,12,11,3,16,2,5,3,13,11,56,7,58,6,59,5,59,5,60,4,60,4,60,4,60,4,60,4,60,4,60,5,59,5,58,7,57,7,56,8,57,8,57,8,56,7,57,7,57,7,57,8,56,8,56,8,56,9,55,10,54,11,52,15,48,17,46,18,45,20,44,20,44,20,44,20,43,22,40,24,39,26,38,27,36,29,5,1,28,38,26,38,26,38,25,40,11,2,10,42,9,6,5,45,7,540"
+                }
+              },
+              {
+                "id": "border-primitive-7",
+                "sourceElementId": "el_selbrume_cliff_cap_04",
+                "visualSnapshotId": "border-snapshot-sha256:2077967fb8f2c691e39c9b8d4b2fb181edb579accdbd4693fa59ebfb50a0fbe8",
+                "role": "lineCap",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:bd0602d237dcab51195109490d56e8e0bb0454205de842e92d540956ba601adf",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 8,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:522,7,21,5,30,11,16,9,6,5,13,17,9,15,3,9,10,18,7,18,1,12,7,22,3,33,6,23,1,34,6,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,5,59,4,60,4,60,4,60,4,60,4,59,5,59,6,58,6,57,8,56,9,55,11,53,11,53,10,54,10,53,11,53,11,52,13,50,14,50,15,49,16,6,1,40,23,39,25,37,27,37,27,37,27,35,31,27,37,27,46,18,47,17,48,3,2,10,55,9,57,5,535"
+                }
+              },
+              {
+                "id": "border-primitive-8",
+                "sourceElementId": "el_selbrume_cliff_straight_03",
+                "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:72d5954bae1fa8eb56ff07c34ac7dfc22f43ca2c5b9a150761931219208ecaad",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:517,6,25,4,26,11,3,9,10,7,3,9,11,13,1,11,7,10,1,11,9,27,5,29,3,63,1,1087,1,192,1,63,1,63,1,63,2,62,2,62,2,62,2,62,2,62,2,62,2,62,3,60,5,59,5,58,7,54,10,54,11,52,13,6,1,6,1,19,1,9,2,5,14,5,3,3,5,8,3,4,5,4,41,6,5,3,794"
+                }
+              },
+              {
+                "id": "border-primitive-9",
+                "sourceElementId": "el_selbrume_cliff_straight_04",
+                "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                "role": "lineStraight",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 32,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:e8480c72bc7f797bdc8685a70d27e2a454f61ba9bcab5d0549eec4a19f95c94f",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 0,
+                    "y": 8,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "defaultAnchorPx": {
+                    "x": 32,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:522,7,23,5,28,9,5,2,8,4,2,9,17,4,3,19,5,6,1,10,2,3,4,4,3,28,2,32,1,63,1,63,1,63,1,63,1,63,1,63,2,62,2,63,1,638,1,63,1,64,1,63,1,63,1,63,1,63,1,63,1,63,1,63,2,62,2,62,2,61,4,58,7,56,9,3,1,50,15,49,16,6,1,40,18,3,4,23,2,10,30,22,3,9,30,12,1,7,6,8,34,7,2,6,8,6,36,5,4,4,10,4,780"
+                }
+              },
+              {
+                "id": "border-primitive-10",
+                "sourceElementId": "el_selbrume_cliff_corner_02",
+                "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:ce525b6c9b3d75613440c256a6775a3d0ed243883c172130a428d835effae561",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:166,7,45,6,5,10,42,8,2,13,40,10,1,14,31,34,1,2,22,43,19,47,17,48,13,53,9,55,8,57,6,58,6,58,6,59,5,59,5,59,5,59,5,59,5,58,6,57,7,58,6,58,6,58,6,58,6,58,6,59,5,59,5,59,5,59,6,58,6,58,6,58,6,58,6,59,5,59,5,59,6,7,4,47,18,6,6,34,30,34,30,34,30,34,31,32,33,31,35,30,34,30,34,30,34,30,34,30,34,30,35,29,35,29,36,28,36,28,37,27,38,26,39,24,41,4,3,15,49,13,52,12,56,7,135"
+                }
+              },
+              {
+                "id": "border-primitive-11",
+                "sourceElementId": "el_selbrume_cliff_corner_03",
+                "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:41f76e91c0fc1d14e5c638c9e179116974f8d8005dfe8d9193c250c11e3b00d6",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:161,10,53,13,49,16,28,6,13,18,26,8,12,19,24,11,3,4,3,24,15,51,13,53,10,56,7,58,6,58,6,59,5,59,5,59,5,59,5,59,5,59,5,58,6,58,6,59,5,60,4,60,4,60,4,60,4,60,4,60,5,58,6,58,7,57,7,56,8,57,7,57,7,58,6,58,7,57,8,56,9,55,17,47,22,42,22,42,23,7,2,32,33,31,33,30,35,29,35,29,36,28,36,28,39,25,39,24,40,23,42,22,43,21,44,20,44,20,44,20,44,20,45,18,47,16,49,9,2,3,52,6,142"
+                }
+              },
+              {
+                "id": "border-primitive-12",
+                "sourceElementId": "el_selbrume_cliff_corner_04",
+                "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                "role": "lineCorner",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 50,
+                  "y": 12
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:a56e7d917a20795afd5a402311bc0e168148c4225c06364904af8b453d5b4116",
+                  "pixelSize": {
+                    "width": 64,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 2,
+                    "y": 2,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "defaultAnchorPx": {
+                    "x": 50,
+                    "y": 12
+                  },
+                  "occupancyMaskRle": "border-rle-v1:4096:0:159,9,53,13,31,7,5,6,1,15,2,4,23,10,2,31,18,48,15,50,13,51,12,54,10,56,8,57,7,58,6,59,5,60,4,60,4,60,4,60,4,60,5,59,5,59,4,60,4,60,4,59,5,59,5,59,6,58,5,58,6,58,6,59,5,59,5,60,4,60,5,59,5,59,6,58,7,57,10,11,1,41,13,7,4,41,24,39,26,38,27,8,1,28,28,6,2,29,35,29,35,29,35,29,36,28,36,28,37,27,37,27,37,26,38,26,38,26,39,24,41,23,45,19,45,18,46,17,48,17,48,14,51,12,53,9,138"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 750,
+              "detailDensityPermille": 700,
+              "variationPermille": 1000,
+              "maxOverlapPx": 32,
+              "gapTolerancePx": 6,
+              "depthRows": 1
+            },
+            "sortOrder": 0
+          }
+        }
+      }
+    ],
+    "visualSnapshots": [
+      {
+        "id": "border-snapshot-sha256:8b0f02549151b56260dde6a96439a0e927dc9e9f933f4b2b3470c8a86a0e1c3f",
+        "contentFingerprint": "8b0f02549151b56260dde6a96439a0e927dc9e9f933f4b2b3470c8a86a0e1c3f",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/8b0f02549151b56260dde6a96439a0e927dc9e9f933f4b2b3470c8a86a0e1c3f/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:c06cb2894226b385017618bdc23b302b8b4bf757bc1b42e609c45e6bd041b0e6",
+        "contentFingerprint": "c06cb2894226b385017618bdc23b302b8b4bf757bc1b42e609c45e6bd041b0e6",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/c06cb2894226b385017618bdc23b302b8b4bf757bc1b42e609c45e6bd041b0e6/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:95d76c3351968b54428c6e4cc0458525d7bc522e80544f1833c0345f4cf8cc31",
+        "contentFingerprint": "95d76c3351968b54428c6e4cc0458525d7bc522e80544f1833c0345f4cf8cc31",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/95d76c3351968b54428c6e4cc0458525d7bc522e80544f1833c0345f4cf8cc31/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:6cd95647186e2b82b9770cc391ec4c409166b311eeb9b1b146f9e496c9ff4b48",
+        "contentFingerprint": "6cd95647186e2b82b9770cc391ec4c409166b311eeb9b1b146f9e496c9ff4b48",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/6cd95647186e2b82b9770cc391ec4c409166b311eeb9b1b146f9e496c9ff4b48/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+        "contentFingerprint": "05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+        "contentFingerprint": "3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+        "contentFingerprint": "3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+        "contentFingerprint": "6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:dcaf73d2574c7a44e71fedccf5557b2eb5e512dc37d38bd5918bcf93b9a436c8",
+        "contentFingerprint": "dcaf73d2574c7a44e71fedccf5557b2eb5e512dc37d38bd5918bcf93b9a436c8",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/dcaf73d2574c7a44e71fedccf5557b2eb5e512dc37d38bd5918bcf93b9a436c8/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:2077967fb8f2c691e39c9b8d4b2fb181edb579accdbd4693fa59ebfb50a0fbe8",
+        "contentFingerprint": "2077967fb8f2c691e39c9b8d4b2fb181edb579accdbd4693fa59ebfb50a0fbe8",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/2077967fb8f2c691e39c9b8d4b2fb181edb579accdbd4693fa59ebfb50a0fbe8/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+        "contentFingerprint": "4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+        "contentFingerprint": "eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+        "contentFingerprint": "242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+        "contentFingerprint": "ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+        "contentFingerprint": "42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      }
+    ]
   },
   "shadowCatalog": {
     "profiles": [

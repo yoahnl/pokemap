@@ -194,6 +194,17 @@ class _BorderLayerInspectorPanelState
               toolAvailability,
               lineGeometry: activeFeature?.geometry is BorderStrokeGeometry,
             ),
+            if (activeFeature != null &&
+                activeRevision?.definition.template ==
+                    BorderBlueprintTemplate.connectedLine) ...[
+              const SizedBox(height: 10),
+              _lineSideControls(
+                notifier,
+                activeLayer,
+                correctionDraft!,
+                canStartPreview: previewState.phase == BorderPreviewPhase.idle,
+              ),
+            ],
             if (resizeDiagnostics.isNotEmpty) ...[
               const SizedBox(height: 10),
               _resizeDiagnosticsCard(context, resizeDiagnostics),
@@ -616,6 +627,49 @@ class _BorderLayerInspectorPanelState
                 child: const Text('Nouvelle variation'),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _lineSideControls(
+    EditorNotifier notifier,
+    BorderLayer layer,
+    BorderFeature feature, {
+    required bool canStartPreview,
+  }) {
+    return PokeMapCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: 'Orientation visuelle',
+            description:
+                'Change le côté occupé par les rochers sans redessiner la ligne.',
+            trailing: PokeMapBadge(
+              label: switch (feature.lineSide) {
+                BorderLineSide.primary => 'Côté principal',
+                BorderLineSide.inverted => 'Côté inversé',
+              },
+              variant: PokeMapBadgeVariant.info,
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapButton(
+              key: const ValueKey('border-invert-side-button'),
+              onPressed: canStartPreview
+                  ? () => notifier.previewBorderFeatureLineSideToggle(
+                        layerId: layer.id,
+                        featureId: feature.id,
+                      )
+                  : null,
+              size: PokeMapButtonSize.small,
+              variant: PokeMapButtonVariant.secondary,
+              leading: const Icon(CupertinoIcons.arrow_left_right),
+              child: const Text('Inverser le côté'),
+            ),
           ),
         ],
       ),
@@ -1410,6 +1464,7 @@ String _templateLabel(BorderBlueprintTemplate template) => switch (template) {
       BorderBlueprintTemplate.organicEdge => 'Contour organique',
       BorderBlueprintTemplate.masonryLine => 'Muret linéaire',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture linéaire',
+      BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
     };
 
 String _featurePreviewStateLabel(BorderBlueprintFeaturePreviewState state) {
@@ -1455,6 +1510,9 @@ String _primitiveRoleLabel(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.span => 'Traverse',
       BorderPrimitiveRole.surfacePatch => 'Surface',
       BorderPrimitiveRole.outerAccent => 'Accent extérieur',
+      BorderPrimitiveRole.lineCap => 'Extrémité',
+      BorderPrimitiveRole.lineStraight => 'Segment droit',
+      BorderPrimitiveRole.lineCorner => 'Angle',
     };
 
 String _relinkLossLabel(BorderRelinkLoss loss) => switch (loss) {

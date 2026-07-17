@@ -64,6 +64,14 @@ void main() {
           ],
           <String>['span'],
         ),
+        (
+          BorderBlueprintTemplate.connectedLine,
+          <BorderPublishedPrimitive>[
+            fixture.primitive('post', BorderPrimitiveRole.lineCap),
+            fixture.primitive('accent', BorderPrimitiveRole.lineCorner),
+          ],
+          <String>['lineStraight'],
+        ),
       ];
 
       for (final (template, primitives, expectedRoles) in cases) {
@@ -209,6 +217,194 @@ void main() {
       expect(
         () => lineRoles.add(BorderPrimitiveRole.filler),
         throwsUnsupportedError,
+      );
+      expect(
+        borderAllowedPrimitiveRolesForTemplate(
+          BorderBlueprintTemplate.connectedLine,
+        ),
+        <BorderPrimitiveRole>{
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        },
+      );
+    });
+
+    test('requires connected-line mirror transforms for every topology role',
+        () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive('post', BorderPrimitiveRole.lineCap, snapshot: 0),
+          fixture.primitive('span', BorderPrimitiveRole.lineStraight,
+              snapshot: 1),
+          fixture.primitive('accent', BorderPrimitiveRole.lineCorner,
+              snapshot: 2),
+        ],
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isFalse);
+      expect(
+        _codes(result),
+        contains('border.publication.connected_line_transform_unavailable'),
+      );
+    });
+
+    test(
+        'requires only quarter-turn zero when connected-line auto-rotation is disabled',
+        () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'post',
+            BorderPrimitiveRole.lineCap,
+            snapshot: 0,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'span',
+            BorderPrimitiveRole.lineStraight,
+            snapshot: 1,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'accent',
+            BorderPrimitiveRole.lineCorner,
+            snapshot: 2,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+        ],
+        defaults: BorderGenerationParams(
+          irregularityPermille: 500,
+          detailDensityPermille: 500,
+          variationPermille: 500,
+          maxOverlapPx: 1,
+          gapTolerancePx: 1,
+          depthRows: 2,
+          allowAutoRotation: false,
+        ),
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isTrue);
+      expect(
+        _codes(result),
+        isNot(contains(
+          'border.publication.connected_line_transform_unavailable',
+        )),
+      );
+    });
+
+    test(
+        'keeps requiring connected-line quarter-turns when auto-rotation is enabled',
+        () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'post',
+            BorderPrimitiveRole.lineCap,
+            snapshot: 0,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'span',
+            BorderPrimitiveRole.lineStraight,
+            snapshot: 1,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'accent',
+            BorderPrimitiveRole.lineCorner,
+            snapshot: 2,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+        ],
+      );
+
+      final result = _assess(fixture, definition: definition);
+      final transformDiagnostics = result.diagnosticReport.diagnostics
+          .where(
+            (diagnostic) =>
+                diagnostic.code ==
+                'border.publication.connected_line_transform_unavailable',
+          )
+          .toList(growable: false);
+
+      expect(result.canPublish, isFalse);
+      expect(transformDiagnostics, hasLength(14));
+      expect(
+        transformDiagnostics.map(
+          (diagnostic) => diagnostic.parameters['quarterTurns'],
+        ),
+        everyElement(isNot(0)),
+      );
+    });
+
+    test('accepts a real connected-line gallery covering both sides', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'post',
+            BorderPrimitiveRole.lineCap,
+            snapshot: 0,
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'span',
+            BorderPrimitiveRole.lineStraight,
+            snapshot: 1,
+            allowFlipX: true,
+          ),
+          fixture.primitive(
+            'accent',
+            BorderPrimitiveRole.lineCorner,
+            snapshot: 2,
+            allowFlipX: true,
+          ),
+        ],
+      );
+      final gallery = resolveBorderCanonicalGallery(
+        blueprintId: 'coast',
+        blueprintRevision: BorderBlueprintRevision(
+          revision: 1,
+          definition: definition,
+        ),
+        visualSnapshots: fixture.snapshots,
+        tileSizePx: const GridSize(width: 2, height: 2),
+        resolverVersion: _resolverVersion,
+      );
+      final result = _assess(
+        fixture,
+        definition: definition,
+        galleryReport: gallery.report,
+      );
+
+      expect(gallery.allCasesResolved, isTrue);
+      expect(result.canPublish, isTrue);
+      expect(
+        gallery.report.samples.map((sample) => sample.galleryCase),
+        <BorderCanonicalGalleryCase>[
+          BorderCanonicalGalleryCase.longEdge,
+          BorderCanonicalGalleryCase.sharpCorner,
+          BorderCanonicalGalleryCase.endpoint,
+          BorderCanonicalGalleryCase.opening,
+        ],
       );
     });
 
@@ -773,6 +969,97 @@ void main() {
       expect(gap.canPublish, isFalse);
     });
 
+    for (final (
+          allowAutoRotation,
+          expectedSeverity,
+          expectedCanPublish,
+        ) in <(bool, BorderDiagnosticSeverity, bool)>[
+      (false, BorderDiagnosticSeverity.warning, true),
+      (true, BorderDiagnosticSeverity.error, false),
+    ]) {
+      test(
+        'keeps connected-line coverage gaps ${allowAutoRotation ? 'blocking with' : 'acknowledgeable without'} automatic rotation',
+        () {
+          final fixture = _Fixture.complete();
+          final definition = fixture.definitionFor(
+            template: BorderBlueprintTemplate.connectedLine,
+            primitives: <BorderPublishedPrimitive>[
+              fixture.primitive(
+                'large',
+                BorderPrimitiveRole.lineCap,
+                snapshot: 0,
+                allowFlipX: true,
+              ),
+              fixture.primitive(
+                'post',
+                BorderPrimitiveRole.lineStraight,
+                snapshot: 1,
+                allowFlipX: true,
+              ),
+              fixture.primitive(
+                'span',
+                BorderPrimitiveRole.lineCorner,
+                snapshot: 2,
+                allowFlipX: true,
+              ),
+            ],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 500,
+              detailDensityPermille: 500,
+              variationPermille: 500,
+              maxOverlapPx: 1,
+              gapTolerancePx: 1,
+              depthRows: 2,
+              allowAutoRotation: allowAutoRotation,
+            ),
+          );
+          final samples = <BorderPublicationGallerySample>[
+            for (final galleryCase in borderCanonicalGalleryCasesForTemplate(
+              definition.template,
+            ))
+              BorderPublicationGallerySample(
+                galleryCase: galleryCase,
+                coverageChecks: <BorderPublicationCoverageCheck>[
+                  for (final component
+                      in borderCanonicalCoverageComponentsForCase(
+                    template: definition.template,
+                    galleryCase: galleryCase,
+                  ))
+                    BorderPublicationCoverageCheck(
+                      component: component,
+                      longestContiguousGapPx: 2,
+                      maximumPairwiseOverlapPx: 0,
+                      gapTolerancePx: definition.defaults.gapTolerancePx,
+                      maxOverlapPx: definition.defaults.maxOverlapPx,
+                    ),
+                ],
+                structuralRuns: const <BorderPublicationStructuralRun>[],
+              ),
+          ];
+
+          final result = _assess(
+            fixture,
+            definition: definition,
+            samples: samples,
+          );
+          final gapDiagnostics = result.diagnosticReport.diagnostics
+              .where(
+                (diagnostic) =>
+                    diagnostic.code ==
+                    'border.publication.coverage_gap_exceeded',
+              )
+              .toList(growable: false);
+
+          expect(result.canPublish, expectedCanPublish);
+          expect(gapDiagnostics, hasLength(5));
+          expect(
+            gapDiagnostics.map((diagnostic) => diagnostic.severity),
+            everyElement(expectedSeverity),
+          );
+        },
+      );
+    }
+
     test('requires the exact canonical case set for the template', () {
       final fixture = _Fixture.complete();
       final incomplete = _passingSamplesFor(fixture.definition)
@@ -1330,6 +1617,13 @@ int _passIndex(
         2,
       (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.span) => 0,
       (BorderBlueprintTemplate.postAndRailLine, BorderPrimitiveRole.post) => 1,
+      (
+        BorderBlueprintTemplate.connectedLine,
+        BorderPrimitiveRole.lineCap ||
+            BorderPrimitiveRole.lineStraight ||
+            BorderPrimitiveRole.lineCorner,
+      ) =>
+        0,
       _ => throw StateError('Non-structural publication run role'),
     };
 
@@ -1345,6 +1639,10 @@ bool _isStructural(
             role == BorderPrimitiveRole.filler,
       BorderBlueprintTemplate.postAndRailLine =>
         role == BorderPrimitiveRole.post || role == BorderPrimitiveRole.span,
+      BorderBlueprintTemplate.connectedLine =>
+        role == BorderPrimitiveRole.lineCap ||
+            role == BorderPrimitiveRole.lineStraight ||
+            role == BorderPrimitiveRole.lineCorner,
     };
 
 BorderPublishedGround _ground({
@@ -1414,6 +1712,7 @@ final class _Fixture {
     List<int> quarterTurns = const <int>[0, 1, 2, 3],
     BorderPixelPos anchor = const BorderPixelPos(x: 1, y: 1),
     BorderPrimitiveAssetMetrics? metrics,
+    bool allowFlipX = false,
   }) =>
       BorderPublishedPrimitive(
         id: id,
@@ -1423,7 +1722,7 @@ final class _Fixture {
         weight: 100,
         anchorPx: anchor,
         transforms: BorderTransformPolicy(
-          allowFlipX: false,
+          allowFlipX: allowFlipX,
           allowedQuarterTurns: quarterTurns,
         ),
         publishedMetrics: metrics ?? this.metrics(),
@@ -1433,20 +1732,22 @@ final class _Fixture {
     BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
     List<BorderPublishedPrimitive>? primitives,
     BorderPublishedGround? ground,
+    BorderGenerationParams? defaults,
   }) =>
       BorderBlueprintPublishedDefinition(
         name: 'Coast',
         previewSeed: BorderSignedInt64.zero,
         template: template,
         primitives: primitives ?? definition.primitives,
-        defaults: BorderGenerationParams(
-          irregularityPermille: 500,
-          detailDensityPermille: 500,
-          variationPermille: 500,
-          maxOverlapPx: 1,
-          gapTolerancePx: 1,
-          depthRows: 2,
-        ),
+        defaults: defaults ??
+            BorderGenerationParams(
+              irregularityPermille: 500,
+              detailDensityPermille: 500,
+              variationPermille: 500,
+              maxOverlapPx: 1,
+              gapTolerancePx: 1,
+              depthRows: 2,
+            ),
         ground: ground,
         sortOrder: 0,
       );

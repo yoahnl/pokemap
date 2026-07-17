@@ -55,7 +55,8 @@ ProjectBorderCatalog _projectBorderCatalogFromJson(Object? json) {
 Map<String, Object?>? _projectBorderCatalogToJson(
   ProjectBorderCatalog catalog,
 ) {
-  if (catalog.isEmpty) {
+  if (catalog.isEmpty &&
+      catalog.formatVersion == ProjectBorderCatalog.formatVersionV1) {
     return null;
   }
   return encodeProjectBorderCatalogJson(catalog, path: r'$.borderCatalog');

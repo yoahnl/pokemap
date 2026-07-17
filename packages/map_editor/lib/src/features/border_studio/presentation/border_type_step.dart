@@ -47,6 +47,8 @@ class BorderTypeStep extends StatelessWidget {
                             CupertinoIcons.square_stack_3d_down_right,
                           BorderBlueprintTemplate.postAndRailLine =>
                             CupertinoIcons.equal_square,
+                          BorderBlueprintTemplate.connectedLine =>
+                            CupertinoIcons.arrow_3_trianglepath,
                         },
                         tone: template == BorderBlueprintTemplate.organicEdge
                             ? PokeMapTone.info
@@ -82,6 +84,8 @@ class BorderTypeStep extends StatelessWidget {
                               'border-studio-template-masonry',
                             BorderBlueprintTemplate.postAndRailLine =>
                               'border-studio-template-fence',
+                            BorderBlueprintTemplate.connectedLine =>
+                              'border-studio-template-connected-line',
                           },
                         ),
                         onPressed: definition == null || disabledReason != null

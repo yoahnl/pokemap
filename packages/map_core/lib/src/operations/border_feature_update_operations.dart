@@ -10,6 +10,7 @@ import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import 'border_feature_json_codec.dart';
 import 'border_fingerprints.dart';
+import 'border_format_version.dart';
 import 'border_resolver.dart';
 import 'narrative_event_canonical_json.dart';
 
@@ -72,6 +73,7 @@ MapData updateBorderFeatureParameters(
         blueprintId: feature.blueprintId,
         seed: feature.seed,
         geometry: feature.geometry,
+        lineSide: feature.lineSide,
         paramsOverride: paramsOverride,
         overrides: feature.overrides,
         keepOutRegions: feature.keepOutRegions,
@@ -96,6 +98,7 @@ MapData updateBorderFeatureKeepOutRegions(
         blueprintId: feature.blueprintId,
         seed: feature.seed,
         geometry: feature.geometry,
+        lineSide: feature.lineSide,
         paramsOverride: feature.paramsOverride,
         overrides: feature.overrides,
         keepOutRegions: keepOutRegions,
@@ -108,7 +111,10 @@ MapData updateBorderFeatureKeepOutRegions(
 /// Unlike resolution input fingerprints, this deliberately covers the whole
 /// persisted feature, including its last materialization.
 String computeBorderFeatureEditFingerprint(BorderFeature feature) {
-  final encodedFeature = encodeBorderFeatureJson(feature);
+  final encodedFeature = encodeBorderFeatureJson(
+    feature,
+    formatVersion: borderFeatureRequiresFormatV2(feature) ? 2 : 1,
+  );
   _validatePortableFingerprintJson(encodedFeature, path: r'$.feature');
   return 'sha256:${narrativeEventCanonicalSha256(<String, Object?>{
         'schema': 'border-feature-edit-v1',
@@ -180,6 +186,7 @@ MapData applyBorderFeaturePreview(
     blueprintId: currentFeature.blueprintId,
     seed: proposedRequest.feature.seed,
     geometry: proposedRequest.feature.geometry,
+    lineSide: proposedRequest.feature.lineSide,
     paramsOverride: proposedRequest.feature.paramsOverride,
     overrides: proposedRequest.feature.overrides,
     keepOutRegions: proposedRequest.feature.keepOutRegions,
@@ -190,12 +197,39 @@ MapData applyBorderFeaturePreview(
   final layers = List<MapLayer>.from(map.layers);
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion: layer.content.formatVersion,
+      formatVersion:
+          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
+                  proposedRequest.blueprintRevision?.definition.template ==
+                      BorderBlueprintTemplate.connectedLine ||
+                  borderFeaturesRequireFormatV2(features)
+              ? BorderLayerContent.formatVersionV2
+              : BorderLayerContent.formatVersionV1,
       features: features,
     ),
   );
   return map.copyWith(layers: layers);
 }
+
+/// Returns the opposite connected-line visual side and invalidates output.
+///
+/// This is deliberately a pure authored-feature operation so editor previews
+/// can remain transactional and cancellation never mutates a map.
+BorderFeature toggleBorderFeatureLineSide(BorderFeature feature) =>
+    BorderFeature(
+      id: feature.id,
+      name: feature.name,
+      blueprintId: feature.blueprintId,
+      seed: feature.seed,
+      geometry: feature.geometry,
+      lineSide: switch (feature.lineSide) {
+        BorderLineSide.primary => BorderLineSide.inverted,
+        BorderLineSide.inverted => BorderLineSide.primary,
+      },
+      paramsOverride: feature.paramsOverride,
+      overrides: feature.overrides,
+      keepOutRegions: feature.keepOutRegions,
+      materialization: null,
+    );
 
 final BigInt _maximumPortableJsonInteger = BigInt.parse('9007199254740991');
 
@@ -392,7 +426,11 @@ MapData _updateBorderFeature(
   final layers = List<MapLayer>.from(map.layers);
   layers[layerIndex] = layer.copyWith(
     content: BorderLayerContent(
-      formatVersion: layer.content.formatVersion,
+      formatVersion:
+          layer.content.formatVersion == BorderLayerContent.formatVersionV2 ||
+                  borderFeaturesRequireFormatV2(features)
+              ? BorderLayerContent.formatVersionV2
+              : BorderLayerContent.formatVersionV1,
       features: features,
     ),
   );
@@ -411,6 +449,7 @@ BorderFeature _copyFeature(
       blueprintId: feature.blueprintId,
       seed: seed ?? feature.seed,
       geometry: geometry ?? feature.geometry,
+      lineSide: feature.lineSide,
       paramsOverride: feature.paramsOverride,
       overrides: overrides ?? feature.overrides,
       keepOutRegions: feature.keepOutRegions,

@@ -95,7 +95,58 @@ void main() {
           'span',
           'surfacePatch',
           'outerAccent',
+          'lineCap',
+          'lineStraight',
+          'lineCorner',
         ],
+      );
+    });
+
+    test('connected node identity ignores side and topology transitions', () {
+      String keyFor({
+        required BorderLineSide side,
+        required BorderPrimitiveRole topologyRole,
+      }) {
+        // The public key intentionally has no side input. Keeping [side] in
+        // this test helper makes the inversion compatibility contract explicit.
+        expect(BorderLineSide.values, contains(side));
+        return buildBorderConnectedLineNodeSlotKey(
+          featureId: 'feature-cliff',
+          strokeId: 'stroke-lineage',
+          cell: const GridPos(x: 4, y: 7),
+          passIndex: 0,
+          role: topologyRole,
+          rank: 0,
+          ordinalLocal: 0,
+        );
+      }
+
+      final primaryCap = keyFor(
+        side: BorderLineSide.primary,
+        topologyRole: BorderPrimitiveRole.lineCap,
+      );
+      final invertedStraight = keyFor(
+        side: BorderLineSide.inverted,
+        topologyRole: BorderPrimitiveRole.lineStraight,
+      );
+      final primaryCorner = keyFor(
+        side: BorderLineSide.primary,
+        topologyRole: BorderPrimitiveRole.lineCorner,
+      );
+
+      expect(invertedStraight, primaryCap);
+      expect(primaryCorner, primaryCap);
+      expect(
+        buildBorderConnectedLineNodeSlotKey(
+          featureId: 'feature-cliff',
+          strokeId: 'stroke-lineage',
+          cell: const GridPos(x: 5, y: 7),
+          passIndex: 0,
+          role: BorderPrimitiveRole.lineCap,
+          rank: 0,
+          ordinalLocal: 0,
+        ),
+        isNot(primaryCap),
       );
     });
 

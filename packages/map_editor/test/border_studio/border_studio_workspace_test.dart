@@ -40,7 +40,8 @@ void main() {
     expect(find.text('Côte organique'), findsOneWidget);
     expect(find.text('Muret maçonné'), findsOneWidget);
     expect(find.text('Clôture poteaux-traverses'), findsOneWidget);
-    expect(find.text('Publication disponible'), findsNWidgets(3));
+    expect(find.text('Ligne connectée'), findsOneWidget);
+    expect(find.text('Publication disponible'), findsNWidgets(4));
     expect(find.text('Publication après BORD-06'), findsNothing);
 
     final fenceTemplate =
@@ -63,6 +64,54 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Publication après BORD-06'), findsNothing);
+  });
+
+  testWidgets(
+      'connected line exposes three no-code slots and counts their variants',
+      (tester) async {
+    final container = await _pumpWorkspace(tester, _manifest());
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier)
+          ..createBlueprint(
+            id: 'cliff-line',
+            name: 'Falaise libre',
+            template: BorderBlueprintTemplate.connectedLine,
+          )
+          ..replacePrimitives(<BorderPrimitiveDraft>[
+            _primitive(id: 'cap-a', role: BorderPrimitiveRole.lineCap),
+            _primitive(id: 'cap-b', role: BorderPrimitiveRole.lineCap),
+            _primitive(
+              id: 'straight',
+              role: BorderPrimitiveRole.lineStraight,
+            ),
+            _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+          ]);
+    await tester.pump();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+    );
+    await tester.pump();
+
+    expect(find.text('Extrémité'), findsWidgets);
+    expect(find.text('Segment droit'), findsWidgets);
+    expect(find.text('Angle'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey<String>('border-studio-role-status-lineCap'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('2 variantes'), findsOneWidget);
+    expect(find.text('1 variante'), findsNWidgets(2));
+    expect(find.text('Prêt'), findsNWidgets(3));
+    expect(find.text('Manquant'), findsNothing);
+
+    controller.removePrimitive('corner');
+    await tester.pump();
+
+    expect(find.text('Manquant'), findsOneWidget);
+    expect(find.text('Prêt'), findsNWidgets(2));
   });
 
   testWidgets('masonry roles require one structure and keep finishes optional',

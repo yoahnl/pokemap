@@ -45,13 +45,17 @@ class BorderPreviewPublicationStep extends StatelessWidget {
         ? const <String>[]
         : unresolvedBorderRoleLabels(definition);
     final publication = state.publicationAvailability;
+    final isConnectedLine =
+        definition?.template == BorderBlueprintTemplate.connectedLine;
     final expectedCases = definition == null
         ? 0
         : borderCanonicalGalleryCasesForTemplate(definition.template).length;
     final hasCompleteGallery = preview != null &&
         preview!.canonicalGalleryCases.length == expectedCases &&
         preview!.canonicalGalleryCases.every(
-          (sample) => sample.resolution.canApply,
+          (sample) =>
+              sample.resolution.canApply &&
+              (!isConnectedLine || sample.invertedResolution?.canApply == true),
         );
     final canPublish = preview != null &&
         hasCompleteGallery &&
@@ -70,6 +74,12 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     final previewFrames = preview == null
         ? const <String, List<BorderCanonicalGalleryFrame>>{}
         : _framesBySnapshotId(preview!);
+    final connectedLineTransformRoleLabels = <String>{
+      for (final diagnostic in state.diagnostics.diagnostics)
+        if (diagnostic.code ==
+            'border.publication.connected_line_transform_unavailable')
+          _connectedLineRoleLabel(diagnostic.parameters['role']),
+    };
 
     return BorderStudioStepScaffold(
       title: '5. Aperçu et publication',
@@ -91,8 +101,9 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     padding: const EdgeInsets.all(12),
                     child: PokeMapSectionHeader(
                       title: 'Bac à sable neutre',
-                      description:
-                          'Chaque vignette ci-dessous provient du solveur réel et des snapshots immuables candidats.',
+                      description: isConnectedLine
+                          ? 'Chaque cas montre le côté principal et le côté inversé. Le cas d’angle couvre les virages à gauche et à droite.'
+                          : 'Chaque vignette ci-dessous provient du solveur réel et des snapshots immuables candidats.',
                       trailing: Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -149,7 +160,7 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                 key: ValueKey<String>(
                                   'border-studio-gallery-case-${sample.galleryCase.name}',
                                 ),
-                                width: 272,
+                                width: isConnectedLine ? 544 : 272,
                                 child: PokeMapCard(
                                   padding: const EdgeInsets.all(10),
                                   child: Column(
@@ -164,24 +175,102 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
-                                      BorderCanonicalGalleryCanvas(
-                                        semanticsLabel:
-                                            '${_galleryCaseLabel(sample.galleryCase)} généré',
-                                        mapSize: sample.mapSize,
-                                        geometry: sample.geometry,
-                                        tileSizePx: GridSize(
-                                          width: preview!.candidate.nextManifest
-                                              .settings.tileWidth,
-                                          height: preview!.candidate
-                                              .nextManifest.settings.tileHeight,
+                                      if (isConnectedLine &&
+                                          sample.galleryCase ==
+                                              BorderCanonicalGalleryCase
+                                                  .sharpCorner) ...[
+                                        const SizedBox(height: 6),
+                                        const Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: PokeMapBadge(
+                                            label: 'Virages gauche et droite',
+                                            variant: PokeMapBadgeVariant.info,
+                                          ),
                                         ),
-                                        materialization:
-                                            sample.resolution.materialization,
-                                        catalog: preview!.candidate.nextManifest
-                                            .borderCatalog,
-                                        framesBySnapshotId: previewFrames,
-                                      ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      if (isConnectedLine)
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            _BorderGallerySidePreview(
+                                              label: 'Côté principal',
+                                              canvasKey: ValueKey<String>(
+                                                'border-studio-gallery-${sample.galleryCase.name}-primary',
+                                              ),
+                                              semanticsLabel:
+                                                  '${_galleryCaseLabel(sample.galleryCase)}, côté principal généré',
+                                              sample: sample,
+                                              resolution: sample.resolution,
+                                              tileSizePx: GridSize(
+                                                width: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileWidth,
+                                                height: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileHeight,
+                                              ),
+                                              catalog: preview!.candidate
+                                                  .nextManifest.borderCatalog,
+                                              framesBySnapshotId: previewFrames,
+                                            ),
+                                            _BorderGallerySidePreview(
+                                              label: 'Côté inversé',
+                                              canvasKey: ValueKey<String>(
+                                                'border-studio-gallery-${sample.galleryCase.name}-inverted',
+                                              ),
+                                              semanticsLabel:
+                                                  '${_galleryCaseLabel(sample.galleryCase)}, côté inversé généré',
+                                              sample: sample,
+                                              resolution:
+                                                  sample.invertedResolution,
+                                              tileSizePx: GridSize(
+                                                width: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileWidth,
+                                                height: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileHeight,
+                                              ),
+                                              catalog: preview!.candidate
+                                                  .nextManifest.borderCatalog,
+                                              framesBySnapshotId: previewFrames,
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        BorderCanonicalGalleryCanvas(
+                                          semanticsLabel:
+                                              '${_galleryCaseLabel(sample.galleryCase)} généré',
+                                          mapSize: sample.mapSize,
+                                          geometry: sample.geometry,
+                                          tileSizePx: GridSize(
+                                            width: preview!
+                                                .candidate
+                                                .nextManifest
+                                                .settings
+                                                .tileWidth,
+                                            height: preview!
+                                                .candidate
+                                                .nextManifest
+                                                .settings
+                                                .tileHeight,
+                                          ),
+                                          materialization:
+                                              sample.resolution.materialization,
+                                          catalog: preview!.candidate
+                                              .nextManifest.borderCatalog,
+                                          framesBySnapshotId: previewFrames,
+                                        ),
                                     ],
                                   ),
                                 ),
@@ -243,6 +332,22 @@ class BorderPreviewPublicationStep extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (connectedLineTransformRoleLabels.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  for (final roleLabel in connectedLineTransformRoleLabels) ...[
+                    BorderStudioNotice(
+                      title: 'Transformation requise pour $roleLabel',
+                      description:
+                          'Supprimez puis réimportez l’asset de ce rôle pour '
+                          'autoriser les rotations et le miroir requis, puis '
+                          'régénérez l’aperçu.',
+                      tone: PokeMapTone.danger,
+                      icon: CupertinoIcons.exclamationmark_triangle,
+                    ),
+                    if (roleLabel != connectedLineTransformRoleLabels.last)
+                      const SizedBox(height: 8),
+                  ],
+                ],
                 if (state.warningCodes.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   PokeMapPanel(
@@ -432,6 +537,13 @@ class BorderPreviewPublicationStep extends StatelessWidget {
     return 'Le solveur a détecté un point non bloquant qui demande votre validation visuelle.';
   }
 
+  String _connectedLineRoleLabel(Object? wireName) => switch (wireName) {
+        'lineCap' => 'Extrémité',
+        'lineStraight' => 'Segment droit',
+        'lineCorner' => 'Angle',
+        _ => 'raccord de ligne',
+      };
+
   int _diagnosticCount(
     BorderStudioDraftState state,
     BorderDiagnosticSeverity severity,
@@ -439,4 +551,51 @@ class BorderPreviewPublicationStep extends StatelessWidget {
       state.diagnostics.diagnostics
           .where((diagnostic) => diagnostic.severity == severity)
           .length;
+}
+
+class _BorderGallerySidePreview extends StatelessWidget {
+  const _BorderGallerySidePreview({
+    required this.label,
+    required this.canvasKey,
+    required this.semanticsLabel,
+    required this.sample,
+    required this.resolution,
+    required this.tileSizePx,
+    required this.catalog,
+    required this.framesBySnapshotId,
+  });
+
+  final String label;
+  final Key canvasKey;
+  final String semanticsLabel;
+  final BorderStudioCanonicalGalleryCasePreview sample;
+  final BorderResolutionResult? resolution;
+  final GridSize tileSizePx;
+  final ProjectBorderCatalog catalog;
+  final Map<String, List<BorderCanonicalGalleryFrame>> framesBySnapshotId;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 252,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PokeMapBadge(label: label),
+            ),
+            const SizedBox(height: 6),
+            BorderCanonicalGalleryCanvas(
+              key: canvasKey,
+              semanticsLabel: semanticsLabel,
+              mapSize: sample.mapSize,
+              geometry: sample.geometry,
+              tileSizePx: tileSizePx,
+              materialization: resolution?.materialization,
+              catalog: catalog,
+              framesBySnapshotId: framesBySnapshotId,
+            ),
+          ],
+        ),
+      );
 }

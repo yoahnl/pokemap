@@ -192,6 +192,98 @@ void main() {
     tileImage.dispose();
   });
 
+  test('a hidden Border preserves legacy terrain-before-path rendering',
+      () async {
+    const legacyLayers = <MapLayer>[
+      TerrainLayer(
+        id: 'terrain',
+        name: 'Terrain',
+        terrains: <TerrainType>[TerrainType.grass],
+      ),
+      PathLayer(
+        id: 'ocean',
+        name: 'Ocean',
+        presetId: 'ocean',
+        cells: <bool>[true],
+      ),
+    ];
+    const baseline = MapData(
+      id: 'legacy-background-baseline',
+      name: 'Legacy background baseline',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 1, height: 1),
+      layers: legacyLayers,
+    );
+    const withHiddenBorder = MapData(
+      id: 'legacy-background-with-border',
+      name: 'Legacy background with Border',
+      version: ProjectVersion.v2,
+      size: GridSize(width: 1, height: 1),
+      layers: <MapLayer>[
+        ...legacyLayers,
+        BorderLayer(
+          id: 'border-hidden',
+          name: 'Border hidden',
+          isVisible: false,
+        ),
+      ],
+    );
+
+    final baselineColor = await _paintCenter(
+      baseline,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+    );
+    final withHiddenBorderColor = await _paintCenter(
+      withHiddenBorder,
+      project: _manifest(),
+      images: const <String, ui.Image?>{},
+    );
+
+    expect(withHiddenBorderColor, baselineColor);
+  });
+
+  test('an appended Border paints above legacy background passes', () async {
+    final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
+    final map = MapData(
+      id: 'legacy-visible-border',
+      name: 'Legacy visible Border',
+      version: ProjectVersion.v2,
+      size: const GridSize(width: 1, height: 1),
+      layers: <MapLayer>[
+        const TerrainLayer(
+          id: 'terrain',
+          name: 'Terrain',
+          terrains: <TerrainType>[TerrainType.grass],
+        ),
+        const PathLayer(
+          id: 'ocean',
+          name: 'Ocean',
+          presetId: 'ocean',
+          cells: <bool>[true],
+        ),
+        MapLayer.border(
+          id: 'border',
+          name: 'Border',
+          content: BorderLayerContent(
+            features: <BorderFeature>[_feature()],
+          ),
+        ),
+      ],
+    );
+
+    final color = await _paintCenter(
+      map,
+      project: _manifest(),
+      images: <String, ui.Image?>{
+        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
+      },
+    );
+
+    expect(color, const ui.Color(0xFFFF0000));
+    borderImage.dispose();
+  });
+
   test('renders only referenced immutable snapshots, never source catalogs',
       () async {
     final red = await _solidImage(const ui.Color(0xFFFF0000));

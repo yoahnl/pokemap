@@ -5,9 +5,2583 @@
     "width": 55,
     "height": 55
   },
-  "version": "v1",
+  "version": "v2",
   "tilesetId": "",
   "layers": [
+    {
+      "id": "l_border_bordures",
+      "name": "Bordures",
+      "isVisible": true,
+      "opacity": 1.0,
+      "content": {
+        "formatVersion": 2,
+        "features": [
+          {
+            "id": "border_feature",
+            "name": "Bordure 1",
+            "blueprintId": "border-blueprint-1",
+            "seed": "-2263168965624368043",
+            "geometry": {
+              "kind": "stroke",
+              "strokes": [
+                {
+                  "id": "stroke",
+                  "points": [
+                    {
+                      "x": 6,
+                      "y": 12
+                    },
+                    {
+                      "x": 6,
+                      "y": 13
+                    },
+                    {
+                      "x": 6,
+                      "y": 14
+                    },
+                    {
+                      "x": 7,
+                      "y": 14
+                    },
+                    {
+                      "x": 7,
+                      "y": 15
+                    },
+                    {
+                      "x": 8,
+                      "y": 15
+                    },
+                    {
+                      "x": 8,
+                      "y": 16
+                    },
+                    {
+                      "x": 9,
+                      "y": 16
+                    },
+                    {
+                      "x": 9,
+                      "y": 17
+                    },
+                    {
+                      "x": 9,
+                      "y": 18
+                    },
+                    {
+                      "x": 9,
+                      "y": 19
+                    },
+                    {
+                      "x": 9,
+                      "y": 20
+                    },
+                    {
+                      "x": 9,
+                      "y": 21
+                    },
+                    {
+                      "x": 8,
+                      "y": 21
+                    },
+                    {
+                      "x": 8,
+                      "y": 22
+                    },
+                    {
+                      "x": 7,
+                      "y": 22
+                    },
+                    {
+                      "x": 7,
+                      "y": 23
+                    },
+                    {
+                      "x": 7,
+                      "y": 24
+                    },
+                    {
+                      "x": 7,
+                      "y": 25
+                    },
+                    {
+                      "x": 7,
+                      "y": 26
+                    },
+                    {
+                      "x": 7,
+                      "y": 27
+                    },
+                    {
+                      "x": 8,
+                      "y": 27
+                    },
+                    {
+                      "x": 8,
+                      "y": 28
+                    },
+                    {
+                      "x": 8,
+                      "y": 29
+                    },
+                    {
+                      "x": 8,
+                      "y": 30
+                    },
+                    {
+                      "x": 9,
+                      "y": 30
+                    },
+                    {
+                      "x": 9,
+                      "y": 31
+                    },
+                    {
+                      "x": 10,
+                      "y": 31
+                    },
+                    {
+                      "x": 10,
+                      "y": 32
+                    },
+                    {
+                      "x": 10,
+                      "y": 33
+                    },
+                    {
+                      "x": 11,
+                      "y": 33
+                    },
+                    {
+                      "x": 11,
+                      "y": 34
+                    },
+                    {
+                      "x": 11,
+                      "y": 35
+                    },
+                    {
+                      "x": 11,
+                      "y": 36
+                    },
+                    {
+                      "x": 11,
+                      "y": 37
+                    },
+                    {
+                      "x": 12,
+                      "y": 37
+                    },
+                    {
+                      "x": 12,
+                      "y": 38
+                    },
+                    {
+                      "x": 13,
+                      "y": 38
+                    },
+                    {
+                      "x": 13,
+                      "y": 39
+                    },
+                    {
+                      "x": 13,
+                      "y": 40
+                    },
+                    {
+                      "x": 14,
+                      "y": 40
+                    },
+                    {
+                      "x": 14,
+                      "y": 41
+                    },
+                    {
+                      "x": 14,
+                      "y": 42
+                    },
+                    {
+                      "x": 15,
+                      "y": 42
+                    },
+                    {
+                      "x": 16,
+                      "y": 42
+                    },
+                    {
+                      "x": 16,
+                      "y": 43
+                    },
+                    {
+                      "x": 17,
+                      "y": 43
+                    },
+                    {
+                      "x": 18,
+                      "y": 43
+                    },
+                    {
+                      "x": 19,
+                      "y": 43
+                    },
+                    {
+                      "x": 19,
+                      "y": 44
+                    },
+                    {
+                      "x": 20,
+                      "y": 44
+                    },
+                    {
+                      "x": 21,
+                      "y": 44
+                    },
+                    {
+                      "x": 22,
+                      "y": 44
+                    }
+                  ],
+                  "closed": false
+                },
+                {
+                  "id": "stroke_2",
+                  "points": [
+                    {
+                      "x": 32,
+                      "y": 44
+                    },
+                    {
+                      "x": 32,
+                      "y": 43
+                    },
+                    {
+                      "x": 33,
+                      "y": 43
+                    },
+                    {
+                      "x": 34,
+                      "y": 43
+                    },
+                    {
+                      "x": 34,
+                      "y": 42
+                    },
+                    {
+                      "x": 35,
+                      "y": 42
+                    },
+                    {
+                      "x": 36,
+                      "y": 42
+                    },
+                    {
+                      "x": 37,
+                      "y": 42
+                    },
+                    {
+                      "x": 38,
+                      "y": 42
+                    },
+                    {
+                      "x": 39,
+                      "y": 42
+                    },
+                    {
+                      "x": 40,
+                      "y": 42
+                    },
+                    {
+                      "x": 40,
+                      "y": 43
+                    },
+                    {
+                      "x": 41,
+                      "y": 43
+                    },
+                    {
+                      "x": 42,
+                      "y": 43
+                    },
+                    {
+                      "x": 42,
+                      "y": 44
+                    }
+                  ],
+                  "closed": false
+                }
+              ]
+            },
+            "overrides": [],
+            "keepOutRegions": [],
+            "materialization": {
+              "receipt": {
+                "resolverVersion": 1,
+                "blueprintRevision": 2,
+                "components": {
+                  "blueprint": "sha256:b6ec02d1de9badd06fb03599e72e789e7752cd5ab5acddc0e65c12964d8b1365",
+                  "geometryAndSeed": "sha256:711bb90353320e46ba42cfa627f3232fdf295a50c2d3c6c706c585b73648545b",
+                  "parameters": "sha256:f92fd19a4378be89bfe7e99bf4e8ce2b45ba8274ab143f1b27930c1f6d768bcc",
+                  "overrides": "sha256:a2c526aab2f489db93635255e88cdd8e07c21b650e8f4e7a323ab9ed4b9c367f",
+                  "keepOutRegions": "sha256:2da90a4ed7029f3ec75dfa41718d39a5fdf199e4bb0c0d03afe722161ba340da",
+                  "mapContext": "sha256:06dea7794ef612262aef6f6a47b32ef63d154562b20b43a882fbef4e7e573d3e",
+                  "visualSnapshots": "sha256:4de9fcbe09967026b0dafb7db07daea0ccc9d64e289b73592c27402c18825038"
+                },
+                "inputFingerprint": "sha256:fc9a8a5b347a3bdbab44618915b2fb9005a2a514279f4d6417cdab9ff9fe6fd4",
+                "outputFingerprint": "sha256:974837dd2e7c75dbf4fafdb459f9dfcee5e68d917fef10033d40d5fbd7044c03"
+              },
+              "ground": [],
+              "placements": [
+                {
+                  "id": "border-placement-v1:e3685081b85c16bdb3a0d70d3a2164f63e604a5b24fbb01d54e2014ad9341f28",
+                  "slotKey": "border-slot-v1:e3685081b85c16bdb3a0d70d3a2164f63e604a5b24fbb01d54e2014ad9341f28",
+                  "primitiveId": "border-primitive-5",
+                  "visualSnapshotId": "border-snapshot-sha256:6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+                  "anchorCell": {
+                    "x": 6,
+                    "y": 12
+                  },
+                  "topLeftWorldPx": {
+                    "x": 157,
+                    "y": 368
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 165,
+                    "y": 370,
+                    "width": 48,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 666,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e3685081b85c16bdb3a0d70d3a2164f63e604a5b24fbb01d54e2014ad9341f28"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e6f2c8d56fe119f31745fe7679da7bbf247039cca8d38d2edf49a73587cb5ef4",
+                  "slotKey": "border-slot-v1:e6f2c8d56fe119f31745fe7679da7bbf247039cca8d38d2edf49a73587cb5ef4",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 6,
+                    "y": 13
+                  },
+                  "topLeftWorldPx": {
+                    "x": 157,
+                    "y": 400
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 169,
+                    "y": 400,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 721,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e6f2c8d56fe119f31745fe7679da7bbf247039cca8d38d2edf49a73587cb5ef4"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:f913c9190a49df293811d28478dd857ba38b4f8d22ddcc6f309dc052b594831a",
+                  "slotKey": "border-slot-v1:f913c9190a49df293811d28478dd857ba38b4f8d22ddcc6f309dc052b594831a",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 6,
+                    "y": 14
+                  },
+                  "topLeftWorldPx": {
+                    "x": 195,
+                    "y": 413
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 197,
+                    "y": 415,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 776,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:f913c9190a49df293811d28478dd857ba38b4f8d22ddcc6f309dc052b594831a"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:ac6245c1ef2b743f7a0d03ad6e5a86f8b3ad04cde16203088d4e2d8d4c59b1d9",
+                  "slotKey": "border-slot-v1:ac6245c1ef2b743f7a0d03ad6e5a86f8b3ad04cde16203088d4e2d8d4c59b1d9",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 14
+                  },
+                  "topLeftWorldPx": {
+                    "x": 190,
+                    "y": 452
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 192,
+                    "y": 454,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 777,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:ac6245c1ef2b743f7a0d03ad6e5a86f8b3ad04cde16203088d4e2d8d4c59b1d9"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:82fda41bba5a720d2f1073f61ac6ab638bea76085ee7dbe73a55a9184c9140bc",
+                  "slotKey": "border-slot-v1:82fda41bba5a720d2f1073f61ac6ab638bea76085ee7dbe73a55a9184c9140bc",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 15
+                  },
+                  "topLeftWorldPx": {
+                    "x": 227,
+                    "y": 445
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 229,
+                    "y": 447,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 832,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:82fda41bba5a720d2f1073f61ac6ab638bea76085ee7dbe73a55a9184c9140bc"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:98fdb7425278dd2fab4f1e66007f3bf17b700c56f95bac63fed1d7d4228cf95c",
+                  "slotKey": "border-slot-v1:98fdb7425278dd2fab4f1e66007f3bf17b700c56f95bac63fed1d7d4228cf95c",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 15
+                  },
+                  "topLeftWorldPx": {
+                    "x": 222,
+                    "y": 484
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 224,
+                    "y": 486,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 833,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:98fdb7425278dd2fab4f1e66007f3bf17b700c56f95bac63fed1d7d4228cf95c"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:18e10d36050cc8f351ff36a7ab7250afd7f38b49a7afdb03c52592d69d240928",
+                  "slotKey": "border-slot-v1:18e10d36050cc8f351ff36a7ab7250afd7f38b49a7afdb03c52592d69d240928",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 16
+                  },
+                  "topLeftWorldPx": {
+                    "x": 259,
+                    "y": 477
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 261,
+                    "y": 479,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 888,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:18e10d36050cc8f351ff36a7ab7250afd7f38b49a7afdb03c52592d69d240928"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:b982810fbc8f7f5b90dd5b5cfd2cd759b9e2b8c6ddb8387e7e3dc3f74493c0fa",
+                  "slotKey": "border-slot-v1:b982810fbc8f7f5b90dd5b5cfd2cd759b9e2b8c6ddb8387e7e3dc3f74493c0fa",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 16
+                  },
+                  "topLeftWorldPx": {
+                    "x": 254,
+                    "y": 516
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 256,
+                    "y": 518,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 889,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:b982810fbc8f7f5b90dd5b5cfd2cd759b9e2b8c6ddb8387e7e3dc3f74493c0fa"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:97c814678d94d6e683a8adbbd0171bc63c92e34518728235af5aaccab2c2e859",
+                  "slotKey": "border-slot-v1:97c814678d94d6e683a8adbbd0171bc63c92e34518728235af5aaccab2c2e859",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 17
+                  },
+                  "topLeftWorldPx": {
+                    "x": 253,
+                    "y": 528
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 265,
+                    "y": 528,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 944,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:97c814678d94d6e683a8adbbd0171bc63c92e34518728235af5aaccab2c2e859"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:a2e139371c1f337f476f7f9cdc41dd78055ab171a161cccc91ec5dd014ccd380",
+                  "slotKey": "border-slot-v1:a2e139371c1f337f476f7f9cdc41dd78055ab171a161cccc91ec5dd014ccd380",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 18
+                  },
+                  "topLeftWorldPx": {
+                    "x": 253,
+                    "y": 560
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 265,
+                    "y": 560,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 999,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:a2e139371c1f337f476f7f9cdc41dd78055ab171a161cccc91ec5dd014ccd380"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:1cce685a885490ca8a166b2715561e95d0b77c0e1a4969aadb561d015490239b",
+                  "slotKey": "border-slot-v1:1cce685a885490ca8a166b2715561e95d0b77c0e1a4969aadb561d015490239b",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 19
+                  },
+                  "topLeftWorldPx": {
+                    "x": 253,
+                    "y": 592
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 265,
+                    "y": 592,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1054,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:1cce685a885490ca8a166b2715561e95d0b77c0e1a4969aadb561d015490239b"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:d2c7151dacfa0c9e48bdceb6f7b580c0cda2c81c08ce044673e1b7dd1940c82e",
+                  "slotKey": "border-slot-v1:d2c7151dacfa0c9e48bdceb6f7b580c0cda2c81c08ce044673e1b7dd1940c82e",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 20
+                  },
+                  "topLeftWorldPx": {
+                    "x": 253,
+                    "y": 624
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 265,
+                    "y": 624,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1109,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:d2c7151dacfa0c9e48bdceb6f7b580c0cda2c81c08ce044673e1b7dd1940c82e"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:c5ca84a6ab4049d18a0f5cad1a2c4e5e909fde375c533b6315df5b5ca35b224f",
+                  "slotKey": "border-slot-v1:c5ca84a6ab4049d18a0f5cad1a2c4e5e909fde375c533b6315df5b5ca35b224f",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 21
+                  },
+                  "topLeftWorldPx": {
+                    "x": 260,
+                    "y": 675
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 262,
+                    "y": 677,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1163,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:c5ca84a6ab4049d18a0f5cad1a2c4e5e909fde375c533b6315df5b5ca35b224f"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:d3dd18f9b0ce12f87499a135b4b0c8526f49d558121e5bac3de28cf6b91801d4",
+                  "slotKey": "border-slot-v1:d3dd18f9b0ce12f87499a135b4b0c8526f49d558121e5bac3de28cf6b91801d4",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 21
+                  },
+                  "topLeftWorldPx": {
+                    "x": 253,
+                    "y": 638
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 255,
+                    "y": 640,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1164,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:d3dd18f9b0ce12f87499a135b4b0c8526f49d558121e5bac3de28cf6b91801d4"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:956da50965292c41cb9305ce7e2b2f2395458b73053ebebd151c42a78754f3b0",
+                  "slotKey": "border-slot-v1:956da50965292c41cb9305ce7e2b2f2395458b73053ebebd151c42a78754f3b0",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 22
+                  },
+                  "topLeftWorldPx": {
+                    "x": 228,
+                    "y": 707
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 230,
+                    "y": 709,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1217,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:956da50965292c41cb9305ce7e2b2f2395458b73053ebebd151c42a78754f3b0"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:abd3afb510870742cfa5104ae4278febb89801d040d75910c9de0cd537f81c81",
+                  "slotKey": "border-slot-v1:abd3afb510870742cfa5104ae4278febb89801d040d75910c9de0cd537f81c81",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 22
+                  },
+                  "topLeftWorldPx": {
+                    "x": 221,
+                    "y": 670
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 223,
+                    "y": 672,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1218,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:abd3afb510870742cfa5104ae4278febb89801d040d75910c9de0cd537f81c81"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:864d5cdaead3f5740f5189ea124ea0b3b0f7f3f2550e76a750733f5b921e451c",
+                  "slotKey": "border-slot-v1:864d5cdaead3f5740f5189ea124ea0b3b0f7f3f2550e76a750733f5b921e451c",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 23
+                  },
+                  "topLeftWorldPx": {
+                    "x": 189,
+                    "y": 720
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 201,
+                    "y": 720,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1272,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:864d5cdaead3f5740f5189ea124ea0b3b0f7f3f2550e76a750733f5b921e451c"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:9c4eda4d321467d740822fc0a5297d527bac00e1d944e4ce831aa1dae8e0fac5",
+                  "slotKey": "border-slot-v1:9c4eda4d321467d740822fc0a5297d527bac00e1d944e4ce831aa1dae8e0fac5",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 24
+                  },
+                  "topLeftWorldPx": {
+                    "x": 189,
+                    "y": 752
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 201,
+                    "y": 752,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1327,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:9c4eda4d321467d740822fc0a5297d527bac00e1d944e4ce831aa1dae8e0fac5"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0d1c010d63acffe73b073ac9bd3b9eb9d8bc7395c57e86f92bdf81cceb03ce67",
+                  "slotKey": "border-slot-v1:0d1c010d63acffe73b073ac9bd3b9eb9d8bc7395c57e86f92bdf81cceb03ce67",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 25
+                  },
+                  "topLeftWorldPx": {
+                    "x": 189,
+                    "y": 784
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 201,
+                    "y": 784,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1382,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0d1c010d63acffe73b073ac9bd3b9eb9d8bc7395c57e86f92bdf81cceb03ce67"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:75c7a652974c04c78a754b4ecca000e384487c9a24c51741a9ec4150c8f78707",
+                  "slotKey": "border-slot-v1:75c7a652974c04c78a754b4ecca000e384487c9a24c51741a9ec4150c8f78707",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 26
+                  },
+                  "topLeftWorldPx": {
+                    "x": 189,
+                    "y": 816
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 201,
+                    "y": 816,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1437,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:75c7a652974c04c78a754b4ecca000e384487c9a24c51741a9ec4150c8f78707"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:54782a86cdc5a1cfbaa90b5e027cfc61634b7097185cb086a7e14850c3c05522",
+                  "slotKey": "border-slot-v1:54782a86cdc5a1cfbaa90b5e027cfc61634b7097185cb086a7e14850c3c05522",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 7,
+                    "y": 27
+                  },
+                  "topLeftWorldPx": {
+                    "x": 227,
+                    "y": 829
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 229,
+                    "y": 831,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1492,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:54782a86cdc5a1cfbaa90b5e027cfc61634b7097185cb086a7e14850c3c05522"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:247d4cc95df8ad08d5f4ef3f8bdcbbb1bf61e277d99fbfabb239884f126db1ac",
+                  "slotKey": "border-slot-v1:247d4cc95df8ad08d5f4ef3f8bdcbbb1bf61e277d99fbfabb239884f126db1ac",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 27
+                  },
+                  "topLeftWorldPx": {
+                    "x": 222,
+                    "y": 868
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 224,
+                    "y": 870,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1493,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:247d4cc95df8ad08d5f4ef3f8bdcbbb1bf61e277d99fbfabb239884f126db1ac"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:bcac67024b874041c91d01b130d2c85c1faa66b642d67e46c4be2a3cda409579",
+                  "slotKey": "border-slot-v1:bcac67024b874041c91d01b130d2c85c1faa66b642d67e46c4be2a3cda409579",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 28
+                  },
+                  "topLeftWorldPx": {
+                    "x": 221,
+                    "y": 880
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 233,
+                    "y": 880,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1548,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:bcac67024b874041c91d01b130d2c85c1faa66b642d67e46c4be2a3cda409579"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:b1fa336f45a1858d9f1a076edc065b08a67371b2b86a1515bab24da4de4af17a",
+                  "slotKey": "border-slot-v1:b1fa336f45a1858d9f1a076edc065b08a67371b2b86a1515bab24da4de4af17a",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 29
+                  },
+                  "topLeftWorldPx": {
+                    "x": 221,
+                    "y": 912
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 233,
+                    "y": 912,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1603,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:b1fa336f45a1858d9f1a076edc065b08a67371b2b86a1515bab24da4de4af17a"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:6322d1decdb517cba021a402cc5fcbdb850d8960f6932b66f1535b940a736cbd",
+                  "slotKey": "border-slot-v1:6322d1decdb517cba021a402cc5fcbdb850d8960f6932b66f1535b940a736cbd",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 8,
+                    "y": 30
+                  },
+                  "topLeftWorldPx": {
+                    "x": 259,
+                    "y": 925
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 261,
+                    "y": 927,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1658,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:6322d1decdb517cba021a402cc5fcbdb850d8960f6932b66f1535b940a736cbd"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:05753b007d8df31f929c045b46e8fd19392290a2726ef638ff209263ab41d300",
+                  "slotKey": "border-slot-v1:05753b007d8df31f929c045b46e8fd19392290a2726ef638ff209263ab41d300",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 30
+                  },
+                  "topLeftWorldPx": {
+                    "x": 254,
+                    "y": 964
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 256,
+                    "y": 966,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1659,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:05753b007d8df31f929c045b46e8fd19392290a2726ef638ff209263ab41d300"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0dbc34a2c88f9bdab22d84f87a3b985d2bb096238811978786f1d5294c0f4e49",
+                  "slotKey": "border-slot-v1:0dbc34a2c88f9bdab22d84f87a3b985d2bb096238811978786f1d5294c0f4e49",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 9,
+                    "y": 31
+                  },
+                  "topLeftWorldPx": {
+                    "x": 291,
+                    "y": 957
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 293,
+                    "y": 959,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1714,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0dbc34a2c88f9bdab22d84f87a3b985d2bb096238811978786f1d5294c0f4e49"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:d463dc7d056848e7dda3b9481b7228140f2cc0037c59a57c0331c1f8c51dac51",
+                  "slotKey": "border-slot-v1:d463dc7d056848e7dda3b9481b7228140f2cc0037c59a57c0331c1f8c51dac51",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 10,
+                    "y": 31
+                  },
+                  "topLeftWorldPx": {
+                    "x": 286,
+                    "y": 996
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 288,
+                    "y": 998,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1715,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:d463dc7d056848e7dda3b9481b7228140f2cc0037c59a57c0331c1f8c51dac51"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:295be626625cc31cc998f789af51210bc6c881dbb5fdbae582ed52b365ff2a41",
+                  "slotKey": "border-slot-v1:295be626625cc31cc998f789af51210bc6c881dbb5fdbae582ed52b365ff2a41",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 10,
+                    "y": 32
+                  },
+                  "topLeftWorldPx": {
+                    "x": 285,
+                    "y": 1008
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 297,
+                    "y": 1008,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1770,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:295be626625cc31cc998f789af51210bc6c881dbb5fdbae582ed52b365ff2a41"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:d781dc1fbd87833dba7e5bc84fadf6858faff03b2282c96802d2cb7f9ff6685e",
+                  "slotKey": "border-slot-v1:d781dc1fbd87833dba7e5bc84fadf6858faff03b2282c96802d2cb7f9ff6685e",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 10,
+                    "y": 33
+                  },
+                  "topLeftWorldPx": {
+                    "x": 323,
+                    "y": 1021
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 325,
+                    "y": 1023,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1825,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:d781dc1fbd87833dba7e5bc84fadf6858faff03b2282c96802d2cb7f9ff6685e"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:ca7cb22654e21a7a006bbd3cd3b2d1bd5d53fbf92d7a07b2c84836a34c453270",
+                  "slotKey": "border-slot-v1:ca7cb22654e21a7a006bbd3cd3b2d1bd5d53fbf92d7a07b2c84836a34c453270",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 11,
+                    "y": 33
+                  },
+                  "topLeftWorldPx": {
+                    "x": 318,
+                    "y": 1060
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 320,
+                    "y": 1062,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1826,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:ca7cb22654e21a7a006bbd3cd3b2d1bd5d53fbf92d7a07b2c84836a34c453270"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e71197c4c98764591d5876c3828a26f094fdd4e60433d5db741886730e78f744",
+                  "slotKey": "border-slot-v1:e71197c4c98764591d5876c3828a26f094fdd4e60433d5db741886730e78f744",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 11,
+                    "y": 34
+                  },
+                  "topLeftWorldPx": {
+                    "x": 317,
+                    "y": 1072
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 329,
+                    "y": 1072,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1881,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e71197c4c98764591d5876c3828a26f094fdd4e60433d5db741886730e78f744"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:42f227cb9b34abec7b97617c601d5ce71d2904c87d3db32b50b2a49b5e7d71a0",
+                  "slotKey": "border-slot-v1:42f227cb9b34abec7b97617c601d5ce71d2904c87d3db32b50b2a49b5e7d71a0",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 11,
+                    "y": 35
+                  },
+                  "topLeftWorldPx": {
+                    "x": 317,
+                    "y": 1104
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 329,
+                    "y": 1104,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1936,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:42f227cb9b34abec7b97617c601d5ce71d2904c87d3db32b50b2a49b5e7d71a0"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:a432fe35ddc5fb416dda5b2073bce1fddd97e1cb059a218c196ba2653256a259",
+                  "slotKey": "border-slot-v1:a432fe35ddc5fb416dda5b2073bce1fddd97e1cb059a218c196ba2653256a259",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 11,
+                    "y": 36
+                  },
+                  "topLeftWorldPx": {
+                    "x": 317,
+                    "y": 1136
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 329,
+                    "y": 1136,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 1991,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:a432fe35ddc5fb416dda5b2073bce1fddd97e1cb059a218c196ba2653256a259"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:895adbd7ef97861548c040caf13a714a70058dc96295a6c553155cd41f8dd0a3",
+                  "slotKey": "border-slot-v1:895adbd7ef97861548c040caf13a714a70058dc96295a6c553155cd41f8dd0a3",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 11,
+                    "y": 37
+                  },
+                  "topLeftWorldPx": {
+                    "x": 355,
+                    "y": 1149
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 357,
+                    "y": 1151,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2046,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:895adbd7ef97861548c040caf13a714a70058dc96295a6c553155cd41f8dd0a3"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:c2896670c6408c18296cba088df32ae34f850659dc086c238a65927378279c04",
+                  "slotKey": "border-slot-v1:c2896670c6408c18296cba088df32ae34f850659dc086c238a65927378279c04",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 12,
+                    "y": 37
+                  },
+                  "topLeftWorldPx": {
+                    "x": 350,
+                    "y": 1188
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 352,
+                    "y": 1190,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2047,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:c2896670c6408c18296cba088df32ae34f850659dc086c238a65927378279c04"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:5cfa7f92f81e7dcde13052f034d85864383e523152d830c55136bb17f55ec53a",
+                  "slotKey": "border-slot-v1:5cfa7f92f81e7dcde13052f034d85864383e523152d830c55136bb17f55ec53a",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 12,
+                    "y": 38
+                  },
+                  "topLeftWorldPx": {
+                    "x": 387,
+                    "y": 1181
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 389,
+                    "y": 1183,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2102,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:5cfa7f92f81e7dcde13052f034d85864383e523152d830c55136bb17f55ec53a"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:77f62084c540e300c7cd0714b07fef6e2a726c677e3d87318020c2b115ba9eb1",
+                  "slotKey": "border-slot-v1:77f62084c540e300c7cd0714b07fef6e2a726c677e3d87318020c2b115ba9eb1",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 13,
+                    "y": 38
+                  },
+                  "topLeftWorldPx": {
+                    "x": 382,
+                    "y": 1220
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 384,
+                    "y": 1222,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2103,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:77f62084c540e300c7cd0714b07fef6e2a726c677e3d87318020c2b115ba9eb1"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:2cf613ea2d1ff9e523253ad268db31f2351aabd656e24f7d0833f244ec9892b0",
+                  "slotKey": "border-slot-v1:2cf613ea2d1ff9e523253ad268db31f2351aabd656e24f7d0833f244ec9892b0",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 13,
+                    "y": 39
+                  },
+                  "topLeftWorldPx": {
+                    "x": 381,
+                    "y": 1232
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 393,
+                    "y": 1232,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2158,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:2cf613ea2d1ff9e523253ad268db31f2351aabd656e24f7d0833f244ec9892b0"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:973d184deaa58cd25697a92a1fd4a7fc473797239dfc22443e87dd7dd4ac02a3",
+                  "slotKey": "border-slot-v1:973d184deaa58cd25697a92a1fd4a7fc473797239dfc22443e87dd7dd4ac02a3",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 13,
+                    "y": 40
+                  },
+                  "topLeftWorldPx": {
+                    "x": 419,
+                    "y": 1245
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 421,
+                    "y": 1247,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2213,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:973d184deaa58cd25697a92a1fd4a7fc473797239dfc22443e87dd7dd4ac02a3"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:26010f234e9ae3874d6e78f05b47b270970129437dde7e0e54f620e560756ca0",
+                  "slotKey": "border-slot-v1:26010f234e9ae3874d6e78f05b47b270970129437dde7e0e54f620e560756ca0",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 14,
+                    "y": 40
+                  },
+                  "topLeftWorldPx": {
+                    "x": 414,
+                    "y": 1284
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 416,
+                    "y": 1286,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2214,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:26010f234e9ae3874d6e78f05b47b270970129437dde7e0e54f620e560756ca0"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0da16294a2fe135d25800499cd66fe499db8fc1cedcd2d062a0c4bef0f06c7fe",
+                  "slotKey": "border-slot-v1:0da16294a2fe135d25800499cd66fe499db8fc1cedcd2d062a0c4bef0f06c7fe",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 14,
+                    "y": 41
+                  },
+                  "topLeftWorldPx": {
+                    "x": 413,
+                    "y": 1296
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 425,
+                    "y": 1296,
+                    "width": 44,
+                    "height": 64
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2269,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0da16294a2fe135d25800499cd66fe499db8fc1cedcd2d062a0c4bef0f06c7fe"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:177f17e53d8df05b5b9e25d71a97ad9d0b73b73301249faed9467b088fd497eb",
+                  "slotKey": "border-slot-v1:177f17e53d8df05b5b9e25d71a97ad9d0b73b73301249faed9467b088fd497eb",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 14,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 451,
+                    "y": 1309
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 453,
+                    "y": 1311,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2324,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:177f17e53d8df05b5b9e25d71a97ad9d0b73b73301249faed9467b088fd497eb"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0e04dfb42535e62385943d66bd56376c14a81df57483c01d690414925921ae52",
+                  "slotKey": "border-slot-v1:0e04dfb42535e62385943d66bd56376c14a81df57483c01d690414925921ae52",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 15,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 464,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 464,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2325,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0e04dfb42535e62385943d66bd56376c14a81df57483c01d690414925921ae52"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:7ca97461908c8730390e1badbde88752d6912c0c53e330012245ce35c6a33a41",
+                  "slotKey": "border-slot-v1:7ca97461908c8730390e1badbde88752d6912c0c53e330012245ce35c6a33a41",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 16,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 478,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 480,
+                    "y": 1350,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2326,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:7ca97461908c8730390e1badbde88752d6912c0c53e330012245ce35c6a33a41"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:45c6406613bbd8f7f5401898c479587d79f83a9c89e702db5fb9116689189d59",
+                  "slotKey": "border-slot-v1:45c6406613bbd8f7f5401898c479587d79f83a9c89e702db5fb9116689189d59",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 34,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1092,
+                    "y": 1347
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1094,
+                    "y": 1349,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2344,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:45c6406613bbd8f7f5401898c479587d79f83a9c89e702db5fb9116689189d59"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e8eb4e3e90e0d16a4529603e285f848a13c96b9d047beed0fa6f9d167dcb2c42",
+                  "slotKey": "border-slot-v1:e8eb4e3e90e0d16a4529603e285f848a13c96b9d047beed0fa6f9d167dcb2c42",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 35,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1104,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1104,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2345,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e8eb4e3e90e0d16a4529603e285f848a13c96b9d047beed0fa6f9d167dcb2c42"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:d37b1b4461d1cc48d293740a0b58d574e50e51263716a88bd529a26bcabbfa01",
+                  "slotKey": "border-slot-v1:d37b1b4461d1cc48d293740a0b58d574e50e51263716a88bd529a26bcabbfa01",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 36,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1136,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1136,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2346,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:d37b1b4461d1cc48d293740a0b58d574e50e51263716a88bd529a26bcabbfa01"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:6d8a041a6e3a68f5f89be00c657cd0e8f87e28b3ebfe2d53d2fce5a42fef120d",
+                  "slotKey": "border-slot-v1:6d8a041a6e3a68f5f89be00c657cd0e8f87e28b3ebfe2d53d2fce5a42fef120d",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 37,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1168,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1168,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2347,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:6d8a041a6e3a68f5f89be00c657cd0e8f87e28b3ebfe2d53d2fce5a42fef120d"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:09614874abafa6c2943462e2783ce2849eee6f4de00360dd2365cf037784885c",
+                  "slotKey": "border-slot-v1:09614874abafa6c2943462e2783ce2849eee6f4de00360dd2365cf037784885c",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 38,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1200,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1200,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2348,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:09614874abafa6c2943462e2783ce2849eee6f4de00360dd2365cf037784885c"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e3586be5c881d4f0b138eddfc333cd7fec65ae2d2ce3a8cc787f87d1a5dd83a4",
+                  "slotKey": "border-slot-v1:e3586be5c881d4f0b138eddfc333cd7fec65ae2d2ce3a8cc787f87d1a5dd83a4",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 39,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1232,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1232,
+                    "y": 1356,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2349,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e3586be5c881d4f0b138eddfc333cd7fec65ae2d2ce3a8cc787f87d1a5dd83a4"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0c376ebb5a88c971e3dfcdd01e1f5044706637fa1739672ecc533753cceda936",
+                  "slotKey": "border-slot-v1:0c376ebb5a88c971e3dfcdd01e1f5044706637fa1739672ecc533753cceda936",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 40,
+                    "y": 42
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1246,
+                    "y": 1348
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1248,
+                    "y": 1350,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2350,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0c376ebb5a88c971e3dfcdd01e1f5044706637fa1739672ecc533753cceda936"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:185dcc8e1133e11001fae48be502229fae26655776389420d038117ac4fbb518",
+                  "slotKey": "border-slot-v1:185dcc8e1133e11001fae48be502229fae26655776389420d038117ac4fbb518",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 16,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 515,
+                    "y": 1341
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 517,
+                    "y": 1343,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2381,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:185dcc8e1133e11001fae48be502229fae26655776389420d038117ac4fbb518"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:7959cad5e348db11fc6aef48c82af1d56ba50e45d39c3f2bc6ab494a05c94c3a",
+                  "slotKey": "border-slot-v1:7959cad5e348db11fc6aef48c82af1d56ba50e45d39c3f2bc6ab494a05c94c3a",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 17,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 528,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 528,
+                    "y": 1388,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2382,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:7959cad5e348db11fc6aef48c82af1d56ba50e45d39c3f2bc6ab494a05c94c3a"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:1ff389753a5cd96403b615ff6ff910b1ee1e568c6bb31016206ce23c17b41f94",
+                  "slotKey": "border-slot-v1:1ff389753a5cd96403b615ff6ff910b1ee1e568c6bb31016206ce23c17b41f94",
+                  "primitiveId": "border-primitive-2",
+                  "visualSnapshotId": "border-snapshot-sha256:05500fd3bdd1c0d270cc48500d4577f58bbd657cb587d9f23772e3a902277543",
+                  "anchorCell": {
+                    "x": 18,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 560,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 560,
+                    "y": 1388,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2383,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:1ff389753a5cd96403b615ff6ff910b1ee1e568c6bb31016206ce23c17b41f94"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:6b91b2868e8350bac575eb946cc5d93d0250a44ec2057b2df47487bd2e3c5a50",
+                  "slotKey": "border-slot-v1:6b91b2868e8350bac575eb946cc5d93d0250a44ec2057b2df47487bd2e3c5a50",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 19,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 574,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 576,
+                    "y": 1382,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2384,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:6b91b2868e8350bac575eb946cc5d93d0250a44ec2057b2df47487bd2e3c5a50"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:7db96ed03332ed6ce30a0b8898dfc3b4c81cfce0b60b3937dae66467a2141e6c",
+                  "slotKey": "border-slot-v1:7db96ed03332ed6ce30a0b8898dfc3b4c81cfce0b60b3937dae66467a2141e6c",
+                  "primitiveId": "border-primitive-12",
+                  "visualSnapshotId": "border-snapshot-sha256:42a882aa668182a661e59f71cc1958ea92b922e89fc70f0ac7b991d8faff809b",
+                  "anchorCell": {
+                    "x": 32,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1028,
+                    "y": 1379
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1030,
+                    "y": 1381,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2397,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:7db96ed03332ed6ce30a0b8898dfc3b4c81cfce0b60b3937dae66467a2141e6c"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:008b135870f21030162545228ee22695790f3cefe77ea4e2768fa0123e152a94",
+                  "slotKey": "border-slot-v1:008b135870f21030162545228ee22695790f3cefe77ea4e2768fa0123e152a94",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 33,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1040,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1040,
+                    "y": 1388,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2398,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:008b135870f21030162545228ee22695790f3cefe77ea4e2768fa0123e152a94"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:296e8469462b8942a2733fde2b16535b43f2290e24e3800c8ba0641d58187e88",
+                  "slotKey": "border-slot-v1:296e8469462b8942a2733fde2b16535b43f2290e24e3800c8ba0641d58187e88",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 34,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1053,
+                    "y": 1342
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1055,
+                    "y": 1344,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 1,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2399,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:296e8469462b8942a2733fde2b16535b43f2290e24e3800c8ba0641d58187e88"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:1dd054319857a9025caa928cfa0e5233956906fd5610745338c467efa1627468",
+                  "slotKey": "border-slot-v1:1dd054319857a9025caa928cfa0e5233956906fd5610745338c467efa1627468",
+                  "primitiveId": "border-primitive-11",
+                  "visualSnapshotId": "border-snapshot-sha256:ead24b9a423ba6fc3a19800540064dff4edda8ac94d8919c328f163e2d165f9f",
+                  "anchorCell": {
+                    "x": 40,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1283,
+                    "y": 1341
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1285,
+                    "y": 1343,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2405,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:1dd054319857a9025caa928cfa0e5233956906fd5610745338c467efa1627468"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:1fdc2e30379208dd8075aee04349bbf82a4636f9c495eaf8d74e6106c163232d",
+                  "slotKey": "border-slot-v1:1fdc2e30379208dd8075aee04349bbf82a4636f9c495eaf8d74e6106c163232d",
+                  "primitiveId": "border-primitive-8",
+                  "visualSnapshotId": "border-snapshot-sha256:4c760804bc5a7362df8aa6c5306fe515ccd9be0825471d1afd3f32df82686c51",
+                  "anchorCell": {
+                    "x": 41,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1296,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1296,
+                    "y": 1388,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2406,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:1fdc2e30379208dd8075aee04349bbf82a4636f9c495eaf8d74e6106c163232d"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:c6f77732d861e92ee16a46df4bc71b6c34227a2c639e9ebf53ecc1c8c61f7950",
+                  "slotKey": "border-slot-v1:c6f77732d861e92ee16a46df4bc71b6c34227a2c639e9ebf53ecc1c8c61f7950",
+                  "primitiveId": "border-primitive-10",
+                  "visualSnapshotId": "border-snapshot-sha256:242610a7ddb8011c80d280f67383a476c1948ef23828eb0d47957f6bbc4929f1",
+                  "anchorCell": {
+                    "x": 42,
+                    "y": 43
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1310,
+                    "y": 1380
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1312,
+                    "y": 1382,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2407,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:c6f77732d861e92ee16a46df4bc71b6c34227a2c639e9ebf53ecc1c8c61f7950"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e1905025d61c97068f16d0f8828a28ba72c49157e271368d08b3cab10741cddc",
+                  "slotKey": "border-slot-v1:e1905025d61c97068f16d0f8828a28ba72c49157e271368d08b3cab10741cddc",
+                  "primitiveId": "border-primitive-3",
+                  "visualSnapshotId": "border-snapshot-sha256:3db893c3616ada2f01a80b1fd46753268bbd657db07733ed10240dbd19f2af93",
+                  "anchorCell": {
+                    "x": 19,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 611,
+                    "y": 1373
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 613,
+                    "y": 1375,
+                    "width": 60,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2439,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e1905025d61c97068f16d0f8828a28ba72c49157e271368d08b3cab10741cddc"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:0b7931d2b0328161da7e4ae9c88fe39b92bc291c55ef9d5cf65b81d20b9dfa40",
+                  "slotKey": "border-slot-v1:0b7931d2b0328161da7e4ae9c88fe39b92bc291c55ef9d5cf65b81d20b9dfa40",
+                  "primitiveId": "border-primitive-4",
+                  "visualSnapshotId": "border-snapshot-sha256:3a885839288f62ae942d9b03971539d4ca59a23575775496911e19174dbcd9b9",
+                  "anchorCell": {
+                    "x": 20,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 624,
+                    "y": 1412
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 624,
+                    "y": 1420,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2440,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:0b7931d2b0328161da7e4ae9c88fe39b92bc291c55ef9d5cf65b81d20b9dfa40"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:5badbd8df9f4531025eb93d964ade6ae190f544079e512a9f9e5f0a1415a47bc",
+                  "slotKey": "border-slot-v1:5badbd8df9f4531025eb93d964ade6ae190f544079e512a9f9e5f0a1415a47bc",
+                  "primitiveId": "border-primitive-9",
+                  "visualSnapshotId": "border-snapshot-sha256:eae1fdcb811d17d7bd4c872076470b767c8b46a19d272d1fc7ceab1b65652c5e",
+                  "anchorCell": {
+                    "x": 21,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 656,
+                    "y": 1412
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 656,
+                    "y": 1420,
+                    "width": 64,
+                    "height": 44
+                  },
+                  "transform": {
+                    "quarterTurns": 0,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2441,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:5badbd8df9f4531025eb93d964ade6ae190f544079e512a9f9e5f0a1415a47bc"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:930fbaf88a8483d4eba2464158f44cb73ea83742104d04c191e0e3d013370803",
+                  "slotKey": "border-slot-v1:930fbaf88a8483d4eba2464158f44cb73ea83742104d04c191e0e3d013370803",
+                  "primitiveId": "border-primitive-5",
+                  "visualSnapshotId": "border-snapshot-sha256:6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+                  "anchorCell": {
+                    "x": 22,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 689,
+                    "y": 1373
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 691,
+                    "y": 1381,
+                    "width": 60,
+                    "height": 48
+                  },
+                  "transform": {
+                    "quarterTurns": 2,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2442,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:930fbaf88a8483d4eba2464158f44cb73ea83742104d04c191e0e3d013370803"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:e6fc178186c6a7825d83fb6eecf97783470d9f7cfc615e21225122df3f3c05cd",
+                  "slotKey": "border-slot-v1:e6fc178186c6a7825d83fb6eecf97783470d9f7cfc615e21225122df3f3c05cd",
+                  "primitiveId": "border-primitive-7",
+                  "visualSnapshotId": "border-snapshot-sha256:2077967fb8f2c691e39c9b8d4b2fb181edb579accdbd4693fa59ebfb50a0fbe8",
+                  "anchorCell": {
+                    "x": 32,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1028,
+                    "y": 1393
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1036,
+                    "y": 1395,
+                    "width": 48,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2452,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:e6fc178186c6a7825d83fb6eecf97783470d9f7cfc615e21225122df3f3c05cd"
+                  }
+                },
+                {
+                  "id": "border-placement-v1:48064e193dba357056c8719f53c8f63e027ae8f2d158bca206e2e49a54ae43b5",
+                  "slotKey": "border-slot-v1:48064e193dba357056c8719f53c8f63e027ae8f2d158bca206e2e49a54ae43b5",
+                  "primitiveId": "border-primitive-5",
+                  "visualSnapshotId": "border-snapshot-sha256:6ffc42eb275de7fc7ca350c6dc6e7d3619268f251d4278e10b357d1c197ec254",
+                  "anchorCell": {
+                    "x": 42,
+                    "y": 44
+                  },
+                  "topLeftWorldPx": {
+                    "x": 1348,
+                    "y": 1393
+                  },
+                  "opaqueWorldBoundsPx": {
+                    "x": 1356,
+                    "y": 1395,
+                    "width": 48,
+                    "height": 60
+                  },
+                  "transform": {
+                    "quarterTurns": 3,
+                    "flipX": false
+                  },
+                  "drawBand": "structure",
+                  "stableOrderKey": {
+                    "drawBandIndex": 1,
+                    "anchorRowMajor": 2462,
+                    "passIndex": 0,
+                    "rank": 0,
+                    "ordinalLocal": 0,
+                    "slotKey": "border-slot-v1:48064e193dba357056c8719f53c8f63e027ae8f2d158bca206e2e49a54ae43b5"
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "properties": {},
+      "runtimeType": "border"
+    },
     {
       "id": "l_tile_for_t",
       "name": "forêt",

@@ -31,6 +31,29 @@ void main() {
       expect(manifest.toJson().containsKey('borderCatalog'), isFalse);
     });
 
+    test('explicit empty V2 catalog preserves its independent subformat', () {
+      final json = _minimalManifestJson()
+        ..['version'] = 'v2'
+        ..['borderCatalog'] = <String, Object?>{
+          'formatVersion': ProjectBorderCatalog.formatVersionV2,
+          'records': <Object?>[],
+          'visualSnapshots': <Object?>[],
+        };
+
+      final manifest = ProjectManifest.fromJson(json);
+      final encoded = manifest.toJson();
+
+      expect(
+        manifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
+      expect(encoded['borderCatalog'], json['borderCatalog']);
+      expect(
+        ProjectManifest.fromJson(encoded).borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
+    });
+
     test('explicit null, malformed, and future catalogs are rejected', () {
       for (final (invalid, expectedPath) in <(Object?, String)>[
         (null, r'$.borderCatalog'),
@@ -38,7 +61,7 @@ void main() {
         (<Object?>[], r'$.borderCatalog'),
         (
           <String, Object?>{
-            'formatVersion': 2,
+            'formatVersion': 3,
             'records': <Object?>[],
             'visualSnapshots': <Object?>[],
           },

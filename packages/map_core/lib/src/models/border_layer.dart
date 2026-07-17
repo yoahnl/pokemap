@@ -11,21 +11,28 @@ import 'border_feature.dart';
 @immutable
 final class BorderLayerContent {
   static const int formatVersionV1 = 1;
-  static const int currentFormatVersion = formatVersionV1;
+  static const int formatVersionV2 = 2;
+  static const int latestSupportedFormatVersion = formatVersionV2;
+
+  /// Backward-compatible alias for [latestSupportedFormatVersion].
+  ///
+  /// New empty layer content still defaults to [formatVersionV1] so legacy
+  /// maps are not promoted until a V2-only feature value is written.
+  static const int currentFormatVersion = latestSupportedFormatVersion;
 
   /// Canonical content for a Border layer that has not been drawn yet.
   static const BorderLayerContent emptyContent = BorderLayerContent._(
-    formatVersion: currentFormatVersion,
+    formatVersion: formatVersionV1,
     features: <BorderFeature>[],
   );
 
   BorderLayerContent({
-    this.formatVersion = currentFormatVersion,
+    this.formatVersion = formatVersionV1,
     List<BorderFeature> features = const <BorderFeature>[],
   }) : _features = List<BorderFeature>.unmodifiable(features) {
-    if (formatVersion != currentFormatVersion) {
+    if (formatVersion != formatVersionV1 && formatVersion != formatVersionV2) {
       throw ValidationException(
-        'BorderLayerContent.formatVersion must be $currentFormatVersion',
+        'BorderLayerContent.formatVersion must be 1 or 2',
       );
     }
 

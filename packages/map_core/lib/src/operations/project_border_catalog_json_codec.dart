@@ -11,7 +11,7 @@ const Set<String> _catalogKeys = <String>{
   'visualSnapshots',
 };
 
-/// Encodes a complete project Border catalog using the strict V1 wire shape.
+/// Encodes a complete project Border catalog using its strict wire version.
 ///
 /// Record, snapshot, and frame order is authored data and is preserved exactly.
 /// References are not resolved by this codec.
@@ -20,7 +20,7 @@ Map<String, Object?> encodeProjectBorderCatalogJson(
   String path = r'$',
 }) {
   final formatVersionPath = borderJsonPropertyPath(path, 'formatVersion');
-  _requireCurrentVersion(catalog.formatVersion, formatVersionPath);
+  _requireSupportedVersion(catalog.formatVersion, formatVersionPath);
 
   final recordsPath = borderJsonPropertyPath(path, 'records');
   final records = <Object?>[];
@@ -34,7 +34,11 @@ Map<String, Object?> encodeProjectBorderCatalogJson(
       firstPathsById: recordIdPaths,
     );
     records.add(
-      encodeBorderBlueprintRecordJson(record, path: recordPath),
+      encodeBorderBlueprintRecordJson(
+        record,
+        path: recordPath,
+        formatVersion: catalog.formatVersion,
+      ),
     );
   }
 
@@ -61,7 +65,7 @@ Map<String, Object?> encodeProjectBorderCatalogJson(
   };
 }
 
-/// Decodes a standalone strict V1 project Border catalog.
+/// Decodes a standalone strict V1 or V2 project Border catalog.
 ///
 /// Legacy manifest tolerance belongs to the manifest migration boundary. This
 /// standalone codec rejects absent, null, malformed, and future catalog data.
@@ -81,7 +85,7 @@ ProjectBorderCatalog decodeProjectBorderCatalogJson(
     borderJsonRequireField(value, 'formatVersion', path),
     formatVersionPath,
   );
-  _requireCurrentVersion(formatVersion, formatVersionPath);
+  _requireSupportedVersion(formatVersion, formatVersionPath);
 
   final recordsPath = borderJsonPropertyPath(path, 'records');
   final recordValues = borderJsonRequireList(
@@ -95,6 +99,7 @@ ProjectBorderCatalog decodeProjectBorderCatalogJson(
     final record = decodeBorderBlueprintRecordJson(
       recordValues[index],
       path: recordPath,
+      formatVersion: formatVersion,
     );
     _rejectDuplicateId(
       id: record.id,
@@ -135,11 +140,11 @@ ProjectBorderCatalog decodeProjectBorderCatalogJson(
   );
 }
 
-void _requireCurrentVersion(int value, String path) {
-  if (value != ProjectBorderCatalog.currentFormatVersion) {
+void _requireSupportedVersion(int value, String path) {
+  if (value != ProjectBorderCatalog.formatVersionV1 &&
+      value != ProjectBorderCatalog.formatVersionV2) {
     throw FormatException(
-      '$path: expected ProjectBorderCatalog format version '
-      '${ProjectBorderCatalog.currentFormatVersion}',
+      '$path: expected ProjectBorderCatalog format version 1 or 2',
     );
   }
 }

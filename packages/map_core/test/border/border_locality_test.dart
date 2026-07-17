@@ -632,6 +632,57 @@ void main() {
       );
     });
 
+    test('connected side inversion requires a full resolution', () {
+      final request = MasonryLineFixture(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPublishedPrimitive>[
+          masonryPrimitive(
+            id: 'cap',
+            fingerprintCharacter: 'a',
+            role: BorderPrimitiveRole.lineCap,
+            allowFlipX: true,
+          ),
+          masonryPrimitive(
+            id: 'straight',
+            fingerprintCharacter: 'b',
+            role: BorderPrimitiveRole.lineStraight,
+            allowFlipX: true,
+          ),
+          masonryPrimitive(
+            id: 'corner',
+            fingerprintCharacter: 'c',
+            role: BorderPrimitiveRole.lineCorner,
+            allowFlipX: true,
+          ),
+        ],
+      ).request;
+      final previousState = resolveBorderFeatureLocalBaseline(request);
+      final invertedRequest = BorderResolutionRequest(
+        mapSize: request.mapSize,
+        tileSizePx: request.tileSizePx,
+        blueprintId: request.blueprintId,
+        blueprintRevision: request.blueprintRevision,
+        feature: toggleBorderFeatureLineSide(request.feature),
+        visualSnapshots: request.visualSnapshots,
+        resolverVersion: request.resolverVersion,
+      );
+
+      expect(resolveBorderFeature(invertedRequest).canApply, isTrue);
+      expect(
+        () => resolveBorderFeatureLocally(
+          request: invertedRequest,
+          previousState: previousState,
+          edits: <BorderLocalEdit>[
+            BorderLocalEdit.forCells(
+              cells: const <GridPos>[GridPos(x: 1, y: 3)],
+              tileSizePx: request.tileSizePx,
+            ),
+          ],
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('rejects override changes outside the declared edit halo', () {
       final request = PostAndRailLineFixture(
         mapSize: const GridSize(width: 40, height: 8),

@@ -19,9 +19,13 @@ const Set<String> _featureRequiredKeys = <String>{
   'overrides',
   'keepOutRegions',
 };
-const Set<String> _featureOptionalKeys = <String>{
+const Set<String> _featureOptionalKeysV1 = <String>{
   'paramsOverride',
   'materialization',
+};
+const Set<String> _featureOptionalKeysV2 = <String>{
+  ..._featureOptionalKeysV1,
+  'lineSide',
 };
 const Set<String> _overrideRequiredKeys = <String>{
   'slotKey',
@@ -44,7 +48,15 @@ const Set<String> _offsetKeys = <String>{'x', 'y'};
 Map<String, Object?> encodeBorderFeatureJson(
   BorderFeature feature, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireSupportedFeatureFormatVersion(formatVersion, path);
+  if (formatVersion == 1 && feature.lineSide != BorderLineSide.primary) {
+    throw FormatException(
+      '${borderJsonPropertyPath(path, 'lineSide')}: '
+      'requires Border layer format version 2',
+    );
+  }
   _validateStableText(feature.id, borderJsonPropertyPath(path, 'id'));
   _validateStableText(feature.name, borderJsonPropertyPath(path, 'name'));
   _validateStableText(
@@ -95,10 +107,13 @@ Map<String, Object?> encodeBorderFeatureJson(
       feature.geometry,
       path: borderJsonPropertyPath(path, 'geometry'),
     ),
+    if (formatVersion == 2 && feature.lineSide != BorderLineSide.primary)
+      'lineSide': _encodeLineSide(feature.lineSide),
     if (params != null)
       'paramsOverride': encodeBorderGenerationParamsJson(
         params,
         path: borderJsonPropertyPath(path, 'paramsOverride'),
+        formatVersion: formatVersion,
       ),
     'overrides': encodedOverrides,
     'keepOutRegions': encodedKeepOuts,
@@ -117,13 +132,16 @@ Map<String, Object?> encodeBorderFeatureJson(
 BorderFeature decodeBorderFeatureJson(
   Object? json, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireSupportedFeatureFormatVersion(formatVersion, path);
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
     path: path,
     requiredKeys: _featureRequiredKeys,
-    optionalKeys: _featureOptionalKeys,
+    optionalKeys:
+        formatVersion == 1 ? _featureOptionalKeysV1 : _featureOptionalKeysV2,
   );
 
   final id = _decodeStableText(value, 'id', path);
@@ -139,6 +157,7 @@ BorderFeature decodeBorderFeatureJson(
     borderJsonRequireField(value, 'geometry', path),
     path: geometryPath,
   );
+  final lineSide = _decodeOptionalLineSide(value, path);
 
   BorderGenerationParams? paramsOverride;
   if (value['paramsOverride'] != null) {
@@ -146,6 +165,7 @@ BorderFeature decodeBorderFeatureJson(
     paramsOverride = decodeBorderGenerationParamsJson(
       value['paramsOverride'],
       path: paramsPath,
+      formatVersion: formatVersion,
     );
   }
 
@@ -207,12 +227,40 @@ BorderFeature decodeBorderFeatureJson(
       blueprintId: blueprintId,
       seed: seed,
       geometry: geometry,
+      lineSide: lineSide,
       paramsOverride: paramsOverride,
       overrides: overrides,
       keepOutRegions: keepOutRegions,
       materialization: materialization,
     ),
   );
+}
+
+void _requireSupportedFeatureFormatVersion(int value, String path) {
+  if (value != 1 && value != 2) {
+    throw FormatException('$path: unsupported Border feature format version');
+  }
+}
+
+String _encodeLineSide(BorderLineSide value) => switch (value) {
+      BorderLineSide.primary => 'primary',
+      BorderLineSide.inverted => 'inverted',
+    };
+
+BorderLineSide _decodeOptionalLineSide(
+  BorderJsonObject value,
+  String path,
+) {
+  if (!value.containsKey('lineSide') || value['lineSide'] == null) {
+    return BorderLineSide.primary;
+  }
+  final lineSidePath = borderJsonPropertyPath(path, 'lineSide');
+  final wireName = borderJsonRequireString(value['lineSide'], lineSidePath);
+  return switch (wireName) {
+    'primary' => BorderLineSide.primary,
+    'inverted' => BorderLineSide.inverted,
+    _ => throw FormatException('$lineSidePath: unknown Border line side'),
+  };
 }
 
 Map<String, Object?> _encodeOverride(

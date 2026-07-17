@@ -103,6 +103,7 @@ final class BorderStudioCanonicalGalleryResolution {
               mapSize: item.mapSize,
               geometry: item.geometry,
               resolution: item.resolverResult,
+              invertedResolution: item.invertedResolverResult,
               publicationSample: item.publicationSample,
             ),
         ],
@@ -121,6 +122,7 @@ final class BorderStudioCanonicalGalleryCasePreview {
     required this.mapSize,
     required this.geometry,
     required this.resolution,
+    this.invertedResolution,
     required this.publicationSample,
   });
 
@@ -128,6 +130,9 @@ final class BorderStudioCanonicalGalleryCasePreview {
   final GridSize mapSize;
   final BorderFeatureGeometry geometry;
   final BorderResolutionResult resolution;
+
+  /// Opposite-side rendering for a connected line; absent for V1 templates.
+  final BorderResolutionResult? invertedResolution;
   final BorderPublicationGallerySample publicationSample;
 }
 

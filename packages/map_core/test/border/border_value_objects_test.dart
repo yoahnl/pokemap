@@ -2,15 +2,26 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Border V1 enums', () {
-    test('templates are exactly the three published V1 templates', () {
+  group('Border template enums', () {
+    test('templates retain V1 order and append connectedLine', () {
       expect(
         BorderBlueprintTemplate.values.map((value) => value.name),
-        <String>['organicEdge', 'masonryLine', 'postAndRailLine'],
+        <String>[
+          'organicEdge',
+          'masonryLine',
+          'postAndRailLine',
+          'connectedLine',
+        ],
+      );
+      expect(
+        borderBlueprintTemplateV1WireName(
+          BorderBlueprintTemplate.connectedLine,
+        ),
+        'connectedLine',
       );
     });
 
-    test('primitive roles are exactly the eight functional V1 roles', () {
+    test('primitive roles retain V1 order and append connected-line roles', () {
       expect(
         BorderPrimitiveRole.values.map((value) => value.name),
         <String>[
@@ -22,8 +33,27 @@ void main() {
           'span',
           'surfacePatch',
           'outerAccent',
+          'lineCap',
+          'lineStraight',
+          'lineCorner',
         ],
       );
+      expect(
+        borderPrimitiveRoleV1WireName(BorderPrimitiveRole.lineCap),
+        'lineCap',
+      );
+      expect(
+        borderPrimitiveRoleV1WireName(BorderPrimitiveRole.lineStraight),
+        'lineStraight',
+      );
+      expect(
+        borderPrimitiveRoleV1WireName(BorderPrimitiveRole.lineCorner),
+        'lineCorner',
+      );
+      expect(BorderLineSide.values.map((value) => value.name), <String>[
+        'primary',
+        'inverted',
+      ]);
     });
   });
 

@@ -59,6 +59,7 @@ void main() {
       final feature = _feature(
         id: 'feature-z',
         blueprintId: 'organic-edge-blueprint',
+        lineSide: BorderLineSide.inverted,
         geometry: _region(
           4,
           3,
@@ -85,8 +86,10 @@ void main() {
       );
 
       final result = resizeBorderLayerContent(
-        content:
-            BorderLayerContent(features: <BorderFeature>[feature, trailing]),
+        content: BorderLayerContent(
+          formatVersion: BorderLayerContent.formatVersionV2,
+          features: <BorderFeature>[feature, trailing],
+        ),
         oldMapSize: const GridSize(width: 4, height: 3),
         newMapSize: const GridSize(width: 2, height: 2),
         tileSizePx: const GridSize(width: 16, height: 16),
@@ -101,6 +104,8 @@ void main() {
         'feature-a',
       ]);
       final resizedFeature = resized.features.first;
+      expect(resized.formatVersion, BorderLayerContent.formatVersionV2);
+      expect(resizedFeature.lineSide, BorderLineSide.inverted);
       expect(
         (resizedFeature.geometry as BorderRegionGeometry).cells,
         const <bool>[true, false, false, true],
@@ -1076,6 +1081,7 @@ BorderRegionGeometry _region(int width, int height, List<bool> cells) =>
 BorderFeature _feature({
   String id = 'feature',
   String blueprintId = 'blueprint',
+  BorderLineSide lineSide = BorderLineSide.primary,
   required BorderFeatureGeometry geometry,
   List<BorderKeepOutRegion> keepOutRegions = const <BorderKeepOutRegion>[],
   BorderMaterialization? materialization,
@@ -1086,6 +1092,7 @@ BorderFeature _feature({
       blueprintId: blueprintId,
       seed: BorderSignedInt64.zero,
       geometry: geometry,
+      lineSide: lineSide,
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: keepOutRegions,
       materialization: materialization,

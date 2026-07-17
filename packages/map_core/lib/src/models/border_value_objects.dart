@@ -10,7 +10,11 @@ enum BorderBlueprintTemplate {
   organicEdge,
   masonryLine,
   postAndRailLine,
+  connectedLine,
 }
+
+/// Visual normal selected for an entire connected-line feature.
+enum BorderLineSide { primary, inverted }
 
 /// Functional primitive roles supported by V1.
 enum BorderPrimitiveRole {
@@ -22,7 +26,21 @@ enum BorderPrimitiveRole {
   span,
   surfacePatch,
   outerAccent,
+  lineCap,
+  lineStraight,
+  lineCorner,
 }
+
+/// Stable persisted spelling shared by strict codecs and fingerprints.
+String borderBlueprintTemplateV1WireName(
+  BorderBlueprintTemplate template,
+) =>
+    switch (template) {
+      BorderBlueprintTemplate.organicEdge => 'organicEdge',
+      BorderBlueprintTemplate.masonryLine => 'masonryLine',
+      BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
+      BorderBlueprintTemplate.connectedLine => 'connectedLine',
+    };
 
 /// Fixed cardinal vocabulary used by V1 Border geometry and slot keys.
 enum BorderCardinalDirection {
@@ -63,6 +81,9 @@ String borderPrimitiveRoleV1WireName(BorderPrimitiveRole role) =>
       BorderPrimitiveRole.span => 'span',
       BorderPrimitiveRole.surfacePatch => 'surfacePatch',
       BorderPrimitiveRole.outerAccent => 'outerAccent',
+      BorderPrimitiveRole.lineCap => 'lineCap',
+      BorderPrimitiveRole.lineStraight => 'lineStraight',
+      BorderPrimitiveRole.lineCorner => 'lineCorner',
     };
 
 /// Integer pixel position owned by the Border domain.
@@ -202,6 +223,7 @@ final class BorderGenerationParams {
     required this.maxOverlapPx,
     required this.gapTolerancePx,
     required this.depthRows,
+    this.allowAutoRotation = true,
   }) {
     _requirePermille(irregularityPermille, 'irregularityPermille');
     _requirePermille(detailDensityPermille, 'detailDensityPermille');
@@ -221,6 +243,7 @@ final class BorderGenerationParams {
   final int maxOverlapPx;
   final int gapTolerancePx;
   final int depthRows;
+  final bool allowAutoRotation;
 
   @override
   bool operator ==(Object other) =>
@@ -231,7 +254,8 @@ final class BorderGenerationParams {
           variationPermille == other.variationPermille &&
           maxOverlapPx == other.maxOverlapPx &&
           gapTolerancePx == other.gapTolerancePx &&
-          depthRows == other.depthRows;
+          depthRows == other.depthRows &&
+          allowAutoRotation == other.allowAutoRotation;
 
   @override
   int get hashCode => Object.hash(
@@ -241,6 +265,7 @@ final class BorderGenerationParams {
         maxOverlapPx,
         gapTolerancePx,
         depthRows,
+        allowAutoRotation,
       );
 }
 

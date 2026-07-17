@@ -125,6 +125,29 @@ void main() {
       }
     });
 
+    test('materializes only the interior shoreline of a map-edge region', () {
+      final result = resolveOrganicEdgeBorder(
+        _request(
+          region: _lowerHalfRegion(),
+          singlePrimitive: true,
+        ),
+      );
+
+      expect(
+        result.canApply,
+        isTrue,
+        reason: result.diagnostics
+            .map((diagnostic) => '${diagnostic.code}:${diagnostic.parameters}')
+            .join('\n'),
+      );
+      expect(result.materialization!.placements, isNotEmpty);
+      expect(
+        result.materialization!.placements
+            .every((placement) => placement.anchorCell.y == 2),
+        isTrue,
+      );
+    });
+
     test('keeps distant existing slots byte-for-byte stable', () {
       final before = resolveOrganicEdgeBorder(
         _request(region: _centerRegion(), singlePrimitive: true),
@@ -516,12 +539,12 @@ void main() {
 
     test('falls back to a primitive that is locally valid around a keep-out',
         () {
-      final topBand = <(int, int)>[
-        for (var y = 0; y < 3; y += 1)
+      final lowerBand = <(int, int)>[
+        for (var y = 2; y < 5; y += 1)
           for (var x = 0; x < 5; x += 1) (x, y),
       ];
       final keepOutBand = _regionFromCoordinates(<(int, int)>[
-        for (var x = 0; x < 5; x += 1) (x, 1),
+        for (var x = 0; x < 5; x += 1) (x, 3),
       ]);
       final invalidNearKeepOut = _primitive(
         id: 'a-deep-invalid',
@@ -538,7 +561,7 @@ void main() {
       );
       final result = resolveOrganicEdgeBorder(
         _request(
-          region: _regionFromCoordinates(topBand),
+          region: _regionFromCoordinates(lowerBand),
           keepOutRegions: <BorderKeepOutRegion>[
             BorderKeepOutRegion(id: 'middle-band', region: keepOutBand),
           ],
@@ -624,13 +647,13 @@ void main() {
       final result = resolveOrganicEdgeBorder(
         _request(
           region: _regionFromCoordinates(<(int, int)>[
-            for (var y = 0; y < 3; y += 1)
+            for (var y = 2; y < 5; y += 1)
               for (var x = 2; x < 4; x += 1) (x, y),
           ]),
           keepOutRegions: <BorderKeepOutRegion>[
             BorderKeepOutRegion(
               id: 'middle-local-gap',
-              region: _singleCellRegion(3, 1),
+              region: _singleCellRegion(3, 3),
             ),
           ],
           customPrimitives: <BorderPublishedPrimitive>[
@@ -1134,6 +1157,15 @@ BorderRegionGeometry _cornerRegion() => BorderRegionGeometry(
         false,
         false,
         false,
+      ],
+    );
+
+BorderRegionGeometry _lowerHalfRegion() => BorderRegionGeometry(
+      width: 5,
+      height: 5,
+      cells: <bool>[
+        for (var y = 0; y < 5; y += 1)
+          for (var x = 0; x < 5; x += 1) y >= 2,
       ],
     );
 

@@ -34,10 +34,17 @@ void main() {
           const ValueKey<String>('border-studio-template-fence'),
         ),
       );
+      final connectedButton = tester.widget<PokeMapButton>(
+        find.byKey(
+          const ValueKey<String>('border-studio-template-connected-line'),
+        ),
+      );
 
       expect(masonryButton.onPressed, isNotNull);
       expect(fenceButton.onPressed, isNull);
-      expect(find.text('Publication disponible'), findsNWidgets(3));
+      expect(connectedButton.onPressed, isNull);
+      expect(find.text('Ligne connectée'), findsOneWidget);
+      expect(find.text('Publication disponible'), findsNWidgets(4));
       expect(find.text('Publication après BORD-03'), findsNothing);
       expect(
         find.text(
@@ -45,7 +52,7 @@ void main() {
           'charge. Réattribuez ou retirez l’asset concerné avant de choisir ce '
           'type.',
         ),
-        findsOneWidget,
+        findsNWidgets(2),
       );
 
       masonryButton.onPressed!();

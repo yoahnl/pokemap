@@ -101,7 +101,12 @@ BorderNonVisualInputFingerprints computeBorderNonVisualInputFingerprints(
       blueprintId: request.blueprintId,
       revision: revision,
     )),
-    geometryAndSeed: _fingerprint(_geometryAndSeedProjection(request.feature)),
+    geometryAndSeed: _fingerprint(
+      _geometryAndSeedProjection(
+        request.feature,
+        template: definition.template,
+      ),
+    ),
     parameters: _fingerprint(_parametersProjection(effectiveParams)),
     overrides: _fingerprint(_overridesProjection(request.feature.overrides)),
     keepOutRegions:
@@ -203,10 +208,19 @@ Object _blueprintProjection({
   };
 }
 
-Object _geometryAndSeedProjection(BorderFeature feature) => <String, Object?>{
+Object _geometryAndSeedProjection(
+  BorderFeature feature, {
+  required BorderBlueprintTemplate template,
+}) =>
+    <String, Object?>{
       'featureId': feature.id,
       'seed': feature.seed.toString(),
       'geometry': _geometryProjection(feature.geometry),
+      if (template == BorderBlueprintTemplate.connectedLine)
+        'lineSide': switch (feature.lineSide) {
+          BorderLineSide.primary => 'primary',
+          BorderLineSide.inverted => 'inverted',
+        },
     };
 
 Object _geometryProjection(BorderFeatureGeometry geometry) =>
@@ -245,6 +259,7 @@ Object _parametersProjection(BorderGenerationParams parameters) =>
       'maxOverlapPx': _jsonInteger(parameters.maxOverlapPx),
       'gapTolerancePx': _jsonInteger(parameters.gapTolerancePx),
       'depthRows': _jsonInteger(parameters.depthRows),
+      if (!parameters.allowAutoRotation) 'allowAutoRotation': false,
     };
 
 Object _overridesProjection(List<BorderSlotOverride> source) {
@@ -420,11 +435,7 @@ int _jsonInteger(int value) {
 }
 
 String _templateV1WireName(BorderBlueprintTemplate template) =>
-    switch (template) {
-      BorderBlueprintTemplate.organicEdge => 'organicEdge',
-      BorderBlueprintTemplate.masonryLine => 'masonryLine',
-      BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
-    };
+    borderBlueprintTemplateV1WireName(template);
 
 String _drawBandV1WireName(BorderDrawBand band) => switch (band) {
       BorderDrawBand.outerAccent => 'outerAccent',

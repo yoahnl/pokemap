@@ -92,6 +92,70 @@ void main() {
       },
     );
 
+    test('publishes connected-line slots and promotes the catalog to V2', () {
+      final preparations = <String, BorderAssetSnapshotPreparation>{
+        'cap-a': _preparation('a', sourceElementId: 'element-cap-a'),
+        'cap-b': _preparation('b', sourceElementId: 'element-cap-b'),
+        'straight': _preparation('c', sourceElementId: 'element-straight'),
+        'corner': _preparation('d', sourceElementId: 'element-corner'),
+      };
+      final target = _record(
+        id: 'cliff',
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPrimitiveDraft>[
+          _draftPrimitive(
+            id: 'cap-a',
+            sourceElementId: 'element-cap-a',
+            role: BorderPrimitiveRole.lineCap,
+          ),
+          _draftPrimitive(
+            id: 'cap-b',
+            sourceElementId: 'element-cap-b',
+            role: BorderPrimitiveRole.lineCap,
+          ),
+          _draftPrimitive(
+            id: 'straight',
+            sourceElementId: 'element-straight',
+            role: BorderPrimitiveRole.lineStraight,
+          ),
+          _draftPrimitive(
+            id: 'corner',
+            sourceElementId: 'element-corner',
+            role: BorderPrimitiveRole.lineCorner,
+          ),
+        ],
+      );
+      final manifest = _manifest(
+        records: <BorderBlueprintRecord>[target],
+        elements: <ProjectElementEntry>[
+          for (final preparation in preparations.values)
+            _element(preparation.sourceElementId),
+        ],
+      );
+
+      final result = const BorderPublicationCandidateBuilder().build(
+        manifest: manifest,
+        draftRecord: target,
+        primitiveSnapshotsByPrimitiveId: preparations,
+      );
+
+      expect(
+        result.nextManifest.borderCatalog.formatVersion,
+        ProjectBorderCatalog.formatVersionV2,
+      );
+      expect(
+        result.nextManifest.borderCatalog.records.single.latestPublished!
+            .definition.primitives
+            .map((primitive) => primitive.role),
+        <BorderPrimitiveRole>[
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineCap,
+          BorderPrimitiveRole.lineStraight,
+          BorderPrimitiveRole.lineCorner,
+        ],
+      );
+    });
+
     test('validates every draft source element including disabled entries', () {
       final target = _record(
         id: 'coast',
@@ -582,6 +646,7 @@ ProjectManifest _manifest({
 
 BorderBlueprintRecord _record({
   required String id,
+  BorderBlueprintTemplate template = BorderBlueprintTemplate.organicEdge,
   int baseRevision = 0,
   int? latestRevision,
   bool isDeprecated = false,
@@ -591,7 +656,7 @@ BorderBlueprintRecord _record({
   final definition = BorderBlueprintDraftDefinition(
     name: 'Blueprint $id',
     previewSeed: BorderSignedInt64.zero,
-    template: BorderBlueprintTemplate.organicEdge,
+    template: template,
     primitives: primitives,
     defaults: _params(),
     ground: ground,
@@ -625,12 +690,13 @@ BorderBlueprintRecord _record({
 BorderPrimitiveDraft _draftPrimitive({
   required String id,
   required String sourceElementId,
+  BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
   int weight = 100,
 }) {
   return BorderPrimitiveDraft(
     id: id,
     sourceElementId: sourceElementId,
-    role: BorderPrimitiveRole.structureLarge,
+    role: role,
     weight: weight,
     anchorPx: const BorderPixelPos(x: 1, y: 1),
     transforms: _transforms(),

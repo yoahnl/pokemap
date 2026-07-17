@@ -265,10 +265,52 @@ List<BorderCoverageInterval> projectBorderStructuralMaskOntoEdge({
 }) {
   final projectsDestinationX = edge.direction == BorderCardinalDirection.east ||
       edge.direction == BorderCardinalDirection.west;
+  final worldIntervals = projectBorderStructuralMaskOntoWorldAxis(
+    metrics: metrics,
+    transform: transform,
+    topLeftWorldPx: topLeftWorldPx,
+    worldXAxis: projectsDestinationX,
+  );
+  final edgeStartAxis =
+      projectsDestinationX ? edge.startWorldPx.x : edge.startWorldPx.y;
+  final forward = edge.direction == BorderCardinalDirection.east ||
+      edge.direction == BorderCardinalDirection.south;
+  final result = <BorderCoverageInterval>[];
+  for (final interval in worldIntervals) {
+    final worldStart = BigInt.from(interval.startPx);
+    final worldEnd = BigInt.from(interval.endPx);
+    final edgeStart = BigInt.from(edgeStartAxis);
+    final abscissa = BigInt.from(edge.startAbscissaPx);
+    final start = forward
+        ? abscissa + worldStart - edgeStart
+        : abscissa + edgeStart - worldEnd;
+    final end = forward
+        ? abscissa + worldEnd - edgeStart
+        : abscissa + edgeStart - worldStart;
+    result.add(
+      BorderCoverageInterval(
+        startPx: _portableInt(start, 'projected interval start'),
+        endPx: _portableInt(end, 'projected interval end'),
+      ),
+    );
+  }
+  return List<BorderCoverageInterval>.unmodifiable(_mergeIntervals(result));
+}
+
+/// Projects one transformed structural occupancy mask onto a world axis.
+///
+/// Transparent source columns or rows remain separate intervals. This is the
+/// axis-neutral primitive used by contour and connected-line coverage checks.
+List<BorderCoverageInterval> projectBorderStructuralMaskOntoWorldAxis({
+  required BorderPrimitiveAssetMetrics metrics,
+  required BorderSpriteTransform transform,
+  required BorderPixelPos topLeftWorldPx,
+  required bool worldXAxis,
+}) {
   final axis = _sourceAxisForDestination(
     quarterTurns: transform.quarterTurns,
     flipX: transform.flipX,
-    destinationX: projectsDestinationX,
+    destinationX: worldXAxis,
   );
   var sourceIntervals = _projectSourceMaskAxis(
     metrics: metrics,
@@ -286,32 +328,22 @@ List<BorderCoverageInterval> projectBorderStructuralMaskOntoEdge({
     ];
   }
 
-  final topLeftAxis =
-      projectsDestinationX ? topLeftWorldPx.x : topLeftWorldPx.y;
-  final edgeStartAxis =
-      projectsDestinationX ? edge.startWorldPx.x : edge.startWorldPx.y;
-  final forward = edge.direction == BorderCardinalDirection.east ||
-      edge.direction == BorderCardinalDirection.south;
-  final result = <BorderCoverageInterval>[];
-  for (final interval in sourceIntervals) {
-    final worldStart = BigInt.from(topLeftAxis) + BigInt.from(interval.startPx);
-    final worldEnd = BigInt.from(topLeftAxis) + BigInt.from(interval.endPx);
-    final edgeStart = BigInt.from(edgeStartAxis);
-    final abscissa = BigInt.from(edge.startAbscissaPx);
-    final start = forward
-        ? abscissa + worldStart - edgeStart
-        : abscissa + edgeStart - worldEnd;
-    final end = forward
-        ? abscissa + worldEnd - edgeStart
-        : abscissa + edgeStart - worldStart;
-    result.add(
-      BorderCoverageInterval(
-        startPx: _portableInt(start, 'projected interval start'),
-        endPx: _portableInt(end, 'projected interval end'),
-      ),
-    );
-  }
-  return List<BorderCoverageInterval>.unmodifiable(_mergeIntervals(result));
+  final topLeftAxis = worldXAxis ? topLeftWorldPx.x : topLeftWorldPx.y;
+  return List<BorderCoverageInterval>.unmodifiable(
+    <BorderCoverageInterval>[
+      for (final interval in sourceIntervals)
+        BorderCoverageInterval(
+          startPx: _portableInt(
+            BigInt.from(topLeftAxis) + BigInt.from(interval.startPx),
+            'projected world interval start',
+          ),
+          endPx: _portableInt(
+            BigInt.from(topLeftAxis) + BigInt.from(interval.endPx),
+            'projected world interval end',
+          ),
+        ),
+    ],
+  );
 }
 
 ({bool sourceX, bool reversed}) _sourceAxisForDestination({

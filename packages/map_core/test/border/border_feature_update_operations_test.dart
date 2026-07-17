@@ -129,6 +129,89 @@ void main() {
       expect(_featureOf(fixture.map).paramsOverride, isNotNull);
     });
 
+    test('disabled rotation update promotes V2 and survives save/reload', () {
+      final fixture = _fixture();
+
+      final updated = updateBorderFeatureParameters(
+        fixture.map,
+        layerId: 'border',
+        featureId: 'feature',
+        paramsOverride: _params(allowAutoRotation: false),
+      );
+      final content = (updated.layers.first as BorderLayer).content;
+
+      expect(content.formatVersion, BorderLayerContent.formatVersionV2);
+      final reloaded = decodeBorderLayerContentJson(
+        encodeBorderLayerContentJson(content),
+      );
+      expect(
+        reloaded.featureById('feature')!.paramsOverride!.allowAutoRotation,
+        isFalse,
+      );
+    });
+
+    test('all authored update paths preserve an inverted line side', () {
+      final fixture = _fixture(lineSide: BorderLineSide.inverted);
+      final maps = <MapData>[
+        updateBorderFeatureGeometry(
+          fixture.map,
+          layerId: 'border',
+          featureId: 'feature',
+          geometry: fixture.feature.geometry,
+        ),
+        updateBorderFeatureSeed(
+          fixture.map,
+          layerId: 'border',
+          featureId: 'feature',
+          seed: fixture.feature.seed,
+        ),
+        updateBorderFeatureOverrides(
+          fixture.map,
+          layerId: 'border',
+          featureId: 'feature',
+          overrides: fixture.feature.overrides,
+        ),
+        updateBorderFeatureParameters(
+          fixture.map,
+          layerId: 'border',
+          featureId: 'feature',
+          paramsOverride: fixture.feature.paramsOverride,
+        ),
+        updateBorderFeatureKeepOutRegions(
+          fixture.map,
+          layerId: 'border',
+          featureId: 'feature',
+          keepOutRegions: fixture.feature.keepOutRegions,
+        ),
+      ];
+
+      for (final map in maps) {
+        expect(_featureOf(map).lineSide, BorderLineSide.inverted);
+      }
+    });
+
+    test('pure line-side toggle preserves authored data and clears output', () {
+      final fixture = _fixture();
+      final source = fixture.feature;
+
+      final toggled = toggleBorderFeatureLineSide(source);
+
+      expect(toggled.id, source.id);
+      expect(toggled.name, source.name);
+      expect(toggled.blueprintId, source.blueprintId);
+      expect(toggled.seed, same(source.seed));
+      expect(toggled.geometry, same(source.geometry));
+      expect(toggled.paramsOverride, same(source.paramsOverride));
+      expect(toggled.overrides, source.overrides);
+      expect(toggled.keepOutRegions, source.keepOutRegions);
+      expect(toggled.lineSide, BorderLineSide.inverted);
+      expect(toggled.materialization, isNull);
+      expect(
+        toggleBorderFeatureLineSide(toggled).lineSide,
+        BorderLineSide.primary,
+      );
+    });
+
     test('invalid layer and feature targets throw without changing the map',
         () {
       final fixture = _fixture();
@@ -170,6 +253,25 @@ void main() {
         computeBorderFeatureEditFingerprint(withoutMaterialization),
         isNot(expected),
       );
+    });
+
+    test('keeps legacy true hash and distinguishes disabled rotation', () {
+      final automatic = _plainFeature();
+      final disabled = _plainFeature(allowAutoRotation: false);
+      final expectedAutomatic =
+          'sha256:${narrativeEventCanonicalSha256(<String, Object?>{
+            'schema': 'border-feature-edit-v1',
+            'feature': encodeBorderFeatureJson(automatic),
+          })}';
+      final expectedDisabled =
+          'sha256:${narrativeEventCanonicalSha256(<String, Object?>{
+            'schema': 'border-feature-edit-v1',
+            'feature': encodeBorderFeatureJson(disabled, formatVersion: 2),
+          })}';
+
+      expect(computeBorderFeatureEditFingerprint(automatic), expectedAutomatic);
+      expect(computeBorderFeatureEditFingerprint(disabled), expectedDisabled);
+      expect(expectedDisabled, isNot(expectedAutomatic));
     });
   });
 
@@ -226,6 +328,80 @@ void main() {
       expect(updated.layers[1], same(fixture.map.layers[1]));
       expect(_featureOf(fixture.map), same(fixture.feature),
           reason: 'the original immutable map remains untouched');
+    });
+
+    test('promotes a primary connected-line preview to layer format V2', () {
+      final fixture = _fixture();
+      final request = BorderResolutionRequest(
+        mapSize: fixture.map.size,
+        tileSizePx: const GridSize(width: 16, height: 16),
+        blueprintId: fixture.feature.blueprintId,
+        blueprintRevision: BorderBlueprintRevision(
+          revision: 1,
+          definition: BorderBlueprintPublishedDefinition(
+            name: 'Connected cliff',
+            previewSeed: BorderSignedInt64.zero,
+            template: BorderBlueprintTemplate.connectedLine,
+            primitives: <BorderPublishedPrimitive>[
+              _connectedPrimitive(
+                id: 'cap',
+                role: BorderPrimitiveRole.lineCap,
+              ),
+              _connectedPrimitive(
+                id: 'straight',
+                role: BorderPrimitiveRole.lineStraight,
+              ),
+              _connectedPrimitive(
+                id: 'corner',
+                role: BorderPrimitiveRole.lineCorner,
+              ),
+            ],
+            defaults: _params(),
+            sortOrder: 0,
+          ),
+        ),
+        feature: BorderFeature(
+          id: fixture.feature.id,
+          name: fixture.feature.name,
+          blueprintId: fixture.feature.blueprintId,
+          seed: fixture.feature.seed,
+          geometry: BorderStrokeGeometry(
+            strokes: <BorderStroke>[
+              BorderStroke(
+                id: 'cliff',
+                points: const <GridPos>[
+                  GridPos(x: 0, y: 0),
+                  GridPos(x: 1, y: 0),
+                ],
+                closed: false,
+              ),
+            ],
+          ),
+          overrides: const <BorderSlotOverride>[],
+          keepOutRegions: const <BorderKeepOutRegion>[],
+        ),
+        visualSnapshots: <BorderVisualSnapshot>[_snapshot()],
+        resolverVersion: borderResolverVersion,
+      );
+      final result = resolveBorderFeature(request);
+      expect(result.canApply, isTrue);
+
+      final updated = applyBorderFeaturePreview(
+        fixture.map,
+        expectedMapId: fixture.map.id,
+        layerId: 'border',
+        featureId: fixture.feature.id,
+        expectedBaseFeatureFingerprint:
+            computeBorderFeatureEditFingerprint(fixture.feature),
+        proposedRequest: request,
+        proposedResult: result,
+      );
+
+      expect(
+        (updated.layers.first as BorderLayer).content.formatVersion,
+        BorderLayerContent.formatVersionV2,
+      );
+      expect(_featureOf(updated).lineSide, BorderLineSide.primary);
     });
 
     test('error result is an identity no-op before coherence checks', () {
@@ -601,8 +777,10 @@ void main() {
   BorderFeature feature,
   BorderFeature otherFeature,
   BorderMaterialization materialization,
-}) _fixture() {
-  final initialRequest = _request();
+}) _fixture({
+  BorderLineSide lineSide = BorderLineSide.primary,
+}) {
+  final initialRequest = _request(feature: _plainFeature(lineSide: lineSide));
   final materialization = _materialization(initialRequest);
   final feature = _copyFeature(
     initialRequest.feature,
@@ -670,6 +848,8 @@ BorderResolutionRequest _request({
 BorderFeature _plainFeature({
   String id = 'feature',
   String blueprintId = 'blueprint',
+  BorderLineSide lineSide = BorderLineSide.primary,
+  bool allowAutoRotation = true,
 }) =>
     BorderFeature(
       id: id,
@@ -681,7 +861,8 @@ BorderFeature _plainFeature({
         height: 2,
         cells: const <bool>[true, true, false, false, true, false],
       ),
-      paramsOverride: _params(),
+      lineSide: lineSide,
+      paramsOverride: _params(allowAutoRotation: allowAutoRotation),
       overrides: const <BorderSlotOverride>[],
       keepOutRegions: const <BorderKeepOutRegion>[],
     );
@@ -697,6 +878,7 @@ BorderFeature _copyFeature(
       blueprintId: source.blueprintId,
       seed: source.seed,
       geometry: source.geometry,
+      lineSide: source.lineSide,
       paramsOverride: source.paramsOverride,
       overrides: source.overrides,
       keepOutRegions: source.keepOutRegions,
@@ -710,13 +892,18 @@ BorderFeature _featureOf(MapData map) =>
 BorderFeature _otherFeatureOf(MapData map) =>
     (map.layers.first as BorderLayer).content.featureById('other-feature')!;
 
-BorderGenerationParams _params({int depthRows = 1}) => BorderGenerationParams(
+BorderGenerationParams _params({
+  int depthRows = 1,
+  bool allowAutoRotation = true,
+}) =>
+    BorderGenerationParams(
       irregularityPermille: 100,
       detailDensityPermille: 200,
       variationPermille: 300,
       maxOverlapPx: 1,
       gapTolerancePx: 1,
       depthRows: depthRows,
+      allowAutoRotation: allowAutoRotation,
     );
 
 BorderPublishedPrimitive _primitive() => BorderPublishedPrimitive(
@@ -736,6 +923,32 @@ BorderPublishedPrimitive _primitive() => BorderPublishedPrimitive(
         opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
         defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
         occupancyMaskRle: encodeBorderRleMask(List<bool>.filled(16 * 16, true)),
+      ),
+    );
+
+BorderPublishedPrimitive _connectedPrimitive({
+  required String id,
+  required BorderPrimitiveRole role,
+}) =>
+    BorderPublishedPrimitive(
+      id: id,
+      sourceElementId: 'source-$id',
+      visualSnapshotId: _snapshotA,
+      role: role,
+      weight: 1,
+      anchorPx: const BorderPixelPos(x: 8, y: 8),
+      transforms: BorderTransformPolicy(
+        allowFlipX: true,
+        allowedQuarterTurns: <int>[0, 1, 2, 3],
+      ),
+      publishedMetrics: BorderPrimitiveAssetMetrics(
+        assetFingerprint: 'asset-$id',
+        pixelSize: const GridSize(width: 16, height: 16),
+        opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
+        defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
+        occupancyMaskRle: encodeBorderRleMask(
+          List<bool>.filled(16 * 16, true),
+        ),
       ),
     );
 

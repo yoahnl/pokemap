@@ -1,6 +1,7 @@
 import '../models/border_diagnostics.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
+import 'connected_line_border_resolver.dart';
 import 'masonry_line_border_resolver.dart';
 import 'organic_edge_border_resolver.dart';
 import 'post_and_rail_line_border_resolver.dart';
@@ -27,6 +28,8 @@ BorderResolutionResult resolveBorderFeature(BorderResolutionRequest request) {
     BorderBlueprintTemplate.masonryLine => resolveMasonryLineBorder(request),
     BorderBlueprintTemplate.postAndRailLine =>
       resolvePostAndRailLineBorder(request),
+    BorderBlueprintTemplate.connectedLine =>
+      resolveConnectedLineBorder(request),
   };
 }
 

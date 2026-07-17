@@ -275,6 +275,108 @@ void main() {
       );
     });
 
+    test('projects both connected-line sides and both corner turn senses',
+        () async {
+      final target = _record(
+        template: BorderBlueprintTemplate.connectedLine,
+        primitives: <BorderPrimitiveDraft>[
+          _primitive(
+            id: 'cap',
+            sourceElementId: 'element-cap',
+            role: BorderPrimitiveRole.lineCap,
+            allowFlipX: true,
+          ),
+          _primitive(
+            id: 'straight',
+            sourceElementId: 'element-straight',
+            role: BorderPrimitiveRole.lineStraight,
+            allowFlipX: true,
+          ),
+          _primitive(
+            id: 'corner',
+            sourceElementId: 'element-corner',
+            role: BorderPrimitiveRole.lineCorner,
+            allowFlipX: true,
+          ),
+        ],
+      );
+      final manifest = _manifest(
+        record: target,
+        elements: <ProjectElementEntry>[
+          _element('element-cap'),
+          _element('element-straight'),
+          _element('element-corner'),
+        ],
+      );
+      final coordinator = BorderStudioPublicationCoordinator(
+        prepareProjectElementAsset: ({
+          required manifest,
+          required projectRootPath,
+          required sourceElementId,
+          required primitiveId,
+          required role,
+          required weight,
+          required transforms,
+          anchorPx,
+        }) async =>
+            _preparedProjectElement(
+          primitive: target.draft.definition.primitives.firstWhere(
+            (primitive) => primitive.id == primitiveId,
+          ),
+        ),
+        buildCandidate: const BorderPublicationCandidateBuilder().build,
+        resolveCanonicalGallery: ({
+          required blueprintId,
+          required blueprintRevision,
+          required visualSnapshots,
+          required tileSizePx,
+          required resolverVersion,
+        }) =>
+            BorderStudioCanonicalGalleryResolution.fromCore(
+          resolveBorderCanonicalGallery(
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: visualSnapshots,
+            tileSizePx: tileSizePx,
+            resolverVersion: resolverVersion,
+          ),
+        ),
+        publishRequest: (_) => throw StateError('must not publish in prepare'),
+      );
+
+      final preview = await coordinator.prepare(
+        manifest: manifest,
+        projectRootPath: '/project',
+        draftRecord: target,
+      );
+
+      expect(preview.canonicalGalleryCases, hasLength(4));
+      for (final galleryCase in preview.canonicalGalleryCases) {
+        expect(galleryCase.resolution.canApply, isTrue);
+        expect(galleryCase.invertedResolution?.canApply, isTrue);
+        expect(
+          galleryCase.resolution.materialization!.placements
+              .map((placement) => placement.transform.flipX),
+          everyElement(isFalse),
+        );
+        expect(
+          galleryCase.invertedResolution!.materialization!.placements
+              .map((placement) => placement.transform.flipX),
+          everyElement(isTrue),
+        );
+      }
+      final corner = preview.canonicalGalleryCases.singleWhere(
+        (galleryCase) =>
+            galleryCase.galleryCase == BorderCanonicalGalleryCase.sharpCorner,
+      );
+      expect(
+        (corner.geometry as BorderStrokeGeometry)
+            .strokes
+            .map((stroke) => stroke.id),
+        orderedEquals(<String>['leftTurn', 'rightTurn']),
+      );
+    });
+
     test('forwards every injected ground snapshot role to the candidate',
         () async {
       final target = _record(
@@ -850,6 +952,7 @@ BorderPrimitiveDraft _primitive({
   required String sourceElementId,
   BorderPrimitiveRole role = BorderPrimitiveRole.structureLarge,
   int weight = 100,
+  bool allowFlipX = false,
 }) {
   return BorderPrimitiveDraft(
     id: id,
@@ -858,7 +961,7 @@ BorderPrimitiveDraft _primitive({
     weight: weight,
     anchorPx: const BorderPixelPos(x: 1, y: 1),
     transforms: BorderTransformPolicy(
-      allowFlipX: false,
+      allowFlipX: allowFlipX,
       allowedQuarterTurns: const <int>[0, 1, 2, 3],
     ),
     currentMetrics: _metrics('source-$id'),

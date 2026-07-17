@@ -65,6 +65,9 @@ const Set<String> _generationParamKeys = <String>{
   'gapTolerancePx',
   'depthRows',
 };
+const Set<String> _generationParamOptionalKeysV2 = <String>{
+  'allowAutoRotation',
+};
 const Set<String> _surfaceRoleKeys = <String>{
   'isolated',
   'endNorth',
@@ -95,7 +98,9 @@ const Set<String> _surfaceRoleKeys = <String>{
 Map<String, Object?> encodeBorderBlueprintRecordJson(
   BorderBlueprintRecord value, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireBlueprintFormatVersion(formatVersion, path);
   final idPath = borderJsonPropertyPath(path, 'id');
   _requireStableRecordId(value.id, idPath);
 
@@ -103,11 +108,12 @@ Map<String, Object?> encodeBorderBlueprintRecordJson(
   final latestPublished = value.latestPublished;
   return <String, Object?>{
     'id': value.id,
-    'draft': _encodeDraft(value.draft, draftPath),
+    'draft': _encodeDraft(value.draft, draftPath, formatVersion),
     if (latestPublished != null)
       'latestPublished': _encodeRevision(
         latestPublished,
         borderJsonPropertyPath(path, 'latestPublished'),
+        formatVersion,
       ),
     if (value.isDeprecated) 'isDeprecated': true,
   };
@@ -117,7 +123,9 @@ Map<String, Object?> encodeBorderBlueprintRecordJson(
 BorderBlueprintRecord decodeBorderBlueprintRecordJson(
   Object? json, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireBlueprintFormatVersion(formatVersion, path);
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
@@ -137,6 +145,7 @@ BorderBlueprintRecord decodeBorderBlueprintRecordJson(
   final draft = _decodeDraft(
     borderJsonRequireField(value, 'draft', path),
     draftPath,
+    formatVersion,
   );
 
   BorderBlueprintRevision? latestPublished;
@@ -146,6 +155,7 @@ BorderBlueprintRecord decodeBorderBlueprintRecordJson(
     latestPublished = _decodeRevision(
       value['latestPublished'],
       latestPublishedPath,
+      formatVersion,
     );
   }
 
@@ -171,7 +181,15 @@ BorderBlueprintRecord decodeBorderBlueprintRecordJson(
 Map<String, Object?> encodeBorderGenerationParamsJson(
   BorderGenerationParams value, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireBlueprintFormatVersion(formatVersion, path);
+  if (formatVersion == 1 && !value.allowAutoRotation) {
+    throw FormatException(
+      '${borderJsonPropertyPath(path, 'allowAutoRotation')}: '
+      'requires Border format version 2',
+    );
+  }
   _validatePermille(
     value.irregularityPermille,
     borderJsonPropertyPath(path, 'irregularityPermille'),
@@ -205,6 +223,8 @@ Map<String, Object?> encodeBorderGenerationParamsJson(
     'maxOverlapPx': value.maxOverlapPx,
     'gapTolerancePx': value.gapTolerancePx,
     'depthRows': value.depthRows,
+    if (formatVersion == 2 && !value.allowAutoRotation)
+      'allowAutoRotation': false,
   };
 }
 
@@ -212,12 +232,16 @@ Map<String, Object?> encodeBorderGenerationParamsJson(
 BorderGenerationParams decodeBorderGenerationParamsJson(
   Object? json, {
   String path = r'$',
+  int formatVersion = 1,
 }) {
+  _requireBlueprintFormatVersion(formatVersion, path);
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
     path: path,
     requiredKeys: _generationParamKeys,
+    optionalKeys:
+        formatVersion == 2 ? _generationParamOptionalKeysV2 : const <String>{},
   );
 
   final irregularityPath = borderJsonPropertyPath(path, 'irregularityPermille');
@@ -252,6 +276,12 @@ BorderGenerationParams decodeBorderGenerationParamsJson(
     borderJsonRequireField(value, 'depthRows', path),
     depthRowsPath,
   );
+  final allowAutoRotation = value.containsKey('allowAutoRotation')
+      ? borderJsonRequireBool(
+          value['allowAutoRotation'],
+          borderJsonPropertyPath(path, 'allowAutoRotation'),
+        )
+      : true;
 
   _validatePermille(irregularityPermille, irregularityPath);
   _validatePermille(detailDensityPermille, detailDensityPath);
@@ -271,11 +301,16 @@ BorderGenerationParams decodeBorderGenerationParamsJson(
       maxOverlapPx: maxOverlapPx,
       gapTolerancePx: gapTolerancePx,
       depthRows: depthRows,
+      allowAutoRotation: allowAutoRotation,
     ),
   );
 }
 
-Map<String, Object?> _encodeDraft(BorderBlueprintDraft value, String path) {
+Map<String, Object?> _encodeDraft(
+  BorderBlueprintDraft value,
+  String path,
+  int formatVersion,
+) {
   final baseRevisionPath = borderJsonPropertyPath(path, 'baseRevision');
   if (value.baseRevision < 0) {
     throw FormatException('$baseRevisionPath: must be >= 0');
@@ -285,11 +320,16 @@ Map<String, Object?> _encodeDraft(BorderBlueprintDraft value, String path) {
     'definition': _encodeDraftDefinition(
       value.definition,
       borderJsonPropertyPath(path, 'definition'),
+      formatVersion,
     ),
   };
 }
 
-BorderBlueprintDraft _decodeDraft(Object? json, String path) {
+BorderBlueprintDraft _decodeDraft(
+  Object? json,
+  String path,
+  int formatVersion,
+) {
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
@@ -311,6 +351,7 @@ BorderBlueprintDraft _decodeDraft(Object? json, String path) {
       definition: _decodeDraftDefinition(
         borderJsonRequireField(value, 'definition', path),
         borderJsonPropertyPath(path, 'definition'),
+        formatVersion,
       ),
     ),
   );
@@ -319,6 +360,7 @@ BorderBlueprintDraft _decodeDraft(Object? json, String path) {
 Map<String, Object?> _encodeRevision(
   BorderBlueprintRevision value,
   String path,
+  int formatVersion,
 ) {
   final revisionPath = borderJsonPropertyPath(path, 'revision');
   if (value.revision < 1) {
@@ -329,11 +371,16 @@ Map<String, Object?> _encodeRevision(
     'definition': _encodePublishedDefinition(
       value.definition,
       borderJsonPropertyPath(path, 'definition'),
+      formatVersion,
     ),
   };
 }
 
-BorderBlueprintRevision _decodeRevision(Object? json, String path) {
+BorderBlueprintRevision _decodeRevision(
+  Object? json,
+  String path,
+  int formatVersion,
+) {
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
@@ -355,6 +402,7 @@ BorderBlueprintRevision _decodeRevision(Object? json, String path) {
       definition: _decodePublishedDefinition(
         borderJsonRequireField(value, 'definition', path),
         borderJsonPropertyPath(path, 'definition'),
+        formatVersion,
       ),
     ),
   );
@@ -363,8 +411,14 @@ BorderBlueprintRevision _decodeRevision(Object? json, String path) {
 Map<String, Object?> _encodeDraftDefinition(
   BorderBlueprintDraftDefinition value,
   String path,
+  int formatVersion,
 ) {
   _validateDefinitionFields(value, path);
+  final template = _encodeTemplate(
+    value.template,
+    formatVersion,
+    borderJsonPropertyPath(path, 'template'),
+  );
   final primitivesPath = borderJsonPropertyPath(path, 'primitives');
   final primitives = <Object?>[];
   for (var index = 0; index < value.primitives.length; index += 1) {
@@ -372,6 +426,7 @@ Map<String, Object?> _encodeDraftDefinition(
       _encodeDraftPrimitive(
         value.primitives[index],
         borderJsonIndexPath(primitivesPath, index),
+        formatVersion,
       ),
     );
   }
@@ -383,11 +438,12 @@ Map<String, Object?> _encodeDraftDefinition(
       value.previewSeed,
       borderJsonPropertyPath(path, 'previewSeed'),
     ),
-    'template': _encodeTemplate(value.template),
+    'template': template,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
       path: borderJsonPropertyPath(path, 'defaults'),
+      formatVersion: formatVersion,
     ),
     if (ground != null)
       'ground': _encodeDraftGround(
@@ -402,11 +458,12 @@ Map<String, Object?> _encodeDraftDefinition(
 BorderBlueprintDraftDefinition _decodeDraftDefinition(
   Object? json,
   String path,
+  int formatVersion,
 ) {
   final value = _decodeDefinitionObject(json, path);
   final name = _decodeDefinitionName(value, path);
   final previewSeed = _decodePreviewSeed(value, path);
-  final template = _decodeDefinitionTemplate(value, path);
+  final template = _decodeDefinitionTemplate(value, path, formatVersion);
   final primitivesPath = borderJsonPropertyPath(path, 'primitives');
   final primitiveValues = borderJsonRequireList(
     borderJsonRequireField(value, 'primitives', path),
@@ -418,6 +475,7 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       _decodeDraftPrimitive(
         primitiveValues[index],
         borderJsonIndexPath(primitivesPath, index),
+        formatVersion,
       ),
     );
   }
@@ -431,6 +489,7 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
         path: borderJsonPropertyPath(path, 'defaults'),
+        formatVersion: formatVersion,
       ),
       ground: _decodeOptionalDraftGround(value, path),
       categoryId: _decodeOptionalCategoryId(value, path),
@@ -442,8 +501,14 @@ BorderBlueprintDraftDefinition _decodeDraftDefinition(
 Map<String, Object?> _encodePublishedDefinition(
   BorderBlueprintPublishedDefinition value,
   String path,
+  int formatVersion,
 ) {
   _validateDefinitionFields(value, path);
+  final template = _encodeTemplate(
+    value.template,
+    formatVersion,
+    borderJsonPropertyPath(path, 'template'),
+  );
   final primitivesPath = borderJsonPropertyPath(path, 'primitives');
   final primitives = <Object?>[];
   for (var index = 0; index < value.primitives.length; index += 1) {
@@ -451,6 +516,7 @@ Map<String, Object?> _encodePublishedDefinition(
       _encodePublishedPrimitive(
         value.primitives[index],
         borderJsonIndexPath(primitivesPath, index),
+        formatVersion,
       ),
     );
   }
@@ -462,11 +528,12 @@ Map<String, Object?> _encodePublishedDefinition(
       value.previewSeed,
       borderJsonPropertyPath(path, 'previewSeed'),
     ),
-    'template': _encodeTemplate(value.template),
+    'template': template,
     'primitives': primitives,
     'defaults': encodeBorderGenerationParamsJson(
       value.defaults,
       path: borderJsonPropertyPath(path, 'defaults'),
+      formatVersion: formatVersion,
     ),
     if (ground != null)
       'ground': _encodePublishedGround(
@@ -481,11 +548,12 @@ Map<String, Object?> _encodePublishedDefinition(
 BorderBlueprintPublishedDefinition _decodePublishedDefinition(
   Object? json,
   String path,
+  int formatVersion,
 ) {
   final value = _decodeDefinitionObject(json, path);
   final name = _decodeDefinitionName(value, path);
   final previewSeed = _decodePreviewSeed(value, path);
-  final template = _decodeDefinitionTemplate(value, path);
+  final template = _decodeDefinitionTemplate(value, path, formatVersion);
   final primitivesPath = borderJsonPropertyPath(path, 'primitives');
   final primitiveValues = borderJsonRequireList(
     borderJsonRequireField(value, 'primitives', path),
@@ -497,6 +565,7 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       _decodePublishedPrimitive(
         primitiveValues[index],
         borderJsonIndexPath(primitivesPath, index),
+        formatVersion,
       ),
     );
   }
@@ -510,6 +579,7 @@ BorderBlueprintPublishedDefinition _decodePublishedDefinition(
       defaults: decodeBorderGenerationParamsJson(
         borderJsonRequireField(value, 'defaults', path),
         path: borderJsonPropertyPath(path, 'defaults'),
+        formatVersion: formatVersion,
       ),
       ground: _decodeOptionalPublishedGround(value, path),
       categoryId: _decodeOptionalCategoryId(value, path),
@@ -550,6 +620,7 @@ BorderSignedInt64 _decodePreviewSeed(BorderJsonObject value, String path) {
 BorderBlueprintTemplate _decodeDefinitionTemplate(
   BorderJsonObject value,
   String path,
+  int formatVersion,
 ) {
   final templatePath = borderJsonPropertyPath(path, 'template');
   return _decodeTemplate(
@@ -558,6 +629,7 @@ BorderBlueprintTemplate _decodeDefinitionTemplate(
       templatePath,
     ),
     templatePath,
+    formatVersion,
   );
 }
 
@@ -606,6 +678,7 @@ BorderPublishedGround? _decodeOptionalPublishedGround(
 Map<String, Object?> _encodeDraftPrimitive(
   BorderPrimitiveDraft value,
   String path,
+  int formatVersion,
 ) {
   _validatePrimitiveIdentityAndWeight(
     id: value.id,
@@ -617,7 +690,11 @@ Map<String, Object?> _encodeDraftPrimitive(
   return <String, Object?>{
     'id': value.id,
     'sourceElementId': value.sourceElementId,
-    'role': _encodePrimitiveRole(value.role),
+    'role': _encodePrimitiveRole(
+      value.role,
+      formatVersion,
+      borderJsonPropertyPath(path, 'role'),
+    ),
     'weight': value.weight,
     'anchorPx': _encodePixelPos(value.anchorPx),
     'transforms': _encodeTransformPolicy(
@@ -631,7 +708,11 @@ Map<String, Object?> _encodeDraftPrimitive(
   };
 }
 
-BorderPrimitiveDraft _decodeDraftPrimitive(Object? json, String path) {
+BorderPrimitiveDraft _decodeDraftPrimitive(
+  Object? json,
+  String path,
+  int formatVersion,
+) {
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
     value,
@@ -648,7 +729,7 @@ BorderPrimitiveDraft _decodeDraftPrimitive(Object? json, String path) {
     () => BorderPrimitiveDraft(
       id: identity.id,
       sourceElementId: identity.sourceElementId,
-      role: _decodePrimitiveRoleField(value, path),
+      role: _decodePrimitiveRoleField(value, path, formatVersion),
       weight: identity.weight,
       anchorPx: _decodePixelPos(
         borderJsonRequireField(value, 'anchorPx', path),
@@ -669,6 +750,7 @@ BorderPrimitiveDraft _decodeDraftPrimitive(Object? json, String path) {
 Map<String, Object?> _encodePublishedPrimitive(
   BorderPublishedPrimitive value,
   String path,
+  int formatVersion,
 ) {
   _validatePrimitiveIdentityAndWeight(
     id: value.id,
@@ -685,7 +767,11 @@ Map<String, Object?> _encodePublishedPrimitive(
     'id': value.id,
     'sourceElementId': value.sourceElementId,
     'visualSnapshotId': value.visualSnapshotId,
-    'role': _encodePrimitiveRole(value.role),
+    'role': _encodePrimitiveRole(
+      value.role,
+      formatVersion,
+      borderJsonPropertyPath(path, 'role'),
+    ),
     'weight': value.weight,
     'anchorPx': _encodePixelPos(value.anchorPx),
     'transforms': _encodeTransformPolicy(
@@ -702,6 +788,7 @@ Map<String, Object?> _encodePublishedPrimitive(
 BorderPublishedPrimitive _decodePublishedPrimitive(
   Object? json,
   String path,
+  int formatVersion,
 ) {
   final value = borderJsonRequireObject(json, path);
   borderJsonRequireExactKeys(
@@ -726,7 +813,7 @@ BorderPublishedPrimitive _decodePublishedPrimitive(
       id: identity.id,
       sourceElementId: identity.sourceElementId,
       visualSnapshotId: visualSnapshotId,
-      role: _decodePrimitiveRoleField(value, path),
+      role: _decodePrimitiveRoleField(value, path, formatVersion),
       weight: identity.weight,
       anchorPx: _decodePixelPos(
         borderJsonRequireField(value, 'anchorPx', path),
@@ -798,6 +885,7 @@ void _validatePrimitiveIdentityAndWeight({
 BorderPrimitiveRole _decodePrimitiveRoleField(
   BorderJsonObject value,
   String path,
+  int formatVersion,
 ) {
   final rolePath = borderJsonPropertyPath(path, 'role');
   return _decodePrimitiveRole(
@@ -806,6 +894,7 @@ BorderPrimitiveRole _decodePrimitiveRoleField(
       rolePath,
     ),
     rolePath,
+    formatVersion,
   );
 }
 
@@ -1087,43 +1176,84 @@ void _requireStableRecordId(String value, String path) {
   }
 }
 
-String _encodeTemplate(BorderBlueprintTemplate value) => switch (value) {
-      BorderBlueprintTemplate.organicEdge => 'organicEdge',
-      BorderBlueprintTemplate.masonryLine => 'masonryLine',
-      BorderBlueprintTemplate.postAndRailLine => 'postAndRailLine',
+String _encodeTemplate(
+  BorderBlueprintTemplate value,
+  int formatVersion,
+  String path,
+) {
+  if (formatVersion == 1 && value == BorderBlueprintTemplate.connectedLine) {
+    throw FormatException('$path: template requires catalog format version 2');
+  }
+  return borderBlueprintTemplateV1WireName(value);
+}
+
+BorderBlueprintTemplate _decodeTemplate(
+  String value,
+  String path,
+  int formatVersion,
+) {
+  final template = switch (value) {
+    'organicEdge' => BorderBlueprintTemplate.organicEdge,
+    'masonryLine' => BorderBlueprintTemplate.masonryLine,
+    'postAndRailLine' => BorderBlueprintTemplate.postAndRailLine,
+    'connectedLine' => BorderBlueprintTemplate.connectedLine,
+    _ => throw FormatException('$path: unknown Border blueprint template'),
+  };
+  if (formatVersion == 1 && template == BorderBlueprintTemplate.connectedLine) {
+    throw FormatException('$path: template requires catalog format version 2');
+  }
+  return template;
+}
+
+String _encodePrimitiveRole(
+  BorderPrimitiveRole value,
+  int formatVersion,
+  String path,
+) {
+  if (formatVersion == 1 && _isConnectedLineRole(value)) {
+    throw FormatException('$path: role requires catalog format version 2');
+  }
+  return borderPrimitiveRoleV1WireName(value);
+}
+
+BorderPrimitiveRole _decodePrimitiveRole(
+  String value,
+  String path,
+  int formatVersion,
+) {
+  final role = switch (value) {
+    'structureLarge' => BorderPrimitiveRole.structureLarge,
+    'structureMedium' => BorderPrimitiveRole.structureMedium,
+    'filler' => BorderPrimitiveRole.filler,
+    'accent' => BorderPrimitiveRole.accent,
+    'post' => BorderPrimitiveRole.post,
+    'span' => BorderPrimitiveRole.span,
+    'surfacePatch' => BorderPrimitiveRole.surfacePatch,
+    'outerAccent' => BorderPrimitiveRole.outerAccent,
+    'lineCap' => BorderPrimitiveRole.lineCap,
+    'lineStraight' => BorderPrimitiveRole.lineStraight,
+    'lineCorner' => BorderPrimitiveRole.lineCorner,
+    _ => throw FormatException('$path: unknown Border primitive role'),
+  };
+  if (formatVersion == 1 && _isConnectedLineRole(role)) {
+    throw FormatException('$path: role requires catalog format version 2');
+  }
+  return role;
+}
+
+bool _isConnectedLineRole(BorderPrimitiveRole role) => switch (role) {
+      BorderPrimitiveRole.lineCap ||
+      BorderPrimitiveRole.lineStraight ||
+      BorderPrimitiveRole.lineCorner =>
+        true,
+      _ => false,
     };
 
-BorderBlueprintTemplate _decodeTemplate(String value, String path) =>
-    switch (value) {
-      'organicEdge' => BorderBlueprintTemplate.organicEdge,
-      'masonryLine' => BorderBlueprintTemplate.masonryLine,
-      'postAndRailLine' => BorderBlueprintTemplate.postAndRailLine,
-      _ => throw FormatException('$path: unknown Border blueprint template'),
-    };
-
-String _encodePrimitiveRole(BorderPrimitiveRole value) => switch (value) {
-      BorderPrimitiveRole.structureLarge => 'structureLarge',
-      BorderPrimitiveRole.structureMedium => 'structureMedium',
-      BorderPrimitiveRole.filler => 'filler',
-      BorderPrimitiveRole.accent => 'accent',
-      BorderPrimitiveRole.post => 'post',
-      BorderPrimitiveRole.span => 'span',
-      BorderPrimitiveRole.surfacePatch => 'surfacePatch',
-      BorderPrimitiveRole.outerAccent => 'outerAccent',
-    };
-
-BorderPrimitiveRole _decodePrimitiveRole(String value, String path) =>
-    switch (value) {
-      'structureLarge' => BorderPrimitiveRole.structureLarge,
-      'structureMedium' => BorderPrimitiveRole.structureMedium,
-      'filler' => BorderPrimitiveRole.filler,
-      'accent' => BorderPrimitiveRole.accent,
-      'post' => BorderPrimitiveRole.post,
-      'span' => BorderPrimitiveRole.span,
-      'surfacePatch' => BorderPrimitiveRole.surfacePatch,
-      'outerAccent' => BorderPrimitiveRole.outerAccent,
-      _ => throw FormatException('$path: unknown Border primitive role'),
-    };
+void _requireBlueprintFormatVersion(int value, String path) {
+  if (value != 1 && value != 2) {
+    throw FormatException('$path: unsupported Border blueprint format version');
+  }
+}
 
 String _encodeSurfaceRole(SurfaceVariantRole value) => switch (value) {
       SurfaceVariantRole.isolated => 'isolated',

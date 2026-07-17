@@ -10,6 +10,7 @@ String borderTemplateLabel(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.organicEdge => 'Côte organique',
       BorderBlueprintTemplate.masonryLine => 'Muret maçonné',
       BorderBlueprintTemplate.postAndRailLine => 'Clôture poteaux-traverses',
+      BorderBlueprintTemplate.connectedLine => 'Ligne connectée',
     };
 
 String borderTemplateDescription(BorderBlueprintTemplate template) =>
@@ -20,6 +21,8 @@ String borderTemplateDescription(BorderBlueprintTemplate template) =>
         'Murets et remparts dessinés ensuite comme une ligne dans World Maps.',
       BorderBlueprintTemplate.postAndRailLine =>
         'Clôtures avec poteaux, traverses et futures ouvertures.',
+      BorderBlueprintTemplate.connectedLine =>
+        'Falaises, murs et bordures libres assemblés sur un tracé cardinal.',
     };
 
 String borderRoleLabel(BorderPrimitiveRole role) => switch (role) {
@@ -31,6 +34,9 @@ String borderRoleLabel(BorderPrimitiveRole role) => switch (role) {
       BorderPrimitiveRole.span => 'Traverse',
       BorderPrimitiveRole.surfacePatch => 'Finition intérieure',
       BorderPrimitiveRole.outerAccent => 'Bord extérieur',
+      BorderPrimitiveRole.lineCap => 'Extrémité',
+      BorderPrimitiveRole.lineStraight => 'Segment droit',
+      BorderPrimitiveRole.lineCorner => 'Angle',
     };
 
 List<BorderPrimitiveRole> orderedBorderRoles(
@@ -38,6 +44,9 @@ List<BorderPrimitiveRole> orderedBorderRoles(
 ) {
   final allowed = roles.toSet();
   return <BorderPrimitiveRole>[
+    BorderPrimitiveRole.lineCap,
+    BorderPrimitiveRole.lineStraight,
+    BorderPrimitiveRole.lineCorner,
     BorderPrimitiveRole.structureLarge,
     BorderPrimitiveRole.structureMedium,
     BorderPrimitiveRole.filler,
@@ -71,6 +80,13 @@ List<String> unresolvedBorderRoleLabels(BorderBlueprintDraftDefinition draft) {
         if (!assigned.contains(BorderPrimitiveRole.post)) 'Poteau',
         if (!assigned.contains(BorderPrimitiveRole.span)) 'Traverse',
       ];
+    case BorderBlueprintTemplate.connectedLine:
+      return <String>[
+        if (!assigned.contains(BorderPrimitiveRole.lineCap)) 'Extrémité',
+        if (!assigned.contains(BorderPrimitiveRole.lineStraight))
+          'Segment droit',
+        if (!assigned.contains(BorderPrimitiveRole.lineCorner)) 'Angle',
+      ];
   }
 }
 
@@ -86,6 +102,10 @@ bool isRequiredBorderRole(
             role == BorderPrimitiveRole.filler,
       BorderBlueprintTemplate.postAndRailLine =>
         role == BorderPrimitiveRole.post || role == BorderPrimitiveRole.span,
+      BorderBlueprintTemplate.connectedLine =>
+        role == BorderPrimitiveRole.lineCap ||
+            role == BorderPrimitiveRole.lineStraight ||
+            role == BorderPrimitiveRole.lineCorner,
     };
 
 class BorderStudioNotice extends StatelessWidget {

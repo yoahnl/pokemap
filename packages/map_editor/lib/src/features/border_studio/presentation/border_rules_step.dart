@@ -20,6 +20,7 @@ class BorderRulesStep extends StatelessWidget {
     final definition = state.workingDraft?.blueprint.definition;
     final rules = definition?.defaults;
     final template = definition?.template;
+    final isConnectedLine = template == BorderBlueprintTemplate.connectedLine;
     return BorderStudioStepScaffold(
       title: '4. Règles',
       description:
@@ -40,19 +41,21 @@ class BorderRulesStep extends StatelessWidget {
                       key: const ValueKey<String>(
                         'border-studio-profile-strict',
                       ),
-                      onPressed: () => onRulesChanged(_strictFrom(rules)),
+                      onPressed: () =>
+                          onRulesChanged(_strictFrom(rules, template)),
                       variant: PokeMapButtonVariant.secondary,
-                      isSelected: _isStrict(rules),
+                      isSelected: _isStrict(rules, template!),
                       leading: const Icon(CupertinoIcons.rectangle_grid_1x2),
-                      child: Text(_strictProfileLabel(template!)),
+                      child: Text(_strictProfileLabel(template)),
                     ),
                     PokeMapButton(
                       key: const ValueKey<String>(
                         'border-studio-profile-wild',
                       ),
-                      onPressed: () => onRulesChanged(_wildFrom(rules)),
+                      onPressed: () =>
+                          onRulesChanged(_wildFrom(rules, template)),
                       variant: PokeMapButtonVariant.secondary,
-                      isSelected: _isWild(rules),
+                      isSelected: _isWild(rules, template),
                       leading: const Icon(CupertinoIcons.wind),
                       child: Text(_wildProfileLabel(template)),
                     ),
@@ -60,9 +63,9 @@ class BorderRulesStep extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 BorderStudioNotice(
-                  title: _isStrict(rules)
+                  title: _isStrict(rules, template)
                       ? _strictAppliedLabel(template)
-                      : _isWild(rules)
+                      : _isWild(rules, template)
                           ? _wildAppliedLabel(template)
                           : 'Réglage personnalisé',
                   description:
@@ -71,42 +74,60 @@ class BorderRulesStep extends StatelessWidget {
                   icon: CupertinoIcons.checkmark_seal,
                 ),
                 const SizedBox(height: 12),
+                if (isConnectedLine) ...[
+                  PokeMapToggleTile(
+                    key: const ValueKey<String>(
+                      'border-studio-auto-rotation-toggle',
+                    ),
+                    label: 'Rotation automatique',
+                    description: rules.allowAutoRotation
+                        ? 'Oriente chaque morceau pour suivre la ligne.'
+                        : 'Conserve l\'asset sans rotation.',
+                    value: rules.allowAutoRotation,
+                    onChanged: (value) => onRulesChanged(
+                      _copyRules(rules, allowAutoRotation: value),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 PokeMapCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      PokeMapGuidedSlider(
-                        key: const ValueKey<String>(
-                          'border-studio-regularity-control',
-                        ),
-                        label: 'Régularité',
-                        description:
-                            'Élevée pour un tracé calme, basse pour plus d’aspérités.',
-                        value: 100 - rules.irregularityPermille ~/ 10,
-                        onChanged: (value) => onRulesChanged(
-                          _copyRules(
-                            rules,
-                            irregularityPermille: (100 - value) * 10,
+                      if (!isConnectedLine) ...[
+                        PokeMapGuidedSlider(
+                          key: const ValueKey<String>(
+                            'border-studio-regularity-control',
+                          ),
+                          label: 'Régularité',
+                          description:
+                              'Élevée pour un tracé calme, basse pour plus d’aspérités.',
+                          value: 100 - rules.irregularityPermille ~/ 10,
+                          onChanged: (value) => onRulesChanged(
+                            _copyRules(
+                              rules,
+                              irregularityPermille: (100 - value) * 10,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      PokeMapGuidedSlider(
-                        key: const ValueKey<String>(
-                          'border-studio-details-control',
-                        ),
-                        label: 'Quantité de détails',
-                        description:
-                            'Dose les petits éléments ajoutés autour de la structure.',
-                        value: rules.detailDensityPermille ~/ 10,
-                        onChanged: (value) => onRulesChanged(
-                          _copyRules(
-                            rules,
-                            detailDensityPermille: value * 10,
+                        const SizedBox(height: 12),
+                        PokeMapGuidedSlider(
+                          key: const ValueKey<String>(
+                            'border-studio-details-control',
+                          ),
+                          label: 'Quantité de détails',
+                          description:
+                              'Dose les petits éléments ajoutés autour de la structure.',
+                          value: rules.detailDensityPermille ~/ 10,
+                          onChanged: (value) => onRulesChanged(
+                            _copyRules(
+                              rules,
+                              detailDensityPermille: value * 10,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
+                        const SizedBox(height: 12),
+                      ],
                       PokeMapGuidedSlider(
                         key: const ValueKey<String>(
                           'border-studio-variety-control',
@@ -130,14 +151,16 @@ class BorderRulesStep extends StatelessWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    PokeMapStatusTile(
-                      label: 'Régularité',
-                      value: '${100 - rules.irregularityPermille ~/ 10} %',
-                    ),
-                    PokeMapStatusTile(
-                      label: 'Quantité de détails',
-                      value: '${rules.detailDensityPermille ~/ 10} %',
-                    ),
+                    if (!isConnectedLine) ...[
+                      PokeMapStatusTile(
+                        label: 'Régularité',
+                        value: '${100 - rules.irregularityPermille ~/ 10} %',
+                      ),
+                      PokeMapStatusTile(
+                        label: 'Quantité de détails',
+                        value: '${rules.detailDensityPermille ~/ 10} %',
+                      ),
+                    ],
                     PokeMapStatusTile(
                       label: 'Variété',
                       value: '${rules.variationPermille ~/ 10} %',
@@ -162,37 +185,64 @@ class BorderRulesStep extends StatelessWidget {
     );
   }
 
-  BorderGenerationParams _strictFrom(BorderGenerationParams current) =>
+  BorderGenerationParams _strictFrom(
+    BorderGenerationParams current,
+    BorderBlueprintTemplate template,
+  ) =>
       _copyRules(
         current,
         irregularityPermille: 100,
         detailDensityPermille: 250,
         variationPermille: 100,
+        maxOverlapPx:
+            template == BorderBlueprintTemplate.connectedLine ? 4 : null,
+        gapTolerancePx:
+            template == BorderBlueprintTemplate.connectedLine ? 1 : null,
       );
 
-  BorderGenerationParams _wildFrom(BorderGenerationParams current) =>
+  BorderGenerationParams _wildFrom(
+    BorderGenerationParams current,
+    BorderBlueprintTemplate template,
+  ) =>
       _copyRules(
         current,
         irregularityPermille: 750,
         detailDensityPermille: 700,
         variationPermille: 700,
+        maxOverlapPx:
+            template == BorderBlueprintTemplate.connectedLine ? 32 : null,
+        gapTolerancePx:
+            template == BorderBlueprintTemplate.connectedLine ? 6 : null,
       );
 
-  bool _isStrict(BorderGenerationParams rules) =>
+  bool _isStrict(
+    BorderGenerationParams rules,
+    BorderBlueprintTemplate template,
+  ) =>
       rules.irregularityPermille == 100 &&
       rules.detailDensityPermille == 250 &&
-      rules.variationPermille == 100;
+      rules.variationPermille == 100 &&
+      (template != BorderBlueprintTemplate.connectedLine ||
+          (rules.maxOverlapPx == 4 && rules.gapTolerancePx == 1));
 
-  bool _isWild(BorderGenerationParams rules) =>
+  bool _isWild(
+    BorderGenerationParams rules,
+    BorderBlueprintTemplate template,
+  ) =>
       rules.irregularityPermille == 750 &&
       rules.detailDensityPermille == 700 &&
-      rules.variationPermille == 700;
+      rules.variationPermille == 700 &&
+      (template != BorderBlueprintTemplate.connectedLine ||
+          (rules.maxOverlapPx == 32 && rules.gapTolerancePx == 6));
 
   BorderGenerationParams _copyRules(
     BorderGenerationParams source, {
     int? irregularityPermille,
     int? detailDensityPermille,
     int? variationPermille,
+    int? maxOverlapPx,
+    int? gapTolerancePx,
+    bool? allowAutoRotation,
   }) =>
       BorderGenerationParams(
         irregularityPermille:
@@ -200,9 +250,10 @@ class BorderRulesStep extends StatelessWidget {
         detailDensityPermille:
             detailDensityPermille ?? source.detailDensityPermille,
         variationPermille: variationPermille ?? source.variationPermille,
-        maxOverlapPx: source.maxOverlapPx,
-        gapTolerancePx: source.gapTolerancePx,
+        maxOverlapPx: maxOverlapPx ?? source.maxOverlapPx,
+        gapTolerancePx: gapTolerancePx ?? source.gapTolerancePx,
         depthRows: source.depthRows,
+        allowAutoRotation: allowAutoRotation ?? source.allowAutoRotation,
       );
 
   String _strictProfileLabel(BorderBlueprintTemplate template) =>
@@ -210,6 +261,7 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Strict et régulier',
         BorderBlueprintTemplate.masonryLine => 'Aligné',
         BorderBlueprintTemplate.postAndRailLine => 'Régulier',
+        BorderBlueprintTemplate.connectedLine => 'Net et régulier',
       };
 
   String _wildProfileLabel(BorderBlueprintTemplate template) =>
@@ -217,6 +269,7 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Organique et sauvage',
         BorderBlueprintTemplate.masonryLine => 'Vieilli',
         BorderBlueprintTemplate.postAndRailLine => 'Rustique',
+        BorderBlueprintTemplate.connectedLine => 'Varié et naturel',
       };
 
   String _strictAppliedLabel(BorderBlueprintTemplate template) =>
@@ -224,6 +277,7 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Profil strict appliqué',
         BorderBlueprintTemplate.masonryLine => 'Profil aligné appliqué',
         BorderBlueprintTemplate.postAndRailLine => 'Profil régulier appliqué',
+        BorderBlueprintTemplate.connectedLine => 'Profil régulier appliqué',
       };
 
   String _wildAppliedLabel(BorderBlueprintTemplate template) =>
@@ -231,5 +285,6 @@ class BorderRulesStep extends StatelessWidget {
         BorderBlueprintTemplate.organicEdge => 'Profil sauvage appliqué',
         BorderBlueprintTemplate.masonryLine => 'Profil vieilli appliqué',
         BorderBlueprintTemplate.postAndRailLine => 'Profil rustique appliqué',
+        BorderBlueprintTemplate.connectedLine => 'Profil varié appliqué',
       };
 }

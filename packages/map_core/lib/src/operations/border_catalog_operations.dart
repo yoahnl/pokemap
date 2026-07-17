@@ -4,6 +4,7 @@ import '../models/border_catalog.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import 'border_format_version.dart';
 
 /// Pure, conservative result of evaluating immutable Border snapshot cleanup.
 ///
@@ -287,8 +288,11 @@ ProjectBorderCatalog _copyCatalogWithRecords(
   ProjectBorderCatalog catalog,
   List<BorderBlueprintRecord> records,
 ) {
+  final requiresV2 = records.any(borderBlueprintRecordRequiresFormatV2);
   return ProjectBorderCatalog(
-    formatVersion: catalog.formatVersion,
+    formatVersion: requiresV2
+        ? ProjectBorderCatalog.formatVersionV2
+        : catalog.formatVersion,
     records: records,
     visualSnapshots: catalog.visualSnapshots,
   );

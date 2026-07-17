@@ -74,6 +74,16 @@ String localizeEditorBorderDiagnostic(BorderDiagnostic diagnostic) {
       'Réduisez l’ouverture ou ajustez les éléments de bordure.',
     'border.resolution.coverage_overlap' =>
       'Réduisez le chevauchement ou ajustez les éléments de bordure.',
+    'border.resolution.connected_line_cap_role_missing' =>
+      'Ajoutez au moins une variante au rôle Extrémité.',
+    'border.resolution.connected_line_straight_role_missing' =>
+      'Ajoutez au moins une variante au rôle Segment droit.',
+    'border.resolution.connected_line_corner_role_missing' =>
+      'Ajoutez au moins une variante au rôle Angle.',
+    'border.resolution.connected_line_transform_unavailable' =>
+      'Autorisez la rotation ou le miroir nécessaire pour ce raccord.',
+    'border.resolution.connected_line_topology_invalid' =>
+      'Simplifiez le tracé pour retirer sa branche ou son croisement.',
     'border.resolution.orientation_unavailable' =>
       'Autorisez l’orientation manquante dans le blueprint.',
     'border.resolution.repetition_four_identical' =>

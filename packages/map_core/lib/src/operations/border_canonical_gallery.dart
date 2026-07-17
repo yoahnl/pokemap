@@ -10,8 +10,10 @@ import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
 import '../models/geometry.dart';
+import 'border_coverage.dart';
 import 'border_publication_readiness.dart';
 import 'border_resolver.dart';
+import 'connected_line_border_resolver.dart';
 import 'masonry_line_border_resolver.dart';
 import 'organic_edge_canonical_gallery.dart';
 import 'post_and_rail_line_border_resolver.dart';
@@ -38,7 +40,12 @@ final class BorderCanonicalGalleryResult {
   bool get allCasesResolved =>
       _cases.length ==
           borderCanonicalGalleryCasesForTemplate(template).length &&
-      _cases.every((item) => item.resolverResult.canApply);
+      _cases.every(
+        (item) =>
+            item.resolverResult.canApply &&
+            (template != BorderBlueprintTemplate.connectedLine ||
+                item.invertedResolverResult?.canApply == true),
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -66,13 +73,19 @@ final class BorderCanonicalGalleryCaseResult {
     required this.mapSize,
     required this.geometry,
     required this.resolverResult,
+    this.invertedResolverResult,
     required this.publicationSample,
   });
 
   final BorderCanonicalGalleryCase galleryCase;
   final GridSize mapSize;
   final BorderFeatureGeometry geometry;
+
+  /// Primary-side output retained under the original gallery API.
   final BorderResolutionResult resolverResult;
+
+  /// Opposite-side output for `connectedLine`; `null` for other templates.
+  final BorderResolutionResult? invertedResolverResult;
   final BorderPublicationGallerySample publicationSample;
 
   @override
@@ -83,6 +96,7 @@ final class BorderCanonicalGalleryCaseResult {
           mapSize == other.mapSize &&
           geometry == other.geometry &&
           resolverResult == other.resolverResult &&
+          invertedResolverResult == other.invertedResolverResult &&
           publicationSample == other.publicationSample;
 
   @override
@@ -91,6 +105,7 @@ final class BorderCanonicalGalleryCaseResult {
         mapSize,
         geometry,
         resolverResult,
+        invertedResolverResult,
         publicationSample,
       );
 }
@@ -210,6 +225,85 @@ BorderCanonicalGalleryResult resolveBorderCanonicalGallery({
             publicationSample: sample,
           ),
         );
+      case BorderBlueprintTemplate.connectedLine:
+        final geometry = _connectedLineGeometryFor(galleryCase);
+        final primary = resolveConnectedLineBorderWithEvidence(
+          _request(
+            mapSize: _lineGalleryMapSize,
+            tileSizePx: tileSizePx,
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: snapshots,
+            resolverVersion: resolverVersion,
+            caseWire: caseWire,
+            geometry: geometry,
+            lineSide: BorderLineSide.primary,
+          ),
+        );
+        final inverted = resolveConnectedLineBorderWithEvidence(
+          _request(
+            mapSize: _lineGalleryMapSize,
+            tileSizePx: tileSizePx,
+            blueprintId: blueprintId,
+            blueprintRevision: blueprintRevision,
+            visualSnapshots: snapshots,
+            resolverVersion: resolverVersion,
+            caseWire: caseWire,
+            geometry: geometry,
+            lineSide: BorderLineSide.inverted,
+          ),
+        );
+        diagnostics
+          ..addAll(primary.result.diagnostics)
+          ..addAll(inverted.result.diagnostics);
+        final sample = BorderPublicationGallerySample(
+          galleryCase: galleryCase,
+          coverageChecks: _connectedLineCoverageChecks(
+            galleryCase: galleryCase,
+            params: definition.defaults,
+            geometry: geometry,
+            definition: definition,
+            primary: primary.result,
+            inverted: inverted.result,
+            tileSizePx: tileSizePx,
+          ),
+          structuralRuns: <BorderPublicationStructuralRun>[
+            ..._structuralRuns(
+              caseWire: caseWire,
+              idPrefix: 'primary:$caseWire',
+              result: primary.result,
+              definition: definition,
+              geometry: geometry,
+              acceptedRoles: const <BorderPrimitiveRole>{
+                BorderPrimitiveRole.lineCap,
+                BorderPrimitiveRole.lineStraight,
+                BorderPrimitiveRole.lineCorner,
+              },
+            ),
+            ..._structuralRuns(
+              caseWire: caseWire,
+              idPrefix: 'inverted:$caseWire',
+              result: inverted.result,
+              definition: definition,
+              geometry: geometry,
+              acceptedRoles: const <BorderPrimitiveRole>{
+                BorderPrimitiveRole.lineCap,
+                BorderPrimitiveRole.lineStraight,
+                BorderPrimitiveRole.lineCorner,
+              },
+            ),
+          ],
+        );
+        cases.add(
+          BorderCanonicalGalleryCaseResult._(
+            galleryCase: galleryCase,
+            mapSize: _lineGalleryMapSize,
+            geometry: geometry,
+            resolverResult: primary.result,
+            invertedResolverResult: inverted.result,
+            publicationSample: sample,
+          ),
+        );
       case BorderBlueprintTemplate.organicEdge:
         throw StateError('Organic gallery is adapted before line dispatch');
     }
@@ -265,6 +359,7 @@ BorderResolutionRequest _request({
   required int resolverVersion,
   required String caseWire,
   required BorderFeatureGeometry geometry,
+  BorderLineSide lineSide = BorderLineSide.primary,
 }) =>
     BorderResolutionRequest(
       mapSize: mapSize,
@@ -277,6 +372,7 @@ BorderResolutionRequest _request({
         blueprintId: blueprintId,
         seed: blueprintRevision.definition.previewSeed,
         geometry: geometry,
+        lineSide: lineSide,
         overrides: const <BorderSlotOverride>[],
         keepOutRegions: const <BorderKeepOutRegion>[],
       ),
@@ -412,6 +508,44 @@ BorderStrokeGeometry _fenceGeometryFor(
         ),
     };
 
+BorderStrokeGeometry _connectedLineGeometryFor(
+  BorderCanonicalGalleryCase galleryCase,
+) {
+  if (galleryCase != BorderCanonicalGalleryCase.sharpCorner) {
+    return _fenceGeometryFor(galleryCase);
+  }
+  return BorderStrokeGeometry(
+    strokes: <BorderStroke>[
+      BorderStroke(
+        id: 'leftTurn',
+        points: const <GridPos>[
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+          GridPos(x: 3, y: 2),
+          GridPos(x: 4, y: 2),
+          GridPos(x: 4, y: 3),
+          GridPos(x: 4, y: 4),
+          GridPos(x: 4, y: 5),
+        ],
+        closed: false,
+      ),
+      BorderStroke(
+        id: 'rightTurn',
+        points: const <GridPos>[
+          GridPos(x: 10, y: 4),
+          GridPos(x: 10, y: 5),
+          GridPos(x: 10, y: 6),
+          GridPos(x: 10, y: 7),
+          GridPos(x: 9, y: 7),
+          GridPos(x: 8, y: 7),
+          GridPos(x: 7, y: 7),
+        ],
+        closed: false,
+      ),
+    ],
+  );
+}
+
 BorderPublicationCoverageCheck _masonryCoverageCheck(
   MasonryLineBorderResolutionEvidence evidence,
   BorderGenerationParams params,
@@ -462,6 +596,162 @@ List<BorderPublicationCoverageCheck> _fenceCoverageChecks({
   ];
 }
 
+List<BorderPublicationCoverageCheck> _connectedLineCoverageChecks({
+  required BorderCanonicalGalleryCase galleryCase,
+  required BorderGenerationParams params,
+  required BorderStrokeGeometry geometry,
+  required BorderBlueprintPublishedDefinition definition,
+  required BorderResolutionResult primary,
+  required BorderResolutionResult inverted,
+  required GridSize tileSizePx,
+}) {
+  final strokesById = <String, BorderStroke>{
+    for (final stroke in geometry.strokes) stroke.id: stroke,
+  };
+  final primitivesById = <String, BorderPublishedPrimitive>{
+    for (final primitive in definition.primitives) primitive.id: primitive,
+  };
+  return <BorderPublicationCoverageCheck>[
+    for (final component in borderCanonicalCoverageComponentsForCase(
+      template: BorderBlueprintTemplate.connectedLine,
+      galleryCase: galleryCase,
+    ))
+      _connectedLineCoverageCheck(
+        component: component,
+        strokes: switch (component) {
+          BorderCanonicalCoverageComponent.leadingStroke => <BorderStroke>[
+              strokesById['leading']!
+            ],
+          BorderCanonicalCoverageComponent.trailingStroke => <BorderStroke>[
+              strokesById['trailing']!
+            ],
+          _ => geometry.strokes,
+        },
+        primary: primary,
+        inverted: inverted,
+        primitivesById: primitivesById,
+        tileSizePx: tileSizePx,
+        params: params,
+      ),
+  ];
+}
+
+BorderPublicationCoverageCheck _connectedLineCoverageCheck({
+  required BorderCanonicalCoverageComponent component,
+  required List<BorderStroke> strokes,
+  required BorderResolutionResult primary,
+  required BorderResolutionResult inverted,
+  required Map<String, BorderPublishedPrimitive> primitivesById,
+  required GridSize tileSizePx,
+  required BorderGenerationParams params,
+}) {
+  final assessments = <({int gap, int overlap})>[
+    for (final result in <BorderResolutionResult>[primary, inverted])
+      for (final stroke in strokes)
+        _connectedLineStrokeCoverage(
+          stroke: stroke,
+          result: result,
+          primitivesById: primitivesById,
+          tileSizePx: tileSizePx,
+          params: params,
+        ),
+  ];
+  return BorderPublicationCoverageCheck(
+    component: component,
+    longestContiguousGapPx: _maximum(
+      assessments.map((assessment) => assessment.gap),
+    ),
+    maximumPairwiseOverlapPx: _maximum(
+      assessments.map((assessment) => assessment.overlap),
+    ),
+    gapTolerancePx: params.gapTolerancePx,
+    maxOverlapPx: params.maxOverlapPx,
+  );
+}
+
+({int gap, int overlap}) _connectedLineStrokeCoverage({
+  required BorderStroke stroke,
+  required BorderResolutionResult result,
+  required Map<String, BorderPublishedPrimitive> primitivesById,
+  required GridSize tileSizePx,
+  required BorderGenerationParams params,
+}) {
+  final strokeCells = stroke.points.toSet();
+  final placements =
+      (result.materialization?.placements ?? const <BorderResolvedPlacement>[])
+          .where((placement) => strokeCells.contains(placement.anchorCell))
+          .toList(growable: false);
+  var longestGap = 0;
+  var maximumOverlap = 0;
+  final edgeCount =
+      stroke.closed ? stroke.points.length : stroke.points.length - 1;
+  for (var index = 0; index < edgeCount; index += 1) {
+    final start = stroke.points[index];
+    final end = stroke.points[(index + 1) % stroke.points.length];
+    final horizontal = start.y == end.y;
+    final startAxis = horizontal
+        ? start.x * tileSizePx.width + tileSizePx.width ~/ 2
+        : start.y * tileSizePx.height + tileSizePx.height ~/ 2;
+    final endAxis = horizontal
+        ? end.x * tileSizePx.width + tileSizePx.width ~/ 2
+        : end.y * tileSizePx.height + tileSizePx.height ~/ 2;
+    final targetStart = startAxis < endAxis ? startAxis : endAxis;
+    final targetEnd = startAxis < endAxis ? endAxis : startAxis;
+    final edgeLength = targetEnd - targetStart;
+    final projections = <BorderStructuralCoverageProjection>[];
+    for (final placement in placements) {
+      final primitive = primitivesById[placement.primitiveId];
+      if (primitive == null) continue;
+      final clipped = <BorderCoverageInterval>[];
+      for (final interval in projectBorderStructuralMaskOntoWorldAxis(
+        metrics: primitive.publishedMetrics,
+        transform: placement.transform,
+        topLeftWorldPx: placement.topLeftWorldPx,
+        worldXAxis: horizontal,
+      )) {
+        final clippedStart =
+            interval.startPx > targetStart ? interval.startPx : targetStart;
+        final clippedEnd =
+            interval.endPx < targetEnd ? interval.endPx : targetEnd;
+        if (clippedEnd > clippedStart) {
+          clipped.add(
+            BorderCoverageInterval(
+              startPx: clippedStart - targetStart + 1,
+              endPx: clippedEnd - targetStart + 1,
+            ),
+          );
+        }
+      }
+      if (clipped.isNotEmpty) {
+        projections.add(
+          BorderStructuralCoverageProjection(
+            placementId: placement.id,
+            drawBand: placement.drawBand,
+            passIndex: placement.stableOrderKey.passIndex,
+            intervals: clipped,
+          ),
+        );
+      }
+    }
+    final assessment = assessBorderLoopCoverage(
+      perimeterPx: edgeLength + 2,
+      targetIntervals: <BorderCoverageInterval>[
+        BorderCoverageInterval(startPx: 1, endPx: edgeLength + 1),
+      ],
+      projections: projections,
+      gapTolerancePx: params.gapTolerancePx,
+      maxOverlapPx: params.maxOverlapPx,
+    );
+    if (assessment.longestContiguousGapPx > longestGap) {
+      longestGap = assessment.longestContiguousGapPx;
+    }
+    if (assessment.maximumPairwiseOverlapPx > maximumOverlap) {
+      maximumOverlap = assessment.maximumPairwiseOverlapPx;
+    }
+  }
+  return (gap: longestGap, overlap: maximumOverlap);
+}
+
 List<PostAndRailLineEdgeResolutionEvidence> _fenceEdgesForComponent(
   Map<String, List<PostAndRailLineEdgeResolutionEvidence>> edgesByStroke,
   BorderCanonicalCoverageComponent component,
@@ -475,6 +765,7 @@ List<PostAndRailLineEdgeResolutionEvidence> _fenceEdgesForComponent(
 
 List<BorderPublicationStructuralRun> _structuralRuns({
   required String caseWire,
+  String? idPrefix,
   required BorderResolutionResult result,
   required BorderBlueprintPublishedDefinition definition,
   required BorderStrokeGeometry geometry,
@@ -496,9 +787,11 @@ List<BorderPublicationStructuralRun> _structuralRuns({
         'Canonical gallery structural placement must belong to one stroke',
       );
     }
-    final segment = role == BorderPrimitiveRole.post
-        ? continuity.nodeSegment
-        : continuity.edgeSegment;
+    final nodeRole = role == BorderPrimitiveRole.post ||
+        role == BorderPrimitiveRole.lineCap ||
+        role == BorderPrimitiveRole.lineStraight ||
+        role == BorderPrimitiveRole.lineCorner;
+    final segment = nodeRole ? continuity.nodeSegment : continuity.edgeSegment;
     if (segment < 0) {
       throw const ValidationException(
         'Canonical gallery structural placement must belong to one '
@@ -518,7 +811,7 @@ List<BorderPublicationStructuralRun> _structuralRuns({
   return <BorderPublicationStructuralRun>[
     for (final entry in grouped.entries)
       BorderPublicationStructuralRun(
-        id: '$caseWire:run:${index++}',
+        id: '${idPrefix ?? caseWire}:run:${index++}',
         role: entry.key.$3,
         quarterTurns: entry.key.$4,
         passIndex: entry.key.$5,

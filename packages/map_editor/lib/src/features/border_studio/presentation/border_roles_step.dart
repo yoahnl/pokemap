@@ -73,23 +73,38 @@ class BorderRolesStep extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                for (final role in roles) ...[
-                  PokeMapStatusTile(
-                    label: _roleRequirementLabel(
-                      definition.template,
-                      role,
+                if (definition.template ==
+                    BorderBlueprintTemplate.connectedLine)
+                  for (final role in roles) ...[
+                    _ConnectedLineRoleStatus(
+                      role: role,
+                      variantCount: definition.primitives
+                          .where(
+                            (primitive) =>
+                                primitive.role == role && primitive.weight > 0,
+                          )
+                          .length,
                     ),
-                    value: borderRoleLabel(role),
-                    icon: _roleIcon(role),
-                    tone: definition.primitives.any(
-                      (primitive) =>
-                          primitive.role == role && primitive.weight > 0,
-                    )
-                        ? PokeMapTone.success
-                        : PokeMapTone.neutral,
-                  ),
-                  const SizedBox(height: 8),
-                ],
+                    const SizedBox(height: 8),
+                  ]
+                else
+                  for (final role in roles) ...[
+                    PokeMapStatusTile(
+                      label: _roleRequirementLabel(
+                        definition.template,
+                        role,
+                      ),
+                      value: borderRoleLabel(role),
+                      icon: _roleIcon(role),
+                      tone: definition.primitives.any(
+                        (primitive) =>
+                            primitive.role == role && primitive.weight > 0,
+                      )
+                          ? PokeMapTone.success
+                          : PokeMapTone.neutral,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 if (unresolvedBorderRoleLabels(definition).isNotEmpty) ...[
                   const SizedBox(height: 4),
                   BorderStudioNotice(
@@ -112,6 +127,9 @@ class BorderRolesStep extends StatelessWidget {
         BorderPrimitiveRole.outerAccent =>
           CupertinoIcons.sparkles,
         BorderPrimitiveRole.surfacePatch => CupertinoIcons.square_fill,
+        BorderPrimitiveRole.lineCap => CupertinoIcons.stop_circle,
+        BorderPrimitiveRole.lineStraight => CupertinoIcons.resize_h,
+        BorderPrimitiveRole.lineCorner => CupertinoIcons.arrow_turn_up_right,
         _ => CupertinoIcons.square_stack_3d_down_right,
       };
 
@@ -122,6 +140,8 @@ class BorderRolesStep extends StatelessWidget {
           'Au moins une Structure principale, Structure secondaire ou Remplissage est requise. Les autres rôles sont optionnels.',
         BorderBlueprintTemplate.postAndRailLine =>
           'Poteau et Traverse sont requis. Les autres rôles sont optionnels.',
+        BorderBlueprintTemplate.connectedLine =>
+          'Extrémité, Segment droit et Angle sont requis. Ajoutez plusieurs assets à un même rôle pour créer des variantes.',
       };
 
   String _roleRequirementLabel(
@@ -134,6 +154,58 @@ class BorderRolesStep extends StatelessWidget {
       BorderBlueprintTemplate.masonryLine =>
         'Alternative de structure requise',
       BorderBlueprintTemplate.postAndRailLine => 'Rôle requis',
+      BorderBlueprintTemplate.connectedLine => 'Raccord requis',
     };
+  }
+}
+
+class _ConnectedLineRoleStatus extends StatelessWidget {
+  const _ConnectedLineRoleStatus({
+    required this.role,
+    required this.variantCount,
+  });
+
+  final BorderPrimitiveRole role;
+  final int variantCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final isReady = variantCount > 0;
+    return PokeMapCard(
+      key: ValueKey<String>('border-studio-role-status-${role.name}'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PokeMapSectionHeader(
+            title: borderRoleLabel(role),
+            description: switch (role) {
+              BorderPrimitiveRole.lineCap =>
+                'Utilisée au début et à la fin d’un tracé ouvert.',
+              BorderPrimitiveRole.lineStraight =>
+                'Utilisée lorsque la ligne continue sans tourner.',
+              BorderPrimitiveRole.lineCorner =>
+                'Utilisée lorsqu’un tracé tourne à angle droit.',
+              _ => '',
+            },
+            trailing: PokeMapBadge(
+              label: isReady ? 'Prêt' : 'Manquant',
+              variant: isReady
+                  ? PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.warning,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapBadge(
+              label: '$variantCount variante${variantCount > 1 ? 's' : ''}',
+              variant: isReady
+                  ? PokeMapBadgeVariant.info
+                  : PokeMapBadgeVariant.neutral,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
