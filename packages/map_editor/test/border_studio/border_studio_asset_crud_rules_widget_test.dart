@@ -122,6 +122,51 @@ void main() {
     },
   );
 
+  testWidgets('masonry imports authorize the mirrored line side',
+      (tester) async {
+    final projectRoot = Directory.systemTemp.createTempSync(
+      'pokemap_masonry_line_import_',
+    );
+    addTearDown(() {
+      if (projectRoot.existsSync()) {
+        projectRoot.deleteSync(recursive: true);
+      }
+    });
+    final atlas = File(
+      p.join(projectRoot.path, 'assets', 'tilesets', 'coast.png'),
+    );
+    atlas.parent.createSync(recursive: true);
+    atlas.writeAsBytesSync(_atlasBytes(), flush: true);
+    final container = await _pumpWorkspace(
+      tester,
+      _manifestWithAsset(),
+      projectRoot.path,
+    );
+    final controller =
+        container.read(borderStudioDraftControllerProvider.notifier)
+          ..createBlueprint(
+            id: 'masonry-cliff',
+            name: 'Pierres unitaires',
+            template: BorderBlueprintTemplate.masonryLine,
+          );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+    );
+    await tester.pump();
+
+    await tester.runAsync(
+      () => tester
+          .widget<BorderAssetsStep>(find.byType(BorderAssetsStep))
+          .onAnalyzeSelected(),
+    );
+    await tester.pump();
+
+    final imported =
+        controller.state.workingDraft!.blueprint.definition.primitives.single;
+    expect(imported.transforms.allowFlipX, isTrue);
+  });
+
   testWidgets(
     'selects a named project element, analyzes it, previews it, and removes it',
     (tester) async {
@@ -364,6 +409,47 @@ void main() {
       expect(strictRules.gapTolerancePx, 1);
     },
   );
+
+  testWidgets('masonry rules expose the automatic rotation toggle',
+      (tester) async {
+    final container = await _pumpWorkspace(
+      tester,
+      _emptyManifest(),
+      Directory.systemTemp.path,
+    );
+    container
+        .read(borderStudioDraftControllerProvider.notifier)
+        .createBlueprint(
+          id: 'masonry-rules',
+          name: 'Pierres unitaires',
+          template: BorderBlueprintTemplate.masonryLine,
+        );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('border-studio-step-Règles')),
+    );
+    await tester.pump();
+
+    final rotationToggle = find.byKey(
+      const ValueKey<String>('border-studio-auto-rotation-toggle'),
+    );
+    expect(rotationToggle, findsOneWidget);
+
+    tester.widget<PokeMapToggleTile>(rotationToggle).onChanged(false);
+    await tester.pump();
+
+    expect(find.text('Conserve l\'asset sans rotation.'), findsOneWidget);
+    expect(
+      container
+          .read(borderStudioDraftControllerProvider)
+          .workingDraft!
+          .blueprint
+          .definition
+          .defaults
+          .allowAutoRotation,
+      isFalse,
+    );
+  });
 
   testWidgets('duplicates, deletes, and renames drafts from guided actions',
       (tester) async {

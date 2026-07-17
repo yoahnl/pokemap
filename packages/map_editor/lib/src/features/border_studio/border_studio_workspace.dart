@@ -485,7 +485,9 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
         weight: 1000,
         transforms: BorderTransformPolicy(
           allowFlipX: working.blueprint.definition.template ==
-              BorderBlueprintTemplate.connectedLine,
+                  BorderBlueprintTemplate.connectedLine ||
+              working.blueprint.definition.template ==
+                  BorderBlueprintTemplate.masonryLine,
           allowedQuarterTurns: const <int>[0, 1, 2, 3],
         ),
       );

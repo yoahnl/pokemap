@@ -195,8 +195,10 @@ class _BorderLayerInspectorPanelState
               lineGeometry: activeFeature?.geometry is BorderStrokeGeometry,
             ),
             if (activeFeature != null &&
-                activeRevision?.definition.template ==
-                    BorderBlueprintTemplate.connectedLine) ...[
+                (activeRevision?.definition.template ==
+                        BorderBlueprintTemplate.connectedLine ||
+                    activeRevision?.definition.template ==
+                        BorderBlueprintTemplate.masonryLine)) ...[
               const SizedBox(height: 10),
               _lineSideControls(
                 notifier,

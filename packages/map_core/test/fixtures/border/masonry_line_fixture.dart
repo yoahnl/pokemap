@@ -11,6 +11,7 @@ final class MasonryLineFixture {
     BorderPublishedGround? ground,
     BorderBlueprintTemplate template = BorderBlueprintTemplate.masonryLine,
     int featureSeed = 41,
+    BorderLineSide lineSide = BorderLineSide.primary,
   }) {
     final sourcePrimitives = primitives ??
         <BorderPublishedPrimitive>[
@@ -74,6 +75,7 @@ final class MasonryLineFixture {
         paramsOverride: parameters,
         overrides: overrides,
         keepOutRegions: keepOutRegions,
+        lineSide: lineSide,
       ),
       visualSnapshots: orderedSnapshots,
       resolverVersion: 1,
@@ -90,6 +92,7 @@ BorderGenerationParams masonryParameters({
   int maxOverlapPx = 2,
   int gapTolerancePx = 0,
   int depthRows = 1,
+  bool allowAutoRotation = true,
 }) =>
     BorderGenerationParams(
       irregularityPermille: irregularityPermille,
@@ -98,6 +101,7 @@ BorderGenerationParams masonryParameters({
       maxOverlapPx: maxOverlapPx,
       gapTolerancePx: gapTolerancePx,
       depthRows: depthRows,
+      allowAutoRotation: allowAutoRotation,
     );
 
 BorderPublishedPrimitive masonryPrimitive({

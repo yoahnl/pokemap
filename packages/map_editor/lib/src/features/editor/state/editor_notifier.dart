@@ -9215,7 +9215,7 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  /// Prepares the opposite connected-line side without writing map history.
+  /// Prepares the opposite side of a supported line without writing map history.
   bool previewBorderFeatureLineSideToggle({
     required String layerId,
     required String featureId,
@@ -9235,10 +9235,12 @@ class EditorNotifier extends _$EditorNotifier {
       final revision = project.borderCatalog
           .recordById(feature.blueprintId)
           ?.latestPublished;
-      if (revision?.definition.template !=
-          BorderBlueprintTemplate.connectedLine) {
+      final template = revision?.definition.template;
+      if (template != BorderBlueprintTemplate.connectedLine &&
+          template != BorderBlueprintTemplate.masonryLine) {
         throw StateError(
-          'Seule une ligne connectée peut inverser son côté visuel.',
+          'L’inversion du côté visuel est réservée aux lignes connectées '
+          'et aux murets maçonnés.',
         );
       }
       final draft =

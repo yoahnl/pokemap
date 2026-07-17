@@ -103,6 +103,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
     return _failure(diagnostics);
   }
   final definition = revision.definition;
+  final params = request.feature.paramsOverride ?? definition.defaults;
   if (definition.template != BorderBlueprintTemplate.masonryLine) {
     diagnostics.add(_error(
       request,
@@ -214,11 +215,12 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
   }
   for (final lattice in lattices) {
     for (final edge in lattice.edges) {
-      final quarterTurns = borderCardinalDirectionV1Rank(edge.direction);
-      if (!structuralCandidates.any(
-        (primitive) =>
-            primitive.transforms.allowedQuarterTurns.contains(quarterTurns),
-      )) {
+      final transform = _masonryTransform(
+        direction: edge.direction,
+        lineSide: request.feature.lineSide,
+        allowAutoRotation: params.allowAutoRotation,
+      );
+      if (_eligibleForTransform(structuralCandidates, transform).isEmpty) {
         diagnostics.add(_error(
           request,
           code: 'border.resolution.orientation_unavailable',
@@ -228,6 +230,8 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
           cell: edge.startCell,
           parameters: <String, Object?>{
             'direction': borderCardinalDirectionV1WireName(edge.direction),
+            'quarterTurns': transform.quarterTurns,
+            'flipX': transform.flipX,
           },
           action: 'border.action.allow_required_orientation',
         ));
@@ -239,7 +243,6 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
     return _failure(diagnostics);
   }
 
-  final params = request.feature.paramsOverride ?? definition.defaults;
   final generated = localScope == null
       ? <_GeneratedLinePlacement>[]
       : _rebuildRetainedMasonryPlacements(
@@ -281,6 +284,14 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         );
       }
     }
+    _resolveRearDepthRows(
+      request: request,
+      lattice: lattice,
+      structuralCandidates: structuralCandidates,
+      params: params,
+      generated: generated,
+      localScope: localScope,
+    );
     final occupiedSites =
         <(BorderPrimitiveRole, BorderCardinalDirection, int, int)>{};
     final generationEdges = lattice.edges.toList(growable: false)
@@ -292,6 +303,11 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
       }
       localScope?.recordRecomputedCell(edge.startCell);
       final direction = edge.direction;
+      final baseTransform = _masonryTransform(
+        direction: direction,
+        lineSide: request.feature.lineSide,
+        allowAutoRotation: params.allowAutoRotation,
+      );
       for (final role in const <BorderPrimitiveRole>[
         BorderPrimitiveRole.structureLarge,
         BorderPrimitiveRole.structureMedium,
@@ -300,13 +316,14 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
         final candidates = structuralCandidates
             .where((primitive) => primitive.role == role)
             .toList(growable: false);
-        final eligible = _eligibleForDirection(candidates, direction);
+        final eligible = _eligibleForTransform(candidates, baseTransform);
         if (eligible.isEmpty) {
           continue;
         }
         final maximumExtent = _maximumTangentOpaqueExtentPx(
           eligible,
           direction,
+          baseTransform,
         );
         final spacing = _spacingPx(
           maximumExtent,
@@ -342,6 +359,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
             ordinalLocal: ordinalLocal,
             latticeSitePx: site,
             params: params,
+            baseTransform: baseTransform,
           );
           if (placement == null) {
             continue;
@@ -368,6 +386,7 @@ MasonryLineBorderResolutionEvidence resolveMasonryLineBorderWithEvidence(
       primitives: primitives,
       generated: generated,
       diagnostics: diagnostics,
+      params: params,
       localScope: localScope,
     );
     _resolveSurfacePatches(
@@ -702,15 +721,35 @@ bool _masonryRoleAllowed(BorderPrimitiveRole role) => switch (role) {
         false,
     };
 
-List<BorderPublishedPrimitive> _eligibleForDirection(
+BorderSpriteTransform _masonryTransform({
+  required BorderCardinalDirection direction,
+  required BorderLineSide lineSide,
+  required bool allowAutoRotation,
+}) {
+  final primaryQuarterTurns =
+      allowAutoRotation ? borderCardinalDirectionV1Rank(direction) : 0;
+  if (lineSide == BorderLineSide.primary) {
+    return BorderSpriteTransform(
+      quarterTurns: primaryQuarterTurns,
+      flipX: false,
+    );
+  }
+  return BorderSpriteTransform(
+    quarterTurns: allowAutoRotation ? (primaryQuarterTurns + 2) % 4 : 0,
+    flipX: true,
+  );
+}
+
+List<BorderPublishedPrimitive> _eligibleForTransform(
   Iterable<BorderPublishedPrimitive> candidates,
-  BorderCardinalDirection direction,
+  BorderSpriteTransform transform,
 ) {
-  final quarterTurns = borderCardinalDirectionV1Rank(direction);
   return candidates
       .where(
         (primitive) =>
-            primitive.transforms.allowedQuarterTurns.contains(quarterTurns),
+            primitive.transforms.allowedQuarterTurns
+                .contains(transform.quarterTurns) &&
+            (!transform.flipX || primitive.transforms.allowFlipX),
       )
       .toList(growable: false)
     ..sort((left, right) => left.id.compareTo(right.id));
@@ -719,18 +758,15 @@ List<BorderPublishedPrimitive> _eligibleForDirection(
 int _maximumTangentOpaqueExtentPx(
   Iterable<BorderPublishedPrimitive> candidates,
   BorderCardinalDirection direction,
+  BorderSpriteTransform transform,
 ) {
   final tangentIsX = _tangentIsX(direction);
-  final quarterTurns = borderCardinalDirectionV1Rank(direction);
   var maximum = 0;
   for (final candidate in candidates) {
     final geometry = resolveBorderSpriteGeometry(
       metrics: candidate.publishedMetrics,
       sourceAnchorPx: candidate.anchorPx,
-      transform: BorderSpriteTransform(
-        quarterTurns: quarterTurns,
-        flipX: false,
-      ),
+      transform: transform,
       targetAnchorWorldPx: const BorderPixelPos(x: 0, y: 0),
     );
     final extent = tangentIsX
@@ -760,20 +796,23 @@ List<int> _sitesForEdge(
   required int spacingPx,
   required int maximumExtentPx,
   bool centerSingleOverhang = false,
+  int tangentPhaseOffsetPx = 0,
 }) {
   final start = _edgeStartAxisWorldPx(request, edge);
   final end = _edgeEndAxisWorldPx(request, edge);
   final low = start < end ? start : end;
   final high = start < end ? end : start;
-  if (maximumExtentPx == high - low) {
+  if (tangentPhaseOffsetPx == 0 && maximumExtentPx == high - low) {
     return <int>[low];
   }
-  if (centerSingleOverhang && maximumExtentPx >= high - low) {
+  if (tangentPhaseOffsetPx == 0 &&
+      centerSingleOverhang &&
+      maximumExtentPx >= high - low) {
     return <int>[
       low - (maximumExtentPx - (high - low)) ~/ 2,
     ];
   }
-  final phase = BorderDeterministicRng.fromComponents(
+  final basePhase = BorderDeterministicRng.fromComponents(
     <BorderRngKeyComponent>[
       BorderRngKeyComponent.text(request.feature.id),
       BorderRngKeyComponent.text(lineageNamespace),
@@ -783,6 +822,9 @@ List<int> _sitesForEdge(
       BorderRngKeyComponent.signedInt64(request.feature.seed),
     ],
   ).nextIndex(spacingPx);
+  final phase = tangentPhaseOffsetPx == 0
+      ? basePhase
+      : _positiveModulo(basePhase + tangentPhaseOffsetPx, spacingPx);
   final first = phase + _floorDiv(low - phase, spacingPx) * spacingPx;
   final result = <int>[];
   for (var site = first; site < high; site += spacingPx) {
@@ -811,6 +853,9 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
   required int ordinalLocal,
   required int latticeSitePx,
   required BorderGenerationParams params,
+  required BorderSpriteTransform baseTransform,
+  int rank = 0,
+  int normalOffsetPx = 0,
 }) {
   if (candidates.isEmpty) {
     return null;
@@ -851,7 +896,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     )!
         .value;
   }
-  final flipX = selected.transforms.allowFlipX &&
+  final variationFlipX = selected.transforms.allowFlipX &&
       params.variationPermille > 0 &&
       _decisionRng(
             request,
@@ -864,8 +909,8 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
           ).nextIndex(1000) <
           params.variationPermille ~/ 2;
   final transform = BorderSpriteTransform(
-    quarterTurns: borderCardinalDirectionV1Rank(direction),
-    flipX: flipX,
+    quarterTurns: baseTransform.quarterTurns,
+    flipX: baseTransform.flipX != variationFlipX,
   );
   final origin = resolveBorderSpriteGeometry(
     metrics: selected.publishedMetrics,
@@ -878,7 +923,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
       (tangentIsX
           ? origin.transformedAnchorPx.x - origin.transformedOpaqueBoundsPx.x
           : origin.transformedAnchorPx.y - origin.transformedOpaqueBoundsPx.y);
-  final edgeNormal = _edgeStartNormalWorldPx(request, edge);
+  final edgeNormal = _edgeStartNormalWorldPx(request, edge) + normalOffsetPx;
   final jitterMax = computeBorderJitterMaxPx(
     irregularityPermille: params.irregularityPermille,
     tileSizePx:
@@ -922,7 +967,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     edgeEnd: edge.endCell,
     passIndex: passIndex,
     role: role,
-    rank: 0,
+    rank: rank,
     ordinalLocal: ordinalLocal,
   );
   final order = buildBorderStableOrderKey(
@@ -930,7 +975,7 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
     mapWidth: request.mapSize.width,
     anchorCell: edge.startCell,
     passIndex: passIndex,
-    rank: 0,
+    rank: rank,
     ordinalLocal: ordinalLocal,
     slotKey: slotKey,
   );
@@ -953,12 +998,187 @@ _GeneratedLinePlacement? _resolveStructuralPlacement({
   );
 }
 
+void _resolveRearDepthRows({
+  required BorderResolutionRequest request,
+  required BorderLinearStrokeLattice lattice,
+  required List<BorderPublishedPrimitive> structuralCandidates,
+  required BorderGenerationParams params,
+  required List<_GeneratedLinePlacement> generated,
+  BorderLocalResolutionScope? localScope,
+}) {
+  if (params.depthRows <= 1) {
+    return;
+  }
+  final generationEdges = lattice.edges.toList(growable: false)
+    ..sort(_compareGenerationEdgeIndex);
+  for (var rank = params.depthRows - 1; rank >= 1; rank -= 1) {
+    final coverageAccumulator = _StrokeCoverageAccumulator();
+    final retainedRear = generated
+        .where(
+          (entry) =>
+              entry.strokeId == lattice.strokeId &&
+              entry.placement.drawBand == BorderDrawBand.outerAccent &&
+              entry.placement.stableOrderKey.rank == rank &&
+              _isStructuralRole(entry.primitive.role),
+        )
+        .toList(growable: false)
+      ..sort(
+        (left, right) => left.placement.stableOrderKey.compareTo(
+          right.placement.stableOrderKey,
+        ),
+      );
+    for (final entry in retainedRear) {
+      final intervals = _strokePlacementIntervals(
+        request: request,
+        lattice: lattice,
+        generated: <_GeneratedLinePlacement>[entry],
+      );
+      if (intervals.length == 1) {
+        coverageAccumulator.tryAdd(
+          intervals.single,
+          maxOverlapPx: params.maxOverlapPx,
+        );
+      }
+    }
+    final occupiedSites = <(BorderCardinalDirection, int, int)>{};
+    for (final edge in generationEdges) {
+      if (localScope != null &&
+          !localScope.recomputesCell(edge.startCell, request.tileSizePx)) {
+        continue;
+      }
+      localScope?.recordRecomputedCell(edge.startCell);
+      final direction = edge.direction;
+      final baseTransform = _masonryTransform(
+        direction: direction,
+        lineSide: request.feature.lineSide,
+        allowAutoRotation: params.allowAutoRotation,
+      );
+      final medium = _eligibleForTransform(
+        structuralCandidates.where(
+          (primitive) => primitive.role == BorderPrimitiveRole.structureMedium,
+        ),
+        baseTransform,
+      );
+      final large = _eligibleForTransform(
+        structuralCandidates.where(
+          (primitive) => primitive.role == BorderPrimitiveRole.structureLarge,
+        ),
+        baseTransform,
+      );
+      final candidates = medium.isNotEmpty ? medium : large;
+      if (candidates.isEmpty) {
+        continue;
+      }
+      final role = medium.isNotEmpty
+          ? BorderPrimitiveRole.structureMedium
+          : BorderPrimitiveRole.structureLarge;
+      final maximumExtent = _maximumTangentOpaqueExtentPx(
+        candidates,
+        direction,
+        baseTransform,
+      );
+      // Both rows share the front-row lattice. Using the rear sprite width to
+      // derive a second phase lets unequal stones periodically align again,
+      // defeating the masonry bond that the half-step is meant to create.
+      final frontCandidates = large.isNotEmpty ? large : medium;
+      final frontMaximumExtent = _maximumTangentOpaqueExtentPx(
+        frontCandidates,
+        direction,
+        baseTransform,
+      );
+      final frontSpacing = _spacingPx(
+        frontMaximumExtent,
+        maxOverlapPx: params.maxOverlapPx,
+      );
+      final sites = _sitesForEdge(
+        request,
+        lineageNamespace: lattice.lineageNamespace,
+        edge: edge,
+        spacingPx: frontSpacing,
+        maximumExtentPx: maximumExtent,
+        centerSingleOverhang: lattice.edges.length == 1,
+        tangentPhaseOffsetPx: rank.isOdd ? frontSpacing ~/ 2 : 0,
+      );
+      final normalOffset = _rearNormalOffsetPx(
+        request: request,
+        edge: edge,
+        lineSide: request.feature.lineSide,
+        rank: rank,
+      );
+      final passIndex = _structuralPassForRole(role);
+      for (var ordinalLocal = 0;
+          ordinalLocal < sites.length;
+          ordinalLocal += 1) {
+        final site = sites[ordinalLocal];
+        if (!occupiedSites.add((
+          direction,
+          _edgeStartNormalWorldPx(request, edge) + normalOffset,
+          site,
+        ))) {
+          continue;
+        }
+        final placement = _resolveStructuralPlacement(
+          request: request,
+          authoredStrokeId: lattice.strokeId,
+          lineageNamespace: lattice.lineageNamespace,
+          edge: edge,
+          candidates: candidates,
+          role: role,
+          passIndex: passIndex,
+          drawBand: BorderDrawBand.outerAccent,
+          ordinalLocal: ordinalLocal,
+          latticeSitePx: site,
+          params: params,
+          baseTransform: baseTransform,
+          rank: rank,
+          normalOffsetPx: normalOffset,
+        );
+        if (placement == null) {
+          continue;
+        }
+        final candidateIntervals = _strokePlacementIntervals(
+          request: request,
+          lattice: lattice,
+          generated: <_GeneratedLinePlacement>[placement],
+        );
+        if (candidateIntervals.length == 1 &&
+            coverageAccumulator.tryAdd(
+              candidateIntervals.single,
+              maxOverlapPx: params.maxOverlapPx,
+            )) {
+          generated.add(placement);
+        }
+      }
+    }
+  }
+}
+
+int _rearNormalOffsetPx({
+  required BorderResolutionRequest request,
+  required BorderLinearEdge edge,
+  required BorderLineSide lineSide,
+  required int rank,
+}) {
+  final normalTileSize = _tangentIsX(edge.direction)
+      ? request.tileSizePx.height
+      : request.tileSizePx.width;
+  final rowSpacingPx = _maximum(1, normalTileSize * 3 ~/ 8);
+  final primarySign = switch (edge.direction) {
+    BorderCardinalDirection.east || BorderCardinalDirection.north => -1,
+    BorderCardinalDirection.south || BorderCardinalDirection.west => 1,
+  };
+  final lineSideSign =
+      lineSide == BorderLineSide.primary ? primarySign : -primarySign;
+  return lineSideSign * rank * rowSpacingPx;
+}
+
 void _resolveTerminations({
   required BorderResolutionRequest request,
   required BorderLinearStrokeLattice lattice,
   required List<BorderPublishedPrimitive> primitives,
   required List<_GeneratedLinePlacement> generated,
   required List<BorderDiagnostic> diagnostics,
+  required BorderGenerationParams params,
   BorderLocalResolutionScope? localScope,
 }) {
   if (lattice.closed) {
@@ -984,7 +1204,12 @@ void _resolveTerminations({
     final direction = node.termination == BorderLinearTerminationNeed.startCap
         ? _oppositeDirection(node.outgoingDirection!)
         : node.incomingDirection!;
-    final eligible = _eligibleForDirection(terminationCandidates, direction)
+    final transform = _masonryTransform(
+      direction: direction,
+      lineSide: request.feature.lineSide,
+      allowAutoRotation: params.allowAutoRotation,
+    );
+    final eligible = _eligibleForTransform(terminationCandidates, transform)
       ..sort((left, right) {
         final leftRank = left.role == BorderPrimitiveRole.post ? 0 : 1;
         final rightRank = right.role == BorderPrimitiveRole.post ? 0 : 1;
@@ -1010,10 +1235,6 @@ void _resolveTerminations({
     localScope?.recordRecomputedCell(node.cell);
     final primitive = eligible.first;
     final edge = node.index == 0 ? lattice.edges.first : lattice.edges.last;
-    final transform = BorderSpriteTransform(
-      quarterTurns: borderCardinalDirectionV1Rank(direction),
-      flipX: false,
-    );
     final target = _cellCenterWorldPx(request, node.cell);
     final sprite = resolveBorderSpriteGeometry(
       metrics: primitive.publishedMetrics,
@@ -1106,13 +1327,19 @@ void _resolveSurfacePatches({
     }
     localScope?.recordRecomputedCell(edge.startCell);
     final direction = edge.direction;
-    final eligible = _eligibleForDirection(source, direction);
+    final baseTransform = _masonryTransform(
+      direction: direction,
+      lineSide: request.feature.lineSide,
+      allowAutoRotation: params.allowAutoRotation,
+    );
+    final eligible = _eligibleForTransform(source, baseTransform);
     if (eligible.isEmpty) {
       continue;
     }
     final maximumExtent = _maximumTangentOpaqueExtentPx(
       eligible,
       direction,
+      baseTransform,
     );
     final sites = _sitesForEdge(
       request,
@@ -1154,6 +1381,7 @@ void _resolveSurfacePatches({
         ordinalLocal: ordinalLocal,
         latticeSitePx: site,
         params: params,
+        baseTransform: baseTransform,
       );
       if (placement != null) {
         generated.add(placement);

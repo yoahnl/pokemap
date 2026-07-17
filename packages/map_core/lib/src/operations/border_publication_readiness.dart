@@ -616,6 +616,13 @@ void _diagnoseRequiredRolesAndOrientations(
           blueprintId: blueprintId,
           groupName: 'structure',
           primitives: eligible,
+          requiredQuarterTurns:
+              definition.template == BorderBlueprintTemplate.masonryLine &&
+                      !definition.defaults.allowAutoRotation
+                  ? const <int>[0]
+                  : _requiredQuarterTurns,
+          requireFlipX:
+              definition.template == BorderBlueprintTemplate.masonryLine,
           diagnostics: diagnostics,
         );
       }
@@ -642,6 +649,7 @@ void _diagnoseRequiredRolesAndOrientations(
             blueprintId: blueprintId,
             groupName: borderPrimitiveRoleV1WireName(role),
             primitives: eligible,
+            requiredQuarterTurns: _requiredQuarterTurns,
             diagnostics: diagnostics,
           );
         }
@@ -703,15 +711,46 @@ void _diagnoseOrientationGroup({
   required String blueprintId,
   required String groupName,
   required List<BorderPublishedPrimitive> primitives,
+  required List<int> requiredQuarterTurns,
+  bool requireFlipX = false,
   required List<BorderDiagnostic> diagnostics,
 }) {
-  final available = <int>{
-    for (final primitive in primitives)
-      ...primitive.transforms.allowedQuarterTurns,
-  };
-  for (final quarterTurns in _requiredQuarterTurns) {
-    if (available.contains(quarterTurns)) continue;
-    diagnostics.add(_diagnostic(
+  for (final quarterTurns in requiredQuarterTurns) {
+    final normalAvailable = primitives.any(
+      (primitive) =>
+          primitive.transforms.allowedQuarterTurns.contains(quarterTurns),
+    );
+    if (!normalAvailable) {
+      diagnostics.add(_missingOrientationDiagnostic(
+        blueprintId: blueprintId,
+        groupName: groupName,
+        quarterTurns: quarterTurns,
+      ));
+      continue;
+    }
+    if (requireFlipX &&
+        !primitives.any(
+          (primitive) =>
+              primitive.transforms.allowedQuarterTurns.contains(quarterTurns) &&
+              primitive.transforms.allowFlipX,
+        )) {
+      diagnostics.add(_missingOrientationDiagnostic(
+        blueprintId: blueprintId,
+        groupName: groupName,
+        quarterTurns: quarterTurns,
+        flipX: true,
+      ));
+    }
+  }
+}
+
+BorderDiagnostic _missingOrientationDiagnostic({
+  required String blueprintId,
+  required String groupName,
+  required int quarterTurns,
+  bool flipX = false,
+}) =>
+    _diagnostic(
       code: 'border.publication.orientation_missing',
       scope: BorderDiagnosticScope.blueprint,
       blueprintId: blueprintId,
@@ -721,11 +760,10 @@ void _diagnoseOrientationGroup({
         ),
         'quarterTurns': quarterTurns,
         'roleGroup': groupName,
+        if (flipX) 'flipX': true,
       },
       action: 'border.action.add_or_authorize_required_orientation',
-    ));
-  }
-}
+    );
 
 BorderCardinalDirection _directionForQuarterTurns(int quarterTurns) =>
     switch (quarterTurns) {

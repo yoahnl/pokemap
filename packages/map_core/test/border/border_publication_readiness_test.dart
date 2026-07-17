@@ -467,6 +467,7 @@ void main() {
               'large-a',
               BorderPrimitiveRole.structureLarge,
               snapshot: 0,
+              allowFlipX: true,
             ),
           ],
         ),
@@ -536,6 +537,77 @@ void main() {
         missing.map((item) => item.parameters['roleGroup']),
         <String>['structure', 'structure'],
       );
+    });
+
+    test(
+        'accepts an unrotated masonry structure when automatic rotation is disabled',
+        () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.masonryLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large',
+            BorderPrimitiveRole.structureLarge,
+            quarterTurns: const <int>[0],
+            allowFlipX: true,
+          ),
+        ],
+        defaults: BorderGenerationParams(
+          irregularityPermille: 500,
+          detailDensityPermille: 500,
+          variationPermille: 500,
+          maxOverlapPx: 1,
+          gapTolerancePx: 1,
+          depthRows: 1,
+          allowAutoRotation: false,
+        ),
+      );
+
+      final result = _assess(fixture, definition: definition);
+
+      expect(result.canPublish, isTrue);
+      expect(
+        _codes(result),
+        isNot(contains('border.publication.orientation_missing')),
+      );
+    });
+
+    test('rejects masonry structures that cannot render the inverted side', () {
+      final fixture = _Fixture.complete();
+      final definition = fixture.definitionFor(
+        template: BorderBlueprintTemplate.masonryLine,
+        primitives: <BorderPublishedPrimitive>[
+          fixture.primitive(
+            'large',
+            BorderPrimitiveRole.structureLarge,
+            quarterTurns: const <int>[0],
+          ),
+        ],
+        defaults: BorderGenerationParams(
+          irregularityPermille: 500,
+          detailDensityPermille: 500,
+          variationPermille: 500,
+          maxOverlapPx: 1,
+          gapTolerancePx: 1,
+          depthRows: 1,
+          allowAutoRotation: false,
+        ),
+      );
+
+      final result = _assess(fixture, definition: definition);
+      final missing = result.diagnosticReport.diagnostics.singleWhere(
+        (diagnostic) =>
+            diagnostic.code == 'border.publication.orientation_missing',
+      );
+
+      expect(result.canPublish, isFalse);
+      expect(missing.parameters, <String, Object?>{
+        'orientation': 'east',
+        'quarterTurns': 0,
+        'roleGroup': 'structure',
+        'flipX': true,
+      });
     });
 
     test('checks post and span orientations independently', () {
@@ -763,6 +835,13 @@ void main() {
       final definitions = <BorderBlueprintPublishedDefinition>[
         fixture.definitionFor(
           template: BorderBlueprintTemplate.masonryLine,
+          primitives: <BorderPublishedPrimitive>[
+            fixture.primitive(
+              'large',
+              BorderPrimitiveRole.structureLarge,
+              allowFlipX: true,
+            ),
+          ],
           ground: ground,
         ),
         fixture.definitionFor(

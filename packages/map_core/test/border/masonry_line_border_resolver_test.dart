@@ -5,6 +5,10 @@ import '../fixtures/border/masonry_line_fixture.dart';
 
 void main() {
   group('resolveMasonryLineBorder', () {
+    test('uses resolver contract V2 for masonry output changes', () {
+      expect(borderResolverVersion, 2);
+    });
+
     test('resolves a long line deterministically at native size', () {
       final request = MasonryLineFixture().request;
 
@@ -49,6 +53,267 @@ void main() {
           (placement) => placement.transform.flipX,
         ),
         everyElement(isFalse),
+      );
+    });
+
+    test('keeps the depth 1 legacy output fingerprint', () {
+      final result = resolveMasonryLineBorder(
+        MasonryLineFixture(
+          parameters: masonryParameters(depthRows: 1),
+        ).request,
+      );
+
+      expect(result.canApply, isTrue, reason: _diagnostics(result));
+      expect(result.materialization!.placements, hasLength(8));
+      expect(
+        result.materialization!.receipt.outputFingerprint,
+        'sha256:9c495903fcd6c88b35e80b055e10ae802ebc2e1d62307a67a0cf0b053aa80acd',
+      );
+    });
+
+    test('keeps masonry sprites unrotated when automatic rotation is disabled',
+        () {
+      final result = resolveMasonryLineBorder(
+        MasonryLineFixture(
+          strokes: <BorderStroke>[
+            BorderStroke(
+              id: 'vertical',
+              points: const <GridPos>[
+                GridPos(x: 3, y: 1),
+                GridPos(x: 3, y: 2),
+                GridPos(x: 3, y: 3),
+                GridPos(x: 3, y: 4),
+                GridPos(x: 3, y: 5),
+                GridPos(x: 3, y: 6),
+              ],
+              closed: false,
+            ),
+          ],
+          primitives: <BorderPublishedPrimitive>[
+            masonryPrimitive(
+              id: 'upright-stone',
+              fingerprintCharacter: 'e',
+              allowedQuarterTurns: const <int>[0],
+            ),
+          ],
+          parameters: masonryParameters(
+            allowAutoRotation: false,
+            maxOverlapPx: 0,
+          ),
+        ).request,
+      );
+
+      expect(result.canApply, isTrue, reason: _diagnostics(result));
+      expect(
+        result.materialization!.placements
+            .where(
+              (placement) => placement.drawBand == BorderDrawBand.structure,
+            )
+            .map((placement) => placement.transform.quarterTurns),
+        everyElement(0),
+      );
+    });
+
+    test('moves an asymmetric masonry body across the line when inverted', () {
+      BorderResolutionResult resolveAt(BorderLineSide lineSide) =>
+          resolveMasonryLineBorder(
+            MasonryLineFixture(
+              strokes: <BorderStroke>[
+                BorderStroke(
+                  id: 'short',
+                  points: const <GridPos>[
+                    GridPos(x: 1, y: 3),
+                    GridPos(x: 2, y: 3),
+                  ],
+                  closed: false,
+                ),
+              ],
+              primitives: <BorderPublishedPrimitive>[
+                masonryPrimitive(
+                  id: 'asymmetric-stone',
+                  fingerprintCharacter: 'f',
+                  width: 16,
+                  height: 16,
+                  anchorPx: const BorderPixelPos(x: 8, y: 12),
+                  allowFlipX: true,
+                ),
+              ],
+              parameters: masonryParameters(
+                variationPermille: 0,
+                maxOverlapPx: 0,
+              ),
+              lineSide: lineSide,
+            ).request,
+          );
+
+      final primary = resolveAt(BorderLineSide.primary);
+      final inverted = resolveAt(BorderLineSide.inverted);
+
+      expect(primary.canApply, isTrue, reason: _diagnostics(primary));
+      expect(inverted.canApply, isTrue, reason: _diagnostics(inverted));
+      final primaryStone = primary.materialization!.placements.single;
+      final invertedStone = inverted.materialization!.placements.single;
+      expect(
+        primaryStone.transform,
+        BorderSpriteTransform(quarterTurns: 0, flipX: false),
+      );
+      expect(
+        invertedStone.transform,
+        BorderSpriteTransform(quarterTurns: 2, flipX: true),
+      );
+      expect(
+        invertedStone.opaqueWorldBoundsPx.y,
+        greaterThan(primaryStone.opaqueWorldBoundsPx.y),
+      );
+    });
+
+    test(
+        'adds a staggered medium rear row before the large front row at depth 2',
+        () {
+      MasonryLineBorderResolutionEvidence resolveAt(
+        BorderLineSide lineSide,
+      ) =>
+          resolveMasonryLineBorderWithEvidence(
+            MasonryLineFixture(
+              primitives: <BorderPublishedPrimitive>[
+                masonryPrimitive(
+                  id: 'large-front',
+                  fingerprintCharacter: '7',
+                  width: 12,
+                  height: 10,
+                  allowFlipX: true,
+                ),
+                masonryPrimitive(
+                  id: 'medium-rear',
+                  fingerprintCharacter: '8',
+                  role: BorderPrimitiveRole.structureMedium,
+                  width: 10,
+                  height: 8,
+                  allowFlipX: true,
+                ),
+              ],
+              parameters: masonryParameters(
+                depthRows: 2,
+                variationPermille: 0,
+                maxOverlapPx: 2,
+              ),
+              lineSide: lineSide,
+            ).request,
+          );
+
+      for (final lineSide in BorderLineSide.values) {
+        final evidence = resolveAt(lineSide);
+        final result = evidence.result;
+
+        expect(result.canApply, isTrue, reason: _diagnostics(result));
+        expect(
+          evidence.edges,
+          everyElement(
+            isA<MasonryLineEdgeResolutionEvidence>()
+                .having((edge) => edge.longestGapPx, 'longest gap', 0)
+                .having(
+                  (edge) => edge.maximumPairwiseOverlapPx,
+                  'maximum overlap',
+                  lessThanOrEqualTo(2),
+                ),
+          ),
+        );
+        final placements = result.materialization!.placements;
+        final rear = placements
+            .where(
+              (placement) => placement.drawBand == BorderDrawBand.outerAccent,
+            )
+            .toList(growable: false);
+        final front = placements
+            .where(
+              (placement) => placement.drawBand == BorderDrawBand.structure,
+            )
+            .toList(growable: false);
+        expect(rear, isNotEmpty);
+        expect(front, isNotEmpty);
+        expect(rear.map((placement) => placement.primitiveId),
+            everyElement('medium-rear'));
+        expect(front.map((placement) => placement.primitiveId),
+            everyElement('large-front'));
+        expect(
+          rear.map((placement) => placement.stableOrderKey.rank),
+          everyElement(1),
+        );
+        expect(
+          rear.map((placement) => placement.stableOrderKey.passIndex),
+          everyElement(1),
+        );
+        expect(
+          front.map((placement) => placement.stableOrderKey.rank),
+          everyElement(0),
+        );
+        expect(
+          placements.indexOf(rear.last),
+          lessThan(placements.indexOf(front.first)),
+        );
+
+        final rearXs = rear
+            .map((placement) => placement.opaqueWorldBoundsPx.x)
+            .toList(growable: false)
+          ..sort();
+        final frontXs = front
+            .map((placement) => placement.opaqueWorldBoundsPx.x)
+            .toList(growable: false)
+          ..sort();
+        expect(
+          rearXs.map(
+            (x) => ((x - frontXs.first) % 10 + 10) % 10,
+          ),
+          everyElement(5),
+        );
+        expect(rearXs.toSet().intersection(frontXs.toSet()), isEmpty);
+
+        final rearBounds = rear.first.opaqueWorldBoundsPx;
+        final frontBounds = front.first.opaqueWorldBoundsPx;
+        final rearCenterY = rearBounds.y + rearBounds.height ~/ 2;
+        final frontCenterY = frontBounds.y + frontBounds.height ~/ 2;
+        expect(
+          rearCenterY - frontCenterY,
+          lineSide == BorderLineSide.primary ? -6 : 6,
+        );
+        expect(
+          rear.map((placement) => placement.transform),
+          everyElement(
+            lineSide == BorderLineSide.primary
+                ? BorderSpriteTransform(quarterTurns: 0, flipX: false)
+                : BorderSpriteTransform(quarterTurns: 2, flipX: true),
+          ),
+        );
+      }
+    });
+
+    test('falls back to large stones for the rear row at depth 2', () {
+      final result = resolveMasonryLineBorder(
+        MasonryLineFixture(
+          primitives: <BorderPublishedPrimitive>[
+            masonryPrimitive(
+              id: 'large-only',
+              fingerprintCharacter: '9',
+              width: 8,
+              height: 8,
+            ),
+          ],
+          parameters: masonryParameters(
+            depthRows: 2,
+            variationPermille: 0,
+            maxOverlapPx: 0,
+          ),
+        ).request,
+      );
+
+      expect(result.canApply, isTrue, reason: _diagnostics(result));
+      final rear = result.materialization!.placements.where(
+        (placement) => placement.drawBand == BorderDrawBand.outerAccent,
+      );
+      expect(rear, isNotEmpty);
+      expect(
+        rear.map((placement) => placement.primitiveId),
+        everyElement('large-only'),
       );
     });
 

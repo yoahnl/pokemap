@@ -8,7 +8,7 @@ import 'post_and_rail_line_border_resolver.dart';
 
 /// Current deterministic Border resolver contract used by editor/runtime
 /// freshness checks.
-const int borderResolverVersion = 1;
+const int borderResolverVersion = 2;
 
 /// Dispatches a Border request to the closed V1 template solver set.
 ///

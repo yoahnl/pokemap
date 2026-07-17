@@ -593,6 +593,18 @@
       "isWorldTileset": false,
       "elementGroups": [],
       "paletteEntries": []
+    },
+    {
+      "id": "falaises_selbrume_pierres_unitaires_v4",
+      "name": "Falaises Selbrume Pierres Unitaires V6",
+      "relativePath": "assets/tilesets/falaises_selbrume_pierres_unitaires_v6.png",
+      "scope": "global",
+      "groupId": null,
+      "folderId": "tsf_selbrume_beta_borders",
+      "sortOrder": 1,
+      "isWorldTileset": false,
+      "elementGroups": [],
+      "paletteEntries": []
     }
   ],
   "elementCategories": [
@@ -17276,6 +17288,516 @@
         "stone"
       ],
       "sortOrder": 3
+    },
+    {
+      "id": "el_selbrume_cliff_stone_01",
+      "name": "Falaise Selbrume — Pierre unitaire 01",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 0
+    },
+    {
+      "id": "el_selbrume_cliff_stone_02",
+      "name": "Falaise Selbrume — Pierre unitaire 02",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 1,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 1
+    },
+    {
+      "id": "el_selbrume_cliff_stone_03",
+      "name": "Falaise Selbrume — Pierre unitaire 03",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 2
+    },
+    {
+      "id": "el_selbrume_cliff_stone_04",
+      "name": "Falaise Selbrume — Pierre unitaire 04",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 3,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 3
+    },
+    {
+      "id": "el_selbrume_cliff_stone_05",
+      "name": "Falaise Selbrume — Pierre unitaire 05",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 4
+    },
+    {
+      "id": "el_selbrume_cliff_stone_06",
+      "name": "Falaise Selbrume — Pierre unitaire 06",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 5,
+            "y": 0,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 5
+    },
+    {
+      "id": "el_selbrume_cliff_stone_07",
+      "name": "Falaise Selbrume — Pierre unitaire 07",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 6
+    },
+    {
+      "id": "el_selbrume_cliff_stone_08",
+      "name": "Falaise Selbrume — Pierre unitaire 08",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 1,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 7
+    },
+    {
+      "id": "el_selbrume_cliff_stone_09",
+      "name": "Falaise Selbrume — Pierre unitaire 09",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 8
+    },
+    {
+      "id": "el_selbrume_cliff_stone_10",
+      "name": "Falaise Selbrume — Pierre unitaire 10",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 3,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 9
+    },
+    {
+      "id": "el_selbrume_cliff_stone_11",
+      "name": "Falaise Selbrume — Pierre unitaire 11",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 10
+    },
+    {
+      "id": "el_selbrume_cliff_stone_12",
+      "name": "Falaise Selbrume — Pierre unitaire 12",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 5,
+            "y": 2,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 11
+    },
+    {
+      "id": "el_selbrume_cliff_filler_01",
+      "name": "Falaise Selbrume — Petit rocher 01",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 0,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 12
+    },
+    {
+      "id": "el_selbrume_cliff_filler_02",
+      "name": "Falaise Selbrume — Petit rocher 02",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 1,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 13
+    },
+    {
+      "id": "el_selbrume_cliff_filler_03",
+      "name": "Falaise Selbrume — Petit rocher 03",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 2,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 14
+    },
+    {
+      "id": "el_selbrume_cliff_filler_04",
+      "name": "Falaise Selbrume — Petit rocher 04",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 3,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 15
+    },
+    {
+      "id": "el_selbrume_cliff_filler_05",
+      "name": "Falaise Selbrume — Petit rocher 05",
+      "tilesetId": "falaises_selbrume_pierres_unitaires_v4",
+      "categoryId": "cat_selbrume_borders",
+      "tilesetGroupId": null,
+      "frames": [
+        {
+          "tilesetId": "",
+          "source": {
+            "x": 4,
+            "y": 4,
+            "width": 1,
+            "height": 2
+          },
+          "durationMs": null
+        }
+      ],
+      "presetKind": "cliff",
+      "collisionProfile": null,
+      "shadow": null,
+      "groupId": null,
+      "recommendedLayerId": null,
+      "tags": [
+        "border",
+        "cliff",
+        "stone"
+      ],
+      "sortOrder": 16
     }
   ],
   "terrainCategories": [],
@@ -39724,6 +40246,1324 @@
             "sortOrder": 0
           }
         }
+      },
+      {
+        "id": "border-blueprint-2",
+        "draft": {
+          "baseRevision": 5,
+          "definition": {
+            "name": "Falaises Selbrume — pierres unitaires",
+            "previewSeed": "3146926026823247432",
+            "template": "masonryLine",
+            "primitives": [
+              {
+                "id": "border-primitive-1",
+                "sourceElementId": "el_selbrume_cliff_stone_06",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:5344dc22cef81feb618f65782c8059cce3f2883a8f00ff6636c3e02b6549e20e",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 1,
+                    "y": 31,
+                    "width": 22,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:998,3,27,10,22,12,20,15,16,18,14,18,14,18,14,19,12,20,11,22,10,22,10,22,10,21,12,4,1,7,1,6,619"
+                }
+              },
+              {
+                "id": "border-primitive-2",
+                "sourceElementId": "el_selbrume_cliff_stone_01",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:da8f7b14e8eec93fdf1ff05eef4dbd5ec4aff6d3e60bc4bddf068c5935eea647",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 11,
+                    "y": 29,
+                    "width": 20,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:945,2,29,5,25,9,22,11,21,13,18,15,17,16,16,17,14,20,12,20,12,20,12,20,12,20,12,20,12,19,15,3,2,5,617"
+                }
+              },
+              {
+                "id": "border-primitive-3",
+                "sourceElementId": "el_selbrume_cliff_stone_11",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:dcf3a7a4f5333aa0da36ef0e281d1bcb563248eb10864a261823c762a4ebdf13",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 3,
+                    "y": 30,
+                    "width": 19,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:970,2,29,5,25,11,20,13,19,14,18,14,17,16,15,17,15,17,15,18,13,19,13,19,14,18,15,17,16,16,22,3,3,2,588"
+                }
+              },
+              {
+                "id": "border-primitive-5",
+                "sourceElementId": "el_selbrume_cliff_stone_09",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:c793b9a4246920205534285054de0a7fe92cd109784a2214e52b0e172fcb2f87",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 7,
+                    "y": 32,
+                    "width": 18,
+                    "height": 13
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1035,3,28,10,21,12,20,14,18,14,18,14,18,15,16,17,14,18,14,18,14,18,14,18,19,7,1,4,616"
+                }
+              },
+              {
+                "id": "border-primitive-6",
+                "sourceElementId": "el_selbrume_cliff_stone_08",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:526933e44116c12703a7cbce0819b832a2c2104d73ac7a50a61e0a69853bc8d9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 9,
+                    "y": 31,
+                    "width": 19,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1007,3,27,9,22,12,20,14,18,16,16,16,15,17,15,17,14,18,13,19,13,19,13,19,13,19,15,4,1,11,23,4,586"
+                }
+              },
+              {
+                "id": "border-primitive-7",
+                "sourceElementId": "el_selbrume_cliff_stone_07",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:aa26dbf82bfa095157434e8e0ad239dc900379e5b7e38c4d37aee4a839fff707",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 10,
+                    "y": 32,
+                    "width": 20,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1040,7,23,12,19,14,17,15,17,16,15,18,14,18,14,19,12,20,12,20,12,20,13,19,13,3,1,14,20,4,587"
+                }
+              },
+              {
+                "id": "border-primitive-8",
+                "sourceElementId": "el_selbrume_cliff_stone_05",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:68655b6efae5e31241041c06ae4c3fb42962e3c8d1d6df1c6ba333491bdc62f9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 4,
+                    "y": 31,
+                    "width": 18,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1001,3,27,11,20,14,18,14,18,14,18,14,17,16,15,17,15,18,14,18,14,18,14,18,15,17,16,3,1,11,22,3,594"
+                }
+              },
+              {
+                "id": "border-primitive-9",
+                "sourceElementId": "el_selbrume_cliff_stone_04",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:eac4b0d26ad4e6c923f0e7c13fdd7e6d9a3d003ac8805b8414fa68b02fd02dc1",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 5,
+                    "y": 31,
+                    "width": 20,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1002,4,26,14,17,16,15,17,15,18,14,18,14,19,13,19,12,20,12,20,12,20,12,20,13,3,1,15,18,10,23,6,590"
+                }
+              },
+              {
+                "id": "border-primitive-10",
+                "sourceElementId": "el_selbrume_cliff_stone_03",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:6a307e6c1b9386c7b8ff0ee86ba3e83651060b145a59574b6f48652c7b85ecfa",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 8,
+                    "y": 30,
+                    "width": 19,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:972,4,26,7,24,11,21,15,17,15,17,15,17,15,16,17,15,17,15,17,15,19,14,18,14,18,16,16,20,11,27,4,583"
+                }
+              },
+              {
+                "id": "border-primitive-11",
+                "sourceElementId": "el_selbrume_cliff_stone_02",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:3fb3e8dac1d8844ceedbd24df7442a78c6d11615adf928523cc105802cebdde9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 8,
+                    "y": 31,
+                    "width": 22,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1008,6,24,12,17,17,14,18,14,18,14,18,14,20,12,20,11,21,10,22,10,22,10,22,11,2,7,12,20,6,2,1,25,4,584"
+                }
+              },
+              {
+                "id": "border-primitive-12",
+                "sourceElementId": "el_selbrume_cliff_stone_12",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:e70dd3782906ba198139e4a1f9ff3b3f0e90d4d1bb7e20a1c3836bad0ce39119",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 1,
+                    "y": 31,
+                    "width": 19,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:999,5,26,6,25,9,22,12,20,14,18,14,17,15,16,16,16,17,15,18,13,19,13,19,13,19,14,17,16,4,3,4,594"
+                }
+              },
+              {
+                "id": "border-primitive-13",
+                "sourceElementId": "el_selbrume_cliff_filler_01",
+                "role": "accent",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:ca87cb49eb88fa71b038cf5c44e2f3f15b3b2bb915ce08382ac575d577025de2",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 15,
+                    "y": 29,
+                    "width": 6,
+                    "height": 7
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:945,3,28,5,26,6,26,6,26,6,26,5,28,3,909"
+                }
+              },
+              {
+                "id": "border-primitive-14",
+                "sourceElementId": "el_selbrume_cliff_stone_10",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:b1a871e919978df7b8d27b1833f8efed04a4a4cac0c2df2607d38dd2f0a3f4d5",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 5,
+                    "y": 32,
+                    "width": 20,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1033,7,24,9,22,12,20,14,18,15,17,16,15,17,14,18,14,20,12,20,12,20,13,19,14,12,2,4,19,5,591"
+                }
+              },
+              {
+                "id": "border-primitive-15",
+                "sourceElementId": "el_selbrume_cliff_filler_02",
+                "role": "accent",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:b18b88bdc5a26fe0d0fb808a4411bbd407bb77335e9b7498e063206d68626279",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 13,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:944,2,29,4,26,6,26,6,26,6,27,5,941"
+                }
+              },
+              {
+                "id": "border-primitive-16",
+                "sourceElementId": "el_selbrume_cliff_filler_04",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:85da2aba7b826e59ef8b18922d96f1ae92761194cadb2ff7fdda3e4c2fb4bd66",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 11,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:941,2,29,4,27,5,27,6,26,6,26,5,944"
+                }
+              },
+              {
+                "id": "border-primitive-17",
+                "sourceElementId": "el_selbrume_cliff_filler_03",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:be833fe65f5bc6d53aedf3fff259a4804bf6d6592c82a1d1b7eca035ab8801e8",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 12,
+                    "y": 29,
+                    "width": 7,
+                    "height": 7
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:942,2,29,5,26,6,26,7,25,7,26,6,28,3,910"
+                }
+              },
+              {
+                "id": "border-primitive-18",
+                "sourceElementId": "el_selbrume_cliff_filler_05",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "currentMetrics": {
+                  "assetFingerprint": "sha256:1b13c00e894a6ec6f9cc08db78e93b8cabe9632ae3038eff11098208b352f4ab",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 9,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:939,2,30,3,28,5,26,6,27,4,29,2,947"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 250,
+              "detailDensityPermille": 250,
+              "variationPermille": 980,
+              "maxOverlapPx": 4,
+              "gapTolerancePx": 1,
+              "depthRows": 2,
+              "allowAutoRotation": false
+            },
+            "sortOrder": 1
+          }
+        },
+        "latestPublished": {
+          "revision": 5,
+          "definition": {
+            "name": "Falaises Selbrume — pierres unitaires",
+            "previewSeed": "3146926026823247432",
+            "template": "masonryLine",
+            "primitives": [
+              {
+                "id": "border-primitive-1",
+                "sourceElementId": "el_selbrume_cliff_stone_06",
+                "visualSnapshotId": "border-snapshot-sha256:865a8b6518777cd97ed319e8f8999cb30e617a8f7b0dbb68405369252912952d",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:5344dc22cef81feb618f65782c8059cce3f2883a8f00ff6636c3e02b6549e20e",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 1,
+                    "y": 31,
+                    "width": 22,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:998,3,27,10,22,12,20,15,16,18,14,18,14,18,14,19,12,20,11,22,10,22,10,22,10,21,12,4,1,7,1,6,619"
+                }
+              },
+              {
+                "id": "border-primitive-2",
+                "sourceElementId": "el_selbrume_cliff_stone_01",
+                "visualSnapshotId": "border-snapshot-sha256:187a4fa6c85f79cd2bef9ea61767e82ac5bd0ff1cc7a9272802bb485a4b37c96",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:da8f7b14e8eec93fdf1ff05eef4dbd5ec4aff6d3e60bc4bddf068c5935eea647",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 11,
+                    "y": 29,
+                    "width": 20,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:945,2,29,5,25,9,22,11,21,13,18,15,17,16,16,17,14,20,12,20,12,20,12,20,12,20,12,20,12,19,15,3,2,5,617"
+                }
+              },
+              {
+                "id": "border-primitive-3",
+                "sourceElementId": "el_selbrume_cliff_stone_11",
+                "visualSnapshotId": "border-snapshot-sha256:ce34a795021ba430d98f202879f2f584b14b1911cd37513d877fe88bcbe3cfdf",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:dcf3a7a4f5333aa0da36ef0e281d1bcb563248eb10864a261823c762a4ebdf13",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 3,
+                    "y": 30,
+                    "width": 19,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:970,2,29,5,25,11,20,13,19,14,18,14,17,16,15,17,15,17,15,18,13,19,13,19,14,18,15,17,16,16,22,3,3,2,588"
+                }
+              },
+              {
+                "id": "border-primitive-5",
+                "sourceElementId": "el_selbrume_cliff_stone_09",
+                "visualSnapshotId": "border-snapshot-sha256:fef048c8798c2ea17c577d6c1597b1764233b3314b5261f331b7aa411f0582c6",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:c793b9a4246920205534285054de0a7fe92cd109784a2214e52b0e172fcb2f87",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 7,
+                    "y": 32,
+                    "width": 18,
+                    "height": 13
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1035,3,28,10,21,12,20,14,18,14,18,14,18,15,16,17,14,18,14,18,14,18,14,18,19,7,1,4,616"
+                }
+              },
+              {
+                "id": "border-primitive-6",
+                "sourceElementId": "el_selbrume_cliff_stone_08",
+                "visualSnapshotId": "border-snapshot-sha256:9e654dca8b2bc2aa9c275baaeab6f994bb1f837440f5699bdf6f4f5a1c2c2f49",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:526933e44116c12703a7cbce0819b832a2c2104d73ac7a50a61e0a69853bc8d9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 9,
+                    "y": 31,
+                    "width": 19,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1007,3,27,9,22,12,20,14,18,16,16,16,15,17,15,17,14,18,13,19,13,19,13,19,13,19,15,4,1,11,23,4,586"
+                }
+              },
+              {
+                "id": "border-primitive-7",
+                "sourceElementId": "el_selbrume_cliff_stone_07",
+                "visualSnapshotId": "border-snapshot-sha256:d61eb6e74329f1cc182a2288c3c207482fd8e6f16fd21d5d7e8182aa9e798ca8",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:aa26dbf82bfa095157434e8e0ad239dc900379e5b7e38c4d37aee4a839fff707",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 10,
+                    "y": 32,
+                    "width": 20,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1040,7,23,12,19,14,17,15,17,16,15,18,14,18,14,19,12,20,12,20,12,20,13,19,13,3,1,14,20,4,587"
+                }
+              },
+              {
+                "id": "border-primitive-8",
+                "sourceElementId": "el_selbrume_cliff_stone_05",
+                "visualSnapshotId": "border-snapshot-sha256:567c1395e1f60c88115fccbacdb34521afcfea2cb19ad03291de0671c136d253",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:68655b6efae5e31241041c06ae4c3fb42962e3c8d1d6df1c6ba333491bdc62f9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 4,
+                    "y": 31,
+                    "width": 18,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1001,3,27,11,20,14,18,14,18,14,18,14,17,16,15,17,15,18,14,18,14,18,14,18,15,17,16,3,1,11,22,3,594"
+                }
+              },
+              {
+                "id": "border-primitive-9",
+                "sourceElementId": "el_selbrume_cliff_stone_04",
+                "visualSnapshotId": "border-snapshot-sha256:9161045745ada09fe39c761519b1be3c05e9e637ce19ebf6b52d7af3d1df6334",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:eac4b0d26ad4e6c923f0e7c13fdd7e6d9a3d003ac8805b8414fa68b02fd02dc1",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 5,
+                    "y": 31,
+                    "width": 20,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1002,4,26,14,17,16,15,17,15,18,14,18,14,19,13,19,12,20,12,20,12,20,12,20,13,3,1,15,18,10,23,6,590"
+                }
+              },
+              {
+                "id": "border-primitive-10",
+                "sourceElementId": "el_selbrume_cliff_stone_03",
+                "visualSnapshotId": "border-snapshot-sha256:b9977650f25de7912678ae62bb3e67ab5d441d6743347ad17bc373ba983d0d39",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:6a307e6c1b9386c7b8ff0ee86ba3e83651060b145a59574b6f48652c7b85ecfa",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 8,
+                    "y": 30,
+                    "width": 19,
+                    "height": 16
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:972,4,26,7,24,11,21,15,17,15,17,15,17,15,16,17,15,17,15,17,15,19,14,18,14,18,16,16,20,11,27,4,583"
+                }
+              },
+              {
+                "id": "border-primitive-11",
+                "sourceElementId": "el_selbrume_cliff_stone_02",
+                "visualSnapshotId": "border-snapshot-sha256:7cc635e95a7f4a1b78024d188c48b63d220b4810b9b5d5c295d33cb80d77d09b",
+                "role": "structureLarge",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:3fb3e8dac1d8844ceedbd24df7442a78c6d11615adf928523cc105802cebdde9",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 8,
+                    "y": 31,
+                    "width": 22,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1008,6,24,12,17,17,14,18,14,18,14,18,14,20,12,20,11,21,10,22,10,22,10,22,11,2,7,12,20,6,2,1,25,4,584"
+                }
+              },
+              {
+                "id": "border-primitive-12",
+                "sourceElementId": "el_selbrume_cliff_stone_12",
+                "visualSnapshotId": "border-snapshot-sha256:ba98e750a07581058a778f458ef3956728ab387545c712eafcd901269948cc3f",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:e70dd3782906ba198139e4a1f9ff3b3f0e90d4d1bb7e20a1c3836bad0ce39119",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 1,
+                    "y": 31,
+                    "width": 19,
+                    "height": 15
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:999,5,26,6,25,9,22,12,20,14,18,14,17,15,16,16,16,17,15,18,13,19,13,19,13,19,14,17,16,4,3,4,594"
+                }
+              },
+              {
+                "id": "border-primitive-13",
+                "sourceElementId": "el_selbrume_cliff_filler_01",
+                "visualSnapshotId": "border-snapshot-sha256:a52175335ca0a8323bf01027015c0677f2fdbd465c6736dbfbefa8e9f1c7686e",
+                "role": "accent",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:ca87cb49eb88fa71b038cf5c44e2f3f15b3b2bb915ce08382ac575d577025de2",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 15,
+                    "y": 29,
+                    "width": 6,
+                    "height": 7
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:945,3,28,5,26,6,26,6,26,6,26,5,28,3,909"
+                }
+              },
+              {
+                "id": "border-primitive-14",
+                "sourceElementId": "el_selbrume_cliff_stone_10",
+                "visualSnapshotId": "border-snapshot-sha256:e9030ac68335c5f424221c1e5c5ee4e4142f12088bb23bfe77992e665b13223d",
+                "role": "structureMedium",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 57
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:b1a871e919978df7b8d27b1833f8efed04a4a4cac0c2df2607d38dd2f0a3f4d5",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 5,
+                    "y": 32,
+                    "width": 20,
+                    "height": 14
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 57
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:1033,7,24,9,22,12,20,14,18,15,17,16,15,17,14,18,14,20,12,20,12,20,13,19,14,12,2,4,19,5,591"
+                }
+              },
+              {
+                "id": "border-primitive-15",
+                "sourceElementId": "el_selbrume_cliff_filler_02",
+                "visualSnapshotId": "border-snapshot-sha256:38d3e60676e63f6b14be1efdf8a7fab02adf1b41adc71166689f2722e162e8ed",
+                "role": "accent",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:b18b88bdc5a26fe0d0fb808a4411bbd407bb77335e9b7498e063206d68626279",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 13,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:944,2,29,4,26,6,26,6,26,6,27,5,941"
+                }
+              },
+              {
+                "id": "border-primitive-16",
+                "sourceElementId": "el_selbrume_cliff_filler_04",
+                "visualSnapshotId": "border-snapshot-sha256:daa5d01222004200aee384c97d0859133d3b143cbe0c1c4532aacde97039967e",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 16,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:85da2aba7b826e59ef8b18922d96f1ae92761194cadb2ff7fdda3e4c2fb4bd66",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 11,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 16,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:941,2,29,4,27,5,27,6,26,6,26,5,944"
+                }
+              },
+              {
+                "id": "border-primitive-17",
+                "sourceElementId": "el_selbrume_cliff_filler_03",
+                "visualSnapshotId": "border-snapshot-sha256:7d56bda50d0bfa28884e145e1233d18e4a9bd4e13df1d65ccd6d8b42131427d6",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:be833fe65f5bc6d53aedf3fff259a4804bf6d6592c82a1d1b7eca035ab8801e8",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 12,
+                    "y": 29,
+                    "width": 7,
+                    "height": 7
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:942,2,29,5,26,6,26,7,25,7,26,6,28,3,910"
+                }
+              },
+              {
+                "id": "border-primitive-18",
+                "sourceElementId": "el_selbrume_cliff_filler_05",
+                "visualSnapshotId": "border-snapshot-sha256:fb397bc5f89b6ff325389b0783a2a97c7c9816fe4107047d38280cd4d97a27bd",
+                "role": "filler",
+                "weight": 1000,
+                "anchorPx": {
+                  "x": 15,
+                  "y": 55
+                },
+                "transforms": {
+                  "allowFlipX": true,
+                  "allowedQuarterTurns": [
+                    0,
+                    1,
+                    2,
+                    3
+                  ]
+                },
+                "publishedMetrics": {
+                  "assetFingerprint": "sha256:1b13c00e894a6ec6f9cc08db78e93b8cabe9632ae3038eff11098208b352f4ab",
+                  "pixelSize": {
+                    "width": 32,
+                    "height": 64
+                  },
+                  "opaqueBounds": {
+                    "x": 9,
+                    "y": 29,
+                    "width": 6,
+                    "height": 6
+                  },
+                  "defaultAnchorPx": {
+                    "x": 15,
+                    "y": 55
+                  },
+                  "occupancyMaskRle": "border-rle-v1:2048:0:939,2,30,3,28,5,26,6,27,4,29,2,947"
+                }
+              }
+            ],
+            "defaults": {
+              "irregularityPermille": 250,
+              "detailDensityPermille": 250,
+              "variationPermille": 980,
+              "maxOverlapPx": 4,
+              "gapTolerancePx": 1,
+              "depthRows": 2,
+              "allowAutoRotation": false
+            },
+            "sortOrder": 1
+          }
+        }
       }
     ],
     "visualSnapshots": [
@@ -39961,6 +41801,278 @@
               "x": 0,
               "y": 0,
               "width": 64,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:865a8b6518777cd97ed319e8f8999cb30e617a8f7b0dbb68405369252912952d",
+        "contentFingerprint": "865a8b6518777cd97ed319e8f8999cb30e617a8f7b0dbb68405369252912952d",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/865a8b6518777cd97ed319e8f8999cb30e617a8f7b0dbb68405369252912952d/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:187a4fa6c85f79cd2bef9ea61767e82ac5bd0ff1cc7a9272802bb485a4b37c96",
+        "contentFingerprint": "187a4fa6c85f79cd2bef9ea61767e82ac5bd0ff1cc7a9272802bb485a4b37c96",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/187a4fa6c85f79cd2bef9ea61767e82ac5bd0ff1cc7a9272802bb485a4b37c96/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:ce34a795021ba430d98f202879f2f584b14b1911cd37513d877fe88bcbe3cfdf",
+        "contentFingerprint": "ce34a795021ba430d98f202879f2f584b14b1911cd37513d877fe88bcbe3cfdf",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/ce34a795021ba430d98f202879f2f584b14b1911cd37513d877fe88bcbe3cfdf/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:fef048c8798c2ea17c577d6c1597b1764233b3314b5261f331b7aa411f0582c6",
+        "contentFingerprint": "fef048c8798c2ea17c577d6c1597b1764233b3314b5261f331b7aa411f0582c6",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/fef048c8798c2ea17c577d6c1597b1764233b3314b5261f331b7aa411f0582c6/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:9e654dca8b2bc2aa9c275baaeab6f994bb1f837440f5699bdf6f4f5a1c2c2f49",
+        "contentFingerprint": "9e654dca8b2bc2aa9c275baaeab6f994bb1f837440f5699bdf6f4f5a1c2c2f49",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/9e654dca8b2bc2aa9c275baaeab6f994bb1f837440f5699bdf6f4f5a1c2c2f49/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:d61eb6e74329f1cc182a2288c3c207482fd8e6f16fd21d5d7e8182aa9e798ca8",
+        "contentFingerprint": "d61eb6e74329f1cc182a2288c3c207482fd8e6f16fd21d5d7e8182aa9e798ca8",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/d61eb6e74329f1cc182a2288c3c207482fd8e6f16fd21d5d7e8182aa9e798ca8/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:567c1395e1f60c88115fccbacdb34521afcfea2cb19ad03291de0671c136d253",
+        "contentFingerprint": "567c1395e1f60c88115fccbacdb34521afcfea2cb19ad03291de0671c136d253",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/567c1395e1f60c88115fccbacdb34521afcfea2cb19ad03291de0671c136d253/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:9161045745ada09fe39c761519b1be3c05e9e637ce19ebf6b52d7af3d1df6334",
+        "contentFingerprint": "9161045745ada09fe39c761519b1be3c05e9e637ce19ebf6b52d7af3d1df6334",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/9161045745ada09fe39c761519b1be3c05e9e637ce19ebf6b52d7af3d1df6334/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:b9977650f25de7912678ae62bb3e67ab5d441d6743347ad17bc373ba983d0d39",
+        "contentFingerprint": "b9977650f25de7912678ae62bb3e67ab5d441d6743347ad17bc373ba983d0d39",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/b9977650f25de7912678ae62bb3e67ab5d441d6743347ad17bc373ba983d0d39/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:7cc635e95a7f4a1b78024d188c48b63d220b4810b9b5d5c295d33cb80d77d09b",
+        "contentFingerprint": "7cc635e95a7f4a1b78024d188c48b63d220b4810b9b5d5c295d33cb80d77d09b",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/7cc635e95a7f4a1b78024d188c48b63d220b4810b9b5d5c295d33cb80d77d09b/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:ba98e750a07581058a778f458ef3956728ab387545c712eafcd901269948cc3f",
+        "contentFingerprint": "ba98e750a07581058a778f458ef3956728ab387545c712eafcd901269948cc3f",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/ba98e750a07581058a778f458ef3956728ab387545c712eafcd901269948cc3f/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:a52175335ca0a8323bf01027015c0677f2fdbd465c6736dbfbefa8e9f1c7686e",
+        "contentFingerprint": "a52175335ca0a8323bf01027015c0677f2fdbd465c6736dbfbefa8e9f1c7686e",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/a52175335ca0a8323bf01027015c0677f2fdbd465c6736dbfbefa8e9f1c7686e/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:e9030ac68335c5f424221c1e5c5ee4e4142f12088bb23bfe77992e665b13223d",
+        "contentFingerprint": "e9030ac68335c5f424221c1e5c5ee4e4142f12088bb23bfe77992e665b13223d",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/e9030ac68335c5f424221c1e5c5ee4e4142f12088bb23bfe77992e665b13223d/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:38d3e60676e63f6b14be1efdf8a7fab02adf1b41adc71166689f2722e162e8ed",
+        "contentFingerprint": "38d3e60676e63f6b14be1efdf8a7fab02adf1b41adc71166689f2722e162e8ed",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/38d3e60676e63f6b14be1efdf8a7fab02adf1b41adc71166689f2722e162e8ed/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:daa5d01222004200aee384c97d0859133d3b143cbe0c1c4532aacde97039967e",
+        "contentFingerprint": "daa5d01222004200aee384c97d0859133d3b143cbe0c1c4532aacde97039967e",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/daa5d01222004200aee384c97d0859133d3b143cbe0c1c4532aacde97039967e/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:7d56bda50d0bfa28884e145e1233d18e4a9bd4e13df1d65ccd6d8b42131427d6",
+        "contentFingerprint": "7d56bda50d0bfa28884e145e1233d18e4a9bd4e13df1d65ccd6d8b42131427d6",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/7d56bda50d0bfa28884e145e1233d18e4a9bd4e13df1d65ccd6d8b42131427d6/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
+              "height": 64
+            },
+            "durationMs": 100
+          }
+        ]
+      },
+      {
+        "id": "border-snapshot-sha256:fb397bc5f89b6ff325389b0783a2a97c7c9816fe4107047d38280cd4d97a27bd",
+        "contentFingerprint": "fb397bc5f89b6ff325389b0783a2a97c7c9816fe4107047d38280cd4d97a27bd",
+        "frames": [
+          {
+            "relativeAssetPath": "assets/borders/snapshots/fb397bc5f89b6ff325389b0783a2a97c7c9816fe4107047d38280cd4d97a27bd/frame_0000.png",
+            "sourceRectPx": {
+              "x": 0,
+              "y": 0,
+              "width": 32,
               "height": 64
             },
             "durationMs": 100

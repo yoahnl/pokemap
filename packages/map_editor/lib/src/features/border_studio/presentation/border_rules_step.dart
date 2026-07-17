@@ -21,6 +21,8 @@ class BorderRulesStep extends StatelessWidget {
     final rules = definition?.defaults;
     final template = definition?.template;
     final isConnectedLine = template == BorderBlueprintTemplate.connectedLine;
+    final supportsAutoRotation =
+        isConnectedLine || template == BorderBlueprintTemplate.masonryLine;
     return BorderStudioStepScaffold(
       title: '4. Règles',
       description:
@@ -74,7 +76,7 @@ class BorderRulesStep extends StatelessWidget {
                   icon: CupertinoIcons.checkmark_seal,
                 ),
                 const SizedBox(height: 12),
-                if (isConnectedLine) ...[
+                if (supportsAutoRotation) ...[
                   PokeMapToggleTile(
                     key: const ValueKey<String>(
                       'border-studio-auto-rotation-toggle',
