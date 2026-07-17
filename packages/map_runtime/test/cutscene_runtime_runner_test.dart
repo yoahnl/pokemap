@@ -6,6 +6,42 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('CutsceneRuntimeRunner branching core', () {
+    test('cancel terminalizes a waiting run and clears its active choice', () {
+      final env = _RunnerTestEnv();
+      final runner = env.createRunner();
+      expect(
+        runner.start(
+          const RuntimeCutsceneAsset(
+            id: 'cancelled_choice',
+            name: 'Cancelled choice',
+            steps: <RuntimeCutsceneStep>[
+              CutsceneChoiceStep(
+                choiceId: 'choice',
+                prompt: 'Choose',
+                options: <CutsceneChoiceOption>[
+                  CutsceneChoiceOption(value: 'yes', label: 'Yes'),
+                ],
+              ),
+              CutsceneSetFlagStep(flagName: 'must.not.run'),
+            ],
+          ),
+        ),
+        isTrue,
+      );
+      runner.update(0.016);
+      expect(runner.hasActiveChoice, isTrue);
+
+      expect(runner.cancel(reason: 'Checkpoint load reset.'), isTrue);
+
+      expect(runner.isRunning, isFalse);
+      expect(runner.hasActiveChoice, isFalse);
+      expect(runner.status.state, CutsceneRunnerState.failed);
+      expect(runner.status.failureReason, 'Checkpoint load reset.');
+      runner.update(1);
+      expect(env.setFlags, isEmpty);
+      expect(runner.cancel(), isFalse);
+    });
+
     test('dialogue step blocks until dialogue is closed', () {
       final env = _RunnerTestEnv();
       env.dialogueOpen = true;

@@ -197,13 +197,15 @@ class ScriptCommandExecutor {
       );
     }
 
-    // Appliquer la mutation
+    // Réserver d'abord le handoff runtime. Si un autre warp possède déjà la
+    // file, le callback peut refuser en levant une erreur sans laisser le
+    // GameState pointer vers une map qui n'a jamais été activée.
+    _context.onWarpRequested?.call(mapId, x, y);
+
+    // Appliquer la mutation seulement après acceptation du handoff.
     final newState =
         _mutations.warpPlayer(state, mapId, x, y, facing: entityFacing);
     _commitGameState(newState);
-
-    // Notifier le runtime pour le warp effectif
-    _context.onWarpRequested?.call(mapId, x, y);
 
     return ScriptCommandResult.completed();
   }

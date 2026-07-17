@@ -206,10 +206,15 @@ void _measure(
   final median = samples.length.isOdd
       ? samples[samples.length ~/ 2].toDouble()
       : (samples[samples.length ~/ 2 - 1] + samples[samples.length ~/ 2]) / 2;
+  final p50 = median;
+  final p95Index = (samples.length * 0.95).ceil() - 1;
+  final p95 = samples[p95Index];
   stdout.writeln(
     'NS_EVENT_V2_PHASE_E_PERF operation=$operation records=$volume '
     'iterations=$iterations mean_us=${mean.toStringAsFixed(1)} '
-    'median_us=${median.toStringAsFixed(1)} mode=jit '
+    'median_us=${median.toStringAsFixed(1)} '
+    'p50_us=${p50.toStringAsFixed(1)} '
+    'p95_us=${p95.toStringAsFixed(1)} mode=jit '
     'catalog_build=excluded hashing=operation_internal '
     'complexity=operation_specific aot=not_measured',
   );

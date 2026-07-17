@@ -35,6 +35,19 @@ void main() {
       expect(consumed.label, 'Gate event consumed');
     });
 
+    test('completeStoryStep stores the canonical Story Step id', () {
+      final consequence = SceneConsequence.completeStoryStep(
+        stepId: 'step_rival_battle',
+        label: 'Complete rival battle',
+      );
+
+      expect(consequence.kind, SceneConsequenceKind.completeStoryStep);
+      expect(consequence, isA<SceneCompleteStoryStepConsequence>());
+      final completeStep = consequence as SceneCompleteStoryStepConsequence;
+      expect(completeStep.stepId, 'step_rival_battle');
+      expect(completeStep.label, 'Complete rival battle');
+    });
+
     test('setFact JSON round-trips', () {
       final consequence = SceneConsequence.setFact(
         factId: 'fact_test_gate_unlocked',
@@ -66,6 +79,21 @@ void main() {
       expect(json['kind'], 'markEventConsumed');
       expect(json['mapId'], 'map_test');
       expect(json['eventId'], 'event_gate');
+      expect(decoded, equals(consequence));
+    });
+
+    test('completeStoryStep JSON round-trips', () {
+      final consequence = SceneConsequence.completeStoryStep(
+        stepId: 'step_rival_battle',
+        notes: 'Qualified victory path only.',
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json['kind'], 'completeStoryStep');
+      expect(json['stepId'], 'step_rival_battle');
       expect(decoded, equals(consequence));
     });
 
@@ -104,6 +132,18 @@ void main() {
       );
 
       expect(payload.consequence, isA<SceneMarkEventConsumedConsequence>());
+      expect(
+        SceneNodePayload.fromJson(payload.toJson()),
+        equals(payload),
+      );
+    });
+
+    test('can carry typed completeStoryStep consequence', () {
+      final payload = SceneActionPayload.consequence(
+        SceneConsequence.completeStoryStep(stepId: 'step_rival_battle'),
+      );
+
+      expect(payload.consequence, isA<SceneCompleteStoryStepConsequence>());
       expect(
         SceneNodePayload.fromJson(payload.toJson()),
         equals(payload),

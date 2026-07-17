@@ -130,6 +130,30 @@ class CutsceneRuntimeRunner {
     return true;
   }
 
+  /// Abandons the current run without executing any remaining step.
+  ///
+  /// Runtime checkpoints use this as a hard lifetime boundary: pending waits,
+  /// choices and nested frames must not survive into a restored world.
+  bool cancel({String reason = 'Cutscene cancelled.'}) {
+    if (!isRunning) {
+      return false;
+    }
+    final activeId = _status.activeCutsceneId;
+    final activeStepIndex = _status.activeStepIndex;
+    _frames.clear();
+    _choiceResultsById.clear();
+    _pendingWait = null;
+    _activeChoiceRequest = null;
+    _lastChoiceResult = null;
+    _status = CutsceneRuntimeStatus(
+      state: CutsceneRunnerState.failed,
+      activeCutsceneId: activeId,
+      activeStepIndex: activeStepIndex,
+      failureReason: reason,
+    );
+    return true;
+  }
+
   bool resolveActiveChoiceByIndex(int selectedIndex) {
     final request = _activeChoiceRequest;
     if (!isRunning || request == null) {

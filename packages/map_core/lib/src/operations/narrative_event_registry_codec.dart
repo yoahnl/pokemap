@@ -405,6 +405,14 @@ final class ValidatedLegacyClaimIndex {
     NarrativeEventSourceRef source,
   ) {
     _requireRuntimeReady();
+    return inspectSourceStructure(source);
+  }
+
+  /// Resolves structural claim validity for authoring and diagnostics without
+  /// asserting that a runtime legacy corpus has been supplied.
+  LegacyClaimSourceResolution inspectSourceStructure(
+    NarrativeEventSourceRef source,
+  ) {
     final valid = validBySource[source];
     if (valid != null) {
       return LegacyClaimSourceValid._(source: source, claim: valid);

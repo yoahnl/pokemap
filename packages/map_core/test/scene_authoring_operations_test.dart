@@ -524,6 +524,20 @@ void main() {
       ]);
     });
 
+    test('adds a completeStoryStep consequence through public authoring', () {
+      final consequence = SceneConsequence.completeStoryStep(
+        stepId: 'step_rival_battle',
+      );
+
+      final result = addSceneConsequenceActionNodeDraft(
+        _scene('scene_authoring'),
+        consequence: consequence,
+      );
+
+      expect(result.createdNode.title, 'Terminer une étape narrative');
+      expect(result.createdPayload.consequence, consequence);
+    });
+
     test('rejects structurally invalid consequence action drafts', () {
       final scene = _scene('scene_authoring');
 
@@ -534,6 +548,13 @@ void main() {
             factId: '   ',
             value: true,
           ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addSceneConsequenceActionNodeDraft(
+          scene,
+          consequence: SceneConsequence.completeStoryStep(stepId: '  '),
         ),
         throwsArgumentError,
       );

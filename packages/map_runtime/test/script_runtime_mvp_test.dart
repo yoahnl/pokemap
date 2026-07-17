@@ -116,6 +116,37 @@ void main() {
         expect(executedCommands, contains('warp:pallet_town:10:5'));
       });
 
+      test('warpPlayer keeps state unchanged when runtime rejects handoff', () {
+        lastGameState = const GameState(
+          saveId: 'test-save',
+          currentMapId: 'source_map',
+          playerPosition: GridPos(x: 2, y: 3),
+        );
+        final context = ScriptExecutionContext(
+          gameState: lastGameState,
+          onGameStateUpdated: (state) => lastGameState = state,
+          onWarpRequested: (_, __, ___) {
+            throw StateError('warp queue already owned');
+          },
+        );
+        final executor = ScriptCommandExecutor(context: context);
+        const command = ScriptCommand(
+          type: ScriptCommandType.warpPlayer,
+          params: <String, String>{
+            'mapId': 'rejected_target',
+            'x': '8',
+            'y': '9',
+          },
+        );
+
+        expect(
+          () => executor.execute(command, context.gameState),
+          throwsStateError,
+        );
+        expect(lastGameState.currentMapId, 'source_map');
+        expect(lastGameState.playerPosition, const GridPos(x: 2, y: 3));
+      });
+
       test('unlockFieldAbility command updates progression', () {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);

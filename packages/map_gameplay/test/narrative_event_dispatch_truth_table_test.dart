@@ -114,6 +114,43 @@ void main() {
     expect((handled as NarrativeEventDispatchHandled).eventId, _eventB);
   });
 
+  test('valid claim blocks fallback when its oneShot target is consumed', () {
+    final source = NarrativeEventSourceRef.mapEnter('map');
+    final provenance = LegacySourceRef.mapEvent('map', 'legacy');
+    final claim = _claim(source, provenance, [_eventA]);
+    final registry = _registry(
+      EventSystemMode.dualRead,
+      records: [_record(_eventA, source)],
+      claims: [claim],
+    );
+
+    final decision = NarrativeEventDispatchPlanner().plan(
+      authority: _prepare(
+        registry,
+        source,
+        provenance: provenance,
+        claimIndex: _runtimeIndex(registry, source, provenance),
+      ),
+      gameState: GameState(
+        saveId: 'save',
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: {_eventA},
+        ),
+      ),
+    );
+
+    expect(decision, isA<NarrativeEventDispatchClaimedButIneligible>());
+    expect(decision.legacyFallbackAllowed, isFalse);
+    expect(
+      decision.reasons,
+      orderedEquals([
+        NarrativeEventDispatchReason.eventConsumed,
+        NarrativeEventDispatchReason.claimTargetsIneligible,
+        NarrativeEventDispatchReason.noEligibleCandidate,
+      ]),
+    );
+  });
+
   test('local claim tombstone blocks only that occurrence', () {
     final source = NarrativeEventSourceRef.mapEnter('map');
     final provenance = LegacySourceRef.mapEvent('map', 'legacy');

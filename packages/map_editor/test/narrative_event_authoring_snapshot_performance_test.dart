@@ -20,7 +20,8 @@ void main() {
       'dart=${Platform.version.split(' ').first} '
       'processors=${Platform.numberOfProcessors} '
       'host=${_singleLine(Platform.localHostname)} mode=jit '
-      'warmup=1 iterations=5 mutable_global_cache=none',
+      'warmup=1 iterations=5 execution=sequential '
+      'mutable_global_cache=none',
     );
 
     for (final mapCount in [10, 100, 500]) {
@@ -225,10 +226,16 @@ void _emitMeasurement({
   final median = sorted.length.isOdd
       ? sorted[sorted.length ~/ 2].toDouble()
       : (sorted[sorted.length ~/ 2 - 1] + sorted[sorted.length ~/ 2]) / 2;
+  final p50 = median;
+  final p95Index = (sorted.length * 0.95).ceil() - 1;
+  final p95 = sorted[p95Index];
+  // Phase E-bis observations remain informative evidence, not a budget PASS.
   stdout.writeln(
     'NS_EVENT_V2_PHASE_E_BIS_PERF operation=$operation volume=$volume '
     'iterations=${sorted.length} mean_us=${mean.toStringAsFixed(1)} '
-    'median_us=${median.toStringAsFixed(1)} bytes_read=$bytesRead '
+    'median_us=${median.toStringAsFixed(1)} '
+    'p50_us=${p50.toStringAsFixed(1)} '
+    'p95_us=${p95.toStringAsFixed(1)} bytes_read=$bytesRead '
     'hashing=$hashing catalog_build=$catalogBuild mode=jit '
     'threshold=informative_only mutable_global_cache=none',
   );

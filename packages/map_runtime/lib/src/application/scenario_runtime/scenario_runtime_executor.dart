@@ -699,6 +699,31 @@ class ScenarioRuntimeExecutor {
               context.gameState = nextState;
               context.onGameStateUpdated(nextState);
 
+              if (context.deferOutcomeDispatch) {
+                context.onOutcomeEmitted?.call(
+                  scenarioId: scenario.id,
+                  outcomeId: outcomeId,
+                );
+                final nextAfterOutcome = _pickLinearNextNodeId(
+                  nodeId: node.id,
+                  edges: scenario.edges,
+                );
+                if (nextAfterOutcome == null) {
+                  return ScenarioRuntimeExecutionResult(
+                    status: ScenarioRuntimeExecutionStatus.reachedEnd,
+                    effect: const ScenarioRuntimeEffect.none(),
+                    scenarioId: scenario.id,
+                    sourceNodeId: sourceId,
+                    stopNodeId: node.id,
+                    emittedOutcomeId: outcomeId,
+                    message:
+                        'Outcome "$outcomeId" émis et différé. Fin du flow local.',
+                  );
+                }
+                currentNodeId = nextAfterOutcome;
+                continue;
+              }
+
               // 2) Tentative de pont vers la couche globale:
               // outcome local -> sourceOutcome global.
               final outcomeDispatch = _dispatchInternal(

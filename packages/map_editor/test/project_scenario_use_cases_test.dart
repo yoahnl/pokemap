@@ -7,12 +7,77 @@ import 'package:map_editor/src/domain/repositories/repositories.dart';
 
 void main() {
   group('project_scenario_use_cases', () {
+    test('v2Only preserves unrelated Global Story and Cutscene authoring',
+        () async {
+      final repository = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      const cutscene = ScenarioAsset(
+        id: 'cutscene_intro',
+        name: 'Cutscene Intro',
+        scope: ScenarioScope.localEventFlow,
+        entryNodeId: 'start',
+        nodes: <ScenarioNode>[
+          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+        ],
+        metadata: <String, String>{
+          'authoring.cutsceneSchema': 'cutscene_studio_v2',
+        },
+      );
+      const globalStory = ScenarioAsset(
+        id: 'global_story',
+        name: 'Global Story',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'start',
+        nodes: <ScenarioNode>[
+          ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+        ],
+      );
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        name: 'demo',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        scenarios: const <ScenarioAsset>[cutscene],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: const [],
+          legacyClaims: const [],
+        ),
+      );
+
+      final afterCreate =
+          await CreateProjectScenarioUseCase(repository).execute(
+        workspace,
+        project,
+        scenario: globalStory,
+      );
+      final afterUpdate =
+          await UpdateProjectScenarioUseCase(repository).execute(
+        workspace,
+        afterCreate,
+        scenarioId: cutscene.id,
+        nextScenario: cutscene.copyWith(name: 'Cutscene Intro Updated'),
+      );
+      final afterDelete =
+          await DeleteProjectScenarioUseCase(repository).execute(
+        workspace,
+        afterUpdate,
+        scenarioId: globalStory.id,
+      );
+
+      expect(afterDelete.scenarios, hasLength(1));
+      expect(afterDelete.scenarios.single.name, 'Cutscene Intro Updated');
+      expect(repository.lastSavedProject, afterDelete);
+    });
+
     test('create adds scenario and persists manifest', () async {
       final repo = _FakeProjectRepository();
       final workspace = _FakeWorkspace();
       final useCase = CreateProjectScenarioUseCase(repo);
 
-      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      const project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
@@ -70,7 +135,8 @@ void main() {
           ScenarioNode(id: 'start', type: ScenarioNodeType.start),
         ],
       );
-      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      const project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -114,7 +180,8 @@ void main() {
           ScenarioNode(id: 'start', type: ScenarioNodeType.start),
         ],
       );
-      const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      const project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

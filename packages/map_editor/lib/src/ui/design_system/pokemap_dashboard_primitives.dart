@@ -298,6 +298,48 @@ class PokeMapStatusTile extends StatelessWidget {
   }
 }
 
+/// Inline status used in dense lists where a capsule would consume too much
+/// horizontal space.
+class PokeMapStatusLabel extends StatelessWidget {
+  const PokeMapStatusLabel({
+    super.key,
+    required this.label,
+    this.tone = PokeMapTone.neutral,
+    this.icon = Icons.circle,
+  });
+
+  final String label;
+  final PokeMapTone tone;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final toneColors = tone.resolve(context);
+    return Semantics(
+      label: label,
+      child: ExcludeSemantics(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 7, color: toneColors.icon),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: toneColors.text,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Inspector container with the calmer V2 surface contract.
 class PokeMapInspectorPanel extends StatelessWidget {
   const PokeMapInspectorPanel({

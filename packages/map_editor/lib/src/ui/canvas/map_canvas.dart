@@ -16,22 +16,27 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/models/narrative_event_map_bridge_models.dart';
+import '../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../application/shadow/editor_projected_building_shadow_preview.dart';
 import '../../application/shadow/editor_shadow_light_preview.dart';
 import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
+import '../../application/services/map_focus_viewport_resolver.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
+import 'map_canvas/narrative_event_map_banner.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
@@ -56,6 +61,69 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
       null;
 }
 
+@visibleForTesting
+bool isNarrativeEventBridgeEntityHighlighted({
+  required String entityId,
+  required NarrativeEditorFocusTarget? focus,
+}) {
+  return focus?.kind == NarrativeEditorFocusTargetKind.entity &&
+      focus?.ownerId == entityId;
+}
+
+@visibleForTesting
+bool isNarrativeEventBridgeTriggerHighlighted({
+  required String triggerId,
+  required NarrativeEditorFocusTarget? focus,
+}) {
+  return focus?.kind == NarrativeEditorFocusTargetKind.trigger &&
+      focus?.ownerId == triggerId;
+}
+
+@visibleForTesting
+bool isNarrativeEventBridgeMapHighlighted({
+  required NarrativeEditorFocusTarget? focus,
+}) {
+  return focus?.kind == NarrativeEditorFocusTargetKind.map;
+}
+
+@visibleForTesting
+NarrativeEventSourceRef? resolveNarrativeEventMapCandidateAt({
+  required MapData map,
+  required GridPos pos,
+}) {
+  final matches = <NarrativeEventSourceRef>[];
+  for (final entity in map.entities) {
+    if (entity.kind == MapEntityKind.spawn) continue;
+    if (_mapRectContains(
+      MapRect(pos: entity.pos, size: entity.size),
+      pos,
+    )) {
+      matches.add(
+        NarrativeEventSourceRef.entityInteract(map.id, entity.id),
+      );
+    }
+  }
+  for (final trigger in map.triggers) {
+    if (trigger.type != TriggerType.event &&
+        trigger.type != TriggerType.custom) {
+      continue;
+    }
+    if (_mapRectContains(trigger.area, pos)) {
+      matches.add(
+        NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
+      );
+    }
+  }
+  return matches.length == 1 ? matches.single : null;
+}
+
+bool _mapRectContains(MapRect rect, GridPos pos) {
+  return pos.x >= rect.pos.x &&
+      pos.y >= rect.pos.y &&
+      pos.x < rect.pos.x + rect.size.width &&
+      pos.y < rect.pos.y + rect.size.height;
+}
+
 class MapCanvas extends ConsumerStatefulWidget {
   const MapCanvas({
     super.key,
@@ -71,6 +139,8 @@ class MapCanvas extends ConsumerStatefulWidget {
 }
 
 class _MapCanvasState extends ConsumerState<MapCanvas> {
+  final GlobalKey _mapViewportKey = GlobalKey();
+  String? _scheduledNarrativeEventCameraRequestId;
   Map<String, String> _lastTilesetPathsById = const {};
   Map<String, TilesetTransparentColor> _lastTilesetTransparentColorById =
       const {};
@@ -150,6 +220,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final state = ref.watch(editorNotifierProvider);
+    final bridgeState = ref.watch(narrativeEventMapBridgeControllerProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final environmentMaskBrushSize =
         ref.watch(environmentMaskBrushSizeProvider);
@@ -191,6 +262,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
     final tileWidth = settings.tileWidth * settings.displayScale;
     final tileHeight = settings.tileHeight * settings.displayScale;
+    _scheduleNarrativeEventCameraFocus(
+      request: bridgeState.focusRequest,
+      map: activeMap,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      zoom: state.zoom,
+    );
 
     return FutureBuilder<Map<String, ui.Image?>>(
       future: _tilesetImagesFuture,
@@ -277,6 +355,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             state.activeTool == EditorToolType.warpPlacement ||
             state.activeTool == EditorToolType.triggerPlacement ||
             state.activeTool == EditorToolType.gameplayZonePlacement;
+        final isNarrativeEventGuidedNavigation =
+            bridgeState.pendingReturn != null &&
+                (bridgeState.navigationMode ==
+                        NarrativeEventMapNavigationMode.create ||
+                    bridgeState.navigationMode ==
+                        NarrativeEventMapNavigationMode.choose);
 
         final environmentMaskOverlay = isEnvironmentMaskEditing
             ? resolveEnvironmentMaskPaintTarget(
@@ -366,10 +450,59 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               );
               if (gridPos == null) return;
 
+              if (bridgeState.pendingReturn != null &&
+                  bridgeState.navigationMode ==
+                      NarrativeEventMapNavigationMode.create) {
+                final kind = bridgeState.sourceCreationKind;
+                if (kind != null && !bridgeState.isSourceCreationBusy) {
+                  final proposal = notifier.proposeNarrativeEventSourceAt(
+                    position: gridPos,
+                    kind: kind,
+                  );
+                  if (proposal != null) {
+                    ref
+                        .read(
+                          narrativeEventMapBridgeControllerProvider.notifier,
+                        )
+                        .previewSourceCreationProposal(proposal);
+                  }
+                }
+                return;
+              }
+
               final eventBuilderPositionChosen =
                   widget.onEventBuilderPositionChosen;
               if (eventBuilderPositionChosen != null) {
                 eventBuilderPositionChosen(gridPos);
+                return;
+              }
+
+              if (bridgeState.pendingReturn != null &&
+                  bridgeState.navigationMode ==
+                      NarrativeEventMapNavigationMode.choose) {
+                final candidate = resolveNarrativeEventMapCandidateAt(
+                  map: activeMap,
+                  pos: gridPos,
+                );
+                final project = state.project;
+                if (candidate != null && project != null) {
+                  final bridgeController = ref.read(
+                    narrativeEventMapBridgeControllerProvider.notifier,
+                  );
+                  if (bridgeController.previewChosenSource(
+                    project: project,
+                    map: activeMap,
+                    source: candidate,
+                  )) {
+                    final focus = ref
+                        .read(narrativeEventMapBridgeControllerProvider)
+                        .focusRequest
+                        ?.focusTarget;
+                    if (focus != null) {
+                      notifier.focusNarrativeEventMapSource(focus);
+                    }
+                  }
+                }
                 return;
               }
 
@@ -405,6 +538,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanStart: (details) {
+              if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement) {
                 final gridPos = _screenToGrid(
                   details.localPosition,
@@ -444,6 +578,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanUpdate: (details) {
+              if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
                   _zoneDragStart != null) {
                 final gridPos = _screenToGrid(
@@ -482,6 +617,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanEnd: (_) {
+              if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
                   _zoneDragStart != null) {
                 setState(() => _zoneDragStart = null);
@@ -496,6 +632,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               }
             },
             onPanCancel: () {
+              if (isNarrativeEventGuidedNavigation) return;
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
                   _zoneDragStart != null) {
                 setState(() => _zoneDragStart = null);
@@ -518,6 +655,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 }
               },
               child: ClipRect(
+                key: _mapViewportKey,
                 child: Stack(
                   children: [
                     Positioned.fill(
@@ -550,6 +688,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           selectedGameplayZoneId: state.selectedGameplayZoneId,
                           selectedPlacedElementInstanceId:
                               state.selectedPlacedElementInstanceId,
+                          narrativeEventFocusTarget:
+                              bridgeState.focusRequest?.focusTarget,
+                          narrativeEventSourceProposal:
+                              bridgeState.sourceCreationProposal,
+                          narrativeEventHighlightColor: colors.narrative,
                           connectionLabelsByDirection:
                               connectionLabelsByDirection,
                           selectedPathAutotileSet: selectedPathAutotileSet,
@@ -569,10 +712,16 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         ),
                       ),
                     ),
+                    if (bridgeState.pendingReturn != null)
+                      const Positioned(
+                        left: 12,
+                        top: 12,
+                        child: NarrativeEventMapBanner(),
+                      ),
                     if (isNpcWaypointPlacementActive)
                       Positioned(
                         left: 12,
-                        top: 12,
+                        top: bridgeState.pendingReturn == null ? 12 : 190,
                         child: Container(
                           decoration: BoxDecoration(
                             color: colors.surfaceRaised.withValues(alpha: 0.9),
@@ -624,6 +773,59 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         );
       },
     );
+  }
+
+  void _scheduleNarrativeEventCameraFocus({
+    required NarrativeEventMapFocusRequest? request,
+    required MapData map,
+    required double tileWidth,
+    required double tileHeight,
+    required double zoom,
+  }) {
+    if (request == null ||
+        request.cameraApplied ||
+        request.focusTarget.mapId != map.id ||
+        _scheduledNarrativeEventCameraRequestId == request.requestId) {
+      return;
+    }
+    _scheduledNarrativeEventCameraRequestId = request.requestId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final current = ref.read(narrativeEventMapBridgeControllerProvider);
+      final currentRequest = current.focusRequest;
+      if (currentRequest == null ||
+          currentRequest.requestId != request.requestId ||
+          currentRequest.cameraApplied) {
+        return;
+      }
+      final renderObject = _mapViewportKey.currentContext?.findRenderObject();
+      if (renderObject is! RenderBox ||
+          !renderObject.hasSize ||
+          renderObject.size.isEmpty) {
+        _scheduledNarrativeEventCameraRequestId = null;
+        if (mounted) setState(() {});
+        return;
+      }
+      final activeMap = ref.read(editorNotifierProvider).activeMap;
+      if (activeMap == null || activeMap.id != map.id) return;
+      final bounds = resolveNarrativeEventMapFocusBounds(
+        focus: currentRequest.focusTarget,
+        map: activeMap,
+      );
+      final panOffset = resolveMapFocusPanOffset(
+        bounds: bounds,
+        viewportSize: renderObject.size,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        zoom: zoom,
+      );
+      ref
+          .read(editorNotifierProvider.notifier)
+          .setNarrativeEventMapPanOffset(panOffset);
+      ref
+          .read(narrativeEventMapBridgeControllerProvider.notifier)
+          .markFocusCameraApplied(request.requestId);
+    });
   }
 
   Widget _shadowLightPreviewSelector(

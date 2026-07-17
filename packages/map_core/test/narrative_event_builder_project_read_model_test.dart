@@ -116,6 +116,156 @@ void main() {
       }
     });
 
+    test('preserves ordered human condition details without exposing raw ids',
+        () {
+      final source = NarrativeEventSourceRef.entityInteract(
+        'map_port',
+        'npc_lysa',
+      );
+      final project = _project(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_port_open',
+            label: 'Le port est ouvert',
+          ),
+        ],
+        records: [
+          _configured(
+            _eventB,
+            'Écho dans la brume',
+            source,
+            enabled: true,
+          ),
+          _configured(
+            _eventA,
+            'Rencontre au port',
+            source,
+            enabled: true,
+            conditions: [
+              NarrativeEventCondition.fact('fact_port_open', true),
+              NarrativeEventCondition.narrativeEventConsumed(
+                _eventB,
+                false,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final event = buildNarrativeEventBuilderProjectReadModel(
+        project: project,
+        maps: [_map()],
+      ).events.singleWhere((summary) => summary.eventId == _eventA);
+
+      expect(event.conditions.details, hasLength(2));
+      expect(
+        event.conditions.details.map((detail) => detail.kind),
+        [
+          NarrativeEventConditionDetailKind.fact,
+          NarrativeEventConditionDetailKind.narrativeEventConsumed,
+        ],
+      );
+      expect(
+        event.conditions.details.map((detail) => detail.humanLabel),
+        [
+          'Le port est ouvert = vrai',
+          'Écho dans la brume = non joué',
+        ],
+      );
+      expect(event.conditions.details.every((detail) => detail.resolved), true);
+      expect(
+        event.conditions.details.map((detail) => detail.humanLabel).join(' '),
+        isNot(contains('fact_port_open')),
+      );
+      expect(
+        event.conditions.details.map((detail) => detail.humanLabel).join(' '),
+        isNot(contains(_eventB)),
+      );
+    });
+
+    test('marks missing condition targets unresolved without leaking raw ids',
+        () {
+      final source = NarrativeEventSourceRef.entityInteract(
+        'map_port',
+        'npc_lysa',
+      );
+      final event = buildNarrativeEventBuilderProjectReadModel(
+        project: _project(
+          records: [
+            _configured(
+              _eventA,
+              'Condition cassée',
+              source,
+              enabled: true,
+              conditions: [
+                NarrativeEventCondition.fact('fact_internal_missing', true),
+              ],
+            ),
+          ],
+        ),
+        maps: [_map()],
+      ).events.single;
+
+      expect(event.conditions.unresolvedCount, 1);
+      expect(event.conditions.details.single.resolved, false);
+      expect(event.conditions.details.single.targetLabel, 'Fact introuvable');
+      expect(
+        event.conditions.details.single.humanLabel,
+        isNot(contains('fact_internal_missing')),
+      );
+    });
+
+    test('projects numeric evaluation order only for active competitors', () {
+      final source = NarrativeEventSourceRef.entityInteract(
+        'map_port',
+        'npc_lysa',
+      );
+      final model = buildNarrativeEventBuilderProjectReadModel(
+        project: _project(
+          records: [
+            _configured(
+              _eventA,
+              'Prioritaire',
+              source,
+              enabled: true,
+              priority: 7,
+              order: 2,
+            ),
+            _configured(
+              _eventB,
+              'Secondaire',
+              source,
+              enabled: true,
+              priority: 1,
+              order: 4,
+            ),
+            _configured(
+              _eventC,
+              'Inactif',
+              source,
+              enabled: false,
+              priority: 99,
+              order: 0,
+            ),
+          ],
+        ),
+        maps: [_map()],
+      );
+
+      final priority = model.events.singleWhere(
+        (event) => event.eventId == _eventA,
+      );
+      final inactive = model.events.singleWhere(
+        (event) => event.eventId == _eventC,
+      );
+      expect(priority.lifecycle.priority, 7);
+      expect(priority.lifecycle.order, 2);
+      expect(priority.lifecycle.activeCandidateCount, 2);
+      expect(priority.lifecycle.hasActiveCompetition, true);
+      expect(inactive.lifecycle.activeCandidateCount, 2);
+      expect(inactive.lifecycle.hasActiveCompetition, true);
+    });
+
     test('rejects unavailable sources and broken references in drafts', () {
       final source = NarrativeEventSourceRef.entityInteract(
         'map_port',
@@ -631,8 +781,14 @@ void main() {
                   'valid': true,
                   'unresolvedCount': 0,
                   'humanLabel': 'Aucune condition',
+                  'details': <Object?>[],
                 },
-                'lifecycle': {'humanLabel': 'Comportement à choisir'},
+                'lifecycle': {
+                  'humanLabel': 'Comportement à choisir',
+                  'priority': 0,
+                  'order': 0,
+                  'activeCandidateCount': 0,
+                },
                 'migration': {'humanLabel': 'Configuration en cours.'},
                 'projection': {
                   'outcomeLabels': <Object?>[],
@@ -768,6 +924,8 @@ NarrativeEventRecord _configured(
   required bool enabled,
   String sceneId = 'scene_action',
   List<NarrativeEventCondition> conditions = const [],
+  int priority = 0,
+  int order = 0,
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -777,8 +935,8 @@ NarrativeEventRecord _configured(
       conditions: conditions,
       sceneId: sceneId,
       reusePolicy: NarrativeEventReusePolicy.oneShot,
-      priority: 0,
-      order: 0,
+      priority: priority,
+      order: order,
     ),
     enabled: enabled,
   );

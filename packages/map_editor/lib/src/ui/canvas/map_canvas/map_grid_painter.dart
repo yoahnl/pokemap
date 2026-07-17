@@ -217,6 +217,9 @@ class MapGridPainter extends CustomPainter {
   final String? selectedTriggerId;
   final String? selectedGameplayZoneId;
   final String? selectedPlacedElementInstanceId;
+  final NarrativeEditorFocusTarget? narrativeEventFocusTarget;
+  final NarrativeEventCreatedSourceProposal? narrativeEventSourceProposal;
+  final Color? narrativeEventHighlightColor;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
   final PathAutotileSet? selectedPathAutotileSet;
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
@@ -253,6 +256,9 @@ class MapGridPainter extends CustomPainter {
     this.selectedTriggerId,
     this.selectedGameplayZoneId,
     this.selectedPlacedElementInstanceId,
+    this.narrativeEventFocusTarget,
+    this.narrativeEventSourceProposal,
+    this.narrativeEventHighlightColor,
     required this.connectionLabelsByDirection,
     this.selectedPathAutotileSet,
     required this.pathAutotileSetsByPresetId,
@@ -510,6 +516,7 @@ class MapGridPainter extends CustomPainter {
     _paintTriggers(canvas);
     _paintWarps(canvas);
     _paintConnections(canvas, gridWidth, gridHeight);
+    _paintNarrativeEventBridgeHighlight(canvas, gridWidth, gridHeight);
 
     canvas.drawRect(
       Rect.fromLTWH(0, 0, gridWidth, gridHeight),
@@ -519,6 +526,69 @@ class MapGridPainter extends CustomPainter {
     );
 
     canvas.restore();
+  }
+
+  void _paintNarrativeEventBridgeHighlight(
+    Canvas canvas,
+    double gridWidth,
+    double gridHeight,
+  ) {
+    final focus = narrativeEventFocusTarget;
+    final proposal = narrativeEventSourceProposal;
+    final color = narrativeEventHighlightColor;
+    if (color == null) return;
+    if (focus != null && focus.mapId == map.id) {
+      final bounds = focus.bounds;
+      final rect = bounds == null
+          ? Rect.fromLTWH(0, 0, gridWidth, gridHeight)
+          : _narrativeEventMapRect(bounds);
+      _paintNarrativeEventRect(canvas, rect, color, preview: false);
+    }
+    if (proposal != null && proposal.afterMap.id == map.id) {
+      _paintNarrativeEventRect(
+        canvas,
+        _narrativeEventMapRect(proposal.bounds),
+        color,
+        preview: true,
+      );
+    }
+  }
+
+  Rect _narrativeEventMapRect(MapRect bounds) {
+    return Rect.fromLTWH(
+      bounds.pos.x * tileWidth,
+      bounds.pos.y * tileHeight,
+      bounds.size.width * tileWidth,
+      bounds.size.height * tileHeight,
+    );
+  }
+
+  void _paintNarrativeEventRect(
+    Canvas canvas,
+    Rect rect,
+    Color color, {
+    required bool preview,
+  }) {
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: preview ? 0.2 : 0.12)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      rect.deflate(2 / zoom),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = (preview ? 2 : 3) / zoom,
+    );
+    canvas.drawRect(
+      rect.inflate(3 / zoom),
+      Paint()
+        ..color = color.withValues(alpha: 0.45)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5 / zoom,
+    );
   }
 
   void _paintEnvironmentMaskOverlay(Canvas canvas) {
@@ -2666,6 +2736,11 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.selectedGameplayZoneId != selectedGameplayZoneId ||
         oldDelegate.selectedPlacedElementInstanceId !=
             selectedPlacedElementInstanceId ||
+        oldDelegate.narrativeEventFocusTarget != narrativeEventFocusTarget ||
+        oldDelegate.narrativeEventSourceProposal !=
+            narrativeEventSourceProposal ||
+        oldDelegate.narrativeEventHighlightColor !=
+            narrativeEventHighlightColor ||
         oldDelegate.gameplayZoneDraftArea != gameplayZoneDraftArea ||
         !listEquals(oldDelegate.warps, warps) ||
         !listEquals(oldDelegate.gameplayZones, gameplayZones) ||

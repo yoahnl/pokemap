@@ -5517,7 +5517,8 @@ class __$$ProjectTerrainPresetImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ProjectTerrainPresetImpl implements _ProjectTerrainPreset {
   const _$ProjectTerrainPresetImpl(
       {required this.id,
@@ -6039,7 +6040,8 @@ class __$$ProjectPathPresetImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ProjectPathPresetImpl implements _ProjectPathPreset {
   const _$ProjectPathPresetImpl(
       {required this.id,

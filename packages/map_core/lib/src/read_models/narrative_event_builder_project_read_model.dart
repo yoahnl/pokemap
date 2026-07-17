@@ -149,24 +149,60 @@ final class NarrativeEventSceneSummary {
 }
 
 @immutable
+enum NarrativeEventConditionDetailKind {
+  fact,
+  narrativeEventConsumed,
+}
+
+@immutable
+final class NarrativeEventConditionDetailSummary {
+  NarrativeEventConditionDetailSummary({
+    required this.kind,
+    required String targetLabel,
+    required this.expectedValue,
+    required this.resolved,
+    required String humanLabel,
+  })  : targetLabel = _identity(targetLabel, 'targetLabel'),
+        humanLabel = _identity(humanLabel, 'humanLabel');
+
+  final NarrativeEventConditionDetailKind kind;
+  final String targetLabel;
+  final bool expectedValue;
+  final bool resolved;
+  final String humanLabel;
+
+  Map<String, Object?> toDebugJson() => {
+        'kind': kind.name,
+        'targetLabel': targetLabel,
+        'expectedValue': expectedValue,
+        'resolved': resolved,
+        'humanLabel': humanLabel,
+      };
+}
+
+@immutable
 final class NarrativeEventConditionsSummary {
   NarrativeEventConditionsSummary({
     required this.count,
     required this.valid,
     required this.unresolvedCount,
     required String humanLabel,
-  }) : humanLabel = _identity(humanLabel, 'humanLabel');
+    List<NarrativeEventConditionDetailSummary> details = const [],
+  })  : humanLabel = _identity(humanLabel, 'humanLabel'),
+        details = List.unmodifiable(details);
 
   final int count;
   final bool valid;
   final int unresolvedCount;
   final String humanLabel;
+  final List<NarrativeEventConditionDetailSummary> details;
 
   Map<String, Object?> toDebugJson() => {
         'count': count,
         'valid': valid,
         'unresolvedCount': unresolvedCount,
         'humanLabel': humanLabel,
+        'details': [for (final detail in details) detail.toDebugJson()],
       };
 }
 
@@ -176,16 +212,27 @@ final class NarrativeEventLifecycleSummary {
     required this.reusePolicy,
     required this.enabled,
     required String humanLabel,
+    this.priority,
+    this.order,
+    this.activeCandidateCount = 0,
   }) : humanLabel = _identity(humanLabel, 'humanLabel');
 
   final NarrativeEventReusePolicy? reusePolicy;
   final bool? enabled;
   final String humanLabel;
+  final int? priority;
+  final int? order;
+  final int activeCandidateCount;
+
+  bool get hasActiveCompetition => activeCandidateCount > 1;
 
   Map<String, Object?> toDebugJson() => {
         'humanLabel': humanLabel,
         if (reusePolicy != null) 'reusePolicy': reusePolicy!.name,
         if (enabled != null) 'enabled': enabled,
+        if (priority != null) 'priority': priority,
+        if (order != null) 'order': order,
+        'activeCandidateCount': activeCandidateCount,
       };
 }
 
@@ -694,6 +741,9 @@ NarrativeEventProjectSummary _buildV2Summary({
   final lifecycle = _lifecycleSummary(
     definition?.reusePolicy ?? draft?.reusePolicy,
     enabled: record.enabledOrNull,
+    priority: definition?.priority ?? draft?.priority,
+    order: definition?.order ?? draft?.order,
+    activeCandidateCount: indexes.activeCandidateCount(sourceRef),
   );
   final diagnostics = indexes.diagnosticsForEvent(record.id);
 
@@ -1170,6 +1220,8 @@ final class _ProjectReadIndexes {
           catalog.events,
           (entry) => entry.record.id,
         ),
+        _activeCandidateCountsBySource =
+            _buildActiveCandidateCounts(catalog.events),
         _diagnosticsByEventId = _indexProjectDiagnosticsByEvent(
           catalog.diagnostics,
         ),
@@ -1189,6 +1241,7 @@ final class _ProjectReadIndexes {
   final Map<String, List<NarrativeEventProjectSceneEntry>> _scenesById;
   final Map<String, List<NarrativeEventProjectFactEntry>> _factsById;
   final Map<String, List<NarrativeEventProjectEventEntry>> _eventsById;
+  final Map<NarrativeEventSourceRef, int> _activeCandidateCountsBySource;
   final Map<String, List<NarrativeEventProjectReadDiagnostic>>
       _diagnosticsByEventId;
   final Map<String, NarrativeEventProjectionSummary> _projectionsBySceneId;
@@ -1278,17 +1331,49 @@ final class _ProjectReadIndexes {
     List<NarrativeEventCondition> conditions,
   ) {
     var unresolved = 0;
+    final details = <NarrativeEventConditionDetailSummary>[];
     for (final condition in conditions) {
       condition.when<void>(
-        fact: (factId, _) {
-          if ((_factsById[factId] ?? const []).length != 1) unresolved++;
+        fact: (factId, expectedValue) {
+          final matches = _factsById[factId] ?? const [];
+          final resolved = matches.length == 1;
+          if (!resolved) unresolved++;
+          final label = resolved
+              ? _display(matches.single.fact.label, fallback: 'Fact lié')
+              : 'Fact introuvable';
+          details.add(
+            NarrativeEventConditionDetailSummary(
+              kind: NarrativeEventConditionDetailKind.fact,
+              targetLabel: label,
+              expectedValue: expectedValue,
+              resolved: resolved,
+              humanLabel: '$label = ${expectedValue ? 'vrai' : 'faux'}',
+            ),
+          );
         },
-        narrativeEventConsumed: (eventId, _) {
+        narrativeEventConsumed: (eventId, expectedValue) {
           final matches = _eventsById[eventId] ?? const [];
-          if (matches.length != 1 ||
-              !matches.single.applicableReferenceTarget) {
-            unresolved++;
-          }
+          final resolved =
+              matches.length == 1 && matches.single.applicableReferenceTarget;
+          if (!resolved) unresolved++;
+          final record = matches.length == 1 ? matches.single.record : null;
+          final label = resolved
+              ? _display(
+                  record!.definitionOrNull?.name ??
+                      record.draftOrNull?.name ??
+                      '',
+                  fallback: 'Événement lié',
+                )
+              : 'Événement introuvable';
+          details.add(
+            NarrativeEventConditionDetailSummary(
+              kind: NarrativeEventConditionDetailKind.narrativeEventConsumed,
+              targetLabel: label,
+              expectedValue: expectedValue,
+              resolved: resolved,
+              humanLabel: '$label = ${expectedValue ? 'joué' : 'non joué'}',
+            ),
+          );
         },
       );
     }
@@ -1299,7 +1384,13 @@ final class _ProjectReadIndexes {
       humanLabel: unresolved == 0
           ? _conditionLabel(conditions.length)
           : '$unresolved référence${unresolved == 1 ? '' : 's'} à corriger',
+      details: details,
     );
+  }
+
+  int activeCandidateCount(NarrativeEventSourceRef? source) {
+    if (source == null) return 0;
+    return _activeCandidateCountsBySource[source] ?? 0;
   }
 
   List<NarrativeEventProjectReadDiagnostic> diagnosticsForEvent(
@@ -1400,6 +1491,12 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
             debugReference:
                 'map:${_debugIdentity(mapId)}:event:${_debugIdentity(eventId)}',
           ),
+        SceneCompleteStoryStepConsequence(:final stepId, :final label) =>
+          NarrativeEventProjectedConsequenceSummary(
+            kind: consequence.kind,
+            humanLabel: 'Termine « ${label ?? 'Étape narrative liée'} ».',
+            debugReference: 'storyStep:${_debugIdentity(stepId)}',
+          ),
         _ => null,
       };
       if (summary == null) continue;
@@ -1415,6 +1512,7 @@ Map<String, NarrativeEventProjectionSummary> _buildSceneProjectionIndex({
             WorldRuleSourceKind.consumedEvent,
             eventId
           ),
+        SceneCompleteStoryStepConsequence() => null,
         _ => null,
       };
       if (sourceKey == null) continue;
@@ -1469,6 +1567,8 @@ String _projectedConsequenceKey(SceneConsequence consequence) {
       'setFact|${_debugIdentity(factId)}|$value',
     SceneMarkEventConsumedConsequence(:final mapId, :final eventId) =>
       'markEventConsumed|${_debugIdentity(mapId)}|${_debugIdentity(eventId)}',
+    SceneCompleteStoryStepConsequence(:final stepId) =>
+      'completeStoryStep|${_debugIdentity(stepId)}',
     _ => 'unsupported|${consequence.kind.name}',
   };
 }
@@ -1764,16 +1864,38 @@ NarrativeEventSourceSummary _missingSourceSummary(
 NarrativeEventLifecycleSummary _lifecycleSummary(
   NarrativeEventReusePolicy? policy, {
   required bool? enabled,
+  int? priority,
+  int? order,
+  int activeCandidateCount = 0,
 }) {
   return NarrativeEventLifecycleSummary(
     reusePolicy: policy,
     enabled: enabled,
+    priority: priority,
+    order: order,
+    activeCandidateCount: activeCandidateCount,
     humanLabel: switch (policy) {
       NarrativeEventReusePolicy.oneShot => 'Une seule fois',
       NarrativeEventReusePolicy.reusable => 'Réutilisable',
       null => 'Comportement à choisir',
     },
   );
+}
+
+Map<NarrativeEventSourceRef, int> _buildActiveCandidateCounts(
+  List<NarrativeEventProjectEventEntry> entries,
+) {
+  final result = <NarrativeEventSourceRef, int>{};
+  for (final entry in entries) {
+    final definition = entry.record.definitionOrNull;
+    if (definition == null ||
+        entry.record.enabledOrNull != true ||
+        !entry.applicableReferenceTarget) {
+      continue;
+    }
+    result.update(definition.source, (count) => count + 1, ifAbsent: () => 1);
+  }
+  return result;
 }
 
 String _legacyMigrationLabel(LegacyMigrationClassification classification) {

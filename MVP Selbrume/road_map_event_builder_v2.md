@@ -14,8 +14,11 @@ Phase A : CLOSED / ACCEPTED le 2026-07-10
 Phase D : CLOSED / ACCEPTED le 2026-07-13
 Phase E : CLOSED / ACCEPTED le 2026-07-14
 Phase F1 : CLOSED / ACCEPTED le 2026-07-15
-Phase F2 : READY
-Prochaine mission : PHASE F2 - Runtime Source Bridges
+Phase F2 : CLOSED / ACCEPTED le 2026-07-15
+Phase G à J : implémentation technique présente ; checkpoint formel suivi dans la roadmap d’exécution
+Phase K : mission PLANNED ; preuve technique PASS (acceptation P2 requise)
+Phase L : mission PLANNED ; campagne technique informative ; release NO-GO
+Prochaine mission : S0, puis séquence formelle G→L ; blockers release séparés conservés
 ```
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
@@ -1027,8 +1030,13 @@ Autorité et progression V2 prêtes pour les bridges, sans hook production.
 # Phase F2 — Runtime Source Bridges
 
 ```text
-Mission status : READY
+Mission status : CLOSED / ACCEPTED le 2026-07-15
+Gate d'entrée : ACCEPTED par Phases D et F1
 Jalons : V2-19 à V2-22
+V2-19 : PASS
+V2-20 : PASS
+V2-21 : PASS
+V2-22 : PASS
 ```
 
 ## Objectif
@@ -1055,6 +1063,7 @@ l'autorité F1, puis exécuter la Scene sans double dispatch legacy.
 
 ### NS-EVENT-V2-19 — Map Enter Production Dispatch Bridge V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** émettre exactement une occurrence après activation map réussie.
 - **Problème traité :** loadGame omet mapEnter et les semantics varient boot/warp/connection.
@@ -1078,6 +1087,7 @@ l'autorité F1, puis exécuter la Scene sans double dispatch legacy.
 
 ### NS-EVENT-V2-20 — Entity Interaction Production Dispatch Bridge V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** router l'interaction `MapEntity` via l'autorité unique avant fallback gameplay.
 - **Problème traité :** bridge Scenario, MapEvent et dialogue fallback concurrents.
@@ -1101,6 +1111,7 @@ l'autorité F1, puis exécuter la Scene sans double dispatch legacy.
 
 ### NS-EVENT-V2-21 — Trigger Enter Production Dispatch Bridge V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** router les fronts extérieur→intérieur des `MapTrigger` éligibles.
 - **Problème traité :** `MapEventType.triggerZone` faux et entrées superposées perdues.
@@ -1124,6 +1135,7 @@ l'autorité F1, puis exécuter la Scene sans double dispatch legacy.
 
 ### NS-EVENT-V2-22 — Qualified Outcome Received Dispatch & Reentrancy V0
 
+- **Statut :** PASS.
 - **Type :** runtime.
 - **Objectif :** router chaque émission Scene/Battle qualifiée et chaque bridge Scenario legacy vers l'autorité V2 ; Yarn réémet par la Scene.
 - **Problème traité :** outcome ID local, récursion Scenario et confusion flag durable/livraison.
@@ -1163,18 +1175,57 @@ fallback.
 
 Quatre bridges production derrière l'autorité persistée `EventSystemMode`.
 
+## Clôture F2
+
+```text
+Gate de sortie : ACCEPTED le 2026-07-15
+Matrice quatre sources : PASS
+Raisons d'activation map et restore outbox : PASS
+Claim inéligible sans fallback : PASS
+Reentrance, corrélation et profondeur : PASS
+Outbox pending/delivered et save/load : PASS
+Collision cross-producer : PASS
+Suites complètes core/gameplay/runtime/host : PASS
+Build macOS debug : PASS
+Build macOS release : FAIL packaging, aucun artefact produit
+Blocker produit F2 : aucun
+```
+
+Le build release échoue dans `release_unpack_macos` alors que `lipo` confirme
+les deux architectures attendues. Une anomalie de la toolchain Flutter bêta
+locale est probable, mais sa cause n'est pas démontrée. Le build debug de
+l'application host réussit ; ce défaut de packaging local est documenté dans
+l'Evidence Pack et ne change pas le verdict fonctionnel des quatre bridges.
+
 ---
 
 # Phase G — Map Editor Integration
 
 ```text
-Mission status : PLANNED
+Mission status : READY
 Jalons : V2-23 à V2-25
 ```
 
 ## Objectif
 
-Faire de la vraie source physique le point d’entrée spatial de l’Event.
+Faire de la vraie source physique, déjà créée et positionnée dans le Map
+Editor, le point d’entrée spatial de l’Event. L’Event Builder lie cette source
+à une logique narrative ; il ne crée ni ne place lui-même un PNJ, un objet ou
+une zone.
+
+## Décision UX — responsabilité des éditeurs
+
+- le Map Editor possède la création, le placement et la modification des PNJ,
+  objets, zones et maps ;
+- l’Event Builder présente les Events regroupés par map ; la map choisie dans
+  cette navigation devient le contexte de création, pas un champ indépendant
+  à ressaisir dans le formulaire ;
+- une source spatiale est choisie atomiquement comme une référence typée
+  `kind + mapId + sourceId` ; sa map est dérivée et affichée en lecture seule ;
+- si la source manque, l’Event Builder ouvre le Map Editor, conserve le draft,
+  puis revient sur le même Event après création et sélection de la source ;
+- `mapEnter` prend la map elle-même comme source ; les sources non spatiales
+  restent dans un groupe `Événements globaux` et ne demandent aucune map.
 
 ## Entry criteria
 
@@ -1184,21 +1235,26 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 
 ## Exit criteria
 
-- création depuis sélection ;
+- création depuis une source existante sélectionnée ;
 - focus/retour carte réel ;
-- création explicite d’une source manquante sans Event abstrait.
+- création explicite d’une source manquante dans le Map Editor, puis retour et
+  liaison sans Event abstrait ;
+- aucun couple de sélecteurs indépendants `map` puis `source` pour une source
+  spatiale.
 
 ## Jalons internes
 
 ### NS-EVENT-V2-23 — Map Selection to Event Creation Bridge V0
 
 - **Type :** editor.
-- **Objectif :** créer/lier un Event depuis MapEntity, MapTrigger ou map.
+- **Objectif :** créer/lier un Event depuis une MapEntity, un MapTrigger ou une
+  map déjà existants.
 - **Problème traité :** clic de case abstrait et couche Événements obligatoire.
 - **Dépendances :** V2-13, V2-14, V2-16.
 - **Packages concernés :** `map_editor`.
 - **Fichiers probables :** map inspector/context actions/notifier/tests.
-- **Contrats créés/modifiés :** source-prefilled creation intent.
+- **Contrats créés/modifiés :** source-prefilled creation intent portant la
+  référence atomique `kind + mapId + sourceId`.
 - **Non-objectifs :** UI Event Builder complète.
 - **Risques :** double création et documents non sauvegardés.
 - **Compatibilité :** action legacy séparée et marquée.
@@ -1206,7 +1262,8 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 - **Régressions :** map selection and draft creation tests.
 - **Analyse/build :** editor test/analyze/macos.
 - **Visual Gate :** oui, context menu/inspector map.
-- **Critères d’acceptation :** aucun layerId/coordonnée demandé.
+- **Critères d’acceptation :** aucun layerId/coordonnée demandé ; aucune
+  seconde sélection de map après l’action lancée depuis la source.
 - **Evidence Pack :** widget flow + capture.
 - **Rollback :** masquer actions V2.
 - **Impact suivant :** UX source-first complet.
@@ -1216,7 +1273,8 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 ### NS-EVENT-V2-24 — See/Choose on Map Focus & Return Flow V0
 
 - **Type :** editor.
-- **Objectif :** ouvrir, sélectionner, centrer et revenir sans perdre le draft.
+- **Objectif :** ouvrir le Map Editor, sélectionner une source existante,
+  centrer la carte et revenir sans perdre le draft.
 - **Problème traité :** callback actuel revient au workspace Events sans focus.
 - **Dépendances :** V2-12, V2-23.
 - **Packages concernés :** `map_editor`.
@@ -1229,9 +1287,11 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 - **Régressions :** workspace navigation and map camera tests.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, bandeau sélection et highlight.
-- **Critères d’acceptation :** vraie source centrée, retour exact au même Event.
+- **Critères d’acceptation :** vraie source centrée, retour exact au même Event
+  et même contexte de map ; map et source ne peuvent pas diverger.
 - **Evidence Pack :** screenshots + state traces.
-- **Rollback :** désactiver focus, garder picker liste.
+- **Rollback :** désactiver focus, garder un picker atomique de sources
+  existantes regroupées/filtrées par map.
 - **Impact suivant :** inspector V2.
 - **Taille :** M.
 - **Bloquant :** non.
@@ -1239,20 +1299,24 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 ### NS-EVENT-V2-25 — Explicit Spatial Source Creation V0
 
 - **Type :** editor.
-- **Objectif :** créer une vraie entité/zone avant de lier un Event.
+- **Objectif :** lorsqu’une source manque, quitter l’Event Builder vers le Map
+  Editor, y créer une vraie entité/zone, puis revenir la sélectionner avant de
+  lier l’Event.
 - **Problème traité :** panneau/tile/point invisible sans source stable.
 - **Dépendances :** V2-23, V2-24.
 - **Packages concernés :** `map_editor`, `map_core` ops existantes.
-- **Fichiers probables :** source creation flow/tests.
+- **Fichiers probables :** Map Editor source creation, return flow et tests.
 - **Contrats créés/modifiés :** MapEntity custom/sign/item ou MapTrigger 1×1 proposal.
-- **Non-objectifs :** raw tile source, warpAttempt V1.
+- **Non-objectifs :** création/placement inline dans l’Event Builder, raw tile
+  source, warpAttempt V1.
 - **Risques :** source orpheline si Event save échoue.
 - **Compatibilité :** workflow journalé en deux commits : source map durable, puis Event registry ; échec du second affiche `Réessayer` / `Supprimer la source`.
 - **Tests ciblés :** invisible interactable, enter point, cancel avant write, crash entre commits, retry, cleanup source inchangée.
 - **Régressions :** entity/trigger creation and map save.
 - **Analyse/build :** editor/core tests/analyze/macos.
 - **Visual Gate :** oui.
-- **Critères d’acceptation :** aucune EventPosition V2 créée.
+- **Critères d’acceptation :** aucune EventPosition V2 créée ; aucune mutation
+  de la géométrie ou du contenu de map depuis l’Event Builder.
 - **Evidence Pack :** journal, before/after map + manifest hashes, recovery traces.
 - **Rollback :** suppression proposée seulement si la source n'a pas changé et après confirmation ; aucun rollback multi-fichiers prétendument atomique.
 - **Impact suivant :** couvre cas physiques sans modèle dédié.
@@ -1269,7 +1333,8 @@ Faire de la vraie source physique le point d’entrée spatial de l’Event.
 ## Gate de validation
 
 Flows réels Map Editor, annulation et récupération en deux étapes prouvés ;
-aucun Event abstrait sur case.
+aucun Event abstrait sur case ; aucune création de source physique dans l’Event
+Builder ; aucune sélection indépendante map/source.
 
 ## Livrable final
 
@@ -1298,8 +1363,10 @@ star, sans authoring Scene-owned trompeur.
 
 ## Exit criteria
 
-- liste projet, bibliothèque, éditeur et inspecteur complets ;
+- liste projet regroupée par map avec groupe global, bibliothèque, éditeur et
+  inspecteur complets ;
 - création sans mini-map ;
+- sélection atomique d’une source existante, sans champ map indépendant ;
 - états vides/erreur/read-only ;
 - navigation carte fonctionnelle.
 
@@ -1308,7 +1375,8 @@ star, sans authoring Scene-owned trompeur.
 ### NS-EVENT-V2-26 — V2 Shell, Project Event List & Filters V0
 
 - **Type :** editor.
-- **Objectif :** monter le shell cinq panneaux et la liste projet unifiée.
+- **Objectif :** monter le shell cinq panneaux et la liste projet unifiée,
+  regroupée par map avec un groupe séparé `Événements globaux`.
 - **Problème traité :** liste limitée à la map active.
 - **Dépendances :** V2-11, référence UI.
 - **Packages concernés :** `map_editor`.
@@ -1321,7 +1389,8 @@ star, sans authoring Scene-owned trompeur.
 - **Régressions :** Narrative shell et workspace Event Builder V1 en mode `legacyOnly`.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, 1672×941 liste.
-- **Critères d’acceptation :** Events globaux visibles sans map active.
+- **Critères d’acceptation :** chaque map sert de contexte de navigation et de
+  création ; les Events globaux restent visibles sans map active.
 - **Evidence Pack :** widget tests, capture, perf list.
 - **Rollback :** repasser workspace V1.
 - **Impact suivant :** base V2-27 à V2-30.
@@ -1331,20 +1400,29 @@ star, sans authoring Scene-owned trompeur.
 ### NS-EVENT-V2-27 — Source-First Event Creation UX V0
 
 - **Type :** editor.
-- **Objectif :** implémenter Nom → type → map → source → Scene → `reusePolicy`.
+- **Objectif :** implémenter contexte choisi dans la liste → Nom → type →
+  source existante atomique (ou map elle-même) → Scene → `reusePolicy` ; les
+  sources non spatiales partent du groupe global.
 - **Problème traité :** position/layer obligatoires.
 - **Dépendances :** V2-13, V2-14, V2-16, V2-26.
 - **Packages concernés :** `map_editor`.
 - **Fichiers probables :** creation panel/dialog/step tests.
 - **Contrats créés/modifiés :** aucun core.
-- **Non-objectifs :** drag/drop ou création source inline complexe.
+- **Non-objectifs :** champ map indépendant pour une source spatiale, placement
+  de PNJ/objet, dessin de zone, drag/drop ou création de source inline.
 - **Risques :** wizard long et état brouillon perdu.
 - **Compatibilité :** `Décider plus tard` crée un brouillon non publiable.
-- **Tests ciblés :** quatre kinds avec matrice picker, source missing/deleted, publier vers configured disabled, activer/désactiver, conflit existant qui bloque seulement activation, cancel/resume, save/close/reopen.
+- **Tests ciblés :** quatre kinds avec matrice de sources existantes dans le
+  contexte choisi, absence de second picker map, source missing/deleted,
+  publier vers configured disabled, activer/désactiver, conflit existant qui
+  bloque seulement activation, cancel/resume, save/close/reopen.
 - **Régressions :** placement NS-EVENT-36/38 dans le workspace V1 `legacyOnly`.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui, empty/create/error.
-- **Critères d’acceptation :** aucun mini-damier ; source réelle obligatoire pour publier ; référence typée identique après réouverture ; conflit multi-Events expliqué avant validation.
+- **Critères d’acceptation :** aucun mini-damier ; source réelle obligatoire
+  pour publier ; map dérivée de la source et non modifiable séparément ;
+  référence typée identique après réouverture ; conflit multi-Events expliqué
+  avant validation.
 - **Evidence Pack :** flow screenshots and state matrix.
 - **Rollback :** disable V2 creation, preserve drafts read-only.
 - **Impact suivant :** central trigger/inspector.
@@ -1354,20 +1432,27 @@ star, sans authoring Scene-owned trompeur.
 ### NS-EVENT-V2-28 — Trigger Block & Source Inspector V0
 
 - **Type :** editor.
-- **Objectif :** afficher/modifier `Comment cela commence`, l'élément choisi et le lieu depuis la vraie source.
+- **Objectif :** afficher/modifier `Comment cela commence`, sélectionner ou
+  remplacer atomiquement la vraie source, puis afficher son lieu dérivé en
+  lecture seule.
 - **Problème traité :** faux acteur/objet/zone dérivé de MapEventType.
 - **Dépendances :** V2-12, V2-14, V2-24, V2-27.
 - **Packages concernés :** `map_editor`.
 - **Fichiers probables :** central trigger block/inspector/tests.
 - **Contrats créés/modifiés :** aucun core.
-- **Non-objectifs :** raw IDs, coordinates, metadata.
+- **Non-objectifs :** sélecteur de map indépendant, modification du lieu sans
+  changer de source, raw IDs, coordinates, metadata.
 - **Risques :** source stale et CTA carte invalide.
 - **Compatibilité :** résumé ancien format read-only avec action `Voir le diagnostic de conversion`; aucune mutation avant V2-33.
-- **Tests ciblés :** source non choisie persistée avec publication bloquée et aucun CTA map ; entity/trigger/map/outcome ; source cassée distincte ; change, see map, diagnostic conversion sans write.
+- **Tests ciblés :** source non choisie persistée avec publication bloquée et
+  aucun CTA map ; entity/trigger/map/outcome ; source cassée distincte ;
+  changement atomique, lieu read-only, see map, diagnostic conversion sans
+  write.
 - **Régressions :** Event Builder inspector tests.
 - **Analyse/build :** editor tests/analyze/macos.
 - **Visual Gate :** oui.
-- **Critères d’acceptation :** phrase humaine cohérente centre/inspecteur.
+- **Critères d’acceptation :** phrase humaine cohérente centre/inspecteur ; map
+  toujours cohérente avec la source et jamais éditable isolément.
 - **Evidence Pack :** source matrix captures.
 - **Rollback :** revenir au V2 read-only summary.
 - **Impact suivant :** V2-29.
@@ -1425,12 +1510,14 @@ star, sans authoring Scene-owned trompeur.
 - retour prématuré au cockpit ;
 - bibliothèque mensongère ;
 - régression densité ;
+- confusion entre contexte de map et propriété éditable de l’Event ;
 - focus et scroll incohérents.
 
 ## Gate de validation
 
 Workflows widget complets, anti-authoring guards, Visual Gates de tous les états,
-aucun overflow aux dimensions desktop supportées.
+aucun overflow aux dimensions desktop supportées, aucune création de source
+physique inline et aucun couple de sélecteurs indépendants map/source.
 
 ## Livrable final
 
@@ -1692,6 +1779,7 @@ Preuve Selbrume source-first end-to-end.
 
 ```text
 Mission status : PLANNED
+Technical evidence : PASS / acceptation P2 requise le 2026-07-17
 Jalons : V2-38 à V2-40
 North star : 1672 x 941, référence hashée de Phase A
 ```
@@ -1807,6 +1895,7 @@ Event Builder V2 visuellement clos et robuste sur desktop.
 
 ```text
 Mission status : PLANNED
+Technical assessment : COMPLETE / RELEASE NO-GO le 2026-07-17
 Jalons : V2-41 à V2-43
 ```
 
@@ -1992,24 +2081,23 @@ Report et demande un ADR de remplacement.
 | E `CLOSED / ACCEPTED` | V2-13 à V2-16 | 4 | authoring/single-write |
 | F1-PREREQ `CLOSED / ACCEPTED` | prérequis F1-0 | 1 | Facts/dual-read/outbox contract |
 | F1 `CLOSED / ACCEPTED` | V2-17 à V2-18 | 2 | autorité/progression/outbox |
-| F2 `READY` | V2-19 à V2-22 | 4 | quatre source bridges |
-| G | V2-23 à V2-25 | 3 | Map Editor bridge |
+| F2 `CLOSED / ACCEPTED` | V2-19 à V2-22 | 4 | quatre source bridges |
+| G `READY` | V2-23 à V2-25 | 3 | Map Editor bridge |
 | H | V2-26 à V2-30 | 5 | UI V2 |
 | I | V2-31 à V2-33 | 3 | validator |
 | J | V2-34 à V2-37 | 4 | Golden Selbrume |
-| K | V2-38 à V2-40 | 3 | pixel closure |
-| L | V2-41 à V2-43 | 3 | readiness |
+| K `PLANNED` | V2-38 à V2-40 | 3 | preuve technique PASS ; acceptation P2 manquante |
+| L `PLANNED` | V2-41 à V2-43 | 3 | campagne NO-GO informative, entry gate non satisfaite |
 | **Total** | **RESET-00 + F1-PREREQ + V2-01…43** | **45** | **Go/No-Go** |
 
 # Prochaine mission exécutable
 
 ```text
-PHASE F2 — Runtime Source Bridges
-Jalons internes : V2-19 à V2-22
-Gate d'entrée : Phase F1 CLOSED / ACCEPTED
+S0 — checkpoint récupérable
+Source de vérité : road_map_event_builder_v2_execution.md
+Gate suivant : G0, puis séquence stricte jusqu’à L
 ```
 
-Phase F2 doit brancher les quatre sources canoniques sur l'autorité F1 sans
-double dispatch legacy. Elle doit conserver le mode, les claims, la séparation
-des namespaces et le gate runtime partagé, sans ajouter de source, d'UI Flutter
-ou de migration réelle de projet.
+La preuve technique présente ne remplace pas le checkpoint S0 exigé par la
+roadmap d’exécution. Après S0, G reprend formellement le bridge déjà implémenté
+et le qualifie dans l’ordre strict sans réintroduire d’Event spatial abstrait.

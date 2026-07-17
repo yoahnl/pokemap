@@ -8,12 +8,14 @@ import '../../features/narrative/application/overview/narrative_overview_read_mo
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
+import '../../features/narrative/state/narrative_scene_focus_provider.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cutscene_studio_workspace.dart';
 import 'dialogue_studio_workspace.dart';
 import 'events/event_builder_workspace.dart';
+import 'events_v2/event_builder_v2_product_route.dart';
 import 'facts_world_rules/facts_world_rules_workspace.dart';
 import 'narrative_overview_workspace.dart';
 import 'narrative_studio_shell.dart';
@@ -43,6 +45,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     final narrativeController =
         ref.read(narrativeWorkspaceControllerProvider.notifier);
     final projection = ref.watch(narrativeWorkspaceProjectionProvider);
+    final sceneFocus = ref.watch(narrativeSceneFocusProvider);
 
     if (projection == null) {
       return Center(
@@ -133,6 +136,8 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.scenes => ScenesWorkspace(
           scenes: projection.scenes,
+          requestedSceneId: sceneFocus?.sceneId,
+          requestedSceneFocusNonce: sceneFocus?.nonce,
           linkedAssetContracts: editor.project == null
               ? null
               : buildLinkedAssetContractsSnapshot(editor.project!),
@@ -549,39 +554,55 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             }
           },
         ),
-      EditorWorkspaceMode.events => EventBuilderWorkspace(
-          readModel: _buildEventBuilderWorkspaceReadModel(editor),
-          selectedEventId: editor.selectedMapEventId,
-          draftCreationGate: _buildEventBuilderDraftCreationGate(
-            editor,
-            editorNotifier,
+      EditorWorkspaceMode.events => LayoutBuilder(
+          builder: (context, constraints) => EventBuilderV2ProductRoute(
+            viewportWidth: MediaQuery.sizeOf(context).width,
+            availableWidth: constraints.maxWidth,
+            legacyWorkspace: (editor.project?.eventRegistry?.mode ??
+                        EventSystemMode.legacyOnly) ==
+                    EventSystemMode.legacyOnly
+                ? EventBuilderWorkspace(
+                    readModel: _buildEventBuilderWorkspaceReadModel(editor),
+                    selectedEventId: editor.selectedMapEventId,
+                    draftCreationGate: _buildEventBuilderDraftCreationGate(
+                      editor,
+                      editorNotifier,
+                    ),
+                    sceneOptions:
+                        _buildEventBuilderSceneOptions(editor.project),
+                    factOptions: _buildEventBuilderFactOptions(editor.project),
+                    eventConditionOptions:
+                        _buildEventBuilderConditionEventOptions(
+                            editor.activeMap),
+                    mapOptions: _buildEventBuilderMapOptions(editor.project),
+                    onOpenMap: (mapId) async {
+                      final entry = _findProjectMapById(editor.project, mapId);
+                      if (entry == null) {
+                        return;
+                      }
+                      await editorNotifier.loadMap(entry.relativePath);
+                      editorNotifier.selectEventsWorkspace();
+                    },
+                    onSelectEvent: editorNotifier.selectMapEvent,
+                    onRenameEventTitle:
+                        editorNotifier.renameEventBuilderEventTitle,
+                    onUpdateTriggerType:
+                        editorNotifier.updateEventBuilderTriggerType,
+                    onUpdateSceneAction:
+                        editorNotifier.updateEventBuilderEventSceneAction,
+                    onUpdateReusePolicy:
+                        editorNotifier.updateEventBuilderEventReusePolicy,
+                    onAddFactCondition:
+                        editorNotifier.addEventBuilderFactCondition,
+                    onAddEventConsumedCondition:
+                        editorNotifier.addEventBuilderEventConsumedCondition,
+                    onRemoveCondition:
+                        editorNotifier.removeEventBuilderConditionAt,
+                    onCreateDestinationLayer:
+                        editorNotifier.ensureEventBuilderObjectLayer,
+                  )
+                : null,
           ),
-          sceneOptions: _buildEventBuilderSceneOptions(editor.project),
-          factOptions: _buildEventBuilderFactOptions(editor.project),
-          eventConditionOptions:
-              _buildEventBuilderConditionEventOptions(editor.activeMap),
-          mapOptions: _buildEventBuilderMapOptions(editor.project),
-          onOpenMap: (mapId) async {
-            final entry = _findProjectMapById(editor.project, mapId);
-            if (entry == null) {
-              return;
-            }
-            await editorNotifier.loadMap(entry.relativePath);
-            editorNotifier.selectEventsWorkspace();
-          },
-          onSelectEvent: editorNotifier.selectMapEvent,
-          onRenameEventTitle: editorNotifier.renameEventBuilderEventTitle,
-          onUpdateTriggerType: editorNotifier.updateEventBuilderTriggerType,
-          onUpdateSceneAction:
-              editorNotifier.updateEventBuilderEventSceneAction,
-          onUpdateReusePolicy:
-              editorNotifier.updateEventBuilderEventReusePolicy,
-          onAddFactCondition: editorNotifier.addEventBuilderFactCondition,
-          onAddEventConsumedCondition:
-              editorNotifier.addEventBuilderEventConsumedCondition,
-          onRemoveCondition: editorNotifier.removeEventBuilderConditionAt,
-          onCreateDestinationLayer:
-              editorNotifier.ensureEventBuilderObjectLayer,
         ),
       EditorWorkspaceMode.step => _StepWorkspaceBody(
           projection: projection,

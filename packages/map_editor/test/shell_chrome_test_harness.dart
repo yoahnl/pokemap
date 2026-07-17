@@ -72,6 +72,7 @@ Future<ProviderContainer> pumpEditorShellPage(
   WidgetTester tester, {
   required EditorState initialState,
   Size surfaceSize = const Size(1800, 1000),
+  String? fontFamily,
   List<Override> overrides = const <Override>[],
 }) async {
   _installMacosAccentColorMock();
@@ -97,11 +98,19 @@ Future<ProviderContainer> pumpEditorShellPage(
   // immediately and the shell stays focused on UI contracts only.
   container.read(editorNotifierProvider.notifier).state = initialState;
 
+  final baseTheme = PokeMapTheme.dark();
+  final theme = fontFamily == null
+      ? baseTheme
+      : baseTheme.copyWith(
+          textTheme: baseTheme.textTheme.apply(fontFamily: fontFamily),
+          primaryTextTheme:
+              baseTheme.primaryTextTheme.apply(fontFamily: fontFamily),
+        );
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
       child: MaterialApp(
-        theme: PokeMapTheme.dark(),
+        theme: theme,
         builder: (context, child) {
           return PokeMapMacosCompatibilityBridge(
             child: child ?? const SizedBox.shrink(),

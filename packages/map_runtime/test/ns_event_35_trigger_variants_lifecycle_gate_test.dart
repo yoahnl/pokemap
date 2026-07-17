@@ -205,6 +205,7 @@ Future<_LoadedRuntimeCase> _loadRuntimeCase({
 
   game.onGameResize(_testViewportSize);
   await game.onLoad();
+  await _waitForInitialMapActivation(game);
 
   return _LoadedRuntimeCase(
     game: game,
@@ -393,6 +394,13 @@ Future<String> _writeRuntimeProject(
 }
 
 final _testViewportSize = Vector2(640, 480);
+
+Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
+  await _pumpUntil(
+    game,
+    () => !game.debugIsMapActivationDispatchInFlight,
+  );
+}
 
 Future<void> _runSingleMove(
   PlayableMapGame game,

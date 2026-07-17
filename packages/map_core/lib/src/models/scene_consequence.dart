@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 enum SceneConsequenceKind {
   setFact,
   markEventConsumed,
+  completeStoryStep,
 }
 
 @immutable
@@ -23,12 +24,20 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneMarkEventConsumedConsequence;
 
+  factory SceneConsequence.completeStoryStep({
+    required String stepId,
+    String? label,
+    String? notes,
+  }) = SceneCompleteStoryStepConsequence;
+
   factory SceneConsequence.fromJson(Map<String, dynamic> json) {
     final kind = _readKind(json['kind']);
     return switch (kind) {
       SceneConsequenceKind.setFact => SceneSetFactConsequence.fromJson(json),
       SceneConsequenceKind.markEventConsumed =>
         SceneMarkEventConsumedConsequence.fromJson(json),
+      SceneConsequenceKind.completeStoryStep =>
+        SceneCompleteStoryStepConsequence.fromJson(json),
     };
   }
 
@@ -140,6 +149,53 @@ final class SceneMarkEventConsumedConsequence extends SceneConsequence {
   int get hashCode => Object.hash(mapId, eventId, label, notes);
 }
 
+@immutable
+final class SceneCompleteStoryStepConsequence extends SceneConsequence {
+  SceneCompleteStoryStepConsequence({
+    required String stepId,
+    String? label,
+    String? notes,
+  })  : stepId = stepId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneCompleteStoryStepConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SceneCompleteStoryStepConsequence(
+      stepId: _readRequiredString(json, 'stepId'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.completeStoryStep;
+
+  final String stepId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'stepId': stepId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneCompleteStoryStepConsequence &&
+          other.stepId == stepId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(stepId, label, notes);
+}
+
 SceneConsequenceKind _readKind(Object? value) {
   if (value is! String) {
     throw FormatException(
@@ -159,6 +215,7 @@ String _kindToJson(SceneConsequenceKind kind) {
   return switch (kind) {
     SceneConsequenceKind.setFact => 'setFact',
     SceneConsequenceKind.markEventConsumed => 'markEventConsumed',
+    SceneConsequenceKind.completeStoryStep => 'completeStoryStep',
   };
 }
 

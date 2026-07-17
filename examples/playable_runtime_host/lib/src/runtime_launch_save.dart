@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void _runtimeHostSaveLog(String message) {
   debugPrint('[runtime_host_save] $message');
@@ -19,6 +20,22 @@ void _runtimeHostSaveLog(String message) {
 /// Si ce fichier est présent à côté du `project.json`, le host le traite comme
 /// la meilleure source de vérité pour l'état joueur initial.
 const kRuntimeHostLaunchSaveFileName = 'runtime_host_launch_save.json';
+
+/// Resolves the explicit map-activation reason for the runtime host.
+///
+/// A versioned project save is a real restoration. Manual and demo seeds are
+/// authoring conveniences, so they intentionally remain an initial boot even
+/// though they are represented by [SaveData]. This keeps ADR-EV2-015 from
+/// turning `saveData != null` into an implicit restoration heuristic.
+MapActivationReason resolveRuntimeHostInitialMapActivationReason({
+  required SaveData? versionedLaunchSave,
+  required SaveData? manualLaunchOverride,
+}) {
+  if (versionedLaunchSave != null && manualLaunchOverride == null) {
+    return MapActivationReason.saveRestore;
+  }
+  return MapActivationReason.initialBoot;
+}
 
 /// Charge la save versionnée de lancement d'un projet runtime, si elle existe.
 ///

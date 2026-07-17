@@ -10,6 +10,8 @@ final class NarrativeEventAuthoringSession {
   NarrativeEventAuthoringSession._({
     required this.projectPath,
     required this.projectRevision,
+    required this.manifest,
+    required List<MapData> maps,
     required this.registryFingerprint,
     required this.manifestSemanticHash,
     required Map<String, String> mapManifestPaths,
@@ -19,7 +21,8 @@ final class NarrativeEventAuthoringSession {
     required this.sourceIndexFingerprint,
     required this.totalMapBytes,
     required this.context,
-  })  : mapManifestPaths = Map.unmodifiable(mapManifestPaths),
+  })  : maps = List.unmodifiable(maps),
+        mapManifestPaths = Map.unmodifiable(mapManifestPaths),
         mapPaths = Map.unmodifiable(mapPaths),
         mapByteHashes = Map.unmodifiable(mapByteHashes);
 
@@ -123,6 +126,8 @@ final class NarrativeEventAuthoringSession {
       return NarrativeEventAuthoringSession._(
         projectPath: canonicalProjectPath,
         projectRevision: projectRevision,
+        manifest: manifest,
+        maps: maps,
         registryFingerprint: narrativeEventBytesFingerprint(
           canonicalizeNarrativeEventJsonUtf8(registry?.toJson()),
         ),
@@ -148,6 +153,16 @@ final class NarrativeEventAuthoringSession {
 
   final String projectPath;
   final String projectRevision;
+
+  /// Exact validated project snapshot used to attest this session.
+  ///
+  /// Event Builder V2 consumes it together with [maps] to build its canonical
+  /// project-level read model without re-reading only the active map.
+  final ProjectManifest manifest;
+
+  /// Every validated map from the same attested project snapshot.
+  final List<MapData> maps;
+
   final String registryFingerprint;
   final String manifestSemanticHash;
   final Map<String, String> mapManifestPaths;

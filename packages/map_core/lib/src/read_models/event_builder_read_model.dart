@@ -955,6 +955,16 @@ EventBuilderWorldImpactReadModel? _buildSceneConsequenceWorldImpact(
         ),
         reason: 'La Scene liée marque cet événement comme joué.',
       ),
+    SceneCompleteStoryStepConsequence(:final stepId) =>
+      EventBuilderWorldImpactReadModel(
+        kind: EventBuilderWorldImpactKind.storyStep,
+        sourceId: stepId,
+        label: _worldImpactLabel(
+          EventBuilderWorldImpactKind.storyStep,
+          stepId,
+        ),
+        reason: 'La Scene liée termine cette étape narrative.',
+      ),
     _ => null,
   };
 }

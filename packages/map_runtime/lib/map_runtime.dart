@@ -22,6 +22,34 @@ export 'src/application/runtime_battle_setup_exception.dart'
     show RuntimeBattleSetupException;
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
+export 'src/application/map_activation.dart'
+    show MapActivationReason, MapActivation;
+export 'src/application/map_enter_production_dispatch_bridge.dart'
+    show
+        MapEnterProductionDispatchResult,
+        MapEnterProductionDispatchLegacyFallback,
+        MapEnterProductionDispatchDuplicate,
+        MapEnterProductionDispatchNoFallback,
+        MapEnterProductionDispatchV2Handled,
+        MapEnterProductionDispatchClaimedIneligible,
+        MapEnterProductionDispatchStale,
+        MapEnterProductionDispatchAuthorityBlocked,
+        MapEnterProductionDispatchFailed,
+        MapEnterProductionDispatchBridge;
+export 'src/application/narrative_spatial_production_dispatch_bridge.dart'
+    show
+        NarrativeSpatialProductionDispatchResult,
+        NarrativeSpatialProductionDispatchLegacyFallback,
+        NarrativeSpatialProductionDispatchDuplicate,
+        NarrativeSpatialProductionDispatchNoFallback,
+        NarrativeSpatialProductionDispatchV2Handled,
+        NarrativeSpatialProductionDispatchClaimedIneligible,
+        NarrativeSpatialProductionDispatchStale,
+        NarrativeSpatialProductionDispatchAuthorityBlocked,
+        NarrativeSpatialProductionDispatchFailed,
+        NarrativeSpatialAuthorityPreparation,
+        NarrativeSpatialLegacyFallback,
+        NarrativeSpatialProductionDispatchBridge;
 export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
     show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;

@@ -104,6 +104,8 @@ class ScenesWorkspace extends StatefulWidget {
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
+    this.requestedSceneId,
+    this.requestedSceneFocusNonce,
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
@@ -125,6 +127,8 @@ class ScenesWorkspace extends StatefulWidget {
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final String? requestedSceneId;
+  final int? requestedSceneFocusNonce;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
@@ -153,12 +157,35 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   void initState() {
     super.initState();
     _syncSelection();
+    _applyRequestedSceneFocus();
   }
 
   @override
   void didUpdateWidget(covariant ScenesWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncSelection();
+    if (oldWidget.requestedSceneFocusNonce != requestedSceneFocusNonce ||
+        oldWidget.requestedSceneId != requestedSceneId) {
+      _applyRequestedSceneFocus();
+    }
+  }
+
+  String? get requestedSceneId => widget.requestedSceneId;
+
+  int? get requestedSceneFocusNonce => widget.requestedSceneFocusNonce;
+
+  void _applyRequestedSceneFocus() {
+    final requested = requestedSceneId;
+    if (requested == null ||
+        !widget.scenes.any((scene) => scene.id == requested) ||
+        requested == _selectedSceneId) {
+      return;
+    }
+    final scene = _sceneById(requested);
+    _selectedSceneId = requested;
+    _selectedNodeId = _preferredNodeId(scene);
+    _selectedEdgeId = null;
+    _pendingConnection = null;
   }
 
   void _syncSelection() {

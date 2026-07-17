@@ -101,7 +101,7 @@ void main() {
 
     testWidgets('PokeMapCard border changes when selected', (tester) async {
       late BuildContext capturedContext;
-      
+
       // Unselected card
       await tester.pumpWidget(
         MaterialApp(
@@ -126,7 +126,7 @@ void main() {
       final containerWidgetUnselected = tester.widget<AnimatedContainer>(find.byType(AnimatedContainer));
       final decorationUnselected = containerWidgetUnselected.decoration as BoxDecoration;
       final borderUnselected = decorationUnselected.border as Border;
-      
+
       // Selected card
       await tester.pumpWidget(
         MaterialApp(
@@ -150,6 +150,26 @@ void main() {
 
       expect(borderUnselected.top.color, isNot(equals(borderSelected.top.color)));
       expect(borderSelected.top.color, equals(capturedContext.pokeMapColors.brandPrimaryBorder));
+    });
+
+    testWidgets('PokeMapStatusLabel stays compact in dense list rows',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: const SizedBox(
+            width: 64,
+            child: PokeMapStatusLabel(
+              label: 'Actif',
+              tone: PokeMapTone.success,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Actif'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(tester.getSize(find.byType(PokeMapStatusLabel)).width, 64);
     });
 
     testWidgets('PokeMapToolbarSurface & PokeMapSectionHeader pump correctly', (tester) async {

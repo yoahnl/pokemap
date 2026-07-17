@@ -34,6 +34,8 @@ enum SceneDiagnosticCode {
   conditionWorldRuleRefUnknown,
   consequenceUnknownFact,
   consequenceUnknownEvent,
+  consequenceUnknownStoryStep,
+  consequenceAmbiguousStoryStep,
   consequenceMissingTarget,
   consequenceWouldApplyWorldRuleDirectly,
   actionPayloadLegacyUnsupported,
@@ -395,6 +397,15 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
   final projectMapIds = project.maps.map((map) => map.id).toSet();
+  final storyStepCounts = <String, int>{};
+  for (final storyline in project.storylines) {
+    for (final chapter in storyline.chapters) {
+      for (final step in chapter.steps) {
+        storyStepCounts.update(step.id, (count) => count + 1,
+            ifAbsent: () => 1);
+      }
+    }
+  }
 
   for (final node in scene.graph.nodes) {
     final payload = node.payload;
@@ -503,6 +514,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           payload,
           factIds: factIds,
           projectMapIds: projectMapIds,
+          storyStepCounts: storyStepCounts,
           mapsById: mapsById,
           diagnostics: diagnostics,
         );
@@ -595,6 +607,21 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneCompleteStoryStepConsequence():
+      if (consequence.stepId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence completeStoryStep doit cibler une étape narrative.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir une étape narrative existante.',
+          ),
+        );
+      }
   }
 }
 
@@ -604,6 +631,7 @@ void _diagnoseActionConsequenceAgainstProject(
   SceneActionPayload payload, {
   required Set<String> factIds,
   required Set<String> projectMapIds,
+  required Map<String, int> storyStepCounts,
   required Map<String, MapData> mapsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
@@ -665,6 +693,38 @@ void _diagnoseActionConsequenceAgainstProject(
             nodeId: node.id,
             target: SceneDiagnosticTarget.node,
             suggestedFixLabel: 'Choisir un event existant sur la map.',
+          ),
+        );
+      }
+    case SceneCompleteStoryStepConsequence():
+      if (consequence.stepId.trim().isEmpty) {
+        return;
+      }
+      final count = storyStepCounts[consequence.stepId] ?? 0;
+      if (count == 0) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownStoryStep,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence completeStoryStep référence une étape absente.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir une étape narrative existante.',
+          ),
+        );
+      } else if (count > 1) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceAmbiguousStoryStep,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence completeStoryStep référence un ID dupliqué.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Rendre les IDs d’étape uniques dans le projet.',
           ),
         );
       }

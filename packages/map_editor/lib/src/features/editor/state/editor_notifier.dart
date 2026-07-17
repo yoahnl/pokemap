@@ -29,6 +29,8 @@ import '../../../application/use_cases/tile_layer_environment_generation_use_cas
 import '../../../application/use_cases/tile_layer_environment_regenerate_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
+import '../../../application/models/narrative_event_spatial_link_journal_models.dart';
+import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
@@ -38,6 +40,8 @@ import '../../../application/services/environment_mask_paint_target_resolver.dar
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
+import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
+import '../../../application/services/narrative_event_source_dependency_guard.dart';
 import '../../../application/services/path_autotile_resolver.dart';
 import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
@@ -69,10 +73,30 @@ const String _eventBuilderConditionLockedMessage =
     'Elle ne peut pas être éditée partiellement.';
 const MethodChannel _macOsFileAccessChannel =
     MethodChannel('map_editor/file_access');
+typedef _NarrativeEventSourceCleanupInterlock = ({
+  String projectRootPath,
+  String mapPath,
+  String mapId,
+  String operationId,
+  NarrativeEventSourceRef source,
+  String sourceOwnerFingerprint,
+});
+typedef _MapDiskMutationLease = ({
+  Object token,
+  String? projectRootPath,
+  ProjectManifest? project,
+  MapData? activeMap,
+  String? activeMapPath,
+});
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier {
   MapData? _confirmedBulkPlacementLossBaseline;
+  _NarrativeEventSourceCleanupInterlock? _narrativeEventSourceCleanupInterlock;
+  ProjectManifest? _narrativeEventSourceCleanupProjectIdentity;
+  MapData? _narrativeEventSourceCleanupBaselineIdentity;
+  _MapDiskMutationLease? _mapDiskMutationLease;
+  Object? _narrativeEventSourceMapWriteLeaseToken;
 
   EditorWorkspaceController get _editorWorkspaceController =>
       ref.read(editorWorkspaceControllerProvider);
@@ -126,6 +150,9 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(elementCollisionProfileGeneratorProvider);
   PlacedElementInstanceIndexer get _placedElementInstanceIndexer =>
       ref.read(placedElementInstanceIndexerProvider);
+  NarrativeEventSourceDependencyGuard
+      get _narrativeEventSourceDependencyGuard =>
+          const NarrativeEventSourceDependencyGuard();
 
   TerrainPresetSelection _currentTerrainPresetSelection() {
     final selection = state.selection;
@@ -274,15 +301,33 @@ class EditorNotifier extends _$EditorNotifier {
     String manifestPath, {
     bool silentOnError = false,
     bool rememberAsRecent = true,
+    Object? mapWriteLeaseToken,
   }) async {
+    final ownsLease = mapWriteLeaseToken == null;
+    final _MapDiskMutationLease? operationLease;
+    if (ownsLease) {
+      operationLease = _beginMapDiskMutationLease();
+      if (operationLease == null) return;
+    } else {
+      if (_rejectMapDiskMutationLease(
+        allowedLeaseToken: mapWriteLeaseToken,
+      )) {
+        return;
+      }
+      operationLease = _mapDiskMutationLease;
+      if (operationLease == null) return;
+    }
+    final effectiveLeaseToken = operationLease.token;
     // Keep this trace for explicit user actions, but avoid noisy startup logs
     // when running a silent auto-restore attempt.
     if (!silentOnError) {
       debugPrint('EditorNotifier: loadProject($manifestPath)');
     }
+    var didAdoptProject = false;
     try {
       final useCase = ref.read(loadProjectUseCaseProvider);
       final manifest = await useCase.execute(manifestPath);
+      if (!_canAdoptMapDiskMutation(operationLease)) return;
       final projectDir = p.dirname(manifestPath);
       state = _projectSessionController.openProjectSession(
         current: state,
@@ -293,10 +338,17 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Projet « ${manifest.name} » chargé',
       );
+      didAdoptProject = true;
+      _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
+      _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       if (rememberAsRecent) {
         await _rememberLastOpenedProjectManifest(manifestPath);
       }
     } catch (e) {
+      final canReportFailure = didAdoptProject
+          ? _ownsMapDiskMutationLease(effectiveLeaseToken)
+          : _canAdoptMapDiskMutation(operationLease);
+      if (!canReportFailure) return;
       if (!silentOnError) {
         debugPrint('EditorNotifier: Error loading project: $e');
       }
@@ -312,6 +364,9 @@ class EditorNotifier extends _$EditorNotifier {
         state = state.copyWith(
             errorMessage: 'Impossible de charger le projet : $e');
       }
+    } finally {
+      _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
+      if (ownsLease) _endMapDiskMutationLease(operationLease);
     }
   }
 
@@ -458,6 +513,33 @@ class EditorNotifier extends _$EditorNotifier {
           );
   }
 
+  /// Adopts a registry already committed by the dedicated Event V2 writer.
+  ///
+  /// This intentionally changes no map document, selection or history field.
+  /// The merge is accepted only while the same project and previous registry
+  /// are still active. Unrelated dirty manifest fields remain untouched.
+  bool applyPersistedNarrativeEventRegistry({
+    required String expectedProjectRootPath,
+    required NarrativeEventRegistry? expectedPreviousRegistry,
+    required NarrativeEventRegistry nextRegistry,
+  }) {
+    final project = state.project;
+    final projectRootPath = state.projectRootPath;
+    if (project == null || projectRootPath == null) {
+      return false;
+    }
+    if (p.normalize(projectRootPath) != p.normalize(expectedProjectRootPath) ||
+        project.eventRegistry != expectedPreviousRegistry) {
+      return false;
+    }
+    state = state.copyWith(
+      project: project.copyWith(eventRegistry: nextRegistry),
+      statusMessage: 'Registre Event V2 synchronisé.',
+      errorMessage: null,
+    );
+    return true;
+  }
+
   ProjectManifest? ensureDefaultShadowProfiles() {
     final project = state.project;
     if (project == null) return null;
@@ -540,10 +622,11 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   Future<void> saveActiveMap({bool confirmBulkPlacementLoss = false}) async {
-    endMapStroke();
     final map = state.activeMap;
     final path = state.activeMapPath;
     if (map == null || path == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+    endMapStroke();
 
     final savedPlacementCount = state.savedMapSnapshot?.placedElements.length;
     final currentPlacementCount = map.placedElements.length;
@@ -568,7 +651,8 @@ class EditorNotifier extends _$EditorNotifier {
     }
 
     debugPrint('EditorNotifier: saveActiveMap()');
-    state = _projectSessionController.markMapSaving(state);
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(saveMapUseCaseProvider);
@@ -578,6 +662,7 @@ class EditorNotifier extends _$EditorNotifier {
         projectDialogueContext: state.project,
       );
 
+      if (!_canAdoptMapDiskMutation(lease)) return;
       state = _projectSessionController.markMapSaved(
         current: state,
         map: map,
@@ -586,10 +671,14 @@ class EditorNotifier extends _$EditorNotifier {
       _confirmedBulkPlacementLossBaseline = null;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
-      state = _projectSessionController.markMapSaveFailed(
-        current: state,
-        errorMessage: 'Impossible d’enregistrer la carte : $e',
-      );
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = _projectSessionController.markMapSaveFailed(
+          current: state,
+          errorMessage: 'Impossible d’enregistrer la carte : $e',
+        );
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -600,11 +689,21 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+    if (project.maps.any((entry) => entry.id == id)) {
+      state = state.copyWith(
+        errorMessage: 'Une carte avec l’identifiant « $id » existe déjà.',
+      );
+      return;
+    }
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(createMapUseCaseProvider);
       final map = await useCase.execute(fs, project, id, width, height,
           groupId: groupId, role: role);
+      if (!_canAdoptMapDiskMutation(lease)) return;
       final presetSelection = _terrainPresetSelectionCoordinator.normalize(
         project: project,
         current: _currentTerrainPresetSelection(),
@@ -635,19 +734,46 @@ class EditorNotifier extends _$EditorNotifier {
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
       debugPrint('EditorNotifier: Error creating map: $e');
-      state = state.copyWith(errorMessage: 'Impossible de créer la carte : $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state =
+            state.copyWith(errorMessage: 'Impossible de créer la carte : $e');
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
-  Future<void> loadMap(String relativePath) async {
-    debugPrint('EditorNotifier: loadMap($relativePath)');
+  Future<void> loadMap(
+    String relativePath, {
+    Object? mapWriteLeaseToken,
+  }) async {
     final fs = _projectWorkspace;
     if (fs == null) return;
+    final ownsLease = mapWriteLeaseToken == null;
+    final _MapDiskMutationLease? operationLease;
+    if (ownsLease) {
+      operationLease = _beginMapDiskMutationLease(
+        allowCleanupInterlock: true,
+      );
+      if (operationLease == null) return;
+    } else {
+      if (_rejectMapDiskMutationLease(
+        allowedLeaseToken: mapWriteLeaseToken,
+      )) {
+        return;
+      }
+      operationLease = _mapDiskMutationLease;
+      if (operationLease == null) return;
+    }
+    final effectiveLeaseToken = operationLease.token;
+    debugPrint('EditorNotifier: loadMap($relativePath)');
 
+    var didAdoptMap = false;
     try {
       final useCase = ref.read(loadMapUseCaseProvider);
       final project = state.project;
       final loadedMap = await useCase.execute(fs, relativePath);
+      if (!_canAdoptMapDiskMutation(operationLease)) return;
       // Loading is a byte-faithful document operation, not an implicit
       // migration/reindex command. Derived tile instances are synchronized by
       // explicit authoring mutations; persisted authored placements must never
@@ -681,11 +807,25 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
       );
+      didAdoptMap = true;
+      _clearNarrativeEventSourceCleanupInterlockAfterReload(
+        map: map,
+        mapPath: fs.resolveMapPath(relativePath),
+      );
+      _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
+      _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
       _coerceActiveToolIfIncompatibleWithLayer();
     } catch (e) {
+      final canReportFailure = didAdoptMap
+          ? _ownsMapDiskMutationLease(effectiveLeaseToken)
+          : _canAdoptMapDiskMutation(operationLease);
+      if (!canReportFailure) return;
       debugPrint('EditorNotifier: Error loading map: $e');
       state =
           state.copyWith(errorMessage: 'Impossible de charger la carte : $e');
+    } finally {
+      _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
+      if (ownsLease) _endMapDiskMutationLease(operationLease);
     }
   }
 
@@ -740,6 +880,797 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return null;
     }
+  }
+
+  /// Activates the single snapshot already read by the Event V2 map bridge.
+  ///
+  /// The active map is never re-opened: this preserves its dirty bytes,
+  /// selections, viewport and undo/redo history. A cross-map activation is
+  /// refused while the current map is dirty and performs no additional read.
+  bool activateNarrativeEventMapSnapshot(MapData map) {
+    if (_rejectMapDiskMutationLease()) return false;
+    final activeMap = state.activeMap;
+    if (activeMap?.id == map.id) {
+      selectMapWorkspace();
+      return true;
+    }
+    if (state.isDirty) return false;
+    final project = state.project;
+    final workspace = _projectWorkspace;
+    if (project == null || workspace == null) return false;
+    ProjectMapEntry? entry;
+    for (final candidate in project.maps) {
+      if (candidate.id == map.id) {
+        entry = candidate;
+        break;
+      }
+    }
+    if (entry == null) return false;
+    final presetSelection = _terrainPresetSelectionCoordinator.normalize(
+      project: project,
+      current: _currentTerrainPresetSelection(),
+    );
+    state = _projectSessionController.openMapDocument(
+      current: state,
+      document: MapDocumentLoadResult(
+        map: map,
+        activeMapPath: workspace.resolveMapPath(entry.relativePath),
+        presetSelection: presetSelection,
+        selectedTilesetEditorId:
+            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
+      ),
+      statusMessage: 'Carte « ${map.name} » ouverte depuis l’Event',
+    );
+    _coerceActiveToolIfIncompatibleWithLayer();
+    return true;
+  }
+
+  /// Applies the exact typed Event V2 focus without mutating map content.
+  bool focusNarrativeEventMapSource(NarrativeEditorFocusTarget focus) {
+    final map = state.activeMap;
+    if (map == null || focus.mapId != map.id) return false;
+    switch (focus.kind) {
+      case NarrativeEditorFocusTargetKind.map:
+        if (focus.ownerId != null || focus.bounds != null) return false;
+        state = state.copyWith(
+          selectedEntityId: null,
+          selectedTriggerId: null,
+          workspaceMode: EditorWorkspaceMode.map,
+          errorMessage: null,
+        );
+        return true;
+      case NarrativeEditorFocusTargetKind.entity:
+        final ownerId = focus.ownerId;
+        if (ownerId == null) return false;
+        MapEntity? entity;
+        for (final candidate in map.entities) {
+          if (candidate.id == ownerId) {
+            entity = candidate;
+            break;
+          }
+        }
+        if (entity == null ||
+            focus.bounds != MapRect(pos: entity.pos, size: entity.size)) {
+          return false;
+        }
+        state = state.copyWith(
+          selectedEntityId: entity.id,
+          selectedEntityKind: entity.kind,
+          selectedTriggerId: null,
+          workspaceMode: EditorWorkspaceMode.map,
+          errorMessage: null,
+        );
+        return true;
+      case NarrativeEditorFocusTargetKind.trigger:
+        final ownerId = focus.ownerId;
+        if (ownerId == null) return false;
+        MapTrigger? trigger;
+        for (final candidate in map.triggers) {
+          if (candidate.id == ownerId) {
+            trigger = candidate;
+            break;
+          }
+        }
+        if (trigger == null || focus.bounds != trigger.area) return false;
+        state = state.copyWith(
+          selectedEntityId: null,
+          selectedTriggerId: trigger.id,
+          workspaceMode: EditorWorkspaceMode.map,
+          errorMessage: null,
+        );
+        return true;
+    }
+  }
+
+  /// Builds a real Map Editor owner without mutating the open document.
+  ///
+  /// Persistence is intentionally owned by the V2-25 two-commit workflow. The
+  /// returned before/after pair is therefore safe to cancel before any write.
+  NarrativeEventCreatedSourceProposal? proposeNarrativeEventSourceAt({
+    required GridPos position,
+    required NarrativeEventPhysicalSourceKind kind,
+  }) {
+    final beforeMap = state.activeMap;
+    if (beforeMap == null) return null;
+
+    try {
+      if (kind == NarrativeEventPhysicalSourceKind.zone1x1) {
+        final result = _triggerEditingService.addTriggerAt(beforeMap, position);
+        final trigger = result.createdTrigger;
+        return NarrativeEventCreatedSourceProposal(
+          physicalKind: kind,
+          source: NarrativeEventSourceRef.triggerEnter(
+            beforeMap.id,
+            trigger.id,
+          ),
+          beforeMap: beforeMap,
+          afterMap: result.updatedMap,
+          bounds: trigger.area,
+          ownerJson: _narrativeEventOwnerEnvelope(
+            ownerKind: 'mapTrigger',
+            mapId: beforeMap.id,
+            sourceId: trigger.id,
+            owner: trigger.toJson(),
+          ),
+        );
+      }
+
+      final entityKind = switch (kind) {
+        NarrativeEventPhysicalSourceKind.npc => MapEntityKind.npc,
+        NarrativeEventPhysicalSourceKind.sign => MapEntityKind.sign,
+        NarrativeEventPhysicalSourceKind.item => MapEntityKind.item,
+        NarrativeEventPhysicalSourceKind.invisible => MapEntityKind.custom,
+        NarrativeEventPhysicalSourceKind.zone1x1 => throw StateError(
+            'zone1x1 is handled as a MapTrigger before entity creation.',
+          ),
+      };
+      final added = _entityEditingService.addEntityAt(
+        beforeMap,
+        position,
+        kind: entityKind,
+      );
+      var afterMap = added.updatedMap;
+      var entity = added.createdEntity;
+      if (kind == NarrativeEventPhysicalSourceKind.invisible) {
+        afterMap = _entityEditingService
+            .updateEntity(
+              afterMap,
+              entityId: entity.id,
+              blocksMovement: false,
+            )
+            .updatedMap;
+        entity = afterMap.entities.firstWhere(
+          (candidate) => candidate.id == entity.id,
+        );
+      }
+
+      return NarrativeEventCreatedSourceProposal(
+        physicalKind: kind,
+        source: NarrativeEventSourceRef.entityInteract(
+          beforeMap.id,
+          entity.id,
+        ),
+        beforeMap: beforeMap,
+        afterMap: afterMap,
+        bounds: MapRect(pos: entity.pos, size: entity.size),
+        ownerJson: _narrativeEventOwnerEnvelope(
+          ownerKind: 'mapEntity',
+          mapId: beforeMap.id,
+          sourceId: entity.id,
+          owner: entity.toJson(),
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Synchronizes a proposal already persisted by the V2-25 workflow.
+  ///
+  /// Identity comparison is the narrow CAS: if any map mutation or document
+  /// switch replaced the proposal baseline, the newer in-memory map wins.
+  /// This method performs no file or registry write.
+  bool adoptPersistedNarrativeEventSourceProposal(
+    NarrativeEventCreatedSourceProposal proposal, {
+    Object? mapWriteLeaseToken,
+  }) {
+    if (_rejectMapDiskMutationLease(
+      allowedLeaseToken: mapWriteLeaseToken,
+    )) {
+      return false;
+    }
+    if (!identical(state.activeMap, proposal.beforeMap) ||
+        state.mapStrokeStart != null ||
+        proposal.beforeMap.id != proposal.afterMap.id) {
+      return false;
+    }
+
+    String? selectedEntityId;
+    String? selectedTriggerId;
+    MapEntityKind? selectedEntityKind;
+    final isSpatialOwner = proposal.source.when(
+      entityInteract: (mapId, entityId) {
+        if (mapId != proposal.afterMap.id) return false;
+        MapEntity? owner;
+        for (final candidate in proposal.afterMap.entities) {
+          if (candidate.id == entityId) {
+            owner = candidate;
+            break;
+          }
+        }
+        if (owner == null) return false;
+        selectedEntityId = owner.id;
+        selectedEntityKind = owner.kind;
+        return true;
+      },
+      triggerEnter: (mapId, triggerId) {
+        if (mapId != proposal.afterMap.id ||
+            !proposal.afterMap.triggers.any(
+              (candidate) => candidate.id == triggerId,
+            )) {
+          return false;
+        }
+        selectedTriggerId = triggerId;
+        return true;
+      },
+      mapEnter: (_) => false,
+      outcomeReceived: (_) => false,
+    );
+    if (!isSpatialOwner) return false;
+
+    state = state.copyWith(
+      activeMap: proposal.afterMap,
+      savedMapSnapshot: proposal.afterMap,
+      selectedEntityId: selectedEntityId,
+      selectedEntityKind: selectedEntityKind ?? state.selectedEntityKind,
+      selectedTriggerId: selectedTriggerId,
+      isDirty: false,
+    );
+    return true;
+  }
+
+  _MapDiskMutationLease? _beginMapDiskMutationLease({
+    bool allowCleanupInterlock = false,
+  }) {
+    if (!allowCleanupInterlock &&
+        _narrativeEventSourceCleanupInterlock != null) {
+      state = state.copyWith(
+        errorMessage: 'Une map nettoyée doit être rechargée avant toute '
+            'nouvelle écriture de map.',
+      );
+      return null;
+    }
+    if (_mapDiskMutationLease != null || state.isSaving) {
+      state = state.copyWith(
+        errorMessage: 'Une écriture de map est déjà en cours.',
+      );
+      return null;
+    }
+    final lease = (
+      token: Object(),
+      projectRootPath: state.projectRootPath,
+      project: state.project,
+      activeMap: state.activeMap,
+      activeMapPath: state.activeMapPath,
+    );
+    _mapDiskMutationLease = lease;
+    state = _projectSessionController.markMapSaving(state);
+    return lease;
+  }
+
+  /// Publishes the Event V2 map writer through the same lease as normal saves.
+  Object? beginNarrativeEventSourceMapWriteLease() {
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return null;
+    _narrativeEventSourceMapWriteLeaseToken = lease.token;
+    return lease.token;
+  }
+
+  void endNarrativeEventSourceMapWriteLease(Object token) {
+    final lease = _mapDiskMutationLease;
+    if (lease != null &&
+        identical(lease.token, token) &&
+        identical(_narrativeEventSourceMapWriteLeaseToken, token)) {
+      _narrativeEventSourceMapWriteLeaseToken = null;
+      _endMapDiskMutationLease(lease);
+    }
+  }
+
+  bool _rejectMapDiskMutationLease({
+    Object? allowedLeaseToken,
+  }) {
+    final token = _mapDiskMutationLease?.token;
+    if (token == null && allowedLeaseToken == null) return false;
+    if (token != null && identical(token, allowedLeaseToken)) return false;
+    state = state.copyWith(
+      errorMessage: 'Une écriture de map est en cours. '
+          'Attendez sa fin avant de modifier ou recharger la map.',
+    );
+    return true;
+  }
+
+  bool _ownsMapDiskMutationLease(Object token) {
+    return identical(_mapDiskMutationLease?.token, token);
+  }
+
+  void _refreshMapDiskMutationLeaseBaseline(Object token) {
+    if (!_ownsMapDiskMutationLease(token)) return;
+    _mapDiskMutationLease = (
+      token: token,
+      projectRootPath: state.projectRootPath,
+      project: state.project,
+      activeMap: state.activeMap,
+      activeMapPath: state.activeMapPath,
+    );
+  }
+
+  void _republishNarrativeEventSourceMapWriteLease(Object? token) {
+    if (token == null ||
+        !identical(_narrativeEventSourceMapWriteLeaseToken, token) ||
+        !identical(_mapDiskMutationLease?.token, token) ||
+        state.isSaving) {
+      return;
+    }
+    state = _projectSessionController.markMapSaving(state);
+  }
+
+  bool _canAdoptMapDiskMutation(_MapDiskMutationLease lease) {
+    return identical(_mapDiskMutationLease?.token, lease.token) &&
+        _sameNullableNormalizedPath(
+          state.projectRootPath,
+          lease.projectRootPath,
+        ) &&
+        identical(state.project, lease.project) &&
+        identical(state.activeMap, lease.activeMap) &&
+        _sameNullableNormalizedPath(
+          state.activeMapPath,
+          lease.activeMapPath,
+        );
+  }
+
+  void _endMapDiskMutationLease(_MapDiskMutationLease lease) {
+    if (!identical(_mapDiskMutationLease?.token, lease.token)) return;
+    _mapDiskMutationLease = null;
+    if (state.isSaving) {
+      state = state.copyWith(isSaving: false);
+    }
+  }
+
+  static bool _sameNullableNormalizedPath(String? left, String? right) {
+    if (left == null || right == null) return left == right;
+    return p.normalize(left) == p.normalize(right);
+  }
+
+  /// Arms the stale-map write barrier before durable cleanup starts.
+  bool beginNarrativeEventSourceCleanupInterlock({
+    required String expectedProjectRootPath,
+    required MapData expectedActiveMap,
+    required NarrativeEventSpatialLinkJournal journal,
+  }) {
+    final expectedRoot = p.normalize(expectedProjectRootPath);
+    final expectedMapPath = p.normalize(journal.mapPath);
+    final activeMapPath = state.activeMapPath;
+    if (_mapDiskMutationLease != null ||
+        state.isSaving ||
+        state.projectRootPath == null ||
+        p.normalize(state.projectRootPath!) != expectedRoot ||
+        activeMapPath == null ||
+        p.normalize(activeMapPath) != expectedMapPath ||
+        !identical(state.activeMap, expectedActiveMap) ||
+        expectedActiveMap.id != journal.mapId) {
+      return false;
+    }
+    final nextInterlock = _narrativeEventSourceCleanupInterlockFor(
+      expectedProjectRootPath: expectedRoot,
+      journal: journal,
+    );
+    final currentInterlock = _narrativeEventSourceCleanupInterlock;
+    if (currentInterlock != null) {
+      return currentInterlock == nextInterlock &&
+          identical(
+            _narrativeEventSourceCleanupProjectIdentity,
+            state.project,
+          ) &&
+          identical(
+            _narrativeEventSourceCleanupBaselineIdentity,
+            expectedActiveMap,
+          );
+    }
+    _narrativeEventSourceCleanupInterlock = nextInterlock;
+    _narrativeEventSourceCleanupProjectIdentity = state.project;
+    _narrativeEventSourceCleanupBaselineIdentity = expectedActiveMap;
+    return true;
+  }
+
+  void releaseNarrativeEventSourceCleanupInterlock({
+    required String expectedProjectRootPath,
+    required NarrativeEventSpatialLinkJournal journal,
+  }) {
+    _clearNarrativeEventSourceCleanupInterlock(
+      _narrativeEventSourceCleanupInterlockFor(
+        expectedProjectRootPath: expectedProjectRootPath,
+        journal: journal,
+      ),
+    );
+  }
+
+  /// Adopts the map snapshot durably cleaned by the Event V2 recovery flow.
+  ///
+  /// An exact CAS adopts the disk snapshot directly. When unrelated edits
+  /// raced with cleanup, the exact owner deletion is rebased over the current
+  /// map if its journal fingerprint is still unchanged. Otherwise stale
+  /// writes stay blocked until a verified map reload.
+  Future<bool> adoptPersistedNarrativeEventSourceCleanup({
+    required String expectedProjectRootPath,
+    required MapData expectedActiveMap,
+    required NarrativeEventSpatialLinkJournal journal,
+  }) async {
+    final expectedRoot = p.normalize(expectedProjectRootPath);
+    final expectedMapPath = p.normalize(journal.mapPath);
+    final cleanupInterlock = _narrativeEventSourceCleanupInterlockFor(
+      expectedProjectRootPath: expectedRoot,
+      journal: journal,
+    );
+    final currentInterlock = _narrativeEventSourceCleanupInterlock;
+    if (currentInterlock != null) {
+      if (currentInterlock != cleanupInterlock ||
+          !identical(
+            _narrativeEventSourceCleanupProjectIdentity,
+            state.project,
+          ) ||
+          !identical(
+            _narrativeEventSourceCleanupBaselineIdentity,
+            expectedActiveMap,
+          )) {
+        return false;
+      }
+    } else {
+      _narrativeEventSourceCleanupProjectIdentity = state.project;
+      _narrativeEventSourceCleanupBaselineIdentity = expectedActiveMap;
+    }
+    _narrativeEventSourceCleanupInterlock = cleanupInterlock;
+
+    final activeMapPath = state.activeMapPath;
+    final expectedProject = state.project;
+    final expectedSavedMap = state.savedMapSnapshot;
+    final exactBaselineBeforeLoad = state.projectRootPath != null &&
+        p.normalize(state.projectRootPath!) == expectedRoot &&
+        activeMapPath != null &&
+        p.normalize(activeMapPath) == expectedMapPath &&
+        identical(state.activeMap, expectedActiveMap) &&
+        !state.isDirty &&
+        !state.isSaving &&
+        state.mapStrokeStart == null &&
+        expectedActiveMap.id == journal.mapId &&
+        expectedSavedMap == expectedActiveMap;
+    final expectedCleaned = _removeExactNarrativeEventJournalOwner(
+      expectedActiveMap,
+      journal,
+    );
+    if (expectedCleaned == null) return false;
+
+    late final MapData diskMap;
+    try {
+      diskMap = await ref.read(mapRepositoryProvider).loadMap(expectedMapPath);
+    } on Object {
+      return false;
+    }
+    if (!_sameNarrativeEventMap(diskMap, expectedCleaned)) {
+      return false;
+    }
+
+    final exactBaselineStillCurrent = exactBaselineBeforeLoad &&
+        state.projectRootPath != null &&
+        p.normalize(state.projectRootPath!) == expectedRoot &&
+        identical(state.project, expectedProject) &&
+        identical(state.activeMap, expectedActiveMap) &&
+        identical(state.savedMapSnapshot, expectedSavedMap) &&
+        state.activeMapPath != null &&
+        p.normalize(state.activeMapPath!) == expectedMapPath &&
+        !state.isDirty &&
+        !state.isSaving &&
+        state.mapStrokeStart == null;
+    if (exactBaselineStillCurrent) {
+      _adoptNarrativeEventSourceCleanupMaps(
+        activeMap: diskMap,
+        savedMap: diskMap,
+        journal: journal,
+        isDirty: false,
+      );
+      _clearNarrativeEventSourceCleanupInterlock(cleanupInterlock);
+      return true;
+    }
+
+    final currentMap = state.activeMap;
+    final canRebaseCurrentMap = state.projectRootPath != null &&
+        p.normalize(state.projectRootPath!) == expectedRoot &&
+        identical(state.project, expectedProject) &&
+        state.activeMapPath != null &&
+        p.normalize(state.activeMapPath!) == expectedMapPath &&
+        currentMap != null &&
+        currentMap.id == journal.mapId &&
+        !state.isSaving &&
+        state.mapStrokeStart == null;
+    if (canRebaseCurrentMap) {
+      final rebased = _removeExactNarrativeEventJournalOwner(
+        currentMap,
+        journal,
+      );
+      if (rebased != null) {
+        final remainsDirty = !_sameNarrativeEventMap(rebased, diskMap);
+        _adoptNarrativeEventSourceCleanupMaps(
+          activeMap: rebased,
+          savedMap: diskMap,
+          journal: journal,
+          isDirty: remainsDirty,
+        );
+        _clearNarrativeEventSourceCleanupInterlock(cleanupInterlock);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void _adoptNarrativeEventSourceCleanupMaps({
+    required MapData activeMap,
+    required MapData savedMap,
+    required NarrativeEventSpatialLinkJournal journal,
+    required bool isDirty,
+  }) {
+    String? removedEntityId;
+    String? removedTriggerId;
+    journal.source.when(
+      entityInteract: (_, entityId) => removedEntityId = entityId,
+      triggerEnter: (_, triggerId) => removedTriggerId = triggerId,
+      mapEnter: (_) {},
+      outcomeReceived: (_) {},
+    );
+    state = state.copyWith(
+      activeMap: activeMap,
+      savedMapSnapshot: savedMap,
+      selectedEntityId: state.selectedEntityId == removedEntityId
+          ? null
+          : state.selectedEntityId,
+      selectedTriggerId: state.selectedTriggerId == removedTriggerId
+          ? null
+          : state.selectedTriggerId,
+      mapUndoStack: const [],
+      mapRedoStack: const [],
+      mapStrokeStart: null,
+      canUndoMap: false,
+      canRedoMap: false,
+      isDirty: isDirty,
+      statusMessage: isDirty
+          ? 'Source Event supprimée ; modifications locales préservées.'
+          : 'Source Event supprimée et map resynchronisée.',
+      errorMessage: null,
+    );
+    _confirmedBulkPlacementLossBaseline = null;
+  }
+
+  static MapData? _removeExactNarrativeEventJournalOwner(
+    MapData map,
+    NarrativeEventSpatialLinkJournal journal,
+  ) {
+    return journal.source.when(
+      entityInteract: (mapId, entityId) {
+        if (mapId != map.id) return null;
+        final owners = map.entities
+            .where((candidate) => candidate.id == entityId)
+            .toList();
+        if (owners.length != 1 ||
+            !_matchesNarrativeEventJournalOwner(
+              journal: journal,
+              ownerKind: 'mapEntity',
+              owner: owners.single.toJson(),
+              sourceId: entityId,
+            )) {
+          return null;
+        }
+        return map.copyWith(
+          entities: map.entities
+              .where((candidate) => candidate.id != entityId)
+              .toList(),
+        );
+      },
+      triggerEnter: (mapId, triggerId) {
+        if (mapId != map.id) return null;
+        final owners = map.triggers
+            .where((candidate) => candidate.id == triggerId)
+            .toList();
+        if (owners.length != 1 ||
+            !_matchesNarrativeEventJournalOwner(
+              journal: journal,
+              ownerKind: 'mapTrigger',
+              owner: owners.single.toJson(),
+              sourceId: triggerId,
+            )) {
+          return null;
+        }
+        return map.copyWith(
+          triggers: map.triggers
+              .where((candidate) => candidate.id != triggerId)
+              .toList(),
+        );
+      },
+      mapEnter: (_) => null,
+      outcomeReceived: (_) => null,
+    );
+  }
+
+  static bool _matchesNarrativeEventJournalOwner({
+    required NarrativeEventSpatialLinkJournal journal,
+    required String ownerKind,
+    required Map<String, Object?> owner,
+    required String sourceId,
+  }) {
+    final envelope = <String, Object?>{
+      'schemaVersion': 1,
+      'ownerKind': ownerKind,
+      'mapId': journal.mapId,
+      'sourceId': sourceId,
+      'owner': owner,
+    };
+    final bytes = canonicalizeNarrativeEventJsonUtf8(envelope);
+    return narrativeEventBytesFingerprint(bytes) ==
+            journal.sourceOwnerFingerprint &&
+        listEquals(
+          bytes,
+          canonicalizeNarrativeEventJsonUtf8(journal.sourceOwnerJson),
+        );
+  }
+
+  static bool _sameNarrativeEventMap(MapData left, MapData right) {
+    return listEquals(
+      canonicalizeNarrativeEventJsonUtf8(left.toJson()),
+      canonicalizeNarrativeEventJsonUtf8(right.toJson()),
+    );
+  }
+
+  static _NarrativeEventSourceCleanupInterlock
+      _narrativeEventSourceCleanupInterlockFor({
+    required String expectedProjectRootPath,
+    required NarrativeEventSpatialLinkJournal journal,
+  }) {
+    return (
+      projectRootPath: p.normalize(expectedProjectRootPath),
+      mapPath: p.normalize(journal.mapPath),
+      mapId: journal.mapId,
+      operationId: journal.operationId,
+      source: journal.source,
+      sourceOwnerFingerprint: journal.sourceOwnerFingerprint,
+    );
+  }
+
+  void _clearNarrativeEventSourceCleanupInterlock(
+    _NarrativeEventSourceCleanupInterlock expected,
+  ) {
+    if (_narrativeEventSourceCleanupInterlock == expected) {
+      _narrativeEventSourceCleanupInterlock = null;
+      _narrativeEventSourceCleanupProjectIdentity = null;
+      _narrativeEventSourceCleanupBaselineIdentity = null;
+    }
+  }
+
+  void _clearNarrativeEventSourceCleanupInterlockAfterReload({
+    required MapData map,
+    required String mapPath,
+  }) {
+    final interlock = _narrativeEventSourceCleanupInterlock;
+    final projectRootPath = state.projectRootPath;
+    if (interlock == null ||
+        projectRootPath == null ||
+        p.normalize(projectRootPath) != interlock.projectRootPath ||
+        p.normalize(mapPath) != interlock.mapPath ||
+        map.id != interlock.mapId) {
+      return;
+    }
+    if (_mapOwnsNarrativeEventSource(map, interlock.source)) {
+      if (_mapOwnsExactNarrativeEventSource(map, interlock)) {
+        _narrativeEventSourceCleanupProjectIdentity = state.project;
+        _narrativeEventSourceCleanupBaselineIdentity = map;
+      }
+      return;
+    }
+    _narrativeEventSourceCleanupInterlock = null;
+    _narrativeEventSourceCleanupProjectIdentity = null;
+    _narrativeEventSourceCleanupBaselineIdentity = null;
+  }
+
+  bool _rejectNarrativeEventSourceCleanupMapMutation() {
+    final interlock = _narrativeEventSourceCleanupInterlock;
+    final projectRootPath = state.projectRootPath;
+    final activeMapPath = state.activeMapPath;
+    final activeMap = state.activeMap;
+    if (interlock == null ||
+        projectRootPath == null ||
+        activeMapPath == null ||
+        activeMap == null ||
+        p.normalize(projectRootPath) != interlock.projectRootPath ||
+        p.normalize(activeMapPath) != interlock.mapPath ||
+        activeMap.id != interlock.mapId) {
+      return false;
+    }
+    state = state.copyWith(
+      errorMessage: 'Cette map a été nettoyée sur disque. Rechargez-la avant '
+          'de la modifier ou de l’enregistrer.',
+    );
+    return true;
+  }
+
+  static bool _mapOwnsNarrativeEventSource(
+    MapData map,
+    NarrativeEventSourceRef source,
+  ) {
+    return source.when(
+      entityInteract: (mapId, entityId) =>
+          map.id == mapId &&
+          map.entities.any((candidate) => candidate.id == entityId),
+      triggerEnter: (mapId, triggerId) =>
+          map.id == mapId &&
+          map.triggers.any((candidate) => candidate.id == triggerId),
+      mapEnter: (mapId) => map.id == mapId,
+      outcomeReceived: (_) => true,
+    );
+  }
+
+  static bool _mapOwnsExactNarrativeEventSource(
+    MapData map,
+    _NarrativeEventSourceCleanupInterlock interlock,
+  ) {
+    return interlock.source.when(
+      entityInteract: (mapId, entityId) {
+        if (map.id != mapId) return false;
+        final owners = map.entities
+            .where((candidate) => candidate.id == entityId)
+            .toList();
+        if (owners.length != 1) return false;
+        final envelope = _narrativeEventOwnerEnvelope(
+          ownerKind: 'mapEntity',
+          mapId: mapId,
+          sourceId: entityId,
+          owner: owners.single.toJson(),
+        );
+        return narrativeEventBytesFingerprint(
+              canonicalizeNarrativeEventJsonUtf8(envelope),
+            ) ==
+            interlock.sourceOwnerFingerprint;
+      },
+      triggerEnter: (mapId, triggerId) {
+        if (map.id != mapId) return false;
+        final owners = map.triggers
+            .where((candidate) => candidate.id == triggerId)
+            .toList();
+        if (owners.length != 1) return false;
+        final envelope = _narrativeEventOwnerEnvelope(
+          ownerKind: 'mapTrigger',
+          mapId: mapId,
+          sourceId: triggerId,
+          owner: owners.single.toJson(),
+        );
+        return narrativeEventBytesFingerprint(
+              canonicalizeNarrativeEventJsonUtf8(envelope),
+            ) ==
+            interlock.sourceOwnerFingerprint;
+      },
+      mapEnter: (_) => false,
+      outcomeReceived: (_) => false,
+    );
+  }
+
+  static Map<String, Object?> _narrativeEventOwnerEnvelope({
+    required String ownerKind,
+    required String mapId,
+    required String sourceId,
+    required Map<String, Object?> owner,
+  }) {
+    return <String, Object?>{
+      'schemaVersion': 1,
+      'ownerKind': ownerKind,
+      'mapId': mapId,
+      'sourceId': sourceId,
+      'owner': owner,
+    };
   }
 
   Future<void> resizeActiveMap(int width, int height) async {
@@ -822,10 +1753,25 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+
+    final dependencyDecision =
+        _narrativeEventSourceDependencyGuard.inspectMapRename(
+      registry: project.eventRegistry,
+      mapId: oldId,
+      newMapId: newId,
+    );
+    if (!dependencyDecision.isAllowed) {
+      state = state.copyWith(errorMessage: dependencyDecision.message);
+      return;
+    }
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(renameMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, oldId, newId);
+      if (!_canAdoptMapDiskMutation(lease)) return;
       state = _projectSessionController.afterMapRenamed(
         current: state,
         updatedProject: updatedProject,
@@ -836,8 +1782,13 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error renaming map: $e');
-      state =
-          state.copyWith(errorMessage: 'Impossible de renommer la carte : $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de renommer la carte : $e',
+        );
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -846,10 +1797,24 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+
+    final dependencyDecision =
+        _narrativeEventSourceDependencyGuard.inspectMapDelete(
+      registry: project.eventRegistry,
+      mapId: mapId,
+    );
+    if (!dependencyDecision.isAllowed) {
+      state = state.copyWith(errorMessage: dependencyDecision.message);
+      return;
+    }
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(deleteMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, mapId);
+      if (!_canAdoptMapDiskMutation(lease)) return;
       state = _projectSessionController.afterMapDeleted(
         current: state,
         updatedProject: updatedProject,
@@ -858,8 +1823,13 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error deleting map: $e');
-      state =
-          state.copyWith(errorMessage: 'Impossible de supprimer la carte : $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de supprimer la carte : $e',
+        );
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -868,10 +1838,14 @@ class EditorNotifier extends _$EditorNotifier {
     final fs = _projectWorkspace;
     final project = state.project;
     if (fs == null || project == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(duplicateMapUseCaseProvider);
       final updatedProject = await useCase.execute(fs, project, sourceId);
+      if (!_canAdoptMapDiskMutation(lease)) return;
 
       state = state.copyWith(
         project: updatedProject,
@@ -880,8 +1854,13 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error duplicating map: $e');
-      state =
-          state.copyWith(errorMessage: 'Impossible de dupliquer la carte : $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de dupliquer la carte : $e',
+        );
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -1305,6 +2284,7 @@ class EditorNotifier extends _$EditorNotifier {
     if (project == null || map == null || mapPath == null || layerId == null) {
       return;
     }
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
     final layer = _findLayerById(map, layerId);
     if (layer is! TileLayer) {
       state = state.copyWith(
@@ -1312,6 +2292,8 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
+    final lease = _beginMapDiskMutationLease();
+    if (lease == null) return;
 
     try {
       final useCase = ref.read(assignTilesetToMapUseCaseProvider);
@@ -1322,12 +2304,14 @@ class EditorNotifier extends _$EditorNotifier {
         layerId,
         tilesetId,
       );
+      if (!_canAdoptMapDiskMutation(lease)) return;
       _applyMapMutation(
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
         statusMessage: 'Tileset "$tilesetId" assigned to layer "${layer.name}"',
         updateSavedSnapshot: true,
+        mapWriteLeaseToken: lease.token,
       );
       state = state.copyWith(
         workspaceMode: EditorWorkspaceMode.map,
@@ -1338,8 +2322,13 @@ class EditorNotifier extends _$EditorNotifier {
       );
     } catch (e) {
       debugPrint('EditorNotifier: Error assigning layer tileset: $e');
-      state =
-          state.copyWith(errorMessage: 'Failed to assign layer tileset: $e');
+      if (_canAdoptMapDiskMutation(lease)) {
+        state = state.copyWith(
+          errorMessage: 'Failed to assign layer tileset: $e',
+        );
+      }
+    } finally {
+      _endMapDiskMutationLease(lease);
     }
   }
 
@@ -2752,6 +3741,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void addMapEventAt(GridPos pos) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return;
     final map = state.activeMap;
     if (map == null) return;
     final layerId = _resolveEventPlacementLayerId(map);
@@ -2794,6 +3784,7 @@ class EditorNotifier extends _$EditorNotifier {
   MapEventDefinition? createEventBuilderDraftEventAt({
     required EventPosition position,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return null;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -2846,6 +3837,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   String? ensureEventBuilderObjectLayer() {
+    if (_rejectLegacyMapEventMutationInV2Only()) return null;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -2890,6 +3882,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String eventId,
     required String title,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -2941,6 +3934,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String eventId,
     required MapEventType type,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -2996,6 +3990,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String eventId,
     required String sceneId,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -3071,6 +4066,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String eventId,
     required EventBuilderReusePolicy reusePolicy,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -3137,6 +4133,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String factId,
     required bool expectedValue,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -3225,6 +4222,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String targetEventId,
     required bool expectedConsumed,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -3313,6 +4311,7 @@ class EditorNotifier extends _$EditorNotifier {
     required String eventId,
     required int conditionIndex,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return false;
     final map = state.activeMap;
     if (map == null) {
       state = state.copyWith(
@@ -3436,6 +4435,7 @@ class EditorNotifier extends _$EditorNotifier {
     EventPosition? position,
     List<MapEventPage>? pages,
   }) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return;
     final map = state.activeMap;
     if (map == null) return;
     try {
@@ -3472,6 +4472,7 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void deleteMapEvent(String eventId) {
+    if (_rejectLegacyMapEventMutationInV2Only()) return;
     final map = state.activeMap;
     if (map == null) return;
     try {
@@ -3723,6 +4724,23 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      final current = _entityEditingService.findSelectedEntity(map, entityId);
+      if (current != null) {
+        final dependencyDecision =
+            _narrativeEventSourceDependencyGuard.inspectEntityUpdate(
+          registry: state.project?.eventRegistry,
+          mapId: map.id,
+          current: current,
+          next: current.copyWith(
+            id: id ?? current.id,
+            kind: kind ?? current.kind,
+          ),
+        );
+        if (!dependencyDecision.isAllowed) {
+          state = state.copyWith(errorMessage: dependencyDecision.message);
+          return;
+        }
+      }
       final result = _entityEditingService.updateEntity(
         map,
         entityId: entityId,
@@ -3766,6 +4784,16 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectEntityDelete(
+        registry: state.project?.eventRegistry,
+        mapId: map.id,
+        entityId: entityId,
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = state.copyWith(errorMessage: dependencyDecision.message);
+        return;
+      }
       final updated = _entityEditingService.deleteEntity(
         map,
         entityId: entityId,
@@ -3871,6 +4899,26 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      final current = _triggerEditingService.findSelectedTrigger(
+        map,
+        triggerId,
+      );
+      if (current != null) {
+        final dependencyDecision =
+            _narrativeEventSourceDependencyGuard.inspectTriggerUpdate(
+          registry: state.project?.eventRegistry,
+          mapId: map.id,
+          current: current,
+          next: current.copyWith(
+            id: id ?? current.id,
+            type: type ?? current.type,
+          ),
+        );
+        if (!dependencyDecision.isAllowed) {
+          state = state.copyWith(errorMessage: dependencyDecision.message);
+          return;
+        }
+      }
       final result = _triggerEditingService.updateTrigger(
         map,
         triggerId: triggerId,
@@ -3903,6 +4951,16 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectTriggerDelete(
+        registry: state.project?.eventRegistry,
+        mapId: map.id,
+        triggerId: triggerId,
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = state.copyWith(errorMessage: dependencyDecision.message);
+        return;
+      }
       final updated = _triggerEditingService.deleteTrigger(
         map,
         triggerId: triggerId,
@@ -4253,15 +5311,22 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(errorMessage: 'Aucun warp sélectionné');
       return;
     }
+    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
+    _MapDiskMutationLease? lease;
     try {
       final selectedWarp =
           _warpEditingService.requireSelectedWarp(sourceMap, selectedWarpId);
+      if (selectedWarp.targetMapId.trim() != sourceMap.id) {
+        lease = _beginMapDiskMutationLease();
+        if (lease == null) return;
+      }
       final result = await _warpEditingService.createReciprocalWarp(
         fs,
         project,
         sourceMap: sourceMap,
         sourceWarp: selectedWarp,
       );
+      if (lease != null && !_canAdoptMapDiskMutation(lease)) return;
 
       if (result.targetIsSourceMap) {
         _applyMapMutation(
@@ -4280,7 +5345,12 @@ class EditorNotifier extends _$EditorNotifier {
         );
       }
     } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to create return warp: $e');
+      if (lease == null || _canAdoptMapDiskMutation(lease)) {
+        state =
+            state.copyWith(errorMessage: 'Failed to create return warp: $e');
+      }
+    } finally {
+      if (lease != null) _endMapDiskMutationLease(lease);
     }
   }
 
@@ -4550,6 +5620,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void beginMapStroke() {
+    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+        _rejectMapDiskMutationLease()) {
+      return;
+    }
     state = _mapEditingController.beginStroke(state);
   }
 
@@ -4558,18 +5632,64 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void undoMap() {
-    endMapStroke();
-    final restored = _mapEditingController.undo(state);
-    if (restored == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+        _rejectMapDiskMutationLease()) {
+      return;
+    }
+    final initialState = state;
+    final historyReadyState = _mapEditingController.endStroke(initialState);
+    final restored = _mapEditingController.undo(historyReadyState);
+    if (restored == null) {
+      state = historyReadyState;
+      return;
+    }
+    final currentMap = historyReadyState.activeMap;
+    final candidateMap = restored.activeMap;
+    if (currentMap != null && candidateMap != null) {
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectMapTransition(
+        registry: historyReadyState.project?.eventRegistry,
+        current: currentMap,
+        candidate: candidateMap,
+        operation: 'undo de la map ${currentMap.id}',
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = initialState.copyWith(errorMessage: dependencyDecision.message);
+        return;
+      }
+    }
     state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
       restored,
     );
   }
 
   void redoMap() {
-    endMapStroke();
-    final restored = _mapEditingController.redo(state);
-    if (restored == null) return;
+    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+        _rejectMapDiskMutationLease()) {
+      return;
+    }
+    final initialState = state;
+    final historyReadyState = _mapEditingController.endStroke(initialState);
+    final restored = _mapEditingController.redo(historyReadyState);
+    if (restored == null) {
+      state = historyReadyState;
+      return;
+    }
+    final currentMap = historyReadyState.activeMap;
+    final candidateMap = restored.activeMap;
+    if (currentMap != null && candidateMap != null) {
+      final dependencyDecision =
+          _narrativeEventSourceDependencyGuard.inspectMapTransition(
+        registry: historyReadyState.project?.eventRegistry,
+        current: currentMap,
+        candidate: candidateMap,
+        operation: 'redo de la map ${currentMap.id}',
+      );
+      if (!dependencyDecision.isAllowed) {
+        state = initialState.copyWith(errorMessage: dependencyDecision.message);
+        return;
+      }
+    }
     state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
       restored,
     );
@@ -9196,6 +10316,11 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(panOffset: state.panOffset + delta);
   }
 
+  void setNarrativeEventMapPanOffset(Offset value) {
+    if (state.panOffset == value) return;
+    state = state.copyWith(panOffset: value);
+  }
+
   void zoom(double delta) {
     final newZoom = (state.zoom + delta).clamp(0.1, 5.0);
     state = state.copyWith(zoom: newZoom);
@@ -9214,7 +10339,14 @@ class EditorNotifier extends _$EditorNotifier {
     GridPos? hoveredTile,
     bool updateHoveredTile = false,
     String? statusMessage,
+    Object? mapWriteLeaseToken,
   }) {
+    if (_rejectNarrativeEventSourceCleanupMapMutation() ||
+        _rejectMapDiskMutationLease(
+          allowedLeaseToken: mapWriteLeaseToken,
+        )) {
+      return;
+    }
     final next = _mapEditingController.applyMutation(
       current: state,
       previousMap: previousMap,
@@ -9293,6 +10425,16 @@ class EditorNotifier extends _$EditorNotifier {
       condition: compiled.condition,
       clearCondition: compiled.condition == null,
     );
+  }
+
+  bool _rejectLegacyMapEventMutationInV2Only() {
+    final reason = narrativeEventLegacyAuthoringBlockReason(
+      state.project,
+      kind: NarrativeEventLegacyAuthoringKind.mapEvent,
+    );
+    if (reason == null) return false;
+    state = state.copyWith(errorMessage: reason);
+    return true;
   }
 
   bool _isEventBuilderEditableConditionKind(EventBuilderConditionKind kind) {

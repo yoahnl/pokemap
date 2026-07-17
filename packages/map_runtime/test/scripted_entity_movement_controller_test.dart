@@ -128,6 +128,178 @@ void main() {
       expect(result.failureReason, isNotEmpty);
     });
 
+    test(
+      'rejected unreachable replacement preserves the active move atomically',
+      () {
+        final blockedCells = <GridPos>{};
+        final runtimePositions = <String, GridPos>{
+          'npc_1': const GridPos(x: 1, y: 1),
+        };
+        final startedSteps = <GridPos>[];
+        final controller = ScriptedEntityMovementController(
+          mapSize: const GridSize(width: 6, height: 6),
+          isCellBlocked: (x, y, {ignoreEntityId}) =>
+              blockedCells.contains(GridPos(x: x, y: y)),
+          startEntityStep: ({
+            required entityId,
+            required from,
+            required to,
+            required facing,
+            double? durationSeconds,
+          }) {
+            startedSteps.add(to);
+            return true;
+          },
+          isEntityStepping: (_) => false,
+          onEntityPositionCommitted: (entityId, pos) {
+            runtimePositions[entityId] = pos;
+          },
+        );
+        controller.replaceTrackedEntities(runtimePositions);
+
+        final original = controller.moveEntityTo(
+          entityId: 'npc_1',
+          destination: const GridPos(x: 4, y: 1),
+        );
+        expect(original.state, ScriptedEntityMovementState.moving);
+        blockedCells.add(const GridPos(x: 3, y: 3));
+
+        final rejected = controller.moveEntityTo(
+          entityId: 'npc_1',
+          destination: const GridPos(x: 3, y: 3),
+        );
+
+        expect(rejected.state, ScriptedEntityMovementState.failed);
+        expect(controller.statusOf('npc_1').state,
+            ScriptedEntityMovementState.moving);
+        expect(
+          controller.statusOf('npc_1').targetPos,
+          const GridPos(x: 4, y: 1),
+        );
+
+        for (var i = 0; i < 5; i++) {
+          controller.update(0.016);
+        }
+        expect(runtimePositions['npc_1'], const GridPos(x: 4, y: 1));
+        expect(
+          controller.statusOf('npc_1').state,
+          ScriptedEntityMovementState.completed,
+        );
+        expect(startedSteps, hasLength(3));
+      },
+    );
+
+    test('current-cell replacement terminalizes the previous active move', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+      final startedSteps = <GridPos>[];
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 6, height: 6),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) {
+          startedSteps.add(to);
+          return true;
+        },
+        isEntityStepping: (_) => false,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+
+      expect(
+        controller
+            .moveEntityTo(
+              entityId: 'npc_1',
+              destination: const GridPos(x: 4, y: 1),
+            )
+            .state,
+        ScriptedEntityMovementState.moving,
+      );
+      final replacement = controller.moveEntityTo(
+        entityId: 'npc_1',
+        destination: const GridPos(x: 1, y: 1),
+      );
+
+      expect(replacement.state, ScriptedEntityMovementState.completed);
+      for (var i = 0; i < 5; i++) {
+        controller.update(0.016);
+      }
+      expect(startedSteps, isEmpty);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+      expect(
+        controller.statusOf('npc_1').targetPos,
+        const GridPos(x: 1, y: 1),
+      );
+    });
+
+    test('current-cell replacement preserves an in-flight step commit', () {
+      final runtimePositions = <String, GridPos>{
+        'npc_1': const GridPos(x: 1, y: 1),
+      };
+      final startedSteps = <GridPos>[];
+      var isStepping = false;
+      final controller = ScriptedEntityMovementController(
+        mapSize: const GridSize(width: 6, height: 6),
+        isCellBlocked: (x, y, {ignoreEntityId}) => false,
+        startEntityStep: ({
+          required entityId,
+          required from,
+          required to,
+          required facing,
+          double? durationSeconds,
+        }) {
+          startedSteps.add(to);
+          isStepping = true;
+          return true;
+        },
+        isEntityStepping: (_) => isStepping,
+        onEntityPositionCommitted: (entityId, pos) {
+          runtimePositions[entityId] = pos;
+        },
+      );
+      controller.replaceTrackedEntities(runtimePositions);
+      controller.moveEntityTo(
+        entityId: 'npc_1',
+        destination: const GridPos(x: 4, y: 1),
+      );
+      controller.update(0.016);
+      expect(
+        controller.trackedPositionOf('npc_1'),
+        const GridPos(x: 2, y: 1),
+      );
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+
+      final replacement = controller.moveEntityTo(
+        entityId: 'npc_1',
+        destination: const GridPos(x: 2, y: 1),
+      );
+      expect(replacement.state, ScriptedEntityMovementState.moving);
+
+      controller.update(0.016);
+      expect(runtimePositions['npc_1'], const GridPos(x: 1, y: 1));
+      isStepping = false;
+      controller.update(0.016);
+
+      expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
+      expect(startedSteps, <GridPos>[const GridPos(x: 2, y: 1)]);
+      expect(
+        controller.statusOf('npc_1').state,
+        ScriptedEntityMovementState.completed,
+      );
+      expect(
+        controller.statusOf('npc_1').targetPos,
+        const GridPos(x: 2, y: 1),
+      );
+    });
+
     test('patrol alternates between waypoints in loop', () {
       final blockedCells = <GridPos>{};
       final runtimePositions = <String, GridPos>{
@@ -351,7 +523,9 @@ void main() {
         destination: const GridPos(x: 5, y: 1),
       );
       controller.update(0.016);
-      expect(runtimePositions['npc_1'], const GridPos(x: 2, y: 1));
+      // Le commit différé du pas de patrouille déjà lancé reste la première
+      // opération du remplacement accepté.
+      expect(runtimePositions['npc_1'], const GridPos(x: 3, y: 1));
       controller.update(0.016);
       expect(runtimePositions['npc_1'], const GridPos(x: 4, y: 1));
       controller.update(0.016);

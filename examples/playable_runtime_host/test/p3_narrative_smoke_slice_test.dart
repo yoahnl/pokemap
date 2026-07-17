@@ -56,7 +56,7 @@ void main() {
 
     game.onGameResize(Vector2(320, 240));
     await game.onLoad();
-    game.update(0);
+    await _waitForInitialMapActivation(game);
 
     final loadedState = game.gameStateSnapshot;
     expect(loadedState.currentMapId, _mapId);
@@ -65,6 +65,17 @@ void main() {
     expect(loadedState.progression.completedStepIds, contains(_scenarioStep));
     expect(_isSmokeNpcVisible(bundle, loadedState), isTrue);
   });
+}
+
+Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
+  for (var i = 0; i < 240; i++) {
+    if (!game.debugIsMapActivationDispatchInFlight) {
+      return;
+    }
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for the initial map activation dispatch.');
 }
 
 const _mapId = 'p3_narrative_smoke_map';

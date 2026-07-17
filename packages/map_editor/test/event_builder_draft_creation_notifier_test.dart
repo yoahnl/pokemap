@@ -5,6 +5,42 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
+  group('NS-EVENT-V2 Phase L legacy MapEvent authoring guard', () {
+    test('v2Only rejects direct create, update, and delete mutations', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _map();
+      notifier.state = EditorState(
+        project: _v2OnlyProject(),
+        activeMap: map,
+        activeLayerId: 'objects',
+        selectedMapEventId: 'evt_existing',
+      );
+
+      final created = notifier.createEventBuilderDraftEventAt(
+        position: const EventPosition(layerId: 'objects', x: 2, y: 1),
+      );
+      expect(created, isNull);
+      expect(notifier.state.activeMap, same(map));
+
+      notifier.updateMapEvent(
+        eventId: 'evt_existing',
+        title: 'Mutation interdite',
+      );
+      expect(notifier.state.activeMap, same(map));
+
+      notifier.deleteMapEvent('evt_existing');
+      expect(notifier.state.activeMap, same(map));
+      expect(
+        notifier.state.errorMessage,
+        'Le projet est en mode Event Builder V2 uniquement. '
+        'Les anciens MapEvents doivent être modifiés depuis la migration '
+        'ou l’Event Builder V2.',
+      );
+    });
+  });
+
   group('NS-EVENT-08 EditorNotifier draft event creation', () {
     test('prepares a default object layer when a real imported map has none',
         () {
@@ -1139,6 +1175,26 @@ ProjectManifest _projectWithFacts() {
         label: 'Rival battu',
       ),
     ],
+  );
+}
+
+ProjectManifest _v2OnlyProject() {
+  return ProjectManifest(
+    name: 'Event Builder V2 guard test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_port',
+        name: 'Port Selbrume',
+        relativePath: 'maps/port.json',
+      ),
+    ],
+    tilesets: const [],
+    eventRegistry: NarrativeEventRegistry(
+      schemaVersion: 1,
+      mode: EventSystemMode.v2Only,
+      records: const [],
+      legacyClaims: const [],
+    ),
   );
 }
 

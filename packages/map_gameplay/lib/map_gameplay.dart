@@ -66,6 +66,10 @@ export 'src/new_game_state_builder.dart'
     show createNewGameState, createNewGameStateFromMap;
 export 'src/narrative_event_dispatch_planner.dart'
     show NarrativeEventDispatchPlanner;
+export 'src/narrative_trigger_enter_fronts.dart'
+    show
+        NarrativeTriggerEnterFrontResolution,
+        resolveNarrativeTriggerEnterFronts;
 export 'src/narrative_event_state_transactions.dart'
     show
         NarrativeEventStateTransaction,

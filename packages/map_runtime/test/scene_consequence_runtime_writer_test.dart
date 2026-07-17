@@ -279,7 +279,70 @@ void main() {
       );
     });
 
-    test('does not apply World Rules or complete StorySteps directly', () {
+    test('completeStoryStep completes one canonical step idempotently', () {
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          storylines: [_storyline('story_main', 'step_rival_battle')],
+        ),
+      );
+      final consequence = SceneConsequence.completeStoryStep(
+        stepId: 'step_rival_battle',
+      );
+
+      final result = writer.applyAll(
+        const GameState(saveId: 'save_test'),
+        [consequence, consequence],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      expect(
+        result.gameState.progression.completedStepIds,
+        ['step_rival_battle'],
+      );
+    });
+
+    test('completeStoryStep unknown id fails without mutation', () {
+      const state = GameState(saveId: 'save_test');
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+
+      final result = writer.applyAll(
+        state,
+        [SceneConsequence.completeStoryStep(stepId: 'step_missing')],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.unknownStoryStep,
+      );
+      expect(identical(result.gameState, state), isTrue);
+    });
+
+    test('completeStoryStep ambiguous global id fails without choosing', () {
+      const state = GameState(saveId: 'save_test');
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          storylines: [
+            _storyline('story_a', 'step_duplicate'),
+            _storyline('story_b', 'step_duplicate'),
+          ],
+        ),
+      );
+
+      final result = writer.applyAll(
+        state,
+        [SceneConsequence.completeStoryStep(stepId: 'step_duplicate')],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.ambiguousStoryStep,
+      );
+      expect(identical(result.gameState, state), isTrue);
+    });
+
+    test('does not apply World Rules as a side effect of setFact', () {
       final writer = SceneConsequenceRuntimeWriter(
         project: _project(
           facts: [
@@ -365,6 +428,7 @@ ProjectManifest _project({
   List<ProjectMapEntry> maps = const [],
   List<NarrativeFactDefinition> facts = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  List<StorylineAsset> storylines = const [],
 }) {
   return ProjectManifest(
     name: 'Scene consequence runtime writer test',
@@ -372,6 +436,24 @@ ProjectManifest _project({
     tilesets: const [],
     facts: facts,
     worldRules: worldRules,
+    storylines: storylines,
+  );
+}
+
+StorylineAsset _storyline(String storylineId, String stepId) {
+  return StorylineAsset(
+    id: storylineId,
+    type: StorylineType.main,
+    status: StorylineStatus.active,
+    title: storylineId,
+    chapters: [
+      StorylineChapter(
+        id: '${storylineId}_chapter',
+        title: 'Chapter',
+        order: 0,
+        steps: [StorylineStep(id: stepId, title: 'Step', order: 0)],
+      ),
+    ],
   );
 }
 

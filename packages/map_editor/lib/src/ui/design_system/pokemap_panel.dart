@@ -13,6 +13,7 @@ class PokeMapPanel extends StatelessWidget {
     this.footer,
     this.padding,
     this.expandChild = false,
+    this.borderRadius = 12,
   });
 
   /// Optional widget displayed at the top of the panel (e.g., section title or actions toolbar).
@@ -30,6 +31,10 @@ class PokeMapPanel extends StatelessWidget {
   /// If true, wraps the child in an [Expanded] container. Defaults to false.
   final bool expandChild;
 
+  /// Surface radius. Dense desktop workspaces may use 8 while the default
+  /// remains unchanged for existing screens.
+  final double borderRadius;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
@@ -42,12 +47,13 @@ class PokeMapPanel extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colors.cardSurface,
-        borderRadius: BorderRadius.circular(12), // Standard radius: 12
+        borderRadius: BorderRadius.circular(borderRadius),
         border: Border.all(color: colors.borderSubtle, width: 1),
       ),
       child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(11), // Inset clip to prevent background spill
+        borderRadius: BorderRadius.circular(
+          (borderRadius - 1).clamp(0, double.infinity).toDouble(),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: expandChild ? MainAxisSize.max : MainAxisSize.min,

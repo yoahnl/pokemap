@@ -17,7 +17,26 @@ void main() {
       );
     }
 
-    testWidgets('PokeMapSidebarItem pumps correctly under light & dark theme', (tester) async {
+    testWidgets('compact mode keeps dense authoring rows at 34 pixels',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapSidebarItem(
+            label: 'Rencontre rival au port',
+            compact: true,
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(tester.getSize(find.byType(PokeMapSidebarItem)).height, 34);
+      expect(find.text('Rencontre rival au port'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('PokeMapSidebarItem pumps correctly under light & dark theme',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),
@@ -44,7 +63,8 @@ void main() {
       expect(find.text('Home'), findsOneWidget);
     });
 
-    testWidgets('PokeMapSidebarItem selected displays active state styles', (tester) async {
+    testWidgets('PokeMapSidebarItem selected displays active state styles',
+        (tester) async {
       late BuildContext capturedContext;
 
       await tester.pumpWidget(
@@ -70,11 +90,13 @@ void main() {
       expect(textFinder, findsOneWidget);
 
       final textWidget = tester.widget<Text>(textFinder);
-      expect(textWidget.style?.color, equals(capturedContext.pokeMapColors.brandPrimary));
-      expect(textWidget.style?.fontWeight, equals(FontWeight.w600));
+      expect(textWidget.style?.color,
+          equals(capturedContext.pokeMapColors.brandPrimary));
+      expect(textWidget.style?.fontWeight, equals(FontWeight.w700));
     });
 
-    testWidgets('PokeMapSidebarItem disabled does not trigger onTap', (tester) async {
+    testWidgets('PokeMapSidebarItem disabled does not trigger onTap',
+        (tester) async {
       bool tapped = false;
 
       await tester.pumpWidget(
@@ -97,7 +119,8 @@ void main() {
       expect(tapped, isFalse);
     });
 
-    testWidgets('PokeMapSidebarItem provides Semantics information', (tester) async {
+    testWidgets('PokeMapSidebarItem provides Semantics information',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),
@@ -109,12 +132,11 @@ void main() {
         ),
       );
 
-      final semanticsFinder = find.byWidgetPredicate(
-        (widget) => widget is Semantics &&
-                    widget.properties.button == true &&
-                    widget.properties.selected == true &&
-                    widget.properties.enabled == true
-      );
+      final semanticsFinder = find.byWidgetPredicate((widget) =>
+          widget is Semantics &&
+          widget.properties.button == true &&
+          widget.properties.selected == true &&
+          widget.properties.enabled == true);
       expect(semanticsFinder, findsOneWidget);
     });
   });

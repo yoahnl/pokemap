@@ -668,6 +668,7 @@ class ProjectElementEntry with _$ProjectElementEntry {
 
 @freezed
 class ProjectTerrainPreset with _$ProjectTerrainPreset {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectTerrainPreset({
     required String id,
     required String name,
@@ -702,6 +703,7 @@ class TerrainPresetVariant with _$TerrainPresetVariant {
 
 @freezed
 class ProjectPathPreset with _$ProjectPathPreset {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectPathPreset({
     required String id,
     required String name,

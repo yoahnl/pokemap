@@ -623,7 +623,7 @@ Map<String, dynamic> _$$ProjectTerrainPresetImplToJson(
       'terrainType': _$TerrainTypeEnumMap[instance.terrainType]!,
       'categoryId': instance.categoryId,
       'tilesetId': instance.tilesetId,
-      'variants': instance.variants,
+      'variants': instance.variants.map((e) => e.toJson()).toList(),
       'sortOrder': instance.sortOrder,
     };
 
@@ -690,7 +690,7 @@ Map<String, dynamic> _$$ProjectPathPresetImplToJson(
       'surfaceKind': _$PathSurfaceKindEnumMap[instance.surfaceKind]!,
       'categoryId': instance.categoryId,
       'tilesetId': instance.tilesetId,
-      'variants': instance.variants,
+      'variants': instance.variants.map((e) => e.toJson()).toList(),
       'sortOrder': instance.sortOrder,
     };
 

@@ -93,11 +93,18 @@ void _emitMeasurement(String operation, int volume, List<int> samples) {
   final median = sorted.length.isOdd
       ? sorted[sorted.length ~/ 2].toDouble()
       : (sorted[sorted.length ~/ 2 - 1] + sorted[sorted.length ~/ 2]) / 2;
+  final p50 = median;
+  final p95Index = (sorted.length * 0.95).ceil() - 1;
+  final p95 = sorted[p95Index];
+  // Phase L records measurements here; no performance budget is configured.
   stdout.writeln(
     'NS_EVENT_V2_PHASE_E_PERF operation=$operation volume=$volume '
     'iterations=${sorted.length} mean_us=${mean.toStringAsFixed(1)} '
-    'median_us=${median.toStringAsFixed(1)} mode=jit '
+    'median_us=${median.toStringAsFixed(1)} '
+    'p50_us=${p50.toStringAsFixed(1)} '
+    'p95_us=${p95.toStringAsFixed(1)} mode=jit '
     'catalog_build=excluded hashing=included '
-    'complexity=linear_in_scanned_bytes_and_artifacts aot=not_measured',
+    'complexity=linear_in_scanned_bytes_and_artifacts aot=not_measured '
+    'threshold=unconfigured',
   );
 }

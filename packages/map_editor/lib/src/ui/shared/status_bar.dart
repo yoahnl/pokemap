@@ -92,16 +92,17 @@ class _StatusBarState extends ConsumerState<StatusBar> {
             : colors.brandPrimaryBorder);
     final pillText = hasError
         ? colors.error
-        : (state.isProjectDirty
-            ? colors.warning
-            : colors.brandPrimary);
+        : (state.isProjectDirty ? colors.warning : colors.brandPrimary);
     final pillIcon = hasError
         ? CupertinoIcons.exclamationmark_triangle_fill
         : CupertinoIcons.sparkles;
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 1100;
+        final wideLayoutThreshold = 1100 +
+            (activeMap == null ? 0 : 300) +
+            (state.isProjectDirty ? 180 : 0);
+        final isWide = constraints.maxWidth >= wideLayoutThreshold;
 
         return Container(
           height: StatusBar.defaultHeight,
@@ -120,7 +121,8 @@ class _StatusBarState extends ConsumerState<StatusBar> {
               // 1. Status message pill
               Container(
                 constraints: const BoxConstraints(maxWidth: 220),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: pillBg,
                   borderRadius: BorderRadius.circular(8),
@@ -165,7 +167,9 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: state.isProjectDirty ? colors.warning : colors.success,
+                        color: state.isProjectDirty
+                            ? colors.warning
+                            : colors.success,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -214,7 +218,9 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                         shape: BoxShape.circle,
                         color: hasError
                             ? colors.error
-                            : (state.isProjectDirty ? colors.warning : colors.success),
+                            : (state.isProjectDirty
+                                ? colors.warning
+                                : colors.success),
                       ),
                     ),
                     const SizedBox(width: 6),

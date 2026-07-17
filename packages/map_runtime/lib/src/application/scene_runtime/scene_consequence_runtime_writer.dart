@@ -58,6 +58,10 @@ final class SceneConsequenceRuntimeWriter {
           gameState,
           consequence as SceneMarkEventConsumedConsequence,
         ),
+      SceneConsequenceKind.completeStoryStep => _applyCompleteStoryStep(
+          gameState,
+          consequence as SceneCompleteStoryStepConsequence,
+        ),
     };
   }
 
@@ -112,6 +116,35 @@ final class SceneConsequenceRuntimeWriter {
     }
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.markEventConsumed(gameState, consequence.eventId),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyCompleteStoryStep(
+    GameState gameState,
+    SceneCompleteStoryStepConsequence consequence,
+  ) {
+    final matches = <StorylineStep>[
+      for (final storyline in project.storylines)
+        for (final chapter in storyline.chapters)
+          for (final step in chapter.steps)
+            if (step.id == consequence.stepId) step,
+    ];
+    if (matches.isEmpty) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownStoryStep,
+        'Scene consequence completeStoryStep references unknown Story Step '
+        '"${consequence.stepId}".',
+      );
+    }
+    if (matches.length > 1) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.ambiguousStoryStep,
+        'Scene consequence completeStoryStep references ambiguous Story Step '
+        '"${consequence.stepId}".',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.completeStep(gameState, consequence.stepId),
     );
   }
 }

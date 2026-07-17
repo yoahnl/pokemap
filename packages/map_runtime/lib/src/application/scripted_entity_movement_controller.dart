@@ -147,7 +147,8 @@ class ScriptedEntityMovementController {
 
   /// Lance un déplacement ponctuel vers [destination].
   ///
-  /// - remplace une éventuelle commande de déplacement déjà active;
+  /// - remplace une commande active uniquement après planification acceptée;
+  /// - un rejet conserve atomiquement la commande active et son statut;
   /// - ne supprime PAS la patrouille: celle-ci reprendra ensuite.
   ScriptedEntityMovementStatus moveEntityTo({
     required String entityId,
@@ -165,6 +166,7 @@ class ScriptedEntityMovementController {
         reason: 'Entity "$entityId" is not tracked.',
       );
     }
+    final replacedTask = _activeTasks[entityId];
 
     final pathResult = _pathfinder.findPath(
       bounds: mapSize,
@@ -187,6 +189,7 @@ class ScriptedEntityMovementController {
         currentPos: current,
         targetPos: destination,
         reason: pathResult.failureReason ?? 'No path found.',
+        updateStatus: replacedTask == null,
       );
     }
 
@@ -195,6 +198,24 @@ class ScriptedEntityMovementController {
       '[npc_patrol] path result entity=$entityId target=(${destination.x},${destination.y}) nodes=${pathResult.path.length} steps=${steps.length}',
     );
     if (steps.isEmpty) {
+      final pendingRuntimeCommit = replacedTask?.pendingRuntimeCommit;
+      if (pendingRuntimeCommit != null || _isEntityStepping(entityId)) {
+        _activeTasks[entityId] = _MoveTask(
+          destination: destination,
+          steps: steps,
+          nextStepIndex: 0,
+          stepDurationSeconds: stepDurationSeconds,
+        )..pendingRuntimeCommit = pendingRuntimeCommit;
+        final status = ScriptedEntityMovementStatus(
+          entityId: entityId,
+          state: ScriptedEntityMovementState.moving,
+          currentPos: current,
+          targetPos: destination,
+        );
+        _statusByEntityId[entityId] = status;
+        return status;
+      }
+      _activeTasks.remove(entityId);
       return _complete(
         entityId: entityId,
         currentPos: current,
@@ -207,7 +228,7 @@ class ScriptedEntityMovementController {
       steps: steps,
       nextStepIndex: 0,
       stepDurationSeconds: stepDurationSeconds,
-    );
+    )..pendingRuntimeCommit = replacedTask?.pendingRuntimeCommit;
 
     final status = ScriptedEntityMovementStatus(
       entityId: entityId,
@@ -300,8 +321,24 @@ class ScriptedEntityMovementController {
     _tickPatrols(dt);
   }
 
-  void _tickActiveMoves() {
-    final entityIds = _activeTasks.keys.toList(growable: false)..sort();
+  /// Advances only one explicitly owned scripted move.
+  ///
+  /// This is used while a save-restore activation fence is holding all new
+  /// overworld work: the continuation that already owns the fence may finish,
+  /// but unrelated moves and patrols must remain frozen.
+  void updateOwnedMove(double dt, String entityId) {
+    assert(dt >= 0);
+    final normalized = entityId.trim();
+    if (normalized.isEmpty || !_activeTasks.containsKey(normalized)) {
+      return;
+    }
+    _tickActiveMoves(onlyEntityId: normalized);
+  }
+
+  void _tickActiveMoves({String? onlyEntityId}) {
+    final entityIds = onlyEntityId == null
+        ? (_activeTasks.keys.toList(growable: false)..sort())
+        : <String>[onlyEntityId];
     for (final entityId in entityIds) {
       final task = _activeTasks[entityId];
       if (task == null) {
@@ -557,6 +594,7 @@ class ScriptedEntityMovementController {
     required GridPos currentPos,
     GridPos? targetPos,
     required String reason,
+    bool updateStatus = true,
   }) {
     final status = ScriptedEntityMovementStatus(
       entityId: entityId,
@@ -565,7 +603,9 @@ class ScriptedEntityMovementController {
       targetPos: targetPos,
       failureReason: reason,
     );
-    _statusByEntityId[entityId] = status;
+    if (updateStatus) {
+      _statusByEntityId[entityId] = status;
+    }
     return status;
   }
 }

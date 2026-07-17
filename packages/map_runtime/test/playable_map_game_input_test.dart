@@ -22,6 +22,11 @@ import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:path/path.dart' as p;
 
+const _warpTargetMapEnterFlag = 'test.warp.target.map_enter';
+const _failedWarpTargetMapEnterFlag = 'test.warp.failed_target.map_enter';
+const _failedConnectionTargetMapEnterFlag =
+    'test.connection.failed_target.map_enter';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -157,6 +162,7 @@ void main() {
         isTrue,
       );
 
+      await _pumpUntil(game, () => game.debugHasPendingDialogueLoad);
       expect(game.debugHasPendingDialogueLoad, isTrue);
       expect(game.debugIsGameplayInputLocked, isTrue);
       expect(game.debugFlowPhaseName, 'blockingInteraction');
@@ -240,6 +246,7 @@ void main() {
         isTrue,
       );
 
+      await _pumpUntil(game, () => game.debugHasPendingDialogueLoad);
       expect(game.debugHasPendingDialogueLoad, isTrue);
       expect(game.debugFlowPhaseName, 'blockingInteraction');
 
@@ -331,6 +338,7 @@ void main() {
         isTrue,
       );
 
+      await _pumpUntil(game, () => game.debugHasPendingDialogueLoad);
       expect(game.debugHasPendingDialogueLoad, isTrue);
       expect(game.debugIsGameplayInputLocked, isTrue);
       expect(game.debugFlowPhaseName, 'blockingInteraction');
@@ -412,6 +420,7 @@ void main() {
         ),
         isTrue,
       );
+      await _pumpUntil(game, () => game.debugHasPendingDialogueLoad);
       expect(loadCount, 1);
       expect(game.debugHasPendingDialogueLoad, isTrue);
 
@@ -474,6 +483,7 @@ void main() {
         ),
         isTrue,
       );
+      await _pumpUntil(game, () => game.debugHasPendingDialogueLoad);
       expect(game.debugHasPendingDialogueLoad, isTrue);
 
       expect(
@@ -993,6 +1003,13 @@ void main() {
           _warpSourceMap(),
           _targetMap(id: 'warp_target'),
         ],
+        scenarios: <ScenarioAsset>[
+          _mapEnterFlagScenario(
+            id: 'warp_target_map_enter_scenario',
+            mapId: 'warp_target',
+            flagName: _warpTargetMapEnterFlag,
+          ),
+        ],
       );
       final bundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
@@ -1013,7 +1030,9 @@ void main() {
             game.gameStateSnapshot.currentMapId == 'warp_target' &&
             game.debugFlowPhaseName == 'overworld' &&
             !game.debugIsPlayerStepping &&
-            !game.debugHasPendingMapTransition,
+            !game.debugHasPendingMapTransition &&
+            game.gameStateSnapshot.storyFlags.activeFlags
+                .contains(_warpTargetMapEnterFlag),
       );
 
       expect(game.gameStateSnapshot.currentMapId, 'warp_target');
@@ -1021,6 +1040,139 @@ void main() {
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 1));
       expect(
           game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+      expect(game.debugCompletedMapActivationDispatchCount, 2);
+      expect(
+        game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.warp,
+      );
+      expect(game.debugLastCompletedMapActivation?.mapId, 'warp_target');
+      expect(
+        game.gameStateSnapshot.storyFlags.activeFlags,
+        contains(_warpTargetMapEnterFlag),
+      );
+    });
+
+    test('out-of-bounds warp target rolls back without map activation',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_warp_out_of_bounds_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _warpOutOfBoundsSourceMap(),
+          _targetMap(id: 'warp_out_of_bounds_target'),
+        ],
+        scenarios: <ScenarioAsset>[
+          _mapEnterFlagScenario(
+            id: 'warp_out_of_bounds_target_map_enter',
+            mapId: 'warp_out_of_bounds_target',
+            flagName: _failedWarpTargetMapEnterFlag,
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'warp_out_of_bounds_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      expect(game.debugCompletedMapActivationDispatchCount, 1);
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugNotificationText == 'Warp failed' &&
+            !game.debugHasPendingMapTransition,
+      );
+
+      expect(
+        game.gameStateSnapshot.currentMapId,
+        'warp_out_of_bounds_source',
+      );
+      expect(game.debugNotificationText, 'Warp failed');
+      expect(game.debugCompletedMapActivationDispatchCount, 1);
+      expect(
+        game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.initialBoot,
+      );
+      expect(
+        game.debugLastCompletedMapActivation?.mapId,
+        'warp_out_of_bounds_source',
+      );
+      expect(
+        game.gameStateSnapshot.storyFlags.activeFlags,
+        isNot(contains(_failedWarpTargetMapEnterFlag)),
+      );
+    });
+
+    test('blocked connection entry keeps the initial map activation', () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_blocked_activation_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _blockedConnectionTargetMap(),
+        ],
+        scenarios: <ScenarioAsset>[
+          _mapEnterFlagScenario(
+            id: 'blocked_connection_target_map_enter',
+            mapId: 'connection_target',
+            flagName: _failedConnectionTargetMapEnterFlag,
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _pumpUntil(
+        game,
+        () => game.debugNotificationText == 'Connection blocked',
+      );
+
+      expect(game.gameStateSnapshot.currentMapId, 'connection_source');
+      expect(game.debugNotificationText, 'Connection blocked');
+      expect(game.debugCompletedMapActivationDispatchCount, 1);
+      expect(
+        game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.initialBoot,
+      );
+      expect(
+        game.debugLastCompletedMapActivation?.mapId,
+        'connection_source',
+      );
+      expect(
+        game.gameStateSnapshot.storyFlags.activeFlags,
+        isNot(contains(_failedConnectionTargetMapEnterFlag)),
+      );
     });
 
     test(
@@ -1071,6 +1223,11 @@ void main() {
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 0, y: 0));
       expect(
           game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+      expect(game.debugCompletedMapActivationDispatchCount, 2);
+      expect(
+        game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.connection,
+      );
     });
 
     test(
@@ -2205,6 +2362,18 @@ class _TestPlayableMapGame extends PlayableMapGame {
 
   @override
   bool get isLoaded => true;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    for (var i = 0; i < 240; i++) {
+      if (!debugIsMapActivationDispatchInFlight) {
+        return;
+      }
+      await Future<void>.delayed(Duration.zero);
+    }
+    fail('Timed out waiting for the initial map activation dispatch.');
+  }
 }
 
 RuntimeMapBundle _baseBundle() {
@@ -2423,6 +2592,7 @@ Future<String> _writeRuntimeProject(
   List<ProjectScriptEntry> scripts = const <ProjectScriptEntry>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
+  List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
   ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(),
 }) async {
   final manifest = ProjectManifest(
@@ -2443,6 +2613,7 @@ Future<String> _writeRuntimeProject(
     scripts: scripts,
     dialogues: dialogues,
     characters: characters,
+    scenarios: scenarios,
     pokemon: pokemonConfig,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
@@ -3108,6 +3279,41 @@ MapData _warpSourceMap() {
   );
 }
 
+MapData _warpOutOfBoundsSourceMap() {
+  return const MapData(
+    id: 'warp_out_of_bounds_source',
+    name: 'Warp Out Of Bounds Source',
+    size: GridSize(width: 3, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_warp_out_of_bounds_source',
+        name: 'Spawn Warp Out Of Bounds Source',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    warps: <MapWarp>[
+      MapWarp(
+        id: 'warp_out_of_bounds',
+        pos: GridPos(x: 1, y: 0),
+        targetMapId: 'warp_out_of_bounds_target',
+        targetPos: GridPos(x: 99, y: 99),
+      ),
+    ],
+    mapMetadata: MapMetadata(
+      defaultSpawnId: 'spawn_warp_out_of_bounds_source',
+    ),
+  );
+}
+
 MapData _connectionSourceMap() {
   return const MapData(
     id: 'connection_source',
@@ -3322,6 +3528,91 @@ MapData _targetMap({
       ),
     ],
     mapMetadata: const MapMetadata(defaultSpawnId: 'spawn_target'),
+  );
+}
+
+MapData _blockedConnectionTargetMap() {
+  return const MapData(
+    id: 'connection_target',
+    name: 'Blocked Connection Target',
+    size: GridSize(width: 3, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_blocked_connection_target',
+        name: 'Spawn Blocked Connection Target',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'connection_entry_blocker',
+        name: 'Connection Entry Blocker',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: true,
+        npc: MapEntityNpcData(displayName: 'Connection Entry Blocker'),
+      ),
+    ],
+    mapMetadata: MapMetadata(
+      defaultSpawnId: 'spawn_blocked_connection_target',
+    ),
+  );
+}
+
+ScenarioAsset _mapEnterFlagScenario({
+  required String id,
+  required String mapId,
+  required String flagName,
+}) {
+  return ScenarioAsset(
+    id: id,
+    name: 'Map enter $mapId',
+    scope: ScenarioScope.localEventFlow,
+    entryNodeId: 'start',
+    nodes: <ScenarioNode>[
+      const ScenarioNode(id: 'start', type: ScenarioNodeType.start),
+      ScenarioNode(
+        id: 'source_map_enter',
+        type: ScenarioNodeType.reference,
+        payload: const ScenarioNodePayload(
+          actionKind: kScenarioSourceMapEnter,
+        ),
+        binding: ScenarioNodeBinding(mapId: mapId),
+      ),
+      ScenarioNode(
+        id: 'set_flag',
+        type: ScenarioNodeType.action,
+        payload: const ScenarioNodePayload(
+          actionKind: kScenarioActionSetFlag,
+        ),
+        binding: ScenarioNodeBinding(flagName: flagName),
+      ),
+      const ScenarioNode(id: 'end', type: ScenarioNodeType.end),
+    ],
+    edges: const <ScenarioEdge>[
+      ScenarioEdge(
+        id: 'start_to_source',
+        fromNodeId: 'start',
+        toNodeId: 'source_map_enter',
+      ),
+      ScenarioEdge(
+        id: 'source_to_flag',
+        fromNodeId: 'source_map_enter',
+        toNodeId: 'set_flag',
+      ),
+      ScenarioEdge(
+        id: 'flag_to_end',
+        fromNodeId: 'set_flag',
+        toNodeId: 'end',
+      ),
+    ],
   );
 }
 

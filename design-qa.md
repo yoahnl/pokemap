@@ -1,78 +1,104 @@
-# NS-EVENT-41-bis Design QA
+# Event Builder V2 — Phase K Design QA
 
-source visual truth path: `/Users/karim/Downloads/ChatGPT Image Jul 10, 2026, 11_00_20 AM.png`
+Date : 2026-07-17
 
-implementation screenshot paths:
+Lot : `NS-EVENT-V2 Phase K — Pixel-Perfect Visual Closure`
 
-- `reports/narrativeStudio/events/screenshots/ns_event_41_bis_truthful_stepper_collapsed_v0.png`
-- `reports/narrativeStudio/events/screenshots/ns_event_41_bis_secondary_details_expanded_v0.png`
-- `reports/narrativeStudio/events/screenshots/ns_event_41_bis_reference_vs_collapsed_v0.png`
-- `reports/narrativeStudio/events/screenshots/ns_event_41_bis_reference_vs_expanded_v0.png`
+Jalons : `V2-38`, `V2-39`, `V2-40`
+Résultat technique : **PASSED pour le contrat produit supporté**
 
-viewport:
+Statut mission K : **PLANNED — tableau maître `NOT STARTED`**
 
-- source: 1586 x 992
-- collapsed implementation: 1680 x 1400
-- expanded implementation: 1680 x 1500
+Décision visuelle : **acceptation utilisateur des écarts P2 requise**
 
-state:
+## Résumé
 
-- selected Event Builder event with a valid position, trigger, optional zero conditions, linked Scene, one-shot lifecycle requiring attention, passive World Rule projection, and no blocking diagnostic;
-- collapsed comparison uses the simple default state;
-- expanded comparison uses the same event with the single read-only detail disclosure open.
+La preuve finale ne repose plus sur le seul harnais visuel. Elle monte la vraie
+`EditorShellPage`, traverse la route Narrative Studio → Events, recharge une
+fixture V2-only sur disque et capture le produit complet au viewport normatif
+1672 × 941. La liste projet, la bibliothèque, le flow Event, les conditions
+détaillées, la Scene en lecture seule, les résultats, conséquences, règles du
+monde et l’inspecteur sont alimentés par les projections de production.
 
-## Full-view comparison evidence
+Le défaut étroit réel `BOTTOM OVERFLOWED BY 70 PIXELS` est fermé : le gate
+responsive intervient maintenant avant les notices et les watches coûteux. Le
+nouveau test produit à 800 × 632 ne relève ni overflow, ni loader, ni notice
+masquant l’état étroit.
 
-The combined comparison images place the source and implementation in one raster input. The implementation preserves the source hierarchy relevant to this lot: Narrative sidebar, event list, guided central configuration, compact inspector, five-step progression, and one local detail disclosure. The reference's numbered callouts, explanatory footer, and global top chrome are presentation annotations or shell work outside NS-EVENT-41-bis and were not copied into product UI.
+Ce PASS technique ne signifie pas que le chrome global PokeMap est redessiné au pixel près
+comme la maquette. Le shell existant du produit est conservé ; la composition et
+la hiérarchie de l’Event Builder reprennent la north star à l’intérieur de ce
+shell. Il ne signifie pas non plus que la Phase L est GO.
 
-The collapsed state keeps the three-zone body, shows an amber Behavior step with `À vérifier`, keeps projected consequences compact, and places `Voir le détail` in the consequences header. The expanded state keeps the same columns and opens one central `Détails avancés` surface without creating a library or inspector column.
+## Artefacts normatifs
 
-## Focused region comparison evidence
+| Artefact | Dimensions | SHA-256 |
+|---|---:|---|
+| North star fournie | 1672 × 941 | `2072679b3b861a63c068628450705d39e70ad59dc5067e0a0bf91c0bcbe8c885` |
+| Produit final, shell réel | 1672 × 941 | `eda012eafc3ecbdafd17396c2b7810005f1687a9796f7cf58d93ae34dde1d673` |
+| Côte-à-côte final | 3344 × 941 | `ba8f2d3e8f749ca5bb3da437f7ef0771452f74cb95f4a52d2753ecebac54199f` |
+| Overlay final 50 % | 1672 × 941 | `7153dbd5ae3be7e256694b29e5718e69f4d85f424f0da1152c202804c8e1f589` |
 
-- Stepper: status is no longer color-only. Complete uses a check icon, attention uses an amber warning icon plus `À vérifier`, incomplete keeps a neutral numbered step, and blocking uses a red error icon plus `À corriger`.
-- Projection summary: world-impact ownership now reads `Projection en lecture seule`; `Défini dans la scène` appears only inside Scene outcome detail; World Rules retain `Projection passive`.
-- Secondary detail: Scene issues, projected sources, concerned rules, and diagnostics remain readable at normal type sizes and expose no edit controls.
-- Icons: the Cupertino package font is loaded for golden capture; placeholder glyph squares from prior gates are gone.
-- Typography, colors, spacing, and surfaces use the existing PokeMap theme and design-system primitives.
+Chemins :
 
-## Findings
+- `packages/map_editor/test/goldens/event_builder_v2/phase_1/event_builder_v2_full_product_route_1672x941.png` ;
+- `reports/narrativeStudio/events/phase_k_product_route_evidence/product_after_1672x941.png` ;
+- `reports/narrativeStudio/events/phase_k_product_route_evidence/reference_vs_product_after_1672x941.png` ;
+- `reports/narrativeStudio/events/phase_k_product_route_evidence/reference_vs_product_after_overlay_50.png`.
 
-No actionable P0, P1, or P2 mismatch remains inside NS-EVENT-41-bis scope.
+## Revue par zone
 
-## Comparison history
+| Zone | Verdict | Preuve |
+|---|---|---|
+| Shell et navigation | PASS | vraie `EditorShellPage`, vraie route Events, explorer global replié |
+| Liste projet | PASS | groupes Map/global/brouillons/références/legacy et statuts réels |
+| Bibliothèque | PASS | déclencheurs, conditions et projections Scene séparés |
+| Éditeur | PASS | source, deux conditions, Scene, trois résultats, deux conséquences, règle monde |
+| Inspecteur | PASS | source dérivée, conditions ordonnées, impact Scene, réutilisation et priorité |
+| Responsive | PASS | 800 étroit + matrice 1280/1440/1480/1672/1920 + texte 125 % |
+| Ownership | PASS | `Event ≠ Scene`, aucune fausse poignée, drop zone ou branche authorable |
 
-### Iteration 1
+## Findings fermés
 
-- [P1] Expanded Diagnostics empty state inherited an oversized red text style.
-- [P2] The first expanded capture used an unsuitable scroll/capture target and produced large black regions.
-- [P2] Cupertino icons rendered as placeholder squares.
+- P0 : preuve produit même shell/même état remplacée par le golden full-shell ;
+- P0 : overflow étroit de 70 px fermé et couvert par régression ;
+- P1 : conditions projetées individuellement avec labels humains, ordre et
+  résolution, sans fuite d’ID brut ;
+- P1 : priorité, ordre et nombre de concurrents actifs visibles ;
+- P1 : résultats, conséquences et changements du monde visibles depuis la vraie
+  Scene, en lecture seule ;
+- P2 : densité de l’inspecteur et du flow resserrée pour conserver les données
+  prioritaires dans le viewport cible.
 
-Fixes:
+## Écarts intentionnels soumis à acceptation utilisateur
 
-- applied explicit PokeMap typography tokens to the Diagnostics empty state;
-- changed the expanded gate to a deterministic central scroll at a taller desktop surface while retaining all three columns;
-- loaded the effective packaged Cupertino icon font family in the screenshot helper;
-- translated the remaining English lifecycle projection reason and normalized projection labels.
+- le shell global actuel de PokeMap reste celui du produit ;
+- aucune `Réinitialisation` n’est affichée : le modèle/runtime ne porte pas ce
+  contrat ;
+- aucune branche résultat → réaction n’est inventée : la projection courante
+  expose une liste déterministe, pas un mapping canonique par outcome ;
+- les conséquences restent Scene-owned et s’ouvrent via `Ouvrir la Scene` ;
+- la map est dérivée de la source physique et n’est pas un sélecteur indépendant.
 
-Post-fix evidence:
+## Validation fraîche
 
-- `ns_event_41_bis_truthful_stepper_collapsed_v0.png`
-- `ns_event_41_bis_secondary_details_expanded_v0.png`
-- both combined comparison rasters listed above.
+- read model core : `+16`, `All tests passed!` ;
+- route produit/workspace/responsive/guards : `+66`, `All tests passed!` ;
+- performance incrémentale : p50 `11624 µs`, p95 `13410 µs`, budget p95
+  `36000 µs` ;
+- analyse ciblée core : `No issues found!` ;
+- analyse ciblée des fichiers de fermeture : aucune erreur ni warning après
+  correction des six infos locales ;
+- build editor macOS debug :
+  `✓ Built build/macos/Build/Products/Debug/map_editor.app`.
 
-## Required fidelity surfaces
+## Auto-critique
 
-- Fonts and typography: passed; normal UI scale, stable hierarchy, no oversized or clipped detail text.
-- Spacing and layout rhythm: passed for this lot; disclosure remains in the central scroll and columns do not move.
-- Colors and visual tokens: passed; semantic success, warning, error, info, and neutral states use PokeMap tokens.
-- Image quality and asset fidelity: passed; no raster product assets were required, existing logo/icon assets are preserved, and icon glyphs render correctly.
-- Copy and content: passed; the stepper avoids runtime certification claims and projection ownership wording is scoped to the true source.
-- Interaction and accessibility: passed; the disclosure opens, closes, resets on event change, and every non-complete state has text/icon semantics beyond color.
-
-## Follow-up polish
-
-- [P3] Full-viewport density still differs from the compact 990 px reference; this is explicitly reserved for NS-EVENT-42.
-- [P3] The Visual Gates capture the deterministic Flutter workspace fixture rather than a manually loaded macOS desktop project.
-- [P3] The reference's global top shell and annotation footer remain intentionally outside this lot.
-
-final result: passed
+L’overlay reste visiblement décalé dans le chrome global parce que la north star
+et l’application courante n’utilisent pas la même barre d’outils. Le qualifier
+de pixel-identique serait faux. En revanche, les blocs métier, leur ordre, leur
+densité et leurs données correspondent désormais au contrat réalisable sans
+inventer de sémantique. La QA technique K est passée pour la feature et son
+shell produit réel. La preuve ne change pas le statut formel `PLANNED` tant que
+la séquence S0→J et l’acceptation utilisateur des écarts P2 ne sont pas
+fermées. La readiness globale reste gouvernée séparément par la Phase L.

@@ -1008,6 +1008,12 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'consequence.eventId',
         'markEventConsumed consequence requires an event id.',
       );
+    case SceneCompleteStoryStepConsequence():
+      _trimRequired(
+        consequence.stepId,
+        'consequence.stepId',
+        'completeStoryStep consequence requires a Story Step id.',
+      );
     case _:
       throw ArgumentError.value(
         consequence,
@@ -1293,6 +1299,7 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
   return switch (consequence) {
     SceneSetFactConsequence() => 'Définir un Fact',
     SceneMarkEventConsumedConsequence() => 'Marquer event consommé',
+    SceneCompleteStoryStepConsequence() => 'Terminer une étape narrative',
     _ => 'Conséquence',
   };
 }

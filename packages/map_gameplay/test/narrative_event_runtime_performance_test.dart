@@ -468,6 +468,7 @@ void _emitStats({
     'PERF component=$component case=$caseName volume=$volume '
     'mean_us=${stats.meanMicroseconds.toStringAsFixed(2)} '
     'median_us=${stats.medianMicroseconds.toStringAsFixed(2)} '
+    'p50_us=${stats.medianMicroseconds.toStringAsFixed(2)} '
     'p95_us=${stats.p95Microseconds.toStringAsFixed(2)} '
     'iterations=${stats.iterations} warmup=${stats.warmup} mode=$mode '
     'complexity=$complexity approx_memory=estimated:${approximateBytes}B',

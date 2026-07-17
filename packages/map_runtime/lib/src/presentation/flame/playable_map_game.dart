@@ -29,8 +29,15 @@ import '../../application/field_move_dialogue.dart';
 import '../../application/global_story_chapter_runtime.dart';
 import '../../application/load_dialogue_content.dart';
 import '../../application/load_runtime_map_bundle.dart';
+import '../../application/map_activation.dart';
 import '../../application/map_entity_runtime_predicate_evaluator.dart';
+import '../../application/map_enter_production_dispatch_bridge.dart';
 import '../../application/movement_feedback.dart';
+import '../../application/narrative_event_runtime_snapshot.dart';
+import '../../application/narrative_runtime_activity_gate.dart';
+import '../../application/narrative_runtime_activity_port.dart';
+import '../../application/narrative_scene_runtime_execution.dart';
+import '../../application/narrative_spatial_production_dispatch_bridge.dart';
 import '../../application/npc_overworld_movement_defaults.dart';
 import '../../application/npc_runtime_presence.dart';
 import '../../application/placed_behavior_runtime_cooldown.dart';
@@ -55,6 +62,7 @@ import '../../application/scene_runtime/scene_dialogue_runtime_awaitable_result.
 import '../../application/scene_runtime/scene_event_runtime_hook.dart';
 import '../../application/scene_runtime/scene_fact_condition_runtime_resolver.dart';
 import '../../application/scene_runtime/scene_runtime_host_callbacks.dart';
+import '../../application/scene_runtime/scene_runtime_hook_result.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
 import '../../application/scenario_runtime/scenario_battle_outcome_flags.dart';
@@ -115,6 +123,22 @@ enum _RuntimeFlowPhase {
   battle,
 }
 
+final class _NarrativeOutcomeRetryPendingException implements Exception {
+  const _NarrativeOutcomeRetryPendingException({
+    required this.deliveryId,
+    required this.failure,
+  });
+
+  final String deliveryId;
+  final Object failure;
+
+  @override
+  String toString() {
+    return 'Narrative outcome delivery "$deliveryId" is pending a future '
+        'retry: $failure';
+  }
+}
+
 typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
   required String projectFilePath,
   required String mapId,
@@ -140,6 +164,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
+    this.initialMapActivationReason = MapActivationReason.initialBoot,
+    NarrativeRuntimeActivityGate? narrativeRuntimeActivityGate,
+    @visibleForTesting this.beforeNarrativeAuthorityPreparation,
+    @visibleForTesting this.afterNarrativeAuthorityPreparation,
+    @visibleForTesting this.beforeBattleHandoffPreparation,
     this.shadowCollectionProvider,
     this.enableActorContactShadows = true,
     this.enableStaticPlacedElementShadows = true,
@@ -149,7 +178,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               ? const GameState(saveId: 'default')
               : gameStateFromSaveData(saveData),
         ),
-        _saveRepo = saveRepository ?? FileGameSaveRepository(),
         _dialogueSessionLoader = dialogueSessionLoader ?? loadDialogueContent,
         _runtimeMapBundleLoader =
             runtimeMapBundleLoader ?? loadRuntimeMapBundle,
@@ -158,6 +186,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
+    _narrativeActivityGate =
+        narrativeRuntimeActivityGate ?? NarrativeRuntimeActivityGate();
+    _saveRepo = saveRepository ??
+        FileGameSaveRepository(activityGate: _narrativeActivityGate);
+    _narrativeStateTransactions = NarrativeEventStateTransactions(_gameState);
+    _mapEnterDispatchBridge = MapEnterProductionDispatchBridge(
+      stateTransactions: _narrativeStateTransactions,
+      currentGameState: () => _gameState,
+      onGameStateCommitted: _applyNarrativeGameState,
+      prepareAuthority: (_, occurrence) =>
+          _prepareNarrativeDispatchAuthority(occurrence),
+      executeScene: _executeNarrativeScene,
+      legacyFallback: _dispatchLegacyMapEnterFallback,
+      activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
+      beforeSaveRestoreDispatch: _drainRestoredNarrativeOutcomeOutbox,
+      isCurrentActivation: (activationId) =>
+          activationId == _currentMapActivationId,
+      executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
+      correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
+      deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+    );
+    _spatialDispatchBridge = NarrativeSpatialProductionDispatchBridge(
+      stateTransactions: _narrativeStateTransactions,
+      currentGameState: () => _gameState,
+      onGameStateCommitted: _applyNarrativeGameState,
+      prepareAuthority: (_, occurrence) =>
+          _prepareNarrativeDispatchAuthority(occurrence),
+      executeScene: _executeNarrativeScene,
+      legacyFallback: _dispatchLegacySpatialFallback,
+      activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
+      isCurrentOccurrence: _isCurrentSpatialOccurrence,
+      executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
+      correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
+      deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+    );
+    _narrativeOutcomeOutboxProcessor = NarrativeOutcomeOutboxProcessor(
+      stateTransactions: _narrativeStateTransactions,
+      dispatcher: _dispatchNarrativeOutcome,
+      activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
+      deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+    );
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
     _loadGameUseCase = LoadGameUseCase(_saveRepo);
     _runtimeBundleByMapId[_bundle.map.id] = _bundle;
@@ -174,6 +243,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
   final List<RuntimeCutsceneAsset> runtimeCutscenes;
+  final MapActivationReason initialMapActivationReason;
+
+  /// Deterministic async instrumentation for activation-dispatch race tests.
+  ///
+  /// Production callers must leave this unset. The callback runs before the
+  /// production authority snapshot is prepared and must not mutate runtime
+  /// state.
+  @visibleForTesting
+  final Future<void> Function(NarrativeEventOccurrence occurrence)?
+      beforeNarrativeAuthorityPreparation;
+  @visibleForTesting
+  final Future<void> Function(
+    NarrativeEventOccurrence occurrence,
+    NarrativeEventDispatchAuthorityPreparation preparation,
+  )? afterNarrativeAuthorityPreparation;
+  @visibleForTesting
+  final Future<void> Function()? beforeBattleHandoffPreparation;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final bool enableActorContactShadows;
   final bool enableStaticPlacedElementShadows;
@@ -194,6 +280,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Completer<SceneBattleRuntimeOutcomeResult>?
       _pendingSceneBattleOutcomeCompleter;
   String? _pendingSceneBattleRequestId;
+  _NarrativeSceneWorkingSession? _activeNarrativeSceneWorkingSession;
   Completer<SceneDialogueRuntimeAwaitableResult>?
       _pendingSceneDialogueCompleter;
   String? _pendingSceneDialogueRequestId;
@@ -277,6 +364,756 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return _cachedNarrativeFactResolver!;
   }
 
+  MapActivation _createMapActivation({
+    required String mapId,
+    required MapActivationReason reason,
+  }) {
+    final activation = MapActivation(
+      activationId:
+          'mapact_${DateTime.now().microsecondsSinceEpoch}_${++_nextMapActivationSerial}',
+      mapId: mapId,
+      reason: reason,
+    );
+    return activation;
+  }
+
+  void _installMapActivation(MapActivation activation) {
+    _currentMapActivationId = activation.activationId;
+  }
+
+  bool get _blocksOverworldForMapActivationWork =>
+      _flowPhase == _RuntimeFlowPhase.overworld &&
+      (_isLoadActivationWorkInFlight ||
+          _inFlightMapActivationDispatchIds.isNotEmpty);
+
+  bool get _blocksOverworldForNarrativeDispatch =>
+      _flowPhase == _RuntimeFlowPhase.overworld &&
+      (_inFlightSpatialDispatchCount > 0 ||
+          _narrativeOutcomeDrainFuture != null ||
+          _inFlightRootOutcomePublicationCount > 0);
+
+  bool get _hasCheckpointUnsafeRuntimeWork =>
+      _flowPhase == _RuntimeFlowPhase.mapTransition ||
+      _flowPhase == _RuntimeFlowPhase.battleTransition ||
+      _flowPhase == _RuntimeFlowPhase.battle ||
+      _pendingBattleRequest != null ||
+      _isLoadActivationWorkInFlight ||
+      _inFlightMapActivationDispatchIds.isNotEmpty ||
+      _inFlightSpatialDispatchCount > 0 ||
+      _narrativeOutcomeDrainFuture != null ||
+      _inFlightRootOutcomePublicationCount > 0 ||
+      _narrativeActivityGate.activity != NarrativeRuntimeActivity.idle ||
+      _narrativeActivityGate.checkpointInProgress ||
+      isCutsceneRunning;
+
+  bool get _hasCheckpointUnsafeRuntimeWorkForSave =>
+      _hasCheckpointUnsafeRuntimeWork ||
+      _pendingWarp != null ||
+      _pendingConnection != null ||
+      _pendingConnectionEntryAnimation != null ||
+      _pendingPlacedElementBehavior != null ||
+      _pendingNarrativeTriggerEntries.isNotEmpty ||
+      _isNarrativeTriggerQueueDraining;
+
+  void _logCheckpointInterlock(String operation) {
+    debugPrint(
+      '[$operation] ignored: transient runtime work is not checkpoint-safe '
+      'flow=${_flowPhase.name} '
+      'loadActivationWork=$_isLoadActivationWorkInFlight '
+      'activationDispatches=${_inFlightMapActivationDispatchIds.join(',')} '
+      'spatialDispatches=$_inFlightSpatialDispatchCount '
+      'rootPublications=$_inFlightRootOutcomePublicationCount '
+      'outboxDrain=${_narrativeOutcomeDrainFuture != null} '
+      'activity=${_narrativeActivityGate.activity.name} '
+      'checkpoint=${_narrativeActivityGate.checkpointInProgress} '
+      'cutscene=$isCutsceneRunning '
+      'pendingWarp=${_pendingWarp != null} '
+      'pendingConnection=${_pendingConnection != null} '
+      'pendingConnectionAnimation=${_pendingConnectionEntryAnimation != null} '
+      'pendingBattle=${_pendingBattleRequest != null} '
+      'pendingPlacedBehavior=${_pendingPlacedElementBehavior != null} '
+      'pendingTriggerEntries=${_pendingNarrativeTriggerEntries.length} '
+      'triggerQueueDraining=$_isNarrativeTriggerQueueDraining',
+    );
+  }
+
+  String _nextNarrativeRuntimeId(String prefix) {
+    final serial = ++_nextNarrativeRuntimeIdSerial;
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final timeHex =
+        (timestamp & 0xffffffffffff).toRadixString(16).padLeft(12, '0');
+    final version =
+        (0x7000 | (serial & 0x0fff)).toRadixString(16).padLeft(4, '0');
+    final variant =
+        (0x8000 | ((serial >> 12) & 0x3fff)).toRadixString(16).padLeft(4, '0');
+    final tail = ((timestamp * 0x9e3779b1 + serial) & 0xffffffffffff)
+        .toRadixString(16)
+        .padLeft(12, '0');
+    return '${prefix}_${timeHex.substring(0, 8)}-'
+        '${timeHex.substring(8)}-$version-$variant-$tail';
+  }
+
+  Future<NarrativeEventDispatchAuthorityPreparation>
+      _prepareNarrativeDispatchAuthority(
+    NarrativeEventOccurrence occurrence,
+  ) async {
+    await beforeNarrativeAuthorityPreparation?.call(occurrence);
+    final project = _bundle.manifest;
+    final registry = project.eventRegistry;
+    late final NarrativeEventDispatchAuthorityPreparation preparation;
+    if (registry == null || registry.mode == EventSystemMode.legacyOnly) {
+      preparation = NarrativeEventDispatchAuthority.prepare(
+        registryResult: registry == null
+            ? EventRegistryDecodeResult.absent()
+            : EventRegistryDecodeResult.decoded(registry),
+        occurrence: occurrence,
+        factResolver: NarrativeFactRuntimeResolver.fromFacts(project.facts),
+      );
+    } else {
+      final snapshot = await _narrativeRuntimeSnapshotFor(project);
+      preparation = NarrativeEventDispatchAuthority.prepare(
+        registryResult: snapshot.registryResult,
+        occurrence: occurrence,
+        factResolver: snapshot.factResolver,
+        legacyClaimIndex: snapshot.legacyClaimIndex,
+        projectCatalog: snapshot.projectCatalog,
+      );
+    }
+    await afterNarrativeAuthorityPreparation?.call(occurrence, preparation);
+    return preparation;
+  }
+
+  void _runDetachedNarrativeTask({
+    required String operation,
+    required Future<void> Function() task,
+  }) {
+    unawaited(() async {
+      try {
+        await task();
+      } on _NarrativeOutcomeRetryPendingException catch (error, stackTrace) {
+        // ADR-EV2-014 keeps this delivery durable for an explicit later drain
+        // (notably save/reload). Do not hot-loop the same infrastructure
+        // failure from a detached producer.
+        debugPrint(
+          '[event_v2] detached $operation left retry pending '
+          'delivery=${error.deliveryId} failure=${error.failure}\n$stackTrace',
+        );
+        _showNotification('Résultat narratif en attente.');
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[event_v2] detached $operation failed: $error\n$stackTrace',
+        );
+        _showNotification('Évènement impossible.');
+      }
+    }());
+  }
+
+  bool _isCurrentSpatialOccurrence(String occurrenceId) {
+    return _currentSpatialOccurrenceIds.contains(occurrenceId) &&
+        _spatialOccurrenceActivationIds[occurrenceId] ==
+            _currentMapActivationId;
+  }
+
+  Future<void> _dispatchLegacySpatialFallback(
+    String occurrenceId,
+    NarrativeEventOccurrence _,
+    GameState gameState,
+  ) async {
+    final fallback = _legacySpatialFallbacks[occurrenceId];
+    if (fallback == null) {
+      throw StateError(
+        'Spatial occurrence "$occurrenceId" has no legacy fallback.',
+      );
+    }
+    _applyNarrativeGameState(gameState);
+    final outcomes = <NarrativeOutcomeRef>[];
+    final barrierCountBeforeFallback = _narrativeContinuationBarriers.length;
+    if (_activeLegacyScenarioOutcomeCollector != null) {
+      throw StateError(
+          'A legacy Scenario outcome collector is already active.');
+    }
+    _activeLegacyScenarioOutcomeCollector = outcomes;
+    try {
+      await fallback(gameState);
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(_gameState, null);
+      });
+    } finally {
+      _activeLegacyScenarioOutcomeCollector = null;
+    }
+    final continuation =
+        _narrativeContinuationBarriers.length > barrierCountBeforeFallback
+            ? _narrativeContinuationBarriers.last.continuation
+            : null;
+    await _publishRootNarrativeOutcomes(
+      outcomes,
+      continuation: continuation,
+    );
+  }
+
+  Future<NarrativeSpatialProductionDispatchResult> _dispatchSpatialOccurrence({
+    required NarrativeEventOccurrence occurrence,
+    required Future<void> Function(GameState gameState) legacyFallback,
+  }) async {
+    final occurrenceId = _nextNarrativeRuntimeId('spocc');
+    _currentSpatialOccurrenceIds.add(occurrenceId);
+    _spatialOccurrenceActivationIds[occurrenceId] = _currentMapActivationId;
+    _legacySpatialFallbacks[occurrenceId] = legacyFallback;
+    _inFlightSpatialDispatchCount++;
+    _clearPressedMovementControls();
+    NarrativeRuntimeActivityLease? dispatchLease;
+    try {
+      try {
+        dispatchLease = _narrativeActivityGate.enter(
+          NarrativeRuntimeActivity.dispatching,
+        );
+      } on NarrativeRuntimeActivityBlockedException catch (error, stackTrace) {
+        return NarrativeSpatialProductionDispatchFailed(
+          occurrenceId,
+          occurrence,
+          error,
+          stackTrace,
+        );
+      }
+      final result = await _spatialDispatchBridge.dispatch(
+        occurrenceId: occurrenceId,
+        occurrence: occurrence,
+      );
+      final transientCheckpointBlock =
+          result is NarrativeSpatialProductionDispatchFailed &&
+              result.failure is NarrativeRuntimeActivityBlockedException;
+      if ((result is NarrativeSpatialProductionDispatchFailed &&
+              !transientCheckpointBlock) ||
+          result is NarrativeSpatialProductionDispatchAuthorityBlocked) {
+        _showNotification('Évènement impossible.');
+      }
+      if (result is NarrativeSpatialProductionDispatchV2Handled) {
+        await _drainLiveNarrativeOutcomeOutbox();
+      }
+      return result;
+    } finally {
+      dispatchLease?.close();
+      _legacySpatialFallbacks.remove(occurrenceId);
+      _spatialOccurrenceActivationIds.remove(occurrenceId);
+      _currentSpatialOccurrenceIds.remove(occurrenceId);
+      _inFlightSpatialDispatchCount--;
+    }
+  }
+
+  Future<NarrativeEventRuntimeSnapshot> _narrativeRuntimeSnapshotFor(
+    ProjectManifest project,
+  ) async {
+    final cached = _cachedNarrativeRuntimeSnapshot;
+    if (cached != null && _cachedNarrativeRuntimeSnapshotProject == project) {
+      return cached;
+    }
+    final snapshot = await NarrativeEventRuntimeSnapshot.build(
+      project: project,
+      loadMap: (mapId) async {
+        final bundle = await _loadRuntimeMapBundleCached(mapId);
+        return (project: bundle.manifest, map: bundle.map);
+      },
+    );
+    _cachedNarrativeRuntimeSnapshotProject = project;
+    _cachedNarrativeRuntimeSnapshot = snapshot;
+    return snapshot;
+  }
+
+  Future<NarrativeSceneExecutionResult> _executeNarrativeScene(
+    NarrativeSceneExecutionRequest request,
+  ) async {
+    if (_activeNarrativeSceneWorkingSession != null) {
+      return NarrativeSceneExecutionResult.failed(
+        StateError('A narrative Scene working session is already active.'),
+      );
+    }
+    final snapshot = await _narrativeRuntimeSnapshotFor(_bundle.manifest);
+    final session = _NarrativeSceneWorkingSession(request.gameState);
+    final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
+    _activeNarrativeSceneWorkingSession = session;
+    try {
+      final result = await executeNarrativeEventScene(
+        request: request,
+        project: snapshot.project,
+        mapsById: snapshot.mapsById,
+        currentGameState: () => session.gameState,
+        hostedBattleOutcomes: hostedBattleOutcomes,
+        callbacks: _buildSceneRuntimeHostCallbacks(
+          runtimeSourceId: 'event-v2:${request.eventId}:${request.executionId}',
+          defaultNpcEntityId: '',
+          currentGameState: () => session.gameState,
+          onQualifiedBattleOutcome: hostedBattleOutcomes.add,
+        ),
+      );
+      if (result is NarrativeSceneExecutionCompleted) {
+        session.gameState = result.updatedGameState;
+      }
+      return result;
+    } finally {
+      _activeNarrativeSceneWorkingSession = null;
+    }
+  }
+
+  void _applyNarrativeGameState(GameState gameState) {
+    _gameState = gameState;
+    if (isLoaded) {
+      _refreshWorldNpcPresence();
+    }
+  }
+
+  Future<void> _dispatchLegacyMapEnterFallback(
+    MapActivation activation,
+    NarrativeEventOccurrence _,
+    GameState gameState,
+  ) async {
+    // The restore outbox may have committed a newer snapshot than the Flame
+    // facade currently holds. Legacy Scenario must see that exact state.
+    _applyNarrativeGameState(gameState);
+    final outcomes = <NarrativeOutcomeRef>[];
+    final result = _dispatchScenarioRuntimeSource(
+      ScenarioRuntimeSourceEvent.mapEnter(mapId: activation.mapId),
+      deferredOutcomes: outcomes,
+    );
+    final continuation = _narrativeContinuationBarrierFor(
+      _scenarioContinuationRuntimeSourceId(result) ?? '',
+    )?.continuation;
+    await _narrativeStateTransactions.transact<void>((_) {
+      return NarrativeEventStateTransaction.commit(_gameState, null);
+    });
+    await _publishRootNarrativeOutcomes(
+      outcomes,
+      continuation: continuation,
+    );
+  }
+
+  Future<MapEnterProductionDispatchResult> _dispatchCompletedMapActivation(
+    MapActivation activation,
+  ) async {
+    if (!_inFlightMapActivationDispatchIds.add(activation.activationId)) {
+      return MapEnterProductionDispatchDuplicate(activation);
+    }
+    if (_flowPhase == _RuntimeFlowPhase.overworld) {
+      _clearPressedMovementControls();
+    }
+    NarrativeRuntimeActivityLease? dispatchLease;
+    try {
+      try {
+        dispatchLease = _narrativeActivityGate.enter(
+          NarrativeRuntimeActivity.dispatching,
+        );
+      } on NarrativeRuntimeActivityBlockedException catch (error, stackTrace) {
+        return MapEnterProductionDispatchFailed(
+          activation,
+          error,
+          stackTrace,
+        );
+      }
+      final result =
+          await _mapEnterDispatchBridge.dispatchCompletedActivation(activation);
+      final activationCompleted =
+          result is MapEnterProductionDispatchLegacyFallback ||
+              result is MapEnterProductionDispatchV2Handled ||
+              result is MapEnterProductionDispatchClaimedIneligible ||
+              result is MapEnterProductionDispatchNoFallback;
+      if (activationCompleted) {
+        _completedMapActivationDispatchCount++;
+        _lastCompletedMapActivation = activation;
+        // Every terminal activation, including a legacy/no-match one, must
+        // hand the active activation ID back to an owning outcome drain. An
+        // outcome adapter may emit a child and then transition maps; limiting
+        // this handoff to V2Handled would leave that child pending as soon as
+        // the outer drain notices that its previous activation became stale.
+        await _drainLiveNarrativeOutcomeOutbox(
+          expectedActivationId: activation.activationId,
+        );
+      } else if ((result is MapEnterProductionDispatchAuthorityBlocked ||
+              result is MapEnterProductionDispatchFailed) &&
+          _narrativeOutcomeDrainFuture != null &&
+          _narrativeOutcomeDispatchDepth > 0) {
+        // The physical transition already installed this activation even
+        // though its mapEnter source failed closed. Resume the owning drain
+        // on the current activation so child outcomes emitted before that
+        // transition can retry or terminalize instead of being orphaned.
+        _rememberDeferredNarrativeOutcomeDrainActivation(
+          activation.activationId,
+        );
+      }
+      debugPrint(
+        '[event_v2] mapEnter activation=${activation.activationId} '
+        'map=${activation.mapId} reason=${activation.reason.name} '
+        'result=${result.runtimeType}',
+      );
+      if (result is MapEnterProductionDispatchFailed) {
+        debugPrint(
+          '[event_v2] mapEnter failure=${result.failure}'
+          '${result.stackTrace == null ? '' : '\n${result.stackTrace}'}',
+        );
+      }
+      return result;
+    } finally {
+      dispatchLease?.close();
+      _inFlightMapActivationDispatchIds.remove(activation.activationId);
+    }
+  }
+
+  Future<void> _drainRestoredNarrativeOutcomeOutbox(
+    MapActivation activation,
+  ) async {
+    while (_currentMapActivationId == activation.activationId) {
+      await _drainLiveNarrativeOutcomeOutbox(
+        expectedActivationId: activation.activationId,
+      );
+      if (_currentMapActivationId != activation.activationId) {
+        return;
+      }
+      final barrier = _narrativeContinuationBarriers.isEmpty
+          ? null
+          : _narrativeContinuationBarriers.last;
+      if (barrier == null) {
+        return;
+      }
+      _restoredOutcomeContinuationActivationId = activation.activationId;
+      try {
+        await barrier.closedFuture;
+      } finally {
+        if (_restoredOutcomeContinuationActivationId ==
+            activation.activationId) {
+          _restoredOutcomeContinuationActivationId = null;
+        }
+      }
+    }
+  }
+
+  bool _restoreFenceOwnsSource(String? runtimeSourceId) {
+    if (runtimeSourceId == null ||
+        _restoredOutcomeContinuationActivationId == null ||
+        _narrativeContinuationBarriers.isEmpty) {
+      return false;
+    }
+    return _narrativeContinuationBarriers.last.runtimeSourceId ==
+        runtimeSourceId;
+  }
+
+  void _rememberDeferredNarrativeOutcomeDrainActivation(
+    String? expectedActivationId,
+  ) {
+    final requests = _deferredNarrativeOutcomeDrainActivationIds;
+    if (requests.isEmpty || requests.last != expectedActivationId) {
+      requests.add(expectedActivationId);
+    }
+  }
+
+  Future<void> _drainLiveNarrativeOutcomeOutbox({
+    String? expectedActivationId,
+  }) {
+    final existing = _narrativeOutcomeDrainFuture;
+    if (existing != null) {
+      if (_narrativeOutcomeDispatchDepth > 0) {
+        // An outcome may transition to a map whose mapEnter Scene publishes
+        // another outcome. Awaiting the owning drain here would make the
+        // dispatcher wait on itself, so record the new activation and let the
+        // outer loop resume it after the current delivery is committed.
+        _rememberDeferredNarrativeOutcomeDrainActivation(
+          expectedActivationId,
+        );
+        return Future<void>.value();
+      }
+      return existing;
+    }
+    final completer = Completer<void>();
+    _narrativeOutcomeDrainFuture = completer.future;
+    unawaited(() async {
+      var activeExpectedActivationId = expectedActivationId;
+      try {
+        while (true) {
+          final continuationBarrier = _narrativeContinuationBarriers.isEmpty
+              ? null
+              : _narrativeContinuationBarriers.last;
+          if (continuationBarrier != null && !continuationBarrier.advancing) {
+            // processNext commits the current raw delivery before control
+            // returns here. Stop before the next FIFO head and release the
+            // drain so dialogue/script/move/battle/warp can progress.
+            break;
+          }
+          if (activeExpectedActivationId != null &&
+              _currentMapActivationId != activeExpectedActivationId) {
+            if (_deferredNarrativeOutcomeDrainActivationIds.isEmpty) {
+              break;
+            }
+            activeExpectedActivationId =
+                _deferredNarrativeOutcomeDrainActivationIds.removeAt(0);
+            continue;
+          }
+          final result = await _narrativeOutcomeOutboxProcessor.processNext();
+          if (result is NarrativeOutcomeOutboxEmpty) {
+            _applyNarrativeGameState(await _narrativeStateTransactions.read());
+            if (_deferredNarrativeOutcomeDrainActivationIds.isEmpty) {
+              break;
+            }
+            activeExpectedActivationId =
+                _deferredNarrativeOutcomeDrainActivationIds.removeAt(0);
+            continue;
+          }
+          if (result is NarrativeOutcomeOutboxBusy) {
+            throw StateError('Narrative outcome outbox is already busy.');
+          }
+          if (result is NarrativeOutcomeOutboxRetryScheduled) {
+            _applyNarrativeGameState(result.updatedGameState);
+            throw _NarrativeOutcomeRetryPendingException(
+              deliveryId: result.delivery.deliveryId,
+              failure: result.failure,
+            );
+          }
+          if (result is NarrativeOutcomeOutboxDelivered) {
+            _applyNarrativeGameState(result.updatedGameState);
+            _startNarrativePostCommitEffectIfReady();
+            continue;
+          }
+          if (result is NarrativeOutcomeOutboxTerminalized) {
+            _applyNarrativeGameState(result.updatedGameState);
+            continue;
+          }
+          final inconsistency =
+              result as NarrativeOutcomeOutboxDataInconsistency;
+          _applyNarrativeGameState(inconsistency.updatedGameState);
+        }
+        completer.complete();
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      } finally {
+        _deferredNarrativeOutcomeDrainActivationIds.clear();
+        _narrativeOutcomeDrainFuture = null;
+      }
+    }());
+    return completer.future;
+  }
+
+  Future<void> _publishRootNarrativeOutcomes(
+    List<NarrativeOutcomeRef> outcomes, {
+    _NarrativeOutcomeContinuationContext? continuation,
+  }) {
+    final metadata = continuation ??
+        _NarrativeOutcomeContinuationContext(
+          causationId: _nextNarrativeRuntimeId('evx'),
+          correlationId: _nextNarrativeRuntimeId('corr'),
+          depth: 0,
+        );
+    return _publishNarrativeOutcomes(
+      outcomes,
+      causationId: metadata.causationId,
+      correlationId: metadata.correlationId,
+      depth: metadata.depth,
+    );
+  }
+
+  Future<void> _publishNarrativeOutcomes(
+    List<NarrativeOutcomeRef> outcomes, {
+    required String causationId,
+    required String correlationId,
+    required int depth,
+  }) async {
+    if (outcomes.isEmpty) {
+      return;
+    }
+    _inFlightRootOutcomePublicationCount++;
+    _clearPressedMovementControls();
+    NarrativeRuntimeActivityLease? publicationLease;
+    try {
+      publicationLease = _narrativeActivityGate.enter(
+        NarrativeRuntimeActivity.outboxProcessing,
+      );
+      await _enqueueNarrativeOutcomes(
+        outcomes,
+        causationId: causationId,
+        correlationId: correlationId,
+        depth: depth,
+      );
+      await _drainLiveNarrativeOutcomeOutbox();
+    } finally {
+      publicationLease?.close();
+      _inFlightRootOutcomePublicationCount--;
+    }
+  }
+
+  Future<void> _enqueueNarrativeOutcomes(
+    List<NarrativeOutcomeRef> outcomes, {
+    required String causationId,
+    required String correlationId,
+    required int depth,
+  }) async {
+    if (outcomes.isEmpty) {
+      return;
+    }
+    final updated = await _narrativeStateTransactions
+        .transact<GameState>((transactionState) {
+      // Scenario callbacks update the live facade before they publish. Keep
+      // those gameplay mutations, but always append to the transaction's
+      // canonical outbox snapshot so two fire-and-forget producers cannot
+      // overwrite each other's pending or delivered entries.
+      final state = _gameState;
+      final progress = transactionState.narrativeEventProgress;
+      final nextState = state.copyWith(
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: progress.consumedNarrativeEventIds,
+          pendingNarrativeOutcomeDeliveries: <NarrativeOutcomeDelivery>[
+            ...progress.pendingNarrativeOutcomeDeliveries,
+            for (final outcome in outcomes)
+              NarrativeOutcomeDelivery(
+                deliveryId: _nextNarrativeRuntimeId('outd'),
+                outcome: outcome,
+                causationExecutionId: causationId,
+                rootCorrelationId: correlationId,
+                depth: depth,
+                attemptCount: 0,
+              ),
+          ],
+          deliveredNarrativeOutcomeDeliveryIds:
+              progress.deliveredNarrativeOutcomeDeliveryIds,
+        ),
+      );
+      return NarrativeEventStateTransaction.commit(nextState, nextState);
+    });
+    _applyNarrativeGameState(updated);
+  }
+
+  Future<NarrativeOutcomeDispatchResult> _dispatchNarrativeOutcome(
+    NarrativeOutcomeDispatchRequest request,
+  ) async {
+    _narrativeOutcomeDispatchDepth++;
+    try {
+      return await _dispatchNarrativeOutcomeGuarded(request);
+    } finally {
+      _narrativeOutcomeDispatchDepth--;
+    }
+  }
+
+  Future<NarrativeOutcomeDispatchResult> _dispatchNarrativeOutcomeGuarded(
+    NarrativeOutcomeDispatchRequest request,
+  ) async {
+    NarrativeEventDispatchAuthorityPreparation preparation;
+    try {
+      preparation =
+          await _prepareNarrativeDispatchAuthority(request.occurrence);
+    } catch (error) {
+      return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
+          error);
+    }
+    if (preparation is NarrativeEventDispatchAuthorityBlocked) {
+      return NarrativeOutcomeDispatchResult.infrastructureFailureBeforePlanning(
+        StateError(
+          'Outcome authority blocked: ${preparation.reason.name}.',
+        ),
+      );
+    }
+
+    final coordinator = NarrativeEventExecutionCoordinator(
+      stateTransactions: _narrativeStateTransactions,
+      planner: NarrativeEventDispatchPlanner(),
+      executeScene: _executeNarrativeScene,
+      activityPort: NarrativeRuntimeActivityPort(_narrativeActivityGate),
+      executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
+      correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
+      deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+    );
+    final execution = await coordinator.execute(
+      authority: preparation as NarrativeEventDispatchAuthorityReady,
+    );
+    if (execution is NarrativeEventExecutionSucceeded) {
+      return NarrativeOutcomeDispatchResult.delivered(
+        updatedGameState: execution.updatedGameState,
+        causationExecutionId: execution.executionId,
+      );
+    }
+    if (execution is NarrativeEventExecutionClaimedButIneligible) {
+      return NarrativeOutcomeDispatchResult.delivered(
+        updatedGameState: request.gameState,
+      );
+    }
+    if (execution is NarrativeEventExecutionNoMatch) {
+      final legacyFallbackAllowed = execution.legacyFallbackAllowed &&
+          request.delivery.outcome.producerKind ==
+              NarrativeOutcomeProducerKind.legacyScenario;
+      debugPrint(
+        '[event_v2] outcome noMatch producer='
+        '${request.delivery.outcome.producerKind.name}:'
+        '${request.delivery.outcome.producerId} '
+        'outcome=${request.delivery.outcome.outcomeId} '
+        'legacyFallbackAllowed=$legacyFallbackAllowed',
+      );
+      if (!legacyFallbackAllowed) {
+        return NarrativeOutcomeDispatchResult.delivered(
+          updatedGameState: request.gameState,
+        );
+      }
+      _applyNarrativeGameState(request.gameState);
+      final legacyChildOutcomes = <NarrativeOutcomeRef>[];
+      final pendingTransitionBeforeDispatch =
+          _pendingScenarioTransitionMapRequest;
+      final legacyResult = _dispatchScenarioRuntimeSource(
+        ScenarioRuntimeSourceEvent.outcomeReceived(
+          outcomeId: request.delivery.outcome.outcomeId,
+        ),
+        deferredOutcomes: legacyChildOutcomes,
+      );
+      debugPrint(
+        '[event_v2] legacy outcome adapter status=${legacyResult.status.name} '
+        'scenario=${legacyResult.scenarioId ?? '-'} '
+        'outcome=${request.delivery.outcome.outcomeId}',
+      );
+      final continuation = _NarrativeOutcomeContinuationContext(
+        causationId: request.delivery.causationExecutionId ??
+            _nextNarrativeRuntimeId('evx'),
+        correlationId: request.delivery.rootCorrelationId,
+        depth: request.delivery.depth + 1,
+      );
+      _attachNarrativeOutcomeContinuationToBarrier(
+        legacyResult,
+        continuation,
+      );
+      final pendingLegacyOutcomeTransition =
+          _pendingScenarioTransitionMapRequest;
+      if (pendingLegacyOutcomeTransition != null &&
+          !identical(
+            pendingLegacyOutcomeTransition,
+            pendingTransitionBeforeDispatch,
+          ) &&
+          _scenarioContinuationRuntimeSourceId(legacyResult) == null &&
+          identical(
+            _pendingScenarioTransitionMapRequest,
+            pendingLegacyOutcomeTransition,
+          )) {
+        _pendingScenarioTransitionMapRequest = null;
+        _openNarrativeContinuationBarrier(
+          runtimeSourceId: 'scenario-transition:${request.delivery.deliveryId}',
+          continuation: continuation,
+          resumesScenario: false,
+          postCommitEffect: () => _executeScenarioTransitionMapRequest(
+            pendingLegacyOutcomeTransition,
+            allowMapActivationWork: true,
+            skipVisualTransition: !isLoaded,
+          ),
+        );
+      }
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(_gameState, null);
+      });
+      return NarrativeOutcomeDispatchResult.delivered(
+        updatedGameState: _gameState,
+        qualifiedChildOutcomes: legacyChildOutcomes,
+        causationExecutionId: continuation.causationId,
+      );
+    }
+    if (execution is NarrativeEventExecutionFailed) {
+      return NarrativeOutcomeDispatchResult.terminalFailure(
+        execution.failure,
+      );
+    }
+    return NarrativeOutcomeDispatchResult.terminalFailure(
+      (execution as NarrativeEventExecutionCancelled).reason ??
+          StateError('Restore outcome Scene was cancelled.'),
+    );
+  }
+
   /// Cache de l’index Step Studio ↔ cutscenes locales (invalidé quand [_bundle] change).
   StepCompletionCutsceneIndex? _cachedStepCompletionIndex;
   RuntimeMapBundle? _cachedStepCompletionBundleForIndex;
@@ -298,6 +1135,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final CutsceneRuntimeRunner _cutsceneRunner =
       _buildCutsceneRuntimeRunner();
   CutsceneChoiceRequest? _pendingCutsceneChoiceRequest;
+  NarrativeRuntimeActivityLease? _cutsceneActivityLease;
   ScriptedEntityMovementController? _scriptedEntityMovementController;
   final Map<String, GridPos> _runtimeNpcPositions = <String, GridPos>{};
   // Réservations temporaires d'occupation pour PNJ scriptés en cours de pas.
@@ -314,16 +1152,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
 
-  /// [SEL-B2] Continuation scénario pendante pour un combat lancé depuis un
-  /// node action `startTrainerBattle`. Format identique à `_runtimeSourceId`
-  /// de l'executor : `scenario:<scenarioId>:<sourceNodeId>:<nodeId>`.
+  /// Propriétaire atomique du handoff Battle lancé par Scenario.
   ///
-  /// V0 : un seul combat scénario pending à la fois, non persisté.
-  String? _pendingScenarioBattleSourceId;
-
-  /// [SEL-B2] Identifiant stable du combat scénario pending (pour nommer les
-  /// flags d'outcome `battle:<battleId>:victory/defeat/...`).
-  String? _pendingScenarioBattleId;
+  /// Le requestId lie causalement la continuation au combat effectivement
+  /// consommé. Ne jamais conserver ou modifier ces trois valeurs séparément.
+  _PendingScenarioBattleHandoff? _pendingScenarioBattleHandoff;
   bool _awaitingSurfConfirmation = false;
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
@@ -341,6 +1174,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String? _activeBlockingInteractionSourceId;
   bool _hasPendingDialogueLoad = false;
   String? _activeScriptRuntimeSourceId;
+  _PendingScenarioWarpHandoff? _pendingScenarioWarpHandoff;
   _PendingScenarioLeaderWarpHandoff? _pendingScenarioLeaderWarpHandoff;
   int _lastFollowPathNodeCount = 0;
   GridPos? _lastFollowPathDestination;
@@ -368,9 +1202,49 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String? _lastScenarioCompletionBlockReason;
 
   // Save/Load system
-  final GameSaveRepository _saveRepo;
+  late final GameSaveRepository _saveRepo;
   late SaveGameUseCase _saveGameUseCase;
   late LoadGameUseCase _loadGameUseCase;
+
+  // Event V2 F1 production composition. The default file repository and the
+  // narrative coordinator share this gate so checkpoints cannot overlap a
+  // dispatch, Scene execution or restore-outbox drain.
+  late final NarrativeRuntimeActivityGate _narrativeActivityGate;
+  late final NarrativeEventStateTransactions _narrativeStateTransactions;
+  late final MapEnterProductionDispatchBridge _mapEnterDispatchBridge;
+  late final NarrativeSpatialProductionDispatchBridge _spatialDispatchBridge;
+  late final NarrativeOutcomeOutboxProcessor _narrativeOutcomeOutboxProcessor;
+  Future<void>? _narrativeOutcomeDrainFuture;
+  final List<String?> _deferredNarrativeOutcomeDrainActivationIds = <String?>[];
+  int _narrativeOutcomeDispatchDepth = 0;
+  int _inFlightRootOutcomePublicationCount = 0;
+  final List<_NarrativeContinuationBarrier> _narrativeContinuationBarriers =
+      <_NarrativeContinuationBarrier>[];
+  final Set<String> _reservedNarrativeContinuationRuntimeSourceIds = <String>{};
+  final Set<String> _deferredNarrativeContinuationAdvanceSourceIds = <String>{};
+  final Set<String> _deferredNarrativeContinuationCancelSourceIds = <String>{};
+  String? _restoredOutcomeContinuationActivationId;
+  NarrativeEventRuntimeSnapshot? _cachedNarrativeRuntimeSnapshot;
+  ProjectManifest? _cachedNarrativeRuntimeSnapshotProject;
+  int _nextMapActivationSerial = 0;
+  int _nextNarrativeRuntimeIdSerial = 0;
+  String? _currentMapActivationId;
+  final Set<String> _inFlightMapActivationDispatchIds = <String>{};
+  bool _isLoadActivationWorkInFlight = false;
+  int _completedMapActivationDispatchCount = 0;
+  MapActivation? _lastCompletedMapActivation;
+  final Set<String> _currentSpatialOccurrenceIds = <String>{};
+  final Map<String, String?> _spatialOccurrenceActivationIds =
+      <String, String?>{};
+  final Map<String, Future<void> Function(GameState gameState)>
+      _legacySpatialFallbacks =
+      <String, Future<void> Function(GameState gameState)>{};
+  int _inFlightSpatialDispatchCount = 0;
+  List<String> _activeNarrativeTriggerIds = const <String>[];
+  final List<_PendingNarrativeTriggerEntry> _pendingNarrativeTriggerEntries =
+      <_PendingNarrativeTriggerEntry>[];
+  bool _isNarrativeTriggerQueueDraining = false;
+  List<NarrativeOutcomeRef>? _activeLegacyScenarioOutcomeCollector;
 
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
@@ -550,12 +1424,72 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String get debugFlowPhaseName => _flowPhase.name;
 
   @visibleForTesting
+  bool get debugIsMapActivationDispatchInFlight =>
+      _inFlightMapActivationDispatchIds.isNotEmpty;
+
+  @visibleForTesting
+  bool get debugIsNarrativeSpatialDispatchInFlight =>
+      _inFlightSpatialDispatchCount > 0;
+
+  @visibleForTesting
+  int get debugPendingNarrativeTriggerEntryCount =>
+      _pendingNarrativeTriggerEntries.length;
+
+  @visibleForTesting
+  bool get debugIsNarrativeOutcomeWorkInFlight =>
+      _narrativeOutcomeDrainFuture != null ||
+      _inFlightRootOutcomePublicationCount > 0;
+
+  @visibleForTesting
+  bool get debugHasPendingSceneBattle =>
+      _pendingSceneBattleOutcomeCompleter != null;
+
+  @visibleForTesting
+  bool get debugHasPendingScenarioBattle =>
+      _pendingScenarioBattleHandoff != null;
+
+  @visibleForTesting
+  BattleStartRequest? get debugPendingBattleRequest => _pendingBattleRequest;
+
+  @visibleForTesting
+  bool debugTryEnqueueBattleRequestForTest(BattleStartRequest request) {
+    return _tryEnqueueBattleRequest(request);
+  }
+
+  @visibleForTesting
+  bool get debugHasPendingScenarioTransitionMap =>
+      _pendingScenarioTransitionMapRequest != null;
+
+  @visibleForTesting
+  String? get debugPendingScenarioTransitionTargetMapId =>
+      _pendingScenarioTransitionMapRequest?.mapId;
+
+  @visibleForTesting
+  Future<NarrativeSceneExecutionResult> debugExecuteNarrativeSceneForTest(
+    NarrativeSceneExecutionRequest request,
+  ) {
+    return _executeNarrativeScene(request);
+  }
+
+  @visibleForTesting
+  bool get debugIsLoadActivationWorkInFlight => _isLoadActivationWorkInFlight;
+
+  @visibleForTesting
+  int get debugCompletedMapActivationDispatchCount =>
+      _completedMapActivationDispatchCount;
+
+  @visibleForTesting
+  MapActivation? get debugLastCompletedMapActivation =>
+      _lastCompletedMapActivation;
+
+  @visibleForTesting
   bool get debugHasPendingDialogueLoad => _hasPendingDialogueLoad;
 
   @visibleForTesting
   bool get debugIsGameplayInputLocked =>
       _activeBlockingInteractionSerial != null ||
-      _flowPhase != _RuntimeFlowPhase.overworld;
+      _flowPhase != _RuntimeFlowPhase.overworld ||
+      _blocksOverworldForNarrativeDispatch;
 
   @visibleForTesting
   GridPos get debugPlayerGridPosition => _world.player.pos;
@@ -581,6 +1515,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @visibleForTesting
   bool get debugHasPendingLeaderWarpHandoff =>
       _pendingScenarioLeaderWarpHandoff != null;
+
+  @visibleForTesting
+  int get debugPendingScenarioNpcWarpEntryCount =>
+      _pendingScenarioNpcWarpEntries.length;
 
   @visibleForTesting
   GridPos? debugNpcGridPosition(String entityId) {
@@ -811,6 +1749,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     //   pour prouver les garanties lot 15 ;
     // - le runtime garde donc un point d'entrée stable pour tester le write-back
     //   + la reprise overworld sans créer d'API produit parallèle.
+    _pendingBattleRequest = null;
     _activeBattleContext = context;
     _flowPhase = _RuntimeFlowPhase.battle;
     _onBattleFinished(outcome);
@@ -981,7 +1920,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _pendingScenarioFollowRequest = null;
         }
         _pendingScenarioNpcWarpEntries.remove(id);
-        _pendingScenarioMoveContinuationsByEntity.remove(id);
+        final pendingMove =
+            _pendingScenarioMoveContinuationsByEntity.remove(id);
+        if (pendingMove != null) {
+          _cancelNarrativeContinuationBarrier(pendingMove.runtimeSourceId);
+        }
         _purgeMountedNpcActorForEntity(entityId: id, loaded: loaded);
       }
     }
@@ -1276,10 +2219,33 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         failureReason: 'Scripted movement controller is not initialized.',
       );
     }
-    return controller.moveEntityTo(
+    final result = controller.moveEntityTo(
       entityId: entityId,
       destination: destination,
     );
+    if (result.state != ScriptedEntityMovementState.failed) {
+      _cancelScenarioMoveOwnerForAcceptedReplacement(entityId);
+    }
+    return result;
+  }
+
+  void _cancelScenarioMoveOwnerForAcceptedReplacement(String entityId) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return;
+    }
+    final replacedContinuation =
+        _pendingScenarioMoveContinuationsByEntity.remove(normalized);
+    if (replacedContinuation != null) {
+      _cancelNarrativeContinuationBarrier(
+        replacedContinuation.runtimeSourceId,
+      );
+      debugPrint(
+        '[scenario_runtime] moveCharacter replaced continuation '
+        'entity=$normalized source=${replacedContinuation.runtimeSourceId}',
+      );
+    }
+    _pendingScenarioNpcWarpEntries.remove(normalized);
   }
 
   /// Active une patrouille simple (waypoints) pour un PNJ.
@@ -1351,14 +2317,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Cette API est utile pour des déclenchements runtime directs (tests,
   /// scripts d'initialisation, futur bridge Step -> Cutscene).
   bool startCutscene(RuntimeCutsceneAsset cutscene) {
-    if (!isLoaded) {
-      return false;
-    }
-    if (_flowPhase != _RuntimeFlowPhase.overworld) {
-      return false;
-    }
-    _pendingCutsceneChoiceRequest = null;
-    return _cutsceneRunner.start(cutscene);
+    return _tryStartCutscene(cutscene);
   }
 
   /// Démarre une cutscene depuis le registre runtime injecté au game host.
@@ -1376,14 +2335,66 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (cutscene == null) {
       return false;
     }
+    return _tryStartCutscene(cutscene);
+  }
+
+  bool _tryStartCutscene(RuntimeCutsceneAsset cutscene) {
+    if (!isLoaded ||
+        _flowPhase != _RuntimeFlowPhase.overworld ||
+        _cutsceneRunner.isRunning ||
+        _hasCheckpointUnsafeRuntimeWorkForSave) {
+      return false;
+    }
+    late final NarrativeRuntimeActivityLease lease;
+    try {
+      lease = _narrativeActivityGate.enter(
+        NarrativeRuntimeActivity.sceneSuspended,
+      );
+    } on NarrativeRuntimeActivityBlockedException {
+      return false;
+    }
+    _cutsceneActivityLease = lease;
     _pendingCutsceneChoiceRequest = null;
-    return _cutsceneRunner.start(cutscene);
+    try {
+      final started = _cutsceneRunner.start(cutscene);
+      _syncCutsceneLifecycle();
+      return started;
+    } catch (_) {
+      _releaseCutsceneActivityLease();
+      rethrow;
+    }
+  }
+
+  /// Cancels the active runtime Cutscene and releases checkpoint authority.
+  bool cancelCutscene() {
+    final cancelled = _cutsceneRunner.cancel();
+    _syncCutsceneLifecycle();
+    return cancelled;
+  }
+
+  void _cancelCutsceneForLoad() {
+    _cutsceneRunner.cancel(
+      reason: 'Cutscene cancelled by checkpoint load.',
+    );
+    _syncCutsceneLifecycle();
+  }
+
+  void _syncCutsceneLifecycle() {
+    _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+    if (!_cutsceneRunner.isRunning) {
+      _releaseCutsceneActivityLease();
+    }
+  }
+
+  void _releaseCutsceneActivityLease() {
+    _cutsceneActivityLease?.close();
+    _cutsceneActivityLease = null;
   }
 
   bool resolvePendingCutsceneChoiceByIndex(int selectedIndex) {
     final resolved = _cutsceneRunner.resolveActiveChoiceByIndex(selectedIndex);
     if (resolved) {
-      _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+      _syncCutsceneLifecycle();
     }
     return resolved;
   }
@@ -1391,7 +2402,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool resolvePendingCutsceneChoiceByValue(String selectedValue) {
     final resolved = _cutsceneRunner.resolveActiveChoiceByValue(selectedValue);
     if (resolved) {
-      _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+      _syncCutsceneLifecycle();
     }
     return resolved;
   }
@@ -1423,32 +2434,69 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @override
   Future<void> onLoad() async {
+    if (initialMapActivationReason == MapActivationReason.saveRestore) {
+      final restoredMapId = _gameState.currentMapId.trim();
+      if (restoredMapId.isEmpty) {
+        throw StateError(
+          'An explicit saveRestore boot requires a non-empty saved map id.',
+        );
+      }
+      if (restoredMapId != _bundle.map.id) {
+        _bundle = await _loadRuntimeMapBundleCached(restoredMapId);
+      }
+    }
+    final activation = _createMapActivation(
+      mapId: _bundle.map.id,
+      reason: initialMapActivationReason,
+    );
     debugPrint(
       '[runtime_game] onLoad start map=${_bundle.map.id} projectFilePath=$projectFilePath tilesets=${_bundle.tilesetAbsolutePathsById.length}',
     );
-    try {
-      debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
-      _world = GameplayWorldState.fromMap(
-        _bundle.map,
-        project: _bundle.manifest,
-        tileWidth: _bundle.manifest.settings.tileWidth,
-        tileHeight: _bundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
-      );
-      debugPrint(
-        '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
-      );
-    } on GameplaySpawnResolutionException catch (e) {
-      debugPrint(
-          '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+    if (initialMapActivationReason == MapActivationReason.saveRestore) {
+      if (!_isWithinMapBounds(_bundle.map, _gameState.playerPosition)) {
+        throw StateError(
+          'Saved player position is outside map "${_bundle.map.id}".',
+        );
+      }
       _world = GameplayWorldState.initial(
         map: _bundle.map,
-        playerPos: const GridPos(x: 0, y: 0),
+        playerPos: _gameState.playerPosition,
+        playerFacing: _gameState.playerFacing.asDirection,
+        playerMovementMode: _gameState.playerMovementMode,
         project: _bundle.manifest,
         tileWidth: _bundle.manifest.settings.tileWidth,
         tileHeight: _bundle.manifest.settings.tileHeight,
         npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
       );
+      debugPrint(
+        '[runtime] Save restored on map ${_bundle.map.id} at '
+        '(${_world.player.pos.x}, ${_world.player.pos.y})',
+      );
+    } else {
+      try {
+        debugPrint('[runtime_game] world build start map=${_bundle.map.id}');
+        _world = GameplayWorldState.fromMap(
+          _bundle.map,
+          project: _bundle.manifest,
+          tileWidth: _bundle.manifest.settings.tileWidth,
+          tileHeight: _bundle.manifest.settings.tileHeight,
+          npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+        );
+        debugPrint(
+          '[runtime] Map loaded: ${_bundle.map.id}, spawn at (${_world.player.pos.x}, ${_world.player.pos.y})',
+        );
+      } on GameplaySpawnResolutionException catch (e) {
+        debugPrint(
+            '[runtime] Spawn resolution failed ($e), falling back to (0,0)');
+        _world = GameplayWorldState.initial(
+          map: _bundle.map,
+          playerPos: const GridPos(x: 0, y: 0),
+          project: _bundle.manifest,
+          tileWidth: _bundle.manifest.settings.tileWidth,
+          tileHeight: _bundle.manifest.settings.tileHeight,
+          npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+        );
+      }
     }
     debugPrint('[runtime_game] tileset image load start map=${_bundle.map.id}');
     final images =
@@ -1486,15 +2534,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _ensureFpsOverlay();
     _applyDebugTileMarker();
     _resetScriptedNpcMovementController();
-    _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-      map: _bundle.map,
-      pos: _world.player.pos,
-    );
-    _dispatchScenarioRuntimeSource(
-      ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+    _resetTriggerEnterOccupancy();
+    _flowPhase = _RuntimeFlowPhase.overworld;
+    _installMapActivation(activation);
+    await super.onLoad();
+    _runDetachedNarrativeTask(
+      operation: 'mapEnter.initialBoot',
+      task: () async {
+        await _dispatchCompletedMapActivation(activation);
+      },
     );
     debugPrint('[runtime_game] onLoad completed activeMapId=$_activeMapId');
-    return super.onLoad();
   }
 
   @override
@@ -1631,6 +2681,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _releaseMovementControl(control);
         return true;
       }
+      if (_blocksOverworldForMapActivationWork ||
+          _blocksOverworldForNarrativeDispatch) {
+        _releaseMovementControl(control);
+        return true;
+      }
       if (event.isPress) {
         _pressMovementControl(control);
       } else if (event.isRelease) {
@@ -1667,6 +2722,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
+    if (_blocksOverworldForMapActivationWork ||
+        _blocksOverworldForNarrativeDispatch) {
+      return true;
+    }
+
     if (control == RuntimeInputControl.primary) {
       _handleInteract();
       return true;
@@ -1697,18 +2757,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _syncNpcCollisionDebugOverlay();
 
     if (_flowPhase == _RuntimeFlowPhase.mapTransition) {
+      if (_narrativeActivityGate.checkpointInProgress) {
+        return;
+      }
       if (pendingConnectionEntryAnimation != null && !_player.isStepping) {
         _pendingConnectionEntryAnimation = null;
         _flowPhase = _RuntimeFlowPhase.overworld;
-        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-          map: _bundle.map,
-          pos: _world.player.pos,
-        );
+        _resetTriggerEnterOccupancy();
         debugPrint(
           '[connection] transition complete -> map=${pendingConnectionEntryAnimation.mapId} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
         );
-        _dispatchScenarioRuntimeSource(
-          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+        _installMapActivation(pendingConnectionEntryAnimation.activation);
+        _runDetachedNarrativeTask(
+          operation: 'mapEnter.connection',
+          task: () async {
+            await _dispatchCompletedMapActivation(
+              pendingConnectionEntryAnimation.activation,
+            );
+          },
         );
       }
       return;
@@ -1718,36 +2784,121 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
+    final mapActivationWorkLocked = _blocksOverworldForMapActivationWork;
+    final narrativeDispatchLocked = _blocksOverworldForNarrativeDispatch;
+    final checkpointLocked = _narrativeActivityGate.checkpointInProgress;
+    final blocksNewOverworldLaunch =
+        mapActivationWorkLocked || narrativeDispatchLocked || checkpointLocked;
+    if (!blocksNewOverworldLaunch && _startNarrativeTriggerQueueDrain()) {
+      _clearPressedMovementControls();
+      return;
+    }
     final pendingWarp = _pendingWarp;
-    if (pendingWarp != null && !_player.isStepping) {
+    final pendingWarpOwner = _pendingScenarioWarpHandoff;
+    final restoreFenceOwnsPendingWarp = pendingWarpOwner != null &&
+        pendingWarpOwner.matches(pendingWarp) &&
+        !checkpointLocked &&
+        _restoreFenceOwnsSource(pendingWarpOwner.runtimeSourceId);
+    if ((!blocksNewOverworldLaunch || restoreFenceOwnsPendingWarp) &&
+        pendingWarp != null &&
+        !_player.isStepping) {
       _pendingWarp = null;
-      _handleWarp(pendingWarp);
+      final scenarioOwner = _pendingScenarioWarpHandoff;
+      final matchingOwner =
+          scenarioOwner?.matches(pendingWarp) == true ? scenarioOwner : null;
+      if (scenarioOwner != null && matchingOwner == null) {
+        _pendingScenarioWarpHandoff = null;
+        _cancelNarrativeContinuationBarrier(
+          scenarioOwner.runtimeSourceId,
+        );
+      }
+      final warp = _handleWarp(
+        pendingWarp,
+        allowMapActivationWork:
+            _restoreFenceOwnsSource(matchingOwner?.runtimeSourceId),
+      );
+      if (matchingOwner == null) {
+        _runDetachedNarrativeTask(
+          operation: 'mapEnter.physicalWarp',
+          task: () => warp,
+        );
+      } else {
+        unawaited(
+          () async {
+            try {
+              await warp;
+            } catch (error, stackTrace) {
+              debugPrint(
+                '[scenario_runtime] owned warp handoff failed '
+                'source=${matchingOwner.runtimeSourceId} '
+                'error=$error\n$stackTrace',
+              );
+              if (identical(_pendingScenarioWarpHandoff, matchingOwner)) {
+                _pendingScenarioWarpHandoff = null;
+              }
+              _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+              _cancelOwnedScenarioWarpContinuation(matchingOwner);
+              return;
+            }
+            if (identical(_pendingScenarioWarpHandoff, matchingOwner)) {
+              _pendingScenarioWarpHandoff = null;
+            }
+            final completed = _activeMapId == pendingWarp.targetMapId &&
+                _world.player.pos == pendingWarp.targetPos;
+            if (completed) {
+              _completeOwnedScenarioWarpContinuation(matchingOwner);
+            } else {
+              debugPrint(
+                '[scenario_runtime] owned warp handoff canceled '
+                'source=${matchingOwner.runtimeSourceId} '
+                'expectedMap=${pendingWarp.targetMapId} '
+                'actualMap=$_activeMapId '
+                'expectedPos=(${pendingWarp.targetPos.x},${pendingWarp.targetPos.y}) '
+                'actualPos=(${_world.player.pos.x},${_world.player.pos.y})',
+              );
+              _syncGameStateFromWorld(mapIdOverride: _activeMapId);
+              _cancelOwnedScenarioWarpContinuation(matchingOwner);
+            }
+          }(),
+        );
+      }
       return;
     }
 
-    final pendingConnection = _pendingConnection;
-    if (pendingConnection != null && !_player.isStepping) {
-      _pendingConnection = null;
-      _handleConnection(pendingConnection);
-      return;
+    if (!blocksNewOverworldLaunch) {
+      final pendingConnection = _pendingConnection;
+      if (pendingConnection != null && !_player.isStepping) {
+        _pendingConnection = null;
+        _handleConnection(pendingConnection);
+        return;
+      }
     }
 
     final pendingBattleRequest = _pendingBattleRequest;
-    if (pendingBattleRequest != null && !_player.isStepping) {
+    final pendingBattleOwner = _pendingScenarioBattleHandoff;
+    final restoreFenceOwnsPendingBattle = pendingBattleOwner != null &&
+        pendingBattleOwner.requestId == pendingBattleRequest?.requestId &&
+        !checkpointLocked &&
+        _restoreFenceOwnsSource(pendingBattleOwner.runtimeSourceId);
+    if ((!blocksNewOverworldLaunch || restoreFenceOwnsPendingBattle) &&
+        pendingBattleRequest != null &&
+        !_player.isStepping) {
       _pendingBattleRequest = null;
       _startBattleHandoff(pendingBattleRequest);
       return;
     }
 
-    final pendingPlacedElementBehavior = _pendingPlacedElementBehavior;
-    if (pendingPlacedElementBehavior != null && !_player.isStepping) {
-      _pendingPlacedElementBehavior = null;
-      _executePlacedElementBehavior(
-        element: pendingPlacedElementBehavior.element,
-        behavior: pendingPlacedElementBehavior.behavior,
-        trigger: pendingPlacedElementBehavior.trigger,
-      );
-      return;
+    if (!blocksNewOverworldLaunch) {
+      final pendingPlacedElementBehavior = _pendingPlacedElementBehavior;
+      if (pendingPlacedElementBehavior != null && !_player.isStepping) {
+        _pendingPlacedElementBehavior = null;
+        _executePlacedElementBehavior(
+          element: pendingPlacedElementBehavior.element,
+          behavior: pendingPlacedElementBehavior.behavior,
+          trigger: pendingPlacedElementBehavior.trigger,
+        );
+        return;
+      }
     }
 
     // Tick du système de déplacement scripté PNJ.
@@ -1755,16 +2906,40 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Ce tick reste dans le flux overworld pour ce MVP:
     // - pas d'exécution pendant dialogue/battle transition;
     // - base propre pour un futur "wait movement" en cutscene.
-    _scriptedEntityMovementController?.update(dt);
-    _processPendingScenarioNpcWarpEntries();
-    _processPendingScenarioMoveContinuations();
-    _processPendingScenarioFollowRequest();
-    _processPendingScenarioTransitionMapRequest();
-    _processPendingScenarioReachedEndCompletions();
+    if (!blocksNewOverworldLaunch) {
+      _scriptedEntityMovementController?.update(dt);
+      _processPendingScenarioNpcWarpEntries();
+      _processPendingScenarioMoveContinuations();
+      _processPendingScenarioFollowRequest();
+      _processPendingScenarioTransitionMapRequest();
+      _processPendingScenarioReachedEndCompletions();
+    } else {
+      _PendingScenarioMoveContinuation? restoreOwnedMove;
+      for (final pending in _pendingScenarioMoveContinuationsByEntity.values) {
+        if (_restoreFenceOwnsSource(pending.runtimeSourceId)) {
+          restoreOwnedMove = pending;
+          break;
+        }
+      }
+      if (restoreOwnedMove != null) {
+        _scriptedEntityMovementController?.updateOwnedMove(
+          dt,
+          restoreOwnedMove.entityId,
+        );
+        _processPendingScenarioNpcWarpEntries(
+          onlyEntityId: restoreOwnedMove.entityId,
+        );
+        _processPendingScenarioMoveContinuations(
+          onlyEntityId: restoreOwnedMove.entityId,
+        );
+      }
+    }
 
     // Tick runner cutscene MVP (séquentiel).
-    _cutsceneRunner.update(dt);
-    _pendingCutsceneChoiceRequest = _cutsceneRunner.activeChoiceRequest;
+    if (!blocksNewOverworldLaunch) {
+      _cutsceneRunner.update(dt);
+    }
+    _syncCutsceneLifecycle();
     if (isCutsceneRunning) {
       // Tant que la cutscene n'est pas terminée, on ne laisse pas la boucle
       // input joueur déplacer le player.
@@ -1772,6 +2947,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_activeBlockingInteractionSerial != null) {
+      _clearPressedMovementControls();
+      return;
+    }
+
+    if (blocksNewOverworldLaunch) {
       _clearPressedMovementControls();
       return;
     }
@@ -2084,6 +3264,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (result is WarpTriggered) {
+      _dispatchScenarioTriggerEnterFromMovement(
+        previousPos: previousPlayerPos,
+        currentPos: _world.player.pos,
+      );
       if (result.warp.triggerMode == MapWarpTriggerMode.onEnter) {
         _player.startStep(
           _world.player,
@@ -2092,7 +3276,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       } else {
         _player.syncState(_world.player, snapToGrid: true);
       }
-      _pendingWarp = result.warp;
+      if (!_tryEnqueueWarp(result.warp)) {
+        debugPrint(
+          '[warp] physical warp rejected because another owned warp handoff '
+          'is pending: ${result.warp.warpId}',
+        );
+        return;
+      }
       debugPrint(
         '[warp] Triggered warp ${result.warp.warpId} mode=${result.warp.triggerMode.name} -> map=${result.warp.targetMapId} pos=(${result.warp.targetPos.x}, ${result.warp.targetPos.y})',
       );
@@ -2109,6 +3299,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (result is PlacedElementInteracted) {
+      if (_world.player.pos != previousPlayerPos) {
+        _dispatchScenarioTriggerEnterFromMovement(
+          previousPos: previousPlayerPos,
+          currentPos: _world.player.pos,
+        );
+      }
       final isMovementTrigger =
           result.trigger == MapPlacedElementTriggerType.onEnter ||
               result.trigger == MapPlacedElementTriggerType.onExit ||
@@ -2174,7 +3370,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       encounter: encounter,
       world: _world,
     );
-    _pendingBattleRequest = request;
+    if (!_tryEnqueueBattleRequest(request)) {
+      debugPrint(
+        '[battle] wild request rejected: another Battle handoff is pending',
+      );
+      return;
+    }
     debugPrint(
       '[battle] battle request created kind=${request.kind.name} source=${request.source.name} requestId=${request.requestId}',
     );
@@ -2190,6 +3391,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// - on lit les triggers couvrant l'ancienne position,
   /// - on lit les triggers couvrant la nouvelle position,
   /// - on déclenche uniquement les IDs présents dans "nouvelle - ancienne".
+  void _resetTriggerEnterOccupancy() {
+    _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+      map: _bundle.map,
+      pos: _world.player.pos,
+    );
+    _activeNarrativeTriggerIds = resolveNarrativeTriggerEnterFronts(
+      map: _bundle.map,
+      currentPosition: _world.player.pos,
+      previousOccupiedTriggerIds: null,
+    ).currentOccupiedTriggerIds;
+    _pendingNarrativeTriggerEntries.clear();
+  }
+
   void _dispatchScenarioTriggerEnterFromMovement({
     required GridPos previousPos,
     required GridPos currentPos,
@@ -2210,12 +3424,94 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final enteredIds =
         currentIds.difference(previousIds).toList(growable: false)..sort();
     for (final triggerId in enteredIds) {
+      MapTrigger? trigger;
+      for (final candidate in _bundle.map.triggers) {
+        if (candidate.id == triggerId) {
+          trigger = candidate;
+          break;
+        }
+      }
+      if (trigger != null &&
+          (trigger.type == TriggerType.event ||
+              trigger.type == TriggerType.custom)) {
+        continue;
+      }
       _dispatchScenarioRuntimeSource(
         ScenarioRuntimeSourceEvent.triggerEnter(
           mapId: _activeMapId,
           triggerId: triggerId,
         ),
       );
+    }
+
+    final narrativeFronts = resolveNarrativeTriggerEnterFronts(
+      map: _bundle.map,
+      currentPosition: currentPos,
+      previousOccupiedTriggerIds: _activeNarrativeTriggerIds,
+    );
+    _activeNarrativeTriggerIds = narrativeFronts.currentOccupiedTriggerIds;
+    for (final triggerId in narrativeFronts.enteredTriggerIds) {
+      _pendingNarrativeTriggerEntries.add(
+        _PendingNarrativeTriggerEntry(
+          activationId: _currentMapActivationId,
+          mapId: _activeMapId,
+          triggerId: triggerId,
+        ),
+      );
+    }
+  }
+
+  bool _startNarrativeTriggerQueueDrain() {
+    if (_isNarrativeTriggerQueueDraining ||
+        _inFlightSpatialDispatchCount > 0 ||
+        _narrativeActivityGate.checkpointInProgress ||
+        _pendingNarrativeTriggerEntries.isEmpty) {
+      return false;
+    }
+    _isNarrativeTriggerQueueDraining = true;
+    _runDetachedNarrativeTask(
+      operation: 'triggerEnter.queue',
+      task: _drainNarrativeTriggerQueue,
+    );
+    return true;
+  }
+
+  Future<void> _drainNarrativeTriggerQueue() async {
+    try {
+      while (_pendingNarrativeTriggerEntries.isNotEmpty &&
+          _flowPhase == _RuntimeFlowPhase.overworld) {
+        final entry = _pendingNarrativeTriggerEntries.removeAt(0);
+        if (entry.activationId != _currentMapActivationId ||
+            entry.mapId != _activeMapId) {
+          continue;
+        }
+        final result = await _dispatchSpatialOccurrence(
+          occurrence: NarrativeEventOccurrence(
+            source: NarrativeEventSourceRef.triggerEnter(
+              entry.mapId,
+              entry.triggerId,
+            ),
+          ),
+          legacyFallback: (_) async {
+            _dispatchScenarioRuntimeSource(
+              ScenarioRuntimeSourceEvent.triggerEnter(
+                mapId: entry.mapId,
+                triggerId: entry.triggerId,
+              ),
+            );
+          },
+        );
+        if (result is NarrativeSpatialProductionDispatchFailed &&
+            result.failure is NarrativeRuntimeActivityBlockedException) {
+          if (entry.activationId == _currentMapActivationId &&
+              entry.mapId == _activeMapId) {
+            _pendingNarrativeTriggerEntries.insert(0, entry);
+          }
+          break;
+        }
+      }
+    } finally {
+      _isNarrativeTriggerQueueDraining = false;
     }
   }
 
@@ -2227,8 +3523,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// - le branchement vers les effets runtime (dialogue/script/message),
   /// - la synchronisation de GameState lorsque le flow mutera des flags.
   ScenarioRuntimeExecutionResult _dispatchScenarioRuntimeSource(
-    ScenarioRuntimeSourceEvent sourceEvent,
-  ) {
+    ScenarioRuntimeSourceEvent sourceEvent, {
+    List<NarrativeOutcomeRef>? deferredOutcomes,
+  }) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return const ScenarioRuntimeExecutionResult(
         status: ScenarioRuntimeExecutionStatus.noMatchingSource,
@@ -2253,39 +3550,79 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
 
-    final result = _scenarioRuntime.dispatch(
-      scenarios: scenarios,
-      sourceEvent: sourceEvent,
-      context: _buildScenarioRuntimeExecutionContext(),
-    );
+    late final NarrativeRuntimeActivityLease sceneLease;
+    try {
+      // Acquire before building the callback context: every legacy Scenario
+      // callback may mutate the live facade and therefore belongs inside the
+      // same checkpoint exclusion boundary as a V2 Scene execution.
+      sceneLease =
+          _narrativeActivityGate.enter(NarrativeRuntimeActivity.sceneActive);
+    } on NarrativeRuntimeActivityBlockedException {
+      debugPrint(
+        '[scenario_runtime] blocked by checkpoint '
+        'source=${sourceEvent.type.name}',
+      );
+      return const ScenarioRuntimeExecutionResult(
+        status: ScenarioRuntimeExecutionStatus.blocked,
+        effect: ScenarioRuntimeEffect.none(),
+        message: 'Blocked: a checkpoint is in progress.',
+      );
+    }
 
-    // Step Studio : on ne complète pas sur "flow reached end" uniquement.
-    // La completion est validée quand les effets runtime visibles sont terminés.
-    _handleScenarioRuntimeCompletionResult(
-      result,
-      origin: 'dispatch:${sourceEvent.type.name}',
-    );
+    try {
+      final activeCollector = _activeLegacyScenarioOutcomeCollector;
+      final outcomes =
+          deferredOutcomes ?? activeCollector ?? <NarrativeOutcomeRef>[];
+      final publishesOwnOutcomes =
+          deferredOutcomes == null && activeCollector == null;
+      final result = _scenarioRuntime.dispatch(
+        scenarios: scenarios,
+        sourceEvent: sourceEvent,
+        context: _buildScenarioRuntimeExecutionContext(outcomes),
+      );
 
-    // On maintient une trace explicite en logs pour faciliter le debug.
-    if (result.status == ScenarioRuntimeExecutionStatus.noMatchingSource) {
+      // Step Studio : on ne complète pas sur "flow reached end" uniquement.
+      // La completion est validée quand les effets runtime visibles sont terminés.
+      _handleScenarioRuntimeCompletionResult(
+        result,
+        origin: 'dispatch:${sourceEvent.type.name}',
+      );
+
+      // On maintient une trace explicite en logs pour faciliter le debug.
+      if (result.status == ScenarioRuntimeExecutionStatus.noMatchingSource) {
+        return result;
+      }
+      debugPrint(
+        '[scenario_runtime] source=${sourceEvent.type.name} map=${sourceEvent.mapId} trigger=${sourceEvent.triggerId ?? '-'} entity=${sourceEvent.entityId ?? '-'} status=${result.status.name} scenario=${result.scenarioId ?? '-'} sourceNode=${result.sourceNodeId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
+      );
+
+      // [SEL-B2] Si l'effet est un combat, on lance le battle handoff et on
+      // suspend le graphe. La reprise viendra de _onBattleFinished.
+      final battleHandoffReady =
+          result.effect.type != ScenarioRuntimeEffectType.battle ||
+              _handleScenarioBattleEffect(result);
+      final continuationBarrier = battleHandoffReady
+          ? _registerNarrativeContinuationBarrier(result)
+          : null;
+
+      if (publishesOwnOutcomes && outcomes.isNotEmpty) {
+        _scheduleNarrativeOutcomesPublication(
+          outcomes,
+          continuation: continuationBarrier?.continuation,
+        );
+      }
+
       return result;
+    } finally {
+      sceneLease.close();
     }
-    debugPrint(
-      '[scenario_runtime] source=${sourceEvent.type.name} map=${sourceEvent.mapId} trigger=${sourceEvent.triggerId ?? '-'} entity=${sourceEvent.entityId ?? '-'} status=${result.status.name} scenario=${result.scenarioId ?? '-'} sourceNode=${result.sourceNodeId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
-    );
-
-    // [SEL-B2] Si l'effet est un combat, on lance le battle handoff et on
-    // suspend le graphe. La reprise viendra de _onBattleFinished.
-    if (result.effect.type == ScenarioRuntimeEffectType.battle) {
-      _handleScenarioBattleEffect(result);
-    }
-
-    return result;
   }
 
   /// Contexte partagé dispatch / continuation : inclut le filtre Step Studio
   /// pour ne pas relancer une cutscene locale dont la step est déjà complétée.
-  ScenarioRuntimeExecutionContext _buildScenarioRuntimeExecutionContext() {
+  ScenarioRuntimeExecutionContext _buildScenarioRuntimeExecutionContext(
+    List<NarrativeOutcomeRef> deferredOutcomes,
+  ) {
     return ScenarioRuntimeExecutionContext(
       gameState: _gameState,
       onGameStateUpdated: (state) {
@@ -2293,6 +3630,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _refreshWorldNpcPresence();
       },
       shouldSkipScenario: _shouldSkipLocalScenarioForCompletedStep,
+      deferOutcomeDispatch: true,
+      onOutcomeEmitted: ({required scenarioId, required outcomeId}) {
+        deferredOutcomes.add(
+          NarrativeOutcomeRef(
+            producerKind: NarrativeOutcomeProducerKind.legacyScenario,
+            producerId: scenarioId,
+            outcomeId: outcomeId,
+          ),
+        );
+      },
       openDialogue: _openScenarioDialogueById,
       runScript: _runScenarioScriptById,
       showMessage: (message) => _showNotification(message),
@@ -2477,7 +3824,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           _pendingScenarioMoveContinuationsByEntity.isNotEmpty,
       hasPendingNpcWarpEntries: _pendingScenarioNpcWarpEntries.isNotEmpty,
       hasPendingTransitionMapRequest:
-          _pendingScenarioTransitionMapRequest != null,
+          _pendingScenarioTransitionMapRequest != null ||
+              _narrativeContinuationBarriers.any(
+                (barrier) => barrier.ownedTransitionMapRequest != null,
+              ),
       hasPendingRuntimeWarp: _pendingWarp != null,
       hasPendingRuntimeConnection: _pendingConnection != null,
       isPlayerStepInProgress: _player.isStepping,
@@ -2534,14 +3884,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalizedDialogueId.isEmpty) {
       return false;
     }
+    final source = runtimeSourceId ?? 'scenario';
+    _reserveNarrativeContinuationRuntimeSource(source);
     final opened = _tryOpenDialogue(
-      runtimeSourceId ?? 'scenario',
+      source,
       DialogueRef(
         dialogueId: normalizedDialogueId,
         startNode: startNode,
       ),
       'Dialogue introuvable: $normalizedDialogueId',
     );
+    if (!opened) {
+      _discardNarrativeContinuationRuntimeSourceReservation(source);
+    }
     if (opened && runtimeSourceId != null && runtimeSourceId.isNotEmpty) {
       _scheduleScenarioContinuationAfterDialogue(runtimeSourceId);
     }
@@ -2555,14 +3910,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final previous = _pendingPostDialogueAction;
     _pendingPostDialogueAction = () {
       previous?.call();
-      _resumeScenarioAfterRuntimeSource(runtimeSourceId);
+      _scheduleNarrativeContinuationAdvance(runtimeSourceId);
     };
   }
 
-  void _resumeScenarioAfterRuntimeSource(String runtimeSourceId) {
+  _ScenarioContinuationResumeResult _resumeScenarioAfterRuntimeSource(
+    String runtimeSourceId,
+  ) {
     final parts = runtimeSourceId.split(':');
     if (parts.length != 4) {
-      return;
+      return const _ScenarioContinuationResumeResult.invalid();
     }
     final scenarioId = parts[1].trim();
     final sourceNodeId = parts[2].trim();
@@ -2570,14 +3927,16 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (scenarioId.isEmpty ||
         sourceNodeId.isEmpty ||
         resumeAfterNodeId.isEmpty) {
-      return;
+      return const _ScenarioContinuationResumeResult.invalid();
     }
+    final outcomes = <NarrativeOutcomeRef>[];
+    final pendingTransitionBeforeResume = _pendingScenarioTransitionMapRequest;
     final result = _scenarioRuntime.dispatchContinuation(
       scenarios: _bundle.manifest.scenarios,
       scenarioId: scenarioId,
       sourceNodeId: sourceNodeId,
       resumeAfterNodeId: resumeAfterNodeId,
-      context: _buildScenarioRuntimeExecutionContext(),
+      context: _buildScenarioRuntimeExecutionContext(outcomes),
     );
     _handleScenarioRuntimeCompletionResult(
       result,
@@ -2586,6 +3945,369 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint(
       '[scenario_runtime] continuation source=$runtimeSourceId status=${result.status.name} scenario=${result.scenarioId ?? '-'} stopNode=${result.stopNodeId ?? '-'} message=${result.message}',
     );
+    final battleHandoffReady =
+        result.effect.type != ScenarioRuntimeEffectType.battle ||
+            _handleScenarioBattleEffect(result);
+    final pendingTransitionAfterResume = _pendingScenarioTransitionMapRequest;
+    _PendingScenarioTransitionMapRequest? ownedTransitionMapRequest;
+    if (pendingTransitionAfterResume != null &&
+        !identical(
+          pendingTransitionAfterResume,
+          pendingTransitionBeforeResume,
+        ) &&
+        identical(
+          _pendingScenarioTransitionMapRequest,
+          pendingTransitionAfterResume,
+        )) {
+      // A continuation may synchronously schedule transitionMap before it
+      // reaches End. Move only that newly-created request under the same
+      // continuation owner; a pre-existing/global transition is unrelated
+      // work and must never be adopted by this barrier.
+      _pendingScenarioTransitionMapRequest = null;
+      ownedTransitionMapRequest = pendingTransitionAfterResume;
+    }
+    return _ScenarioContinuationResumeResult(
+      outcomes: outcomes,
+      nextRuntimeSourceId: battleHandoffReady
+          ? _scenarioContinuationRuntimeSourceId(result)
+          : null,
+      ownedTransitionMapRequest: ownedTransitionMapRequest,
+    );
+  }
+
+  void _scheduleNarrativeContinuationAdvance(
+    String runtimeSourceId, {
+    List<NarrativeOutcomeRef> effectOutcomes = const <NarrativeOutcomeRef>[],
+  }) {
+    final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
+    if (barrier == null || barrier.advancing) {
+      if (_reservedNarrativeContinuationRuntimeSourceIds
+          .contains(runtimeSourceId)) {
+        // A valid Scenario cycle can synchronously start and complete the same
+        // runtime source while its owning barrier is still advancing. Keep the
+        // completion latched until the source reservation is claimed after the
+        // barrier transfer; otherwise the one completion signal is lost.
+        _deferredNarrativeContinuationAdvanceSourceIds.add(runtimeSourceId);
+      }
+      return;
+    }
+    unawaited(
+      _advanceNarrativeContinuationBarrier(
+        runtimeSourceId,
+        effectOutcomes: effectOutcomes,
+      ),
+    );
+  }
+
+  void _startNarrativePostCommitEffectIfReady() {
+    if (_narrativeContinuationBarriers.isEmpty) {
+      return;
+    }
+    final barrier = _narrativeContinuationBarriers.last;
+    final effect = barrier.postCommitEffect;
+    if (effect == null || barrier.postCommitEffectStarted || barrier.closed) {
+      return;
+    }
+    barrier.postCommitEffectStarted = true;
+    unawaited(
+      () async {
+        try {
+          await effect();
+        } catch (error, stackTrace) {
+          debugPrint(
+            '[event_v2] post-commit effect failed '
+            'source=${barrier.runtimeSourceId} error=$error\n$stackTrace',
+          );
+          _showNotification('Transition impossible.');
+        } finally {
+          await _advanceNarrativeContinuationBarrier(
+            barrier.runtimeSourceId,
+          );
+        }
+      }(),
+    );
+  }
+
+  Future<void> _advanceNarrativeContinuationBarrier(
+    String runtimeSourceId, {
+    List<NarrativeOutcomeRef> effectOutcomes = const <NarrativeOutcomeRef>[],
+  }) async {
+    final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
+    if (barrier == null || barrier.closed || barrier.advancing) {
+      return;
+    }
+    while (_narrativeContinuationBarriers.isNotEmpty &&
+        !identical(_narrativeContinuationBarriers.last, barrier)) {
+      await _narrativeContinuationBarriers.last.closedFuture;
+      if (barrier.closed) {
+        return;
+      }
+    }
+    barrier.advancing = true;
+    try {
+      if (effectOutcomes.isNotEmpty) {
+        await _enqueueNarrativeOutcomes(
+          effectOutcomes,
+          causationId: barrier.continuation.causationId,
+          correlationId: barrier.continuation.correlationId,
+          depth: barrier.continuation.depth,
+        );
+      }
+
+      // Drain every FIFO item that precedes or belongs to this continuation.
+      // A newly suspended Scenario pushes a child barrier; wait for that child
+      // to close, then continue the same bounded owner progression.
+      await _drainNarrativeOutcomesOwnedBy(barrier);
+
+      if (!barrier.resumesScenario || barrier.cancelled) {
+        _closeNarrativeContinuationBarrier(barrier);
+        return;
+      }
+
+      final resumed = _resumeScenarioAfterRuntimeSource(runtimeSourceId);
+      final resumedTransition = resumed.ownedTransitionMapRequest;
+      if (resumedTransition != null) {
+        if (barrier.ownedTransitionMapRequest != null) {
+          throw StateError(
+            'A narrative continuation cannot own two map transitions.',
+          );
+        }
+        // Transfer ownership before the first await after resume so no update
+        // tick can observe the transition as globally detached and unowned.
+        barrier.ownedTransitionMapRequest = resumedTransition;
+      }
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(_gameState, null);
+      });
+      if (resumed.outcomes.isNotEmpty) {
+        await _enqueueNarrativeOutcomes(
+          resumed.outcomes,
+          causationId: barrier.continuation.causationId,
+          correlationId: barrier.continuation.correlationId,
+          depth: barrier.continuation.depth,
+        );
+      }
+
+      final nextRuntimeSourceId = resumed.nextRuntimeSourceId;
+      if (nextRuntimeSourceId != null) {
+        barrier.runtimeSourceId = nextRuntimeSourceId;
+        barrier.advancing = false;
+        _claimNarrativeContinuationRuntimeSource(
+          barrier,
+          nextRuntimeSourceId,
+        );
+        debugPrint(
+          '[event_v2] continuation barrier transferred '
+          'source=$nextRuntimeSourceId',
+        );
+        return;
+      }
+
+      await _drainNarrativeOutcomesOwnedBy(barrier);
+      final ownedTransition = barrier.ownedTransitionMapRequest;
+      if (ownedTransition != null) {
+        await _executeScenarioTransitionMapRequest(
+          ownedTransition,
+          allowMapActivationWork: true,
+          skipVisualTransition: !isLoaded,
+        );
+        barrier.ownedTransitionMapRequest = null;
+        // The target mapEnter may itself suspend a Scenario. Preserve strict
+        // LIFO ownership and wait for that child before closing this restored
+        // parent barrier.
+        await _drainNarrativeOutcomesOwnedBy(barrier);
+      }
+      _closeNarrativeContinuationBarrier(barrier);
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[event_v2] continuation barrier failed '
+        'source=$runtimeSourceId error=$error\n$stackTrace',
+      );
+      _showNotification('Résultat narratif impossible.');
+      _closeNarrativeContinuationBarrier(barrier);
+    }
+  }
+
+  Future<void> _drainNarrativeOutcomesOwnedBy(
+    _NarrativeContinuationBarrier owner,
+  ) async {
+    while (!owner.closed) {
+      while (_narrativeContinuationBarriers.isNotEmpty &&
+          !identical(_narrativeContinuationBarriers.last, owner)) {
+        await _narrativeContinuationBarriers.last.closedFuture;
+      }
+      if (owner.closed) {
+        return;
+      }
+      await _drainLiveNarrativeOutcomeOutbox();
+      if (_narrativeContinuationBarriers.isNotEmpty &&
+          !identical(_narrativeContinuationBarriers.last, owner)) {
+        continue;
+      }
+      final state = await _narrativeStateTransactions.read();
+      if (state
+          .narrativeEventProgress.pendingNarrativeOutcomeDeliveries.isEmpty) {
+        _applyNarrativeGameState(state);
+        return;
+      }
+    }
+  }
+
+  void _closeNarrativeContinuationBarrier(
+    _NarrativeContinuationBarrier barrier,
+  ) {
+    if (barrier.closed) {
+      return;
+    }
+    if (_narrativeContinuationBarriers.isEmpty ||
+        !identical(_narrativeContinuationBarriers.last, barrier)) {
+      throw StateError('Narrative continuation barriers must close LIFO.');
+    }
+    _narrativeContinuationBarriers.removeLast();
+    barrier.closed = true;
+    barrier.lease.close();
+    barrier.closedCompleter.complete();
+    debugPrint(
+      '[event_v2] continuation barrier closed '
+      'source=${barrier.runtimeSourceId} '
+      'depth=${_narrativeContinuationBarriers.length}',
+    );
+  }
+
+  void _cancelNarrativeContinuationBarrier(String runtimeSourceId) {
+    final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
+    if (barrier == null || barrier.closed) {
+      if (_reservedNarrativeContinuationRuntimeSourceIds
+          .contains(runtimeSourceId)) {
+        _deferredNarrativeContinuationCancelSourceIds.add(runtimeSourceId);
+      }
+      return;
+    }
+    barrier.cancelled = true;
+    _scheduleNarrativeContinuationAdvance(runtimeSourceId);
+  }
+
+  void _attachNarrativeOutcomeContinuationToBarrier(
+    ScenarioRuntimeExecutionResult result,
+    _NarrativeOutcomeContinuationContext continuation,
+  ) {
+    final runtimeSourceId = _scenarioContinuationRuntimeSourceId(result);
+    if (runtimeSourceId == null) {
+      return;
+    }
+    final barrier = _narrativeContinuationBarrierFor(runtimeSourceId);
+    if (barrier != null) {
+      barrier.continuation = continuation;
+    }
+  }
+
+  String? _scenarioContinuationRuntimeSourceId(
+    ScenarioRuntimeExecutionResult result,
+  ) {
+    if (result.status != ScenarioRuntimeExecutionStatus.executedEffect) {
+      return null;
+    }
+    switch (result.effect.type) {
+      case ScenarioRuntimeEffectType.dialogue:
+      case ScenarioRuntimeEffectType.script:
+      case ScenarioRuntimeEffectType.battle:
+      case ScenarioRuntimeEffectType.none:
+        break;
+      case ScenarioRuntimeEffectType.message:
+        return null;
+    }
+    final scenarioId = result.scenarioId?.trim() ?? '';
+    final sourceNodeId = result.sourceNodeId?.trim() ?? '';
+    final stopNodeId = result.stopNodeId?.trim() ?? '';
+    if (scenarioId.isEmpty || sourceNodeId.isEmpty || stopNodeId.isEmpty) {
+      return null;
+    }
+    return 'scenario:$scenarioId:$sourceNodeId:$stopNodeId';
+  }
+
+  _NarrativeContinuationBarrier? _registerNarrativeContinuationBarrier(
+    ScenarioRuntimeExecutionResult result,
+  ) {
+    final runtimeSourceId = _scenarioContinuationRuntimeSourceId(result);
+    if (runtimeSourceId == null) {
+      return null;
+    }
+    return _openNarrativeContinuationBarrier(
+      runtimeSourceId: runtimeSourceId,
+      continuation: _NarrativeOutcomeContinuationContext(
+        causationId: _nextNarrativeRuntimeId('evx'),
+        correlationId: _nextNarrativeRuntimeId('corr'),
+        depth: 0,
+      ),
+    );
+  }
+
+  _NarrativeContinuationBarrier _openNarrativeContinuationBarrier({
+    required String runtimeSourceId,
+    required _NarrativeOutcomeContinuationContext continuation,
+    bool resumesScenario = true,
+    Future<void> Function()? postCommitEffect,
+  }) {
+    final barrier = _NarrativeContinuationBarrier(
+      runtimeSourceId: runtimeSourceId,
+      continuation: continuation,
+      lease: _narrativeActivityGate.enter(
+        NarrativeRuntimeActivity.sceneSuspended,
+      ),
+      resumesScenario: resumesScenario,
+      postCommitEffect: postCommitEffect,
+    );
+    _narrativeContinuationBarriers.add(barrier);
+    _claimNarrativeContinuationRuntimeSource(barrier, runtimeSourceId);
+    debugPrint(
+      '[event_v2] continuation barrier opened source=$runtimeSourceId '
+      'depth=${_narrativeContinuationBarriers.length}',
+    );
+    return barrier;
+  }
+
+  void _reserveNarrativeContinuationRuntimeSource(String runtimeSourceId) {
+    if (runtimeSourceId.startsWith('scenario:')) {
+      _reservedNarrativeContinuationRuntimeSourceIds.add(runtimeSourceId);
+    }
+  }
+
+  void _discardNarrativeContinuationRuntimeSourceReservation(
+    String runtimeSourceId,
+  ) {
+    _reservedNarrativeContinuationRuntimeSourceIds.remove(runtimeSourceId);
+    _deferredNarrativeContinuationAdvanceSourceIds.remove(runtimeSourceId);
+    _deferredNarrativeContinuationCancelSourceIds.remove(runtimeSourceId);
+  }
+
+  void _claimNarrativeContinuationRuntimeSource(
+    _NarrativeContinuationBarrier barrier,
+    String runtimeSourceId,
+  ) {
+    _reservedNarrativeContinuationRuntimeSourceIds.remove(runtimeSourceId);
+    final shouldCancel =
+        _deferredNarrativeContinuationCancelSourceIds.remove(runtimeSourceId);
+    final shouldAdvance =
+        _deferredNarrativeContinuationAdvanceSourceIds.remove(runtimeSourceId);
+    if (shouldCancel) {
+      barrier.cancelled = true;
+    }
+    if (shouldCancel || shouldAdvance) {
+      scheduleMicrotask(
+        () => _scheduleNarrativeContinuationAdvance(runtimeSourceId),
+      );
+    }
+  }
+
+  _NarrativeContinuationBarrier? _narrativeContinuationBarrierFor(
+    String runtimeSourceId,
+  ) {
+    for (final barrier in _narrativeContinuationBarriers.reversed) {
+      if (!barrier.closed && barrier.runtimeSourceId == runtimeSourceId) {
+        return barrier;
+      }
+    }
+    return null;
   }
 
   /// [SEL-B2] Gère un effet `ScenarioRuntimeEffectType.battle` retourné par
@@ -2594,9 +4316,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// Réutilise le pattern `_pendingBattleRequest` existant : le combat sera
   /// lancé par `update()` au prochain tick, exactement comme un combat LoS ou
   /// wild. La continuation scénario est stockée dans
-  /// `_pendingScenarioBattleSourceId` / `_pendingScenarioBattleId` et sera
-  /// consommée par `_onBattleFinished`.
-  void _handleScenarioBattleEffect(ScenarioRuntimeExecutionResult result) {
+  /// `_pendingScenarioBattleHandoff` et sera consommée uniquement par le
+  /// résultat portant le même requestId dans `_onBattleFinished`.
+  bool _handleScenarioBattleEffect(ScenarioRuntimeExecutionResult result) {
     final effect = result.effect;
     final trainerId = effect.trainerId ?? '';
     final npcEntityId = effect.npcEntityId ?? '';
@@ -2605,7 +4327,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] battle effect incomplete: trainerId=$trainerId npcEntityId=$npcEntityId',
       );
-      return;
+      return false;
     }
 
     // Construire le runtimeSourceId pour la continuation post-combat.
@@ -2620,7 +4342,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         '[scenario_runtime] battle effect: cannot build runtimeSourceId '
         '(scenarioId=$scenarioId sourceNodeId=$sourceNodeId stopNodeId=$stopNodeId)',
       );
-      return;
+      return false;
     }
     final runtimeSourceId = 'scenario:$scenarioId:$sourceNodeId:$stopNodeId';
 
@@ -2632,7 +4354,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] battle effect: npc entity "$npcEntityId" not found on current map',
       );
-      return;
+      return false;
     }
 
     final request = buildTrainerBattleRequestFromNpc(
@@ -2644,32 +4366,46 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] battle effect: could not build TrainerBattleStartRequest for trainerId=$trainerId npcEntityId=$npcEntityId',
       );
-      return;
+      return false;
     }
 
-    // [SEL-B2-bis] V0 : un seul combat scénario pending à la fois.
-    // Si un pending existait déjà (ne devrait pas arriver en V0), on le
-    // remplace silencieusement mais on log un warning.
-    if (_pendingScenarioBattleSourceId != null) {
+    final owner = _PendingScenarioBattleHandoff(
+      requestId: request.requestId,
+      runtimeSourceId: runtimeSourceId,
+      battleId: battleId,
+    );
+    if (!_tryEnqueueBattleRequest(request, scenarioOwner: owner)) {
       debugPrint(
-        '[scenario_runtime] WARNING: overwriting previous pending scenario battle '
-        '(previous=$_pendingScenarioBattleSourceId)',
+        '[scenario_runtime] battle handoff rejected: another Battle handoff '
+        'already owns the queue',
       );
+      return false;
     }
 
-    // Mémoriser la continuation scénario.
-    // Les deux champs sont posés atomiquement (ni l'un sans l'autre).
-    _pendingScenarioBattleSourceId = runtimeSourceId;
-    _pendingScenarioBattleId = battleId;
-
-    // Enqueue la battle request comme un combat trainer normal.
     _triggeredTrainerBattles.add(entity.id);
-    _pendingBattleRequest = request;
 
     debugPrint(
       '[scenario_runtime] battle handoff enqueued: battleId=$battleId trainerId=$trainerId npcEntityId=$npcEntityId runtimeSourceId=$runtimeSourceId',
     );
+    return true;
   }
+
+  bool _tryEnqueueBattleRequest(
+    BattleStartRequest request, {
+    _PendingScenarioBattleHandoff? scenarioOwner,
+  }) {
+    if (_hasClaimedBattleHandoff) {
+      return false;
+    }
+    _pendingBattleRequest = request;
+    _pendingScenarioBattleHandoff = scenarioOwner;
+    return true;
+  }
+
+  bool get _hasClaimedBattleHandoff =>
+      _pendingBattleRequest != null ||
+      _pendingScenarioBattleHandoff != null ||
+      _pendingSceneBattleOutcomeCompleter != null;
 
   bool _runScenarioMoveCharacter({
     required String entityId,
@@ -2796,8 +4532,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] moveCharacter started entity=$entityId destination=(${resolvedDestination.x},${resolvedDestination.y}) waitForCompletion=true',
       );
-    } else {
-      _pendingScenarioMoveContinuationsByEntity.remove(trimmedEntity);
     }
     return true;
   }
@@ -2811,6 +4545,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalizedMapId.isEmpty || normalizedWarpId.isEmpty) {
       debugPrint(
         '[scenario_runtime] transitionMap invalid mapId="$mapId" warpId="$warpId"',
+      );
+      return false;
+    }
+    if (_pendingScenarioTransitionMapRequest != null) {
+      debugPrint(
+        '[scenario_runtime] transitionMap rejected: another transition owns '
+        'the queue',
       );
       return false;
     }
@@ -2843,8 +4584,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<void> _executeScenarioTransitionMapRequest(
-    _PendingScenarioTransitionMapRequest request,
-  ) async {
+    _PendingScenarioTransitionMapRequest request, {
+    bool allowMapActivationWork = false,
+    bool skipVisualTransition = false,
+  }) async {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       debugPrint(
         '[scenario_runtime] transitionMap ignored: flow=${_flowPhase.name}',
@@ -2877,7 +4620,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] transitionMap start map=${transition.targetMapId} warp=${request.warpId} pos=(${transition.targetPos.x},${transition.targetPos.y})',
       );
-      await _handleWarp(transition);
+      await _handleWarp(
+        transition,
+        allowMapActivationWork: allowMapActivationWork,
+        skipVisualTransition: skipVisualTransition,
+      );
     } catch (e, st) {
       debugPrint(
         '[scenario_runtime] transitionMap failed map=${request.mapId} warp=${request.warpId}: $e\n$st',
@@ -3205,12 +4952,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required String source,
     required String fallbackLabel,
   }) {
-    _activeScriptController = null;
-    _activeScriptRuntimeSourceId = null;
-    _releaseBlockingInteraction(
-      serial: serial,
+    _abortActiveScriptExecution(
       source: source,
       reason: 'dialogueLoadFailed',
+      fallbackLabel: fallbackLabel,
+      expectedBlockingSerial: serial,
+    );
+  }
+
+  void _abortActiveScriptExecution({
+    required String source,
+    required String reason,
+    required String fallbackLabel,
+    int? expectedBlockingSerial,
+    Object? error,
+    StackTrace? stackTrace,
+  }) {
+    _activeScriptController = null;
+    _activeScriptRuntimeSourceId = null;
+    final serial = _activeBlockingInteractionSerial;
+    if (serial != null &&
+        (expectedBlockingSerial == null || serial == expectedBlockingSerial)) {
+      _releaseBlockingInteraction(
+        serial: serial,
+        source: source,
+        reason: reason,
+      );
+    }
+    _pendingPostDialogueAction = null;
+    final warpOwner = _pendingScenarioWarpHandoff;
+    if (warpOwner != null &&
+        warpOwner.kind == _ScenarioWarpHandoffKind.script &&
+        warpOwner.runtimeSourceId == source) {
+      if (warpOwner.matches(_pendingWarp)) {
+        _pendingWarp = null;
+      }
+      _pendingScenarioWarpHandoff = null;
+    }
+    _cancelNarrativeContinuationBarrier(source);
+    debugPrint(
+      '[script] aborted source=$source reason=$reason '
+      'error=${error ?? '-'}${stackTrace == null ? '' : '\n$stackTrace'}',
     );
     _showNotification(fallbackLabel);
   }
@@ -3227,12 +5009,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runScriptStep();
   }
 
-  void _processPendingScenarioNpcWarpEntries() {
+  void _processPendingScenarioNpcWarpEntries({String? onlyEntityId}) {
     if (_pendingScenarioNpcWarpEntries.isEmpty) {
       return;
     }
-    final entityIds =
-        _pendingScenarioNpcWarpEntries.keys.toList(growable: false)..sort();
+    final entityIds = onlyEntityId == null
+        ? (_pendingScenarioNpcWarpEntries.keys.toList(growable: false)..sort())
+        : <String>[onlyEntityId];
     for (final entityId in entityIds) {
       final pending = _pendingScenarioNpcWarpEntries[entityId];
       if (pending == null) {
@@ -3261,20 +5044,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  void _processPendingScenarioMoveContinuations() {
+  void _processPendingScenarioMoveContinuations({String? onlyEntityId}) {
     if (_pendingScenarioMoveContinuationsByEntity.isEmpty) {
       return;
     }
-    final entityIds = _pendingScenarioMoveContinuationsByEntity.keys
-        .toList(growable: false)
-      ..sort();
+    final entityIds = onlyEntityId == null
+        ? (_pendingScenarioMoveContinuationsByEntity.keys
+            .toList(growable: false)
+          ..sort())
+        : <String>[onlyEntityId];
     for (final entityId in entityIds) {
       final pending = _pendingScenarioMoveContinuationsByEntity[entityId];
       if (pending == null) {
         continue;
       }
 
-      if (pending.targetKind == 'warp' && _pendingWarp != null) {
+      if (pending.targetKind == 'warp' &&
+          pending.entityId == 'player' &&
+          _pendingScenarioWarpHandoff?.runtimeSourceId ==
+              pending.runtimeSourceId) {
         // Le déplacement est "fini" uniquement après consommation effective du
         // warp joueur et retour en overworld.
         continue;
@@ -3286,12 +5074,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
       if (status.state == ScriptedEntityMovementState.failed) {
         _pendingScenarioMoveContinuationsByEntity.remove(entityId);
+        _cancelNarrativeContinuationBarrier(pending.runtimeSourceId);
         continue;
       }
       if (status.state == ScriptedEntityMovementState.completed ||
           status.state == ScriptedEntityMovementState.idle) {
         _pendingScenarioMoveContinuationsByEntity.remove(entityId);
-        _resumeScenarioAfterRuntimeSource(pending.runtimeSourceId);
+        _scheduleNarrativeContinuationAdvance(pending.runtimeSourceId);
       }
     }
   }
@@ -3301,27 +5090,70 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _completeScenarioPlayerWarpEntry(pending);
       return;
     }
+    final moveContinuation =
+        _pendingScenarioMoveContinuationsByEntity[pending.entityId];
     final activeFollow = _pendingScenarioFollowRequest;
     final keepFollowActive = activeFollow?.leaderEntityId == pending.entityId;
+    var continuationOwnedByLeaderWarp = false;
     if (keepFollowActive) {
       final warp = _findMapWarpById(pending.warpId);
-      if (warp != null) {
-        _pendingScenarioLeaderWarpHandoff = _PendingScenarioLeaderWarpHandoff(
-          leaderEntityId: pending.entityId,
-          warpId: warp.id,
-          targetMapId: warp.targetMapId,
-          targetPos: warp.targetPos,
-        );
-        _pendingWarp ??= TriggeredWarp(
-          warpId: warp.id,
-          targetMapId: warp.targetMapId,
-          targetPos: warp.targetPos,
-          triggerMode: warp.triggerMode,
-        );
+      if (warp == null) {
+        if (moveContinuation != null) {
+          _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
+          _cancelNarrativeContinuationBarrier(
+            moveContinuation.runtimeSourceId,
+          );
+        }
+        _pendingScenarioFollowRequest = null;
         debugPrint(
-          '[scenario_runtime] followCharacter leaderWarp leader=${pending.entityId} warp=${warp.id} targetMap=${warp.targetMapId}',
+          '[scenario_runtime] followCharacter leaderWarp canceled '
+          'leader=${pending.entityId} warp=${pending.warpId} reason=missing_warp',
         );
+        return;
       }
+      final triggeredWarp = TriggeredWarp(
+        warpId: warp.id,
+        targetMapId: warp.targetMapId,
+        targetPos: warp.targetPos,
+        triggerMode: warp.triggerMode,
+      );
+      final owner = moveContinuation == null
+          ? null
+          : _PendingScenarioWarpHandoff(
+              runtimeSourceId: moveContinuation.runtimeSourceId,
+              expectedWarp: triggeredWarp,
+              kind: _ScenarioWarpHandoffKind.leaderMove,
+              entityId: pending.entityId,
+            );
+      if (!_tryEnqueueWarp(triggeredWarp, scenarioOwner: owner)) {
+        if (moveContinuation != null) {
+          _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
+          _cancelNarrativeContinuationBarrier(
+            moveContinuation.runtimeSourceId,
+          );
+        }
+        _pendingScenarioFollowRequest = null;
+        _despawnNpcFromActiveMap(pending.entityId);
+        debugPrint(
+          '[scenario_runtime] followCharacter leaderWarp canceled '
+          'leader=${pending.entityId} warp=${warp.id} reason=queue_owned',
+        );
+        return;
+      }
+      continuationOwnedByLeaderWarp = owner != null;
+      _pendingScenarioLeaderWarpHandoff = _PendingScenarioLeaderWarpHandoff(
+        leaderEntityId: pending.entityId,
+        warpId: warp.id,
+        targetMapId: warp.targetMapId,
+        targetPos: warp.targetPos,
+        triggerMode: warp.triggerMode,
+        runtimeSourceId: owner?.runtimeSourceId,
+      );
+      debugPrint(
+        '[scenario_runtime] followCharacter leaderWarp leader=${pending.entityId} '
+        'warp=${warp.id} targetMap=${warp.targetMapId} '
+        'source=${owner?.runtimeSourceId ?? 'non_awaited'}',
+      );
     }
     final removed = _despawnNpcFromActiveMap(
       pending.entityId,
@@ -3331,7 +5163,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] npc warp failed to remove entity=${pending.entityId} warp=${pending.warpId}',
       );
+      if (moveContinuation != null) {
+        final owner = _pendingScenarioWarpHandoff;
+        if (owner != null &&
+            owner.kind == _ScenarioWarpHandoffKind.leaderMove &&
+            owner.entityId == pending.entityId) {
+          if (owner.matches(_pendingWarp)) {
+            _pendingWarp = null;
+          }
+          _pendingScenarioWarpHandoff = null;
+        }
+        _pendingScenarioLeaderWarpHandoff = null;
+        _pendingScenarioFollowRequest = null;
+        _cancelNarrativeContinuationBarrier(
+          moveContinuation.runtimeSourceId,
+        );
+      }
       return;
+    }
+    if (moveContinuation != null && !continuationOwnedByLeaderWarp) {
+      _scheduleNarrativeContinuationAdvance(moveContinuation.runtimeSourceId);
     }
     debugPrint(
       '[scenario_runtime] npc entered warp entity=${pending.entityId} warp=${pending.warpId} approach=(${pending.approachPos.x},${pending.approachPos.y})',
@@ -3344,17 +5195,95 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[scenario_runtime] player warp failed: warp "${pending.warpId}" not found on map "${_bundle.map.id}"',
       );
+      final moveContinuation =
+          _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
+      if (moveContinuation != null) {
+        _cancelNarrativeContinuationBarrier(
+          moveContinuation.runtimeSourceId,
+        );
+      }
       return;
     }
-    _pendingWarp = TriggeredWarp(
+    final moveContinuation =
+        _pendingScenarioMoveContinuationsByEntity[pending.entityId];
+    final triggeredWarp = TriggeredWarp(
       warpId: warp.id,
       targetMapId: warp.targetMapId,
       targetPos: warp.targetPos,
       triggerMode: warp.triggerMode,
     );
+    final owner = moveContinuation == null
+        ? null
+        : _PendingScenarioWarpHandoff(
+            runtimeSourceId: moveContinuation.runtimeSourceId,
+            expectedWarp: triggeredWarp,
+            kind: _ScenarioWarpHandoffKind.playerMove,
+            entityId: pending.entityId,
+          );
+    if (!_tryEnqueueWarp(triggeredWarp, scenarioOwner: owner)) {
+      debugPrint(
+        '[scenario_runtime] player warp handoff rejected: another warp owns '
+        'the queue',
+      );
+      if (moveContinuation != null) {
+        _pendingScenarioMoveContinuationsByEntity.remove(pending.entityId);
+        _cancelNarrativeContinuationBarrier(
+          moveContinuation.runtimeSourceId,
+        );
+      }
+      return;
+    }
     debugPrint(
       '[scenario_runtime] player reached warp=${warp.id} -> map=${warp.targetMapId} target=(${warp.targetPos.x},${warp.targetPos.y})',
     );
+  }
+
+  bool _tryEnqueueWarp(
+    TriggeredWarp warp, {
+    _PendingScenarioWarpHandoff? scenarioOwner,
+  }) {
+    if (_pendingWarp != null || _pendingScenarioWarpHandoff != null) {
+      return false;
+    }
+    _pendingWarp = warp;
+    _pendingScenarioWarpHandoff = scenarioOwner;
+    return true;
+  }
+
+  void _completeOwnedScenarioWarpContinuation(
+    _PendingScenarioWarpHandoff owner,
+  ) {
+    if (owner.kind == _ScenarioWarpHandoffKind.playerMove ||
+        owner.kind == _ScenarioWarpHandoffKind.leaderMove) {
+      final entityId = owner.entityId;
+      final pending = entityId == null
+          ? null
+          : _pendingScenarioMoveContinuationsByEntity[entityId];
+      if (pending?.runtimeSourceId == owner.runtimeSourceId) {
+        _pendingScenarioMoveContinuationsByEntity.remove(entityId);
+      }
+    }
+    if (owner.runtimeSourceId.startsWith('scenario:')) {
+      _scheduleNarrativeContinuationAdvance(owner.runtimeSourceId);
+    }
+  }
+
+  void _cancelOwnedScenarioWarpContinuation(
+    _PendingScenarioWarpHandoff owner,
+  ) {
+    if (owner.kind == _ScenarioWarpHandoffKind.playerMove ||
+        owner.kind == _ScenarioWarpHandoffKind.leaderMove) {
+      final entityId = owner.entityId;
+      final pending = entityId == null
+          ? null
+          : _pendingScenarioMoveContinuationsByEntity[entityId];
+      if (pending?.runtimeSourceId == owner.runtimeSourceId) {
+        _pendingScenarioMoveContinuationsByEntity.remove(entityId);
+      }
+    }
+    if (owner.runtimeSourceId.startsWith('scenario:')) {
+      _cancelNarrativeContinuationBarrier(owner.runtimeSourceId);
+    }
   }
 
   bool _despawnNpcFromActiveMap(
@@ -4192,11 +6121,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[scenario_runtime] script not found: $normalizedScriptId');
       return false;
     }
-    _startScriptExecution(
-      script: scriptAsset,
-      startNodeId: startNode,
-      runtimeSourceId: runtimeSourceId ?? 'scenario',
-    );
+    final source = runtimeSourceId ?? 'scenario';
+    _reserveNarrativeContinuationRuntimeSource(source);
+    try {
+      _startScriptExecution(
+        script: scriptAsset,
+        startNodeId: startNode,
+        runtimeSourceId: source,
+      );
+    } catch (_) {
+      _discardNarrativeContinuationRuntimeSourceReservation(source);
+      rethrow;
+    }
     return true;
   }
 
@@ -4262,6 +6198,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// 1. Stocke la requête pour le mapping vers BattleSetup
   /// 2. Passe en phase battleTransition
   /// 3. Affiche l'overlay de transition
+  GameState get _battleRuntimeGameState =>
+      _activeNarrativeSceneWorkingSession?.gameState ?? _gameState;
+
+  void _replaceBattleRuntimeGameState(GameState gameState) {
+    final session = _activeNarrativeSceneWorkingSession;
+    if (session != null) {
+      session.gameState = gameState;
+    } else {
+      _gameState = gameState;
+    }
+  }
+
   void _startBattleHandoff(BattleStartRequest request) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
@@ -4307,6 +6255,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     final battleStopwatch = Stopwatch()..start();
     try {
+      await beforeBattleHandoffPreparation?.call();
+      if (_flowPhase != _RuntimeFlowPhase.battleTransition) {
+        return;
+      }
       // BE10 recadré élargit légèrement cet invariant runtime :
       // - on mémorise toujours le slot actif exact utilisé au handoff ;
       // - mais on mémorise aussi l'ordre actif + réserves réellement injecté
@@ -4323,7 +6275,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final playerLineup = _traceSync(
         'battle',
         'selectPlayerBattleLineup',
-        () => _battleSetupMapper.selectPlayerBattleLineup(_gameState.party),
+        () => _battleSetupMapper
+            .selectPlayerBattleLineup(_battleRuntimeGameState.party),
       );
 
       PsdkBattleSetup? psdkSetup;
@@ -4365,14 +6318,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // - une simple case d'herbe ne suffit pas ;
       // - un setup qui échoue ne doit rien écrire ;
       // - aucune capture n'est ouverte ici.
-      _gameState = _traceSync(
+      _replaceBattleRuntimeGameState(_traceSync(
         'battle',
         'markSpeciesSeen',
         () => markSpeciesSeenInGameState(
-          _gameState,
+          _battleRuntimeGameState,
           psdkSetup?.opponent.speciesId ?? setup!.enemyPokemon.speciesId,
         ),
-      );
+      ));
       _flowPhase = _RuntimeFlowPhase.battle;
 
       // Lot 4 garde le routing de difficulté côté runtime :
@@ -4433,7 +6386,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'genderResolver',
         () => buildRuntimeBattleGenderResolver(
           bundle: _bundle,
-          gameState: _gameState,
+          gameState: _battleRuntimeGameState,
           request: request,
           playerLineup: playerLineup,
           speciesLoader: _battleSpeciesLoader,
@@ -4446,7 +6399,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         'overlay',
         () => BattleOverlayComponent(
           session: _battleSession!,
-          gameState: _gameState,
+          gameState: _battleRuntimeGameState,
           viewportSize: camera.viewport.size,
           backgroundSpec: backgroundSpec,
           spriteResolver: _battleSpriteResolver,
@@ -4474,11 +6427,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     } on RuntimeBattleSetupException catch (error) {
       _cancelBattleHandoff(
+        request: request,
         userMessage: error.message,
         debugDetails: error.debugDetails,
       );
     } catch (error, stackTrace) {
       _cancelBattleHandoff(
+        request: request,
         userMessage:
             'Impossible de démarrer le combat avec les données locales du projet.',
         debugDetails: '$error\n$stackTrace',
@@ -4497,7 +6452,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     return _battleSetupMapper.map(
       bundle: _bundle,
-      gameState: _gameState,
+      gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
     );
@@ -4509,7 +6464,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     return _psdkBattleSetupMapper.map(
       bundle: _bundle,
-      gameState: _gameState,
+      gameState: _battleRuntimeGameState,
       request: request,
       playerPartyIndex: playerPartyIndex,
     );
@@ -4517,10 +6472,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool _battleRequestAllowsCapture(BattleStartRequest? request) {
     return request is WildBattleStartRequest &&
-        playerHasAtLeastOneRuntimePokeBall(_gameState.bag);
+        playerHasAtLeastOneRuntimePokeBall(_battleRuntimeGameState.bag);
   }
 
   void _cancelBattleHandoff({
+    required BattleStartRequest request,
     required String userMessage,
     String? debugDetails,
   }) {
@@ -4543,6 +6499,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isBattleResolving = false;
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
+    final scenarioOwner = _pendingScenarioBattleHandoff;
+    if (scenarioOwner?.requestId == request.requestId) {
+      _pendingScenarioBattleHandoff = null;
+      _cancelNarrativeContinuationBarrier(scenarioOwner!.runtimeSourceId);
+    }
     debugPrint(
       '[battle] handoff cancelled message="$userMessage" details=${debugDetails ?? 'n/a'}',
     );
@@ -4641,7 +6602,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // Mettre à jour l'UI avec le nouvel état
       final overlay = _battleOverlay;
-      overlay?.updateState(_battleSession!, gameState: _gameState);
+      overlay?.updateState(
+        _battleSession!,
+        gameState: _battleRuntimeGameState,
+      );
 
       // Vérifier si le combat est fini
       if (psdkSession != null && psdkSession.state.isFinished) {
@@ -4704,7 +6668,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         final result = tryApplyRuntimePsdkBattleBagHpHealItemUse(
           psdkSession: psdkSession,
           displaySession: battleSession,
-          gameState: _gameState,
+          gameState: _battleRuntimeGameState,
           context: activeBattleContext,
           itemId: action.itemId,
           targetLineupIndex: entry.lineupIndex,
@@ -4717,11 +6681,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         }
 
         _battleSession = result.updatedDisplaySession;
-        _gameState = result.updatedGameState;
+        _replaceBattleRuntimeGameState(result.updatedGameState);
         final overlay = _battleOverlay;
         overlay?.updateState(
           _battleSession!,
-          gameState: _gameState,
+          gameState: _battleRuntimeGameState,
         );
 
         if (psdkSession.state.isFinished) {
@@ -4752,25 +6716,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final result = switch (action.itemId) {
         'potion' => tryApplyRuntimeBattlePotionUse(
             session: battleSession,
-            gameState: _gameState,
+            gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
           ),
         'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
             session: battleSession,
-            gameState: _gameState,
+            gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
           ),
         'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
             session: battleSession,
-            gameState: _gameState,
+            gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
           ),
         'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
             session: battleSession,
-            gameState: _gameState,
+            gameState: _battleRuntimeGameState,
             context: activeBattleContext,
             targetLineupIndex: entry.lineupIndex,
           ),
@@ -4781,10 +6745,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
 
       _battleSession = result.updatedSession;
-      _gameState = result.updatedGameState;
+      _replaceBattleRuntimeGameState(result.updatedGameState);
       _battleOverlay?.updateState(
         _battleSession!,
-        gameState: _gameState,
+        gameState: _battleRuntimeGameState,
       );
 
       if (_battleSession!.state.isFinished) {
@@ -4845,26 +6809,48 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final sceneBattleOutcomeResult = _pendingSceneBattleOutcomeCompleter == null
         ? null
         : _sceneBattleRuntimeOutcomeFromBattle(outcome);
+    final hostedByNarrativeScene = sceneBattleOutcomeResult != null &&
+        _activeNarrativeSceneWorkingSession != null;
 
     // Le lot 10 normalise ici tout le write-back post-combat :
     // - PV du lineup joueur écrits sur les slots exacts mémorisés ;
     // - flag trainer_defeated uniquement sur une vraie victoire trainer ;
     // - aucune tentative de recalcul du Pokémon actif après la fin du combat.
     final activeBattleContext = _activeBattleContext;
+    final qualifiedStandaloneOutcome = !hostedByNarrativeScene &&
+            activeBattleContext != null &&
+            activeBattleContext.request is TrainerBattleStartRequest
+        ? _qualifiedStandaloneTrainerBattleOutcome(
+            activeBattleContext.request as TrainerBattleStartRequest,
+            outcome,
+          )
+        : null;
     if (activeBattleContext != null) {
-      final previousState = _gameState;
-      _gameState = applyRuntimeBattleOutcomeToGameState(
-        gameState: _gameState,
+      final previousState = _battleRuntimeGameState;
+      _replaceBattleRuntimeGameState(applyRuntimeBattleOutcomeToGameState(
+        gameState: _battleRuntimeGameState,
         context: activeBattleContext,
         outcome: outcome,
         storyFlagsManager: _storyFlags,
-      );
+      ));
 
       if (outcome.isDefeat) {
-        _applyWhiteoutLiteAfterPlayerDefeat(
-          activeBattleContext,
-          activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
-        );
+        if (hostedByNarrativeScene) {
+          _replaceBattleRuntimeGameState(
+            applyRuntimeDefeatRecoveryToGameState(
+              gameState: _battleRuntimeGameState,
+              playerPartyIndex: activeBattleContext.playerPartyIndex,
+              activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+              playerPartySlotIndicesByLineupIndex:
+                  activeBattleContext.playerPartySlotIndicesByLineupIndex,
+            ),
+          );
+        } else {
+          _applyWhiteoutLiteAfterPlayerDefeat(
+            activeBattleContext,
+            activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+          );
+        }
       }
 
       if (outcome.isVictory &&
@@ -4878,8 +6864,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // On ne refresh la présence PNJ que si les story flags ont réellement
       // changé ; cela garde le retour overworld minimal pour wild/defeat/run.
-      if (!identical(previousState.storyFlags, _gameState.storyFlags) &&
-          previousState.storyFlags != _gameState.storyFlags) {
+      final updatedState = _battleRuntimeGameState;
+      if (!hostedByNarrativeScene &&
+          !identical(previousState.storyFlags, updatedState.storyFlags) &&
+          previousState.storyFlags != updatedState.storyFlags) {
         _refreshWorldNpcPresence();
       }
     }
@@ -4913,10 +6901,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // [SEL-B2] Si ce combat a été lancé depuis un node scénario
     // startTrainerBattle, on pose le flag d'outcome déterministe et on
     // reprend le graphe après le node battle.
-    final scenarioBattleSourceId = _pendingScenarioBattleSourceId;
-    final scenarioBattleId = _pendingScenarioBattleId;
-    if (scenarioBattleSourceId != null &&
-        scenarioBattleId != null &&
+    final scenarioOwner = _pendingScenarioBattleHandoff;
+    if (scenarioOwner != null &&
+        scenarioOwner.requestId == activeBattleContext?.request.requestId &&
         sceneBattleOutcomeResult == null) {
       // 1. Poser le flag d'outcome déterministe.
       final String outcomeSuffix;
@@ -4931,7 +6918,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           outcomeSuffix = kBattleOutcomeSuffixCaptured;
       }
       final flagName = scenarioBattleOutcomeFlagName(
-        scenarioBattleId,
+        scenarioOwner.battleId,
         outcomeSuffix,
       );
       final nextState = _storyFlags.set(_gameState, flagName);
@@ -4941,8 +6928,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       // 2. Nettoyer le pending avant de reprendre le graphe.
-      _pendingScenarioBattleSourceId = null;
-      _pendingScenarioBattleId = null;
+      _pendingScenarioBattleHandoff = null;
 
       // 3. Reprendre le graphe scénario après le node battle.
       // On remet d'abord en overworld pour que la continuation puisse
@@ -4952,10 +6938,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _prewarmActiveMapBattleData();
       _refreshWorldNpcPresence();
 
-      _resumeScenarioAfterRuntimeSource(scenarioBattleSourceId);
-
+      _scheduleNarrativeContinuationAdvance(
+        scenarioOwner.runtimeSourceId,
+        effectOutcomes: <NarrativeOutcomeRef>[
+          if (qualifiedStandaloneOutcome != null) qualifiedStandaloneOutcome,
+        ],
+      );
       debugPrint(
-        '[scenario_runtime] battle from scene completed: battleId=$scenarioBattleId outcome=${outcome.type.name}',
+        '[scenario_runtime] battle from scene completed: '
+        'battleId=${scenarioOwner.battleId} outcome=${outcome.type.name}',
       );
       return;
     }
@@ -4966,7 +6957,84 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (sceneBattleOutcomeResult != null) {
       _completePendingSceneBattleOutcome(sceneBattleOutcomeResult);
     }
+    _scheduleRootNarrativeOutcomePublication(qualifiedStandaloneOutcome);
     debugPrint('[battle] overworld resumed');
+  }
+
+  NarrativeOutcomeRef? _qualifiedStandaloneTrainerBattleOutcome(
+    TrainerBattleStartRequest request,
+    BattleOutcome outcome,
+  ) {
+    final outcomeId = switch (outcome.type) {
+      BattleOutcomeType.victory => 'victory',
+      BattleOutcomeType.defeat => 'defeat',
+      BattleOutcomeType.runaway || BattleOutcomeType.captured => null,
+    };
+    if (outcomeId == null) {
+      return null;
+    }
+    return _qualifiedTrainerBattleOutcome(request.trainerId, outcomeId);
+  }
+
+  void _scheduleRootNarrativeOutcomePublication(
+    NarrativeOutcomeRef? outcome,
+  ) {
+    _scheduleNarrativeOutcomePublication(outcome);
+  }
+
+  void _scheduleNarrativeOutcomePublication(
+    NarrativeOutcomeRef? outcome, {
+    _NarrativeOutcomeContinuationContext? continuation,
+  }) {
+    if (outcome == null) {
+      return;
+    }
+    _scheduleNarrativeOutcomesPublication(
+      <NarrativeOutcomeRef>[outcome],
+      continuation: continuation,
+    );
+  }
+
+  void _scheduleNarrativeOutcomesPublication(
+    List<NarrativeOutcomeRef> outcomes, {
+    _NarrativeOutcomeContinuationContext? continuation,
+  }) {
+    if (outcomes.isEmpty) {
+      return;
+    }
+    unawaited(
+      _publishNarrativeOutcomesSafely(
+        outcomes,
+        continuation: continuation,
+      ),
+    );
+  }
+
+  Future<bool> _publishNarrativeOutcomesSafely(
+    List<NarrativeOutcomeRef> outcomes, {
+    _NarrativeOutcomeContinuationContext? continuation,
+  }) async {
+    if (outcomes.isEmpty) {
+      return true;
+    }
+    final publication = continuation == null
+        ? _publishRootNarrativeOutcomes(outcomes)
+        : _publishNarrativeOutcomes(
+            outcomes,
+            causationId: continuation.causationId,
+            correlationId: continuation.correlationId,
+            depth: continuation.depth,
+          );
+    try {
+      await publication;
+      return true;
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[event_v2] outcome publication failed: $error\n$stackTrace',
+      );
+      _showNotification('Résultat narratif impossible.');
+      return false;
+    }
   }
 
   void _applyWhiteoutLiteAfterPlayerDefeat(
@@ -5013,10 +7081,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _preloadActiveMapConnections();
     _prewarmActiveMapBattleData();
     _pruneLoadedMapsToActiveNeighborhood();
-    _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-      map: _bundle.map,
-      pos: _world.player.pos,
-    );
+    _resetTriggerEnterOccupancy();
     _refreshWorldNpcPresence();
     _showNotification('Défaite... retour au point de reprise');
   }
@@ -5047,6 +7112,44 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final result = stepGameplayWorld(_world, const InteractIntent());
     _world = result.world;
     _consumePathAnimationSignals(result.pathAnimationSignals);
+
+    final entity = switch (result) {
+      NpcInteracted(:final entity) => entity,
+      SignInteracted(:final entity) => entity,
+      ItemInteracted(:final entity) => entity,
+      EntityInteracted(:final entity) => entity,
+      _ => null,
+    };
+    if (entity != null && entity.kind != MapEntityKind.spawn) {
+      if (entity.kind == MapEntityKind.npc) {
+        _faceNpcTowardPlayer(entity.id);
+      }
+      _runDetachedNarrativeTask(
+        operation: 'entityInteract',
+        task: () => _dispatchNarrativeEntityInteraction(result, entity),
+      );
+      return;
+    }
+
+    _runLegacyInteractionFallback(result);
+  }
+
+  Future<void> _dispatchNarrativeEntityInteraction(
+    GameplayStepResult result,
+    MapEntity entity,
+  ) async {
+    await _dispatchSpatialOccurrence(
+      occurrence: NarrativeEventOccurrence(
+        source: NarrativeEventSourceRef.entityInteract(
+          _activeMapId,
+          entity.id,
+        ),
+      ),
+      legacyFallback: (_) async => _runLegacyInteractionFallback(result),
+    );
+  }
+
+  void _runLegacyInteractionFallback(GameplayStepResult result) {
     var scenarioHandledEntityInteraction = false;
 
     switch (result) {
@@ -5059,7 +7162,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _showNotification('...');
       case NpcInteracted(:final entity):
         debugPrint('[interact] NPC: ${entity.id}');
-        _faceNpcTowardPlayer(entity.id);
         scenarioHandledEntityInteraction =
             _tryDispatchScenarioEntityInteraction(
           entity.id,
@@ -5210,18 +7312,53 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     ActiveEventPage page,
   ) async {
     try {
-      final result = await SceneEventRuntimeHook(
-        callbacks: _buildSceneRuntimeHostCallbacks(
-          event: event,
-          page: page,
-        ),
-      ).runForEventPage(
-        project: _bundle.manifest,
-        map: _bundle.map,
-        event: event,
-        page: page.page,
-        gameState: _gameState,
+      await _narrativeActivityGate.runWithActivity<void>(
+        NarrativeRuntimeActivity.sceneActive,
+        () => _runSceneTargetForMapEventWithActivity(event, page),
       );
+    } on NarrativeRuntimeActivityBlockedException {
+      // Fail closed: no working session, dialogue or Battle handoff may be
+      // created while a checkpoint owns the shared narrative gate.
+      debugPrint(
+        '[scene_runtime] map event blocked by checkpoint '
+        'event=${event.id} page=${page.pageIndex}',
+      );
+    }
+  }
+
+  Future<void> _runSceneTargetForMapEventWithActivity(
+    MapEventDefinition event,
+    ActiveEventPage page,
+  ) async {
+    if (_activeNarrativeSceneWorkingSession != null) {
+      _showNotification('Scene V1 impossible.');
+      return;
+    }
+    try {
+      final session = _NarrativeSceneWorkingSession(_gameState);
+      final hostedBattleOutcomes = <NarrativeOutcomeRef>[];
+      _activeNarrativeSceneWorkingSession = session;
+      late final SceneEventRuntimeHookResult result;
+      try {
+        result = await SceneEventRuntimeHook(
+          callbacks: _buildSceneRuntimeHostCallbacks(
+            runtimeSourceId:
+                'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}',
+            defaultNpcEntityId: event.id,
+            currentGameState: () => session.gameState,
+            onQualifiedBattleOutcome: hostedBattleOutcomes.add,
+          ),
+        ).runForEventPage(
+          project: _bundle.manifest,
+          map: _bundle.map,
+          event: event,
+          page: page.page,
+          gameState: session.gameState,
+          currentGameState: () => session.gameState,
+        );
+      } finally {
+        _activeNarrativeSceneWorkingSession = null;
+      }
 
       debugPrint(
         '[scene_runtime] event=${event.id} page=${page.pageIndex} '
@@ -5231,9 +7368,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       if (!result.success && result.handled) {
         _showNotification(result.message ?? 'Scene V1 impossible.');
-      } else if (result.updatedGameState != null) {
-        _gameState = result.updatedGameState!;
-        _refreshWorldNpcPresence();
+      } else if (result.success) {
+        session.gameState = result.updatedGameState ?? session.gameState;
+        _applyNarrativeGameState(session.gameState);
+        final outcomes = <NarrativeOutcomeRef>[
+          ...hostedBattleOutcomes,
+          if (result.executionResult?.sceneOutcomeId case final outcomeId?)
+            NarrativeOutcomeRef(
+              producerKind: NarrativeOutcomeProducerKind.scene,
+              producerId: result.sceneId!,
+              outcomeId: outcomeId,
+            ),
+        ];
+        await _publishRootNarrativeOutcomes(outcomes);
       }
     } catch (error, stackTrace) {
       debugPrint(
@@ -5245,13 +7392,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   SceneRuntimeHostCallbacks _buildSceneRuntimeHostCallbacks({
-    required MapEventDefinition event,
-    required ActiveEventPage page,
+    required String runtimeSourceId,
+    required String defaultNpcEntityId,
+    required GameState Function() currentGameState,
+    void Function(NarrativeOutcomeRef outcome)? onQualifiedBattleOutcome,
   }) {
-    final runtimeSourceId =
-        'scene:${_bundle.map.id}:${event.id}:${page.pageIndex}';
     return SceneRuntimeHostCallbacks(
-      evaluateCondition: _resolveSceneConditionOutput,
+      evaluateCondition: (intent) => _resolveSceneConditionOutput(
+        intent,
+        // Dialogue and battle callbacks may commit a newer runtime snapshot
+        // before a later Scene branch is evaluated. Preserve the pre-V2
+        // dynamic condition semantics instead of capturing a stale snapshot.
+        gameState: currentGameState(),
+      ),
       showDialogue: (intent) {
         final adapter = SceneDialogueRuntimeAwaitableAdapter(
           runtimeSourceId: runtimeSourceId,
@@ -5275,7 +7428,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       startBattle: (intent) {
         final adapter = SceneBattleRuntimeOutcomeAdapter(
           runtimeSourceId: runtimeSourceId,
-          defaultNpcEntityId: event.id,
+          defaultNpcEntityId: defaultNpcEntityId,
           launcher: _CallbackSceneBattleRuntimeLauncher(
             _startSceneTrainerBattle,
           ),
@@ -5289,6 +7442,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                       '(battleKind=${intent.battleKind}, '
                       'trainerId=${intent.trainerId}).',
             );
+          }
+          final qualifiedOutcome = _qualifiedSceneTrainerBattleOutcome(
+            intent,
+            scenePortId,
+          );
+          if (qualifiedOutcome != null) {
+            onQualifiedBattleOutcome?.call(qualifiedOutcome);
           }
           return scenePortId;
         });
@@ -5312,6 +7472,42 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         });
       },
     );
+  }
+
+  NarrativeOutcomeRef? _qualifiedSceneTrainerBattleOutcome(
+    SceneRuntimePlanIntent intent,
+    String outcomeId,
+  ) {
+    final trainerId = intent.trainerId?.trim() ?? '';
+    if (intent.battleKind?.trim() != 'trainer' || trainerId.isEmpty) {
+      return null;
+    }
+    return _qualifiedTrainerBattleOutcome(trainerId, outcomeId);
+  }
+
+  NarrativeOutcomeRef? _qualifiedTrainerBattleOutcome(
+    String trainerId,
+    String outcomeId,
+  ) {
+    final battleRefId = 'trainer:$trainerId';
+    final contracts = buildBattlePublicContracts(_bundle.manifest);
+    for (final contract in contracts) {
+      if (contract.battleRefId != battleRefId) {
+        continue;
+      }
+      final declaresOutcome = contract.possibleOutcomes.any(
+        (outcome) => outcome.id == outcomeId,
+      );
+      if (!declaresOutcome) {
+        return null;
+      }
+      return NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.battle,
+        producerId: battleRefId,
+        outcomeId: outcomeId,
+      );
+    }
+    return null;
   }
 
   Future<SceneDialogueRuntimeAwaitableResult> _startSceneDialogue(
@@ -5371,37 +7567,89 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingSceneDialogueRequestId = request.requestId;
     final stopwatch = Stopwatch()..start();
 
-    _dialogueSessionLoader(resolved).then((session) {
+    void completeLoadFailure(
+      SceneDialogueRuntimeAwaitableResult result, {
+      Object? error,
+      StackTrace? stackTrace,
+    }) {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
           '[scene_runtime] stale dialogue response ignored '
           'request=${request.requestId} serial=$serial',
         );
-        _completePendingSceneDialogue(
-          const SceneDialogueRuntimeAwaitableResult.failed(
-            errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
-            message: 'Scene dialogue load was cancelled.',
-          ),
-        );
+        if (identical(_pendingSceneDialogueCompleter, completer)) {
+          _completePendingSceneDialogue(
+            const SceneDialogueRuntimeAwaitableResult.failed(
+              errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+              message: 'Scene dialogue load was cancelled.',
+            ),
+          );
+        }
         return;
       }
-      if (session == null) {
-        final message = 'Dialogue introuvable: ${request.dialogueId}';
+      if (error == null) {
         debugPrint(
           '[scene_runtime] dialogue load failed '
           'request=${request.requestId}',
         );
-        _releaseBlockingInteraction(
-          serial: serial,
-          source: request.requestId,
-          reason: 'sceneDialogueLoadFailed',
+      } else {
+        debugPrint(
+          '[scene_runtime] dialogue load error '
+          'request=${request.requestId} error=$error'
+          '${stackTrace == null ? '' : '\n$stackTrace'}',
         );
-        _showNotification(message);
+      }
+      _releaseBlockingInteraction(
+        serial: serial,
+        source: request.requestId,
+        reason: 'sceneDialogueLoadFailed',
+      );
+      _showNotification('Dialogue introuvable: ${request.dialogueId}');
+      if (identical(_pendingSceneDialogueCompleter, completer)) {
         _completePendingSceneDialogue(
+          result,
+        );
+      }
+    }
+
+    late final Future<DialogueSession?> loadFuture;
+    try {
+      loadFuture = _dialogueSessionLoader(resolved);
+    } catch (error, stackTrace) {
+      completeLoadFailure(
+        SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
+          message: 'Scene dialogue launcher failed: $error',
+        ),
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return completer.future;
+    }
+
+    loadFuture.then((session) {
+      stopwatch.stop();
+      if (!_isBlockingInteractionActive(serial)) {
+        debugPrint(
+          '[scene_runtime] stale dialogue response ignored '
+          'request=${request.requestId} serial=$serial',
+        );
+        if (identical(_pendingSceneDialogueCompleter, completer)) {
+          _completePendingSceneDialogue(
+            const SceneDialogueRuntimeAwaitableResult.failed(
+              errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+              message: 'Scene dialogue load was cancelled.',
+            ),
+          );
+        }
+        return;
+      }
+      if (session == null) {
+        completeLoadFailure(
           SceneDialogueRuntimeAwaitableResult.failed(
             errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
-            message: message,
+            message: 'Dialogue introuvable: ${request.dialogueId}',
           ),
         );
         return;
@@ -5420,21 +7668,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         },
       );
     }).onError((Object error, StackTrace stackTrace) {
-      debugPrint(
-        '[scene_runtime] dialogue load error '
-        'request=${request.requestId} error=$error\n$stackTrace',
-      );
-      _releaseBlockingInteraction(
-        serial: serial,
-        source: request.requestId,
-        reason: 'sceneDialogueLoadFailed',
-      );
-      _showNotification('Dialogue introuvable: ${request.dialogueId}');
-      _completePendingSceneDialogue(
+      completeLoadFailure(
         SceneDialogueRuntimeAwaitableResult.failed(
           errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,
           message: 'Scene dialogue launcher failed: $error',
         ),
+        error: error,
+        stackTrace: stackTrace,
       );
     });
 
@@ -5471,11 +7711,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ),
       );
     }
-    if (_pendingSceneBattleOutcomeCompleter != null) {
+    if (_hasClaimedBattleHandoff) {
       return Future.value(
         const SceneBattleRuntimeOutcomeResult.failed(
           errorCode: SceneBattleRuntimeOutcomeErrorCode.launcherFailed,
-          message: 'A Scene trainer battle is already pending.',
+          message: 'Another Battle handoff already owns runtime execution.',
         ),
       );
     }
@@ -5501,7 +7741,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return completer.future;
   }
 
-  String _resolveSceneConditionOutput(SceneRuntimePlanIntent intent) {
+  String _resolveSceneConditionOutput(
+    SceneRuntimePlanIntent intent, {
+    required GameState gameState,
+  }) {
     final source = intent.conditionSource;
     if (source == null) {
       throw StateError('Scene condition intent is missing a condition source.');
@@ -5510,7 +7753,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (source.sourceKind == SceneConditionSourceKind.fact) {
       return evaluateCanonicalNarrativeFactSceneCondition(
         source: source,
-        gameState: _gameState,
+        gameState: gameState,
         resolver: _narrativeFactResolver,
       )
           ? 'true'
@@ -5519,12 +7762,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     final value = switch (source.sourceKind) {
       SceneConditionSourceKind.factLikeStoryFlag =>
-        _gameState.storyFlags.activeFlags.contains(source.sourceId) ||
-            _gameState.progression.storyFlags.contains(source.sourceId),
+        gameState.storyFlags.activeFlags.contains(source.sourceId) ||
+            gameState.progression.storyFlags.contains(source.sourceId),
       SceneConditionSourceKind.storyStepCompletion =>
-        _gameState.progression.completedStepIds.contains(source.sourceId),
+        gameState.progression.completedStepIds.contains(source.sourceId),
       SceneConditionSourceKind.consumedEvent =>
-        _gameState.consumedEventIds.contains(source.sourceId),
+        gameState.consumedEventIds.contains(source.sourceId),
       _ => throw UnsupportedError(
           'Scene condition source ${source.sourceKind.name} is not supported '
           'by runtime hook V0.',
@@ -5597,12 +7840,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _openDialogueForScriptSource(runtimeSourceId, dialogue);
       },
       onWarpRequested: (mapId, x, y) {
-        _pendingWarp = TriggeredWarp(
+        final warp = TriggeredWarp(
           warpId: 'script_warp',
           targetMapId: mapId,
           targetPos: GridPos(x: x, y: y),
           triggerMode: MapWarpTriggerMode.onEnter,
         );
+        final owner = _PendingScenarioWarpHandoff(
+          runtimeSourceId: runtimeSourceId,
+          expectedWarp: warp,
+          kind: _ScenarioWarpHandoffKind.script,
+        );
+        if (!_tryEnqueueWarp(warp, scenarioOwner: owner)) {
+          throw StateError(
+            'Cannot enqueue script warp while another warp handoff is pending.',
+          );
+        }
       },
     );
 
@@ -5615,45 +7868,75 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _runScriptStep() {
-    final controller = _activeScriptController;
-    if (controller == null) {
-      return;
-    }
-
-    if (controller.isTerminated) {
-      final serial = _activeBlockingInteractionSerial;
-      final source = _activeScriptRuntimeSourceId ?? 'script';
-      final hasPendingRuntimeHandoff = _pendingWarp != null ||
-          _pendingConnection != null ||
-          _pendingBattleRequest != null ||
-          _pendingScenarioTransitionMapRequest != null;
-      _activeScriptController = null;
-      _activeScriptRuntimeSourceId = null;
-      if (serial != null && !hasPendingRuntimeHandoff) {
-        _releaseBlockingInteraction(
-          serial: serial,
-          source: source,
-          reason: 'scriptCompleted',
-        );
-      } else if (serial != null) {
-        _flowPhase = _RuntimeFlowPhase.overworld;
+    while (true) {
+      final controller = _activeScriptController;
+      if (controller == null) {
+        return;
       }
-      return;
+
+      final source = _activeScriptRuntimeSourceId ?? 'script';
+      if (controller.isTerminated) {
+        final serial = _activeBlockingInteractionSerial;
+        final warpOwner = _pendingScenarioWarpHandoff;
+        final ownsPendingWarp = warpOwner != null &&
+            warpOwner.kind == _ScenarioWarpHandoffKind.script &&
+            warpOwner.runtimeSourceId == source &&
+            warpOwner.matches(_pendingWarp);
+        _activeScriptController = null;
+        _activeScriptRuntimeSourceId = null;
+        if (serial != null && ownsPendingWarp) {
+          _clearBlockingInteractionWithoutUnlock(
+            reason: 'scriptWarpPending',
+          );
+          _flowPhase = _RuntimeFlowPhase.overworld;
+        } else if (serial != null) {
+          _releaseBlockingInteraction(
+            serial: serial,
+            source: source,
+            reason: 'scriptCompleted',
+          );
+        }
+        if (!ownsPendingWarp && source.startsWith('scenario:')) {
+          scheduleMicrotask(
+            () => _scheduleNarrativeContinuationAdvance(source),
+          );
+        }
+        return;
+      }
+
+      if (controller.isSuspended) {
+        _markBlockingInteractionPendingDialogue();
+        return;
+      }
+
+      late final ScriptCommandResult result;
+      try {
+        result = controller.step();
+      } catch (error, stackTrace) {
+        _abortActiveScriptExecution(
+          source: source,
+          reason: 'scriptException',
+          fallbackLabel: 'Script interrompu',
+          error: error,
+          stackTrace: stackTrace,
+        );
+        return;
+      }
+
+      if (result is ScriptCommandResultSuspended) {
+        _markBlockingInteractionPendingDialogue();
+        return;
+      }
+      if (result is ScriptCommandResultError) {
+        _abortActiveScriptExecution(
+          source: source,
+          reason: 'scriptCommandError',
+          fallbackLabel: 'Script interrompu',
+          error: result.message,
+        );
+        return;
+      }
     }
-
-    if (controller.isSuspended) {
-      _markBlockingInteractionPendingDialogue();
-      return;
-    }
-
-    final result = controller.step();
-
-    if (result is ScriptCommandResultSuspended) {
-      _markBlockingInteractionPendingDialogue();
-      return;
-    }
-
-    _runScriptStep();
   }
 
   void _openDialogueForScriptSource(
@@ -6010,7 +8293,45 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       pendingDialogueLoad: true,
     );
     final stopwatch = Stopwatch()..start();
-    _dialogueSessionLoader(resolved).then((session) {
+
+    void failDialogueLoad({
+      Object? error,
+      StackTrace? stackTrace,
+    }) {
+      stopwatch.stop();
+      if (!_isBlockingInteractionActive(serial)) {
+        debugPrint(
+          '[dialogue] stale response ignored source=$entityId serial=$serial',
+        );
+        return;
+      }
+      if (error == null) {
+        debugPrint('[dialogue] failed to load session for entity=$entityId');
+      } else {
+        debugPrint(
+          '[dialogue] failed to load source=$entityId error=$error'
+          '${stackTrace == null ? '' : '\n$stackTrace'}',
+        );
+      }
+      _releaseBlockingInteraction(
+        serial: serial,
+        source: entityId,
+        reason: 'dialogueLoadFailed',
+      );
+      _pendingPostDialogueAction = null;
+      _cancelNarrativeContinuationBarrier(entityId);
+      _showNotification(fallbackLabel);
+    }
+
+    late final Future<DialogueSession?> loadFuture;
+    try {
+      loadFuture = _dialogueSessionLoader(resolved);
+    } catch (error, stackTrace) {
+      failDialogueLoad(error: error, stackTrace: stackTrace);
+      return false;
+    }
+
+    loadFuture.then((session) {
       stopwatch.stop();
       if (!_isBlockingInteractionActive(serial)) {
         debugPrint(
@@ -6019,13 +8340,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return;
       }
       if (session == null) {
-        debugPrint('[dialogue] failed to load session for entity=$entityId');
-        _releaseBlockingInteraction(
-          serial: serial,
-          source: entityId,
-          reason: 'dialogueLoadFailed',
-        );
-        _showNotification(fallbackLabel);
+        failDialogueLoad();
         return;
       }
       debugPrint(
@@ -6034,15 +8349,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint('[dialogue] opening dialogue for entity=$entityId');
       _openDialogue(session);
     }).onError((Object error, StackTrace stackTrace) {
-      debugPrint(
-        '[dialogue] failed to load source=$entityId error=$error\n$stackTrace',
-      );
-      _releaseBlockingInteraction(
-        serial: serial,
-        source: entityId,
-        reason: 'dialogueLoadFailed',
-      );
-      _showNotification(fallbackLabel);
+      failDialogueLoad(error: error, stackTrace: stackTrace);
     });
     return true;
   }
@@ -6249,7 +8556,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _triggeredTrainerBattles.add(entity.id);
       // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
       // This is consistent with wild encounters and allows proper timing
-      _pendingBattleRequest = request;
+      if (!_tryEnqueueBattleRequest(request)) {
+        _triggeredTrainerBattles.remove(entity.id);
+        debugPrint(
+          '[battle] trainer request rejected: another Battle handoff is pending',
+        );
+      }
     }
   }
 
@@ -6415,7 +8727,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           '[trainer] battle triggered trainer=$trainerId entity=${entity.id}');
       // UNIFIED PATTERN: Store in _pendingBattleRequest, let update() consume it
       // This is consistent with wild encounters and allows proper timing
-      _pendingBattleRequest = request;
+      if (!_tryEnqueueBattleRequest(request)) {
+        _triggeredTrainerBattles.remove(entity.id);
+        debugPrint(
+          '[trainer] battle request rejected: another Battle handoff is pending',
+        );
+      }
     } else {
       debugPrint(
           '[trainer] battle request failed trainer=$trainerId entity=${entity.id}');
@@ -6486,6 +8803,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ///
   /// Retourne `true` si la sauvegarde a réussi.
   Future<bool> saveGame() async {
+    if (_hasCheckpointUnsafeRuntimeWorkForSave) {
+      _logCheckpointInterlock('save');
+      return false;
+    }
     if (isLoaded) {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
@@ -6518,6 +8839,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// modifié. Aucun rollback n'est implémenté dans ce lot. Cette limitation sera
   /// adressée dans un futur lot si nécessaire.
   Future<bool> loadGame() async {
+    if (_hasCheckpointUnsafeRuntimeWork) {
+      _logCheckpointInterlock('load');
+      return false;
+    }
+    _isLoadActivationWorkInFlight = true;
+    if (_flowPhase == _RuntimeFlowPhase.overworld) {
+      _clearPressedMovementControls();
+    }
+    try {
+      return await _loadGameWithActivationWorkAcquired();
+    } finally {
+      _isLoadActivationWorkInFlight = false;
+    }
+  }
+
+  Future<bool> _loadGameWithActivationWorkAcquired() async {
     // 1. Charger loadedState
     final rawLoadedState = await _loadGameUseCase.execute();
     if (rawLoadedState == null) {
@@ -6525,6 +8862,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
     final loadedState = normalizeLoadedGameState(rawLoadedState);
+    if (loadedState.currentMapId.trim().isEmpty) {
+      debugPrint('[load] saved map id is empty');
+      return false;
+    }
+    final activation = _createMapActivation(
+      mapId: loadedState.currentMapId,
+      reason: MapActivationReason.saveRestore,
+    );
 
     // 2. Charger newBundle (avec error handling)
     RuntimeMapBundle newBundle;
@@ -6553,7 +8898,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _gameState = loadedState;
 
       // 5. Nettoyer l'état transitoire
+      _clearTransientScenarioWorkForLoad();
       _clearTransientUiState();
+      // Serialize the restored snapshot behind any already-queued transaction
+      // before saveRestore mapEnter can read the coordinator again. This is
+      // intentionally not a destructive-phase rollback (FG-014 remains out of
+      // scope); it only prevents pre-load narrative state from winning later.
+      await _narrativeStateTransactions.transact<void>((_) {
+        return NarrativeEventStateTransaction.commit(loadedState, null);
+      });
 
       // 6. Unmount anciennes maps
       _unmountAllLoadedMaps();
@@ -6597,12 +8950,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _prewarmActiveMapBattleData();
       _pruneLoadedMapsToActiveNeighborhood();
       _applyDebugTileMarker();
-      _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-        map: _bundle.map,
-        pos: _world.player.pos,
-      );
+      _resetTriggerEnterOccupancy();
 
       _refreshWorldNpcPresence();
+
+      // A checkpoint may have been requested from a transient UI phase. The
+      // restored runtime becomes dispatchable only after every world/UI field
+      // above is coherent and overworld authority is restored.
+      _flowPhase = _RuntimeFlowPhase.overworld;
+      _installMapActivation(activation);
+      final dispatchResult = await _dispatchCompletedMapActivation(activation);
+      if (dispatchResult is MapEnterProductionDispatchFailed ||
+          dispatchResult is MapEnterProductionDispatchAuthorityBlocked) {
+        debugPrint(
+          '[load] mapEnter dispatch rejected load completion '
+          'result=${dispatchResult.runtimeType}',
+        );
+        return false;
+      }
 
       debugPrint('[load] game loaded from saveId=${loadedState.saveId}');
       return true;
@@ -6734,12 +9099,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     overlay.text = line;
   }
 
-  Future<void> _handleWarp(TriggeredWarp warp) async {
-    if (_flowPhase != _RuntimeFlowPhase.overworld) {
-      debugPrint('[warp] ignored: flow=${_flowPhase.name}');
+  Future<void> _handleWarp(
+    TriggeredWarp warp, {
+    bool allowMapActivationWork = false,
+    bool skipVisualTransition = false,
+  }) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld ||
+        (!allowMapActivationWork && _blocksOverworldForMapActivationWork)) {
+      debugPrint(
+        '[warp] ignored: flow=${_flowPhase.name} '
+        'loadActivationWork=$_isLoadActivationWorkInFlight '
+        'activationDispatches=${_inFlightMapActivationDispatchIds.join(',')}',
+      );
       return;
     }
     _flowPhase = _RuntimeFlowPhase.mapTransition;
+    final activation = _createMapActivation(
+      mapId: warp.targetMapId,
+      reason: MapActivationReason.warp,
+    );
     final sourceBundle = _bundle;
     final sourceWorld = _world;
     final sourceMapId = _activeMapId;
@@ -6749,11 +9127,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     var swapCompleted = false;
     try {
       _clearTransientUiState();
-      overlay = WarpTransitionOverlayComponent(
-        viewportSize: camera.viewport.size,
-      );
-      camera.viewport.add(overlay);
-      _warpTransitionOverlay = overlay;
+      if (!skipVisualTransition) {
+        overlay = WarpTransitionOverlayComponent(
+          viewportSize: camera.viewport.size,
+        );
+        camera.viewport.add(overlay);
+        _warpTransitionOverlay = overlay;
+      }
       debugPrint(
         '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
       );
@@ -6768,11 +9148,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         sourceMap: sourceBundle.map,
         targetMap: newBundle.map,
       );
-      if (transitionSpec.style == _WarpTransitionStyle.fade) {
+      if (!skipVisualTransition &&
+          transitionSpec.style == _WarpTransitionStyle.fade) {
         debugPrint(
           '[warp] fade out durationMs=${transitionSpec.fadeOut.inMilliseconds}',
         );
-        await overlay.fadeOut(duration: transitionSpec.fadeOut);
+        await overlay!.fadeOut(duration: transitionSpec.fadeOut);
       }
       if (!_isWithinMapBounds(newBundle.map, warp.targetPos)) {
         throw StateError(
@@ -6849,11 +9230,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _traceSync('warp', 'refreshWorldNpcPresence', () {
         _refreshWorldNpcPresence();
       });
-      if (transitionSpec.style == _WarpTransitionStyle.fade) {
+      if (!skipVisualTransition &&
+          transitionSpec.style == _WarpTransitionStyle.fade) {
         debugPrint(
           '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
         );
-        await overlay.fadeIn(duration: transitionSpec.fadeIn);
+        await overlay!.fadeIn(duration: transitionSpec.fadeIn);
       }
       warpStopwatch.stop();
       debugPrint('[perf][warp] total=${warpStopwatch.elapsedMilliseconds}ms');
@@ -6880,10 +9262,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       final pendingLeaderWarpHandoff = _pendingScenarioLeaderWarpHandoff;
       if (pendingLeaderWarpHandoff != null) {
-        if (swapCompleted &&
-            _activeMapId == pendingLeaderWarpHandoff.targetMapId) {
+        final ownsHandledWarp = pendingLeaderWarpHandoff.matches(warp);
+        final reachedExpectedTarget = ownsHandledWarp &&
+            swapCompleted &&
+            _activeMapId == pendingLeaderWarpHandoff.targetMapId &&
+            _world.player.pos == pendingLeaderWarpHandoff.targetPos;
+        if (reachedExpectedTarget) {
           debugPrint(
-            '[scenario_runtime] followCharacter playerWarpHandoff leader=${pendingLeaderWarpHandoff.leaderEntityId} map=$_activeMapId pos=(${_world.player.pos.x},${_world.player.pos.y})',
+            '[scenario_runtime] followCharacter playerWarpHandoff '
+            'leader=${pendingLeaderWarpHandoff.leaderEntityId} '
+            'map=$_activeMapId pos=(${_world.player.pos.x},${_world.player.pos.y}) '
+            'source=${pendingLeaderWarpHandoff.runtimeSourceId ?? 'non_awaited'}',
           );
           if (_pendingScenarioFollowRequest?.leaderEntityId ==
               pendingLeaderWarpHandoff.leaderEntityId) {
@@ -6893,25 +9282,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           debugPrint(
             '[scenario_runtime] followCharacter completed leader=${pendingLeaderWarpHandoff.leaderEntityId} reason=warp_handoff',
           );
-        } else if (!swapCompleted) {
+        } else {
           if (_pendingScenarioFollowRequest?.leaderEntityId ==
               pendingLeaderWarpHandoff.leaderEntityId) {
             _pendingScenarioFollowRequest = null;
           }
           _pendingScenarioLeaderWarpHandoff = null;
           debugPrint(
-            '[scenario_runtime] followCharacter canceled leader=${pendingLeaderWarpHandoff.leaderEntityId} reason=warp_handoff_failed',
+            '[scenario_runtime] followCharacter canceled '
+            'leader=${pendingLeaderWarpHandoff.leaderEntityId} '
+            'reason=${ownsHandledWarp ? 'warp_handoff_failed' : 'wrong_warp'} '
+            'expectedMap=${pendingLeaderWarpHandoff.targetMapId} '
+            'actualMap=$_activeMapId '
+            'expectedPos=(${pendingLeaderWarpHandoff.targetPos.x},${pendingLeaderWarpHandoff.targetPos.y}) '
+            'actualPos=(${_world.player.pos.x},${_world.player.pos.y})',
           );
         }
       }
       if (swapCompleted) {
-        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-          map: _bundle.map,
-          pos: _world.player.pos,
-        );
-        _dispatchScenarioRuntimeSource(
-          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
-        );
+        _installMapActivation(activation);
+        _resetTriggerEnterOccupancy();
+        await _dispatchCompletedMapActivation(activation);
       }
       if (_activeMapId == sourceMapId &&
           _world.player.pos.x == sourcePos.x &&
@@ -7070,7 +9461,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<void> _handleConnection(TriggeredConnection connection) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld ||
+        _blocksOverworldForMapActivationWork) {
+      debugPrint(
+        '[connection] ignored: flow=${_flowPhase.name} '
+        'loadActivationWork=$_isLoadActivationWorkInFlight '
+        'activationDispatches=${_inFlightMapActivationDispatchIds.join(',')}',
+      );
+      return;
+    }
     _flowPhase = _RuntimeFlowPhase.mapTransition;
+    final activation = _createMapActivation(
+      mapId: connection.targetMapId,
+      reason: MapActivationReason.connection,
+    );
     var transitionCompleted = false;
     final connectionStopwatch = Stopwatch()..start();
     try {
@@ -7180,6 +9584,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _pendingConnectionEntryAnimation = _PendingConnectionEntryAnimation(
         mapId: target.bundle.map.id,
         initialCameraWorldTopLeft: continuityCameraWorldTopLeft,
+        activation: activation,
       );
       connectionStopwatch.stop();
       debugPrint(
@@ -7195,21 +9600,61 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _flowPhase = _RuntimeFlowPhase.overworld;
       }
       if (transitionCompleted && _pendingConnectionEntryAnimation == null) {
-        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
-          map: _bundle.map,
-          pos: _world.player.pos,
-        );
-        _dispatchScenarioRuntimeSource(
-          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
-        );
+        _installMapActivation(activation);
+        _resetTriggerEnterOccupancy();
+        await _dispatchCompletedMapActivation(activation);
       }
     }
+  }
+
+  void _clearTransientScenarioWorkForLoad() {
+    _cancelCutsceneForLoad();
+    _pendingCutsceneChoiceRequest = null;
+
+    final battleOwner = _pendingScenarioBattleHandoff;
+    _pendingScenarioBattleHandoff = null;
+    if (battleOwner != null) {
+      _cancelNarrativeContinuationBarrier(battleOwner.runtimeSourceId);
+    }
+
+    final warpOwner = _pendingScenarioWarpHandoff;
+    if (warpOwner != null) {
+      if (warpOwner.matches(_pendingWarp)) {
+        _pendingWarp = null;
+      }
+      _cancelOwnedScenarioWarpContinuation(warpOwner);
+      _pendingScenarioWarpHandoff = null;
+    }
+
+    final moveContinuations = _pendingScenarioMoveContinuationsByEntity.values
+        .toList(growable: false);
+    _pendingScenarioMoveContinuationsByEntity.clear();
+    for (final continuation in moveContinuations) {
+      _cancelNarrativeContinuationBarrier(continuation.runtimeSourceId);
+    }
+
+    // A successful load is a hard lifetime boundary for work owned by the old
+    // map. None of these owners may observe or complete against the restored
+    // GameState on a later update tick.
+    _pendingScenarioFollowRequest = null;
+    _pendingScenarioTransitionMapRequest = null;
+    _pendingScenarioNpcWarpEntries.clear();
+    _pendingScenarioLeaderWarpHandoff = null;
+    _pendingScenarioReachedEndQueue.clear();
+    _lastScenarioCompletionBlockReason = null;
+    _lastFollowPathNodeCount = 0;
+    _lastFollowPathDestination = null;
+
+    _activeScriptController = null;
+    _activeScriptRuntimeSourceId = null;
   }
 
   void _clearTransientUiState() {
     _pendingWarp = null;
     _pendingConnection = null;
     _pendingConnectionEntryAnimation = null;
+    _pendingPostDialogueAction = null;
+    _awaitingSurfConfirmation = false;
     _clearBlockingInteractionWithoutUnlock(reason: 'clearTransientUiState');
     // CRITICAL: Do NOT clear _pendingBattleRequest if a battle is active!
     // This would cancel a pending wild encounter battle.
@@ -8704,10 +11149,12 @@ class _PendingConnectionEntryAnimation {
   _PendingConnectionEntryAnimation({
     required this.mapId,
     required this.initialCameraWorldTopLeft,
+    required this.activation,
   });
 
   final String mapId;
   final Vector2 initialCameraWorldTopLeft;
+  final MapActivation activation;
   bool holdInitialCameraFrame = true;
 }
 
@@ -8782,6 +11229,77 @@ final class _CallbackSceneDialogueRuntimeLauncher
   }
 }
 
+final class _PendingNarrativeTriggerEntry {
+  const _PendingNarrativeTriggerEntry({
+    required this.activationId,
+    required this.mapId,
+    required this.triggerId,
+  });
+
+  final String? activationId;
+  final String mapId;
+  final String triggerId;
+}
+
+final class _NarrativeSceneWorkingSession {
+  _NarrativeSceneWorkingSession(this.gameState);
+
+  GameState gameState;
+}
+
+final class _NarrativeOutcomeContinuationContext {
+  const _NarrativeOutcomeContinuationContext({
+    required this.causationId,
+    required this.correlationId,
+    required this.depth,
+  });
+
+  final String causationId;
+  final String correlationId;
+  final int depth;
+}
+
+final class _NarrativeContinuationBarrier {
+  _NarrativeContinuationBarrier({
+    required this.runtimeSourceId,
+    required this.continuation,
+    required this.lease,
+    required this.resumesScenario,
+    required this.postCommitEffect,
+  });
+
+  String runtimeSourceId;
+  _NarrativeOutcomeContinuationContext continuation;
+  final NarrativeRuntimeActivityLease lease;
+  final bool resumesScenario;
+  final Future<void> Function()? postCommitEffect;
+  final Completer<void> closedCompleter = Completer<void>();
+  bool advancing = false;
+  bool postCommitEffectStarted = false;
+  bool cancelled = false;
+  bool closed = false;
+  _PendingScenarioTransitionMapRequest? ownedTransitionMapRequest;
+
+  Future<void> get closedFuture => closedCompleter.future;
+}
+
+final class _ScenarioContinuationResumeResult {
+  const _ScenarioContinuationResumeResult({
+    required this.outcomes,
+    required this.nextRuntimeSourceId,
+    required this.ownedTransitionMapRequest,
+  });
+
+  const _ScenarioContinuationResumeResult.invalid()
+      : outcomes = const <NarrativeOutcomeRef>[],
+        nextRuntimeSourceId = null,
+        ownedTransitionMapRequest = null;
+
+  final List<NarrativeOutcomeRef> outcomes;
+  final String? nextRuntimeSourceId;
+  final _PendingScenarioTransitionMapRequest? ownedTransitionMapRequest;
+}
+
 class _PendingScenarioTransitionMapRequest {
   const _PendingScenarioTransitionMapRequest({
     required this.mapId,
@@ -8790,6 +11308,42 @@ class _PendingScenarioTransitionMapRequest {
 
   final String mapId;
   final String warpId;
+}
+
+final class _PendingScenarioBattleHandoff {
+  const _PendingScenarioBattleHandoff({
+    required this.requestId,
+    required this.runtimeSourceId,
+    required this.battleId,
+  });
+
+  final String requestId;
+  final String runtimeSourceId;
+  final String battleId;
+}
+
+enum _ScenarioWarpHandoffKind { script, playerMove, leaderMove }
+
+final class _PendingScenarioWarpHandoff {
+  const _PendingScenarioWarpHandoff({
+    required this.runtimeSourceId,
+    required this.expectedWarp,
+    required this.kind,
+    this.entityId,
+  });
+
+  final String runtimeSourceId;
+  final TriggeredWarp expectedWarp;
+  final _ScenarioWarpHandoffKind kind;
+  final String? entityId;
+
+  bool matches(TriggeredWarp? warp) {
+    return warp != null &&
+        warp.warpId == expectedWarp.warpId &&
+        warp.targetMapId == expectedWarp.targetMapId &&
+        warp.targetPos == expectedWarp.targetPos &&
+        warp.triggerMode == expectedWarp.triggerMode;
+  }
 }
 
 class _PendingScenarioNpcWarpEntry {
@@ -8812,12 +11366,24 @@ class _PendingScenarioLeaderWarpHandoff {
     required this.warpId,
     required this.targetMapId,
     required this.targetPos,
+    required this.triggerMode,
+    required this.runtimeSourceId,
   });
 
   final String leaderEntityId;
   final String warpId;
   final String targetMapId;
   final GridPos targetPos;
+  final MapWarpTriggerMode triggerMode;
+  final String? runtimeSourceId;
+
+  bool matches(TriggeredWarp? warp) {
+    return warp != null &&
+        warp.warpId == warpId &&
+        warp.targetMapId == targetMapId &&
+        warp.targetPos == targetPos &&
+        warp.triggerMode == triggerMode;
+  }
 }
 
 class _PendingScenarioMoveContinuation {

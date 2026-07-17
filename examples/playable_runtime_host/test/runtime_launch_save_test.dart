@@ -2,10 +2,44 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_loader/src/runtime_launch_save.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('resolveRuntimeHostInitialMapActivationReason', () {
+    const versionedSave = SaveData(saveId: 'versioned');
+    const manualSeed = SaveData(saveId: 'manual-seed');
+
+    test('uses saveRestore only for the selected versioned project save', () {
+      expect(
+        resolveRuntimeHostInitialMapActivationReason(
+          versionedLaunchSave: versionedSave,
+          manualLaunchOverride: null,
+        ),
+        MapActivationReason.saveRestore,
+      );
+    });
+
+    test('manual and absent launch saves remain initialBoot', () {
+      expect(
+        resolveRuntimeHostInitialMapActivationReason(
+          versionedLaunchSave: versionedSave,
+          manualLaunchOverride: manualSeed,
+        ),
+        MapActivationReason.initialBoot,
+      );
+      expect(
+        resolveRuntimeHostInitialMapActivationReason(
+          versionedLaunchSave: null,
+          manualLaunchOverride: null,
+        ),
+        MapActivationReason.initialBoot,
+      );
+    });
+  });
 
   group('loadRuntimeHostLaunchSaveData', () {
     late Directory root;

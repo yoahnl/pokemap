@@ -11,6 +11,8 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   invalidFactRuntimeKey,
   unknownMap,
   unknownEvent,
+  unknownStoryStep,
+  ambiguousStoryStep,
 }
 
 final class SceneConsequenceRuntimeWriteResult {

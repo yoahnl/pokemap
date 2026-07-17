@@ -524,17 +524,23 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
               mapId: mapId,
               seed: manualPartySeed,
             );
+      final selectedLaunchSave = launchSaveOverride ??
+          launchSaveData ??
+          (launchDemoSeed == null
+              ? null
+              : buildRuntimeHostLaunchDemoSaveData(
+                  mapId: mapId,
+                  seed: launchDemoSeed,
+                ));
       final nextGame = PlayableMapGame(
         bundle: bundle,
         projectFilePath: projectFilePath,
-        saveData: launchSaveOverride ??
-            launchSaveData ??
-            (launchDemoSeed == null
-                ? null
-                : buildRuntimeHostLaunchDemoSaveData(
-                    mapId: mapId,
-                    seed: launchDemoSeed,
-                  )),
+        saveData: selectedLaunchSave,
+        initialMapActivationReason:
+            resolveRuntimeHostInitialMapActivationReason(
+          versionedLaunchSave: launchSaveData,
+          manualLaunchOverride: launchSaveOverride,
+        ),
       );
       _runtimeHostLog('game instance created mapId=$mapId');
       setState(() {

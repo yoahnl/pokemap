@@ -28,6 +28,7 @@ import 'tileset_palette_panel.dart';
 import 'trigger_properties_panel.dart';
 import 'warp_properties_panel.dart';
 import 'map_inspector_empty_state.dart';
+import 'narrative_event_map_bridge_panel.dart';
 
 enum _InspectorSectionId {
   mapProperties,
@@ -233,6 +234,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 map: activeMap,
                 activeLayer: activeLayer,
               ),
+              const NarrativeEventMapBridgePanel(),
               InspectorSectionCard(
                 title: 'Propriétés de carte',
                 subtitle:
@@ -443,7 +445,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
               if (showGroundSection)
                 InspectorSectionCard(
                   title: 'Terrain de base',
-                  subtitle: 'Modification du terrain uniquement pour le fond de la carte.',
+                  subtitle:
+                      'Modification du terrain uniquement pour le fond de la carte.',
                   icon: CupertinoIcons.tree,
                   accentColor: EditorChrome.inspectorJoyMint,
                   expanded: _isExpanded(
@@ -528,8 +531,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 InspectorSectionCard(
                   title: 'Événements de carte',
                   subtitle: state.selectedMapEventId != null
-                      ? 'Événement sélectionné prêt pour édition.'
-                      : 'Pages d\'événements conditionnels et création de scripts/messages.',
+                      ? 'Legacy — événement sélectionné prêt pour édition.'
+                      : 'Legacy — pages d\'événements conditionnels et création de scripts/messages.',
                   icon: CupertinoIcons.flag,
                   badgeText: '${activeMap.events.length}',
                   accentColor: EditorChrome.inspectorJoyCyan,
@@ -550,7 +553,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
               if (showConnectionsSection)
                 InspectorSectionCard(
                   title: 'Connexions',
-                  subtitle: 'Lier la carte actuelle aux cartes du monde adjacentes.',
+                  subtitle:
+                      'Lier la carte actuelle aux cartes du monde adjacentes.',
                   icon: CupertinoIcons.arrow_branch,
                   badgeText: '${activeMap.connections.length}',
                   accentColor: EditorChrome.inspectorJoyPlum,
@@ -634,7 +638,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
               if (showEncounterTablesSection)
                 InspectorSectionCard(
                   title: 'Tables de rencontres',
-                  subtitle: 'Tables de rencontres au niveau du projet pour les Pokémon sauvages.',
+                  subtitle:
+                      'Tables de rencontres au niveau du projet pour les Pokémon sauvages.',
                   icon: CupertinoIcons.list_bullet,
                   badgeText: '${state.project?.encounterTables.length ?? 0}',
                   accentColor: EditorChrome.inspectorJoyCyan,

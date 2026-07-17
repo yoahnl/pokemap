@@ -32,6 +32,11 @@ class CreateMapUseCase {
   Future<MapData> execute(
       ProjectWorkspace fs, ProjectManifest project, String mapId, int w, int h,
       {String? groupId, MapRole role = MapRole.exterior}) async {
+    if (project.maps.any((entry) => entry.id == mapId)) {
+      throw EditorConflictException(
+        'A map with the ID "$mapId" already exists',
+      );
+    }
     final defaultTilesetId = pickDefaultTilesetId(project, groupId);
 
     final map = MapData(

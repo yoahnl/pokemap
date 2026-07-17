@@ -45,6 +45,7 @@ void main() {
 
       game.onGameResize(Vector2(640, 480));
       await game.onLoad();
+      await _waitForActivationDispatch(game);
 
       // On place volontairement le joueur loin du spawn pour prouver que le
       // whiteout-lite ne "reprend" pas juste sur la dernière case du combat.
@@ -65,13 +66,33 @@ void main() {
       expect(snapshot.playerMovementMode, equals(MovementMode.walk));
       expect(snapshot.party.members.single.currentHp, equals(1));
       expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(
+        game.debugCompletedMapActivationDispatchCount,
+        1,
+        reason: 'A same-map whiteout must not emit a second mapEnter.',
+      );
+      expect(
+        game.debugLastCompletedMapActivation?.reason,
+        MapActivationReason.initialBoot,
+      );
     });
   });
 }
 
+Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
+  for (var i = 0; i < 240; i++) {
+    if (!game.debugIsMapActivationDispatchInFlight) {
+      return;
+    }
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for the initial map activation dispatch.');
+}
+
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
-    manifest: ProjectManifest(
+    manifest: const ProjectManifest(
       name: 'Whiteout Lite Runtime Test',
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
@@ -81,7 +102,7 @@ RuntimeMapBundle _bundle() {
         ),
       ],
       tilesets: <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog(),
+      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     ),
     map: const MapData(
       id: 'test_field',

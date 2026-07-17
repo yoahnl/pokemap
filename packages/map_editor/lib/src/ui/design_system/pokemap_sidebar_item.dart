@@ -13,6 +13,7 @@ class PokeMapSidebarItem extends StatefulWidget {
     this.subtitle,
     this.icon,
     this.trailing,
+    this.compact = false,
     this.selected = false,
     this.disabled = false,
     this.onTap,
@@ -29,6 +30,13 @@ class PokeMapSidebarItem extends StatefulWidget {
 
   /// Optional suffix widget (e.g. status dot, badge, or chevron).
   final Widget? trailing;
+
+  /// Uses the denser row budget required by long desktop authoring lists.
+  ///
+  /// Navigation keeps the established dimensions by default. Feature screens
+  /// opt in explicitly so the design-system primitive still owns spacing,
+  /// typography and focus treatment instead of duplicating a local row.
+  final bool compact;
 
   /// If true, highlights the item as the current active page/selection.
   final bool selected;
@@ -52,6 +60,10 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
     final colors = context.pokeMapColors;
     final isActive = widget.selected;
     final isDisabled = widget.disabled || widget.onTap == null;
+    final horizontalPadding = widget.compact ? 8.0 : 12.0;
+    final iconGap = widget.compact ? 7.0 : 10.0;
+    final trailingGap = widget.compact ? 5.0 : 8.0;
+    final labelSize = widget.compact ? 11.0 : 13.0;
 
     // Visual attributes resolution
     Color? bg;
@@ -97,8 +109,10 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                 : SystemMouseCursors.click,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
-              height: widget.subtitle == null ? 38 : 46,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              height: widget.subtitle == null
+                  ? (widget.compact ? 34 : 38)
+                  : (widget.compact ? 42 : 46),
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: BorderRadius.circular(8), // Standard radius: 8
@@ -117,7 +131,7 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                       ),
                       child: widget.icon!,
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: iconGap),
                   ],
                   Expanded(
                     child: Column(
@@ -131,7 +145,7 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: fg,
-                            fontSize: 13,
+                            fontSize: labelSize,
                             fontWeight:
                                 isActive ? FontWeight.w700 : FontWeight.w500,
                           ),
@@ -155,18 +169,33 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                     ),
                   ),
                   if (widget.trailing != null) ...[
-                    const SizedBox(width: 8),
-                    Opacity(
-                      opacity: isDisabled ? 0.4 : 1.0,
-                      child: DefaultTextStyle(
-                        style: TextStyle(
-                          color: fg,
-                          fontSize: 11,
-                          fontWeight: FontWeight.normal,
+                    SizedBox(width: trailingGap),
+                    if (widget.compact)
+                      Opacity(
+                        opacity: isDisabled ? 0.4 : 1.0,
+                        child: DefaultTextStyle.merge(
+                          style: TextStyle(
+                            color: fg,
+                            fontSize: 11,
+                            fontWeight: FontWeight.normal,
+                          ),
+                          child: widget.trailing!,
                         ),
-                        child: widget.trailing!,
+                      )
+                    else
+                      Flexible(
+                        child: Opacity(
+                          opacity: isDisabled ? 0.4 : 1.0,
+                          child: DefaultTextStyle.merge(
+                            style: TextStyle(
+                              color: fg,
+                              fontSize: 11,
+                              fontWeight: FontWeight.normal,
+                            ),
+                            child: widget.trailing!,
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ],
               ),

@@ -27,6 +27,7 @@ final class SceneEventRuntimeHook {
     required MapEventDefinition event,
     required MapEventPage page,
     GameState? gameState,
+    GameState Function()? currentGameState,
   }) async {
     final sceneTarget = page.sceneTarget;
     if (sceneTarget == null) {
@@ -87,7 +88,8 @@ final class SceneEventRuntimeHook {
         );
       }
 
-      if (gameState == null) {
+      final commitBaseState = currentGameState?.call() ?? gameState;
+      if (commitBaseState == null) {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
           sceneId: sceneId,
@@ -100,7 +102,7 @@ final class SceneEventRuntimeHook {
       final writeResult = SceneConsequenceRuntimeWriter(
         project: project,
         mapsById: {map.id: map},
-      ).applyAll(gameState, pendingConsequences);
+      ).applyAll(commitBaseState, pendingConsequences);
       if (!writeResult.success) {
         return SceneEventRuntimeHookResult.failed(
           errorCode: SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,

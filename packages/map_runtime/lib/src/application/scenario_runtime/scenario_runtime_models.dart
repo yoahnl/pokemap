@@ -231,6 +231,16 @@ typedef ScenarioRuntimeTransitionMap = bool Function({
 /// Step Studio complétée — voir persistance `completedStepIds`).
 typedef ScenarioRuntimeShouldSkipScenario = bool Function(String scenarioId);
 
+/// Collects a legacy Scenario outcome for deferred Event V2 delivery.
+///
+/// Production enables this port so `emitOutcome` cannot recurse directly into
+/// another Scenario before the parent state has been committed. The historical
+/// inline bridge remains the default for isolated legacy callers.
+typedef ScenarioRuntimeOutcomeEmitter = void Function({
+  required String scenarioId,
+  required String outcomeId,
+});
+
 /// Contexte mutable d'exécution du bridge.
 ///
 /// Le bridge reste pur sur l'analyse du graphe, mais délègue les effets
@@ -247,6 +257,8 @@ class ScenarioRuntimeExecutionContext {
     this.faceCharacter = _defaultFaceCharacter,
     this.transitionMap = _defaultTransitionMap,
     this.shouldSkipScenario,
+    this.deferOutcomeDispatch = false,
+    this.onOutcomeEmitted,
   });
 
   GameState gameState;
@@ -258,6 +270,8 @@ class ScenarioRuntimeExecutionContext {
   final ScenarioRuntimeFollowCharacter followCharacter;
   final ScenarioRuntimeFaceCharacter faceCharacter;
   final ScenarioRuntimeTransitionMap transitionMap;
+  final bool deferOutcomeDispatch;
+  final ScenarioRuntimeOutcomeEmitter? onOutcomeEmitted;
 
   /// Filtre appliqué **après** match de source et **avant** exécution du flow.
   ///

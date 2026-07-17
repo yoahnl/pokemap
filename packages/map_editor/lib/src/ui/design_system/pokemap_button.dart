@@ -47,6 +47,7 @@ class PokeMapButton extends StatefulWidget {
     this.trailing,
     this.isLoading = false,
     this.isSelected = false,
+    this.focusNode,
   });
 
   /// Action callback. If null, the button is rendered in a disabled state.
@@ -72,6 +73,12 @@ class PokeMapButton extends StatefulWidget {
 
   /// If true, applies active/selected styling for toolbars or segmented actions.
   final bool isSelected;
+
+  /// Optional externally owned focus node.
+  ///
+  /// When provided, pointer activation requests this node before invoking
+  /// [onPressed]. This lets modal flows restore focus to the exact launcher.
+  final FocusNode? focusNode;
 
   @override
   State<PokeMapButton> createState() => _PokeMapButtonState();
@@ -170,17 +177,24 @@ class _PokeMapButtonState extends State<PokeMapButton> {
     }
 
     final inheritedTextStyle = DefaultTextStyle.of(context).style;
+    void activate() {
+      if (isDisabled) return;
+      widget.focusNode?.requestFocus();
+      // A modal callback can inspect `primaryFocus` immediately. Flush the
+      // pending request first so it captures this button, not the prior field.
+      FocusManager.instance.applyFocusChangesIfNeeded();
+      widget.onPressed?.call();
+    }
 
     return Semantics(
       button: true,
       enabled: !isDisabled,
       child: FocusableActionDetector(
+        focusNode: widget.focusNode,
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (intent) {
-              if (!isDisabled) {
-                widget.onPressed?.call();
-              }
+              activate();
               return null;
             },
           ),
@@ -192,7 +206,7 @@ class _PokeMapButtonState extends State<PokeMapButton> {
           if (!isDisabled) setState(() => _isFocused = val);
         },
         child: GestureDetector(
-          onTap: isDisabled ? null : widget.onPressed,
+          onTap: isDisabled ? null : activate,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 100),
             height: height,

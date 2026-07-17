@@ -233,12 +233,17 @@ void main() {
 
       game.onGameResize(Vector2(640, 480));
       await game.onLoad();
+      await _waitForInitialMapActivation(game);
 
       expect(
         game.handleRuntimeInputEvent(
           const RuntimeInputEvent.press(RuntimeInputControl.primary),
         ),
         isTrue,
+      );
+      await _waitForRuntimeCondition(
+        game,
+        () => game.gameStateSnapshot.bag.entries.isNotEmpty,
       );
 
       expect(game.gameStateSnapshot.bag.entries.single.itemId, _testItemId);
@@ -259,6 +264,31 @@ void main() {
       expect(ids, everyElement(startsWith('test_')));
     });
   });
+}
+
+Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
+  for (var i = 0; i < 240; i++) {
+    if (!game.debugIsMapActivationDispatchInFlight) {
+      return;
+    }
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for the initial map activation dispatch.');
+}
+
+Future<void> _waitForRuntimeCondition(
+  PlayableMapGame game,
+  bool Function() condition,
+) async {
+  for (var i = 0; i < 240; i++) {
+    if (condition()) {
+      return;
+    }
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+  }
+  fail('Timed out waiting for the runtime condition.');
 }
 
 ScenarioRuntimeExecutionResult _dispatch(

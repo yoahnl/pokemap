@@ -76,6 +76,7 @@ void main() {
 
       game.onGameResize(_testViewportSize);
       await game.onLoad();
+      await _waitForInitialMapActivation(game);
 
       expect(game.debugFlowPhaseName, 'overworld');
       expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
@@ -299,6 +300,13 @@ Future<String> _writeRuntimeProject(
 }
 
 final _testViewportSize = Vector2(640, 480);
+
+Future<void> _waitForInitialMapActivation(PlayableMapGame game) async {
+  await _pumpUntil(
+    game,
+    () => !game.debugIsMapActivationDispatchInFlight,
+  );
+}
 
 Future<void> _pumpUntil(
   PlayableMapGame game,

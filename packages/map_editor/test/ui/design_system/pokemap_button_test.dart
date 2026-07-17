@@ -17,7 +17,8 @@ void main() {
       );
     }
 
-    testWidgets('PokeMapButton pumps correctly under light & dark theme', (tester) async {
+    testWidgets('PokeMapButton pumps correctly under light & dark theme',
+        (tester) async {
       // Light Mode
       await tester.pumpWidget(
         buildTestWidget(
@@ -61,7 +62,8 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
-    testWidgets('PokeMapButton displays spinner when isLoading is true', (tester) async {
+    testWidgets('PokeMapButton displays spinner when isLoading is true',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),
@@ -74,12 +76,40 @@ void main() {
       );
 
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
-      
+
       final button = tester.widget<PokeMapButton>(find.byType(PokeMapButton));
       expect(button.isLoading, isTrue);
     });
 
-    testWidgets('PokeMapIconButton tooltip is displayed and works with variants', (tester) async {
+    testWidgets('PokeMapButton focuses an external launcher before activation',
+        (tester) async {
+      final focusNode = FocusNode(debugLabel: 'modal launcher');
+      addTearDown(focusNode.dispose);
+      var wasFocusedDuringActivation = false;
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapButton(
+            focusNode: focusNode,
+            onPressed: () {
+              wasFocusedDuringActivation = focusNode.hasFocus;
+            },
+            child: const Text('Open modal'),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open modal'));
+      await tester.pump();
+
+      expect(wasFocusedDuringActivation, isTrue);
+      expect(focusNode.hasFocus, isTrue);
+    });
+
+    testWidgets(
+        'PokeMapIconButton tooltip is displayed and works with variants',
+        (tester) async {
       int count = 0;
       await tester.pumpWidget(
         buildTestWidget(
@@ -122,7 +152,9 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('PokeMapButton and PokeMapIconButton provide Semantics information', (tester) async {
+    testWidgets(
+        'PokeMapButton and PokeMapIconButton provide Semantics information',
+        (tester) async {
       // 1. PokeMapButton
       await tester.pumpWidget(
         buildTestWidget(
@@ -134,9 +166,10 @@ void main() {
         ),
       );
 
-      final buttonSemanticsFinder = find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.button == true && widget.properties.enabled == true
-      );
+      final buttonSemanticsFinder = find.byWidgetPredicate((widget) =>
+          widget is Semantics &&
+          widget.properties.button == true &&
+          widget.properties.enabled == true);
       expect(buttonSemanticsFinder, findsOneWidget);
 
       // 2. PokeMapIconButton
@@ -150,9 +183,10 @@ void main() {
         ),
       );
 
-      final iconSemanticsFinder = find.byWidgetPredicate(
-        (widget) => widget is Semantics && widget.properties.button == true && widget.properties.enabled == true
-      );
+      final iconSemanticsFinder = find.byWidgetPredicate((widget) =>
+          widget is Semantics &&
+          widget.properties.button == true &&
+          widget.properties.enabled == true);
       expect(iconSemanticsFinder, findsOneWidget);
     });
   });
