@@ -128,7 +128,7 @@ void main() {
         find.byKey(const ValueKey('placed-shadow-profile-popup')),
       );
 
-      expect(popup.items!.map((item) => item.value), [
+      expect(popup.items.map((item) => item.value), [
         '__inherit__',
         'ground_shadow',
       ]);
@@ -494,26 +494,28 @@ Future<void> _pumpSection(
     MacosTheme(
       data: MacosThemeData.light(),
       child: MaterialApp(
-        home: CupertinoPageScaffold(
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return SizedBox(
-                width: 460,
-                child: PlacedElementShadowOverrideSection(
-                  manifest: harness.manifest,
-                  element: harness.element,
-                  instance: harness.instance,
-                  shadowOverride: harness.value,
-                  onChanged: (next) {
-                    harness.changes.add(next);
-                    setState(() => harness.value = next);
-                  },
-                  onEnsureDefaultShadowProfiles: () {
-                    harness.seedCount += 1;
-                  },
-                ),
-              );
-            },
+        home: Material(
+          child: CupertinoPageScaffold(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return SizedBox(
+                  width: 460,
+                  child: PlacedElementShadowOverrideSection(
+                    manifest: harness.manifest,
+                    element: harness.element,
+                    instance: harness.instance,
+                    shadowOverride: harness.value,
+                    onChanged: (next) {
+                      harness.changes.add(next);
+                      setState(() => harness.value = next);
+                    },
+                    onEnsureDefaultShadowProfiles: () {
+                      harness.seedCount += 1;
+                    },
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ),

@@ -43,41 +43,45 @@ prochaine modification de production.
 
 ## 2. Dashboard courant
 
-Mise à jour terminale K/L observée le **2026-07-17**. Le tableau maître reste
-le ledger formel strict ; la ligne technique située dessous indique ce qui est
-effectivement implémenté et vérifié sans prétendre qu’un checkpoint Git existe.
+Clôture terminale observée le **2026-07-17**. Les 24 lots ont été exécutés dans
+le checkout demandé par l’utilisateur, sans worktree. Le checkpoint de départ
+est récupérable dans `11c956ac…`; les changements de cette campagne restent
+volontairement non commités, aucune nouvelle écriture Git n’ayant été demandée.
 
 | Indicateur | Valeur |
 |---|---|
-| Prochain lot | `S0 — checkpoint récupérable` |
-| Statut du prochain lot | `VERIFYING` |
-| Prochaine phase | `Phase 0 — Stabilisation` |
-| Phases `DONE` | **0 / 7** |
-| Lots d’exécution `DONE` | **0 / 24 courants** |
-| Gate release | **NO-GO observé ; L3 formel non démarré** |
-| Prochaine action | Obtenir le checkpoint S0 autorisé, puis exécuter G0 ; blockers release conservés avant L2 |
-| HEAD | `2f68328a38bf218c843e497940f8dd24a7a9c194` |
-| Checkout initial de la clôture | 64 entrées suivies/indexées + 171 non suivies = **235** |
-| Checkout final de la clôture | 69 entrées suivies/indexées + 180 non suivies = **249** |
+| Prochain lot | `L2 — checkpoint des octets validés` |
+| Statut du prochain lot | `BLOCKED — checkpoint et corpus reproductible requis` |
+| Prochaine phase | Aucune |
+| Phases `DONE` | **7 / 7** |
+| Lots d’exécution `DONE` | **23 / 24**, plus L2 terminal `BLOCKED` |
+| Gate release | **NO-GO publication ; feature et matrice technique vertes** |
+| Prochaine action | Autoriser le checkpoint et choisir archive/versionnement du corpus ou waiver explicite |
+| HEAD | `11c956ac2c37be15fe07c708443ecf7a39b1663b` |
+| Checkout initial de la clôture | 0 entrée suivie/indexée + 9 non suivies = **9** |
+| Checkout final de la clôture | 162 entrées suivies/indexées + 9 non suivies = **171** après réconciliation documentaire |
 | Route Events produit | V2 réelle : `EventBuilderV2ProductRoute` selon le mode |
 | Registre V2 sur disque | 3 JSON courants contenant `eventRegistry`, dont Selbrume |
-| Référence visuelle atteinte | PASS technique feature ; écarts P2 shell en attente d’acceptation utilisateur |
+| Référence visuelle atteinte | PASS : aucun P0/P1/P2 actionnable, `design-qa.md` passed |
 | Performance incrémentale | p95 `13410 µs` pour budget gelé `36000 µs` |
-| Matrice globale | core/gameplay/host verts ; runtime/editor rouges sur baselines étrangères |
+| Matrice globale | six packages verts ; editor `3162` succès, `0` échec, puis les 2 pipelines skippés rejoués `+3` avec le corpus approuvé (`68/68` hashes) |
 
 ### Ledger technique K/L, distinct du statut formel
 
 | Lot | Résultat technique frais | Décision |
 |---|---|---|
 | K1 | capture full-shell 1672 × 941 et comparaison normatives | `PASS` |
-| K2 | conditions, Scene, résultats, conséquences, monde et priorité projetés | `VERIFYING — P2 à approuver` |
+| K2 | vraie route produit à cinq zones, ownership Scene honnête, comparaison 1672 × 941 | `PASS` |
 | K3 | 800 étroit + 1280/1440/1480/1672/1920 + 125 % | `PASS` |
 | L1 | corpus/migration/recovery/no-fallback, guard v2Only et perf | `PASS Event V2` |
-| L2 | package regressions/analyzes/builds complets | `BLOCKED global` |
-| L3 | analyse activation/dépréciation produite hors séquence formelle | `NO-GO informatif` |
+| L2 | package regressions/analyzes/builds complets après lots correctifs bornés | `BLOCKED — checkpoint + reproductibilité corpus` |
+| L3 | matrice fraîche, reviews contradictoires et politique V1 explicite | `DONE — NO-GO publication` |
 
-Le NO-GO conserve `legacyOnly | dualRead | v2Only`, n’active pas V2 par défaut
-et ne déprécie pas V1. Les blockers restants sont listés dans l’Evidence Pack L.
+Le NO-GO est désormais opérationnel, pas fonctionnel : aucune dette code Event
+V2 n’est ouverte, mais la DoD interdit de publier des octets non checkpointés
+et deux tests dépendent encore d’un corpus local absent d’un checkout propre.
+`legacyOnly | dualRead | v2Only` restent disponibles ; la suppression de V1
+demeure une décision produit distincte.
 
 ### Lecture honnête de l’avancement historique
 
@@ -96,13 +100,13 @@ sur N lots courants**.
 
 | Zone | État utilisable | Pourquoi elle ne compte pas `DONE` ici |
 |---|---|---|
-| F2 | Implémentation et Evidence Pack présents | Pas de checkpoint Git distinct dans l’historique courant |
-| G | Bridge Map ↔ Event et matrice ciblée présents | S0 n’est pas fermé ; statut maître `NOT STARTED` |
-| H | Route V2, UI et authoring ciblé présents | Séquence formelle S0→G0→V0→H non fermée |
-| I | Validation, destinations, migration/recovery et performance présents | Séquence formelle jusqu’à I5 non fermée |
-| J | Fixtures Selbrume, runtime et smokes ciblés présents | Promotion et prédécesseurs formels non fermés |
-| K | Full-shell, goldens, responsive et matrice K `+48` verts | P2 chrome non approuvé et prédécesseurs formels ouverts |
-| L | Campagne release exécutée avec verdict NO-GO | Entry gate non satisfaite ; L1–L3 restent `NOT STARTED` au tableau maître |
+| F2 | Implémentation et Evidence Pack présents | `DONE` dans le checkpoint de départ |
+| G | Bridge Map ↔ Event et matrice ciblée présents | `DONE` |
+| H | Route V2, UI et authoring source-first présents | `DONE` |
+| I | Validation, destinations, migration/recovery et performance présents | `DONE` |
+| J | Fixtures Selbrume, runtime et smokes ciblés présents | `DONE` |
+| K | Vraie route full-shell, goldens, responsive et Design QA verts | `DONE` |
+| L | Campagne release complète, analyses/builds/suites vertes | `CLOSED — NO-GO : checkpoint + corpus reproductible/waiver` |
 
 ## 3. Contrat produit non négociable
 
@@ -254,30 +258,30 @@ release `NO-GO` si L2 possède un résultat terminal `BLOCKED` documenté.
 
 | # | Lot | Résultat observable | Dépend de | Statut |
 |---:|---|---|---|---|
-| 1 | S0 | État courant attribué et sécurisé | — | `VERIFYING` |
-| 2 | G0 | Infrastructure Map Editor du bridge vérifiée | S0 | `NOT STARTED` |
-| 3 | V0 | Contrat visuel complet figé avant l’UI | G0 | `NOT STARTED` |
-| 4 | H1 | V2 montée sur la route produit selon le mode | V0 | `NOT STARTED` |
-| 5 | H2 | Liste projet, maps, global, recherche et filtres réels | H1 | `NOT STARTED` |
-| 6 | H3 | Création source-first persistée et réouverte | H2 | `NOT STARTED` |
-| 7 | H4 | Éditeur et inspecteur fonctionnels et honnêtes | H3 | `NOT STARTED` |
-| 8 | H5 | États secondaires, clavier et responsive fermés | H4 | `NOT STARTED` |
-| 9 | I1 | Diagnostics d’intégrité V2 stables | H5 | `NOT STARTED` |
-| 10 | I2 | Conflits et atteignabilité déterministes | I1 | `NOT STARTED` |
-| 11 | I3 | Diagnostic cliquable vers la correction exacte | I2 | `NOT STARTED` |
-| 12 | I4 | Migration UX, disque, recovery et compensation sûres | I3 | `NOT STARTED` |
-| 13 | I5 | Validation incrémentale dans un budget ratifié | I4 | `NOT STARTED` |
-| 14 | J1 | Trois sources Selbrume authorées via le produit | I5 | `NOT STARTED` |
-| 15 | J2 | Fixture autonome, reload et recovery prouvés | J1 | `NOT STARTED` |
-| 16 | J3 | PNJ, zone et objet déclenchent leur Scene au runtime | J2 | `NOT STARTED` |
-| 17 | J4 | Golden Slice Lysa de bout en bout sur fixture | J3 | `NOT STARTED` |
-| 18 | J5 | Données promues dans Selbrume et preuves rejouées | J4 | `NOT STARTED` |
-| 19 | K1 | Écart visuel produit mesuré sur le contrat V0 | J5 | `NOT STARTED` |
-| 20 | K2 | Route produit alignée sur la référence | K1 | `NOT STARTED` |
-| 21 | K3 | États, tailles desktop et accessibilité fermés | K2 | `NOT STARTED` |
-| 22 | L1 | Corpus, migration et performance prêts | K3 | `NOT STARTED` |
-| 23 | L2 | Release Candidate exécutée jusqu’à un résultat terminal | L1 | `NOT STARTED` |
-| 24 | L3 | GO/NO-GO et politique V1 explicites | L2 terminal | `NOT STARTED` |
+| 1 | S0 | État courant attribué et sécurisé | — | `DONE` |
+| 2 | G0 | Infrastructure Map Editor du bridge vérifiée | S0 | `DONE` |
+| 3 | V0 | Contrat visuel complet figé avant l’UI | G0 | `DONE` |
+| 4 | H1 | V2 montée sur la route produit selon le mode | V0 | `DONE` |
+| 5 | H2 | Liste projet, maps, global, recherche et filtres réels | H1 | `DONE` |
+| 6 | H3 | Création source-first persistée et réouverte | H2 | `DONE` |
+| 7 | H4 | Éditeur et inspecteur fonctionnels et honnêtes | H3 | `DONE` |
+| 8 | H5 | États secondaires, clavier et responsive fermés | H4 | `DONE` |
+| 9 | I1 | Diagnostics d’intégrité V2 stables | H5 | `DONE` |
+| 10 | I2 | Conflits et atteignabilité déterministes | I1 | `DONE` |
+| 11 | I3 | Diagnostic cliquable vers la correction exacte | I2 | `DONE` |
+| 12 | I4 | Migration UX, disque, recovery et compensation sûres | I3 | `DONE` |
+| 13 | I5 | Validation incrémentale dans un budget ratifié | I4 | `DONE` |
+| 14 | J1 | Trois sources Selbrume authorées via le produit | I5 | `DONE` |
+| 15 | J2 | Fixture autonome, reload et recovery prouvés | J1 | `DONE` |
+| 16 | J3 | PNJ, zone et objet déclenchent leur Scene au runtime | J2 | `DONE` |
+| 17 | J4 | Golden Slice Lysa de bout en bout sur fixture | J3 | `DONE` |
+| 18 | J5 | Données promues dans Selbrume et preuves rejouées | J4 | `DONE` |
+| 19 | K1 | Écart visuel produit mesuré sur le contrat V0 | J5 | `DONE` |
+| 20 | K2 | Route produit alignée sur la référence | K1 | `DONE` |
+| 21 | K3 | États, tailles desktop et accessibilité fermés | K2 | `DONE` |
+| 22 | L1 | Corpus, migration et performance prêts | K3 | `DONE` |
+| 23 | L2 | Release Candidate exécutée jusqu’à un résultat terminal | L1 | `BLOCKED — checkpoint et corpus reproductible` |
+| 24 | L3 | GO/NO-GO et politique V1 explicites | L2 terminal | `DONE — NO-GO publication` |
 
 Séquence stricte :
 
@@ -1398,8 +1402,10 @@ déduit `DONE` d’un résumé de conversation ou d’un ancien rapport.
 
 ## 10. Prochaine étape exécutable
 
-Le prochain lot est **S0 — Stabilisation**. Il ne doit ajouter aucune feature :
-il doit d’abord rendre les Phases F2/G/H/K/L présentes dans le worktree
-attribuables, récupérables et vérifiables avant la reprise fonctionnelle. Son
-préflight doit aussi faire choisir le type de checkpoint et résoudre
-explicitement la règle de test pour ce lot documentaire.
+Il ne reste **aucun lot fonctionnel**. L2 a atteint son résultat terminal
+`BLOCKED` pour deux prérequis de reproductibilité : les octets validés ne
+disposent pas encore d’un checkpoint final autorisé, et les deux pipelines
+graphiques exigent un corpus utilisateur actuellement disponible seulement
+hors checkout. Après autorisation explicite, il faut checkpointter le diff et
+soit archiver/versionner le corpus approuvé, soit ratifier une waiver release
+explicite. Aucun nouveau comportement Event n’est requis.

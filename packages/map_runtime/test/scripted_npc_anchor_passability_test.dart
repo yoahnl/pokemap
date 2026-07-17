@@ -190,7 +190,7 @@ void main() {
           name: 'project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            ProjectTilesetEntry(
+            const ProjectTilesetEntry(
               id: 'ts',
               name: 'Tileset',
               relativePath: 'tileset.png',
@@ -198,7 +198,7 @@ void main() {
           ],
           surfaceCatalog: ProjectSurfaceCatalog(),
           pathPresets: <ProjectPathPreset>[
-            ProjectPathPreset(
+            const ProjectPathPreset(
               id: 'water_path',
               name: 'Water',
               surfaceKind: PathSurfaceKind.water,

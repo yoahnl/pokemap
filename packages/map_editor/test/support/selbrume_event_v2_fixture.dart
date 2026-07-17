@@ -1160,7 +1160,6 @@ Future<Map<String, String>> _authorSelbrumeSlice({
     npc: const MapEntityNpcData(
       displayName: 'Lysa',
       facing: EntityFacing.south,
-      visualElementId: 'grant',
       trainerId: selbrumeLysaTrainerId,
       characterId: selbrumeLysaCharacterId,
     ),

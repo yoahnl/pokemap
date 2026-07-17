@@ -68,29 +68,35 @@ class NarrativeEventMapBridgePanel extends ConsumerWidget {
         padding: const EdgeInsets.all(12),
         header: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-          child: Row(
-            children: [
-              Icon(
-                CupertinoIcons.link,
-                color: colors.narrative,
-                size: 16,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Events V2 depuis la map',
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
+          child: LayoutBuilder(
+            builder: (context, constraints) => Row(
+              children: [
+                Icon(
+                  CupertinoIcons.link,
+                  color: colors.narrative,
+                  size: 16,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Events V2 depuis la map',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              const PokeMapBadge(
-                label: 'Source existante',
-                variant: PokeMapBadgeVariant.narrative,
-              ),
-            ],
+                PokeMapBadge(
+                  label: constraints.maxWidth < 240
+                      ? 'Source'
+                      : 'Source existante',
+                  variant: PokeMapBadgeVariant.narrative,
+                ),
+              ],
+            ),
           ),
         ),
         child: bridgeState.pendingReturn != null &&

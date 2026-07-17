@@ -26,7 +26,7 @@ void main() {
           activeMap: fixture.forestMap,
         );
 
-        expect(fixture.readModel.events, hasLength(6));
+        expect(fixture.readModel.events, hasLength(7));
         for (final event in fixture.readModel.events) {
           expect(
             find.byKey(
@@ -44,7 +44,7 @@ void main() {
         final list = find.byKey(const ValueKey('event-builder-v2-list'));
         expect(
           find.descendant(of: list, matching: find.text('Actif')),
-          findsNWidgets(2),
+          findsNWidgets(3),
         );
         expect(
           find.descendant(of: list, matching: find.text('Inactif')),
@@ -203,11 +203,12 @@ void main() {
         narrativeEventBuilderV2ReadModelProvider(request).future,
       );
 
-      expect(readModel.events, hasLength(6));
+      expect(readModel.events, hasLength(7));
       expect(
         readModel.events.map((event) => event.title),
         containsAll(<String>[
           'Rencontre rival au port',
+          'Revanche du rival',
           'Écho dans la brume',
           'Après la victoire',
           'Événement à préparer',

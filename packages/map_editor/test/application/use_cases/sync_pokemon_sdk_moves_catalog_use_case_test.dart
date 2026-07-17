@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/pokemon_project_data_models.dart';
-import 'package:map_editor/src/application/ports/pokemon_external_source_repository.dart';
+import 'package:map_editor/src/application/ports/pokemon_sdk_studio_project_source.dart';
 import 'package:map_editor/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart';
 import 'package:map_editor/src/application/use_cases/project_management_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_sdk_moves_catalog_use_case.dart';
@@ -18,7 +18,7 @@ void main() {
   late ProjectFileSystem workspace;
   late FilePokemonReadRepository readRepository;
   late FilePokemonWriteRepository writeRepository;
-  late _FakePokemonSdkExternalSourceRepository externalRepository;
+  late _FakePokemonSdkStudioProjectSource studioSource;
   late SyncPokemonSdkMovesCatalogUseCase useCase;
 
   setUp(() async {
@@ -28,7 +28,7 @@ void main() {
     workspace = ProjectFileSystem(tempProjectRoot.path);
     readRepository = const FilePokemonReadRepository();
     writeRepository = const FilePokemonWriteRepository();
-    externalRepository = _FakePokemonSdkExternalSourceRepository(
+    studioSource = _FakePokemonSdkStudioProjectSource(
       payload: PokemonSdkStudioProjectPayload(
         moves: <Map<String, dynamic>>[
           _psdkMove(
@@ -53,7 +53,7 @@ void main() {
       ),
     );
     useCase = SyncPokemonSdkMovesCatalogUseCase(
-      externalSourceRepository: externalRepository,
+      studioSource: studioSource,
       readRepository: readRepository,
       writeRepository: writeRepository,
     );
@@ -99,7 +99,7 @@ void main() {
     expect(result.updatedIds, <String>['thunder_wave']);
     expect(result.preservedLocalOnlyIds, <String>['custom_local_move']);
     expect(result.externalEntryCount, 2);
-    expect(externalRepository.loadedProjectRoots, <String>[
+    expect(studioSource.loadedProjectRoots, <String>[
       '/tmp/fake-psdk-project',
     ]);
     expect(await catalogFile.readAsString(), beforeCatalogJson);
@@ -137,7 +137,10 @@ void main() {
     );
     final canonicalThunderWave = PokemonMove.fromJson(thunderWave);
     expect(canonicalThunderWave.source, 'pokemon_sdk_studio');
-    expect(canonicalThunderWave.battleEngineMethod, 's_status');
+    expect(
+      canonicalThunderWave.unsupportedReasons,
+      contains('psdk_method:s_status'),
+    );
     expect(canonicalThunderWave.accuracy,
         const PokemonMoveAccuracy.percent(value: 90));
     expect(
@@ -199,7 +202,7 @@ void main() {
   });
 
   test('fails clearly when the PSDK project exposes no moves', () async {
-    externalRepository.payload = PokemonSdkStudioProjectPayload(
+    studioSource.payload = PokemonSdkStudioProjectPayload(
       moves: const <Map<String, dynamic>>[],
       abilities: const <Map<String, dynamic>>[],
       items: const <Map<String, dynamic>>[],
@@ -223,9 +226,9 @@ void main() {
   });
 }
 
-class _FakePokemonSdkExternalSourceRepository
-    implements PokemonExternalSourceRepository {
-  _FakePokemonSdkExternalSourceRepository({
+class _FakePokemonSdkStudioProjectSource
+    implements PokemonSdkStudioProjectSource {
+  _FakePokemonSdkStudioProjectSource({
     required this.payload,
   });
 
@@ -233,63 +236,11 @@ class _FakePokemonSdkExternalSourceRepository
   final List<String> loadedProjectRoots = <String>[];
 
   @override
-  Future<PokemonSdkStudioProjectPayload> fetchPokemonSdkStudioProjectPayload(
+  Future<PokemonSdkStudioProjectPayload> loadProject(
     String projectRootPath,
   ) async {
     loadedProjectRoots.add(projectRootPath);
     return payload;
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchShowdownPokedexSnapshot() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchShowdownSpeciesPayload(String speciesId) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchShowdownMovesSnapshot() {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiItemsResourceList({
-    required int limit,
-    required int offset,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiItemPayload(String itemIdOrName) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(String speciesId) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiPokemonSpeciesPayload(
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<Map<String, dynamic>> fetchPokeApiEvolutionChainPayload(
-    String speciesId,
-  ) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<PokemonExternalBinaryAsset> fetchBinaryAsset(String sourceUrl) {
-    throw UnimplementedError();
   }
 }
 
@@ -335,18 +286,15 @@ final PokemonCatalogFile _localPsdkCatalogBeforeSync = PokemonCatalogFile(
         'fr': 'Cage-Eclair',
       },
       source: 'pokemon_sdk_studio',
-      dbSymbol: 'thunder_wave',
       type: 'electric',
       category: PokemonMoveCategory.status,
-      battleEngineAimedTarget: PokemonMoveAimedTarget.adjacentFoe,
+      target: PokemonMoveTarget.adjacentFoe,
       accuracy: PokemonMoveAccuracy.percent(value: 100),
       pp: 20,
-      battleEngineMethod: 's_status',
-      sourceRefs: PokemonMoveSourceRefs(
-        psdkDbSymbol: 'thunder_wave',
-        psdkBattleEngineMethod: 's_status',
-      ),
+      unsupportedReasons: <String>['psdk_method:s_status'],
     ).toJson()
+      ..['dbSymbol'] = 'thunder_wave'
+      ..['battleEngineMethod'] = 's_status'
       ..['editorNote'] = 'Keep local move note'
       ..['power'] = 0,
   ],

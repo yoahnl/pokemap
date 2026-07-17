@@ -276,19 +276,19 @@ void _expectCellFrames(
 }
 
 ProjectManifest _emptyManifest() {
-  return ProjectManifest(
+  return const ProjectManifest(
     name: 'Deep Water',
-    maps: const [],
-    tilesets: const [
+    maps: [],
+    tilesets: [
       ProjectTilesetEntry(
         id: 'deep_water',
         name: 'Deep Water',
         relativePath: 'assets/tilesets/deep_water.png',
       ),
     ],
-    pathPresets: const [],
-    pathPatternPresets: const [],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+    pathPresets: [],
+    pathPatternPresets: [],
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

@@ -66,7 +66,8 @@ void main() {
       );
 
       expect(updated.dialogues.single.folderId, 'fld');
-      expect(updated.dialogues.single.relativePath, startsWith('dialogues/npc/'));
+      expect(
+          updated.dialogues.single.relativePath, startsWith('dialogues/npc/'));
       final dest = File(
         ws.resolveProjectRelativePath(updated.dialogues.single.relativePath),
       );
@@ -94,7 +95,8 @@ void main() {
 
       expect(updated.dialogues.single.folderId, 'f');
       expect(updated.dialogues.single.name, 'Fresh');
-      expect(updated.dialogues.single.relativePath, startsWith('dialogues/box/'));
+      expect(
+          updated.dialogues.single.relativePath, startsWith('dialogues/box/'));
       final f = File(
         ws.resolveProjectRelativePath(updated.dialogues.single.relativePath),
       );
@@ -104,7 +106,8 @@ void main() {
 }
 
 ProjectManifest _emptyManifest() {
-  return const ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  return const ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'testproj',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -141,8 +144,7 @@ class _TempProjectWorkspace implements ProjectWorkspace {
   Future<void> deleteDirectoryIfEmpty(String path) async {}
 
   @override
-  Future<bool> directoryExists(String path) async =>
-      Directory(path).exists();
+  Future<bool> directoryExists(String path) async => Directory(path).exists();
 
   @override
   Future<void> ensureDirectoryExists(String path) async {
@@ -198,8 +200,7 @@ class _TempProjectWorkspace implements ProjectWorkspace {
       p.join(root, relativePath);
 
   @override
-  String resolveTilesetPath(String relativePath) =>
-      p.join(root, relativePath);
+  String resolveTilesetPath(String relativePath) => p.join(root, relativePath);
 
   @override
   Future<void> writeTextFile(String path, String contents) async {

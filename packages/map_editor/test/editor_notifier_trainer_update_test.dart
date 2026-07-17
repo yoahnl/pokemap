@@ -31,7 +31,8 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'trainer_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -107,7 +108,8 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'trainer_pokemon_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -138,7 +140,8 @@ void main() {
       );
 
       expect(success, isTrue);
-      final updatedPokemon = notifier.state.project!.trainers.single.team.single;
+      final updatedPokemon =
+          notifier.state.project!.trainers.single.team.single;
       expect(updatedPokemon.level, 9);
       expect(updatedPokemon.heldItemId, 'oran_berry');
       expect(updatedPokemon.formId, 'base');
@@ -228,7 +231,8 @@ class _FakeWorkspace implements ProjectWorkspace {
       '$projectRoot/$relativePath';
 
   @override
-  String resolveTilesetPath(String relativePath) => '$projectRoot/$relativePath';
+  String resolveTilesetPath(String relativePath) =>
+      '$projectRoot/$relativePath';
 
   @override
   Future<void> writeTextFile(String path, String contents) async {}

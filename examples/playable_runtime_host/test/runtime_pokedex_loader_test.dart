@@ -28,7 +28,7 @@ void main() {
     final manifest = ProjectManifest(
       name: 'Runtime Test',
       maps: [
-        ProjectMapEntry(
+        const ProjectMapEntry(
           id: 'lab',
           name: 'Lab',
           relativePath: 'maps/lab.json',

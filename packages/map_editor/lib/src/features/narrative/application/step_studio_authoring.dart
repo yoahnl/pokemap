@@ -38,8 +38,7 @@ String stepStudioActivationModeLabel(StepStudioActivationMode mode) {
     StepStudioActivationMode.afterOutcome =>
       'Après un résultat pour l’histoire',
     StepStudioActivationMode.afterCutscene => 'Après une scène',
-    StepStudioActivationMode.whenFlagTrue =>
-      'Quand un état du monde est vrai',
+    StepStudioActivationMode.whenFlagTrue => 'Quand un état du monde est vrai',
   };
 }
 
@@ -54,14 +53,12 @@ enum StepStudioCompletionMode {
 
 String stepStudioCompletionModeLabel(StepStudioCompletionMode mode) {
   return switch (mode) {
-    StepStudioCompletionMode.whenCutsceneEnds =>
-      'Quand une scène se termine',
+    StepStudioCompletionMode.whenCutsceneEnds => 'Quand une scène se termine',
     StepStudioCompletionMode.whenOutcomeEmitted =>
       'Quand un résultat est obtenu',
     StepStudioCompletionMode.whenInteractionDone =>
       'Quand une interaction clé a eu lieu',
-    StepStudioCompletionMode.whenFlagTrue =>
-      'Quand un état du monde est vrai',
+    StepStudioCompletionMode.whenFlagTrue => 'Quand un état du monde est vrai',
     StepStudioCompletionMode.manual => 'Manuellement',
   };
 }
@@ -864,21 +861,21 @@ ScenarioAsset applyStepStudioDocumentToGlobalScenario(
 StepStudioDocument createDefaultStepStudioDocument({
   required String globalStoryScenarioId,
 }) {
-  final step = StepStudioStep(
+  const step = StepStudioStep(
     id: 'step_intro',
     name: 'Introduction',
     description: 'Première étape du scénario principal.',
     order: 0,
-    activation: const StepStudioActivationRule(
+    activation: StepStudioActivationRule(
       mode: StepStudioActivationMode.atGameStart,
     ),
-    completion: const StepStudioCompletionRule(
+    completion: StepStudioCompletionRule(
       mode: StepStudioCompletionMode.manual,
     ),
   );
   return StepStudioDocument(
     globalStoryScenarioId: globalStoryScenarioId,
-    steps: <StepStudioStep>[step],
+    steps: const <StepStudioStep>[step],
   );
 }
 

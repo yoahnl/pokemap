@@ -1,5 +1,46 @@
 # NS-EVENT-V2 Phase K — Pixel-Perfect Visual Closure Evidence Pack
 
+> **Réconciliation terminale K8 — 2026-07-17.** Cette section supersède K7
+> pour le statut et les artefacts finaux. Les sections antérieures restent un
+> audit trail historique.
+
+## K8.1 Verdict
+
+- Phase K : **DONE / ACCEPTED**.
+- Design QA : **passed**.
+- Revue UX/visuelle indépendante : **GO**, aucun P0/P1/P2 actionnable.
+- Ownership : l’Event référence une source existante et une Scene ; résultats,
+  réactions et monde restent des projections Scene en lecture seule.
+
+La vraie route produit occupe les cinq zones attendues à 1672 × 941, sans
+double chrome, overflow, troncature critique ni faux authoring. La dernière
+revue architecture a trouvé trois icônes actives avec des callbacks vides
+(recherche, notifications, réglages). Elles sont désormais désactivées avec un
+tooltip « bientôt disponible », et un test empêche le retour d’un no-op actif.
+
+## K8.2 Preuves finales
+
+| Preuve | Résultat |
+|---|---|
+| route produit ciblée | `+15`, `All tests passed!` |
+| géométrie | 1672 × 941, cinq zones métier |
+| north star SHA-256 | `2072679b3b861a63c068628450705d39e70ad59dc5067e0a0bf91c0bcbe8c885` |
+| produit final SHA-256 | `8b45066cd7892479892668e09b8ffa02dc7cd21dc2a64e38ca7d2155b39778cf` |
+| côte-à-côte SHA-256 | `92b4b077ddd45681d4bc6cea71fb7f5c64cb26593209a934c754e8ced2f48826` |
+| overlay 50 % SHA-256 | `f13345c32a6966a76f5c56c0a47fc2a180311cfd7335f7ffd07ea63cc9dda5e5` |
+
+Artefacts normatifs :
+
+- `phase_k_product_route_evidence/product_after_1672x941.png` ;
+- `phase_k_product_route_evidence/reference_vs_product_after_1672x941.png` ;
+- `phase_k_product_route_evidence/reference_vs_product_after_overlay_50.png` ;
+- trois crops `focus_*` pour navigation/liste, éditeur et inspecteur.
+
+Auto-critique : la capture n’est pas un clone décoratif pixel pour pixel. Les
+écarts de densité et de wording sont non bloquants ; ils servent le modèle
+source-first réel. Un test utilisateur futur sur la transition Event → Scene
+reste utile, mais ne bloque pas K.
+
 > **Réconciliation finale K7 — 2026-07-17.** Cette section remplace K6 pour le
 > statut, les résultats de revue et les commandes finales. K6 et les sections
 > antérieures restent un audit trail, pas la vérité courante.

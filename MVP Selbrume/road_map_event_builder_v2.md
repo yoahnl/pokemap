@@ -15,11 +15,23 @@ Phase D : CLOSED / ACCEPTED le 2026-07-13
 Phase E : CLOSED / ACCEPTED le 2026-07-14
 Phase F1 : CLOSED / ACCEPTED le 2026-07-15
 Phase F2 : CLOSED / ACCEPTED le 2026-07-15
-Phase G à J : implémentation technique présente ; checkpoint formel suivi dans la roadmap d’exécution
-Phase K : mission PLANNED ; preuve technique PASS (acceptation P2 requise)
-Phase L : mission PLANNED ; campagne technique informative ; release NO-GO
-Prochaine mission : S0, puis séquence formelle G→L ; blockers release séparés conservés
+Phase G à J : CLOSED / ACCEPTED le 2026-07-17
+Phase K : CLOSED / ACCEPTED le 2026-07-17 ; Design QA passed
+Phase L : CLOSED avec décision NO-GO publication le 2026-07-17
+Implémentation et matrice technique : complètes et vertes
+Blockers publication : checkpoint final non autorisé et corpus source absent d’un checkout propre
+Prochaine action : checkpoint Git + archive/versionnement du corpus ou waiver explicite
 ```
+
+> **Réconciliation terminale — 2026-07-17.** Les anciens statuts `PLANNED`,
+> `PARTIAL` et `NO-GO` fondés sur les analyzers ou tests rouges restent dans
+> l’historique plus bas. Ils sont supersédés par la matrice fraîche : core,
+> gameplay, battle, runtime, editor et host sont verts ; les deux pipelines
+> Selbrume initialement skippés ont été rejoués avec le corpus approuvé dont les
+> 68 hashes correspondent au manifeste. Le produit Event V2 est terminé. La
+> release reste NO-GO parce que la DoD exige un checkpoint des octets courants
+> et une preuve reproductible des deux pipelines de corpus. Leur exécution
+> locale est verte, mais dépend encore d’une source hors checkout.
 
 Cette roadmap remplace la progression incrémentale du seul Event Builder
 map-local. Elle ne supprime aucun projet existant et ne change pas le statut des

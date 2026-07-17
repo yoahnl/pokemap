@@ -51,9 +51,11 @@ void main() {
       }
 
       final deltas = <double>[
-        for (var i = 1; i < positions.length; i++) positions[i] - positions[i - 1],
+        for (var i = 1; i < positions.length; i++)
+          positions[i] - positions[i - 1],
       ];
-      final nonZeroDeltas = deltas.where((delta) => delta.abs() > 0.0001).toList();
+      final nonZeroDeltas =
+          deltas.where((delta) => delta.abs() > 0.0001).toList();
 
       expect(nonZeroDeltas, isNotEmpty);
       final minDelta = nonZeroDeltas.reduce((a, b) => a < b ? a : b);
@@ -90,14 +92,15 @@ RuntimeMapBundle _bundle() {
     manifest: ProjectManifest(
       name: 'Player Component Test Project',
       maps: <ProjectMapEntry>[
-        ProjectMapEntry(
+        const ProjectMapEntry(
           id: 'test_map',
           name: 'Test Map',
           relativePath: 'maps/test_map.json',
         ),
       ],
       tilesets: <ProjectTilesetEntry>[],
-      settings: ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2),
+      settings:
+          const ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2),
       surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(

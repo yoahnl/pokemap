@@ -125,11 +125,11 @@ MapData _map() {
 }
 
 ProjectManifest _manifest() {
-  return ProjectManifest(
+  return const ProjectManifest(
     name: 'Project',
-    maps: const [],
-    tilesets: const [],
-    elements: const [
+    maps: [],
+    tilesets: [],
+    elements: [
       ProjectElementEntry(
         id: 'tree',
         name: 'Tree',
@@ -142,7 +142,7 @@ ProjectManifest _manifest() {
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

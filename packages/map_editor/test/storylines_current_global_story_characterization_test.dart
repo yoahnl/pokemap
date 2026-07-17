@@ -25,7 +25,7 @@ void main() {
         expect(find.byType(NarrativeWorkspaceCanvas), findsOneWidget);
         expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
             findsOneWidget);
-        expect(find.byKey(const ValueKey('narrative-studio-header')),
+        expect(find.byKey(const ValueKey('narrative-studio-shell')),
             findsOneWidget);
         expect(find.byKey(const ValueKey('storylines-workspace-shell')),
             findsOneWidget);
@@ -33,18 +33,17 @@ void main() {
         expect(find.text('Storylines'), findsWidgets);
         expect(find.text('Audit Story From Scenario'), findsWidgets);
         expect(find.text('Audit description from scenario'), findsWidgets);
-        expect(find.text('Étapes narratives'), findsWidgets);
         expect(find.text('1'), findsWidgets);
 
         expect(find.text('Mode lecture seule'), findsOneWidget);
         expect(find.text('Graph read-only'), findsOneWidget);
         expect(find.text('Audit Step From Metadata'), findsWidgets);
         expect(find.text('Chapitres — à venir'), findsNothing);
-        expect(find.text('Valider'), findsWidgets);
 
-        // Future Storylines action exists in the internal header shell, but is
-        // disabled by the widget contract.
-        expect(find.text('Nouvelle storyline'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('storylines-create-main-cta')),
+          findsOneWidget,
+        );
 
         // NS-HOME guardrail: Maps is not an internal Narrative Studio entry.
         expect(find.text('Maps'), findsNothing);

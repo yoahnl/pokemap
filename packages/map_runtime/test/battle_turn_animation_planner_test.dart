@@ -75,37 +75,37 @@ BattleSession _session({
 BattleMoveVisualResolver _resolver() {
   return BattleMoveVisualResolver(
     RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
-      'tackle': PokemonMove(
+      'tackle': const PokemonMove(
         id: 'tackle',
         name: 'Tackle',
         type: 'normal',
         category: PokemonMoveCategory.physical,
-        accuracy: const PokemonMoveAccuracy.percent(value: 100),
-        sourceRefs: const PokemonMoveSourceRefs(showdownMoveId: 'tackle'),
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        sourceRefs: PokemonMoveSourceRefs(showdownMoveId: 'tackle'),
       ),
-      'raindance': PokemonMove(
+      'raindance': const PokemonMove(
         id: 'raindance',
         name: 'Rain Dance',
         type: 'water',
         category: PokemonMoveCategory.status,
         target: PokemonMoveTarget.self,
-        accuracy: const PokemonMoveAccuracy.alwaysHits(),
-        effects: const <PokemonMoveEffect>[
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        effects: <PokemonMoveEffect>[
           PokemonMoveEffect.setWeather(weatherId: 'rain'),
         ],
-        sourceRefs: const PokemonMoveSourceRefs(showdownMoveId: 'raindance'),
+        sourceRefs: PokemonMoveSourceRefs(showdownMoveId: 'raindance'),
       ),
-      'stealthrock': PokemonMove(
+      'stealthrock': const PokemonMove(
         id: 'stealthrock',
         name: 'Stealth Rock',
         type: 'rock',
         category: PokemonMoveCategory.status,
         target: PokemonMoveTarget.foeSide,
-        accuracy: const PokemonMoveAccuracy.alwaysHits(),
-        effects: const <PokemonMoveEffect>[
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        effects: <PokemonMoveEffect>[
           PokemonMoveEffect.setSideCondition(conditionId: 'stealthrock'),
         ],
-        sourceRefs: const PokemonMoveSourceRefs(showdownMoveId: 'stealthrock'),
+        sourceRefs: PokemonMoveSourceRefs(showdownMoveId: 'stealthrock'),
       ),
     }),
   );

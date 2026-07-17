@@ -18,7 +18,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/pokemon_catalogs_project_explorer',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'catalogs_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -62,10 +63,12 @@ void main() {
     await tester.tap(find.text('Catalogues Pokémon'));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('pokemon-catalog-entry-pokedex')),
-        findsOneWidget);
-    expect(find.byKey(const Key('pokemon-catalog-entry-moves')), findsOneWidget);
-    expect(find.byKey(const Key('pokemon-catalog-entry-items')), findsOneWidget);
+    expect(
+        find.byKey(const Key('pokemon-catalog-entry-pokedex')), findsOneWidget);
+    expect(
+        find.byKey(const Key('pokemon-catalog-entry-moves')), findsOneWidget);
+    expect(
+        find.byKey(const Key('pokemon-catalog-entry-items')), findsOneWidget);
     expect(find.text('Pokédex'), findsWidgets);
     expect(find.text('Moves'), findsWidgets);
     expect(find.text('Items'), findsWidgets);
@@ -82,7 +85,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/pokemon_catalogs_project_explorer_taps',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'catalogs_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

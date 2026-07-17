@@ -56,13 +56,13 @@ class ScriptCommandExecutor {
   ScriptCommandResult _executeGoto(Map<String, String> params) {
     final nodeId = params['nodeId'];
     if (nodeId == null || nodeId.isEmpty) {
-      return ScriptCommandResult.error('Missing nodeId parameter');
+      return const ScriptCommandResult.error('Missing nodeId parameter');
     }
     return ScriptCommandResult.jumpToNode(nodeId);
   }
 
   ScriptCommandResult _executeEnd() {
-    return ScriptCommandResult.terminated();
+    return const ScriptCommandResult.terminated();
   }
 
   ScriptCommandResult _executeSetFlag(
@@ -71,12 +71,12 @@ class ScriptCommandExecutor {
   ) {
     final flagName = params['flagName'];
     if (flagName == null || flagName.isEmpty) {
-      return ScriptCommandResult.error('Missing flagName parameter');
+      return const ScriptCommandResult.error('Missing flagName parameter');
     }
 
     final newState = _mutations.setFlag(state, flagName);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeClearFlag(
@@ -85,12 +85,12 @@ class ScriptCommandExecutor {
   ) {
     final flagName = params['flagName'];
     if (flagName == null || flagName.isEmpty) {
-      return ScriptCommandResult.error('Missing flagName parameter');
+      return const ScriptCommandResult.error('Missing flagName parameter');
     }
 
     final newState = _mutations.clearFlag(state, flagName);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeSetVariable(
@@ -102,10 +102,10 @@ class ScriptCommandExecutor {
     final type = params['type'] ?? 'string';
 
     if (variableName == null || variableName.isEmpty) {
-      return ScriptCommandResult.error('Missing variableName parameter');
+      return const ScriptCommandResult.error('Missing variableName parameter');
     }
     if (value == null) {
-      return ScriptCommandResult.error('Missing value parameter');
+      return const ScriptCommandResult.error('Missing value parameter');
     }
 
     ScriptVariableValue typedValue;
@@ -122,7 +122,7 @@ class ScriptCommandExecutor {
 
     final newState = _mutations.setVariable(state, variableName, typedValue);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeIncrementVariable(
@@ -133,13 +133,13 @@ class ScriptCommandExecutor {
     final deltaStr = params['delta'] ?? '1';
 
     if (variableName == null || variableName.isEmpty) {
-      return ScriptCommandResult.error('Missing variableName parameter');
+      return const ScriptCommandResult.error('Missing variableName parameter');
     }
 
     final delta = int.tryParse(deltaStr) ?? 1;
     final newState = _mutations.incrementVariable(state, variableName, delta);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeOpenDialogue(
@@ -150,7 +150,7 @@ class ScriptCommandExecutor {
     final startNode = params['startNode'];
 
     if (filePath == null || filePath.isEmpty) {
-      return ScriptCommandResult.error('Missing filePath parameter');
+      return const ScriptCommandResult.error('Missing filePath parameter');
     }
 
     final dialogueRef = YarnDialogueRef(
@@ -170,7 +170,7 @@ class ScriptCommandExecutor {
 
   ScriptCommandResult _executeWaitForDialogue() {
     // Cette commande est un no-op car la suspension est gérée par openDialogue
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeWarpPlayer(
@@ -183,7 +183,7 @@ class ScriptCommandExecutor {
     final facing = params['facing'];
 
     if (mapId == null || mapId.isEmpty) {
-      return ScriptCommandResult.error('Missing mapId parameter');
+      return const ScriptCommandResult.error('Missing mapId parameter');
     }
 
     final x = int.tryParse(xStr) ?? 0;
@@ -207,7 +207,7 @@ class ScriptCommandExecutor {
         _mutations.warpPlayer(state, mapId, x, y, facing: entityFacing);
     _commitGameState(newState);
 
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeGiveItem(
@@ -218,13 +218,13 @@ class ScriptCommandExecutor {
     final quantityStr = params['quantity'] ?? '1';
 
     if (itemId == null || itemId.isEmpty) {
-      return ScriptCommandResult.error('Missing itemId parameter');
+      return const ScriptCommandResult.error('Missing itemId parameter');
     }
 
     final quantity = int.tryParse(quantityStr) ?? 1;
     final newState = _mutations.giveItem(state, itemId, quantity);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeUnlockFieldAbility(
@@ -234,7 +234,7 @@ class ScriptCommandExecutor {
     final abilityName = params['ability'];
 
     if (abilityName == null || abilityName.isEmpty) {
-      return ScriptCommandResult.error('Missing ability parameter');
+      return const ScriptCommandResult.error('Missing ability parameter');
     }
 
     final ability = FieldAbility.values.firstWhere(
@@ -245,7 +245,7 @@ class ScriptCommandExecutor {
 
     final newState = _mutations.unlockFieldAbility(state, ability);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptCommandResult _executeMarkEventConsumed(
@@ -255,11 +255,11 @@ class ScriptCommandExecutor {
     final eventId = params['eventId'];
 
     if (eventId == null || eventId.isEmpty) {
-      return ScriptCommandResult.error('Missing eventId parameter');
+      return const ScriptCommandResult.error('Missing eventId parameter');
     }
 
     final newState = _mutations.markEventConsumed(state, eventId);
     _commitGameState(newState);
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 }

@@ -21,6 +21,7 @@ void main() {
           id: 'path_main',
           name: 'Path',
           presetId: 'water-base',
+          animationMode: PathAnimationMode.alwaysActive,
           cells: <bool>[
             true,
             true,
@@ -90,7 +91,10 @@ void main() {
     await _expectRgb(frame0, 8, 24,
         redExpected: 0, greenExpected: 0, blueExpected: 255, label: 'frame0 C');
     await _expectRgb(frame0, 24, 24,
-        redExpected: 255, greenExpected: 255, blueExpected: 0, label: 'frame0 D');
+        redExpected: 255,
+        greenExpected: 255,
+        blueExpected: 0,
+        label: 'frame0 D');
     await _expectRgb(frame0, 40, 8,
         redExpected: 255,
         greenExpected: 0,
@@ -103,11 +107,20 @@ void main() {
         label: 'frame0 D repeat');
 
     await _expectRgb(frame1, 8, 8,
-        redExpected: 255, greenExpected: 0, blueExpected: 255, label: 'frame1 A');
+        redExpected: 255,
+        greenExpected: 0,
+        blueExpected: 255,
+        label: 'frame1 A');
     await _expectRgb(frame1, 24, 8,
-        redExpected: 0, greenExpected: 255, blueExpected: 255, label: 'frame1 B');
+        redExpected: 0,
+        greenExpected: 255,
+        blueExpected: 255,
+        label: 'frame1 B');
     await _expectRgb(frame1, 8, 24,
-        redExpected: 255, greenExpected: 165, blueExpected: 0, label: 'frame1 C');
+        redExpected: 255,
+        greenExpected: 165,
+        blueExpected: 0,
+        label: 'frame1 C');
     await _expectRgb(frame1, 24, 24,
         redExpected: 255,
         greenExpected: 255,

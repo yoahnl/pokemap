@@ -52,7 +52,7 @@ void main() {
 
       expect(
         (await _readProject(tester, fixture)).eventRegistry!.records,
-        hasLength(5),
+        hasLength(6),
       );
 
       await tester.tap(
@@ -170,7 +170,7 @@ void main() {
       );
       await tester.tap(find.text('Aucune Scene').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Duel du rival').last);
+      await tester.tap(find.text('Rencontre rival').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Enregistrer la Scene'));
       await _waitFor(

@@ -35,7 +35,8 @@ import 'package:map_editor/src/ui/canvas/pokedex_workspace_loader.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
 void main() {
-  const sampleProject = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  const sampleProject = ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'pokedex_ui_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -480,6 +481,12 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
+
+    // Les catalogues sont rangés dans un module replié par défaut : le test
+    // exerce donc le chemin réellement suivi par l'auteur avant de vérifier
+    // l'entrée Pokédex.
+    await tester.tap(find.text('Catalogues Pokémon'));
+    await tester.pumpAndSettle();
 
     expect(
       find.byKey(const Key('pokemon-catalog-entry-pokedex')),

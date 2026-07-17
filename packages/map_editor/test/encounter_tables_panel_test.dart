@@ -64,7 +64,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -170,7 +171,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -215,15 +217,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Species "missingno" is not present in the local Pokédex.'),
+      find.text(
+          'L\'espèce "missingno" n\'est pas présente dans le Pokédex local.'),
       findsOneWidget,
     );
     expect(
-      find.text('Max level must be greater than or equal to min level.'),
+      find.text('Le niveau max doit être supérieur ou égal au niveau min.'),
       findsOneWidget,
     );
     expect(
-      find.text('Weight must be a positive integer.'),
+      find.text('Le poids doit être un entier positif.'),
       findsOneWidget,
     );
     expect(
@@ -264,7 +267,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -333,7 +337,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -385,13 +390,13 @@ void main() {
 
     expect(
       find.text(
-        'Unable to verify against local species data. Raw species IDs are still allowed.',
+        'Impossible de vérifier par rapport aux données locales d’espèces. Les IDs bruts restent autorisés.',
       ),
       findsOneWidget,
     );
     expect(
       find.text(
-        'Local species suggestions are unavailable right now.',
+        'Les suggestions locales d\'espèces sont indisponibles pour le moment.',
       ),
       findsOneWidget,
     );
@@ -411,7 +416,7 @@ void main() {
     expect(savedEntry.speciesId, 'missingno');
     expect(
       find.text(
-        'Local species verification unavailable. The raw species ID is preserved.',
+        'Vérification d’espèce locale indisponible. L’ID brut d’espèce est conservé.',
       ),
       findsOneWidget,
     );
@@ -439,7 +444,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'encounter_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

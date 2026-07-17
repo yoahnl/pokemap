@@ -17,12 +17,24 @@ enum PokeMapButtonVariant {
 
   /// Validation or success confirmation button.
   success,
+
+  /// Quiet green action with a success border, suited to toolbar actions.
+  ///
+  /// It keeps the success semantic without turning a dense desktop toolbar
+  /// into a row of competing solid-green controls.
+  successOutline,
 }
 
 /// Preconfigured height and padding configurations for buttons.
 enum PokeMapButtonSize {
   /// Compact height (32px) for crowded UI sections.
   small,
+
+  /// A 36px toolbar action with a comfortable horizontal target.
+  ///
+  /// This fills the gap between compact 32px controls and 40px form actions
+  /// without changing the density of existing small buttons.
+  compact,
 
   /// Standard height (40px) for general forms and settings.
   medium,
@@ -106,6 +118,12 @@ class _PokeMapButtonState extends State<PokeMapButton> {
         fontSize = 12;
         iconSize = 14;
         break;
+      case PokeMapButtonSize.compact:
+        height = 36;
+        horizontalPadding = 18;
+        fontSize = 12;
+        iconSize = 14;
+        break;
       case PokeMapButtonSize.medium:
         height = 40;
         horizontalPadding = 16;
@@ -161,6 +179,13 @@ class _PokeMapButtonState extends State<PokeMapButton> {
             ? Color.lerp(colors.success, colors.successBorder, 0.18)!
             : colors.success;
         fg = colors.textInverse;
+        break;
+      case PokeMapButtonVariant.successOutline:
+        bg = _isHovered
+            ? Color.lerp(colors.successSoft, colors.success, 0.16)!
+            : colors.successSoft;
+        fg = colors.success;
+        border = Border.all(color: colors.successBorder, width: 1);
         break;
     }
 

@@ -670,7 +670,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.22,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      ScreenFlashStep(
+      const ScreenFlashStep(
         colorArgb: 0x44A8F0FF,
         durationSeconds: 0.18,
       ),
@@ -1229,7 +1229,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -1274,7 +1274,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -1286,7 +1286,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -1298,7 +1298,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -1310,7 +1310,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -1321,7 +1321,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -1422,7 +1422,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.28,
         distancePx: 54,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'foot',
@@ -1527,7 +1527,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -1585,7 +1585,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.1,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'lightning',
@@ -1602,7 +1602,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.1,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'lightning',
@@ -1699,7 +1699,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.6,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'electroball',
@@ -1712,7 +1712,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.6,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'electroball',
@@ -1725,7 +1725,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.6,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'electroball',
@@ -1769,7 +1769,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -1782,7 +1782,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -1795,7 +1795,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -1808,7 +1808,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -1841,7 +1841,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _projectileToTarget(
         ctx,
         effectId: 'shadowball',
@@ -1899,7 +1899,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.1,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.10),
+      const WaitStep(durationSeconds: 0.10),
       _targetFx(
         ctx,
         effectId: 'shadowball',
@@ -1909,7 +1909,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.3,
         endOpacity: 0,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _targetFx(
         ctx,
         effectId: 'shadowball',
@@ -1980,7 +1980,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -2013,7 +2013,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.10),
+      const WaitStep(durationSeconds: 0.10),
       _projectileToTarget(
         ctx,
         effectId: 'iceball',
@@ -2036,7 +2036,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.8,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'wisp',
@@ -2124,7 +2124,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'fireball',
@@ -2298,7 +2298,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.1,
         endOpacity: 0.5,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _attackerChargeFx(
         ctx,
         effectId: 'shadowball',
@@ -2457,7 +2457,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'heart',
@@ -2472,7 +2472,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'heart',
@@ -2510,7 +2510,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.7,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -2527,7 +2527,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -2565,7 +2565,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -2576,7 +2576,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -2893,7 +2893,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.1,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _attackerChargeFx(
         ctx,
         effectId: 'electroball',
@@ -2904,7 +2904,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.1,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.12),
+      const WaitStep(durationSeconds: 0.12),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -2931,7 +2931,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.2,
         endOpacity: 1,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -3150,7 +3150,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'feather',
@@ -3234,7 +3234,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _attackerChargeFx(
         ctx,
         effectId: accentFx,
@@ -3271,7 +3271,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       SpawnFxStep(
         effectId: 'waterwisp',
         attackerSide: ctx.attackerSide,
@@ -3288,7 +3288,7 @@ final class BattleMoveVisualRecipeLibrary {
         fromOffsetY: 20,
         toOffsetY: -10,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'waterwisp',
@@ -3361,7 +3361,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.34,
         distancePx: 48,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -3372,7 +3372,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -3384,7 +3384,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -3396,7 +3396,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -3431,7 +3431,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.28,
         distancePx: 38,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -3483,7 +3483,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -3535,7 +3535,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.4,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -3574,7 +3574,7 @@ final class BattleMoveVisualRecipeLibrary {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
       ..._sdkMachPunch(ctx),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       SpawnFxStep(
         effectId: 'electroball',
         attackerSide: ctx.attackerSide,
@@ -3642,7 +3642,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -3654,7 +3654,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -3708,7 +3708,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -3773,7 +3773,7 @@ final class BattleMoveVisualRecipeLibrary {
   ) {
     return <BattleAnimationStep>[
       ..._sdkMegaPunch(ctx),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'electroball',
@@ -3793,7 +3793,7 @@ final class BattleMoveVisualRecipeLibrary {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
       ..._sdkMegaPunch(ctx),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -3921,7 +3921,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -3950,7 +3950,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'icicle',
@@ -3979,7 +3979,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'lightning',
@@ -4009,7 +4009,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -4072,7 +4072,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -4170,7 +4170,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'energyball',
@@ -4381,7 +4381,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'leftslash',
@@ -4870,7 +4870,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.9,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'foot',
@@ -4926,7 +4926,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'feather',
@@ -4978,7 +4978,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.9,
         endOpacity: 0.9,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _projectileToTarget(
         ctx,
         effectId: 'bone',
@@ -5043,7 +5043,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -5054,7 +5054,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'lightning',
@@ -5103,7 +5103,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -5143,7 +5143,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.26,
         distancePx: 40,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'rock3',
@@ -5168,7 +5168,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'rock3',
@@ -5212,7 +5212,7 @@ final class BattleMoveVisualRecipeLibrary {
         durationSeconds: 0.28,
         distancePx: 40,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fist',
@@ -5255,7 +5255,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'impact',
@@ -5351,7 +5351,7 @@ final class BattleMoveVisualRecipeLibrary {
         fromOffsetY: -8,
         toOffsetY: -12,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'fireball',
@@ -5363,7 +5363,7 @@ final class BattleMoveVisualRecipeLibrary {
         fromOffsetY: 8,
         toOffsetY: 10,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'flareball',
@@ -5405,7 +5405,7 @@ final class BattleMoveVisualRecipeLibrary {
         fromOffsetY: -10,
         toOffsetY: -8,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'iceball',
@@ -5595,7 +5595,7 @@ final class BattleMoveVisualRecipeLibrary {
         amplitudePx: 10,
         durationSeconds: 0.12,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'mudwisp',
@@ -5641,7 +5641,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'energyball',
@@ -5691,7 +5691,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.8,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'rock3',
@@ -5754,7 +5754,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'rightslash',
@@ -6075,7 +6075,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'rightclaw',
@@ -6436,7 +6436,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _attackerChargeFx(
         ctx,
         effectId: 'iceball',
@@ -6447,7 +6447,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _attackerChargeFx(
         ctx,
         effectId: 'iceball',
@@ -6481,7 +6481,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.2,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'waterwisp',
@@ -6494,7 +6494,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.2,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'waterwisp',
@@ -6507,7 +6507,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.2,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'wisp',
@@ -6611,7 +6611,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.1,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'shadowball',
@@ -6622,7 +6622,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.1,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'shadowball',
@@ -6650,7 +6650,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.0,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'poisonwisp',
@@ -6663,7 +6663,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.0,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'poisonwisp',
@@ -6767,7 +6767,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.0,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'web',
@@ -6780,7 +6780,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.0,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _projectileToTarget(
         ctx,
         effectId: 'web',
@@ -6810,7 +6810,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'energyball',
@@ -6877,7 +6877,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.easeOut,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'poisonwisp',
@@ -6894,7 +6894,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.easeOut,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'poisonwisp',
@@ -7066,7 +7066,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'mudwisp',
@@ -7079,7 +7079,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'mudwisp',
@@ -7119,7 +7119,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'heart',
@@ -7229,7 +7229,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.3,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'waterwisp',
@@ -7242,7 +7242,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.3,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'waterwisp',
@@ -7281,7 +7281,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.2,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'energyball',
@@ -7327,7 +7327,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _targetFx(
         ctx,
         effectId: 'leaf1',
@@ -7392,7 +7392,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _targetFx(
         ctx,
         effectId: 'rightslash',
@@ -7444,7 +7444,7 @@ final class BattleMoveVisualRecipeLibrary {
           endOpacity: 0.0,
           curve: BattleFxMotionCurve.linear,
         ),
-        WaitStep(durationSeconds: 0.05),
+        const WaitStep(durationSeconds: 0.05),
         _targetFx(
           ctx,
           effectId: 'fireball',
@@ -7477,7 +7477,7 @@ final class BattleMoveVisualRecipeLibrary {
           endOpacity: 0.0,
           curve: BattleFxMotionCurve.linear,
         ),
-        WaitStep(durationSeconds: 0.05),
+        const WaitStep(durationSeconds: 0.05),
         _targetFx(
           ctx,
           effectId: 'icicle',
@@ -7510,7 +7510,7 @@ final class BattleMoveVisualRecipeLibrary {
           endOpacity: 0.0,
           curve: BattleFxMotionCurve.linear,
         ),
-        WaitStep(durationSeconds: 0.05),
+        const WaitStep(durationSeconds: 0.05),
         _targetFx(
           ctx,
           effectId: 'lightning',
@@ -7597,7 +7597,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -7628,7 +7628,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -7677,7 +7677,7 @@ final class BattleMoveVisualRecipeLibrary {
         toOffsetX: 50,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       SpawnFxStep(
         effectId: 'flareball',
         attackerSide: ctx.attackerSide,
@@ -7696,7 +7696,7 @@ final class BattleMoveVisualRecipeLibrary {
         toOffsetY: -5,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       SpawnFxStep(
         effectId: 'flareball',
         attackerSide: ctx.attackerSide,
@@ -7732,7 +7732,7 @@ final class BattleMoveVisualRecipeLibrary {
         toOffsetX: 30,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       SpawnFxStep(
         effectId: 'rock3',
         attackerSide: ctx.attackerSide,
@@ -7751,7 +7751,7 @@ final class BattleMoveVisualRecipeLibrary {
         toOffsetY: -5,
         afterEffect: BattleFxAfterEffect.explode,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       SpawnFxStep(
         effectId: 'rock3',
         attackerSide: ctx.attackerSide,
@@ -7825,7 +7825,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -7843,7 +7843,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'wisp',
@@ -7891,7 +7891,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'flareball',
@@ -7908,7 +7908,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'flareball',
@@ -7950,7 +7950,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -7964,7 +7964,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _attackerChargeFx(
         ctx,
         effectId: 'poisonwisp',
@@ -7999,7 +7999,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.4,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'feather',
@@ -8013,7 +8013,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.4,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'feather',
@@ -8027,7 +8027,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.4,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'feather',
@@ -8092,7 +8092,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 1.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'electroball',
@@ -8103,7 +8103,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.6,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'electroball',
@@ -8113,7 +8113,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.8,
         endOpacity: 0.8,
       ),
-      WaitStep(durationSeconds: 0.08),
+      const WaitStep(durationSeconds: 0.08),
       _projectileToTarget(
         ctx,
         effectId: 'electroball',
@@ -8135,7 +8135,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -8229,7 +8229,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'electroball',
@@ -8269,7 +8269,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.6,
         endOpacity: 0.1,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _lanePulse(
         ctx,
         effectId: 'electroball',
@@ -8328,7 +8328,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'fireball',
@@ -8341,7 +8341,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
         effectId: 'fireball',
@@ -8404,7 +8404,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'fireball',
@@ -8461,7 +8461,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -8477,7 +8477,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -8537,7 +8537,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -8566,7 +8566,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.linear,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -9089,7 +9089,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _attackerChargeFx(
         ctx,
         effectId: 'leaf1',
@@ -9204,7 +9204,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.8,
         endOpacity: 0.3,
       ),
-      WaitStep(durationSeconds: 0.06),
+      const WaitStep(durationSeconds: 0.06),
       _projectileToTarget(
         ctx,
         effectId: 'energyball',
@@ -9321,7 +9321,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'lightning',
@@ -9400,7 +9400,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.3,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _attackerChargeFx(
         ctx,
         effectId: 'mistball',
@@ -9411,7 +9411,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.5,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'mistball',
@@ -9432,7 +9432,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.4,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'poisonwisp',
@@ -9519,7 +9519,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'poisonwisp',
@@ -9532,7 +9532,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'waterwisp',
@@ -9572,7 +9572,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'poisonwisp',
@@ -9585,7 +9585,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.0,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'poisonwisp',
@@ -9611,7 +9611,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.easeOut,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'bluefireball',
@@ -9625,7 +9625,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.easeOut,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _targetFx(
         ctx,
         effectId: 'bluefireball',
@@ -9663,7 +9663,7 @@ final class BattleMoveVisualRecipeLibrary {
         endOpacity: 0.7,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'bluefireball',
@@ -9678,7 +9678,7 @@ final class BattleMoveVisualRecipeLibrary {
         curve: BattleFxMotionCurve.arcOver,
         afterEffect: BattleFxAfterEffect.fade,
       ),
-      WaitStep(durationSeconds: 0.04),
+      const WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
         effectId: 'bluefireball',
@@ -9711,7 +9711,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'iceball',
@@ -9724,7 +9724,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'iceball',
@@ -9737,7 +9737,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.7,
         endOpacity: 0.6,
       ),
-      WaitStep(durationSeconds: 0.03),
+      const WaitStep(durationSeconds: 0.03),
       _projectileToTarget(
         ctx,
         effectId: 'iceball',
@@ -10951,7 +10951,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'rock2',
@@ -10964,7 +10964,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'rock1',
@@ -10977,7 +10977,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'rock2',
@@ -11009,7 +11009,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'caltrop',
@@ -11022,7 +11022,7 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 0.5,
         endOpacity: 1.0,
       ),
-      WaitStep(durationSeconds: 0.05),
+      const WaitStep(durationSeconds: 0.05),
       _projectileToTarget(
         ctx,
         effectId: 'caltrop',

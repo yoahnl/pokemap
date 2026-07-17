@@ -10,13 +10,6 @@ void main() {
     testWidgets('état vide : titre, banner actuel, pas de liste ni détail',
         (tester) async {
       final manifest = _manifest();
-      final report = diagnoseProjectEnvironmentAuthoring(
-        manifest,
-        maps: const [],
-      );
-      final expectedDiag =
-          '${report.summary.errorCount} erreur(s) · ${report.summary.warningCount} avertissement(s)';
-
       await _pumpPanel(tester, manifest);
 
       expect(

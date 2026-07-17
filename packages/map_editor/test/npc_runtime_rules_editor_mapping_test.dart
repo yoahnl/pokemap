@@ -21,10 +21,10 @@ void main() {
     });
 
     test('visibleWhen step: round-trip', () {
-      final npc = MapEntityNpcData(
+      const npc = MapEntityNpcData(
         visibilityRule: MapEntityNpcVisibilityRule(
           mode: MapEntityNpcVisibilityMode.visibleWhen,
-          predicate: const MapEntityRuntimePredicate(
+          predicate: MapEntityRuntimePredicate(
             kind: MapEntityRuntimePredicateKind.stepCompleted,
             refId: 'step_intro_done',
           ),
@@ -41,15 +41,16 @@ void main() {
         refMenuId: parsed.refId,
       );
       expect(saved?.mode, MapEntityNpcVisibilityMode.visibleWhen);
-      expect(saved?.predicate?.kind, MapEntityRuntimePredicateKind.stepCompleted);
+      expect(
+          saved?.predicate?.kind, MapEntityRuntimePredicateKind.stepCompleted);
       expect(saved?.predicate?.refId, 'step_intro_done');
     });
 
     test('hiddenWhen flag: round-trip', () {
-      final npc = MapEntityNpcData(
+      const npc = MapEntityNpcData(
         visibilityRule: MapEntityNpcVisibilityRule(
           mode: MapEntityNpcVisibilityMode.hiddenWhen,
-          predicate: const MapEntityRuntimePredicate(
+          predicate: MapEntityRuntimePredicate(
             kind: MapEntityRuntimePredicateKind.storyFlagUnset,
             refId: 'boss_defeated',
           ),
@@ -63,7 +64,8 @@ void main() {
         refMenuId: parsed.refId,
       );
       expect(saved?.mode, MapEntityNpcVisibilityMode.hiddenWhen);
-      expect(saved?.predicate?.kind, MapEntityRuntimePredicateKind.storyFlagUnset);
+      expect(
+          saved?.predicate?.kind, MapEntityRuntimePredicateKind.storyFlagUnset);
     });
   });
 
@@ -121,7 +123,8 @@ void main() {
       );
     });
 
-    test('validateConditionalDialogueDrafts: dialogue sans cible -> erreur', () {
+    test('validateConditionalDialogueDrafts: dialogue sans cible -> erreur',
+        () {
       expect(
         validateConditionalDialogueDrafts(
           rows: [
@@ -136,7 +139,8 @@ void main() {
       );
     });
 
-    test('validateConditionalDialogueDrafts: ligne vide (pas de dlg) -> ok', () {
+    test('validateConditionalDialogueDrafts: ligne vide (pas de dlg) -> ok',
+        () {
       expect(
         validateConditionalDialogueDrafts(
           rows: [

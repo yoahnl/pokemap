@@ -10,7 +10,7 @@ void main() {
 
     setUp(() {
       executedCommands = [];
-      lastGameState = GameState(saveId: 'test-save');
+      lastGameState = const GameState(saveId: 'test-save');
     });
 
     ScriptExecutionContext createTestContext() {
@@ -33,7 +33,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = ScriptCommand(
+        const command = ScriptCommand(
           type: ScriptCommandType.setFlag,
           params: {'flagName': 'professor_met'},
         );
@@ -48,7 +48,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = ScriptCommand(
+        const command = ScriptCommand(
           type: ScriptCommandType.goto,
           params: {'nodeId': 'node_2'},
         );
@@ -64,7 +64,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = const ScriptCommand(type: ScriptCommandType.end);
+        const command = ScriptCommand(type: ScriptCommandType.end);
         final result = executor.execute(command, context.gameState);
 
         expect(result, isA<ScriptCommandResultTerminated>());
@@ -74,7 +74,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = ScriptCommand(
+        const command = ScriptCommand(
           type: ScriptCommandType.openDialogue,
           params: {
             'filePath': 'scripts/professor.yarn',
@@ -97,7 +97,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = ScriptCommand(
+        const command = ScriptCommand(
           type: ScriptCommandType.warpPlayer,
           params: {
             'mapId': 'pallet_town',
@@ -151,7 +151,7 @@ void main() {
         final context = createTestContext();
         final executor = ScriptCommandExecutor(context: context);
 
-        final command = ScriptCommand(
+        const command = ScriptCommand(
           type: ScriptCommandType.unlockFieldAbility,
           params: {'ability': 'surf'},
         );
@@ -166,7 +166,7 @@ void main() {
 
     group('ScriptRuntimeController - MVP Scenario', () {
       test('Full script execution: setFlag -> end', () {
-        final script = ScriptAsset(
+        const script = ScriptAsset(
           id: 'professor_intro',
           defaultStartNode: 'start',
           nodes: [
@@ -177,7 +177,7 @@ void main() {
                   type: ScriptCommandType.setFlag,
                   params: {'flagName': 'professor_met'},
                 ),
-                const ScriptCommand(type: ScriptCommandType.end),
+                ScriptCommand(type: ScriptCommandType.end),
               ],
             ),
           ],
@@ -203,7 +203,7 @@ void main() {
       });
 
       test('Script with dialogue suspension', () {
-        final script = ScriptAsset(
+        const script = ScriptAsset(
           id: 'dialogue_test',
           defaultStartNode: 'start',
           nodes: [
@@ -232,7 +232,7 @@ void main() {
       });
 
       test('Script command chain uses latest GameState between steps', () {
-        final script = ScriptAsset(
+        const script = ScriptAsset(
           id: 'state_chain_test',
           defaultStartNode: 'start',
           nodes: [
@@ -254,7 +254,7 @@ void main() {
                     'delta': '1',
                   },
                 ),
-                const ScriptCommand(type: ScriptCommandType.end),
+                ScriptCommand(type: ScriptCommandType.end),
               ],
             ),
           ],
@@ -277,10 +277,10 @@ void main() {
       });
 
       test('Complete MVP scenario: Page1 -> Script -> Flag -> Page2', () {
-        final event = MapEventDefinition(
+        const event = MapEventDefinition(
           id: 'professor_event',
           title: 'Professor Oak',
-          position: const EventPosition(layerId: 'objects', x: 5, y: 5),
+          position: EventPosition(layerId: 'objects', x: 5, y: 5),
           pages: [
             MapEventPage(
               pageNumber: 0,
@@ -288,8 +288,8 @@ void main() {
                 type: ScriptConditionType.flagIsUnset,
                 params: {ScriptConditionParams.flagName: 'professor_met'},
               ),
-              script: const ScriptRef(
-                  scriptId: 'professor_intro', startNode: 'start'),
+              script:
+                  ScriptRef(scriptId: 'professor_intro', startNode: 'start'),
               message: 'Hello! I am Professor Oak!',
             ),
             MapEventPage(
@@ -303,7 +303,7 @@ void main() {
           ],
         );
 
-        final script = ScriptAsset(
+        const script = ScriptAsset(
           id: 'professor_intro',
           defaultStartNode: 'start',
           nodes: [
@@ -314,14 +314,14 @@ void main() {
                   type: ScriptCommandType.setFlag,
                   params: {'flagName': 'professor_met'},
                 ),
-                const ScriptCommand(type: ScriptCommandType.end),
+                ScriptCommand(type: ScriptCommandType.end),
               ],
             ),
           ],
         );
 
-        final pageResolver = const EventPageResolver();
-        var gameState = GameState(saveId: 'test-save');
+        const pageResolver = EventPageResolver();
+        var gameState = const GameState(saveId: 'test-save');
 
         final pageBefore = pageResolver.resolve(event, gameState);
         expect(pageBefore, isNotNull);

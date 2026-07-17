@@ -22,8 +22,8 @@ void main() {
       repo = _FakeProjectRepository();
       workspace = _FakeWorkspace(tempDir.path);
       useCase = ImportProjectTilesetUseCase(repo);
-      project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+      project = const ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'Test Project',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -94,11 +94,11 @@ void main() {
       repo = _FakeProjectRepository();
       workspace = _FakeWorkspace(tempDir.path);
       useCase = UpdateProjectTilesetUseCase(repo);
-      project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+      project = const ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'Test Project',
         maps: <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'tech_nature_animations',
             name: 'TECH-Nature-animations',

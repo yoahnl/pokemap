@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../lib/src/application/step_studio_completion_runtime.dart';
+import 'package:map_runtime/src/application/step_studio_completion_runtime.dart';
 
 void main() {
   group('buildStepCompletionCutsceneIndex', () {
@@ -12,23 +12,23 @@ void main() {
   {"id":"s2","completion":{"mode":"manual"}}
 ]}''';
       final scenarios = [
-        ScenarioAsset(
+        const ScenarioAsset(
           id: 'global_1',
           name: 'global',
           entryNodeId: 'start',
           scope: ScenarioScope.globalStory,
-          nodes: const [],
-          edges: const [],
+          nodes: [],
+          edges: [],
           metadata: {kStepStudioDocumentMetadataKey: doc},
         ),
-        ScenarioAsset(
+        const ScenarioAsset(
           id: 'cut_a',
           name: 'cut',
           entryNodeId: 'start',
           scope: ScenarioScope.localEventFlow,
-          nodes: const [],
-          edges: const [],
-          metadata: const {},
+          nodes: [],
+          edges: [],
+          metadata: {},
         ),
       ];
       final index = buildStepCompletionCutsceneIndex(scenarios);
@@ -44,7 +44,8 @@ void main() {
       expect(identical(twice, once), isTrue);
     });
 
-    test('appendCompletedCutsceneIdIfAbsent dédoublonne les scénarios locaux', () {
+    test('appendCompletedCutsceneIdIfAbsent dédoublonne les scénarios locaux',
+        () {
       const existing = ['cut_x'];
       final once = appendCompletedCutsceneIdIfAbsent(existing, 'cut_y');
       expect(once, ['cut_x', 'cut_y']);
@@ -59,13 +60,13 @@ void main() {
   {"id":"step_2","completion":{"mode":"whenCutsceneEnds","cutsceneId":"premier_dialogue_avec_le_professeur_emma"}}
 ]}''';
       final scenarios = [
-        ScenarioAsset(
+        const ScenarioAsset(
           id: 'global_story',
           name: 'global',
           entryNodeId: 'start',
           scope: ScenarioScope.globalStory,
-          nodes: const [],
-          edges: const [],
+          nodes: [],
+          edges: [],
           metadata: {kStepStudioDocumentMetadataKey: doc},
         ),
       ];

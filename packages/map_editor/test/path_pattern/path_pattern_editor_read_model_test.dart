@@ -553,7 +553,7 @@ void main() {
           settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
         ),
         tilesetImageInfoById: {
-          't': PathPatternTilesetImageInfo(
+          't': const PathPatternTilesetImageInfo(
             tilesetId: 't',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 32,
@@ -570,8 +570,7 @@ void main() {
       expect(readModel.summary.blockingCount, greaterThanOrEqualTo(1));
     });
 
-    test(
-        'Lot 41: ready preset stays ready when image map validates in bounds',
+    test('Lot 41: ready preset stays ready when image map validates in bounds',
         () {
       final readModel = createPathPatternEditorReadModel(
         manifest: _manifest(
@@ -583,7 +582,7 @@ void main() {
           settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
         ),
         tilesetImageInfoById: {
-          't': PathPatternTilesetImageInfo(
+          't': const PathPatternTilesetImageInfo(
             tilesetId: 't',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 256,
@@ -591,7 +590,8 @@ void main() {
           ),
         },
       );
-      expect(readModel.presets.single.status, PathPatternPresetReadinessStatus.ready);
+      expect(readModel.presets.single.status,
+          PathPatternPresetReadinessStatus.ready);
       expect(
         readModel.presets.single.diagnostics.map((d) => d.code),
         isNot(contains(PathPatternDiagnosticCode.assetValidationUnavailable)),

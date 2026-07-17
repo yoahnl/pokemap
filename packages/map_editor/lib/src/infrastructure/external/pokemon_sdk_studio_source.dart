@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
-import 'pokemon_sdk_studio_payload.dart';
+import '../../application/models/pokemon_sdk_studio_project_payload.dart';
+import '../../application/ports/pokemon_sdk_studio_project_source.dart';
 
 final class PokemonSdkStudioSourceException implements Exception {
   const PokemonSdkStudioSourceException(this.message);
@@ -14,9 +15,10 @@ final class PokemonSdkStudioSourceException implements Exception {
   String toString() => message;
 }
 
-final class PokemonSdkStudioSource {
+final class PokemonSdkStudioSource implements PokemonSdkStudioProjectSource {
   const PokemonSdkStudioSource();
 
+  @override
   Future<PokemonSdkStudioProjectPayload> loadProject(
     String projectRootPath,
   ) async {

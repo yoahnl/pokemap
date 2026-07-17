@@ -51,15 +51,15 @@ CutsceneStudioDocument createCutsceneStudioDemoFlowDocument({
         waitForCompletion: true,
       ),
     ),
-    CutsceneFlowChoiceEntry(
+    const CutsceneFlowChoiceEntry(
       question: CutsceneStudioBlock(
         id: 'demo_question',
         kind: CutsceneStudioBlockKind.playerQuestion,
         messageText: 'Es-tu prêt à commencer ton aventure ?',
-        choiceOptions: const ['Oui', 'Non'],
+        choiceOptions: ['Oui', 'Non'],
       ),
-      onYes: const <CutsceneFlowEntry>[],
-      onNo: const <CutsceneFlowEntry>[],
+      onYes: <CutsceneFlowEntry>[],
+      onNo: <CutsceneFlowEntry>[],
     ),
   ];
   return CutsceneStudioDocument(

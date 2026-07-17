@@ -2,8 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
-import '../lib/src/application/step_studio_completion_runtime.dart';
-import '../lib/src/application/step_studio_world_presence_runtime.dart';
+import 'package:map_runtime/src/application/step_studio_completion_runtime.dart';
+import 'package:map_runtime/src/application/step_studio_world_presence_runtime.dart';
 
 MapData _mapWithEmma({required String mapId}) {
   return MapData(
@@ -39,13 +39,13 @@ void main() {
   ]}
 ]}''';
       final scenarios = [
-        ScenarioAsset(
+        const ScenarioAsset(
           id: 'g',
           name: 'g',
           entryNodeId: 'start',
           scope: ScenarioScope.globalStory,
-          nodes: const [],
-          edges: const [],
+          nodes: [],
+          edges: [],
           metadata: {kStepStudioDocumentMetadataKey: doc},
         ),
       ];
@@ -54,7 +54,8 @@ void main() {
       expect(rules.single.sourceStepId, 'step_2_1');
       expect(rules.single.mapId, 'bourivka_center');
       expect(rules.single.entityId, 'emma');
-      expect(rules.single.presenceRule, StepStudioWorldPresenceRuleKind.hiddenAfterStepCompletion);
+      expect(rules.single.presenceRule,
+          StepStudioWorldPresenceRuleKind.hiddenAfterStepCompletion);
     });
   });
 
@@ -114,7 +115,8 @@ void main() {
           mapId: 'm1',
           entityId: 'emma',
           sourceStepId: 's_done',
-          presenceRule: StepStudioWorldPresenceRuleKind.hiddenAfterStepCompletion,
+          presenceRule:
+              StepStudioWorldPresenceRuleKind.hiddenAfterStepCompletion,
         ),
       ];
       NpcMapPresencePredicate pred(Iterable<String> completed) {
@@ -141,7 +143,8 @@ void main() {
         npcMapPresencePredicate: pred(const ['s_done']),
       );
       expect(after.entityAt(3, 3), isNull);
-      expect(after.isCellCenterBlockedLegacyForGridIndexedSystems(3, 3), isFalse);
+      expect(
+          after.isCellCenterBlockedLegacyForGridIndexedSystems(3, 3), isFalse);
     });
 
     test('visibleAfterStepCompletion : absent puis présent après step', () {
@@ -151,7 +154,8 @@ void main() {
           mapId: 'm2',
           entityId: 'emma',
           sourceStepId: 's1',
-          presenceRule: StepStudioWorldPresenceRuleKind.visibleAfterStepCompletion,
+          presenceRule:
+              StepStudioWorldPresenceRuleKind.visibleAfterStepCompletion,
         ),
       ];
       NpcMapPresencePredicate pred(Iterable<String> completed) {
@@ -182,7 +186,9 @@ void main() {
   });
 
   group('presenceAllowedForStepStudioWorldRule', () {
-    test('hiddenAfterStepCompletion == visibleBeforeStepCompletion pour le booléen', () {
+    test(
+        'hiddenAfterStepCompletion == visibleBeforeStepCompletion pour le booléen',
+        () {
       expect(
         presenceAllowedForStepStudioWorldRule(
           sourceStepCompleted: false,

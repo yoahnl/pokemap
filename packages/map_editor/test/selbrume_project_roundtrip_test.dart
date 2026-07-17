@@ -5938,6 +5938,14 @@ void main() {
     };
 
     final projectFile = File(p.join(fixture.path, 'project.json'));
+    final projectBeforeCutover = _readJson(projectFile);
+    final pavementTileset = (projectBeforeCutover['tilesets'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .singleWhere((entry) => entry['id'] == 'pavement_path');
+    pavementTileset['name'] = 'route 1';
+    projectFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(projectBeforeCutover)}\n',
+    );
 
     final result = await generateSelbrumeCanonicalMaps(
       SelbrumeGeneratorOptions(
@@ -5971,7 +5979,18 @@ void main() {
           .whereType<String>(),
       const <String>['map_bourg_selbrume', 'map_bourg_selbrume'],
     );
-    expect(manifest.cinematics.single.mapId, 'map_bourg_selbrume');
+    expect(
+      manifest.cinematics
+          .singleWhere((cinematic) => cinematic.id == 'cinematic_uwu')
+          .mapId,
+      'map_bourg_selbrume',
+    );
+    expect(
+      manifest.cinematics
+          .singleWhere((cinematic) => cinematic.id == 'cinematic_lysa_port')
+          .mapId,
+      'map_port_brisants',
+    );
 
     final canonicalIds = canonicalSelbrumeMapIds.toSet();
     for (final file in _canonicalMapFiles(fixture)) {
@@ -6059,7 +6078,9 @@ void main() {
     _writeSyntheticTask15Prerequisites(fixture);
     final projectFile = File(p.join(fixture.path, 'project.json'));
     final project = _readJson(projectFile);
-    final cinematic = (project['cinematics'] as List<dynamic>).single as Map;
+    final cinematic = (project['cinematics'] as List<dynamic>)
+        .cast<Map<String, dynamic>>()
+        .singleWhere((entry) => entry['id'] == 'cinematic_uwu');
     cinematic['mapId'] = 'house 1';
     projectFile.writeAsStringSync(
       '${const JsonEncoder.withIndent('  ').convert(project)}\n',
@@ -6654,7 +6675,7 @@ final Map<String, _LighthouseExteriorElementContract>
   'el_selbrume_cabane_facade': _LighthouseExteriorElementContract(
     const TilesetSourceRect(x: 8, y: 0, width: 5, height: 5),
     'l_tile_structures',
-    collisionCells: <GridPos>[
+    collisionCells: const <GridPos>[
       GridPos(x: 0, y: 0),
       GridPos(x: 1, y: 0),
       GridPos(x: 2, y: 0),
@@ -6919,11 +6940,11 @@ final Map<String, _LighthouseInteriorElementContract>
     'l_tile_floor',
     'map_sommet_phare',
   ),
-  'el_selbrume_sommet_parapet_h': _LighthouseInteriorElementContract(
-    const TilesetSourceRect(x: 6, y: 12, width: 4, height: 2),
+  'el_selbrume_sommet_parapet_h': const _LighthouseInteriorElementContract(
+    TilesetSourceRect(x: 6, y: 12, width: 4, height: 2),
     'l_tile_walls',
     'map_sommet_phare',
-    collisionCells: const <GridPos>[
+    collisionCells: <GridPos>[
       GridPos(x: 0, y: 1),
       GridPos(x: 1, y: 1),
       GridPos(x: 2, y: 1),
@@ -8075,6 +8096,9 @@ Directory _copySelbrumeFixture() {
         (entry) => !const <String>{
           'ts_selbrume_boat',
           'ts_selbrume_open_sea_loop',
+          'ts_selbrume_port_reference_v3',
+          'ts_selbrume_port_ground_v3',
+          'ts_selbrume_port_water_v3',
           'ts_selbrume_port_props',
           'ts_selbrume_cabin_interior',
           'ts_selbrume_forest_props',
@@ -8085,7 +8109,11 @@ Directory _copySelbrumeFixture() {
           'ts_selbrume_lighthouse_fx',
         }.contains((entry as Map<String, dynamic>)['id']),
       )
-      .toList(growable: false);
+      .toList(growable: true)
+    ..addAll(<Map<String, dynamic>>[
+      _legacyObjectiveTileset(),
+      _legacyRouteObjectiveTileset(),
+    ]);
   projectJson['elementCategories'] =
       (projectJson['elementCategories'] as List<dynamic>)
           .where(
@@ -8104,6 +8132,7 @@ Directory _copySelbrumeFixture() {
       (projectJson['elements'] as List<dynamic>).where((entry) {
     final id = (entry as Map<String, dynamic>)['id'].toString();
     return !id.startsWith('el_selbrume_port_') &&
+        !id.startsWith('el_port_ref_') &&
         !_cabinElementContracts.containsKey(id) &&
         !_forestElementContracts.containsKey(id) &&
         !_marshElementContracts.containsKey(id) &&
@@ -8111,12 +8140,33 @@ Directory _copySelbrumeFixture() {
         !_lighthouseExteriorElementContracts.containsKey(id) &&
         !_lighthouseInteriorElementContracts.containsKey(id) &&
         !_lighthouseFxElementContracts.containsKey(id);
-  }).toList(growable: false);
+  }).toList(growable: true)
+        ..addAll(<Map<String, dynamic>>[
+          _legacyObjectiveElement(),
+          _legacyRouteObjectiveElement(),
+        ]);
+  projectJson['environmentPresets'] =
+      (projectJson['environmentPresets'] as List<dynamic>)
+          .where(
+            (entry) => !const <String>{
+              'env_selbrume_port_clusters_v3',
+              'env_selbrume_port_trees_v3',
+            }.contains((entry as Map<String, dynamic>)['id']),
+          )
+          .toList(growable: false);
+  projectJson['pathPresets'] = (projectJson['pathPresets'] as List<dynamic>)
+      .where(
+        (entry) =>
+            (entry as Map<String, dynamic>)['id'] !=
+            'path_selbrume_port_water_v3',
+      )
+      .toList(growable: false);
   projectJson['pathPatternPresets'] = <Map<String, dynamic>>[
     for (final entry in projectJson['pathPatternPresets'] as List<dynamic>)
       if ((entry as Map<String, dynamic>)['basePathPresetId'] !=
               'nouveau-chemin' &&
-          entry['id'] != 'pp_selbrume_open_sea_loop')
+          entry['id'] != 'pp_selbrume_open_sea_loop' &&
+          entry['id'] != 'pattern_selbrume_port_water_v3')
         entry,
     _legacyNouveauCheminPattern('nouveau-chemin-pattern'),
     _legacyNouveauCheminPattern('nouveau-chemin-pattern-duplicate'),
@@ -8192,6 +8242,60 @@ Map<String, dynamic> _legacyNouveauCheminPattern(String id) =>
         ],
       },
       'sortOrder': 0,
+    };
+
+Map<String, dynamic> _legacyObjectiveElement() => <String, dynamic>{
+      'id': 'test',
+      'name': 'Legacy full-map reference',
+      'tilesetId': 'objectif',
+      'categoryId': 'props',
+      'tilesetGroupId': null,
+      'frames': <Map<String, dynamic>>[
+        <String, dynamic>{
+          'tilesetId': '',
+          'source': <String, dynamic>{
+            'x': 0,
+            'y': 0,
+            'width': 1,
+            'height': 1,
+          },
+          'durationMs': null,
+        },
+      ],
+      'presetKind': 'generic',
+      'collisionProfile': null,
+      'shadow': null,
+      'groupId': null,
+      'recommendedLayerId': 'l_tile_objectif',
+      'tags': <String>['legacy', 'migration-fixture'],
+      'sortOrder': 0,
+    };
+
+Map<String, dynamic> _legacyObjectiveTileset() => <String, dynamic>{
+      'id': 'objectif',
+      'name': 'Legacy full-map reference',
+      'relativePath': 'assets/tilesets/selbrume_objectif.png',
+      'scope': 'global',
+      'groupId': null,
+      'folderId': 'objectif',
+      'sortOrder': 0,
+      'isWorldTileset': false,
+      'elementGroups': <Object?>[],
+      'paletteEntries': <Object?>[],
+    };
+
+Map<String, dynamic> _legacyRouteObjectiveElement() => <String, dynamic>{
+      ..._legacyObjectiveElement(),
+      'id': 'route_1_objectif',
+      'name': 'Legacy Route 1 full-map reference',
+      'tilesetId': 'route_1_1',
+    };
+
+Map<String, dynamic> _legacyRouteObjectiveTileset() => <String, dynamic>{
+      ..._legacyObjectiveTileset(),
+      'id': 'route_1_1',
+      'name': 'Legacy Route 1 full-map reference',
+      'relativePath': 'assets/tilesets/route_1_1.png',
     };
 
 Directory _findRepositoryRoot() {

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 import 'battle_command_overlay_snapshot.dart';
@@ -1171,7 +1172,7 @@ class _BattleBagList extends StatelessWidget {
       key: const Key('battle-mobile-entry-list'),
       padding: const EdgeInsets.all(10),
       physics: const BouncingScrollPhysics(),
-      cacheExtent: 1200,
+      scrollCacheExtent: const ScrollCacheExtent.pixels(1200),
       children: <Widget>[
         for (var sectionIndex = 0;
             sectionIndex < sections.length;

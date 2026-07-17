@@ -47,7 +47,8 @@ void main() {
   });
 
   group('createPathPatternAssetDiagnostics', () {
-    test('empty override does not require missingFrameTileset path in asset layer',
+    test(
+        'empty override does not require missingFrameTileset path in asset layer',
         () {
       final manifest = _manifest(
         tilesets: [
@@ -69,7 +70,7 @@ void main() {
         ],
       );
       final info = {
-        'ts': PathPatternTilesetImageInfo(
+        'ts': const PathPatternTilesetImageInfo(
           tilesetId: 'ts',
           status: PathPatternTilesetImageStatus.ok,
           widthPx: 256,
@@ -118,7 +119,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 256,
@@ -139,7 +140,10 @@ void main() {
 
       final manifest = _manifest(
         tilesets: [
-          _tilesetEntry(id: 'deep_water', name: 'deep_water', path: 'assets/tilesets/deep_water.png'),
+          _tilesetEntry(
+              id: 'deep_water',
+              name: 'deep_water',
+              path: 'assets/tilesets/deep_water.png'),
         ],
         pathPresets: [
           _basePreset(id: 'base', tilesetId: 'deep_water'),
@@ -173,9 +177,12 @@ void main() {
         contains(PathPatternDiagnosticCode.missingTilesetImageFile),
       );
       expect(
-        list.singleWhere(
-          (d) => d.code == PathPatternDiagnosticCode.missingTilesetImageFile,
-        ).title,
+        list
+            .singleWhere(
+              (d) =>
+                  d.code == PathPatternDiagnosticCode.missingTilesetImageFile,
+            )
+            .title,
         'Image de tileset introuvable',
       );
     });
@@ -250,7 +257,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 64,
@@ -294,7 +301,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 32,
@@ -336,7 +343,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 32,
@@ -378,7 +385,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 256,
@@ -411,7 +418,7 @@ void main() {
           _tilesetEntry(id: 'ts', name: 'TS', path: 'tilesets/ts.png'),
         ],
         pathPresets: [
-          ProjectPathPreset(
+          const ProjectPathPreset(
             id: 'base',
             name: 'base',
             tilesetId: 'ts',
@@ -420,7 +427,7 @@ void main() {
               PathPresetVariantMapping(
                 variant: TerrainPathVariant.endNorth,
                 frames: [
-                  const TilesetVisualFrame(
+                  TilesetVisualFrame(
                     tilesetId: '',
                     source: TilesetSourceRect(x: 99, y: 0),
                   ),
@@ -446,7 +453,7 @@ void main() {
         pathPatternPreset: manifest.pathPatternPresets.single,
         basePathPreset: manifest.pathPresets.single,
         tilesetImageInfoById: {
-          'ts': PathPatternTilesetImageInfo(
+          'ts': const PathPatternTilesetImageInfo(
             tilesetId: 'ts',
             status: PathPatternTilesetImageStatus.ok,
             widthPx: 32,
@@ -519,7 +526,8 @@ ProjectManifest _manifest({
   required List<ProjectTilesetEntry> tilesets,
   required List<ProjectPathPreset> pathPresets,
   required List<ProjectPathPatternPreset> pathPatternPresets,
-  ProjectSettings settings = const ProjectSettings(tileWidth: 16, tileHeight: 16),
+  ProjectSettings settings =
+      const ProjectSettings(tileWidth: 16, tileHeight: 16),
 }) {
   return ProjectManifest(
     name: 'P',

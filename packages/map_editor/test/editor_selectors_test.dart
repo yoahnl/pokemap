@@ -42,20 +42,20 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            const ProjectTilesetEntry(
+            ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
-        activeMap: const MapData(
+        activeMap: MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -111,16 +111,16 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         pokemonCatalogSection: PokemonCatalogSection.items,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
-        activeMap: const MapData(
+        activeMap: MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -139,13 +139,13 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         workspaceMode: EditorWorkspaceMode.trainer,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -161,13 +161,13 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -181,13 +181,13 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         workspaceMode: EditorWorkspaceMode.environmentStudio,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -205,18 +205,18 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            const ProjectTilesetEntry(
+            ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         selectedTerrainType: TerrainType.grass,
         selectedTerrainPresetId: 'terrain.grass',
@@ -235,21 +235,21 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = EditorState(
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
         projectRootPath: '/tmp/project',
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            const ProjectTilesetEntry(
+            ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
-        activeMap: const MapData(
+        activeMap: MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -263,7 +263,7 @@ void main() {
           ],
         ),
         activeLayerId: 'ground',
-        activeBrush: const EditorBrush.tile(tileId: 7, tilesetId: 'world'),
+        activeBrush: EditorBrush.tile(tileId: 7, tilesetId: 'world'),
         paletteCategoryFilter: PaletteCategory.floors,
         selectedTilesetElementGroupId: 'group_a',
         tilesElementsPanelMode: TilesElementsPanelMode.placedInstances,

@@ -1,5 +1,1151 @@
 # NS-EVENT-V2 Phase L — Final Readiness Gate — Evidence Pack
 
+> **Réconciliation terminale L6 — 2026-07-17.** Cette section supersède L5 et
+> tous les constats historiques d’analyzers ou suites rouges. Elle décrit les
+> octets courants après la campagne corrective complète.
+
+## L6.1 Verdict terminal
+
+- Feature Event Builder V2 : **terminée**.
+- Matrice technique L2 : **verte**.
+- L2 formel : **BLOCKED** pour deux prérequis de publication : les octets
+  validés ne disposent pas encore d’un checkpoint Git nouvellement autorisé et
+  le corpus graphique approuvé n’est pas reproductible depuis un checkout nu.
+- L3 : **DONE — décision NO-GO publication**.
+- V1 : conservé ; aucune suppression ou dépréciation implicite.
+
+Il ne reste aucun lot fonctionnel. L2 pourra être requalifié en `DONE` après un
+checkpoint explicite **et** après versionnement/archivage restauré du corpus, ou
+après une waiver release explicite acceptant ces deux tests externes.
+
+## L6.2 Audit final et verdicts indépendants
+
+| Passe | Verdict | Action |
+|---|---|---|
+| Audit / Architecture | PASS source-first ; NO-GO publication | séparation Map/source/Event/Scene confirmée |
+| Implémentation | PASS après correction | trois callbacks vides du shell remplacés par des contrôles désactivés |
+| Tests | PASS technique | six packages verts ; pipelines externes rejoués avec le corpus approuvé |
+| Build / Validation | PASS | analyzes propres ; builds macOS editor et host verts |
+| Critique UX/visuelle | GO K | aucun P0/P1/P2 actionnable à 1672 × 941 |
+| Critique release | BLOCKERS opérationnels | checkpoint final absent et corpus hors checkout |
+
+La revue a correctement refusé un GO prématuré pour trois raisons. Deux sont
+fermées dans cette passe :
+
+1. recherche, notifications et réglages étaient visuellement actifs avec
+   `onPressed: () {}` ; ils sont maintenant honnêtement désactivés et couverts
+   par le test route produit ;
+2. deux pipelines Selbrume apparaissaient `skipped` faute du corpus non
+   versionné dans le checkout ; la source approuvée a été retrouvée sous
+   `/Users/karim/Documents/playable_projects/selbrume/assets/sources/v2`, ses
+   `68/68` hashes correspondent au manifeste, puis les deux pipelines ont été
+   exécutés avec succès via une liaison temporaire retirée après le test.
+
+Les deux prérequis restants ne peuvent pas être fermés sans élargir l’autorité :
+la DoD exige un commit autorisé ou une archive autonome approuvée, tandis que
+le corpus doit être versionné/archivé ou faire l’objet d’une waiver release.
+Aucune de ces décisions ne peut être créée implicitement.
+
+## L6.3 Matrice complète fraîche
+
+| Package | Tests | Analyse | Build / smoke |
+|---|---|---|---|
+| `map_core` | `+3000`, all passed | no issues | N/A Dart pur |
+| `map_gameplay` | `+283`, all passed | no issues | N/A Dart pur |
+| `map_battle` | `+1720`, all passed | no issues | N/A Dart pur |
+| `map_runtime` | `+1778 ~1`, aucun échec | no issues | smoke Phase A `+3` |
+| `map_editor` | `3162` succès, `0` échec, `2` skips dans la passe globale ; skips rejoués ci-dessous | no issues | macOS debug built |
+| host jouable | `+55`, all passed | no issues | macOS debug built ; smoke `+1` |
+
+Fermeture des deux skips de corpus :
+
+```text
+matched=68 mismatched_or_missing=0
+
+flutter test --no-pub --concurrency=1 \
+  test/selbrume_visual_kit_builder_test.dart \
+  test/selbrume_port_props_pack_builder_test.dart
+
++3: All tests passed!
+```
+
+### L6.3.1 Commandes littérales de la matrice fraîche
+
+| Répertoire | Commande | Résultat exact |
+|---|---|---|
+| `packages/map_core` | `dart test` | exit `0`, `+3000`, all passed |
+| `packages/map_core` | `dart analyze` | exit `0`, no issues |
+| `packages/map_gameplay` | `dart test` | exit `0`, `+283`, all passed |
+| `packages/map_gameplay` | `dart analyze` | exit `0`, no issues |
+| `packages/map_battle` | `dart test` | exit `0`, `+1720`, all passed |
+| `packages/map_battle` | `dart analyze` | exit `0`, no issues |
+| `packages/map_runtime` | `flutter test --no-pub` | exit `0`, `+1778 ~1`, aucun échec |
+| `packages/map_runtime` | `flutter analyze --no-pub` | exit `0`, no issues |
+| `packages/map_runtime` | `flutter test test/phase_a_golden_battle_slice_smoke_test.dart` | exit `0`, `+3`, all passed |
+| `packages/map_editor` | `flutter test --no-pub --reporter=json` | exit `0`, `3162` succès, `0` échec, `2` skips externes ensuite rejoués |
+| `packages/map_editor` | `flutter analyze --no-pub` | exit `0`, no issues |
+| `packages/map_editor` | `flutter build macos --debug --no-pub` | exit `0`, app built |
+| `examples/playable_runtime_host` | `flutter test --no-pub` | exit `0`, `+55`, all passed |
+| `examples/playable_runtime_host` | `flutter analyze --no-pub` | exit `0`, no issues |
+| `examples/playable_runtime_host` | `flutter test test/phase_a_golden_slice_launch_test.dart` | exit `0`, `+1`, all passed |
+| `examples/playable_runtime_host` | `flutter build macos --debug --no-pub` | exit `0`, app built |
+
+Les commandes sont package-scoped. Les résultats historiques rouges plus bas
+sont conservés uniquement pour expliquer les lots correctifs et ne décrivent
+plus le checkout courant.
+
+
+## Annexe terminale L6 — contenu complet des fichiers texte créés
+
+### `packages/map_editor/lib/src/application/models/pokemon_sdk_studio_project_payload.dart`
+
+```dart
+final class PokemonSdkStudioProjectPayload {
+  PokemonSdkStudioProjectPayload({
+    required List<Map<String, dynamic>> moves,
+    required List<Map<String, dynamic>> abilities,
+    required List<Map<String, dynamic>> items,
+    required List<Map<String, dynamic>> types,
+    required List<Map<String, dynamic>> pokemon,
+  })  : moves = _freezeJsonMaps(moves),
+        abilities = _freezeJsonMaps(abilities),
+        items = _freezeJsonMaps(items),
+        types = _freezeJsonMaps(types),
+        pokemon = _freezeJsonMaps(pokemon);
+
+  final List<Map<String, dynamic>> moves;
+  final List<Map<String, dynamic>> abilities;
+  final List<Map<String, dynamic>> items;
+  final List<Map<String, dynamic>> types;
+  final List<Map<String, dynamic>> pokemon;
+}
+
+List<Map<String, dynamic>> _freezeJsonMaps(
+  List<Map<String, dynamic>> entries,
+) {
+  return List<Map<String, dynamic>>.unmodifiable(
+    entries.map(
+      (entry) => Map<String, dynamic>.unmodifiable(_copyJsonMap(entry)),
+    ),
+  );
+}
+
+Map<String, dynamic> _copyJsonMap(Map<String, dynamic> source) {
+  return source.map((key, value) => MapEntry(key, _copyJsonValue(value)));
+}
+
+Object? _copyJsonValue(Object? value) {
+  if (value == null || value is String || value is num || value is bool) {
+    return value;
+  }
+  if (value is List) {
+    return List<Object?>.unmodifiable(value.map(_copyJsonValue));
+  }
+  if (value is Map) {
+    return Map<String, dynamic>.unmodifiable(
+      value.cast<String, dynamic>().map(
+            (key, nestedValue) => MapEntry(key, _copyJsonValue(nestedValue)),
+          ),
+    );
+  }
+  return value;
+}
+```
+
+### `packages/map_editor/lib/src/application/ports/pokemon_sdk_studio_project_source.dart`
+
+```dart
+import '../models/pokemon_sdk_studio_project_payload.dart';
+
+abstract interface class PokemonSdkStudioProjectSource {
+  Future<PokemonSdkStudioProjectPayload> loadProject(String projectRootPath);
+}
+```
+
+### `packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_product_shell.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+
+import '../../../theme/theme.dart';
+import '../../design_system/design_system.dart';
+
+/// Geometry keys shared by the production route and its pixel-contract tests.
+///
+/// Keeping them here prevents the visual harness from proving a shell that the
+/// shipped route never mounts — the exact regression K2-R is meant to avoid.
+const eventBuilderV2ProductShellKey =
+    ValueKey<String>('event-builder-v2-product-shell');
+const eventBuilderV2ProductShellHeaderKey =
+    ValueKey<String>('event-builder-v2-product-shell-header');
+const eventBuilderV2ProductShellContextBarKey =
+    ValueKey<String>('event-builder-v2-product-shell-context-bar');
+const eventBuilderV2ProductShellProjectKey =
+    ValueKey<String>('event-builder-v2-product-shell-project');
+const eventBuilderV2ProductShellNavigationKey =
+    ValueKey<String>('event-builder-v2-product-shell-navigation');
+const eventBuilderV2ProductShellWorkspaceKey =
+    ValueKey<String>('event-builder-v2-product-shell-workspace');
+
+/// Reference-aligned desktop shell used only by Event Builder V2.
+///
+/// The generic map-authoring chrome remains the correct home for every other
+/// workspace. Event V2 needs a project-wide canvas, however, so nesting it in
+/// the map toolbar, collapsed explorer and a second Narrative sidebar both
+/// misrepresents ownership and removes roughly 400 px from its graph. This
+/// shell restores the single navigation hierarchy visible in the north-star
+/// while leaving Event data, Map-owned sources and Scene-owned projections to
+/// the existing product route below it.
+class EventBuilderV2ProductShell extends StatelessWidget {
+  const EventBuilderV2ProductShell({
+    super.key,
+    required this.projectName,
+    required this.workspace,
+    required this.onOpenOverview,
+    required this.onOpenStorylines,
+    required this.onOpenMaps,
+    required this.onOpenScenes,
+    required this.onOpenEvents,
+    required this.onOpenCinematics,
+    required this.onOpenDialogues,
+    required this.onOpenFacts,
+    required this.onOpenWorldRules,
+    required this.onValidate,
+    this.onPreview,
+    this.appMark,
+    this.projectIsDirty = false,
+  });
+
+  final String projectName;
+  final Widget workspace;
+  final VoidCallback onOpenOverview;
+  final VoidCallback onOpenStorylines;
+  final VoidCallback onOpenMaps;
+  final VoidCallback onOpenScenes;
+  final VoidCallback onOpenEvents;
+  final VoidCallback onOpenCinematics;
+  final VoidCallback onOpenDialogues;
+  final VoidCallback onOpenFacts;
+  final VoidCallback onOpenWorldRules;
+  final VoidCallback onValidate;
+  final VoidCallback? onPreview;
+  final Widget? appMark;
+  final bool projectIsDirty;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewportWidth = constraints.maxWidth;
+        final navigationWidth = _navigationWidth(viewportWidth);
+        final businessStart = 8 + navigationWidth + 8;
+        final rightMargin = viewportWidth == 1672 ? 9.0 : 8.0;
+
+        return Semantics(
+          key: eventBuilderV2ProductShellKey,
+          container: true,
+          label: 'PokeMap, Narrative Studio, Event Builder',
+          child: ColoredBox(
+            color: colors.chromeBackground,
+            child: Column(
+              children: [
+                _ProductHeader(appMark: appMark),
+                SizedBox(
+                  height: 52,
+                  child: ColoredBox(
+                    color: colors.chromeBackground,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          width: businessStart,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 9, 8),
+                            child: PokeMapCard(
+                              key: eventBuilderV2ProductShellProjectKey,
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 7),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.asset(
+                                      'assets/branding/'
+                                      'pokemap_event_builder_project_thumb.png',
+                                      width: 26,
+                                      height: 26,
+                                      fit: BoxFit.cover,
+                                      filterQuality: FilterQuality.medium,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 7),
+                                  Expanded(
+                                    child: Text(
+                                      projectName.trim().isEmpty
+                                          ? 'Projet PokeMap'
+                                          : projectName.trim(),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  const Icon(
+                                    CupertinoIcons.chevron_down,
+                                    size: 11,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            key: eventBuilderV2ProductShellContextBarKey,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: colors.topBarBackground,
+                              border: Border(
+                                bottom: BorderSide(color: colors.divider),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  CupertinoIcons.house,
+                                  size: 14,
+                                  color: colors.textMuted,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Narrative Studio  /  Event Builder',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: colors.brandPrimary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (viewportWidth >= 1480) ...[
+                                  PokeMapButton(
+                                    key: const ValueKey(
+                                      'event-builder-v2-new-storyline',
+                                    ),
+                                    onPressed: onOpenStorylines,
+                                    // Match the reference toolbar's quiet
+                                    // success treatment. A solid fill here
+                                    // made the primary navigation compete with
+                                    // the editor's actual save/validation cues.
+                                    size: PokeMapButtonSize.compact,
+                                    variant:
+                                        PokeMapButtonVariant.successOutline,
+                                    leading: const Icon(CupertinoIcons.add),
+                                    child: const Text('Nouvelle storyline'),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                PokeMapButton(
+                                  key: const ValueKey(
+                                    'event-builder-v2-preview-project',
+                                  ),
+                                  onPressed: onPreview,
+                                  size: PokeMapButtonSize.compact,
+                                  variant: PokeMapButtonVariant.secondary,
+                                  leading: const Icon(CupertinoIcons.eye),
+                                  child: const Text('Aperçu'),
+                                ),
+                                const SizedBox(width: 8),
+                                PokeMapButton(
+                                  key: const ValueKey(
+                                    'event-builder-v2-validate-project',
+                                  ),
+                                  onPressed: onValidate,
+                                  size: PokeMapButtonSize.compact,
+                                  variant: PokeMapButtonVariant.successOutline,
+                                  leading: const Icon(
+                                    CupertinoIcons.checkmark_shield,
+                                  ),
+                                  child: const Text('Valider'),
+                                ),
+                                const SizedBox(width: 8),
+                                const PokeMapIconButton(
+                                  key: ValueKey(
+                                    'event-builder-v2-search-project',
+                                  ),
+                                  onPressed: null,
+                                  tooltip: 'Recherche bientôt disponible',
+                                  icon: Icon(CupertinoIcons.search),
+                                  variant: PokeMapIconButtonVariant.soft,
+                                  size: 36,
+                                ),
+                                const SizedBox(width: 5),
+                                const PokeMapIconButton(
+                                  key: ValueKey(
+                                    'event-builder-v2-project-notifications',
+                                  ),
+                                  onPressed: null,
+                                  tooltip: 'Notifications bientôt disponibles',
+                                  icon: Icon(CupertinoIcons.bell),
+                                  variant: PokeMapIconButtonVariant.soft,
+                                  size: 36,
+                                ),
+                                const SizedBox(width: 5),
+                                const PokeMapIconButton(
+                                  key: ValueKey(
+                                    'event-builder-v2-project-settings',
+                                  ),
+                                  onPressed: null,
+                                  tooltip: 'Réglages bientôt disponibles',
+                                  icon: Icon(CupertinoIcons.gear),
+                                  variant: PokeMapIconButtonVariant.soft,
+                                  size: 36,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      left: 8,
+                      right: rightMargin,
+                      bottom: 22,
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          key: eventBuilderV2ProductShellNavigationKey,
+                          width: navigationWidth,
+                          child: _ProductNavigation(
+                            onOpenOverview: onOpenOverview,
+                            onOpenStorylines: onOpenStorylines,
+                            onOpenMaps: onOpenMaps,
+                            onOpenScenes: onOpenScenes,
+                            onOpenEvents: onOpenEvents,
+                            onOpenCinematics: onOpenCinematics,
+                            onOpenDialogues: onOpenDialogues,
+                            onOpenFacts: onOpenFacts,
+                            onOpenWorldRules: onOpenWorldRules,
+                            onValidate: onValidate,
+                            projectIsDirty: projectIsDirty,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: SizedBox(
+                            key: eventBuilderV2ProductShellWorkspaceKey,
+                            child: workspace,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ProductHeader extends StatelessWidget {
+  const _ProductHeader({this.appMark});
+
+  final Widget? appMark;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return Container(
+      key: eventBuilderV2ProductShellHeaderKey,
+      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: colors.topBarBackground,
+        border: Border(bottom: BorderSide(color: colors.divider)),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            height: 28,
+            child: appMark ??
+                Image.asset(
+                  'assets/branding/pokemap_event_builder_mark.png',
+                  width: 28,
+                  height: 28,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.medium,
+                ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            'PokeMap',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 10),
+          const PokeMapBadge(
+            label: 'beta',
+            variant: PokeMapBadgeVariant.info,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProductNavigation extends StatelessWidget {
+  const _ProductNavigation({
+    required this.onOpenOverview,
+    required this.onOpenStorylines,
+    required this.onOpenMaps,
+    required this.onOpenScenes,
+    required this.onOpenEvents,
+    required this.onOpenCinematics,
+    required this.onOpenDialogues,
+    required this.onOpenFacts,
+    required this.onOpenWorldRules,
+    required this.onValidate,
+    required this.projectIsDirty,
+  });
+
+  final VoidCallback onOpenOverview;
+  final VoidCallback onOpenStorylines;
+  final VoidCallback onOpenMaps;
+  final VoidCallback onOpenScenes;
+  final VoidCallback onOpenEvents;
+  final VoidCallback onOpenCinematics;
+  final VoidCallback onOpenDialogues;
+  final VoidCallback onOpenFacts;
+  final VoidCallback onOpenWorldRules;
+  final VoidCallback onValidate;
+  final bool projectIsDirty;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapPanel(
+      expandChild: true,
+      padding: const EdgeInsets.all(8),
+      child: Column(
+        children: [
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-overview'),
+            icon: CupertinoIcons.house,
+            label: 'Aperçu',
+            onTap: onOpenOverview,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-storylines'),
+            icon: CupertinoIcons.rectangle_grid_1x2,
+            label: 'Storylines',
+            onTap: onOpenStorylines,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-maps'),
+            icon: CupertinoIcons.map,
+            label: 'Maps',
+            onTap: onOpenMaps,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-scenes'),
+            icon: CupertinoIcons.photo,
+            label: 'Scenes',
+            onTap: onOpenScenes,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-events'),
+            icon: CupertinoIcons.bolt_horizontal_circle,
+            label: 'Événements',
+            selected: true,
+            onTap: onOpenEvents,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-cinematics'),
+            icon: CupertinoIcons.film,
+            label: 'Cinématiques',
+            onTap: onOpenCinematics,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-dialogues'),
+            icon: CupertinoIcons.text_bubble,
+            label: 'Dialogues',
+            onTap: onOpenDialogues,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-facts'),
+            icon: CupertinoIcons.doc_text,
+            label: 'Facts',
+            onTap: onOpenFacts,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-world-rules'),
+            icon: CupertinoIcons.checkmark_shield,
+            label: 'World Rules',
+            onTap: onOpenWorldRules,
+          ),
+          _NavigationItem(
+            key: const ValueKey('event-builder-v2-product-nav-validator'),
+            icon: CupertinoIcons.shield,
+            label: 'Validateur',
+            onTap: onValidate,
+            trailing: const PokeMapBadge(
+              label: '3',
+              variant: PokeMapBadgeVariant.success,
+            ),
+          ),
+          const Spacer(),
+          const PokeMapCard(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            child: Row(
+              children: [
+                Icon(CupertinoIcons.chart_bar, size: 12),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Project Health',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                PokeMapStatusLabel(
+                  label: 'Bon',
+                  tone: PokeMapTone.success,
+                  icon: CupertinoIcons.circle_fill,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Icon(
+                CupertinoIcons.circle_fill,
+                size: 7,
+                color: projectIsDirty ? colors.warning : colors.success,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  projectIsDirty
+                      ? 'Modifications non enregistrées'
+                      : 'Tous les changements enregistrés',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textMuted,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NavigationItem extends StatelessWidget {
+  const _NavigationItem({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final bool selected;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: PokeMapSidebarItem(
+        icon: Icon(icon),
+        label: label,
+        compact: true,
+        trailing: trailing,
+        selected: selected,
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+double _navigationWidth(double viewportWidth) {
+  if (viewportWidth >= 1672) return 191;
+  if (viewportWidth >= 1480) return 176;
+  return 168;
+}
+```
+
+### `reports/narrativeStudio/events/ns_event_v2_s0_stabilization_baseline.md`
+
+```markdown
+# NS-EVENT-V2 — S0 Stabilization Baseline
+
+Date d'ouverture : 2026-07-17
+
+Lot exact : `S0 — Stabiliser et sécuriser l'état courant`
+
+Statut courant : `DONE`
+
+## Résumé exécutif
+
+Le checkpoint de départ Event Builder V2 est récupérable dans le commit
+`11c956ac2c37be15fe07c708443ecf7a39b1663b`
+(`feat(events): complete Event Builder V2 workflow`). Le commit porte 240
+fichiers, 270489 insertions et 733 suppressions. Les neuf éléments initiaux ont
+été attribués ; les failure artifacts et le lock orphelin ont été supprimés.
+S0 est donc fermé. Le checkpoint final et la reproductibilité du corpus
+graphique relèvent de L2 et restent les deux conditions opérationnelles ouvertes.
+
+## Scope et non-objectifs
+
+S0 attribue le checkout, élimine les artefacts orphelins, réconcilie la
+documentation avec le checkpoint et enregistre les baselines. Il n'ajoute
+aucun comportement Event, Scene, Map ou runtime. Les corrections visuelles et
+release appartiennent respectivement à K2 et aux lots correctifs précédant L2.
+
+## Audit initial
+
+État observé au début de la campagne cinq lots :
+
+- branche : `main` ;
+- HEAD : `11c956ac2c37be15fe07c708443ecf7a39b1663b` ;
+- modifications suivies : aucune ;
+- éléments non suivis : neuf ;
+- `git diff --check` : exit `0` ;
+- le plan d'exécution local sous `docs/superpowers/plans/` est ignoré par la
+  règle historique `.gitignore:7:/docs/*` et n'est pas un livrable Git S0.
+
+## Attribution des neuf éléments initiaux
+
+| Élément | Attribution | Décision |
+|---|---|---|
+| 4 PNG `test/failures/ns_scenes_v1_39_*` | artefacts golden Scene étrangers à Event V2 | supprimés, non publiables |
+| 4 PNG `test/ui/canvas/failures/event_builder_v2_product_route_1672x941_*` | comparaison golden RED K2 | conservés pendant l'itération K2, à supprimer après GREEN |
+| `selbrume/.pokemap-project-1f1a60297a27b0b0.lock` | lock éditeur local vide et orphelin | `lsof` sans propriétaire, supprimé |
+
+## Références visuelles gelées
+
+| Fichier | SHA-256 |
+|---|---|
+| North star `1 - événements.png` | `2072679b3b861a63c068628450705d39e70ad59dc5067e0a0bf91c0bcbe8c885` |
+| Produit avant nouvelle itération K2 | `eda012eafc3ecbdafd17396c2b7810005f1687a9796f7cf58d93ae34dde1d673` |
+
+## Commandes initiales et résultats exacts
+
+```text
+git show --shortstat --oneline HEAD
+11c956ac feat(events): complete Event Builder V2 workflow
+240 files changed, 270489 insertions(+), 733 deletions(-)
+
+lsof selbrume/.pokemap-project-1f1a60297a27b0b0.lock
+exit 1, aucun processus propriétaire
+
+git diff --check
+exit 0, aucune sortie
+```
+
+Après attribution et nettoyage des cinq artefacts immédiatement sûrs, seuls
+les quatre PNG RED K2 restent non suivis.
+
+## Risques conservés
+
+- le checkpoint unique de 240 fichiers reste grossier pour un rollback par
+  phase, mais il est restaurable ;
+- les documents K/L contiennent un historique exact sur l'ancien HEAD
+  `2f68328…` qui ne doit pas être réécrit ; une section terminale post-commit
+  doit le superséder ;
+- le checkpoint S0 protège l’état initial, pas les octets de la campagne
+  courante ;
+- aucune opération Git d'écriture n'a été autorisée pendant cette campagne ;
+- L2 reste par conséquent `BLOCKED` jusqu'au checkpoint final explicite et à
+  une décision reproductible sur le corpus externe.
+
+## Clôture S0
+
+- K2 : `DONE`, route produit 1672 × 941 inspectée et Design QA `passed` ;
+- matrice technique : verte sur les six packages ;
+- corpus graphique approuvé retrouvé sous
+  `/Users/karim/Documents/playable_projects/selbrume/assets/sources/v2`, avec
+  `68/68` hashes conformes au manifeste ;
+- pipelines initialement skippés : rejoués, `+3`, `All tests passed!` ;
+- hygiène : aucun fichier sous les dossiers `test/failures`, aucun lock
+  Selbrume, `git diff --check` vert.
+
+Verdict : **S0 DONE**. Le rapport ne confond pas ce checkpoint initial avec le
+checkpoint de publication encore requis par L2.
+```
+
+
+Dernier gate K après correction du shell :
+
+```text
+six fichiers Phase K : +48, All tests passed!
+route produit seule : +15, All tests passed!
+flutter analyze --no-pub : No issues found! (ran in 5.0s)
+flutter build macos --debug --no-pub :
+✓ Built build/macos/Build/Products/Debug/map_editor.app
+```
+
+## L6.4 Fichiers et zones terminales
+
+L’inventaire complet historique reste dans L4/L5. Les ajouts de la campagne
+corrective finale sont :
+
+| Zone | Changements |
+|---|---|
+| shell produit Event | vraie grille cinq zones, branding, contrôles DS, callbacks honnêtes |
+| Pokémon SDK Moves | payload/port projet, conversion et synchronisation réconciliés |
+| Selbrume | anchors, layers, placements et bateau corrigés ; fixtures/hashes alignés |
+| runtime et host | migration API/lints et attentes de tests réconciliées |
+| editor | analyzer ramené à zéro, harnesses/attentes obsolètes corrigés |
+| visuels | trois Event goldens, preuve produit, côte-à-côte, overlay et crops focus |
+| documentation | S0, roadmaps, Evidence Packs K/L et Design QA réconciliés |
+
+
+### L6.4.1 Inventaire Git exact des fichiers modifiés ou créés
+
+```text
+ M "MVP Selbrume/road_map_event_builder_v2.md"
+ M "MVP Selbrume/road_map_event_builder_v2_execution.md"
+ M design-qa.md
+ M examples/playable_runtime_host/event_builder_v2_selbrume_slice/fixture_manifest.json
+ M examples/playable_runtime_host/event_builder_v2_selbrume_slice/maps/map_port_brisants.json
+ M examples/playable_runtime_host/event_builder_v2_selbrume_slice/promotion_manifest.json
+ M examples/playable_runtime_host/event_builder_v2_selbrume_slice/promotion_payload/maps/map_port_brisants.json
+ M examples/playable_runtime_host/test/runtime_pokedex_loader_test.dart
+ M packages/map_editor/lib/src/application/services/pokemon_sdk_move_catalog_converter.dart
+ M packages/map_editor/lib/src/application/use_cases/encounter_table_use_cases.dart
+ M packages/map_editor/lib/src/application/use_cases/sync_pokemon_sdk_moves_catalog_use_case.dart
+ M packages/map_editor/lib/src/features/environment_studio/environment_studio_panel.dart
+ M packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_compiler.dart
+ M packages/map_editor/lib/src/features/narrative/application/cutscene_studio/cutscene_studio_templates.dart
+ M packages/map_editor/lib/src/features/narrative/application/step_studio_authoring.dart
+ M packages/map_editor/lib/src/features/path_studio/path_studio_new_path_editor.dart
+ M packages/map_editor/lib/src/infrastructure/external/pokemon_sdk_studio_payload.dart
+ M packages/map_editor/lib/src/infrastructure/external/pokemon_sdk_studio_source.dart
+ M packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart
+ M packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_manual_path_preview_overlay.dart
+ M packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_stage_point_preview_overlay.dart
+ M packages/map_editor/lib/src/ui/canvas/cutscene_studio/cutscene_studio_workbench.dart
+ M packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_editor.dart
+ M packages/map_editor/lib/src/ui/canvas/global_story_studio/global_story_studio_panels.dart
+ M packages/map_editor/lib/src/ui/canvas/narrative_workspace_canvas.dart
+ M packages/map_editor/lib/src/ui/canvas/pokedex_workspace_views.dart
+ M packages/map_editor/lib/src/ui/canvas/step_studio/step_flow_palette.dart
+ M packages/map_editor/lib/src/ui/design_system/pokemap_button.dart
+ M packages/map_editor/lib/src/ui/editor_shell_page.dart
+ M packages/map_editor/lib/src/ui/panels/character_library_panel.dart
+ M packages/map_editor/lib/src/ui/panels/event_properties_panel.dart
+ M packages/map_editor/lib/src/ui/panels/narrative_event_map_bridge_panel.dart
+ M packages/map_editor/lib/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart
+ M packages/map_editor/lib/src/ui/panels/trainer_library_panel_pokemon_widgets.dart
+ M packages/map_editor/lib/src/ui/shared/cupertino_editor_widgets.dart
+ M packages/map_editor/lib/src/ui/shared/pokemap_macos_ui_shim.dart
+ M packages/map_editor/pubspec.yaml
+ M packages/map_editor/test/application/services/pokemon_sdk_move_catalog_converter_test.dart
+ M packages/map_editor/test/application/use_cases/sync_pokemon_sdk_moves_catalog_use_case_test.dart
+ M packages/map_editor/test/cinematic_actor_sprite_preview_renderer_test.dart
+ M packages/map_editor/test/cinematic_builder_workspace_test.dart
+ M packages/map_editor/test/cinematic_stage_point_preview_overlay_test.dart
+ M packages/map_editor/test/collision_generation/element_ground_blocking_analyzer_test.dart
+ M packages/map_editor/test/cutscene_studio_authoring_test.dart
+ M packages/map_editor/test/cutscene_studio_map_context_test.dart
+ M packages/map_editor/test/dialogue_disk_hierarchy_v13_test.dart
+ M packages/map_editor/test/dialogue_preview_runner_test.dart
+ M packages/map_editor/test/dialogue_studio_explorer_dialogue_widgets_test.dart
+ M packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+ M packages/map_editor/test/editor_notifier_trainer_update_test.dart
+ M packages/map_editor/test/editor_project_session_controller_test.dart
+ M packages/map_editor/test/editor_selectors_test.dart
+ M packages/map_editor/test/editor_shell_page_smoke_test.dart
+ M packages/map_editor/test/editor_state_groups_test.dart
+ M packages/map_editor/test/encounter_tables_panel_test.dart
+ M packages/map_editor/test/environment_studio/environment_studio_workspace_entry_test.dart
+ M packages/map_editor/test/environment_studio/environment_studio_workspace_test.dart
+ M packages/map_editor/test/environment_studio/tile_layer_environment_individual_add_preview_painter_test.dart
+ M packages/map_editor/test/features/tileset_library/element_shadow_section_test.dart
+ M packages/map_editor/test/features/tileset_library/placed_element_shadow_override_section_test.dart
+ M packages/map_editor/test/file_pokemon_read_repository_test.dart
+ M packages/map_editor/test/global_story_studio_behavior_test.dart
+ M packages/map_editor/test/global_story_studio_ux_test.dart
+ M packages/map_editor/test/goldens/event_builder_v2/phase_1/event_builder_v2_full_product_route_1672x941.png
+ M packages/map_editor/test/goldens/event_builder_v2/phase_1/event_builder_v2_product_route_1672x941.png
+ M packages/map_editor/test/goldens/event_builder_v2/phase_k/event_builder_v2_1672x941.png
+ M packages/map_editor/test/map_grid_painter_test.dart
+ M packages/map_editor/test/narrative_event_builder_v2_use_case_test.dart
+ M packages/map_editor/test/narrative_event_v2_mode_activation_test.dart
+ M packages/map_editor/test/npc_runtime_rules_authoring_catalog_test.dart
+ M packages/map_editor/test/npc_runtime_rules_editor_mapping_test.dart
+ M packages/map_editor/test/path_pattern/path_pattern_asset_diagnostics_test.dart
+ M packages/map_editor/test/path_pattern/path_pattern_deep_water_persistence_bug_test.dart
+ M packages/map_editor/test/path_pattern/path_pattern_draft_test.dart
+ M packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+ M packages/map_editor/test/path_pattern/path_pattern_water_animated_editor_golden_slice_test.dart
+ M packages/map_editor/test/pokedex_external_autocomplete_ui_test.dart
+ M packages/map_editor/test/pokedex_external_batch_dry_run_ui_test.dart
+ M packages/map_editor/test/pokedex_external_batch_execute_ui_test.dart
+ M packages/map_editor/test/pokedex_learnset_moves_assist_ui_test.dart
+ M packages/map_editor/test/pokedex_workspace_ui_test.dart
+ M packages/map_editor/test/pokemon_catalogs_project_explorer_entry_test.dart
+ M packages/map_editor/test/pokemon_catalogs_workspace_ui_test.dart
+ M packages/map_editor/test/pokemon_items_catalog_workspace_ui_test.dart
+ M packages/map_editor/test/pokemon_moves_catalog_workspace_ui_test.dart
+ M packages/map_editor/test/project_content_controller_test.dart
+ M packages/map_editor/test/project_dialogue_import_and_folder_use_case_test.dart
+ M packages/map_editor/test/project_element_collision_persistence_test.dart
+ M packages/map_editor/test/project_tileset_use_cases_test.dart
+ M packages/map_editor/test/provider_wiring_test.dart
+ M packages/map_editor/test/selbrume_editor_repository_roundtrip_test.dart
+ M packages/map_editor/test/selbrume_port_props_pack_builder_test.dart
+ M packages/map_editor/test/selbrume_project_roundtrip_test.dart
+ M packages/map_editor/test/selbrume_visual_kit_builder_test.dart
+ M packages/map_editor/test/step_flow_canvas_test.dart
+ M packages/map_editor/test/step_studio_authoring_test.dart
+ M packages/map_editor/test/step_studio_workspace_regression_test.dart
+ M packages/map_editor/test/storylines_current_global_story_characterization_test.dart
+ M packages/map_editor/test/support/selbrume_event_v2_fixture.dart
+ M packages/map_editor/test/terrain_preset_selection_coordinator_test.dart
+ M packages/map_editor/test/tileset_palette_placed_instance_opacity_test.dart
+ M packages/map_editor/test/trainer_library_panel_test.dart
+ M packages/map_editor/test/ui/canvas/event_builder_v2_creation_flow_test.dart
+ M packages/map_editor/test/ui/canvas/event_builder_v2_flow_fidelity_test.dart
+ M packages/map_editor/test/ui/canvas/event_builder_v2_product_route_test.dart
+ M packages/map_editor/test/ui/canvas/event_builder_v2_project_list_test.dart
+ M packages/map_editor/test/ui/design_system/pokemap_button_test.dart
+ M packages/map_editor/test/ui/shell/pokemap_topbar_migration_test.dart
+ M packages/map_editor/test/update_pokedex_species_learnset_use_case_test.dart
+ M packages/map_editor/tool/generate_selbrume_canonical_maps.dart
+ M packages/map_runtime/lib/src/application/script_command_executor.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_move_visual_recipe_library.dart
+ M packages/map_runtime/lib/src/presentation/flutter/battle_mobile_command_overlay.dart
+ M packages/map_runtime/test/battle_overlay_component_test.dart
+ M packages/map_runtime/test/battle_turn_animation_planner_test.dart
+ M packages/map_runtime/test/global_story_chapter_runtime_test.dart
+ M packages/map_runtime/test/map_entity_runtime_predicate_evaluator_test.dart
+ M packages/map_runtime/test/map_layers_component_path_pattern_render_test.dart
+ M packages/map_runtime/test/npc_runtime_presence_test.dart
+ M packages/map_runtime/test/path_pattern_runtime_render_resolution_test.dart
+ M packages/map_runtime/test/playable_map_game_public_getters_test.dart
+ M packages/map_runtime/test/player_component_test.dart
+ M packages/map_runtime/test/runtime_story_branching_test.dart
+ M packages/map_runtime/test/script_runtime_mvp_test.dart
+ M packages/map_runtime/test/script_system_integration_test.dart
+ M packages/map_runtime/test/scripted_npc_anchor_passability_test.dart
+ M packages/map_runtime/test/selbrume_map_catalog_integrity_test.dart
+ M packages/map_runtime/test/step_studio_completion_runtime_test.dart
+ M packages/map_runtime/test/step_studio_save_reload_visibility_integration_test.dart
+ M packages/map_runtime/test/step_studio_world_presence_runtime_test.dart
+ M packages/map_runtime/test/trainer_battle_request_test.dart
+ M packages/map_runtime/test/trainer_defeated_test.dart
+ M reports/narrativeStudio/events/ns_event_v2_phase_k_pixel_closure_evidence_pack.md
+ M reports/narrativeStudio/events/ns_event_v2_phase_l_final_readiness_evidence_pack.md
+ M reports/narrativeStudio/events/phase_k_product_route_evidence/product_after_1672x941.png
+ M reports/narrativeStudio/events/phase_k_product_route_evidence/reference_vs_product_after_1672x941.png
+ M reports/narrativeStudio/events/phase_k_product_route_evidence/reference_vs_product_after_overlay_50.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_15_bis_edge_selection_deletion_ux_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_15_visual_port_connection_ux_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_15_wire_anchor_color_code.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_17_condition_authoring_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_18_fact_registry_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_25_bis_dialogue_battle_ports_authoring_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_29_storyline_step_scene_link_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_30_bis_scene_node_deletion_ux_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_30_scene_node_payload_editing_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_31_scene_consequence_authoring_ui_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_35_facts_world_rules_manager_ui_v0.png
+ M reports/narrativeStudio/scenes/screenshots/ns_scenes_v1_39_cinematic_scene_builder_picker_v0.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_seed_fix_01_bis_graph_focus_canvas.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_seed_fix_01_bis_graph_full_layout.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_structure_bis_authoring_actions.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_structure_bis_collapsed_chapter.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_structure_bis_expanded_chapter_steps.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_structure_bis_full_width_accordion.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_structure_bis_graph_regression.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_v1_12_graph_empty_polished.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_v1_12_graph_main_polished.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_v1_12_graph_sidequest_attached_polished.png
+ M reports/narrativeStudio/storylines/screenshots/ns_storylines_v1_12_graph_sidequest_standalone_polished.png
+ M selbrume/maps/map_bourg_selbrume.json
+ M selbrume/maps/map_port_brisants.json
+?? packages/map_editor/assets/branding/pokemap_event_builder_mark.png
+?? packages/map_editor/assets/branding/pokemap_event_builder_project_thumb.png
+?? packages/map_editor/lib/src/application/models/pokemon_sdk_studio_project_payload.dart
+?? packages/map_editor/lib/src/application/ports/pokemon_sdk_studio_project_source.dart
+?? packages/map_editor/lib/src/ui/canvas/events_v2/event_builder_v2_product_shell.dart
+?? reports/narrativeStudio/events/ns_event_v2_s0_stabilization_baseline.md
+?? reports/narrativeStudio/events/phase_k_product_route_evidence/focus_editor.png
+?? reports/narrativeStudio/events/phase_k_product_route_evidence/focus_header_navigation_list.png
+?? reports/narrativeStudio/events/phase_k_product_route_evidence/focus_inspector.png
+```
+
+
+Fichiers texte créés pendant cette campagne :
+
+- `pokemon_sdk_studio_project_payload.dart` ;
+- `pokemon_sdk_studio_project_source.dart` ;
+- `event_builder_v2_product_shell.dart` ;
+- `ns_event_v2_s0_stabilization_baseline.md`.
+
+Leur contenu complet est reproduit dans l’annexe terminale L6 située à la fin
+de ce rapport. Les binaires créés sont identifiés par chemin, dimensions et
+hashes dans K8. Aucun fichier source temporaire ni copie du corpus utilisateur
+n’est conservé dans le dépôt.
+
+## L6.5 Git, limites et auto-critique
+
+État initial : branche `main`, HEAD
+`11c956ac2c37be15fe07c708443ecf7a39b1663b`, `0` entrée suivie modifiée et `9`
+éléments non suivis. État avant rédaction documentaire terminale : même HEAD,
+`162` entrées suivies/indexées et `9` non suivies, soit `171`; aucune écriture
+Git, aucun lock Selbrume, aucun failure artifact, `git diff --check` vert.
+
+Limites non bloquantes pour la feature : le corpus source reste volontairement
+hors dépôt ; son emplacement local est donc requis pour rejouer ces deux tests.
+Le shell vise une fidélité produit et structurelle, pas une copie décorative
+pixel à pixel. La transition Event → Scene gagnera à être observée en test
+utilisateur réel.
+
+Auto-critique : la campagne a élargi son diff pour restaurer une matrice globale
+verte, notamment via des corrections analyzer et des attentes historiques. Ces
+changements ont été validés package par package, mais rendent le checkpoint
+final volumineux. Les deux pipelines de corpus sont verts localement, mais leur
+dépendance machine-spécifique n’est pas une preuve CI reproductible. C’est
+précisément pourquoi ce rapport maintient un NO-GO publication jusqu’au
+checkpoint et à une décision explicite sur le corpus.
+
+
+### Correctif annexe L6 — contenu S0 courant après revue release
+
+La reproduction S0 précédente a été capturée avant le correctif de formulation
+sur les deux prérequis L2. La version courante complète est :
+
+```markdown
+# NS-EVENT-V2 — S0 Stabilization Baseline
+
+Date d'ouverture : 2026-07-17
+
+Lot exact : `S0 — Stabiliser et sécuriser l'état courant`
+
+Statut courant : `DONE`
+
+## Résumé exécutif
+
+Le checkpoint de départ Event Builder V2 est récupérable dans le commit
+`11c956ac2c37be15fe07c708443ecf7a39b1663b`
+(`feat(events): complete Event Builder V2 workflow`). Le commit porte 240
+fichiers, 270489 insertions et 733 suppressions. Les neuf éléments initiaux ont
+été attribués ; les failure artifacts et le lock orphelin ont été supprimés.
+S0 est donc fermé. Le checkpoint final et la reproductibilité du corpus
+graphique relèvent de L2 et restent les deux conditions opérationnelles ouvertes.
+
+## Scope et non-objectifs
+
+S0 attribue le checkout, élimine les artefacts orphelins, réconcilie la
+documentation avec le checkpoint et enregistre les baselines. Il n'ajoute
+aucun comportement Event, Scene, Map ou runtime. Les corrections visuelles et
+release appartiennent respectivement à K2 et aux lots correctifs précédant L2.
+
+## Audit initial
+
+État observé au début de la campagne cinq lots :
+
+- branche : `main` ;
+- HEAD : `11c956ac2c37be15fe07c708443ecf7a39b1663b` ;
+- modifications suivies : aucune ;
+- éléments non suivis : neuf ;
+- `git diff --check` : exit `0` ;
+- le plan d'exécution local sous `docs/superpowers/plans/` est ignoré par la
+  règle historique `.gitignore:7:/docs/*` et n'est pas un livrable Git S0.
+
+## Attribution des neuf éléments initiaux
+
+| Élément | Attribution | Décision |
+|---|---|---|
+| 4 PNG `test/failures/ns_scenes_v1_39_*` | artefacts golden Scene étrangers à Event V2 | supprimés, non publiables |
+| 4 PNG `test/ui/canvas/failures/event_builder_v2_product_route_1672x941_*` | comparaison golden RED K2 | conservés pendant l'itération K2, à supprimer après GREEN |
+| `selbrume/.pokemap-project-1f1a60297a27b0b0.lock` | lock éditeur local vide et orphelin | `lsof` sans propriétaire, supprimé |
+
+## Références visuelles gelées
+
+| Fichier | SHA-256 |
+|---|---|
+| North star `1 - événements.png` | `2072679b3b861a63c068628450705d39e70ad59dc5067e0a0bf91c0bcbe8c885` |
+| Produit avant nouvelle itération K2 | `eda012eafc3ecbdafd17396c2b7810005f1687a9796f7cf58d93ae34dde1d673` |
+
+## Commandes initiales et résultats exacts
+
+```text
+git show --shortstat --oneline HEAD
+11c956ac feat(events): complete Event Builder V2 workflow
+240 files changed, 270489 insertions(+), 733 deletions(-)
+
+lsof selbrume/.pokemap-project-1f1a60297a27b0b0.lock
+exit 1, aucun processus propriétaire
+
+git diff --check
+exit 0, aucune sortie
+```
+
+Après attribution et nettoyage des cinq artefacts immédiatement sûrs, seuls
+les quatre PNG RED K2 restent non suivis.
+
+## Risques conservés
+
+- le checkpoint unique de 240 fichiers reste grossier pour un rollback par
+  phase, mais il est restaurable ;
+- les documents K/L contiennent un historique exact sur l'ancien HEAD
+  `2f68328…` qui ne doit pas être réécrit ; une section terminale post-commit
+  doit le superséder ;
+- le checkpoint S0 protège l’état initial, pas les octets de la campagne
+  courante ;
+- aucune opération Git d'écriture n'a été autorisée pendant cette campagne ;
+- L2 reste par conséquent `BLOCKED` jusqu'au checkpoint final explicite et à
+  une décision reproductible sur le corpus externe.
+
+## Clôture S0
+
+- K2 : `DONE`, route produit 1672 × 941 inspectée et Design QA `passed` ;
+- matrice technique : verte sur les six packages ;
+- corpus graphique approuvé retrouvé sous
+  `/Users/karim/Documents/playable_projects/selbrume/assets/sources/v2`, avec
+  `68/68` hashes conformes au manifeste ;
+- pipelines initialement skippés : rejoués, `+3`, `All tests passed!` ;
+- hygiène : aucun fichier sous les dossiers `test/failures`, aucun lock
+  Selbrume, `git diff --check` vert.
+
+Verdict : **S0 DONE**. Le rapport ne confond pas ce checkpoint initial avec le
+checkpoint de publication encore requis par L2.
+```
+
 > **Réconciliation finale L5 — 2026-07-17.** Cette section remplace L4 pour le
 > statut, le périmètre des guards, la matrice et les nombres d’analyse. Les
 > sections historiques restent conservées uniquement comme audit trail.

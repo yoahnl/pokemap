@@ -168,7 +168,7 @@ void main() {
         'l_tile_for_t',
         'l_environment_for_t',
         'l_path_path',
-        'l_terrain_terrain',
+        'l_terrain',
         'l_path_ocean',
         'l_tile_maison',
       ],
@@ -713,8 +713,14 @@ void main() {
     final entities = <String, MapEntity>{
       for (final entity in map.entities) entity.id: entity,
     };
-    expect(entities.keys,
-        unorderedEquals(<String>['grant', 'anchor_marais_mado']));
+    expect(
+      entities.keys,
+      unorderedEquals(<String>[
+        'grant',
+        'anchor_marais_mado',
+        'clue_glass_object',
+      ]),
+    );
     final grant = entities['grant']!;
     expect(grant.kind, MapEntityKind.npc);
     expect(grant.pos, const GridPos(x: 24, y: 20));
@@ -729,6 +735,16 @@ void main() {
     expect(mado.properties, <String, String>{
       'contractRole': 'reserved_character_anchor',
       'inert': 'true',
+    });
+    final clue = entities['clue_glass_object']!;
+    expect(clue.kind, MapEntityKind.custom);
+    expect(clue.pos, const GridPos(x: 8, y: 32));
+    expect(clue.size, const GridSize(width: 1, height: 1));
+    expect(clue.blocksMovement, isFalse);
+    expect(clue.npc, isNull);
+    expect(clue.properties, <String, String>{
+      'contractRole': 'phase_j_clue_source',
+      'visualOwnerId': 'pe_marais_indice_verre',
     });
 
     const encounterAreas = <String, MapRect>{

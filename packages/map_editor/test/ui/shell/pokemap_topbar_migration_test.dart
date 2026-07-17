@@ -9,7 +9,8 @@ import '../../shell_chrome_test_harness.dart';
 
 void main() {
   group('PokeMap Topbar Migration', () {
-    testWidgets('TopToolbar renders brand and custom themed elements under Dark Theme',
+    testWidgets(
+        'TopToolbar renders brand and custom themed elements under Dark Theme',
         (tester) async {
       await pumpTopToolbarHarness(
         tester,
@@ -27,22 +28,35 @@ void main() {
       // Verify the brand icon is rendered using MacosIcon
       expect(find.byType(MacosIcon), findsWidgets);
 
-      // Verify top level ToolBar container exists
-      final toolbarFinder = find.byType(ToolBar);
+      // Verify the current top-level toolbar surface exists.
+      final toolbarFinder = find.byKey(
+        const Key('top-toolbar-under-test'),
+      );
       expect(toolbarFinder, findsOneWidget);
 
-      // Verify the ToolBar uses the design system divider color and decoration background
-      final ToolBar toolbarWidget = tester.widget<ToolBar>(toolbarFinder);
-      expect(toolbarWidget.dividerColor, equals(PokeMapColorTokens.dark.divider));
-      
-      final toolbarDeco = toolbarWidget.decoration;
-      expect(toolbarDeco?.color, equals(PokeMapColorTokens.dark.backgroundShell));
+      // Verify the surface uses the design-system divider and background.
+      final surfaceFinder = find
+          .descendant(
+            of: toolbarFinder,
+            matching: find.byType(Container),
+          )
+          .first;
+      final surface = tester.widget<Container>(surfaceFinder);
+      final toolbarDeco = surface.decoration as BoxDecoration?;
+      final toolbarBorder = toolbarDeco?.border as Border?;
+      expect(
+        toolbarBorder?.bottom.color,
+        equals(PokeMapColorTokens.dark.divider),
+      );
+      expect(
+          toolbarDeco?.color, equals(PokeMapColorTokens.dark.backgroundShell));
 
       // Verify custom themed capsules exist
       expect(find.byType(ToolbarCapsuleGroup), findsWidgets);
     });
 
-    testWidgets('TopToolbar renders status message with brandPrimaryColors soft tint',
+    testWidgets(
+        'TopToolbar renders status message with brandPrimaryColors soft tint',
         (tester) async {
       await pumpTopToolbarHarness(
         tester,
@@ -58,16 +72,21 @@ void main() {
       expect(find.text('Prêt'), findsOneWidget);
 
       // Verify status message is wrapped in themed Container
-      final statusContainerFinder = find.ancestor(
-        of: find.text('Prêt'),
-        matching: find.byType(Container),
-      ).first;
-      final Container statusContainer = tester.widget<Container>(statusContainerFinder);
+      final statusContainerFinder = find
+          .ancestor(
+            of: find.text('Prêt'),
+            matching: find.byType(Container),
+          )
+          .first;
+      final Container statusContainer =
+          tester.widget<Container>(statusContainerFinder);
       final statusDeco = statusContainer.decoration as BoxDecoration?;
-      expect(statusDeco?.color, equals(PokeMapColorTokens.dark.brandPrimarySoft));
-      
+      expect(
+          statusDeco?.color, equals(PokeMapColorTokens.dark.brandPrimarySoft));
+
       final statusBorder = statusDeco?.border as Border?;
-      expect(statusBorder?.top.color, equals(PokeMapColorTokens.dark.brandPrimaryBorder));
+      expect(statusBorder?.top.color,
+          equals(PokeMapColorTokens.dark.brandPrimaryBorder));
     });
   });
 }

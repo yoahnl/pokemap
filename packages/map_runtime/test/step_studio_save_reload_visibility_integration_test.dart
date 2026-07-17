@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../lib/src/application/npc_runtime_presence.dart';
-import '../lib/src/application/step_studio_completion_runtime.dart';
-import '../lib/src/application/step_studio_world_presence_runtime.dart';
+import 'package:map_runtime/src/application/npc_runtime_presence.dart';
+import 'package:map_runtime/src/application/step_studio_completion_runtime.dart';
+import 'package:map_runtime/src/application/step_studio_world_presence_runtime.dart';
 
 const _doc = '''
 {"schemaVersion":"step_studio_v1","globalStoryScenarioId":"global_story","steps":[
@@ -32,12 +32,12 @@ void main() {
   test(
     'intégration data flow: cutscene terminée -> step_2 complétée -> save/reload -> Emma absente',
     () {
-      final scenario = ScenarioAsset(
+      const scenario = ScenarioAsset(
         id: 'global_story',
         name: 'Global Story',
         scope: ScenarioScope.globalStory,
         entryNodeId: 'start',
-        metadata: const <String, String>{
+        metadata: <String, String>{
           kStepStudioDocumentMetadataKey: _doc,
         },
       );
@@ -55,7 +55,7 @@ void main() {
       );
       expect(stepId, 'step_2');
 
-      final initial = const GameState(saveId: 's0');
+      const initial = GameState(saveId: 's0');
       final completed = initial.copyWith(
         progression: initial.progression.copyWith(
           completedStepIds: appendCompletedStepIdIfAbsent(

@@ -226,7 +226,7 @@ RuntimeMapBundle _runtimeBundle({
     manifest: ProjectManifest(
       name: 'Lot 2 Battle Background Tests',
       maps: <ProjectMapEntry>[
-        ProjectMapEntry(
+        const ProjectMapEntry(
           id: 'field_map',
           name: 'Field Map',
           relativePath: 'maps/field_map.json',

@@ -10,7 +10,8 @@ import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
 
 void main() {
-  const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  const project = ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Moves Catalog UI Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -110,7 +111,8 @@ void main() {
     expect(find.byKey(const Key('moves-catalog-list')), findsOneWidget);
     expect(find.text('Water Gun'), findsWidgets);
     expect(find.text('Thunder Shock'), findsWidgets);
-    expect(find.byKey(const Key('moves-catalog-detail-water-gun')), findsOneWidget);
+    expect(find.byKey(const Key('moves-catalog-detail-water-gun')),
+        findsOneWidget);
     expect(find.text('Inflicts regular damage.'), findsOneWidget);
   });
 
@@ -142,8 +144,10 @@ void main() {
       ],
     );
 
-    expect(find.byKey(const Key('moves-catalog-preview-sync-button')), findsOneWidget);
-    expect(find.byKey(const Key('moves-catalog-run-sync-button')), findsOneWidget);
+    expect(find.byKey(const Key('moves-catalog-preview-sync-button')),
+        findsOneWidget);
+    expect(
+        find.byKey(const Key('moves-catalog-run-sync-button')), findsOneWidget);
     expect(find.text('Prévisualiser la synchro'), findsOneWidget);
     expect(find.text('Sync depuis Showdown'), findsOneWidget);
   });
@@ -251,7 +255,8 @@ void main() {
     expect(find.textContaining('1 entrée ignorée'), findsOneWidget);
   });
 
-  testWidgets('Moves catalog shows an invalid-catalog state when every entry is ignored',
+  testWidgets(
+      'Moves catalog shows an invalid-catalog state when every entry is ignored',
       (tester) async {
     await _pumpMovesWorkspace(
       tester,
@@ -325,7 +330,8 @@ void main() {
     expect(find.text('—'), findsWidgets);
   });
 
-  testWidgets('Moves catalog preview sync uses the workspace syncer and shows a summary',
+  testWidgets(
+      'Moves catalog preview sync uses the workspace syncer and shows a summary',
       (tester) async {
     var loaderCallCount = 0;
     String? capturedProjectRootPath;
@@ -379,7 +385,8 @@ void main() {
       ],
     );
 
-    await tester.tap(find.byKey(const Key('moves-catalog-preview-sync-button')));
+    await tester
+        .tap(find.byKey(const Key('moves-catalog-preview-sync-button')));
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -394,7 +401,8 @@ void main() {
     expect(loaderCallCount, 1);
   });
 
-  testWidgets('Moves catalog run sync refreshes the local catalog after success',
+  testWidgets(
+      'Moves catalog run sync refreshes the local catalog after success',
       (tester) async {
     var loaderCallCount = 0;
     var hasSynced = false;

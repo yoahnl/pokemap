@@ -48,6 +48,11 @@ void main() {
         ),
       );
 
+      // Les modules de l'explorateur sont repliés par défaut : l'auteur
+      // ouvre d'abord la section avant de choisir son espace de travail.
+      await tester.tap(find.text('Environment Studio').first);
+      await tester.pumpAndSettle();
+
       expect(
         find.byKey(const Key('project-explorer-environment-studio-entry')),
         findsOneWidget,

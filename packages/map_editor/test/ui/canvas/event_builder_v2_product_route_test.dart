@@ -670,6 +670,99 @@ void main() {
       expect(shell, findsOneWidget);
       expect(tester.getSize(shell), const Size(1672, 941));
 
+      // K2-R guards the production route, not the isolated visual harness.
+      // The Event workspace owns one purpose-built shell at this viewport; the
+      // generic map toolbar, reduced explorer and nested Narrative sidebar
+      // would otherwise compress the four authoring columns again.
+      expect(
+        tester.getRect(
+          find.byKey(
+            const ValueKey('event-builder-v2-product-shell-header'),
+          ),
+        ),
+        const Rect.fromLTWH(0, 0, 1672, 50),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(
+            const ValueKey('event-builder-v2-product-shell-context-bar'),
+          ),
+        ),
+        const Rect.fromLTWH(207, 50, 1465, 52),
+      );
+      // The action strip is part of the visual contract too: all controls are
+      // full 36px targets with borders, rather than the old bare glyphs that
+      // visually collapsed the right side of the reference header.
+      for (final key in const <ValueKey<String>>[
+        ValueKey('event-builder-v2-search-project'),
+        ValueKey('event-builder-v2-project-notifications'),
+        ValueKey('event-builder-v2-project-settings'),
+      ]) {
+        final control = find.byKey(key);
+        expect(tester.getSize(control), const Size(36, 36));
+        expect(
+          tester.widget<PokeMapIconButton>(control).onPressed,
+          isNull,
+          reason: 'A visible shell control must not advertise a no-op action.',
+        );
+      }
+      expect(
+        tester.getRect(
+          find.byKey(
+            const ValueKey('event-builder-v2-product-shell-project'),
+          ),
+        ),
+        const Rect.fromLTWH(16, 58, 182, 36),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(
+            const ValueKey('event-builder-v2-product-shell-navigation'),
+          ),
+        ),
+        const Rect.fromLTWH(8, 102, 191, 817),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(
+            const ValueKey('event-builder-v2-product-shell-workspace'),
+          ),
+        ),
+        const Rect.fromLTWH(207, 102, 1456, 817),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(const ValueKey('event-builder-v2-list')),
+        ),
+        const Rect.fromLTWH(207, 102, 266, 817),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(const ValueKey('event-builder-v2-library')),
+        ),
+        const Rect.fromLTWH(481, 102, 213, 817),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(const ValueKey('event-builder-v2-editor')),
+        ),
+        const Rect.fromLTWH(702, 102, 565, 817),
+      );
+      expect(
+        tester.getRect(
+          find.byKey(const ValueKey('event-builder-v2-inspector')),
+        ),
+        const Rect.fromLTWH(1275, 102, 388, 817),
+      );
+      expect(
+        find.byKey(const ValueKey('project-explorer-region')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-sidebar')),
+        findsNothing,
+      );
+
       final output = File(
         'test/goldens/event_builder_v2/phase_1/'
         'event_builder_v2_full_product_route_1672x941.png',

@@ -617,8 +617,8 @@ class _WorkbenchTopBarState extends State<_WorkbenchTopBar> {
                       ),
                     ),
                     if (widget.hasUnsavedChanges)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 8),
                         child: Text(
                           'Modifications non sauvegardées',
                           style: TextStyle(

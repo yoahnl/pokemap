@@ -165,28 +165,28 @@ const Map<String, List<(String, String, String, GridPos, bool)>>
     (
       'pe_bourg_maison_joueur_facade',
       'selbrum_maison_1',
-      'l_tile_structures',
+      'l_tile_maison',
       GridPos(x: 10, y: 18),
       true,
     ),
     (
       'pe_bourg_centre_facade',
       'selbrume_centre_pok_mon',
-      'l_tile_structures',
+      'l_tile_maison',
       GridPos(x: 29, y: 22),
       true,
     ),
     (
       'pe_bourg_puits',
       'le_puits',
-      'l_tile_structures',
+      'l_tile_maison',
       GridPos(x: 23, y: 27),
       true,
     ),
     (
       'pe_bourg_kiosque',
       'kiosque_l_gumes',
-      'l_tile_structures',
+      'l_tile_maison',
       GridPos(x: 36, y: 35),
       true,
     ),
@@ -196,7 +196,7 @@ const Map<String, List<(String, String, String, GridPos, bool)>>
       'pe_port_bateau',
       'el_port_ref_boat_large',
       'l_tile_port_ref_structures',
-      GridPos(x: 0, y: 22),
+      GridPos(x: 0, y: 21),
       true,
     ),
     (
@@ -476,6 +476,19 @@ const Set<String> _authoredExteriorLayerIds = <String>{
   'l_tile_overhead',
   'l_tile_fx',
   'l_collisions',
+};
+
+// Le Bourg conserve la composition authored issue de l'éditeur (forêt et
+// maisons sur leurs calques dédiés) tout en utilisant l'ID terrain canonique.
+// Les autres extérieurs restent soumis au contrat de production à huit
+// calques, collisions statiques comprises.
+const Set<String> _authoredBourgLayerIds = <String>{
+  'l_tile_for_t',
+  'l_environment_for_t',
+  'l_path_path',
+  'l_terrain',
+  'l_path_ocean',
+  'l_tile_maison',
 };
 
 const Set<String> _authoredPortLayerIds = <String>{
@@ -1229,8 +1242,11 @@ void _validateAuthoredMapContract(
     }
   }
   final collisionLayers = map.layers.whereType<CollisionLayer>();
-  if (collisionLayers.length != 1 ||
-      collisionLayers.single.id != 'l_collisions') {
+  final usesPlacementOnlyCollisions = map.id == 'map_bourg_selbrume';
+  if ((!usesPlacementOnlyCollisions && collisionLayers.length != 1) ||
+      (collisionLayers.isNotEmpty &&
+          (collisionLayers.length != 1 ||
+              collisionLayers.single.id != 'l_collisions'))) {
     throw StateError(
       '${map.id} must expose exactly one canonical l_collisions layer.',
     );
@@ -1411,6 +1427,9 @@ void _validateAuthoredTopology(Map<String, MapData> maps) {
 }
 
 Set<String> _authoredRequiredLayerIds(String mapId) {
+  if (mapId == 'map_bourg_selbrume') {
+    return _authoredBourgLayerIds;
+  }
   if (mapId == 'map_port_brisants') {
     return _authoredPortLayerIds;
   }
@@ -1451,9 +1470,14 @@ bool _hasWalkableAuthoredConnectionEdge(
   MapData map,
   MapConnectionDirection direction,
 ) {
-  final collision = map.layers
+  final collisions = map.layers
       .whereType<CollisionLayer>()
-      .singleWhere((layer) => layer.id == 'l_collisions');
+      .where((layer) => layer.id == 'l_collisions')
+      .toList(growable: false);
+  if (collisions.isEmpty) {
+    return true;
+  }
+  final collision = collisions.single;
   final positions = switch (direction) {
     MapConnectionDirection.north => <GridPos>[
         for (var x = 0; x < map.size.width; x++) GridPos(x: x, y: 0),

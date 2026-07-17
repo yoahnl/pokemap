@@ -446,7 +446,7 @@ String _variantShortLabel(TerrainPathVariant variant) {
 }
 
 class _GridSpacer extends StatelessWidget {
-  const _GridSpacer({super.key});
+  const _GridSpacer();
 
   @override
   Widget build(BuildContext context) {
@@ -497,7 +497,9 @@ class _NewPathSpatialCell extends StatelessWidget {
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           color: Color.lerp(
-            isCenterCell ? PathStudioTheme.surface : PathStudioTheme.surfaceStrong,
+            isCenterCell
+                ? PathStudioTheme.surface
+                : PathStudioTheme.surfaceStrong,
             selected ? PathStudioTheme.accent : PathStudioTheme.accentCyan,
             selected ? 0.32 : (isCenterCell ? 0.12 : 0.08),
           ),
@@ -517,7 +519,9 @@ class _NewPathSpatialCell extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: selected ? PathStudioTheme.textPrimary : PathStudioTheme.textSecondary,
+                color: selected
+                    ? PathStudioTheme.textPrimary
+                    : PathStudioTheme.textSecondary,
                 fontSize: 10,
                 fontWeight: FontWeight.w900,
               ),
@@ -569,7 +573,9 @@ class _NewPathSpatialCell extends StatelessWidget {
             ] else ...[
               Text(
                 isCenterCell
-                    ? (centerFramesCount > 1 ? 'Animé ($centerFramesCount)' : 'Statique')
+                    ? (centerFramesCount > 1
+                        ? 'Animé ($centerFramesCount)'
+                        : 'Statique')
                     : 'Configuré',
                 style: const TextStyle(
                   color: PathStudioTheme.success,
@@ -613,8 +619,10 @@ class _NewPathPatternGrid extends StatelessWidget {
     for (var y = 0; y < gridHeight; y += 1) {
       final rowCells = <Widget>[];
       for (var x = 0; x < gridWidth; x += 1) {
-        final isCorner = (x == 0 || x == gridWidth - 1) && (y == 0 || y == gridHeight - 1);
-        final isEdge = !isCorner && (x == 0 || x == gridWidth - 1 || y == 0 || y == gridHeight - 1);
+        final isCorner =
+            (x == 0 || x == gridWidth - 1) && (y == 0 || y == gridHeight - 1);
+        final isEdge = !isCorner &&
+            (x == 0 || x == gridWidth - 1 || y == 0 || y == gridHeight - 1);
 
         if (isCorner) {
           final variant = (x == 0 && y == 0)
@@ -624,7 +632,8 @@ class _NewPathPatternGrid extends StatelessWidget {
                   : (x == 0 && y == gridHeight - 1)
                       ? TerrainPathVariant.cornerSW
                       : TerrainPathVariant.cornerSE;
-          rowCells.add(_buildVariantGridCell(variant, _variantShortLabel(variant), x, y));
+          rowCells.add(_buildVariantGridCell(
+              variant, _variantShortLabel(variant), x, y));
         } else if (isEdge) {
           final variant = (y == 0)
               ? TerrainPathVariant.teeSouth
@@ -633,7 +642,8 @@ class _NewPathPatternGrid extends StatelessWidget {
                   : (x == 0)
                       ? TerrainPathVariant.teeEast
                       : TerrainPathVariant.teeWest;
-          rowCells.add(_buildVariantGridCell(variant, _variantShortLabel(variant), x, y));
+          rowCells.add(_buildVariantGridCell(
+              variant, _variantShortLabel(variant), x, y));
         } else {
           final cellX = x - 1;
           final cellY = y - 1;
@@ -656,7 +666,8 @@ class _NewPathPatternGrid extends StatelessWidget {
   }
 
   Widget _buildCenterGridCell(PathStudioNewPathDraftCell cell) {
-    final selected = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.centerCell &&
+    final selected = draft.selectedTarget ==
+            PathStudioNewPathDraftSelectionTarget.centerCell &&
         draft.selectedCellX == cell.localX &&
         draft.selectedCellY == cell.localY;
 
@@ -682,8 +693,9 @@ class _NewPathPatternGrid extends StatelessWidget {
     int y,
   ) {
     final frames = draft.variantCellFrames[variant] ?? const [];
-    final isSelected = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant &&
-        draft.selectedVariant == variant;
+    final isSelected =
+        draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant &&
+            draft.selectedVariant == variant;
     final selectedIndex = (isSelected && frames.isNotEmpty)
         ? draft.selectedCenterFrameIndex.clamp(0, frames.length - 1)
         : 0;
@@ -757,7 +769,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isVariantTarget = draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant;
+    final isVariantTarget =
+        draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant;
 
     final String titleText;
     final String subtitleText;
@@ -854,10 +867,13 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           if (frames.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              isVariantTarget ? 'Animation du variant' : 'Animation du centre — Cellule ${draft.selectedCell.label}',
-              key: isVariantTarget 
+              isVariantTarget
+                  ? 'Animation du variant'
+                  : 'Animation du centre — Cellule ${draft.selectedCell.label}',
+              key: isVariantTarget
                   ? const Key('path-studio-new-path-animation-title-variant')
-                  : Key('path-studio-new-path-animation-title-${draft.selectedCell.label}'),
+                  : Key(
+                      'path-studio-new-path-animation-title-${draft.selectedCell.label}'),
               style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
                 fontSize: 12,
@@ -976,13 +992,14 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
               ),
             ),
           ],
-          if (selectedFrame != null && onClearPressed != null) ...[
+          if (selectedFrame != null) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: CupertinoButton(
                 key: isVariantTarget
-                    ? Key('path-studio-new-path-clear-variant-${draft.selectedVariant.name}')
+                    ? Key(
+                        'path-studio-new-path-clear-variant-${draft.selectedVariant.name}')
                     : const Key('path-studio-new-path-clear-selected-cell'),
                 padding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -1036,7 +1053,8 @@ class _NewPathVariantMappingSectionState
 
   Widget _buildVariantGridCell(TerrainPathVariant variant, String label) {
     final frames = widget.draft.variantCellFrames[variant] ?? const [];
-    final isSelected = widget.draft.selectedTarget == PathStudioNewPathDraftSelectionTarget.variant &&
+    final isSelected = widget.draft.selectedTarget ==
+            PathStudioNewPathDraftSelectionTarget.variant &&
         widget.draft.selectedVariant == variant;
     final selectedIndex = (isSelected && frames.isNotEmpty)
         ? widget.draft.selectedCenterFrameIndex.clamp(0, frames.length - 1)
@@ -1073,7 +1091,8 @@ class _NewPathVariantMappingSectionState
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          decoration: PathStudioTheme.subtleDecoration(
+              color: PathStudioTheme.backgroundAlt),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1123,22 +1142,27 @@ class _NewPathVariantMappingSectionState
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          decoration: PathStudioTheme.subtleDecoration(
+              color: PathStudioTheme.backgroundAlt),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildVariantGridCell(TerrainPathVariant.innerCornerNW, 'Intér. NO'),
-                  _buildVariantGridCell(TerrainPathVariant.innerCornerNE, 'Intér. NE'),
+                  _buildVariantGridCell(
+                      TerrainPathVariant.innerCornerNW, 'Intér. NO'),
+                  _buildVariantGridCell(
+                      TerrainPathVariant.innerCornerNE, 'Intér. NE'),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildVariantGridCell(TerrainPathVariant.innerCornerSW, 'Intér. SO'),
-                  _buildVariantGridCell(TerrainPathVariant.innerCornerSE, 'Intér. SE'),
+                  _buildVariantGridCell(
+                      TerrainPathVariant.innerCornerSW, 'Intér. SO'),
+                  _buildVariantGridCell(
+                      TerrainPathVariant.innerCornerSE, 'Intér. SE'),
                 ],
               ),
             ],
@@ -1163,14 +1187,16 @@ class _NewPathVariantMappingSectionState
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.all(6),
-          decoration: PathStudioTheme.subtleDecoration(color: PathStudioTheme.backgroundAlt),
+          decoration: PathStudioTheme.subtleDecoration(
+              color: PathStudioTheme.backgroundAlt),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildVariantGridCell(TerrainPathVariant.horizontal, 'Ligne H'),
+                  _buildVariantGridCell(
+                      TerrainPathVariant.horizontal, 'Ligne H'),
                   _buildVariantGridCell(TerrainPathVariant.vertical, 'Ligne V'),
                 ],
               ),
@@ -1321,8 +1347,7 @@ class _NewPathCenterSequenceAssistantState
     super.dispose();
   }
 
-  String? get _displayedFeedback =>
-      _localFeedback ?? widget.feedbackMessage;
+  String? get _displayedFeedback => _localFeedback ?? widget.feedbackMessage;
 
   void _submit() {
     setState(() => _localFeedback = null);
@@ -1653,7 +1678,6 @@ class _CenterFrameChip extends StatelessWidget {
     );
   }
 }
-
 
 class _TilePreviewBadge extends StatelessWidget {
   const _TilePreviewBadge({

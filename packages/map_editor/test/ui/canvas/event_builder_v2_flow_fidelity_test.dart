@@ -49,6 +49,29 @@ void main() {
           lessThanOrEqualTo(96),
           reason: 'the trigger card must keep the compact reference density',
         );
+        final sourceWidth = tester
+            .getSize(
+              find.byKey(
+                const ValueKey('event-builder-v2-source-block'),
+              ),
+            )
+            .width;
+        final conditionsWidth = tester
+            .getSize(
+              find.byKey(
+                const ValueKey('event-builder-v2-conditions-block'),
+              ),
+            )
+            .width;
+        expect(sourceWidth, lessThanOrEqualTo(304));
+        expect(sourceWidth, lessThan(conditionsWidth));
+        expect(
+          find.byKey(
+            const ValueKey('event-builder-v2-outcome-branch-connector'),
+          ),
+          count >= 2 ? findsOneWidget : findsNothing,
+          reason: '$count outcomes',
+        );
         expect(
           find.byKey(
             const ValueKey('event-builder-v2-behavior-block'),

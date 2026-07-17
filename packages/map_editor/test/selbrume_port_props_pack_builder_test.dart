@@ -62,7 +62,7 @@ void main() {
         .whereType<File>()
         .where((file) => p.basename(file.path).contains('.props-pack-'));
     expect(temporaryFiles, isEmpty);
-  });
+  }, skip: _propsSourceCorpusSkipReason());
 
   test('requires an explicit check or write mode', () {
     expect(
@@ -83,6 +83,23 @@ void main() {
       throwsFormatException,
     );
   });
+}
+
+String? _propsSourceCorpusSkipReason() {
+  final repositoryRoot = _findRepositoryRoot();
+  const requiredSources = <String>[
+    selbrumePortPropsGeneratedSheetPath,
+    'assets/sources/v2/props/13_baril_haut.png',
+    'assets/sources/v2/port/03_caisses_port.png',
+    'assets/tilesets/selbrume_port_props.png',
+  ];
+  return requiredSources.every(
+    (relativePath) => File(
+      p.join(repositoryRoot.path, 'selbrume', relativePath),
+    ).existsSync(),
+  )
+      ? null
+      : 'Approved user-supplied props source corpus is not versioned.';
 }
 
 void _expectOutputDimensions(Directory fixture) {

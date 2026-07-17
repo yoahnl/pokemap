@@ -46,10 +46,11 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
     // Resolves the manual path associated with the selected actorMove step.
     // Safe lookup: returns null if no manual path matches the selected step id,
     // avoiding illegal construction of dummy/sentinel CinematicManualPath instances.
-    final path = stageContext.manualPaths.cast<CinematicManualPath?>().firstWhere(
-      (p) => p?.ownerActorMoveStepId == selectedStep.id,
-      orElse: () => null,
-    );
+    final path =
+        stageContext.manualPaths.cast<CinematicManualPath?>().firstWhere(
+              (p) => p?.ownerActorMoveStepId == selectedStep.id,
+              orElse: () => null,
+            );
 
     if (path == null) {
       return const SizedBox.shrink();
@@ -72,10 +73,12 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
         for (final placement in stageContext.initialPlacements) {
           if (placement.actorId == actorId) {
             if (placement.stagePointId != null) {
-              final sp = stageContext.stagePoints.cast<CinematicStagePoint?>().firstWhere(
-                (p) => p?.id == placement.stagePointId,
-                orElse: () => null,
-              );
+              final sp = stageContext.stagePoints
+                  .cast<CinematicStagePoint?>()
+                  .firstWhere(
+                    (p) => p?.id == placement.stagePointId,
+                    orElse: () => null,
+                  );
               if (sp != null) {
                 departureOffset = Offset(sp.x, sp.y);
               }
@@ -96,10 +99,11 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
     // 2. Resolve intermediate waypoints
     final waypointOffsets = <Offset>[];
     for (final waypointId in path.waypointStagePointIds) {
-      final sp = stageContext.stagePoints.cast<CinematicStagePoint?>().firstWhere(
-        (p) => p?.id == waypointId,
-        orElse: () => null,
-      );
+      final sp =
+          stageContext.stagePoints.cast<CinematicStagePoint?>().firstWhere(
+                (p) => p?.id == waypointId,
+                orElse: () => null,
+              );
       if (sp != null) {
         waypointOffsets.add(Offset(sp.x, sp.y));
       }
@@ -133,7 +137,8 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
 
     // Convert to preview offsets
     final previewPoints = fullPathTiles
-        .map((tileOffset) => transform.tileToPreview(tileOffset.dx, tileOffset.dy))
+        .map((tileOffset) =>
+            transform.tileToPreview(tileOffset.dx, tileOffset.dy))
         .toList();
 
     return Stack(
@@ -162,7 +167,8 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
     );
   }
 
-  Widget _buildWaypointBadge(Offset tileOffset, int order, PokeMapColorTokens colors) {
+  Widget _buildWaypointBadge(
+      Offset tileOffset, int order, PokeMapColorTokens colors) {
     final previewOffset = transform.tileToPreview(tileOffset.dx, tileOffset.dy);
     const size = 18.0;
     return Positioned(
@@ -180,7 +186,6 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
               border: Border.all(color: colors.surfaceBase, width: 1.5),
               boxShadow: [
                 BoxShadow(
-                  // Avoids hardcoded Colors.black. Uses design token textPrimary with values.
                   color: colors.textPrimary.withValues(alpha: 0.2),
                   blurRadius: 2,
                   offset: const Offset(0, 1),
@@ -191,7 +196,6 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
               child: Text(
                 '$order',
                 style: TextStyle(
-                  // Avoids hardcoded Colors.white. Uses design token textInverse.
                   color: colors.textInverse,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
@@ -247,10 +251,11 @@ class CinematicManualPathPreviewOverlay extends StatelessWidget {
     }
 
     if (binding.kind == CinematicMovementTargetBindingKind.stagePoint) {
-      final sp = stageContext.stagePoints.cast<CinematicStagePoint?>().firstWhere(
-        (p) => p?.id == binding!.sourceId,
-        orElse: () => null,
-      );
+      final sp =
+          stageContext.stagePoints.cast<CinematicStagePoint?>().firstWhere(
+                (p) => p?.id == binding!.sourceId,
+                orElse: () => null,
+              );
       if (sp != null) {
         return Offset(sp.x, sp.y);
       }

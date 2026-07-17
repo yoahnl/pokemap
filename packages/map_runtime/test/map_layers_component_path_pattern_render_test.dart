@@ -15,11 +15,11 @@ void main() {
     test('render path runtime utilise le centerPattern 2x2', () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
-          map: MapData(
+          map: const MapData(
             id: 'path-pattern-map',
             name: 'Path Pattern Map',
-            size: const GridSize(width: 2, height: 2),
-            layers: const [
+            size: GridSize(width: 2, height: 2),
+            layers: [
               MapLayer.path(
                 id: 'path',
                 name: 'Path',
@@ -48,28 +48,32 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+                    const TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 0, y: 0))
                   ],
                 ),
                 PathCenterPatternCell(
                   localX: 1,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))
+                    const TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 1, y: 0))
                   ],
                 ),
                 PathCenterPatternCell(
                   localX: 0,
                   localY: 1,
                   frames: [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0))
+                    const TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 2, y: 0))
                   ],
                 ),
                 PathCenterPatternCell(
                   localX: 1,
                   localY: 1,
                   frames: [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0))
+                    const TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 3, y: 0))
                   ],
                 ),
               ],
@@ -97,11 +101,11 @@ void main() {
     test('centerPattern animé change de frame selon elapsedMs', () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
-          map: MapData(
+          map: const MapData(
             id: 'path-pattern-animated-map',
             name: 'Path Pattern Animated Map',
-            size: const GridSize(width: 1, height: 1),
-            layers: const [
+            size: GridSize(width: 1, height: 1),
+            layers: [
               MapLayer.path(
                 id: 'path',
                 name: 'Path',
@@ -131,11 +135,11 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       source: TilesetSourceRect(x: 0, y: 0),
                       durationMs: 200,
                     ),
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       source: TilesetSourceRect(x: 1, y: 0),
                       durationMs: 200,
                     ),
@@ -164,11 +168,11 @@ void main() {
     test('absence image tileset ne crashe pas le rendu path', () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
-          map: MapData(
+          map: const MapData(
             id: 'path-pattern-no-image-map',
             name: 'Path Pattern No Image Map',
-            size: const GridSize(width: 1, height: 1),
-            layers: const [
+            size: GridSize(width: 1, height: 1),
+            layers: [
               MapLayer.path(
                 id: 'path',
                 name: 'Path',
@@ -197,7 +201,8 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+                    const TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 0, y: 0))
                   ],
                 ),
               ],
@@ -214,14 +219,14 @@ void main() {
         () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
-          map: MapData(
+          map: const MapData(
             id: 'path-over-ground-map',
             name: 'Path over ground map',
-            size: const GridSize(width: 5, height: 1),
-            properties: const <String, dynamic>{
+            size: GridSize(width: 5, height: 1),
+            properties: <String, dynamic>{
               'tileLayerOrder': 'bottom_to_top',
             },
-            placedElements: const <MapPlacedElement>[
+            placedElements: <MapPlacedElement>[
               MapPlacedElement(
                 id: 'ground-prop',
                 layerId: 'ground',
@@ -229,7 +234,7 @@ void main() {
                 pos: GridPos(x: 2, y: 0),
               ),
             ],
-            layers: const <MapLayer>[
+            layers: <MapLayer>[
               TileLayer(
                 id: 'ground',
                 name: 'Ground',

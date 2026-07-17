@@ -430,86 +430,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     );
   }
 
-  Widget _buildHeader(
-    BuildContext context,
-    Color label,
-    Color subtle,
-    int presetCount,
-  ) {
-    return Row(
-      key: const Key('environment-studio-header'),
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: EditorChrome.accentJade.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: EditorChrome.accentJade.withValues(alpha: 0.42),
-            ),
-          ),
-          child: const Icon(
-            CupertinoIcons.tree,
-            color: EditorChrome.accentJade,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Visibility(
-                visible: false,
-                maintainState: true,
-                child: Text(
-                  'Environment Studio',
-                  key: const Key('environment-studio-title'),
-                  style: TextStyle(
-                    color: label,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Presets d’environnements réutilisables',
-                style: TextStyle(
-                  color: label,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          key: const Key('environment-studio-preset-count'),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: EditorChrome.badgeFill(context),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: EditorChrome.accentWarm.withValues(alpha: 0.25),
-            ),
-          ),
-          child: Text(
-            presetCount == 1 ? '1 preset' : '$presetCount presets',
-            style: TextStyle(
-              color: label,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildInfoBanner(BuildContext context) {
     return Container(
       key: const Key('environment-studio-info-banner'),
@@ -642,17 +562,22 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                                   ),
                                   const SizedBox(width: 8),
                                   Container(
-                                    key: const Key('environment-studio-preset-count'),
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    key: const Key(
+                                        'environment-studio-preset-count'),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
                                       color: EditorChrome.badgeFill(context),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
-                                        color: EditorChrome.accentWarm.withValues(alpha: 0.25),
+                                        color: EditorChrome.accentWarm
+                                            .withValues(alpha: 0.25),
                                       ),
                                     ),
                                     child: Text(
-                                      presets.length == 1 ? '1 preset' : '${presets.length} presets',
+                                      presets.length == 1
+                                          ? '1 preset'
+                                          : '${presets.length} presets',
                                       style: TextStyle(
                                         color: label,
                                         fontSize: 11,

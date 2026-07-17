@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,8 +8,8 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_point_previe
 void main() {
   group('CinematicMapBackdropViewportTransform', () {
     test('previewToTile and tileToPreview transformations', () {
-      final transform = CinematicMapBackdropViewportTransform(
-        frame: const Rect.fromLTWH(50, 50, 400, 300),
+      const transform = CinematicMapBackdropViewportTransform(
+        frame: Rect.fromLTWH(50, 50, 400, 300),
         mapWidth: 20,
         mapHeight: 15,
       );
@@ -47,17 +46,17 @@ void main() {
 
     test('handles pan and zoom correctly', () {
       // With pan and zoom frame adjustments
-      final transform = CinematicMapBackdropViewportTransform(
-        frame: const Rect.fromLTWH(0, 0, 800, 600),
+      const transform = CinematicMapBackdropViewportTransform(
+        frame: Rect.fromLTWH(0, 0, 800, 600),
         mapWidth: 40,
         mapHeight: 30,
       );
 
-      final cellWidth = 800 / 40; // 20
-      final cellHeight = 600 / 30; // 20
+      const cellWidth = 800 / 40; // 20
+      const cellHeight = 600 / 30; // 20
 
       expect(transform.tileToPreview(10, 10),
-          Offset(10 * cellWidth, 10 * cellHeight));
+          const Offset(10 * cellWidth, 10 * cellHeight));
       expect(transform.previewToTile(const Offset(200, 200)),
           const Offset(10, 10));
     });
@@ -71,8 +70,8 @@ void main() {
         CinematicStagePoint(id: 'point_2', label: 'End Point', x: 8.5, y: 10.5),
       ];
 
-      final transform = CinematicMapBackdropViewportTransform(
-        frame: const Rect.fromLTWH(0, 0, 800, 600),
+      const transform = CinematicMapBackdropViewportTransform(
+        frame: Rect.fromLTWH(0, 0, 800, 600),
         mapWidth: 40,
         mapHeight: 30,
       );
@@ -113,8 +112,8 @@ void main() {
             id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
       ];
 
-      final transform = CinematicMapBackdropViewportTransform(
-        frame: const Rect.fromLTWH(0, 0, 800, 600),
+      const transform = CinematicMapBackdropViewportTransform(
+        frame: Rect.fromLTWH(0, 0, 800, 600),
         mapWidth: 40,
         mapHeight: 30,
       );
@@ -155,8 +154,8 @@ void main() {
             id: 'point_1', label: 'Start Point', x: 2.5, y: 3.5),
       ];
 
-      final transform = CinematicMapBackdropViewportTransform(
-        frame: const Rect.fromLTWH(0, 0, 800, 600), // cell is 20x20
+      const transform = CinematicMapBackdropViewportTransform(
+        frame: Rect.fromLTWH(0, 0, 800, 600), // cell is 20x20
         mapWidth: 40,
         mapHeight: 30,
       );

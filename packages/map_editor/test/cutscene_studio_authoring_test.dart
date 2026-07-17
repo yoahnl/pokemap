@@ -276,17 +276,18 @@ void main() {
       );
     });
 
-    test('removeCutsceneFlowBlockEntryWithId removes blocks and whole choices', () {
+    test('removeCutsceneFlowBlockEntryWithId removes blocks and whole choices',
+        () {
       final flow = <CutsceneFlowEntry>[
         const CutsceneFlowBlockEntry(
           CutsceneStudioBlock(id: 'a', kind: CutsceneStudioBlockKind.dialogue),
         ),
-        CutsceneFlowChoiceEntry(
-          question: const CutsceneStudioBlock(
+        const CutsceneFlowChoiceEntry(
+          question: CutsceneStudioBlock(
             id: 'q',
             kind: CutsceneStudioBlockKind.playerQuestion,
           ),
-          onYes: const <CutsceneFlowEntry>[
+          onYes: <CutsceneFlowEntry>[
             CutsceneFlowBlockEntry(
               CutsceneStudioBlock(
                 id: 'y',
@@ -294,7 +295,7 @@ void main() {
               ),
             ),
           ],
-          onNo: const <CutsceneFlowEntry>[],
+          onNo: <CutsceneFlowEntry>[],
         ),
       ];
       final withoutY = removeCutsceneFlowBlockEntryWithId(flow, 'y');

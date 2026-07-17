@@ -87,13 +87,13 @@ class UpdateEncounterTableUseCase {
         'Encounter table name cannot be empty',
       );
     }
-    final updated_table = current.copyWith(
+    final updatedTable = current.copyWith(
       name: trimmedName,
       encounterKind: encounterKind ?? current.encounterKind,
       tags: tags ?? current.tags,
     );
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
-    tables[index] = updated_table;
+    tables[index] = updatedTable;
     final updated = project.copyWith(encounterTables: tables);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -168,10 +168,9 @@ class AddEncounterEntryUseCase {
       weight: weight,
     );
     final table = project.encounterTables[index];
-    final updated_table =
-        table.copyWith(entries: [...table.entries, entry]);
+    final updatedTable = table.copyWith(entries: [...table.entries, entry]);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
-    tables[index] = updated_table;
+    tables[index] = updatedTable;
     final updated = project.copyWith(encounterTables: tables);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -217,22 +216,23 @@ class UpdateEncounterEntryUseCase {
       throw const EditorValidationException('Levels must be positive');
     }
     if (newMin > newMax) {
-      throw EditorValidationException('minLevel ($newMin) > maxLevel ($newMax)');
+      throw EditorValidationException(
+          'minLevel ($newMin) > maxLevel ($newMax)');
     }
     if (newWeight <= 0) {
       throw const EditorValidationException('Weight must be positive');
     }
-    final updated_entry = current.copyWith(
+    final updatedEntry = current.copyWith(
       speciesId: trimmedSpecies,
       minLevel: newMin,
       maxLevel: newMax,
       weight: newWeight,
     );
     final entries = List<ProjectEncounterEntry>.from(table.entries);
-    entries[entryIndex] = updated_entry;
-    final updated_table = table.copyWith(entries: entries);
+    entries[entryIndex] = updatedEntry;
+    final updatedTable = table.copyWith(entries: entries);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
-    tables[tableIndex] = updated_table;
+    tables[tableIndex] = updatedTable;
     final updated = project.copyWith(encounterTables: tables);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);
@@ -264,9 +264,9 @@ class DeleteEncounterEntryUseCase {
     }
     final entries = List<ProjectEncounterEntry>.from(table.entries)
       ..removeAt(entryIndex);
-    final updated_table = table.copyWith(entries: entries);
+    final updatedTable = table.copyWith(entries: entries);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
-    tables[tableIndex] = updated_table;
+    tables[tableIndex] = updatedTable;
     final updated = project.copyWith(encounterTables: tables);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, workspace.projectManifestPath);

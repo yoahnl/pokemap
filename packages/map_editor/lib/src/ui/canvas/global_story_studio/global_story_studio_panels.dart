@@ -80,7 +80,8 @@ class GlobalStoryStudioTopBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Text(
                       '›',
-                      style: TextStyle(color: EditorChrome.subtleLabel(context)),
+                      style:
+                          TextStyle(color: EditorChrome.subtleLabel(context)),
                     ),
                   ),
                   Text(
@@ -133,43 +134,43 @@ class GlobalStoryStudioTopBar extends StatelessWidget {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                if (hasUnsavedChanges)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: Text(
-                      'Modifications non enregistrées',
-                      style: TextStyle(
-                        color: EditorChrome.inspectorJoyAmber,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                    if (hasUnsavedChanges)
+                      const Padding(
+                        padding: EdgeInsets.only(right: 12),
+                        child: Text(
+                          'Modifications non enregistrées',
+                          style: TextStyle(
+                            color: EditorChrome.inspectorJoyAmber,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
+                    _TopBarTextButton(
+                      label: 'Réinitialiser',
+                      enabled: canEdit && hasUnsavedChanges,
+                      onPressed: onReset,
                     ),
-                  ),
-                _TopBarTextButton(
-                  label: 'Réinitialiser',
-                  enabled: canEdit && hasUnsavedChanges,
-                  onPressed: onReset,
-                ),
-                const SizedBox(width: 8),
-                _TopBarTextButton(
-                  label: 'Tester',
-                  enabled: false,
-                  onPressed: () {},
-                  hint: 'Lecture test globale — bientôt disponible.',
-                ),
-                const SizedBox(width: 8),
-                _TopBarPrimaryButton(
-                  label: 'Valider',
-                  enabled: canEdit && hasUnsavedChanges,
-                  onPressed: onSave,
-                ),
-                const SizedBox(width: 10),
-                _TopBarPrimaryButton(
-                  label: '+ Nouvelle étape',
-                  enabled: canEdit,
-                  onPressed: onCreateStep,
-                  filled: true,
-                ),
+                    const SizedBox(width: 8),
+                    _TopBarTextButton(
+                      label: 'Tester',
+                      enabled: false,
+                      onPressed: () {},
+                      hint: 'Lecture test globale — bientôt disponible.',
+                    ),
+                    const SizedBox(width: 8),
+                    _TopBarPrimaryButton(
+                      label: 'Valider',
+                      enabled: canEdit && hasUnsavedChanges,
+                      onPressed: onSave,
+                    ),
+                    const SizedBox(width: 10),
+                    _TopBarPrimaryButton(
+                      label: '+ Nouvelle étape',
+                      enabled: canEdit,
+                      onPressed: onCreateStep,
+                      filled: true,
+                    ),
                   ],
                 ),
               ),
@@ -203,7 +204,6 @@ class CupertinoPickerScaffold extends StatelessWidget {
     final label = current?.label ?? '—';
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      minSize: 0,
       onPressed: choices.length <= 1
           ? null
           : () async {
@@ -217,6 +217,7 @@ class CupertinoPickerScaffold extends StatelessWidget {
                 onChanged(chosen);
               }
             },
+      minimumSize: const Size(0, 0),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -290,8 +291,8 @@ class _TopBarTextButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final child = CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      minSize: 0,
       onPressed: enabled ? onPressed : null,
+      minimumSize: const Size(0, 0),
       child: Text(
         label,
         style: TextStyle(
@@ -337,10 +338,10 @@ class _TopBarPrimaryButton extends StatelessWidget {
         : Colors.transparent;
     return CupertinoButton(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      minSize: 0,
       color: bg,
       borderRadius: BorderRadius.circular(8),
       onPressed: enabled ? onPressed : null,
+      minimumSize: const Size(0, 0),
       child: Text(
         label,
         style: TextStyle(
@@ -485,7 +486,8 @@ class GlobalStoryNavPanel extends StatelessWidget {
                     padding: const EdgeInsets.only(top: 8),
                     child: CupertinoButton(
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.15),
+                      color:
+                          EditorChrome.inspectorJoyMint.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(8),
                       onPressed: canEdit ? onAddChapter : null,
                       child: const Text(
@@ -599,7 +601,7 @@ class _NavChapterCardState extends State<_NavChapterCard> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = EditorChrome.inspectorJoyPlum;
+    const accent = EditorChrome.inspectorJoyPlum;
     final chapter = widget.chapter;
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
@@ -615,7 +617,7 @@ class _NavChapterCardState extends State<_NavChapterCard> {
             children: [
               Text(
                 'CH.${widget.chapterIndex + 1}',
-                style: TextStyle(
+                style: const TextStyle(
                   color: accent,
                   fontWeight: FontWeight.w900,
                   fontSize: 11,
@@ -631,36 +633,42 @@ class _NavChapterCardState extends State<_NavChapterCard> {
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                   decoration: BoxDecoration(
-                    color: EditorChrome.subtleLabel(context).withValues(alpha: 0.08),
+                    color: EditorChrome.subtleLabel(context)
+                        .withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  onSubmitted: (v) => widget.onRenameChapter(chapter.id, v.trim()),
+                  onSubmitted: (v) =>
+                      widget.onRenameChapter(chapter.id, v.trim()),
                 ),
               ),
               if (widget.canEdit) ...[
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  minSize: 26,
                   onPressed: widget.chapterIndex > 0
                       ? () => widget.onMoveChapter(chapter.id, -1)
                       : null,
-                  child: Icon(CupertinoIcons.chevron_up, size: 16, color: accent),
+                  minimumSize: const Size(26, 26),
+                  child: const Icon(CupertinoIcons.chevron_up,
+                      size: 16, color: accent),
                 ),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  minSize: 26,
                   onPressed: widget.chapterIndex < widget.totalChapters - 1
                       ? () => widget.onMoveChapter(chapter.id, 1)
                       : null,
-                  child: Icon(CupertinoIcons.chevron_down, size: 16, color: accent),
+                  minimumSize: const Size(26, 26),
+                  child: const Icon(CupertinoIcons.chevron_down,
+                      size: 16, color: accent),
                 ),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  minSize: 26,
                   onPressed: () => widget.onDeleteChapter(chapter.id),
-                  child: Icon(CupertinoIcons.trash, size: 16, color: accent),
+                  minimumSize: const Size(26, 26),
+                  child:
+                      const Icon(CupertinoIcons.trash, size: 16, color: accent),
                 ),
               ],
             ],
@@ -680,8 +688,8 @@ class _NavChapterCardState extends State<_NavChapterCard> {
               onMoveDown: i < chapter.stepIds.length - 1
                   ? () => widget.onMoveStepInChapter(chapter.id, i, i + 1)
                   : null,
-              onRemove: () =>
-                  widget.onRemoveStepFromChapter(chapter.id, chapter.stepIds[i]),
+              onRemove: () => widget.onRemoveStepFromChapter(
+                  chapter.id, chapter.stepIds[i]),
             ),
             if (i < chapter.stepIds.length - 1) const SizedBox(height: 4),
           ],
@@ -694,7 +702,7 @@ class _NavChapterCardState extends State<_NavChapterCard> {
             onPressed: widget.canEdit
                 ? () => _pickStepToAddToChapter(context, chapter)
                 : null,
-            child: Text(
+            child: const Text(
               '+ Ajouter une étape à ce chapitre…',
               style: TextStyle(
                 color: accent,
@@ -720,8 +728,7 @@ class _NavChapterCardState extends State<_NavChapterCard> {
       await showCupertinoEditorAlert(
         context,
         title: 'Aucune étape à ajouter',
-        message:
-            'Toutes les étapes du scénario sont déjà dans ce chapitre. '
+        message: 'Toutes les étapes du scénario sont déjà dans ce chapitre. '
             'Créez une nouvelle étape avec « + Nouvelle étape » en haut à droite.',
         okLabel: 'OK',
       );
@@ -729,7 +736,8 @@ class _NavChapterCardState extends State<_NavChapterCard> {
     }
     final selected = await showMacosListPicker<StepStudioStep>(
       context: context,
-      title: 'Ajouter au chapitre « ${chapter.name.trim().isEmpty ? 'Sans titre' : chapter.name.trim()} »',
+      title:
+          'Ajouter au chapitre « ${chapter.name.trim().isEmpty ? 'Sans titre' : chapter.name.trim()} »',
       items: addable,
       labelOf: (s) {
         final other = _navOtherChapterForStep(
@@ -795,8 +803,8 @@ class _NavStepRow extends StatelessWidget {
         child: Row(
           children: [
             if (isEntry)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
+              const Padding(
+                padding: EdgeInsets.only(right: 6),
                 child: Icon(
                   CupertinoIcons.location_solid,
                   size: 14,
@@ -818,8 +826,8 @@ class _NavStepRow extends StatelessWidget {
             if (canEdit) ...[
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 24,
                 onPressed: onMoveUp,
+                minimumSize: const Size(24, 24),
                 child: Icon(
                   CupertinoIcons.chevron_up,
                   size: 14,
@@ -828,8 +836,8 @@ class _NavStepRow extends StatelessWidget {
               ),
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 24,
                 onPressed: onMoveDown,
+                minimumSize: const Size(24, 24),
                 child: Icon(
                   CupertinoIcons.chevron_down,
                   size: 14,
@@ -838,8 +846,8 @@ class _NavStepRow extends StatelessWidget {
               ),
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 24,
                 onPressed: onRemove,
+                minimumSize: const Size(24, 24),
                 child: Icon(
                   CupertinoIcons.xmark_circle_fill,
                   size: 16,
@@ -986,7 +994,7 @@ class _FlowBlockWidget extends StatelessWidget {
       return Column(
         children: [
           for (var j = 0; j < b.steps.length; j++) ...[
-            if (j > 0) _FlowConnector(),
+            if (j > 0) const _FlowConnector(),
             _FlowStepCard(
               key: ValueKey<String>('gss_flow_linear_${b.steps[j].stepId}'),
               stepId: b.steps[j].stepId,
@@ -1016,7 +1024,7 @@ class _FlowBlockWidget extends StatelessWidget {
             onTap: () => onSelectStep(b.branchPointStepId),
             subtitle: 'Plusieurs chemins possibles',
           ),
-          _FlowConnector(label: 'embranchement'),
+          const _FlowConnector(label: 'embranchement'),
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1037,7 +1045,7 @@ class _FlowBlockWidget extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         for (var k = 0; k < b.arms[a].stepIds.length; k++) ...[
-                          if (k > 0) _FlowConnector(height: 18),
+                          if (k > 0) const _FlowConnector(height: 18),
                           _FlowStepCard(
                             key: ValueKey<String>(
                               'gss_flow_arm_${b.arms[a].stepIds[k]}_$a',
@@ -1060,7 +1068,7 @@ class _FlowBlockWidget extends StatelessWidget {
             ),
           ),
           if (b.mergeStepId != null) ...[
-            _FlowConnector(label: 'convergence'),
+            const _FlowConnector(label: 'convergence'),
             _FlowStepCard(
               key: ValueKey<String>('gss_flow_merge_${b.mergeStepId}'),
               stepId: b.mergeStepId!,
@@ -1219,8 +1227,8 @@ class _FlowStepCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (isEntry)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 4),
                           child: Icon(
                             CupertinoIcons.location_solid,
                             size: 14,
@@ -1254,7 +1262,7 @@ class _FlowStepCard extends StatelessWidget {
                   Row(
                     children: [
                       if (isEntry) ...[
-                        Icon(
+                        const Icon(
                           CupertinoIcons.location_solid,
                           size: 16,
                           color: EditorChrome.inspectorJoyMint,
@@ -1294,50 +1302,51 @@ class _FlowStepCard extends StatelessWidget {
                       ),
                     ],
                   ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                subtitle!,
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 11,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ],
-            if (desc.isNotEmpty && !compact) ...[
-              const SizedBox(height: 8),
-              Text(
-                desc,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 12,
-                  height: 1.3,
-                ),
-              ),
-            ],
-            if (outgoingHints.isNotEmpty && !compact) ...[
-              const SizedBox(height: 10),
-              Text(
-                'En sortie',
-                style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 4),
-              for (final h in outgoingHints.take(4))
-                Text(
-                  '· $h',
-                  style: TextStyle(
-                    color: EditorChrome.primaryLabel(context).withValues(alpha: 0.85),
-                    fontSize: 11,
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      color: EditorChrome.subtleLabel(context),
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                ),
-            ],
+                ],
+                if (desc.isNotEmpty && !compact) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    desc,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: EditorChrome.subtleLabel(context),
+                      fontSize: 12,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+                if (outgoingHints.isNotEmpty && !compact) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'En sortie',
+                    style: TextStyle(
+                      color: EditorChrome.subtleLabel(context),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  for (final h in outgoingHints.take(4))
+                    Text(
+                      '· $h',
+                      style: TextStyle(
+                        color: EditorChrome.primaryLabel(context)
+                            .withValues(alpha: 0.85),
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ],
             );
           },
@@ -1468,7 +1477,7 @@ class GlobalStoryStepDetailPanel extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   _productBadgeLabel(n, isEntry),
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: EditorChrome.inspectorJoyMint,
                     fontWeight: FontWeight.w700,
                     fontSize: 12,
@@ -1507,9 +1516,9 @@ class GlobalStoryStepDetailPanel extends StatelessWidget {
                     lines: nextSteps,
                   )
                 else
-                  _DetailSection(
+                  const _DetailSection(
                     title: 'Débloque / mène à',
-                    lines: const ['Fin de ce fil pour l’instant'],
+                    lines: ['Fin de ce fil pour l’instant'],
                   ),
                 _DetailSection(
                   title: 'Scènes liées',
@@ -1538,7 +1547,8 @@ class GlobalStoryStepDetailPanel extends StatelessWidget {
                     Expanded(
                       child: CupertinoButton(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        color: EditorChrome.subtleLabel(context).withValues(alpha: 0.12),
+                        color: EditorChrome.subtleLabel(context)
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                         onPressed: () => onOpenStepStudio(s.id),
                         child: const Text(
@@ -1551,7 +1561,8 @@ class GlobalStoryStepDetailPanel extends StatelessWidget {
                     Expanded(
                       child: CupertinoButton(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        color: EditorChrome.subtleLabel(context).withValues(alpha: 0.12),
+                        color: EditorChrome.subtleLabel(context)
+                            .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                         onPressed: cutsceneCount == 0
                             ? null
@@ -1574,7 +1585,7 @@ class GlobalStoryStepDetailPanel extends StatelessWidget {
                   CupertinoButton(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     onPressed: () => onSetEntryStep(s.id),
-                    child: Text(
+                    child: const Text(
                       'Définir comme point de départ du jeu',
                       style: TextStyle(
                         color: EditorChrome.inspectorJoyPlum,
@@ -1642,7 +1653,9 @@ String _activationHumanLine(StepStudioStep s, List<StepStudioStep> allSteps) {
     case StepStudioActivationMode.afterPreviousStep:
       return 'Après l’étape précédente dans l’ordre du scénario';
     case StepStudioActivationMode.afterStep:
-      final name = rule.stepId != null ? _nameForStepId(rule.stepId!, allSteps) : 'une étape précise';
+      final name = rule.stepId != null
+          ? _nameForStepId(rule.stepId!, allSteps)
+          : 'une étape précise';
       return 'Après : $name';
     case StepStudioActivationMode.afterOutcome:
       return 'Après un résultat de progression';

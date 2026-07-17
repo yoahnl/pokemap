@@ -91,19 +91,31 @@ class EventBuilderV2Editor extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          _EditorBlock(
-                            key: const ValueKey(
-                              'event-builder-v2-source-block',
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: SizedBox(
+                              width: 304,
+                              child: _EditorBlock(
+                                key: const ValueKey(
+                                  'event-builder-v2-source-block',
+                                ),
+                                title: 'Déclencheur',
+                                subtitle: selected.source.humanSentence,
+                                icon: CupertinoIcons.bolt_fill,
+                                tone: selected.source.available
+                                    ? PokeMapTone.narrative
+                                    : PokeMapTone.warning,
+                                readOnly: selected.readOnly,
+                              ),
                             ),
-                            title: 'Déclencheur',
-                            subtitle: selected.source.humanSentence,
-                            icon: CupertinoIcons.bolt_fill,
-                            tone: selected.source.available
-                                ? PokeMapTone.narrative
-                                : PokeMapTone.warning,
-                            readOnly: selected.readOnly,
                           ),
-                          const _FlowConnector(),
+                          const Align(
+                            alignment: Alignment.topLeft,
+                            child: SizedBox(
+                              width: 304,
+                              child: _FlowConnector(),
+                            ),
+                          ),
                           _EditorBlock(
                             key: const ValueKey(
                               'event-builder-v2-conditions-block',
@@ -377,7 +389,10 @@ class _SceneProjectionBlock extends StatelessWidget {
             icon: CupertinoIcons.flag_fill,
             tone: PokeMapTone.info,
           ),
-          const SizedBox(height: 6),
+          if (outcomes.length >= 2)
+            const _OutcomeBranchConnector()
+          else
+            const SizedBox(height: 6),
           _OutcomeBranches(outcomes: outcomes),
           const SizedBox(height: 7),
           _ProjectionGroup(
@@ -504,6 +519,60 @@ class _OutcomeBranches extends StatelessWidget {
           ),
       },
     );
+  }
+}
+
+/// Draws the only non-linear connector in the Event projection.
+///
+/// Outcome meaning and reactions remain Scene-owned and read-only; this line is
+/// purely a visual projection of the two-column result layout. Four or more
+/// outcomes still reuse those two columns, so the connector never fabricates a
+/// semantic branch count from labels alone.
+class _OutcomeBranchConnector extends StatelessWidget {
+  const _OutcomeBranchConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('event-builder-v2-outcome-branch-connector'),
+      height: 18,
+      child: CustomPaint(
+        painter: _OutcomeBranchConnectorPainter(
+          color: PokeMapTone.neutral.resolve(context).border,
+        ),
+      ),
+    );
+  }
+}
+
+class _OutcomeBranchConnectorPainter extends CustomPainter {
+  const _OutcomeBranchConnectorPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1
+      ..style = PaintingStyle.stroke;
+    final center = size.width / 2;
+    final leftBranch = size.width / 4;
+    final rightBranch = size.width * 3 / 4;
+    const branchY = 9.0;
+    canvas
+      ..drawLine(Offset(center, 0), Offset(center, branchY), paint)
+      ..drawLine(
+          Offset(leftBranch, branchY), Offset(rightBranch, branchY), paint)
+      ..drawLine(
+          Offset(leftBranch, branchY), Offset(leftBranch, size.height), paint)
+      ..drawLine(Offset(rightBranch, branchY), Offset(rightBranch, size.height),
+          paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _OutcomeBranchConnectorPainter oldDelegate) {
+    return oldDelegate.color != color;
   }
 }
 

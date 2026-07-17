@@ -340,7 +340,9 @@ class _TrainerPokemonEditorCardState extends State<_TrainerPokemonEditorCard> {
                   secondary: _showRawFallbacks,
                   onPressed: _toggleRawFallbacks,
                   child: Text(
-                    _showRawFallbacks ? 'Masquer les champs bruts' : 'Afficher les champs bruts',
+                    _showRawFallbacks
+                        ? 'Masquer les ID bruts'
+                        : 'Afficher les ID bruts',
                   ),
                 ),
               ],

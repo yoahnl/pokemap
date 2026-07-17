@@ -25,8 +25,12 @@ class MacosApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: home,
-      theme: theme?.context != null ? Theme.of(theme!.context!) : ThemeData.light(),
-      darkTheme: darkTheme?.context != null ? Theme.of(darkTheme!.context!) : ThemeData.dark(),
+      theme: theme?.context != null
+          ? Theme.of(theme!.context!)
+          : ThemeData.light(),
+      darkTheme: darkTheme?.context != null
+          ? Theme.of(darkTheme!.context!)
+          : ThemeData.dark(),
       themeMode: themeMode,
       title: title,
     );
@@ -68,10 +72,12 @@ class MacosScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor ?? Colors.transparent,
-      appBar: toolBar != null ? PreferredSize(
-        preferredSize: const Size.fromHeight(52.0),
-        child: toolBar!,
-      ) : null,
+      appBar: toolBar != null
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(52.0),
+              child: toolBar!,
+            )
+          : null,
       body: Row(
         children: [
           for (final child in children)
@@ -155,7 +161,12 @@ class MacosTheme extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return child;
+    return Theme(
+      data: data.brightness == Brightness.dark
+          ? PokeMapTheme.dark()
+          : PokeMapTheme.light(),
+      child: child,
+    );
   }
 
   static Brightness brightnessOf(BuildContext context) {
@@ -173,18 +184,29 @@ class MacosTheme extends StatelessWidget {
 
 class MacosThemeData {
   final BuildContext? context;
-  MacosThemeData(this.context);
+  final Brightness? _explicitBrightness;
 
-  factory MacosThemeData.dark() => MacosThemeData(null);
-  factory MacosThemeData.light() => MacosThemeData(null);
+  MacosThemeData(this.context) : _explicitBrightness = null;
 
-  Brightness get brightness => context != null ? Theme.of(context!).brightness : Brightness.light;
-  Color get primaryColor => context != null ? Theme.of(context!).colorScheme.primary : Colors.blue;
-  Color get canvasColor => context != null ? Theme.of(context!).colorScheme.surface : Colors.white;
-  Color get dividerColor => context != null ? Theme.of(context!).dividerColor : Colors.grey;
+  MacosThemeData._(this._explicitBrightness) : context = null;
+
+  factory MacosThemeData.dark() => MacosThemeData._(Brightness.dark);
+  factory MacosThemeData.light() => MacosThemeData._(Brightness.light);
+
+  Brightness get brightness =>
+      _explicitBrightness ??
+      (context != null ? Theme.of(context!).brightness : Brightness.light);
+  Color get primaryColor =>
+      context != null ? Theme.of(context!).colorScheme.primary : Colors.blue;
+  Color get canvasColor =>
+      context != null ? Theme.of(context!).colorScheme.surface : Colors.white;
+  Color get dividerColor =>
+      context != null ? Theme.of(context!).dividerColor : Colors.grey;
   AccentColor get accentColor => AccentColor.blue;
-  VisualDensity get visualDensity => context != null ? Theme.of(context!).visualDensity : VisualDensity.comfortable;
-  
+  VisualDensity get visualDensity => context != null
+      ? Theme.of(context!).visualDensity
+      : VisualDensity.comfortable;
+
   MacosTypography get typography => MacosTypography(context);
 
   MacosThemeData copyWith({
@@ -202,16 +224,24 @@ class MacosTypography {
   final BuildContext? context;
   MacosTypography(this.context);
 
-  TextStyle get title2 => (context != null ? Theme.of(context!).textTheme.titleLarge : null)?.copyWith(
+  TextStyle get title2 =>
+      (context != null ? Theme.of(context!).textTheme.titleLarge : null)
+          ?.copyWith(
         fontWeight: FontWeight.w700,
         fontSize: 20,
-      ) ?? const TextStyle(fontWeight: FontWeight.w700, fontSize: 20);
+      ) ??
+      const TextStyle(fontWeight: FontWeight.w700, fontSize: 20);
 
-  TextStyle get caption1 => (context != null ? Theme.of(context!).textTheme.bodySmall : null)?.copyWith(
+  TextStyle get caption1 =>
+      (context != null ? Theme.of(context!).textTheme.bodySmall : null)
+          ?.copyWith(
         fontSize: 11,
-      ) ?? const TextStyle(fontSize: 11);
+      ) ??
+      const TextStyle(fontSize: 11);
 
-  TextStyle get body => (context != null ? Theme.of(context!).textTheme.bodyMedium : null) ?? const TextStyle();
+  TextStyle get body =>
+      (context != null ? Theme.of(context!).textTheme.bodyMedium : null) ??
+      const TextStyle();
 }
 
 // --- Colors shim ---
@@ -313,8 +343,8 @@ class MacosIconButton extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget button = CupertinoButton(
       padding: EdgeInsets.zero,
-      minSize: 0,
       onPressed: onPressed,
+      minimumSize: const Size(0, 0),
       child: icon,
     );
 
@@ -413,9 +443,7 @@ class PushButton extends StatelessWidget {
       buttonColor = colors.brandPrimary;
     }
 
-    final textColor = secondary 
-        ? colors.textPrimary 
-        : colors.textInverse;
+    final textColor = secondary ? colors.textPrimary : colors.textInverse;
 
     final padding = controlSize == ControlSize.large
         ? const EdgeInsets.symmetric(horizontal: 16, vertical: 10)
@@ -427,7 +455,7 @@ class PushButton extends StatelessWidget {
       disabledColor: colors.surfaceSubtle.withValues(alpha: 0.5),
       onPressed: onPressed,
       borderRadius: BorderRadius.circular(8),
-      minSize: 0,
+      minimumSize: const Size(0, 0),
       child: DefaultTextStyle.merge(
         style: TextStyle(
           color: textColor,
@@ -522,7 +550,8 @@ class MacosPopupButton<T> extends StatelessWidget {
         hint: hint,
         disabledHint: disabledHint,
         dropdownColor: colors.surfaceBase,
-        icon: Icon(CupertinoIcons.chevron_down, size: 14, color: colors.textSecondary),
+        icon: Icon(CupertinoIcons.chevron_down,
+            size: 14, color: colors.textSecondary),
         style: TextStyle(
           color: colors.textPrimary,
           fontSize: 13,
@@ -607,7 +636,8 @@ class MacosPulldownButton extends StatelessWidget {
         ],
       );
     } else {
-      trigger = Icon(icon ?? CupertinoIcons.ellipsis, size: 16, color: colors.textPrimary);
+      trigger = Icon(icon ?? CupertinoIcons.ellipsis,
+          size: 16, color: colors.textPrimary);
     }
 
     return PopupMenuButton<VoidCallback>(
@@ -662,7 +692,8 @@ class MacosSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Dialog(
-      insetPadding: insetPadding ?? const EdgeInsets.symmetric(horizontal: 40.0, vertical: 24.0),
+      insetPadding: insetPadding ??
+          const EdgeInsets.symmetric(horizontal: 40.0, vertical: 24.0),
       backgroundColor: colors.surfaceBase,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -828,8 +859,8 @@ class MacosSwitch extends StatelessWidget {
     return CupertinoSwitch(
       value: value,
       onChanged: onChanged,
-      activeColor: activeColor,
-      trackColor: trackColor,
+      activeTrackColor: activeColor,
+      inactiveTrackColor: trackColor,
     );
   }
 }

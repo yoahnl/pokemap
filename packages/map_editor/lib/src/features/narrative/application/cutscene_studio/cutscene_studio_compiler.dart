@@ -159,7 +159,8 @@ class _CutsceneFlowGraphCompiler {
         if (block.kind == CutsceneStudioBlockKind.playerQuestion) {
           return _compileInlinePlayerQuestion(previousId, block);
         }
-        final nodeId = cutsceneStudioNormalizeNodeId(block.id, fallback: 'block_${_edgeSeq}');
+        final nodeId = cutsceneStudioNormalizeNodeId(block.id,
+            fallback: 'block_$_edgeSeq');
         nodes.insert(
           nodes.length - 1,
           _buildNodeForBlock(block, nodeId: nodeId),
@@ -177,7 +178,7 @@ class _CutsceneFlowGraphCompiler {
       case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
         final choiceId = cutsceneStudioNormalizeNodeId(
           question.id,
-          fallback: 'choice_${_edgeSeq}',
+          fallback: 'choice_$_edgeSeq',
         );
         nodes.insert(
           nodes.length - 1,
@@ -193,10 +194,10 @@ class _CutsceneFlowGraphCompiler {
           ),
         );
         final mergeId = _addMergeNode();
-        _compileChoiceBranch(choiceId, 0, _choiceOptionLabel(question, 0),
-            onYes, mergeId);
-        _compileChoiceBranch(choiceId, 1, _choiceOptionLabel(question, 1),
-            onNo, mergeId);
+        _compileChoiceBranch(
+            choiceId, 0, _choiceOptionLabel(question, 0), onYes, mergeId);
+        _compileChoiceBranch(
+            choiceId, 1, _choiceOptionLabel(question, 1), onNo, mergeId);
         return mergeId;
     }
   }
@@ -206,7 +207,7 @@ class _CutsceneFlowGraphCompiler {
     CutsceneStudioBlock block,
   ) {
     final choiceId =
-        cutsceneStudioNormalizeNodeId(block.id, fallback: 'choice_${_edgeSeq}');
+        cutsceneStudioNormalizeNodeId(block.id, fallback: 'choice_$_edgeSeq');
     nodes.insert(
       nodes.length - 1,
       _buildChoiceScenarioNode(block, choiceId),
@@ -284,7 +285,8 @@ class _CutsceneFlowGraphCompiler {
             first = false;
             continue;
           }
-          final nid = cutsceneStudioNormalizeNodeId(block.id, fallback: 'block_${_edgeSeq}');
+          final nid = cutsceneStudioNormalizeNodeId(block.id,
+              fallback: 'block_$_edgeSeq');
           nodes.insert(
             nodes.length - 1,
             _buildNodeForBlock(block, nodeId: nid),
@@ -313,10 +315,14 @@ class _CutsceneFlowGraphCompiler {
           }
           branchPrev = nid;
           first = false;
-        case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
+        case CutsceneFlowChoiceEntry(
+            :final question,
+            :final onYes,
+            :final onNo
+          ):
           final cid = cutsceneStudioNormalizeNodeId(
             question.id,
-            fallback: 'choice_${_edgeSeq}',
+            fallback: 'choice_$_edgeSeq',
           );
           nodes.insert(
             nodes.length - 1,
@@ -373,7 +379,8 @@ class _CutsceneFlowGraphCompiler {
     bool first,
     CutsceneStudioBlock block,
   ) {
-    final cid = cutsceneStudioNormalizeNodeId(block.id, fallback: 'choice_${_edgeSeq}');
+    final cid =
+        cutsceneStudioNormalizeNodeId(block.id, fallback: 'choice_$_edgeSeq');
     nodes.insert(
       nodes.length - 1,
       _buildChoiceScenarioNode(block, cid),
@@ -401,12 +408,10 @@ class _CutsceneFlowGraphCompiler {
       );
     }
     final innerMerge = _addMergeNode();
-    _compileChoiceBranch(
-        cid, 0, _choiceOptionLabel(block, 0), const <CutsceneFlowEntry>[],
-        innerMerge);
-    _compileChoiceBranch(
-        cid, 1, _choiceOptionLabel(block, 1), const <CutsceneFlowEntry>[],
-        innerMerge);
+    _compileChoiceBranch(cid, 0, _choiceOptionLabel(block, 0),
+        const <CutsceneFlowEntry>[], innerMerge);
+    _compileChoiceBranch(cid, 1, _choiceOptionLabel(block, 1),
+        const <CutsceneFlowEntry>[], innerMerge);
     return innerMerge;
   }
 }
@@ -527,8 +532,10 @@ ScenarioNode _buildNodeForBlock(
         payload: ScenarioNodePayload(
           actionKind: kCutsceneStudioActionMoveCharacter,
           params: <String, String>{
-            'targetKind': cutsceneStudioTrimOrNull(block.destinationTargetKind) ?? '',
-            'targetId': cutsceneStudioTrimOrNull(block.destinationTargetId) ?? '',
+            'targetKind':
+                cutsceneStudioTrimOrNull(block.destinationTargetKind) ?? '',
+            'targetId':
+                cutsceneStudioTrimOrNull(block.destinationTargetId) ?? '',
             'waitForCompletion':
                 (block.waitForCompletion ?? true) ? 'true' : 'false',
           },
@@ -557,7 +564,8 @@ ScenarioNode _buildNodeForBlock(
         payload: ScenarioNodePayload(
           actionKind: kCutsceneStudioActionFaceCharacter,
           params: <String, String>{
-            'direction': cutsceneStudioTrimOrNull(block.facingDirection) ?? 'south',
+            'direction':
+                cutsceneStudioTrimOrNull(block.facingDirection) ?? 'south',
           },
         ),
         binding: ScenarioNodeBinding(
@@ -614,8 +622,8 @@ ScenarioNode _buildNodeForBlock(
         ),
         metadata: <String, String>{
           'result.label': cutsceneStudioTrimOrNull(block.resultLabel) ?? '',
-          'result.scope':
-              cutsceneStudioTrimOrNull(block.resultScope) ?? kCutsceneStudioResultScopeLocal,
+          'result.scope': cutsceneStudioTrimOrNull(block.resultScope) ??
+              kCutsceneStudioResultScopeLocal,
         },
       );
     case CutsceneStudioBlockKind.runScript:
@@ -676,8 +684,10 @@ ScenarioNode _buildNodeForBlock(
         payload: ScenarioNodePayload(
           actionKind: kCutsceneStudioActionMoveCharacter,
           params: <String, String>{
-            'targetKind': cutsceneStudioTrimOrNull(block.destinationTargetKind) ?? '',
-            'targetId': cutsceneStudioTrimOrNull(block.destinationTargetId) ?? '',
+            'targetKind':
+                cutsceneStudioTrimOrNull(block.destinationTargetKind) ?? '',
+            'targetId':
+                cutsceneStudioTrimOrNull(block.destinationTargetId) ?? '',
             'waitForCompletion':
                 (block.waitForCompletion ?? true) ? 'true' : 'false',
             'pathfinding': 'true',

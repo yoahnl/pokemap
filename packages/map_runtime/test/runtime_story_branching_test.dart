@@ -122,7 +122,7 @@ void main() {
         ],
       );
 
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'progress_script',
         nodes: [
           ScriptNode(
@@ -136,7 +136,7 @@ void main() {
                   'type': 'int',
                 },
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
@@ -185,7 +185,7 @@ void main() {
         ],
       );
 
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'consume_script',
         nodes: [
           ScriptNode(
@@ -195,7 +195,7 @@ void main() {
                 type: ScriptCommandType.markEventConsumed,
                 params: {'eventId': 'event:gift'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
@@ -234,7 +234,7 @@ void main() {
         ],
       );
 
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'one_shot_script',
         nodes: [
           ScriptNode(
@@ -244,7 +244,7 @@ void main() {
                 type: ScriptCommandType.markEventConsumed,
                 params: {'eventId': 'event:one_shot'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],

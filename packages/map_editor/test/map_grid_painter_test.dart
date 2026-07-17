@@ -39,12 +39,12 @@ void main() {
         ],
       );
 
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-        elements: const <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'table',
             name: 'Table',
@@ -285,18 +285,18 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'element-tileset',
             name: 'Element Tileset',
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-        elements: const <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
             name: 'Tree',
@@ -636,18 +636,18 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'element-tileset',
             name: 'Element Tileset',
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-        elements: const <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
             name: 'Tree',
@@ -720,18 +720,18 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'element-tileset',
             name: 'Element Tileset',
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-        elements: const <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
             name: 'Tree',
@@ -803,18 +803,18 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'element-tileset',
             name: 'Element Tileset',
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-        elements: const <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree_large',
             name: 'Large Tree',
@@ -965,10 +965,10 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(
+      const project = ProjectManifest(
         name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'ground',
             name: 'Ground',
@@ -990,7 +990,7 @@ void main() {
             relativePath: 'structures.png',
           ),
         ],
-        elements: const <ProjectElementEntry>[
+        elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'ground_prop',
             name: 'Ground prop',
@@ -1001,14 +1001,14 @@ void main() {
             ],
           ),
         ],
-        pathPresets: const <ProjectPathPreset>[
+        pathPresets: <ProjectPathPreset>[
           ProjectPathPreset(
             id: 'pavement',
             name: 'Pavement',
             tilesetId: 'pavement',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
       final ground = await _solidColorImage(
         width: 32,

@@ -412,7 +412,7 @@ void main() {
       final result = await useCase.setScene(
         projectPath: fixture.projectPath,
         eventId: productRoutePortEventId,
-        sceneId: 'scene_rival',
+        sceneId: 'scene_action',
         environment: const NarrativeEventBuilderV2WriteEnvironment.clean(),
       );
 

@@ -249,6 +249,11 @@ void main() {
         ),
       );
 
+      // Les modules de l'explorateur sont repliés par défaut : l'auteur
+      // ouvre d'abord Path Library avant de choisir Path Studio.
+      await tester.tap(find.text('Path Library'));
+      await tester.pumpAndSettle();
+
       expect(
         find.byKey(const Key('project-explorer-path-studio-entry')),
         findsOneWidget,
@@ -391,7 +396,8 @@ void main() {
       expect(
         find.byWidgetPredicate(
           (widget) =>
-              widget is ToolbarCapsuleButton && widget.tooltip == 'Save Project',
+              widget is ToolbarCapsuleButton &&
+              widget.tooltip == 'Save Project',
         ),
         findsOneWidget,
       );

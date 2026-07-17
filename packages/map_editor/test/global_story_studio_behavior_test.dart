@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -31,8 +29,7 @@ List<String> _simulateOrderedStepIdsAfterInsertExisting(
   if (existingIndex < 0 || afterIndex < 0) return orderedIds;
   list.removeAt(existingIndex);
   final newAfterIndex = list.indexOf(afterId);
-  final insertionIndex =
-      newAfterIndex < 0 ? list.length : newAfterIndex + 1;
+  final insertionIndex = newAfterIndex < 0 ? list.length : newAfterIndex + 1;
   list.insert(insertionIndex, existingId);
   return list;
 }
@@ -50,7 +47,8 @@ void main() {
       expect(out, <String>['a', 'c', 'b']);
     });
 
-    test('reorderChapterStepIdsAfterMovingWithinSameChapter returns null if id missing',
+    test(
+        'reorderChapterStepIdsAfterMovingWithinSameChapter returns null if id missing',
         () {
       expect(
         reorderChapterStepIdsAfterMovingWithinSameChapter(
@@ -62,7 +60,8 @@ void main() {
       );
     });
 
-    test('cross-chapter: remove then insert after — no duplicate in target', () {
+    test('cross-chapter: remove then insert after — no duplicate in target',
+        () {
       const fromChapter = <String>['x', 'y'];
       const toChapter = <String>['a', 'b'];
       final without = chapterStepIdsRemovingOnce(fromChapter, 'y');
@@ -85,7 +84,8 @@ void main() {
   });
 
   group('Global Story insert existing — order invariants', () {
-    test('same-chapter: global step id order and chapter.stepIds stay aligned', () {
+    test('same-chapter: global step id order and chapter.stepIds stay aligned',
+        () {
       const ordered = <String>['s0', 's1', 's2'];
       final globalIds = _simulateOrderedStepIdsAfterInsertExisting(
         ordered,
@@ -122,41 +122,42 @@ void main() {
   });
 
   group('Insert picker eligibility', () {
-    test('eligibleStepIdsForGlobalStoryInsertPicker lists all except current', () {
+    test('eligibleStepIdsForGlobalStoryInsertPicker lists all except current',
+        () {
       final steps = <StepStudioStep>[
-        StepStudioStep(
+        const StepStudioStep(
           id: 'a',
           name: 'A',
           description: '',
           order: 0,
-          activation: const StepStudioActivationRule(
+          activation: StepStudioActivationRule(
             mode: StepStudioActivationMode.atGameStart,
           ),
-          completion: const StepStudioCompletionRule(
+          completion: StepStudioCompletionRule(
             mode: StepStudioCompletionMode.manual,
           ),
         ),
-        StepStudioStep(
+        const StepStudioStep(
           id: 'b',
           name: 'B',
           description: '',
           order: 1,
-          activation: const StepStudioActivationRule(
+          activation: StepStudioActivationRule(
             mode: StepStudioActivationMode.afterPreviousStep,
           ),
-          completion: const StepStudioCompletionRule(
+          completion: StepStudioCompletionRule(
             mode: StepStudioCompletionMode.manual,
           ),
         ),
-        StepStudioStep(
+        const StepStudioStep(
           id: 'c',
           name: 'C',
           description: '',
           order: 2,
-          activation: const StepStudioActivationRule(
+          activation: StepStudioActivationRule(
             mode: StepStudioActivationMode.afterPreviousStep,
           ),
-          completion: const StepStudioCompletionRule(
+          completion: StepStudioCompletionRule(
             mode: StepStudioCompletionMode.manual,
           ),
         ),
@@ -167,9 +168,10 @@ void main() {
   });
 
   group('Global Story Studio widget — header & rename', () {
-    testWidgets('steps visibles sans accordéon; ajouter un chapitre conserve la liste',
+    testWidgets(
+        'steps visibles sans accordéon; ajouter un chapitre conserve la liste',
         (tester) async {
-      final stepDoc = StepStudioDocument(
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -177,19 +179,19 @@ void main() {
             name: 'Introduction',
             description: '',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
         ],
       );
-      final globalDoc = GlobalStoryStudioDocument(
+      const globalDoc = GlobalStoryStudioDocument(
         globalStoryScenarioId: 'global_story',
         entryStepId: 'step_intro',
-        nodes: const <GlobalStoryStepNode>[
+        nodes: <GlobalStoryStepNode>[
           GlobalStoryStepNode(
             stepId: 'step_intro',
             exitMode: GlobalStoryStepExitMode.linear,
@@ -201,12 +203,13 @@ void main() {
             id: 'c1',
             name: 'Acte I',
             description: '',
-            stepIds: const <String>['step_intro'],
+            stepIds: <String>['step_intro'],
             order: 0,
           ),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 't',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -218,8 +221,7 @@ void main() {
             entryNodeId: 'start',
             metadata: <String, String>{
               kStepStudioDocumentMetadataKey: stepDoc.toMetadataJson(),
-              kGlobalStoryStudioDocumentMetadataKey:
-                  globalDoc.toMetadataJson(),
+              kGlobalStoryStudioDocumentMetadataKey: globalDoc.toMetadataJson(),
             },
           ),
         ],
@@ -265,7 +267,7 @@ void main() {
 
     testWidgets('champ titre chapitre : saisie + validation renomme',
         (tester) async {
-      final stepDoc = StepStudioDocument(
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -273,19 +275,19 @@ void main() {
             name: 'Introduction',
             description: '',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
         ],
       );
-      final globalDoc = GlobalStoryStudioDocument(
+      const globalDoc = GlobalStoryStudioDocument(
         globalStoryScenarioId: 'global_story',
         entryStepId: 'step_intro',
-        nodes: const <GlobalStoryStepNode>[
+        nodes: <GlobalStoryStepNode>[
           GlobalStoryStepNode(
             stepId: 'step_intro',
             exitMode: GlobalStoryStepExitMode.linear,
@@ -297,12 +299,13 @@ void main() {
             id: 'c1',
             name: 'Acte I',
             description: '',
-            stepIds: const <String>['step_intro'],
+            stepIds: <String>['step_intro'],
             order: 0,
           ),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 't',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -314,8 +317,7 @@ void main() {
             entryNodeId: 'start',
             metadata: <String, String>{
               kStepStudioDocumentMetadataKey: stepDoc.toMetadataJson(),
-              kGlobalStoryStudioDocumentMetadataKey:
-                  globalDoc.toMetadataJson(),
+              kGlobalStoryStudioDocumentMetadataKey: globalDoc.toMetadataJson(),
             },
           ),
         ],
@@ -422,7 +424,7 @@ void main() {
   ProjectManifest project,
   NarrativeWorkspaceProjection projection,
 }) _buildThreeStepProject() {
-  final stepDoc = StepStudioDocument(
+  const stepDoc = StepStudioDocument(
     globalStoryScenarioId: 'global_story',
     steps: <StepStudioStep>[
       StepStudioStep(
@@ -430,10 +432,10 @@ void main() {
         name: 'Introduction',
         description: '',
         order: 0,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.atGameStart,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
       ),
@@ -442,10 +444,10 @@ void main() {
         name: 'Rencontre du professeur',
         description: '',
         order: 1,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.afterPreviousStep,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
       ),
@@ -454,34 +456,34 @@ void main() {
         name: 'Choix du starter',
         description: '',
         order: 2,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.afterPreviousStep,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
       ),
     ],
   );
-  final globalDoc = GlobalStoryStudioDocument(
+  const globalDoc = GlobalStoryStudioDocument(
     globalStoryScenarioId: 'global_story',
     entryStepId: 'step_intro',
     nodes: <GlobalStoryStepNode>[
-      const GlobalStoryStepNode(
+      GlobalStoryStepNode(
         stepId: 'step_intro',
         exitMode: GlobalStoryStepExitMode.linear,
         links: <GlobalStoryStepLink>[
           GlobalStoryStepLink(toStepId: 'step_professor'),
         ],
       ),
-      const GlobalStoryStepNode(
+      GlobalStoryStepNode(
         stepId: 'step_professor',
         exitMode: GlobalStoryStepExitMode.linear,
         links: <GlobalStoryStepLink>[
           GlobalStoryStepLink(toStepId: 'step_starter'),
         ],
       ),
-      const GlobalStoryStepNode(
+      GlobalStoryStepNode(
         stepId: 'step_starter',
         exitMode: GlobalStoryStepExitMode.linear,
         links: <GlobalStoryStepLink>[],
@@ -492,19 +494,20 @@ void main() {
         id: 'chapter_prologue',
         name: 'Prologue',
         description: '',
-        stepIds: const <String>['step_intro', 'step_professor'],
+        stepIds: <String>['step_intro', 'step_professor'],
         order: 0,
       ),
       GlobalStoryChapter(
         id: 'chapter_depart',
         name: 'Depart',
         description: '',
-        stepIds: const <String>['step_starter'],
+        stepIds: <String>['step_starter'],
         order: 1,
       ),
     ],
   );
-  final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  final project = ProjectManifest(
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

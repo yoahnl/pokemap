@@ -92,8 +92,8 @@ void main() {
 NarrativeEventRegistry _emptyRegistry() => NarrativeEventRegistry(
       schemaVersion: 1,
       mode: EventSystemMode.legacyOnly,
-      records: <NarrativeEventRecord>[],
-      legacyClaims: <LegacySourceClaim>[],
+      records: const <NarrativeEventRecord>[],
+      legacyClaims: const <LegacySourceClaim>[],
     );
 
 MapData _emptyMap() => const MapData(
@@ -102,14 +102,14 @@ MapData _emptyMap() => const MapData(
       size: GridSize(width: 8, height: 6),
     );
 
-MapData _legacyMap() => MapData(
+MapData _legacyMap() => const MapData(
       id: 'map_a',
       name: 'Map A',
-      size: const GridSize(width: 8, height: 6),
-      layers: const <MapLayer>[
+      size: GridSize(width: 8, height: 6),
+      layers: <MapLayer>[
         MapLayer.object(id: 'events', name: 'Events'),
       ],
-      entities: const <MapEntity>[
+      entities: <MapEntity>[
         MapEntity(
           id: 'npc_a',
           name: 'NPC A',
@@ -117,7 +117,7 @@ MapData _legacyMap() => MapData(
           pos: GridPos(x: 1, y: 1),
         ),
       ],
-      events: const <MapEventDefinition>[
+      events: <MapEventDefinition>[
         MapEventDefinition(
           id: 'legacy_event',
           title: 'Legacy Event',

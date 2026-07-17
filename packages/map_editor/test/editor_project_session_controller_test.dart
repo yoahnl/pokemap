@@ -30,8 +30,8 @@ void main() {
         errorMessage: 'Old error',
       );
 
-      final updated = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+      const updated = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'Demo',
         maps: [],
         tilesets: [],
@@ -39,7 +39,7 @@ void main() {
 
       final next = controller.openProjectSession(
         current: state,
-        session: ProjectSessionLoadResult(
+        session: const ProjectSessionLoadResult(
           projectRootPath: '/tmp/new',
           project: updated,
           presetSelection: TerrainPresetSelection(
@@ -134,9 +134,9 @@ void main() {
         size: GridSize(width: 4, height: 4),
         layers: [],
       );
-      final state = EditorState(
+      const state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -153,8 +153,8 @@ void main() {
 
       final next = controller.afterMapRenamed(
         current: state,
-        updatedProject: ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        updatedProject: const ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -180,9 +180,9 @@ void main() {
         size: GridSize(width: 4, height: 4),
         layers: [],
       );
-      final state = EditorState(
+      const state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -203,8 +203,8 @@ void main() {
 
       final next = controller.afterMapDeleted(
         current: state,
-        updatedProject: ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        updatedProject: const ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],

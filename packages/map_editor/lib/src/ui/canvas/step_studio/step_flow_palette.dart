@@ -68,20 +68,22 @@ class StepFlowPalette extends StatelessWidget {
           Expanded(
             child: ListView(
               children: [
-                _PaletteSectionLabel(context, 'Parties de l’étape'),
+                _paletteSectionLabel(context, 'Parties de l’étape'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.arrow_right_circle,
                   label: 'Début',
                   subtitle: 'Disponibilité + texte au centre',
-                  onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.flowEntry)),
+                  onTap: () =>
+                      onFocus(const StepFlowFocus(StepFlowSlot.flowEntry)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.scope,
                   label: 'Objectif',
                   subtitle: 'Nom, texte, texte au centre',
-                  onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.objective)),
+                  onTap: () =>
+                      onFocus(const StepFlowFocus(StepFlowSlot.objective)),
                 ),
                 _paletteTile(
                   context,
@@ -104,26 +106,27 @@ class StepFlowPalette extends StatelessWidget {
                   icon: CupertinoIcons.checkmark_seal,
                   label: 'Fin',
                   subtitle: 'Texte au centre + condition de fin',
-                  onTap: () =>
-                      onFocus(const StepFlowFocus(StepFlowSlot.validationEngine)),
+                  onTap: () => onFocus(
+                      const StepFlowFocus(StepFlowSlot.validationEngine)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.doc_plaintext,
                   label: 'Transition',
                   subtitle: 'Mémo seulement — rien d’automatique',
-                  onTap: () => onFocus(const StepFlowFocus(StepFlowSlot.exitNext)),
+                  onTap: () =>
+                      onFocus(const StepFlowFocus(StepFlowSlot.exitNext)),
                 ),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.map,
                   label: 'Carte',
                   subtitle: 'Changements sur la carte',
-                  onTap: () =>
-                      onFocus(const StepFlowFocus(StepFlowSlot.worldPersistence)),
+                  onTap: () => onFocus(
+                      const StepFlowFocus(StepFlowSlot.worldPersistence)),
                 ),
                 const SizedBox(height: 12),
-                _PaletteSectionLabel(context, 'Résultats possibles'),
+                _paletteSectionLabel(context, 'Résultats possibles'),
                 _paletteTile(
                   context,
                   icon: CupertinoIcons.plus_circle,
@@ -204,7 +207,8 @@ class StepFlowPalette extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 18, color: ac.withValues(alpha: effective ? 1 : 0.45)),
+              Icon(icon,
+                  size: 18, color: ac.withValues(alpha: effective ? 1 : 0.45)),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(
@@ -240,7 +244,7 @@ class StepFlowPalette extends StatelessWidget {
   }
 }
 
-Widget _PaletteSectionLabel(BuildContext context, String text) {
+Widget _paletteSectionLabel(BuildContext context, String text) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 6, top: 2),
     child: Text(

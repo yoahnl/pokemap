@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../lib/src/application/global_story_chapter_runtime.dart';
-import '../lib/src/application/map_entity_runtime_predicate_evaluator.dart';
+import 'package:map_runtime/src/application/global_story_chapter_runtime.dart';
+import 'package:map_runtime/src/application/map_entity_runtime_predicate_evaluator.dart';
 
 GameState _state({
   Set<String> flags = const {},
@@ -29,8 +29,7 @@ MapEntity _npc(MapEntityNpcData npc) {
 }
 
 void main() {
-  final emptyChapters =
-      GlobalStoryChapterStepIndex(chapterIdToStepIds: const {});
+  const emptyChapters = GlobalStoryChapterStepIndex(chapterIdToStepIds: {});
 
   test('flag actif → visibleWhen true', () {
     final ev = MapEntityRuntimePredicateEvaluator(
@@ -71,7 +70,7 @@ void main() {
   });
 
   test('chapitre terminé quand toutes les steps le sont', () {
-    final chapters = GlobalStoryChapterStepIndex(
+    const chapters = GlobalStoryChapterStepIndex(
       chapterIdToStepIds: {
         'ch1': ['a', 'b'],
       },

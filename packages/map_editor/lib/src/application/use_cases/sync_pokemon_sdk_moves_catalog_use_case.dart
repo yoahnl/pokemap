@@ -5,8 +5,8 @@ import 'package:path/path.dart' as p;
 
 import '../errors/application_errors.dart';
 import '../models/pokemon_project_data_models.dart';
-import '../ports/pokemon_external_source_repository.dart';
 import '../ports/pokemon_read_repository.dart';
+import '../ports/pokemon_sdk_studio_project_source.dart';
 import '../ports/pokemon_write_repository.dart';
 import '../ports/project_workspace.dart';
 import '../services/pokemon_sdk_move_catalog_converter.dart';
@@ -35,13 +35,13 @@ final class PokemonSdkMovesCatalogSyncResult {
 
 final class SyncPokemonSdkMovesCatalogUseCase {
   const SyncPokemonSdkMovesCatalogUseCase({
-    required this.externalSourceRepository,
+    required this.studioSource,
     required this.readRepository,
     required this.writeRepository,
     this.converter = const PokemonSdkMoveCatalogConverter(),
   });
 
-  final PokemonExternalSourceRepository externalSourceRepository;
+  final PokemonSdkStudioProjectSource studioSource;
   final PokemonReadRepository readRepository;
   final PokemonWriteRepository writeRepository;
   final PokemonSdkMoveCatalogConverter converter;
@@ -54,8 +54,7 @@ final class SyncPokemonSdkMovesCatalogUseCase {
     final catalogRelativePath = await _resolveMovesCatalogRelativePath(
       workspace,
     );
-    final studioPayload = await externalSourceRepository
-        .fetchPokemonSdkStudioProjectPayload(psdkProjectRootPath);
+    final studioPayload = await studioSource.loadProject(psdkProjectRootPath);
     final externalCatalog = converter.convertCatalog(
       studioPayload.moves.cast<Map<String, Object?>>(),
     );

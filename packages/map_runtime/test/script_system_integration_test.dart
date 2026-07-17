@@ -7,10 +7,10 @@ import 'package:map_runtime/src/application/resolve_dialogue.dart';
 void main() {
   group('Script System Runtime Integration', () {
     test('Complete scenario: page0 -> script -> flag -> page1', () {
-      final event = MapEventDefinition(
+      const event = MapEventDefinition(
         id: 'professor_event',
         title: 'Professor Oak',
-        position: const EventPosition(layerId: 'objects', x: 5, y: 5),
+        position: EventPosition(layerId: 'objects', x: 5, y: 5),
         pages: [
           MapEventPage(
             pageNumber: 0,
@@ -18,8 +18,7 @@ void main() {
               type: ScriptConditionType.flagIsUnset,
               params: {ScriptConditionParams.flagName: 'professor_met'},
             ),
-            script: const ScriptRef(
-                scriptId: 'professor_intro', startNode: 'start'),
+            script: ScriptRef(scriptId: 'professor_intro', startNode: 'start'),
             message: 'Hello! I am Professor Oak!',
           ),
           MapEventPage(
@@ -33,7 +32,7 @@ void main() {
         ],
       );
 
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'professor_intro',
         defaultStartNode: 'start',
         nodes: [
@@ -44,13 +43,13 @@ void main() {
                 type: ScriptCommandType.setFlag,
                 params: {'flagName': 'professor_met'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
       );
 
-      final scriptEntry = ProjectScriptEntry(
+      const scriptEntry = ProjectScriptEntry(
         id: 'professor_intro',
         name: 'Professor Introduction',
         asset: script,
@@ -65,9 +64,9 @@ void main() {
         surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
-      var gameState = GameState(saveId: 'test-save');
+      var gameState = const GameState(saveId: 'test-save');
 
-      final pageResolver = EventPageResolver();
+      const pageResolver = EventPageResolver();
 
       final pageBefore = pageResolver.resolve(event, gameState);
       expect(pageBefore, isNotNull);
@@ -101,10 +100,10 @@ void main() {
     });
 
     test('Event page resolution with multiple conditions', () {
-      final event = MapEventDefinition(
+      const event = MapEventDefinition(
         id: 'complex_event',
         title: 'Complex Event',
-        position: const EventPosition(layerId: 'objects', x: 0, y: 0),
+        position: EventPosition(layerId: 'objects', x: 0, y: 0),
         pages: [
           MapEventPage(
             pageNumber: 0,
@@ -138,9 +137,9 @@ void main() {
         ],
       );
 
-      var gameState = GameState(saveId: 'test-save');
-      final pageResolver = EventPageResolver();
-      final mutations = const GameStateMutations();
+      var gameState = const GameState(saveId: 'test-save');
+      const pageResolver = EventPageResolver();
+      const mutations = GameStateMutations();
 
       var page = pageResolver.resolve(event, gameState);
       expect(page!.pageIndex, equals(2));
@@ -155,7 +154,7 @@ void main() {
     });
 
     test('Script execution updates GameState', () {
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'test_script',
         defaultStartNode: 'start',
         nodes: [
@@ -166,13 +165,13 @@ void main() {
                 type: ScriptCommandType.setFlag,
                 params: {'flagName': 'test_flag'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
       );
 
-      var gameState = GameState(saveId: 'test-save');
+      var gameState = const GameState(saveId: 'test-save');
 
       final context = ScriptExecutionContext(
         gameState: gameState,
@@ -196,7 +195,7 @@ void main() {
     });
 
     test('Script resume continues after an openDialogue suspension', () {
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'resume_after_dialogue',
         defaultStartNode: 'start',
         nodes: [
@@ -211,13 +210,13 @@ void main() {
                 type: ScriptCommandType.setFlag,
                 params: {'flagName': 'after_dialogue'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
       );
 
-      var gameState = GameState(saveId: 'test-save');
+      var gameState = const GameState(saveId: 'test-save');
 
       final context = ScriptExecutionContext(
         gameState: gameState,
@@ -247,7 +246,7 @@ void main() {
     });
 
     test('Script controller is cleaned up after termination', () {
-      final script = ScriptAsset(
+      const script = ScriptAsset(
         id: 'cleanup_test',
         defaultStartNode: 'start',
         nodes: [
@@ -258,13 +257,13 @@ void main() {
                 type: ScriptCommandType.setFlag,
                 params: {'flagName': 'cleanup_flag'},
               ),
-              const ScriptCommand(type: ScriptCommandType.end),
+              ScriptCommand(type: ScriptCommandType.end),
             ],
           ),
         ],
       );
 
-      var gameState = GameState(saveId: 'test-save');
+      var gameState = const GameState(saveId: 'test-save');
       var controllerTerminated = false;
 
       final context = ScriptExecutionContext(
@@ -312,7 +311,7 @@ void main() {
       // is the path to project.json, not the project root directory.
       // After the fix, it uses _bundle.projectRootDirectory which is correct.
 
-      final dialogueEntry = ProjectDialogueEntry(
+      const dialogueEntry = ProjectDialogueEntry(
         id: 'test_dialogue',
         name: 'Test Dialogue',
         relativePath: 'dialogues/test.yarn',
@@ -328,11 +327,11 @@ void main() {
       );
 
       // The correct project root should be the dirname
-      final projectRootDirectory = '/Users/karim/Project/pokemonProject';
+      const projectRootDirectory = '/Users/karim/Project/pokemonProject';
 
       final resolved = resolveDialogue(
         entityId: 'test_event',
-        ref: DialogueRef(
+        ref: const DialogueRef(
           dialogueId: '',
           scriptPathRelative: 'dialogues/test.yarn',
           startNode: 'start',
@@ -352,7 +351,7 @@ void main() {
     });
 
     test('Dialogue resolution with scriptPathRelative', () {
-      final dialogueEntry = ProjectDialogueEntry(
+      const dialogueEntry = ProjectDialogueEntry(
         id: 'test_dialogue',
         name: 'Test Dialogue',
         relativePath: 'dialogues/test.yarn',
@@ -369,7 +368,7 @@ void main() {
 
       final resolved = resolveDialogue(
         entityId: 'test_event',
-        ref: DialogueRef(
+        ref: const DialogueRef(
           dialogueId: '',
           scriptPathRelative: 'dialogues/test.yarn',
           startNode: 'start',
@@ -399,7 +398,7 @@ void main() {
 
       final resolved = resolveDialogue(
         entityId: 'test_event',
-        ref: DialogueRef(
+        ref: const DialogueRef(
           dialogueId: '',
           scriptPathRelative: 'dialogues/missing.yarn',
           startNode: 'start',

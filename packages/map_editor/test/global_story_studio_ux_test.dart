@@ -18,8 +18,8 @@ void main() {
       NarrativeWorkspaceProjection projection,
       StepStudioDocument stepDoc,
       GlobalStoryStudioDocument globalDoc,
-    }) _createProjectWithChapters() {
-      final stepDoc = StepStudioDocument(
+    }) createProjectWithChapters() {
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -27,10 +27,10 @@ void main() {
             name: 'Introduction',
             description: 'Le joueur commence son aventure',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -39,10 +39,10 @@ void main() {
             name: 'Rencontre du professeur',
             description: 'Le professeur Oak explique les bases',
             order: 1,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.afterPreviousStep,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -51,38 +51,38 @@ void main() {
             name: 'Choix du starter',
             description: 'Feu, Eau ou Plante?',
             order: 2,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.afterPreviousStep,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
         ],
       );
 
-      final globalDoc = GlobalStoryStudioDocument(
+      const globalDoc = GlobalStoryStudioDocument(
         globalStoryScenarioId: 'global_story',
         entryStepId: 'step_intro',
         nodes: <GlobalStoryStepNode>[
           GlobalStoryStepNode(
             stepId: 'step_intro',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[
+            links: <GlobalStoryStepLink>[
               GlobalStoryStepLink(toStepId: 'step_professor'),
             ],
           ),
           GlobalStoryStepNode(
             stepId: 'step_professor',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[
+            links: <GlobalStoryStepLink>[
               GlobalStoryStepLink(toStepId: 'step_starter'),
             ],
           ),
           GlobalStoryStepNode(
             stepId: 'step_starter',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[],
+            links: <GlobalStoryStepLink>[],
           ),
         ],
         chapters: <GlobalStoryChapter>[
@@ -90,20 +90,21 @@ void main() {
             id: 'chapter_prologue',
             name: 'Prologue',
             description: 'Le debut de l aventure',
-            stepIds: const <String>['step_intro', 'step_professor'],
+            stepIds: <String>['step_intro', 'step_professor'],
             order: 0,
           ),
           GlobalStoryChapter(
             id: 'chapter_depart',
             name: 'Depart',
             description: '',
-            stepIds: const <String>['step_starter'],
+            stepIds: <String>['step_starter'],
             order: 1,
           ),
         ],
       );
 
-      final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      final project = ProjectManifest(
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -115,8 +116,7 @@ void main() {
             entryNodeId: 'start',
             metadata: <String, String>{
               kStepStudioDocumentMetadataKey: stepDoc.toMetadataJson(),
-              kGlobalStoryStudioDocumentMetadataKey:
-                  globalDoc.toMetadataJson(),
+              kGlobalStoryStudioDocumentMetadataKey: globalDoc.toMetadataJson(),
             },
           ),
         ],
@@ -135,7 +135,7 @@ void main() {
     testWidgets(
       'renders chapter-based narrative tree (not form-like step editor)',
       (tester) async {
-        final data = _createProjectWithChapters();
+        final data = createProjectWithChapters();
 
         await tester.pumpWidget(
           ProviderScope(
@@ -189,7 +189,7 @@ void main() {
     testWidgets(
       'opens Step Studio when "Ouvrir Step" button is pressed',
       (tester) async {
-        final data = _createProjectWithChapters();
+        final data = createProjectWithChapters();
         var stepStudioOpened = false;
         String? openedStepId;
 
@@ -242,7 +242,8 @@ void main() {
       'unique global story rule is respected',
       (tester) async {
         // Project with NO Global Story.
-        const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        const project = ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -290,7 +291,7 @@ void main() {
     testWidgets(
       'structure with multiple steps in chapters displays correctly',
       (tester) async {
-        final data = _createProjectWithChapters();
+        final data = createProjectWithChapters();
 
         await tester.pumpWidget(
           ProviderScope(
@@ -380,8 +381,10 @@ void main() {
       expect(restored.chapters.first.name, 'Chapter One');
     });
 
-    test('normalizeGlobalStoryStudioDocument creates default chapter when none exist', () {
-      final stepDoc = StepStudioDocument(
+    test(
+        'normalizeGlobalStoryStudioDocument creates default chapter when none exist',
+        () {
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -389,10 +392,10 @@ void main() {
             name: 'Step A',
             description: '',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -401,10 +404,10 @@ void main() {
             name: 'Step B',
             description: '',
             order: 1,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.afterPreviousStep,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -412,24 +415,24 @@ void main() {
       );
 
       // Document without chapters.
-      final doc = GlobalStoryStudioDocument(
+      const doc = GlobalStoryStudioDocument(
         globalStoryScenarioId: 'global_story',
         entryStepId: 'step_a',
         nodes: <GlobalStoryStepNode>[
           GlobalStoryStepNode(
             stepId: 'step_a',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[
+            links: <GlobalStoryStepLink>[
               GlobalStoryStepLink(toStepId: 'step_b'),
             ],
           ),
           GlobalStoryStepNode(
             stepId: 'step_b',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[],
+            links: <GlobalStoryStepLink>[],
           ),
         ],
-        chapters: const <GlobalStoryChapter>[],
+        chapters: <GlobalStoryChapter>[],
       );
 
       final normalized = normalizeGlobalStoryStudioDocument(
@@ -444,7 +447,7 @@ void main() {
     });
 
     test('createDefaultGlobalStoryStudioDocument creates default chapter', () {
-      final stepDoc = StepStudioDocument(
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'gs',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -452,10 +455,10 @@ void main() {
             name: 'S1',
             description: '',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -472,8 +475,10 @@ void main() {
       expect(doc.chapters.first.stepIds, ['s1']);
     });
 
-    test('normalizeGlobalStoryStudioDocument assigns unassigned steps to default chapter', () {
-      final stepDoc = StepStudioDocument(
+    test(
+        'normalizeGlobalStoryStudioDocument assigns unassigned steps to default chapter',
+        () {
+      const stepDoc = StepStudioDocument(
         globalStoryScenarioId: 'gs',
         steps: <StepStudioStep>[
           StepStudioStep(
@@ -481,10 +486,10 @@ void main() {
             name: 'S1',
             description: '',
             order: 0,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -493,10 +498,10 @@ void main() {
             name: 'S2',
             description: '',
             order: 1,
-            activation: const StepStudioActivationRule(
+            activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.afterPreviousStep,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
           ),
@@ -504,21 +509,21 @@ void main() {
       );
 
       // Document with a chapter that only has s1 — s2 is unassigned.
-      final doc = GlobalStoryStudioDocument(
+      const doc = GlobalStoryStudioDocument(
         globalStoryScenarioId: 'gs',
         entryStepId: 's1',
         nodes: <GlobalStoryStepNode>[
           GlobalStoryStepNode(
             stepId: 's1',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[
+            links: <GlobalStoryStepLink>[
               GlobalStoryStepLink(toStepId: 's2'),
             ],
           ),
           GlobalStoryStepNode(
             stepId: 's2',
             exitMode: GlobalStoryStepExitMode.linear,
-            links: const <GlobalStoryStepLink>[],
+            links: <GlobalStoryStepLink>[],
           ),
         ],
         chapters: <GlobalStoryChapter>[
@@ -526,7 +531,7 @@ void main() {
             id: 'ch1',
             name: 'Ch1',
             description: '',
-            stepIds: const <String>['s1'],
+            stepIds: <String>['s1'],
             order: 0,
           ),
         ],
@@ -538,9 +543,7 @@ void main() {
       );
 
       // s2 should have been assigned to the default chapter.
-      final allStepIds = normalized.chapters
-          .expand((c) => c.stepIds)
-          .toSet();
+      final allStepIds = normalized.chapters.expand((c) => c.stepIds).toSet();
       expect(allStepIds, contains('s1'));
       expect(allStepIds, contains('s2'));
     });

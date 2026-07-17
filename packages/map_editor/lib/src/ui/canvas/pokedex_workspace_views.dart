@@ -13,5 +13,4 @@ export 'pokedex_workspace/pokedex_workspace_page.dart'
         PokedexWorkspaceImportEmptyState,
         PokedexWorkspaceDetailPane,
         PokedexWorkspaceStateCard,
-        PokedexWorkspaceStateFrame,
-        showPokedexImportFlowSheet;
+        PokedexWorkspaceStateFrame;

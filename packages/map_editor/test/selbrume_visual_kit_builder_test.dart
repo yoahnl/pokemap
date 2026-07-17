@@ -84,7 +84,16 @@ void main() {
         isTrue,
       );
     }
-  });
+  }, skip: _approvedV2SourceCorpusSkipReason());
+}
+
+String? _approvedV2SourceCorpusSkipReason() {
+  final sourceRoot = Directory(
+    p.join(_selbrumeRoot().path, 'assets', 'sources', 'v2'),
+  );
+  return sourceRoot.existsSync()
+      ? null
+      : 'Approved user-supplied V2 source corpus is not versioned.';
 }
 
 Directory _selbrumeRoot() {

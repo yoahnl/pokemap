@@ -72,7 +72,8 @@ class _SpritesheetPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     for (var x = 0; x <= cols; x++) {
-      canvas.drawLine(Offset(x * cw, 0), Offset(x * cw, size.height), gridPaint);
+      canvas.drawLine(
+          Offset(x * cw, 0), Offset(x * cw, size.height), gridPaint);
     }
     for (var y = 0; y <= rows; y++) {
       canvas.drawLine(Offset(0, y * ch), Offset(size.width, y * ch), gridPaint);
@@ -427,11 +428,11 @@ class _CharacterAnimEditorState extends ConsumerState<_CharacterAnimEditor> {
 
   void _saveFrames(List<CharacterAnimationFrame> frames) {
     ref.read(editorNotifierProvider.notifier).upsertCharacterAnimation(
-      characterId: widget.character.id,
-      animState: _animState,
-      direction: _animDir,
-      frames: frames,
-    );
+          characterId: widget.character.id,
+          animState: _animState,
+          direction: _animDir,
+          frames: frames,
+        );
   }
 
   void _onCellTap(int col, int row) {
@@ -762,7 +763,8 @@ class _CharacterAnimEditorState extends ConsumerState<_CharacterAnimEditor> {
         children: [
           Text(
             'Frame ${idx + 1}/${frames.length}',
-            style: const TextStyle(fontSize: 11, color: EditorPaintColors.white54),
+            style:
+                const TextStyle(fontSize: 11, color: EditorPaintColors.white54),
           ),
           const Spacer(),
           GestureDetector(
@@ -804,17 +806,17 @@ class _CharacterAnimEditorState extends ConsumerState<_CharacterAnimEditor> {
           const SizedBox(width: 8),
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            minSize: 22,
             color: EditorPaintColors.orange.withValues(alpha: 0.85),
             onPressed: _commitDuration,
+            minimumSize: const Size(22, 22),
             child: const Text('Set', style: TextStyle(fontSize: 11)),
           ),
           const SizedBox(width: 6),
           CupertinoButton(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            minSize: 22,
             color: CupertinoColors.destructiveRed,
             onPressed: () => _deleteFrame(idx),
+            minimumSize: const Size(22, 22),
             child: const Text('Del', style: TextStyle(fontSize: 11)),
           ),
         ],
@@ -888,9 +890,9 @@ class _CreateCharacterForm extends StatelessWidget {
           children: [
             CupertinoButton(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              minSize: 26,
               color: CupertinoColors.destructiveRed,
               onPressed: onCancel,
+              minimumSize: const Size(26, 26),
               child: const Text('Cancel', style: TextStyle(fontSize: 12)),
             ),
             const SizedBox(width: 8),
@@ -898,7 +900,7 @@ class _CreateCharacterForm extends StatelessWidget {
               child: CupertinoButton.filled(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                minSize: 26,
+                minimumSize: const Size(26, 26),
                 onPressed: onCreate,
                 child: const Text('Create', style: TextStyle(fontSize: 12)),
               ),
@@ -924,8 +926,7 @@ class CharacterLibraryPanel extends ConsumerStatefulWidget {
       _CharacterLibraryPanelState();
 }
 
-class _CharacterLibraryPanelState
-    extends ConsumerState<CharacterLibraryPanel> {
+class _CharacterLibraryPanelState extends ConsumerState<CharacterLibraryPanel> {
   bool _showCreateForm = false;
   final _newNameCtrl = TextEditingController();
   final _newTilesetCtrl = TextEditingController();
@@ -1083,7 +1084,7 @@ class _CharacterLibraryPanelState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        InspectorEmbeddedSectionLabel('DEFAULT PLAYER CHARACTER'),
+        const InspectorEmbeddedSectionLabel('DEFAULT PLAYER CHARACTER'),
         const SizedBox(height: 4),
         InspectorEmbeddedDropdown(
           accent: EditorChrome.inspectorJoyCyan,
@@ -1128,7 +1129,7 @@ class _CharacterLibraryPanelState
     }
     return CupertinoButton.filled(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      minSize: 28,
+      minimumSize: const Size(28, 28),
       onPressed: () => setState(() {
         _showCreateForm = true;
         _newNameCtrl.clear();
@@ -1157,7 +1158,9 @@ class _CharacterLibraryPanelState
         GestureDetector(
           onTap: () {
             notifier.selectCharacter(char.id);
-            if (_editingCharId == char.id) setState(() => _editingCharId = null);
+            if (_editingCharId == char.id) {
+              setState(() => _editingCharId = null);
+            }
           },
           child: DecoratedBox(
             decoration: BoxDecoration(
@@ -1179,9 +1182,8 @@ class _CharacterLibraryPanelState
                           style: TextStyle(
                             fontSize: 12,
                             color: label,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.w500,
+                            fontWeight:
+                                isSelected ? FontWeight.w700 : FontWeight.w500,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -1195,7 +1197,6 @@ class _CharacterLibraryPanelState
                   ),
                   CupertinoButton(
                     padding: const EdgeInsets.all(4),
-                    minSize: 24,
                     onPressed: () {
                       notifier.selectCharacter(char.id);
                       if (isEditing) {
@@ -1210,6 +1211,7 @@ class _CharacterLibraryPanelState
                         });
                       }
                     },
+                    minimumSize: const Size(24, 24),
                     child: Icon(
                       isEditing ? CupertinoIcons.xmark : CupertinoIcons.pencil,
                       size: 12,
@@ -1218,13 +1220,13 @@ class _CharacterLibraryPanelState
                   ),
                   CupertinoButton(
                     padding: const EdgeInsets.all(4),
-                    minSize: 24,
                     onPressed: () {
                       notifier.deleteCharacter(char.id);
                       if (_editingCharId == char.id) {
                         setState(() => _editingCharId = null);
                       }
                     },
+                    minimumSize: const Size(24, 24),
                     child: const Icon(
                       CupertinoIcons.trash,
                       size: 12,
@@ -1280,7 +1282,7 @@ class _CharacterLibraryPanelState
         const SizedBox(height: 6),
         CupertinoButton.filled(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          minSize: 24,
+          minimumSize: const Size(24, 24),
           onPressed: () {
             final name = _editNameCtrl.text.trim();
             final tileset = _editTilesetCtrl.text.trim();

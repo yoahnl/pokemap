@@ -24,26 +24,30 @@ void main() {
   });
 
   ProjectManifest baseManifest() {
-    return const ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+    return const ProjectManifest(
+      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       name: 'p',
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
   }
 
-  test('create dialogue at project root uses dialogues/<id>.yarn on disk', () async {
+  test('create dialogue at project root uses dialogues/<id>.yarn on disk',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final uc = CreateProjectDialogueUseCase(repo);
     final updated = await uc.execute(ws, baseManifest(), name: 'Intro');
     expect(updated.dialogues.single.relativePath, 'dialogues/intro.yarn');
     expect(
-      await File(ws.resolveProjectRelativePath('dialogues/intro.yarn')).exists(),
+      await File(ws.resolveProjectRelativePath('dialogues/intro.yarn'))
+          .exists(),
       isTrue,
     );
   });
 
-  test('buildDialogueLibraryTree tracks folderId after assign and toRoot', () async {
+  test('buildDialogueLibraryTree tracks folderId after assign and toRoot',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final createFolder = CreateDialogueLibraryFolderUseCase(repo);
@@ -60,10 +64,12 @@ void main() {
     expect(tree.rootDialogues.map((e) => e.id), contains(lineId));
     expect(tree.rootFolders.single.dialogues, isEmpty);
 
-    project = await assign.execute(ws, project, dialogueId: lineId, folderId: folderId);
+    project = await assign.execute(ws, project,
+        dialogueId: lineId, folderId: folderId);
     tree = buildDialogueLibraryTree(project);
     expect(tree.rootDialogues, isEmpty);
-    expect(tree.rootFolders.single.dialogues.map((e) => e.id), contains(lineId));
+    expect(
+        tree.rootFolders.single.dialogues.map((e) => e.id), contains(lineId));
 
     project = await toRoot.execute(ws, project, dialogueId: lineId);
     tree = buildDialogueLibraryTree(project);
@@ -71,7 +77,8 @@ void main() {
     expect(tree.rootFolders.single.dialogues, isEmpty);
   });
 
-  test('assign dialogue to folder moves file into nested dialogues/<slug>/', () async {
+  test('assign dialogue to folder moves file into nested dialogues/<slug>/',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final createFolder = CreateDialogueLibraryFolderUseCase(repo);
@@ -85,11 +92,14 @@ void main() {
     final id = project.dialogues.single.id;
     expect(project.dialogues.single.relativePath, 'dialogues/$id.yarn');
 
-    project = await assign.execute(ws, project, dialogueId: id, folderId: folderId);
+    project =
+        await assign.execute(ws, project, dialogueId: id, folderId: folderId);
     expect(project.dialogues.single.folderId, folderId);
-    expect(project.dialogues.single.relativePath, 'dialogues/chapter1/$id.yarn');
     expect(
-      await File(ws.resolveProjectRelativePath(project.dialogues.single.relativePath))
+        project.dialogues.single.relativePath, 'dialogues/chapter1/$id.yarn');
+    expect(
+      await File(ws.resolveProjectRelativePath(
+              project.dialogues.single.relativePath))
           .exists(),
       isTrue,
     );
@@ -108,7 +118,8 @@ void main() {
 
     var project = await createFolder.execute(ws, baseManifest(), name: 'Sub');
     final folderId = project.dialogueFolders.single.id;
-    project = await createDlg.execute(ws, project, name: 'D', folderId: folderId);
+    project =
+        await createDlg.execute(ws, project, name: 'D', folderId: folderId);
     final id = project.dialogues.single.id;
     expect(project.dialogues.single.relativePath, contains('dialogues/sub/'));
 
@@ -121,7 +132,8 @@ void main() {
     );
   });
 
-  test('rename dialogue folder renames directory and rewrites dialogue paths', () async {
+  test('rename dialogue folder renames directory and rewrites dialogue paths',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final mkFolder = CreateDialogueLibraryFolderUseCase(repo);
@@ -131,13 +143,17 @@ void main() {
     var project = await mkFolder.execute(ws, baseManifest(), name: 'OldName');
     final folderId = project.dialogueFolders.single.id;
     project = await mkDlg.execute(ws, project, name: 'X', folderId: folderId);
-    expect(project.dialogues.single.relativePath, contains('dialogues/oldname/'));
-
-    project = await rename.execute(ws, project, folderId: folderId, name: 'NewName');
-    expect(project.dialogueFolders.single.name, 'NewName');
-    expect(project.dialogues.single.relativePath, contains('dialogues/newname/'));
     expect(
-      await File(ws.resolveProjectRelativePath(project.dialogues.single.relativePath))
+        project.dialogues.single.relativePath, contains('dialogues/oldname/'));
+
+    project =
+        await rename.execute(ws, project, folderId: folderId, name: 'NewName');
+    expect(project.dialogueFolders.single.name, 'NewName');
+    expect(
+        project.dialogues.single.relativePath, contains('dialogues/newname/'));
+    expect(
+      await File(ws.resolveProjectRelativePath(
+              project.dialogues.single.relativePath))
           .exists(),
       isTrue,
     );
@@ -152,11 +168,13 @@ void main() {
 
     var project = await mkFolder.execute(ws, baseManifest(), name: 'Outer');
     final outerId = project.dialogueFolders.single.id;
-    project = await mkFolder.execute(ws, project, name: 'Inner', parentFolderId: outerId);
+    project = await mkFolder.execute(ws, project,
+        name: 'Inner', parentFolderId: outerId);
     final innerId =
         project.dialogueFolders.where((f) => f.id != outerId).single.id;
     project = await mkDlg.execute(ws, project, name: 'Z', folderId: innerId);
-    expect(project.dialogues.single.relativePath, contains('dialogues/outer/inner/'));
+    expect(project.dialogues.single.relativePath,
+        contains('dialogues/outer/inner/'));
 
     project = await moveFolder.execute(
       ws,
@@ -165,12 +183,16 @@ void main() {
       newParentFolderId: null,
     );
     expect(
-      project.dialogueFolders.where((f) => f.id == innerId).single.parentFolderId,
+      project.dialogueFolders
+          .where((f) => f.id == innerId)
+          .single
+          .parentFolderId,
       isNull,
     );
     expect(project.dialogues.single.relativePath, isNot(contains('/outer/')));
     expect(
-      await File(ws.resolveProjectRelativePath(project.dialogues.single.relativePath))
+      await File(ws.resolveProjectRelativePath(
+              project.dialogues.single.relativePath))
           .exists(),
       isTrue,
     );
@@ -185,7 +207,8 @@ void main() {
 
     var project = await mkFolder.execute(ws, baseManifest(), name: 'Full');
     final folderId = project.dialogueFolders.single.id;
-    project = await mkDlg.execute(ws, project, name: 'Keep', folderId: folderId);
+    project =
+        await mkDlg.execute(ws, project, name: 'Keep', folderId: folderId);
 
     await expectLater(
       del.execute(ws, project, folderId: folderId),
@@ -210,7 +233,8 @@ void main() {
     );
   });
 
-  test('create dialogue refuses when target file path already exists', () async {
+  test('create dialogue refuses when target file path already exists',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     await Directory(p.join(tmp.path, 'dialogues')).create(recursive: true);
@@ -222,7 +246,8 @@ void main() {
     );
   });
 
-  test('assign dialogue refuses when destination file already exists on disk', () async {
+  test('assign dialogue refuses when destination file already exists on disk',
+      () async {
     final repo = _FakeProjectRepository();
     final ws = _TempProjectWorkspace(tmp.path);
     final mkFolder = CreateDialogueLibraryFolderUseCase(repo);
@@ -244,7 +269,8 @@ void main() {
     );
   });
 
-  test('import into nested folder writes under dialogues/<folderSlug>/', () async {
+  test('import into nested folder writes under dialogues/<folderSlug>/',
+      () async {
     final src = File(p.join(tmp.path, 'ext.yarn'));
     await src.writeAsString('title: Q\n---\n===\n');
     final repo = _FakeProjectRepository();
@@ -260,9 +286,11 @@ void main() {
       displayName: 'Speech',
       folderId: folderId,
     );
-    expect(project.dialogues.single.relativePath, startsWith('dialogues/maman/'));
     expect(
-      await File(ws.resolveProjectRelativePath(project.dialogues.single.relativePath))
+        project.dialogues.single.relativePath, startsWith('dialogues/maman/'));
+    expect(
+      await File(ws.resolveProjectRelativePath(
+              project.dialogues.single.relativePath))
           .exists(),
       isTrue,
     );
@@ -362,8 +390,7 @@ class _TempProjectWorkspace implements ProjectWorkspace {
       p.join(root, relativePath);
 
   @override
-  String resolveTilesetPath(String relativePath) =>
-      p.join(root, relativePath);
+  String resolveTilesetPath(String relativePath) => p.join(root, relativePath);
 
   @override
   Future<void> writeTextFile(String path, String contents) async {

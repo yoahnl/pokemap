@@ -62,6 +62,36 @@ void main() {
       expect(button.onPressed, isNull);
     });
 
+    testWidgets('PokeMapButton supports the compact success toolbar variant',
+        (tester) async {
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapButton(
+            key: const ValueKey('compact-success-toolbar-button'),
+            onPressed: () {},
+            size: PokeMapButtonSize.compact,
+            variant: PokeMapButtonVariant.successOutline,
+            leading: const Icon(Icons.verified_user_outlined),
+            child: const Text('Validate'),
+          ),
+        ),
+      );
+
+      // The Event Builder header needs a 36px target. This focused contract
+      // protects that new design-system density without changing `small` or
+      // `medium` buttons used by existing forms.
+      expect(
+        tester
+            .getSize(
+              find.byKey(const ValueKey('compact-success-toolbar-button')),
+            )
+            .height,
+        36,
+      );
+      expect(find.text('Validate'), findsOneWidget);
+    });
+
     testWidgets('PokeMapButton displays spinner when isLoading is true',
         (tester) async {
       await tester.pumpWidget(

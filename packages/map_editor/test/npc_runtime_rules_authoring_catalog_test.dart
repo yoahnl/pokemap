@@ -4,11 +4,13 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/map_entities/application/npc_runtime_rules_authoring_catalog.dart';
 
 void main() {
-  test('knownStoryFlagIds dans globalProperties enrichit le catalogue flags', () {
-    final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  test('knownStoryFlagIds dans globalProperties enrichit le catalogue flags',
+      () {
+    const project = ProjectManifest(
+      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       name: 'p',
-      maps: const [],
-      tilesets: const [],
+      maps: [],
+      tilesets: [],
       globalProperties: {
         'authoring.knownStoryFlagIds': ['declared_flag', 'other'],
       },

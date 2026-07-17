@@ -15,7 +15,8 @@ void main() {
     testWidgets(
       'defers initial step selection callback after frame (provider-safe)',
       (tester) async {
-        const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        const project = ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -131,7 +132,7 @@ void main() {
       'build completes in bounded time with non-empty cutscenes, outcomes, '
       'and worldChanges (anti-infinite-loop guard)',
       (tester) async {
-        final document = StepStudioDocument(
+        const document = StepStudioDocument(
           globalStoryScenarioId: 'global_story',
           steps: <StepStudioStep>[
             StepStudioStep(
@@ -139,13 +140,13 @@ void main() {
               name: 'Step A',
               description: 'First step',
               order: 0,
-              activation: const StepStudioActivationRule(
+              activation: StepStudioActivationRule(
                 mode: StepStudioActivationMode.atGameStart,
               ),
-              completion: const StepStudioCompletionRule(
+              completion: StepStudioCompletionRule(
                 mode: StepStudioCompletionMode.manual,
               ),
-              cutscenes: const <StepStudioCutsceneLink>[
+              cutscenes: <StepStudioCutsceneLink>[
                 StepStudioCutsceneLink(
                   cutsceneId: 'cutscene_1',
                   role: StepStudioCutsceneRole.main,
@@ -155,7 +156,7 @@ void main() {
                   role: StepStudioCutsceneRole.kickoff,
                 ),
               ],
-              outcomes: const <StepStudioOutcomeDefinition>[
+              outcomes: <StepStudioOutcomeDefinition>[
                 StepStudioOutcomeDefinition(
                   label: 'Result A',
                   scope: StepStudioOutcomeScope.progression,
@@ -167,11 +168,12 @@ void main() {
                   outcomeId: 'world.step_a.result_b',
                 ),
               ],
-              worldChanges: const <StepStudioWorldChange>[
+              worldChanges: <StepStudioWorldChange>[
                 StepStudioWorldChange(
                   mapId: 'map_alpha',
                   entityId: 'npc_emma',
-                  presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
+                  presenceRule:
+                      StepStudioPresenceRule.visibleAfterStepCompletion,
                 ),
               ],
             ),
@@ -180,17 +182,18 @@ void main() {
               name: 'Step B',
               description: 'Second step',
               order: 1,
-              activation: const StepStudioActivationRule(
+              activation: StepStudioActivationRule(
                 mode: StepStudioActivationMode.afterPreviousStep,
               ),
-              completion: const StepStudioCompletionRule(
+              completion: StepStudioCompletionRule(
                 mode: StepStudioCompletionMode.manual,
               ),
             ),
           ],
         );
 
-        final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        final project = ProjectManifest(
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -204,13 +207,13 @@ void main() {
                 kStepStudioDocumentMetadataKey: document.toMetadataJson(),
               },
             ),
-            ScenarioAsset(
+            const ScenarioAsset(
               id: 'local_flow_1',
               name: 'Cutscene 1',
               scope: ScenarioScope.localEventFlow,
               entryNodeId: 'start',
             ),
-            ScenarioAsset(
+            const ScenarioAsset(
               id: 'local_flow_2',
               name: 'Cutscene 2',
               scope: ScenarioScope.localEventFlow,
@@ -276,7 +279,7 @@ void main() {
     testWidgets(
       'hydrated sidebar lists worldChanges count when entityId is empty (draft row)',
       (tester) async {
-        final document = StepStudioDocument(
+        const document = StepStudioDocument(
           globalStoryScenarioId: 'global_story',
           steps: <StepStudioStep>[
             StepStudioStep(
@@ -284,13 +287,13 @@ void main() {
               name: 'Step A',
               description: 'First step',
               order: 0,
-              activation: const StepStudioActivationRule(
+              activation: StepStudioActivationRule(
                 mode: StepStudioActivationMode.atGameStart,
               ),
-              completion: const StepStudioCompletionRule(
+              completion: StepStudioCompletionRule(
                 mode: StepStudioCompletionMode.manual,
               ),
-              worldChanges: const <StepStudioWorldChange>[
+              worldChanges: <StepStudioWorldChange>[
                 StepStudioWorldChange(
                   mapId: 'map_alpha',
                   entityId: '',
@@ -303,7 +306,8 @@ void main() {
           ],
         );
 
-        final project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        final project = ProjectManifest(
+          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -357,7 +361,6 @@ void main() {
         );
       },
     );
-
   });
 }
 

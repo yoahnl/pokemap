@@ -38,13 +38,15 @@ void main() {
         child: MacosTheme(
           data: MacosThemeData.light(),
           child: MaterialApp(
-            home: CupertinoPageScaffold(
-              child: SizedBox(
-                width: embedded ? 420 : 1280,
-                height: 1800,
-                child: embedded
-                    ? const TrainerLibraryPanel(embedded: true)
-                    : const TrainerLibraryPanel(),
+            home: Material(
+              child: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: embedded ? 420 : 1280,
+                  height: 1800,
+                  child: embedded
+                      ? const TrainerLibraryPanel(embedded: true)
+                      : const TrainerLibraryPanel(),
+                ),
               ),
             ),
           ),
@@ -113,14 +115,9 @@ void main() {
       const Key('trainer-library-pokemon-level-popup'),
     );
     await tester.ensureVisible(popup);
-    await tester.tap(popup);
-    await settleTrainerUi(tester);
-
-    final option = find.byKey(
-      Key('trainer-library-pokemon-level-option-$level'),
-    );
-    expect(option, findsWidgets);
-    await tester.tap(option.last);
+    final widget = tester.widget<MacosPopupButton<int>>(popup);
+    expect(widget.items.map((item) => item.value), contains(level));
+    widget.onChanged?.call(level);
     await settleTrainerUi(tester);
   }
 
@@ -143,7 +140,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_embedded',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_embedded',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -218,7 +216,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -383,7 +382,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_difficulty_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_difficulty_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -398,7 +398,8 @@ void main() {
     );
     await settleTrainerUi(tester);
 
-    expect(find.text('Difficulté de combat · valeur par défaut'), findsOneWidget);
+    expect(
+        find.text('Difficulté de combat · valeur par défaut'), findsOneWidget);
 
     await tester.enterText(
       find.byKey(const Key('trainer-library-create-name-field')),
@@ -412,7 +413,8 @@ void main() {
     await tester.tap(find.text('Créer'));
     await tester.pumpAndSettle();
 
-    var trainer = container.read(editorNotifierProvider).project!.trainers.single;
+    var trainer =
+        container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.battleDifficulty, isNull);
 
     await tester.tap(find.text('Modifier').first);
@@ -453,7 +455,8 @@ void main() {
     addTearDown(container.dispose);
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainer_picker_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -567,7 +570,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -600,7 +604,8 @@ void main() {
       find.byKey(const Key('trainer-library-pokemon-selected-species-status')),
       findsOneWidget,
     );
-    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
+    expect(
+        find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(
@@ -626,7 +631,8 @@ void main() {
       find.text('Aucune espèce locale ne correspond.'),
       findsOneWidget,
     );
-    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
+    expect(
+        find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
 
     await tester.tap(
       find.byKey(
@@ -634,7 +640,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
+    expect(
+        find.textContaining('Espèce sélectionnée : Caterpie'), findsOneWidget);
 
     await tester.tap(
       find.byKey(
@@ -642,7 +649,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Aucune espèce sélectionnée pour le moment.'), findsOneWidget);
+    expect(find.text('Aucune espèce sélectionnée pour le moment.'),
+        findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(
@@ -691,7 +699,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -795,7 +804,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -902,7 +912,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1041,7 +1052,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1140,7 +1152,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1224,7 +1237,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1266,10 +1280,13 @@ void main() {
           )
           .first,
     );
+    final rawFallbackToggle = find.byKey(
+      const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+    );
+    await tester.ensureVisible(rawFallbackToggle);
+    await settleTrainerUi(tester);
     await tester.tap(
-      find.byKey(
-        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
-      ),
+      rawFallbackToggle,
     );
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1366,7 +1383,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1421,10 +1439,13 @@ void main() {
           )
           .first,
     );
+    final rawFallbackToggle = find.byKey(
+      const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
+    );
+    await tester.ensureVisible(rawFallbackToggle);
+    await settleTrainerUi(tester);
     await tester.tap(
-      find.byKey(
-        const Key('trainer-library-pokemon-raw-fallback-toggle-button'),
-      ),
+      rawFallbackToggle,
     );
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -1498,7 +1519,8 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
-      project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+      project: ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

@@ -332,7 +332,7 @@ typedef EditorIsland = EditorPaneSurface;
 /// Fond de ligne sélectionnée, identique à [SidebarItems] (package macos_ui).
 Color editorSidebarSelectionColor(BuildContext context) {
   final theme = MacosTheme.of(context);
-  final accent = theme.accentColor ?? AccentColor.blue;
+  final accent = theme.accentColor;
   final isDark = theme.brightness == Brightness.dark;
   final isMain = WindowMainStateListener.instance.isMainWindow;
 

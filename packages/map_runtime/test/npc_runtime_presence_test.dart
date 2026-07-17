@@ -2,9 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
-import '../lib/src/application/npc_runtime_presence.dart';
-import '../lib/src/application/step_studio_completion_runtime.dart';
-import '../lib/src/application/step_studio_world_presence_runtime.dart';
+import 'package:map_runtime/src/application/npc_runtime_presence.dart';
+import 'package:map_runtime/src/application/step_studio_completion_runtime.dart';
+import 'package:map_runtime/src/application/step_studio_world_presence_runtime.dart';
 
 const _stepStudioDoc = '''
 {"schemaVersion":1,"steps":[
@@ -19,13 +19,13 @@ ProjectManifest _manifestWithGlobalStory() {
     maps: const [],
     tilesets: const [],
     scenarios: [
-      ScenarioAsset(
+      const ScenarioAsset(
         id: 'g',
         name: 'g',
         entryNodeId: 'start',
         scope: ScenarioScope.globalStory,
-        nodes: const [],
-        edges: const [],
+        nodes: [],
+        edges: [],
         metadata: {kStepStudioDocumentMetadataKey: _stepStudioDoc},
       ),
     ],
@@ -34,18 +34,18 @@ ProjectManifest _manifestWithGlobalStory() {
 }
 
 MapEntity _emmaOnBourivka() {
-  return MapData(
+  return const MapData(
     id: 'bourivka_center',
     name: 'Bourivka',
-    size: const GridSize(width: 8, height: 8),
-    layers: const <MapLayer>[
+    size: GridSize(width: 8, height: 8),
+    layers: <MapLayer>[
       MapLayer.collision(
         id: 'c',
         name: 'C',
         collisions: <bool>[],
       ),
     ],
-    entities: const <MapEntity>[
+    entities: <MapEntity>[
       MapEntity(
         id: 'emma',
         kind: MapEntityKind.npc,
@@ -63,8 +63,10 @@ void main() {
     final rules = buildStepStudioWorldPresenceRuleList(manifest.scenarios);
     final emma = _emmaOnBourivka();
 
-    test('Emma présente avant complétion de la step (hiddenAfterStepCompletion)', () {
-      final gs = const GameState(
+    test(
+        'Emma présente avant complétion de la step (hiddenAfterStepCompletion)',
+        () {
+      const gs = GameState(
         saveId: 's',
         progression: PlayerProgression(completedStepIds: []),
       );
@@ -81,7 +83,7 @@ void main() {
     });
 
     test('Emma absente après complétion — cas produit (Bourivka / emma)', () {
-      final gs = const GameState(
+      const gs = GameState(
         saveId: 's',
         progression: PlayerProgression(
           completedStepIds: <String>['step_2_1'],
@@ -99,7 +101,8 @@ void main() {
       );
     });
 
-    test('GameplayWorldState reconstruit : toujours absent avec même prédicat', () {
+    test('GameplayWorldState reconstruit : toujours absent avec même prédicat',
+        () {
       final map = MapData(
         id: 'bourivka_center',
         name: 'Bourivka',
@@ -113,7 +116,7 @@ void main() {
         ],
         entities: <MapEntity>[emma],
       );
-      final gs = const GameState(
+      const gs = GameState(
         saveId: 's',
         progression: PlayerProgression(
           completedStepIds: <String>['step_2_1'],
@@ -145,8 +148,9 @@ void main() {
       expect(w2.entityAt(3, 3), isNull);
     });
 
-    test('après sérialisation GameState : completedStepIds conservés → absent', () {
-      final gs = const GameState(
+    test('après sérialisation GameState : completedStepIds conservés → absent',
+        () {
+      const gs = GameState(
         saveId: 's',
         progression: PlayerProgression(
           completedStepIds: <String>['step_2_1'],
@@ -166,22 +170,22 @@ void main() {
     });
 
     test('visibilité de base false : absent sans évaluer Step Studio', () {
-      final hiddenWhen = MapEntity(
+      const hiddenWhen = MapEntity(
         id: 'emma',
         kind: MapEntityKind.npc,
-        pos: const GridPos(x: 3, y: 3),
-        size: const GridSize(width: 1, height: 1),
+        pos: GridPos(x: 3, y: 3),
+        size: GridSize(width: 1, height: 1),
         npc: MapEntityNpcData(
           visibilityRule: MapEntityNpcVisibilityRule(
             mode: MapEntityNpcVisibilityMode.visibleWhen,
-            predicate: const MapEntityRuntimePredicate(
+            predicate: MapEntityRuntimePredicate(
               kind: MapEntityRuntimePredicateKind.storyFlagSet,
               refId: 'never_set',
             ),
           ),
         ),
       );
-      final gs = const GameState(
+      const gs = GameState(
         saveId: 's',
         progression: PlayerProgression(
           completedStepIds: <String>[],

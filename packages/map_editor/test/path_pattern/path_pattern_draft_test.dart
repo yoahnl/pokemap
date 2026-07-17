@@ -23,11 +23,11 @@ void main() {
 
     test('returns null when a manifest has no legacy base path preset', () {
       final draft = createInitialPathPatternDraftFromManifest(
-        manifest: ProjectManifest(
+        manifest: const ProjectManifest(
           name: 'Project',
-          maps: const [],
-          tilesets: const [],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+          maps: [],
+          tilesets: [],
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 

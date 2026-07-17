@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show MaterialApp;
+import 'package:flutter/material.dart' show Material, MaterialApp;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
@@ -136,30 +136,32 @@ void main() {
         MacosTheme(
           data: MacosThemeData.light(),
           child: MaterialApp(
-            home: CupertinoPageScaffold(
-              child: StatefulBuilder(
-                builder: (context, setState) {
-                  return SizedBox(
-                    width: 460,
-                    child: ElementShadowSection(
-                      manifest: manifest,
-                      element: _element().copyWith(shadow: harness.shadow),
-                      shadow: harness.shadow,
-                      onChanged: (next) {
-                        harness.changes.add(next);
-                        setState(() => harness.shadow = next);
-                      },
-                      onEnsureDefaultShadowProfiles: () {
-                        setState(() {
-                          manifest =
-                              ensureDefaultGroundStaticShadowProfilesForProject(
-                            manifest,
-                          );
-                        });
-                      },
-                    ),
-                  );
-                },
+            home: Material(
+              child: CupertinoPageScaffold(
+                child: StatefulBuilder(
+                  builder: (context, setState) {
+                    return SizedBox(
+                      width: 460,
+                      child: ElementShadowSection(
+                        manifest: manifest,
+                        element: _element().copyWith(shadow: harness.shadow),
+                        shadow: harness.shadow,
+                        onChanged: (next) {
+                          harness.changes.add(next);
+                          setState(() => harness.shadow = next);
+                        },
+                        onEnsureDefaultShadowProfiles: () {
+                          setState(() {
+                            manifest =
+                                ensureDefaultGroundStaticShadowProfilesForProject(
+                              manifest,
+                            );
+                          });
+                        },
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -178,7 +180,7 @@ void main() {
         find.byKey(const ValueKey('element-shadow-profile-popup')),
       );
       expect(
-        popup.items!.map((item) => item.value),
+        popup.items.map((item) => item.value),
         [
           'default-ground-soft-ellipse',
           'default-ground-wide-ellipse',
@@ -845,26 +847,28 @@ Future<void> _pumpSection(
     MacosTheme(
       data: MacosThemeData.light(),
       child: MaterialApp(
-        home: CupertinoPageScaffold(
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return SingleChildScrollView(
-                child: SizedBox(
-                  width: 460,
-                  child: ElementShadowSection(
-                    manifest: manifest,
-                    element: sectionElement.copyWith(shadow: harness.shadow),
-                    shadow: harness.shadow,
-                    onChanged: (next) {
-                      harness.changes.add(next);
-                      setState(() => harness.shadow = next);
-                    },
-                    onEnsureDefaultShadowProfiles:
-                        onEnsureDefaultShadowProfiles,
+        home: Material(
+          child: CupertinoPageScaffold(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: SizedBox(
+                    width: 460,
+                    child: ElementShadowSection(
+                      manifest: manifest,
+                      element: sectionElement.copyWith(shadow: harness.shadow),
+                      shadow: harness.shadow,
+                      onChanged: (next) {
+                        harness.changes.add(next);
+                        setState(() => harness.shadow = next);
+                      },
+                      onEnsureDefaultShadowProfiles:
+                          onEnsureDefaultShadowProfiles,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
       ),

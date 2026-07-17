@@ -95,7 +95,8 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_workspace_test',
-          project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+          project: ProjectManifest(
+            surfaceCatalog: ProjectSurfaceCatalog.empty(),
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -115,8 +116,7 @@ void main() {
       expect(find.textContaining('Pokédex est encore vide'), findsOneWidget);
     });
 
-    testWidgets(
-        'renders the Moves workspace when the Moves section is active',
+    testWidgets('renders the Moves workspace when the Moves section is active',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -149,7 +149,8 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_moves_test',
-          project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+          project: ProjectManifest(
+            surfaceCatalog: ProjectSurfaceCatalog.empty(),
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -223,7 +224,8 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_items_test',
-          project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+          project: ProjectManifest(
+            surfaceCatalog: ProjectSurfaceCatalog.empty(),
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -244,7 +246,8 @@ void main() {
         find.text('Catalogue local des objets du projet.'),
         findsOneWidget,
       );
-      expect(find.byKey(const Key('items-catalog-detail-poke-ball')), findsOneWidget);
+      expect(find.byKey(const Key('items-catalog-detail-poke-ball')),
+          findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -260,7 +263,8 @@ void main() {
       addTearDown(container.dispose);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         projectRootPath: '/tmp/pokemon_catalogs_remount_test',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Catalogs Test Project',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(

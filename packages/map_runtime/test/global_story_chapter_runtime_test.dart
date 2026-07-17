@@ -1,23 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 
-import '../lib/src/application/global_story_chapter_runtime.dart';
+import 'package:map_runtime/src/application/global_story_chapter_runtime.dart';
 
 void main() {
-  test('buildGlobalStoryChapterStepIndex lit authoring.globalStoryStudioDocument',
+  test(
+      'buildGlobalStoryChapterStepIndex lit authoring.globalStoryStudioDocument',
       () {
     const doc = '''
 {"chapters":[
   {"id":"ch1","name":"A","description":"","stepIds":["s1","s2"],"order":0}
 ]}''';
     final scenarios = [
-      ScenarioAsset(
+      const ScenarioAsset(
         id: 'global_1',
         name: 'global',
         entryNodeId: 'start',
         scope: ScenarioScope.globalStory,
-        nodes: const [],
-        edges: const [],
+        nodes: [],
+        edges: [],
         metadata: {kGlobalStoryStudioDocumentMetadataKey: doc},
       ),
     ];

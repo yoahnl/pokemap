@@ -24,7 +24,7 @@ final class PokemonSdkMoveCatalogConverter {
       payload,
       const <String>['battleEngineMethod', 'battle_engine_method'],
     );
-    final aimedTarget = _readAimedTarget(
+    final target = _readTarget(
       _readOptionalString(
         payload,
         const <String>[
@@ -36,32 +36,16 @@ final class PokemonSdkMoveCatalogConverter {
       ),
     );
 
-    final sourceMoveId = _readOptionalString(payload, const <String>['id']);
-    final scriptClass = _readOptionalString(
-      payload,
-      const <String>['scriptClass', 'script_class'],
-    );
-    final scriptPath = _readOptionalString(
-      payload,
-      const <String>['scriptPath', 'script_path'],
-    );
-    final animationId = _readOptionalString(
-      payload,
-      const <String>['animationId', 'animation_id'],
-    );
-
     final move = PokemonMove(
       id: id,
       name: displayName,
       names: names,
       source: 'pokemon_sdk_studio',
-      dbSymbol: dbSymbol.trim(),
       type: _normalizeSnakeCaseId(
         _readRequiredString(payload, const <String>['type']),
       ),
       category: _readCategory(payload['category']),
-      target: _legacyTargetFor(aimedTarget),
-      battleEngineAimedTarget: aimedTarget,
+      target: target,
       basePower: _readInt(payload, const <String>['power', 'basePower']) ?? 0,
       accuracy: _readAccuracy(payload['accuracy']),
       pp: _readInt(payload, const <String>['pp']) ?? 0,
@@ -69,21 +53,10 @@ final class PokemonSdkMoveCatalogConverter {
       critRatio:
           _readInt(payload, const <String>['criticalRate', 'critical_rate']) ??
               1,
-      battleEngineMethod: battleEngineMethod,
-      effectChance: _readEffectChance(payload),
-      studioFlags: _readFlags(payload['flags']),
-      battleStageMods: _readBattleStageMods(payload),
-      moveStatuses: _readMoveStatuses(payload),
+      flags: _readFlags(payload['flags']),
+      effects: _readEffects(payload),
       engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
-      unsupportedReasons: const <String>[],
-      sourceRefs: PokemonMoveSourceRefs(
-        psdkStudioMoveId: sourceMoveId,
-        psdkDbSymbol: dbSymbol,
-        psdkBattleEngineMethod: battleEngineMethod,
-        psdkScriptClass: scriptClass,
-        psdkScriptPath: scriptPath,
-        psdkAnimationId: animationId,
-      ),
+      unsupportedReasons: <String>['psdk_method:$battleEngineMethod'],
     );
 
     try {
@@ -102,13 +75,12 @@ final class PokemonSdkMoveCatalogConverter {
       );
     }
 
-    final converted =
-        entries.map((entry) => convert(entry).toJson()).toList(growable: false)
-          ..sort(
-            (left, right) => ((left['dbSymbol'] as String?) ?? '').compareTo(
-              (right['dbSymbol'] as String?) ?? '',
-            ),
-          );
+    final converted = entries.map(_convertCatalogEntry).toList(growable: false)
+      ..sort(
+        (left, right) => ((left['dbSymbol'] as String?) ?? '').compareTo(
+          (right['dbSymbol'] as String?) ?? '',
+        ),
+      );
 
     return PokemonCatalogFile(
       schemaVersion: 1,
@@ -125,6 +97,58 @@ final class PokemonSdkMoveCatalogConverter {
       ),
       entries: converted,
     );
+  }
+
+  Map<String, dynamic> _convertCatalogEntry(Map<String, Object?> payload) {
+    final entry = convert(payload).toJson();
+    final dbSymbol = _readRequiredString(
+      payload,
+      const <String>['dbSymbol', 'db_symbol'],
+    ).trim();
+    final battleEngineMethod = _readRequiredString(
+      payload,
+      const <String>['battleEngineMethod', 'battle_engine_method'],
+    );
+
+    entry['dbSymbol'] = dbSymbol;
+    entry['battleEngineMethod'] = battleEngineMethod;
+
+    final sourceRefs = (entry['sourceRefs'] as Map).cast<String, dynamic>();
+    void keepSourceRef(String key, Object? value) {
+      if (value != null) {
+        sourceRefs[key] = value.toString();
+      }
+    }
+
+    keepSourceRef(
+      'psdkStudioMoveId',
+      _readOptionalString(payload, const <String>['id']),
+    );
+    keepSourceRef('psdkDbSymbol', dbSymbol);
+    keepSourceRef('psdkBattleEngineMethod', battleEngineMethod);
+    keepSourceRef(
+      'psdkScriptClass',
+      _readOptionalString(
+        payload,
+        const <String>['scriptClass', 'script_class'],
+      ),
+    );
+    keepSourceRef(
+      'psdkScriptPath',
+      _readOptionalString(
+        payload,
+        const <String>['scriptPath', 'script_path'],
+      ),
+    );
+    keepSourceRef(
+      'psdkAnimationId',
+      _readOptionalString(
+        payload,
+        const <String>['animationId', 'animation_id'],
+      ),
+    );
+    entry['sourceRefs'] = sourceRefs;
+    return entry;
   }
 
   String _readRequiredString(
@@ -202,11 +226,17 @@ final class PokemonSdkMoveCatalogConverter {
       );
     }
     if (value is bool) {
-      return value
-          ? const PokemonMoveAccuracy.alwaysHits()
-          : const PokemonMoveAccuracy.percent(value: 0);
+      if (value) {
+        return const PokemonMoveAccuracy.alwaysHits();
+      }
+      throw const EditorPersistenceException(
+        'Pokemon SDK Studio move accuracy cannot be false',
+      );
     }
     if (value is num) {
+      if (value == 0) {
+        return const PokemonMoveAccuracy.alwaysHits();
+      }
       return PokemonMoveAccuracy.percent(value: value.toInt()).normalized();
     }
     if (value is String) {
@@ -216,6 +246,9 @@ final class PokemonSdkMoveCatalogConverter {
       }
       final parsed = int.tryParse(trimmed);
       if (parsed != null) {
+        if (parsed == 0) {
+          return const PokemonMoveAccuracy.alwaysHits();
+        }
         return PokemonMoveAccuracy.percent(value: parsed).normalized();
       }
     }
@@ -236,54 +269,33 @@ final class PokemonSdkMoveCatalogConverter {
     };
   }
 
-  PokemonMoveAimedTarget _readAimedTarget(String? value) {
+  PokemonMoveTarget _readTarget(String? value) {
     final normalized = _normalizeToken(value);
     return switch (normalized) {
-      '' || 'none' => PokemonMoveAimedTarget.none,
-      'adjacentally' => PokemonMoveAimedTarget.adjacentAlly,
-      'adjacentallyorself' => PokemonMoveAimedTarget.adjacentAllyOrSelf,
-      'adjacentfoe' || 'adjacentpokemon' => PokemonMoveAimedTarget.adjacentFoe,
-      'alladjacent' => PokemonMoveAimedTarget.allAdjacent,
+      '' || 'none' => PokemonMoveTarget.normal,
+      'adjacentally' => PokemonMoveTarget.adjacentAlly,
+      'adjacentallyorself' => PokemonMoveTarget.adjacentAllyOrSelf,
+      'adjacentfoe' || 'adjacentpokemon' => PokemonMoveTarget.adjacentFoe,
+      'alladjacent' => PokemonMoveTarget.allAdjacent,
       'alladjacentfoes' ||
       'adjacentallfoe' ||
       'adjacentallfoes' =>
-        PokemonMoveAimedTarget.allAdjacentFoes,
-      'allbattlers' || 'allpokemon' => PokemonMoveAimedTarget.allBattlers,
-      'allfoes' => PokemonMoveAimedTarget.allFoes,
-      'allallies' => PokemonMoveAimedTarget.allAllies,
-      'anyfoe' => PokemonMoveAimedTarget.anyFoe,
-      'bank' => PokemonMoveAimedTarget.bank,
-      'randomfoe' => PokemonMoveAimedTarget.randomFoe,
-      'self' => PokemonMoveAimedTarget.self,
-      'user' => PokemonMoveAimedTarget.user,
-      'userside' => PokemonMoveAimedTarget.userSide,
-      'foeside' => PokemonMoveAimedTarget.foeSide,
-      _ => PokemonMoveAimedTarget.none,
-    };
-  }
-
-  PokemonMoveTarget _legacyTargetFor(PokemonMoveAimedTarget aimedTarget) {
-    return switch (aimedTarget) {
-      PokemonMoveAimedTarget.adjacentAlly => PokemonMoveTarget.adjacentAlly,
-      PokemonMoveAimedTarget.adjacentAllyOrSelf =>
-        PokemonMoveTarget.adjacentAllyOrSelf,
-      PokemonMoveAimedTarget.adjacentFoe => PokemonMoveTarget.adjacentFoe,
-      PokemonMoveAimedTarget.allAdjacent => PokemonMoveTarget.allAdjacent,
-      PokemonMoveAimedTarget.allAdjacentFoes =>
         PokemonMoveTarget.allAdjacentFoes,
-      PokemonMoveAimedTarget.allAllies => PokemonMoveTarget.allies,
-      PokemonMoveAimedTarget.self ||
-      PokemonMoveAimedTarget.user =>
-        PokemonMoveTarget.self,
-      PokemonMoveAimedTarget.userSide => PokemonMoveTarget.allySide,
-      PokemonMoveAimedTarget.foeSide => PokemonMoveTarget.foeSide,
-      _ => PokemonMoveTarget.normal,
+      'allbattlers' || 'allpokemon' => PokemonMoveTarget.all,
+      'allfoes' => PokemonMoveTarget.allAdjacentFoes,
+      'allallies' => PokemonMoveTarget.allies,
+      'anyfoe' || 'bank' => PokemonMoveTarget.any,
+      'randomfoe' => PokemonMoveTarget.randomNormal,
+      'self' || 'user' => PokemonMoveTarget.self,
+      'userside' => PokemonMoveTarget.allySide,
+      'foeside' => PokemonMoveTarget.foeSide,
+      _ => PokemonMoveTarget.scripted,
     };
   }
 
-  PokemonMoveFlags _readFlags(Object? value) {
+  List<PokemonMoveFlag> _readFlags(Object? value) {
     if (value == null) {
-      return const PokemonMoveFlags();
+      return const <PokemonMoveFlag>[];
     }
     if (value is! Map) {
       throw const EditorPersistenceException(
@@ -292,25 +304,24 @@ final class PokemonSdkMoveCatalogConverter {
     }
     bool flag(String name) => _readBooleanFlag(value, name);
 
-    return PokemonMoveFlags(
-      direct: flag('direct'),
-      blocable: flag('blocable'),
-      mirrorMove: flag('mirrorMove'),
-      gravity: flag('gravity'),
-      punch: flag('punch'),
-      soundAttack: flag('soundAttack'),
-      slicingAttack: flag('slicingAttack'),
-      wind: flag('wind'),
-      heal: flag('heal'),
-      bite: flag('bite'),
-      pulse: flag('pulse'),
-      powder: flag('powder'),
-      dance: flag('dance'),
-      mental: flag('mental'),
-      ballistics: flag('ballistics'),
-      unfreeze: flag('unfreeze'),
-      authentic: flag('authentic'),
-    );
+    return <PokemonMoveFlag>[
+      if (flag('direct')) PokemonMoveFlag.contact,
+      if (flag('blocable')) PokemonMoveFlag.protect,
+      if (flag('mirrorMove')) PokemonMoveFlag.mirror,
+      if (flag('gravity')) PokemonMoveFlag.gravity,
+      if (flag('punch')) PokemonMoveFlag.punch,
+      if (flag('soundAttack')) PokemonMoveFlag.sound,
+      if (flag('slicingAttack')) PokemonMoveFlag.slicing,
+      if (flag('wind')) PokemonMoveFlag.wind,
+      if (flag('heal')) PokemonMoveFlag.heal,
+      if (flag('bite')) PokemonMoveFlag.bite,
+      if (flag('pulse')) PokemonMoveFlag.pulse,
+      if (flag('powder')) PokemonMoveFlag.powder,
+      if (flag('dance')) PokemonMoveFlag.dance,
+      if (flag('ballistics')) PokemonMoveFlag.bullet,
+      if (flag('unfreeze')) PokemonMoveFlag.defrost,
+      if (flag('authentic')) PokemonMoveFlag.bypassSubstitute,
+    ];
   }
 
   bool _readBooleanFlag(Map<Object?, Object?> flags, String field) {
@@ -336,7 +347,14 @@ final class PokemonSdkMoveCatalogConverter {
     return false;
   }
 
-  List<PokemonMoveBattleStageMod> _readBattleStageMods(
+  List<PokemonMoveEffect> _readEffects(Map<String, Object?> payload) {
+    return <PokemonMoveEffect>[
+      ..._readBattleStageEffects(payload),
+      ..._readStatusEffects(payload),
+    ];
+  }
+
+  List<PokemonMoveEffect> _readBattleStageEffects(
     Map<String, Object?> payload,
   ) {
     final raw = payload['battleStageMods'] ??
@@ -344,7 +362,7 @@ final class PokemonSdkMoveCatalogConverter {
         payload['battleStageMod'] ??
         payload['battle_stage_mod'];
     if (raw == null) {
-      return const <PokemonMoveBattleStageMod>[];
+      return const <PokemonMoveEffect>[];
     }
     if (raw is! List) {
       throw const EditorPersistenceException(
@@ -358,35 +376,42 @@ final class PokemonSdkMoveCatalogConverter {
         );
       }
       final map = entry.cast<String, Object?>();
-      return PokemonMoveBattleStageMod(
-        stat: _readStatId(
-          _readRequiredString(
-            map,
-            const <String>['stat', 'battleStage', 'battle_stage'],
-          ),
-        ),
-        stages: _readInt(
-              map,
-              const <String>['stages', 'modificator', 'modifier'],
-            ) ??
-            0,
+      return PokemonMoveEffect.modifyStats(
         targetScope: _readTargetScope(
           _readOptionalString(
             map,
             const <String>['targetScope', 'target_scope'],
           ),
         ),
+        chance: _readEffectChance(payload),
+        stageChanges: <PokemonMoveStatStageChange>[
+          PokemonMoveStatStageChange(
+            stat: _readStatId(
+              _readRequiredString(
+                map,
+                const <String>['stat', 'battleStage', 'battle_stage'],
+              ),
+            ),
+            stages: _readInt(
+                  map,
+                  const <String>['stages', 'modificator', 'modifier'],
+                ) ??
+                0,
+          ),
+        ],
       ).normalized();
     }).toList(growable: false);
   }
 
-  List<PokemonMoveStatus> _readMoveStatuses(Map<String, Object?> payload) {
+  List<PokemonMoveEffect> _readStatusEffects(
+    Map<String, Object?> payload,
+  ) {
     final raw = payload['moveStatuses'] ??
         payload['move_statuses'] ??
         payload['moveStatus'] ??
         payload['move_status'];
     if (raw == null) {
-      return const <PokemonMoveStatus>[];
+      return const <PokemonMoveEffect>[];
     }
     if (raw is! List) {
       throw const EditorPersistenceException(
@@ -400,7 +425,7 @@ final class PokemonSdkMoveCatalogConverter {
         );
       }
       final map = entry.cast<String, Object?>();
-      return PokemonMoveStatus(
+      return PokemonMoveEffect.applyStatus(
         statusId: _normalizeSnakeCaseId(
           _readRequiredString(
             map,
@@ -411,7 +436,7 @@ final class PokemonSdkMoveCatalogConverter {
               map,
               const <String>['chance', 'luckRate', 'luck_rate'],
             ) ??
-            100,
+            _readEffectChance(payload),
         targetScope: _readTargetScope(
           _readOptionalString(
             map,

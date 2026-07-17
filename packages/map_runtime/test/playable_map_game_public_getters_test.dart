@@ -74,7 +74,7 @@ RuntimeMapBundle _baseBundle() {
     manifest: ProjectManifest(
       name: 'Test Project',
       maps: [
-        ProjectMapEntry(
+        const ProjectMapEntry(
           id: 'test_map',
           name: 'Test Map',
           relativePath: 'maps/test_map.json',

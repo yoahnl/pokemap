@@ -663,6 +663,17 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       _ => const SizedBox.shrink(),
     };
 
+    final eventSystemMode =
+        editor.project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
+    if (editor.workspaceMode == EditorWorkspaceMode.events &&
+        eventSystemMode != EventSystemMode.legacyOnly) {
+      // Event V2 is mounted inside EventBuilderV2ProductShell by the real
+      // EditorShellPage. Returning its route directly prevents a second,
+      // narrower Narrative Studio sidebar from reappearing inside that shell.
+      // Legacy Event authoring intentionally keeps the historical composition.
+      return mainContent;
+    }
+
     return NarrativeStudioShell(
       workspaceMode: editor.workspaceMode,
       onSelectOverview: openOverview,

@@ -88,20 +88,20 @@ const _onePixelPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNwOdPxHwAFiAKY2jkehAAAAABJRU5ErkJggg==';
 
 ProjectManifest _project() {
-  return ProjectManifest(
+  return const ProjectManifest(
     name: 'Project',
-    maps: const [],
-    tilesets: const [
+    maps: [],
+    tilesets: [
       ProjectTilesetEntry(
         id: 'ts',
         name: 'Tileset',
         relativePath: 'tilesets/main.png',
       ),
     ],
-    elementCategories: const [
+    elementCategories: [
       ProjectElementCategory(id: 'cat', name: 'Cat'),
     ],
-    elements: const [
+    elements: [
       ProjectElementEntry(
         id: 'lamp',
         name: 'Lamp',
@@ -114,8 +114,8 @@ ProjectManifest _project() {
         ],
       ),
     ],
-    settings: const ProjectSettings(tileWidth: 1, tileHeight: 1),
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+    settings: ProjectSettings(tileWidth: 1, tileHeight: 1),
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
@@ -78,7 +77,7 @@ class _CinematicStagePointPreviewOverlayState
     final brandColor = colors.brandPrimary;
     final strokeColor = isSelected ? brandColor : colors.controlBorder;
     final backgroundColor =
-        isSelected ? brandColor.withOpacity(0.15) : colors.controlSurface;
+        isSelected ? brandColor.withValues(alpha: 0.15) : colors.controlSurface;
 
     return Positioned(
       left: anchor.dx - width / 2,
@@ -175,7 +174,7 @@ class _CinematicStagePointPreviewOverlayState
                   boxShadow: [
                     if (isSelected)
                       BoxShadow(
-                        color: brandColor.withOpacity(0.3),
+                        color: brandColor.withValues(alpha: 0.3),
                         blurRadius: 6,
                         spreadRadius: 2,
                       ),
@@ -196,7 +195,7 @@ class _CinematicStagePointPreviewOverlayState
                 decoration: BoxDecoration(
                   color: isSelected
                       ? brandColor
-                      : colors.controlSurface.withOpacity(0.95),
+                      : colors.controlSurface.withValues(alpha: 0.95),
                   borderRadius: BorderRadius.circular(4),
                   border: Border.all(
                     color: isSelected ? brandColor : colors.controlBorder,
@@ -208,7 +207,9 @@ class _CinematicStagePointPreviewOverlayState
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: DefaultTextStyle.of(context).style.copyWith(
-                        color: isSelected ? Colors.white : colors.textPrimary,
+                        color: isSelected
+                            ? colors.textInverse
+                            : colors.textPrimary,
                         fontSize: widget.compact ? 8 : 9,
                         fontWeight: FontWeight.w900,
                         height: 1,

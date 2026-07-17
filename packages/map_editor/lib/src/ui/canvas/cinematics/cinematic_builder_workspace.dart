@@ -1738,31 +1738,31 @@ class _BuilderHeader extends StatelessWidget {
     final actions = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _TestHidden(
+        const _TestHidden(
           child: PokeMapButton(
-            key: const ValueKey('cinematic-builder-validate-button'),
+            key: ValueKey('cinematic-builder-validate-button'),
             onPressed: null,
             variant: PokeMapButtonVariant.secondary,
             size: PokeMapButtonSize.small,
-            child: const SizedBox.shrink(),
+            child: SizedBox.shrink(),
           ),
         ),
-        PokeMapButton(
-          key: const ValueKey('cinematic-builder-preview-button'),
+        const PokeMapButton(
+          key: ValueKey('cinematic-builder-preview-button'),
           onPressed: null,
           variant: PokeMapButtonVariant.secondary,
           size: PokeMapButtonSize.small,
-          leading: const Icon(CupertinoIcons.play_fill),
-          child: const Text('Aperçu'),
+          leading: Icon(CupertinoIcons.play_fill),
+          child: Text('Aperçu'),
         ),
         const SizedBox(width: 8),
-        PokeMapButton(
-          key: const ValueKey('cinematic-builder-save-button'),
+        const PokeMapButton(
+          key: ValueKey('cinematic-builder-save-button'),
           onPressed: null,
           variant: PokeMapButtonVariant.primary,
           size: PokeMapButtonSize.small,
-          leading: const Icon(CupertinoIcons.doc_fill),
-          child: const Text('Sauvegarder'),
+          leading: Icon(CupertinoIcons.doc_fill),
+          child: Text('Sauvegarder'),
         ),
         const SizedBox(width: 8),
         PokeMapIconButton(
@@ -3609,7 +3609,7 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  PokeMapIconTile(
+                  const PokeMapIconTile(
                     icon: CupertinoIcons.film,
                     tone: PokeMapTone.cinematic,
                     size: 28,
@@ -3646,39 +3646,39 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      PokeMapIconButton(
-                        key: const ValueKey(
+                      const PokeMapIconButton(
+                        key: ValueKey(
                           'cinematic-builder-header-transport-play-button',
                         ),
                         tooltip: 'Lire (à venir)',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
                         onPressed: null,
-                        icon: const Icon(CupertinoIcons.play_fill),
+                        icon: Icon(CupertinoIcons.play_fill),
                       ),
                       const SizedBox(width: 4),
-                      PokeMapIconButton(
+                      const PokeMapIconButton(
                         tooltip: 'Annuler (à venir)',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
                         onPressed: null,
-                        icon: const Icon(CupertinoIcons.arrow_counterclockwise),
+                        icon: Icon(CupertinoIcons.arrow_counterclockwise),
                       ),
                       const SizedBox(width: 4),
-                      PokeMapIconButton(
+                      const PokeMapIconButton(
                         tooltip: 'Rétablir (à venir)',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
                         onPressed: null,
-                        icon: const Icon(CupertinoIcons.arrow_clockwise),
+                        icon: Icon(CupertinoIcons.arrow_clockwise),
                       ),
                       const SizedBox(width: 4),
-                      PokeMapIconButton(
+                      const PokeMapIconButton(
                         tooltip: 'Recadrer (à venir)',
                         size: 28,
                         variant: PokeMapIconButtonVariant.soft,
                         onPressed: null,
-                        icon: const Icon(CupertinoIcons.crop),
+                        icon: Icon(CupertinoIcons.crop),
                       ),
                       const SizedBox(width: 4),
                       PokeMapIconButton(
@@ -5999,7 +5999,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _InspectorHeader(
+            const _InspectorHeader(
               title: 'Réglages',
               subtitle: "Ajustez votre scène ou l'action sélectionnée.",
             ),
@@ -6059,7 +6059,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _InspectorHeader(
+          const _InspectorHeader(
             title: 'Réglages',
             subtitle: "Ajustez votre scène ou l'action sélectionnée.",
           ),
@@ -6625,7 +6625,7 @@ class _StageMapSectionState extends State<_StageMapSection> {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.surfaceBase.withValues(alpha: 0),
                 child: _MapTreeDropdownPopup(
                   roots: roots,
                   selectedMapId: widget.asset.mapId,
@@ -13622,7 +13622,8 @@ class _StagePointsSection extends StatelessWidget {
                 ),
                 child: Text(
                   point.label,
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               );
             }).toList(),

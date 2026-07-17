@@ -236,11 +236,11 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       source: TilesetSourceRect(x: 1, y: 0),
                       durationMs: 200,
                     ),
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       source: TilesetSourceRect(x: 2, y: 0),
                       durationMs: 200,
                     ),
@@ -387,7 +387,7 @@ void main() {
                   localX: 0,
                   localY: 0,
                   frames: [
-                    TilesetVisualFrame(
+                    const TilesetVisualFrame(
                       tilesetId: 'water_fx_tileset',
                       source: TilesetSourceRect(x: 2, y: 2),
                     ),
@@ -465,22 +465,30 @@ ProjectPathPatternPreset _pattern2x2({
         PathCenterPatternCell(
           localX: 0,
           localY: 0,
-          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 0))],
+          frames: [
+            const TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 0))
+          ],
         ),
         PathCenterPatternCell(
           localX: 1,
           localY: 0,
-          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 0))],
+          frames: [
+            const TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 0))
+          ],
         ),
         PathCenterPatternCell(
           localX: 0,
           localY: 1,
-          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 1))],
+          frames: [
+            const TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 1))
+          ],
         ),
         PathCenterPatternCell(
           localX: 1,
           localY: 1,
-          frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 1))],
+          frames: [
+            const TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 1))
+          ],
         ),
       ],
     ),

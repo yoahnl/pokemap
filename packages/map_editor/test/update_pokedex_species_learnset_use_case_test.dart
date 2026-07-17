@@ -49,6 +49,11 @@ void main() {
       'creates or updates the learnset JSON through the existing ref without touching project manifest',
       () async {
     await writeRepository.saveSpecies(workspace, _speciesWithCustomRefs);
+    await writeRepository.saveCatalogByKey(
+      workspace,
+      'moves',
+      _movesCatalogForValidation,
+    );
 
     final projectFile = File(workspace.projectManifestPath);
     final beforeProjectJson = await projectFile.readAsString();
@@ -296,6 +301,7 @@ const PokemonCatalogFile _movesCatalogForValidation = PokemonCatalogFile(
   ),
   entries: <Map<String, dynamic>>[
     <String, dynamic>{'id': 'tackle', 'name': 'Tackle'},
+    <String, dynamic>{'id': 'growl', 'name': 'Growl'},
     <String, dynamic>{'id': 'vine_whip', 'name': 'Vine Whip'},
     <String, dynamic>{'id': 'protect', 'name': 'Protect'},
   ],

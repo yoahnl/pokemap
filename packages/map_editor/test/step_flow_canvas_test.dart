@@ -9,15 +9,15 @@ void main() {
     /// canvas : c’était un signal « faux lien » vers une autre étape.
     testWidgets('does not display flowUnlocksStepId on canvas', (tester) async {
       const secretId = 'step_should_not_appear_on_canvas';
-      final step = StepStudioStep(
+      const step = StepStudioStep(
         id: 'step_a',
         name: 'Step A',
         description: '',
         order: 0,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.atGameStart,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
         flowExitLabel: 'Quelque chose en sortie',
@@ -42,15 +42,15 @@ void main() {
 
     testWidgets('shows flowExitLabel on canvas', (tester) async {
       const exitText = 'Débloquer le rival (note auteur)';
-      final step = StepStudioStep(
+      const step = StepStudioStep(
         id: 'step_b',
         name: 'B',
         description: '',
         order: 0,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.atGameStart,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
         flowExitLabel: exitText,
@@ -74,15 +74,15 @@ void main() {
     });
 
     testWidgets('uses final creator-facing titles on canvas', (tester) async {
-      final step = StepStudioStep(
+      const step = StepStudioStep(
         id: 'step_c',
         name: 'C',
         description: '',
         order: 0,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.atGameStart,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
       );
@@ -112,15 +112,15 @@ void main() {
     });
 
     testWidgets('avoids regressive misleading canvas wording', (tester) async {
-      final step = StepStudioStep(
+      const step = StepStudioStep(
         id: 'step_d',
         name: 'D',
         description: '',
         order: 0,
-        activation: const StepStudioActivationRule(
+        activation: StepStudioActivationRule(
           mode: StepStudioActivationMode.atGameStart,
         ),
-        completion: const StepStudioCompletionRule(
+        completion: StepStudioCompletionRule(
           mode: StepStudioCompletionMode.manual,
         ),
       );

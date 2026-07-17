@@ -118,7 +118,7 @@ void main() {
               activation: StepStudioActivationRule(
                 mode: StepStudioActivationMode.atGameStart,
               ),
-              completion: const StepStudioCompletionRule(
+              completion: StepStudioCompletionRule(
                 mode: StepStudioCompletionMode.manual,
               ),
               worldChanges: <StepStudioWorldChange>[
@@ -166,7 +166,7 @@ void main() {
               activation: StepStudioActivationRule(
                 mode: StepStudioActivationMode.atGameStart,
               ),
-              completion: const StepStudioCompletionRule(
+              completion: StepStudioCompletionRule(
                 mode: StepStudioCompletionMode.manual,
               ),
               worldChanges: <StepStudioWorldChange>[
@@ -212,8 +212,8 @@ void main() {
     );
 
     test(
-      'apply + parse roundtrip keeps worldChanges when entityId is still empty',
-      () {
+        'apply + parse roundtrip keeps worldChanges when entityId is still empty',
+        () {
       const sourceScenario = ScenarioAsset(
         id: 'global_story',
         name: 'Global Story',
@@ -232,15 +232,14 @@ void main() {
             activation: StepStudioActivationRule(
               mode: StepStudioActivationMode.atGameStart,
             ),
-            completion: const StepStudioCompletionRule(
+            completion: StepStudioCompletionRule(
               mode: StepStudioCompletionMode.manual,
             ),
             worldChanges: <StepStudioWorldChange>[
               StepStudioWorldChange(
                 mapId: 'route_1',
                 entityId: '',
-                presenceRule:
-                    StepStudioPresenceRule.visibleAfterStepCompletion,
+                presenceRule: StepStudioPresenceRule.visibleAfterStepCompletion,
                 note: 'brouillon',
               ),
             ],
@@ -282,7 +281,8 @@ void main() {
       expect(outcomeId, 'world.rencontrer_emma_1.emma_dans_le_labo');
     });
 
-    test('apply + parse roundtrip keeps Step Studio flow labels + exit link', () {
+    test('apply + parse roundtrip keeps Step Studio flow labels + exit link',
+        () {
       const sourceScenario = ScenarioAsset(
         id: 'global_story',
         name: 'Global Story',
@@ -378,7 +378,8 @@ void main() {
       },
     );
 
-    test('validation persistence blocks worldChange mapId with empty entityId', () {
+    test('validation persistence blocks worldChange mapId with empty entityId',
+        () {
       const document = StepStudioDocument(
         globalStoryScenarioId: 'global_story',
         steps: <StepStudioStep>[

@@ -15,7 +15,8 @@ import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace/items_catalo
 import 'package:path/path.dart' as p;
 
 void main() {
-  const project = ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+  const project = ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Items Catalog UI Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -110,11 +111,13 @@ void main() {
     expect(find.byKey(const Key('items-catalog-list')), findsOneWidget);
     expect(find.text('Poké Ball'), findsWidgets);
     expect(find.text('Potion'), findsWidgets);
-    expect(find.byKey(const Key('items-catalog-detail-poke-ball')), findsOneWidget);
+    expect(find.byKey(const Key('items-catalog-detail-poke-ball')),
+        findsOneWidget);
     expect(find.text('Catches wild Pokémon.'), findsOneWidget);
   });
 
-  testWidgets('Items catalog search filters by name id category pocket and effect',
+  testWidgets(
+      'Items catalog search filters by name id category pocket and effect',
       (tester) async {
     await _pumpItemsWorkspace(
       tester,
@@ -221,7 +224,8 @@ void main() {
     expect(find.textContaining('1 entrée ignorée'), findsOneWidget);
   });
 
-  testWidgets('Items catalog shows an invalid-catalog state when every entry is ignored',
+  testWidgets(
+      'Items catalog shows an invalid-catalog state when every entry is ignored',
       (tester) async {
     await _pumpItemsWorkspace(
       tester,
@@ -284,7 +288,8 @@ void main() {
       ],
     );
 
-    expect(find.byKey(const Key('items-catalog-detail-mystery-item')), findsOneWidget);
+    expect(find.byKey(const Key('items-catalog-detail-mystery-item')),
+        findsOneWidget);
     expect(find.text('Cost'), findsWidgets);
     expect(find.text('Fling power'), findsWidgets);
     expect(find.text('—'), findsWidgets);
@@ -313,7 +318,8 @@ void main() {
     );
   });
 
-  testWidgets('Items catalog keeps sprite metadata text-only when only spriteUrl exists',
+  testWidgets(
+      'Items catalog keeps sprite metadata text-only when only spriteUrl exists',
       (tester) async {
     await _pumpItemsWorkspace(
       tester,
@@ -348,11 +354,13 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('items-catalog-local-sprite-preview')), findsNothing);
+    expect(find.byKey(const Key('items-catalog-local-sprite-preview')),
+        findsNothing);
     expect(find.byType(Image), findsNothing);
   });
 
-  testWidgets('Items catalog preview sync uses the workspace syncer and shows a summary',
+  testWidgets(
+      'Items catalog preview sync uses the workspace syncer and shows a summary',
       (tester) async {
     String? capturedProjectRootPath;
     bool? capturedDryRun;
@@ -406,7 +414,8 @@ void main() {
       ],
     );
 
-    await tester.tap(find.byKey(const Key('items-catalog-preview-sync-button')));
+    await tester
+        .tap(find.byKey(const Key('items-catalog-preview-sync-button')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 

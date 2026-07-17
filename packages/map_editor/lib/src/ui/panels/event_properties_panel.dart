@@ -688,13 +688,13 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
               for (var i = 0; i < pages.length; i++)
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  minSize: 0,
                   onPressed: () {
                     setState(() {
                       _selectedPageIndex = i;
                       _boundPageFingerprint = null;
                     });
                   },
+                  minimumSize: const Size(0, 0),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -1284,8 +1284,8 @@ class _EventPropertiesPanelState extends ConsumerState<EventPropertiesPanel> {
             for (final example in _kConditionJsonExamples)
               CupertinoButton(
                 padding: EdgeInsets.zero,
-                minSize: 0,
                 onPressed: () => _insertRawJsonExample(example),
+                minimumSize: const Size(0, 0),
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 9, vertical: 6),

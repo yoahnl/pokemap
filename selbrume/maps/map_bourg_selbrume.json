@@ -6150,15 +6150,6 @@
               "env_gen_env_area_foret_47_12_arbre_pixellab_1",
               "env_gen_env_area_foret_43_14_arbre_pixellab_1",
               "env_gen_env_area_foret_46_15_arbre_pixellab_1",
-              "env_gen_env_area_foret_49_17_arbre_pixellab_2",
-              "env_gen_env_area_foret_43_18_arbre_pixellab_1",
-              "env_gen_env_area_foret_46_18_arbre_pixellab_1",
-              "env_gen_env_area_foret_50_20_arbre_pixellab_2",
-              "env_gen_env_area_foret_43_21_arbre_pixellab_1",
-              "env_gen_env_area_foret_46_21_arbre_pixellab_2",
-              "env_gen_env_area_foret_49_23_arbre_pixellab_2",
-              "env_gen_env_area_foret_47_26_arbre_pixellab_2",
-              "env_gen_env_area_foret_50_26_arbre_pixellab_2",
               "env_gen_env_area_foret_46_29_arbre_pixellab_2",
               "env_gen_env_area_foret_50_29_arbre_pixellab_2",
               "env_gen_env_area_foret_46_32_arbre_pixellab_2",
@@ -6168,7 +6159,6 @@
               "env_gen_env_area_foret_20_13_arbre_pixellab_2",
               "env_gen_env_area_foret_31_12_arbre_pixellab_2",
               "env_gen_env_area_foret_40_14_arbre_pixellab_2",
-              "env_gen_env_area_foret_42_24_arbre_pixellab_1",
               "env_gen_env_area_foret_42_38_arbre_pixellab_1",
               "env_gen_env_area_foret_43_32_arbre_pixellab_1"
             ]
@@ -9217,7 +9207,7 @@
       "runtimeType": "path"
     },
     {
-      "id": "l_terrain_terrain",
+      "id": "l_terrain",
       "name": "terrain",
       "isVisible": true,
       "opacity": 1.0,

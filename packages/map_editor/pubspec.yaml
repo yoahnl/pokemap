@@ -35,5 +35,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    # Product mark supplied by the Event Builder V2 north-star. Keeping the
+    # raster source avoids replacing a visible brand asset with drawn UI art.
+    - assets/branding/pokemap_event_builder_mark.png
+    - assets/branding/pokemap_event_builder_project_thumb.png
     - assets/cinematics/emotes/emotions.png
     - assets/cinematics/emotes/emotions2.png

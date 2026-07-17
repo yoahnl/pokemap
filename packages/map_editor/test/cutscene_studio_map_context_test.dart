@@ -4,21 +4,21 @@ import 'package:map_editor/src/features/narrative/application/cutscene_studio_au
 void main() {
   group('cutsceneStudioResolveMapContextPredecessors', () {
     test('linear flow: predecessors exclude target block', () {
-      final a = CutsceneStudioBlock(
+      const a = CutsceneStudioBlock(
         id: 'a',
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: kCutsceneStudioActorPlayerId,
         destinationTargetKind: kCutsceneStudioMoveTargetWarp,
         destinationTargetId: 'w1',
       );
-      final b = CutsceneStudioBlock(
+      const b = CutsceneStudioBlock(
         id: 'b',
         kind: CutsceneStudioBlockKind.dialogue,
         actorId: 'npc1',
       );
       final flow = <CutsceneFlowEntry>[
-        CutsceneFlowBlockEntry(a),
-        CutsceneFlowBlockEntry(b),
+        const CutsceneFlowBlockEntry(a),
+        const CutsceneFlowBlockEntry(b),
       ];
       final r = cutsceneStudioResolveMapContextPredecessors(flow, 'b');
       expect(r, isA<CutsceneStudioMapContextLinear>());
@@ -29,29 +29,29 @@ void main() {
     });
 
     test('choice with branches then tail block is ambiguous', () {
-      final q = CutsceneStudioBlock(
+      const q = CutsceneStudioBlock(
         id: 'q',
         kind: CutsceneStudioBlockKind.playerQuestion,
         messageText: '?',
-        choiceOptions: const ['Oui', 'Non'],
+        choiceOptions: ['Oui', 'Non'],
       );
-      final inner = CutsceneStudioBlock(
+      const inner = CutsceneStudioBlock(
         id: 'inner',
         kind: CutsceneStudioBlockKind.wait,
         durationMs: 1,
       );
-      final after = CutsceneStudioBlock(
+      const after = CutsceneStudioBlock(
         id: 'after',
         kind: CutsceneStudioBlockKind.wait,
         durationMs: 2,
       );
       final flow = <CutsceneFlowEntry>[
-        CutsceneFlowChoiceEntry(
+        const CutsceneFlowChoiceEntry(
           question: q,
           onYes: [CutsceneFlowBlockEntry(inner)],
-          onNo: const [],
+          onNo: [],
         ),
-        CutsceneFlowBlockEntry(after),
+        const CutsceneFlowBlockEntry(after),
       ];
       final r = cutsceneStudioResolveMapContextPredecessors(flow, 'after');
       expect(r, isA<CutsceneStudioMapContextAmbiguous>());
@@ -60,7 +60,7 @@ void main() {
 
   group('cutsceneStudioSimulatedPlayerMapId', () {
     test('player warp updates map from resolver', () {
-      final move = CutsceneStudioBlock(
+      const move = CutsceneStudioBlock(
         id: 'm',
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: kCutsceneStudioActorPlayerId,
@@ -79,7 +79,7 @@ void main() {
     });
 
     test('transitionMap block sets player map', () {
-      final t = CutsceneStudioBlock(
+      const t = CutsceneStudioBlock(
         id: 't',
         kind: CutsceneStudioBlockKind.transitionMap,
         transitionMapId: 'indoor',
@@ -94,7 +94,7 @@ void main() {
     });
 
     test('NPC warp does not change simulated player map', () {
-      final move = CutsceneStudioBlock(
+      const move = CutsceneStudioBlock(
         id: 'm',
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: 'npc_x',
@@ -112,14 +112,14 @@ void main() {
 
   group('cutsceneStudioCollectMapIdsAlongPlayerSimulation', () {
     test('collects intermediate maps along warp chain', () {
-      final m1 = CutsceneStudioBlock(
+      const m1 = CutsceneStudioBlock(
         id: 'm1',
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: kCutsceneStudioActorPlayerId,
         destinationTargetKind: kCutsceneStudioMoveTargetWarp,
         destinationTargetId: 'w1',
       );
-      final m2 = CutsceneStudioBlock(
+      const m2 = CutsceneStudioBlock(
         id: 'm2',
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: kCutsceneStudioActorPlayerId,

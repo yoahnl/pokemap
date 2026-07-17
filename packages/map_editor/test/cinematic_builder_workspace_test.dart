@@ -16308,16 +16308,16 @@ void main() {
         diagnostics: const [],
       );
 
-      final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      const actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
         actors: [
           CinematicActorSpritePreviewActor(
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: const GridPos(x: 6, y: 7),
+            position: GridPos(x: 6, y: 7),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
-            spriteRef: const CinematicActorSpriteRef(
+            spriteRef: CinematicActorSpriteRef(
               characterId: 'char_professor',
               tilesetId: 'neutral_tiles',
               sourceTileRect: TilesetSourceRect(
@@ -16331,7 +16331,7 @@ void main() {
               direction: CinematicActorPreviewDirection.south,
             ),
             placeholderFallback: false,
-            depthHint: const CinematicActorSpriteDepthHint(
+            depthHint: CinematicActorSpriteDepthHint(
               tileX: 6,
               tileY: 7,
               anchorTileX: 6.5,
@@ -16342,17 +16342,17 @@ void main() {
               preferredRendererHint:
                   CinematicActorSpriteRendererHint.hybridRecommended,
             ),
-            diagnostics: const [],
+            diagnostics: [],
           ),
           CinematicActorSpritePreviewActor(
             actorId: 'actor_unresolved',
             actorLabel: 'Missing actor',
             bindingKind: CinematicActorBindingKind.unbound,
-            position: const GridPos(x: 9, y: 7),
+            position: GridPos(x: 9, y: 7),
             direction: CinematicActorPreviewDirection.north,
             status: CinematicActorSpriteStatus.missingCharacter,
             placeholderFallback: true,
-            depthHint: const CinematicActorSpriteDepthHint(
+            depthHint: CinematicActorSpriteDepthHint(
               tileX: 9,
               tileY: 7,
               anchorTileX: 9.5,
@@ -16363,10 +16363,10 @@ void main() {
               preferredRendererHint:
                   CinematicActorSpriteRendererHint.hybridRecommended,
             ),
-            diagnostics: const [],
+            diagnostics: [],
           ),
         ],
-        diagnostics: const [],
+        diagnostics: [],
       );
 
       await _pumpBuilder(
@@ -16514,16 +16514,16 @@ void main() {
         diagnostics: const [],
       );
 
-      final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      const actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
         actors: [
           CinematicActorSpritePreviewActor(
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: const GridPos(x: 6, y: 7),
+            position: GridPos(x: 6, y: 7),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
-            spriteRef: const CinematicActorSpriteRef(
+            spriteRef: CinematicActorSpriteRef(
               characterId: 'char_professor',
               tilesetId: 'real_actor_tileset',
               sourceTileRect: TilesetSourceRect(
@@ -16537,7 +16537,7 @@ void main() {
               direction: CinematicActorPreviewDirection.south,
             ),
             placeholderFallback: false,
-            depthHint: const CinematicActorSpriteDepthHint(
+            depthHint: CinematicActorSpriteDepthHint(
               tileX: 6,
               tileY: 7,
               anchorTileX: 7.0,
@@ -16548,17 +16548,17 @@ void main() {
               preferredRendererHint:
                   CinematicActorSpriteRendererHint.hybridRecommended,
             ),
-            diagnostics: const [],
+            diagnostics: [],
           ),
           CinematicActorSpritePreviewActor(
             actorId: 'actor_unresolved',
             actorLabel: 'Missing actor',
             bindingKind: CinematicActorBindingKind.unbound,
-            position: const GridPos(x: 9, y: 7),
+            position: GridPos(x: 9, y: 7),
             direction: CinematicActorPreviewDirection.north,
             status: CinematicActorSpriteStatus.missingCharacter,
             placeholderFallback: true,
-            depthHint: const CinematicActorSpriteDepthHint(
+            depthHint: CinematicActorSpriteDepthHint(
               tileX: 9,
               tileY: 7,
               anchorTileX: 9.5,
@@ -16569,16 +16569,16 @@ void main() {
               preferredRendererHint:
                   CinematicActorSpriteRendererHint.hybridRecommended,
             ),
-            diagnostics: const [],
+            diagnostics: [],
           ),
         ],
-        diagnostics: const [],
+        diagnostics: [],
       );
 
       final updatedManifest = fixture.project.copyWith(
         characters: [
           ...fixture.project.characters,
-          ProjectCharacterEntry(
+          const ProjectCharacterEntry(
             id: 'char_professor',
             name: 'Professor',
             tilesetId: 'real_actor_tileset',
@@ -16590,7 +16590,7 @@ void main() {
                 direction: EntityFacing.south,
                 frames: [
                   CharacterAnimationFrame(
-                    source: const TilesetSourceRect(
+                    source: TilesetSourceRect(
                       x: 0,
                       y: 0,
                       width: 2,
@@ -17281,7 +17281,7 @@ void main() {
         cinematics: [assetWithPoints],
         characters: [
           ...fixture.project.characters,
-          ProjectCharacterEntry(
+          const ProjectCharacterEntry(
             id: 'char_professor',
             name: 'Professor',
             tilesetId: 'real_actor_tileset',
@@ -17293,7 +17293,7 @@ void main() {
                 direction: EntityFacing.south,
                 frames: [
                   CharacterAnimationFrame(
-                    source: const TilesetSourceRect(
+                    source: TilesetSourceRect(
                       x: 0,
                       y: 0,
                       width: 2,
@@ -17342,16 +17342,16 @@ void main() {
         diagnostics: const [],
       );
 
-      final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+      const actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
         actors: [
           CinematicActorSpritePreviewActor(
             actorId: 'actor_professor',
             actorLabel: 'Professor',
             bindingKind: CinematicActorBindingKind.cinematicOnly,
-            position: const GridPos(x: 3, y: 4),
+            position: GridPos(x: 3, y: 4),
             direction: CinematicActorPreviewDirection.south,
             status: CinematicActorSpriteStatus.spriteReady,
-            spriteRef: const CinematicActorSpriteRef(
+            spriteRef: CinematicActorSpriteRef(
               characterId: 'char_professor',
               tilesetId: 'real_actor_tileset',
               sourceTileRect: TilesetSourceRect(
@@ -17365,7 +17365,7 @@ void main() {
               direction: CinematicActorPreviewDirection.south,
             ),
             placeholderFallback: false,
-            depthHint: const CinematicActorSpriteDepthHint(
+            depthHint: CinematicActorSpriteDepthHint(
               tileX: 3,
               tileY: 4,
               anchorTileX: 4.0,
@@ -17376,10 +17376,10 @@ void main() {
               preferredRendererHint:
                   CinematicActorSpriteRendererHint.hybridRecommended,
             ),
-            diagnostics: const [],
+            diagnostics: [],
           ),
         ],
-        diagnostics: const [],
+        diagnostics: [],
       );
 
       final backdropModel = buildCinematicMapBackdropPreviewModel(
@@ -17536,7 +17536,7 @@ void main() {
       cinematics: [assetWithPoints],
       characters: [
         ...fixture.project.characters,
-        ProjectCharacterEntry(
+        const ProjectCharacterEntry(
           id: 'char_professor',
           name: 'Professor',
           tilesetId: 'real_actor_tileset',
@@ -17548,7 +17548,7 @@ void main() {
               direction: EntityFacing.south,
               frames: [
                 CharacterAnimationFrame(
-                  source: const TilesetSourceRect(
+                  source: TilesetSourceRect(
                     x: 0,
                     y: 0,
                     width: 2,
@@ -17597,16 +17597,16 @@ void main() {
       diagnostics: const [],
     );
 
-    final actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
+    const actorSpritePreviewPlan = CinematicActorSpritePreviewPlan(
       actors: [
         CinematicActorSpritePreviewActor(
           actorId: 'actor_professor',
           actorLabel: 'Professor',
           bindingKind: CinematicActorBindingKind.cinematicOnly,
-          position: const GridPos(x: 3, y: 4),
+          position: GridPos(x: 3, y: 4),
           direction: CinematicActorPreviewDirection.south,
           status: CinematicActorSpriteStatus.spriteReady,
-          spriteRef: const CinematicActorSpriteRef(
+          spriteRef: CinematicActorSpriteRef(
             characterId: 'char_professor',
             tilesetId: 'real_actor_tileset',
             sourceTileRect: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
@@ -17615,7 +17615,7 @@ void main() {
             direction: CinematicActorPreviewDirection.south,
           ),
           placeholderFallback: false,
-          depthHint: const CinematicActorSpriteDepthHint(
+          depthHint: CinematicActorSpriteDepthHint(
             tileX: 3,
             tileY: 4,
             anchorTileX: 4.0,
@@ -17626,10 +17626,10 @@ void main() {
             preferredRendererHint:
                 CinematicActorSpriteRendererHint.hybridRecommended,
           ),
-          diagnostics: const [],
+          diagnostics: [],
         ),
       ],
-      diagnostics: const [],
+      diagnostics: [],
     );
 
     final backdropModel = buildCinematicMapBackdropPreviewModel(

@@ -33,7 +33,8 @@ void main() {
 
       const current = EditorState(
         projectRootPath: '/tmp/demo',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -76,7 +77,8 @@ void main() {
       );
       const current = EditorState(
         projectRootPath: '/tmp/demo',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -112,7 +114,8 @@ void main() {
       );
       const current = EditorState(
         projectRootPath: '/tmp/demo',
-        project: ProjectManifest(surfaceCatalog: const ProjectSurfaceCatalog.empty(), 
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -141,10 +144,13 @@ ProjectContentController _buildController(_FakeProjectRepository repo) {
     updateProjectDialogueUseCase: UpdateProjectDialogueUseCase(repo),
     deleteProjectDialogueUseCase:
         DeleteProjectDialogueUseCase(repo, _FakeMapRepository()),
-    createDialogueLibraryFolderUseCase: CreateDialogueLibraryFolderUseCase(repo),
-    renameDialogueLibraryFolderUseCase: RenameDialogueLibraryFolderUseCase(repo),
+    createDialogueLibraryFolderUseCase:
+        CreateDialogueLibraryFolderUseCase(repo),
+    renameDialogueLibraryFolderUseCase:
+        RenameDialogueLibraryFolderUseCase(repo),
     moveDialogueLibraryFolderUseCase: MoveDialogueLibraryFolderUseCase(repo),
-    deleteDialogueLibraryFolderUseCase: DeleteDialogueLibraryFolderUseCase(repo),
+    deleteDialogueLibraryFolderUseCase:
+        DeleteDialogueLibraryFolderUseCase(repo),
     assignDialogueToLibraryFolderUseCase:
         AssignDialogueToLibraryFolderUseCase(repo),
     moveDialogueToLibraryRootUseCase: MoveDialogueToLibraryRootUseCase(repo),

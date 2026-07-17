@@ -11,21 +11,21 @@ void main() {
       final repo = _FakeProjectRepository();
       final workspace = _FakeWorkspace();
       final useCase = CreateProjectElementUseCase(repo);
-      final source = const TilesetSourceRect(x: 0, y: 0, width: 3, height: 2);
-      final profile = ElementCollisionProfile(
+      const source = TilesetSourceRect(x: 0, y: 0, width: 3, height: 2);
+      const profile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
-        padding: const WarpTriggerPadding(left: 4, bottom: 2),
-        shapeCells: const <GridPos>[
+        padding: WarpTriggerPadding(left: 4, bottom: 2),
+        shapeCells: <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 1, y: 0),
         ],
-        cells: const <GridPos>[
+        cells: <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 1, y: 0),
           GridPos(x: 1, y: 1),
         ],
-        manualAddedCells: const <GridPos>[GridPos(x: 1, y: 1)],
-        manualRemovedCells: const <GridPos>[GridPos(x: 2, y: 1)],
+        manualAddedCells: <GridPos>[GridPos(x: 1, y: 1)],
+        manualRemovedCells: <GridPos>[GridPos(x: 2, y: 1)],
       );
 
       await useCase.execute(
@@ -56,31 +56,31 @@ void main() {
       final useCase = UpdateProjectElementUseCase(repo);
       final initial = _projectManifest().copyWith(
         elements: [
-          ProjectElementEntry(
+          const ProjectElementEntry(
             id: 'house',
             name: 'House',
             tilesetId: 'tileset_main',
             categoryId: 'buildings',
-            frames: const [
+            frames: [
               TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
             ],
           ),
         ],
       );
-      final editedProfile = ElementCollisionProfile(
+      const editedProfile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
-        padding: const WarpTriggerPadding(top: 3, right: 5),
-        shapeCells: const <GridPos>[
+        padding: WarpTriggerPadding(top: 3, right: 5),
+        shapeCells: <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 0, y: 1),
         ],
-        cells: const <GridPos>[
+        cells: <GridPos>[
           GridPos(x: 0, y: 0),
           GridPos(x: 0, y: 1),
           GridPos(x: 1, y: 1),
         ],
-        manualAddedCells: const <GridPos>[GridPos(x: 1, y: 1)],
-        manualRemovedCells: const <GridPos>[GridPos(x: 2, y: 0)],
+        manualAddedCells: <GridPos>[GridPos(x: 1, y: 1)],
+        manualRemovedCells: <GridPos>[GridPos(x: 2, y: 0)],
       );
 
       final updated = await useCase.execute(
@@ -108,11 +108,11 @@ void main() {
       final repo = _FakeProjectRepository();
       final workspace = _FakeWorkspace();
       final useCase = CreateProjectElementUseCase(repo);
-      final source = const TilesetSourceRect(x: 0, y: 0, width: 6, height: 7);
-      final profile = ElementCollisionProfile(
+      const source = TilesetSourceRect(x: 0, y: 0, width: 6, height: 7);
+      const profile = ElementCollisionProfile(
         source: ElementCollisionProfileSource.manual,
-        padding: const WarpTriggerPadding(),
-        shapeCells: const <GridPos>[
+        padding: WarpTriggerPadding(),
+        shapeCells: <GridPos>[
           GridPos(x: 0, y: 3),
           GridPos(x: 1, y: 3),
           GridPos(x: 2, y: 3),
@@ -124,7 +124,7 @@ void main() {
           GridPos(x: 3, y: 4),
           GridPos(x: 4, y: 4),
         ],
-        cells: const <GridPos>[
+        cells: <GridPos>[
           GridPos(x: 0, y: 3),
           GridPos(x: 1, y: 3),
           GridPos(x: 2, y: 3),
@@ -160,18 +160,18 @@ void main() {
 }
 
 ProjectManifest _projectManifest() {
-  return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+  return const ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Test',
-    maps: const [],
-    tilesets: const [
+    maps: [],
+    tilesets: [
       ProjectTilesetEntry(
         id: 'tileset_main',
         name: 'Main',
         relativePath: 'tilesets/main.png',
       ),
     ],
-    elementCategories: const [
+    elementCategories: [
       ProjectElementCategory(
         id: 'buildings',
         name: 'Buildings',

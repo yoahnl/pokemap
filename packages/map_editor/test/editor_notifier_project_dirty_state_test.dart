@@ -182,7 +182,7 @@ void main() {
         projectRootPath: tempDir.path,
         project: _manifestWithElements(
           elements: [
-            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+            _element(id: 'house', name: 'House', width: 4, height: 3),
           ],
           shadowCatalog: _defaultShadowCatalog(),
         ),
@@ -194,11 +194,11 @@ void main() {
       expect(updated.elements.single.shadow, isNotNull);
       expect(
         updated.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
+        'default-ground-wide-ellipse',
       );
       expect(
         updated.elements.single.shadow!.footprint!.footprintWidthRatio,
-        0.18,
+        0.60,
       );
       expect(
         notifier.state.statusMessage,
@@ -313,7 +313,7 @@ void main() {
         projectRootPath: tempDir.path,
         project: _manifestWithElements(
           elements: [
-            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+            _element(id: 'house', name: 'House', width: 4, height: 3),
           ],
           shadowCatalog: const ProjectShadowCatalog.empty(),
         ),
@@ -333,7 +333,7 @@ void main() {
       );
       expect(
         notifier.state.project!.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
+        'default-ground-wide-ellipse',
       );
     });
   });
