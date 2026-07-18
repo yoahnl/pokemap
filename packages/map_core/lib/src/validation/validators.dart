@@ -77,9 +77,111 @@ class ProjectValidator {
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
     _validateProjectDialogues(manifest);
+    _validateNewGameConfig(manifest);
     _validateTrainers(manifest);
     _validateCharacters(manifest);
     _validateSettings(manifest.settings);
+  }
+
+  static void _validateNewGameConfig(ProjectManifest manifest) {
+    final config = manifest.newGame;
+    if (!config.enabled) {
+      return;
+    }
+
+    final startMapId = config.startMapId.trim();
+    if (startMapId.isEmpty) {
+      throw const ValidationException(
+        'Enabled newGame config requires a startMapId',
+      );
+    }
+    if (!manifest.maps.any((map) => map.id == startMapId)) {
+      throw ValidationException(
+        'newGame startMapId references an unknown map: $startMapId',
+      );
+    }
+    if (config.startSpawnId != null && config.startSpawnId!.trim().isEmpty) {
+      throw const ValidationException(
+        'newGame startSpawnId must not be blank when provided',
+      );
+    }
+    if (config.playerName.trim().isEmpty) {
+      throw const ValidationException(
+        'newGame playerName must not be blank',
+      );
+    }
+    if (config.startingMoney < 0) {
+      throw const ValidationException(
+        'newGame startingMoney must be non-negative',
+      );
+    }
+    if (config.initialParty.length > 6) {
+      throw const ValidationException(
+        'newGame initialParty must contain at most 6 Pokemon',
+      );
+    }
+
+    try {
+      for (final entry in config.initialBag) {
+        entry.normalized();
+      }
+      for (final member in config.initialParty) {
+        member.normalized();
+      }
+    } on StateError catch (error) {
+      throw ValidationException('Invalid newGame initial state: $error');
+    }
+
+    final factIds = manifest.facts.map((fact) => fact.id).toSet();
+    for (final factId in config.initialFacts.keys) {
+      final normalizedFactId = factId.trim();
+      if (normalizedFactId.isEmpty || !factIds.contains(normalizedFactId)) {
+        throw ValidationException(
+          'newGame initialFacts references an unknown Fact: $factId',
+        );
+      }
+    }
+    final existingPartyFactId = config.existingPartyFactId?.trim();
+    if (existingPartyFactId != null &&
+        existingPartyFactId.isNotEmpty &&
+        !factIds.contains(existingPartyFactId)) {
+      throw ValidationException(
+        'newGame existingPartyFactId references an unknown Fact: '
+        '$existingPartyFactId',
+      );
+    }
+    final starterSceneId = config.starterSelectionSceneId?.trim();
+    if (starterSceneId != null &&
+        starterSceneId.isNotEmpty &&
+        !manifest.scenes.any((scene) => scene.id == starterSceneId)) {
+      throw ValidationException(
+        'newGame starterSelectionSceneId references an unknown Scene: '
+        '$starterSceneId',
+      );
+    }
+
+    final starterIds = <String>{};
+    for (final option in config.starterOptions) {
+      final optionId = option.id.trim();
+      if (optionId.isEmpty || !starterIds.add(optionId)) {
+        throw ValidationException(
+          'newGame starterOptions contains an empty or duplicate id: '
+          '${option.id}',
+        );
+      }
+      if (option.label.trim().isEmpty) {
+        throw ValidationException(
+          'newGame starter option $optionId has an empty label',
+        );
+      }
+      try {
+        option.pokemon.normalized();
+      } on StateError catch (error) {
+        throw ValidationException(
+          'Invalid newGame starter option $optionId: $error',
+        );
+      }
+    }
   }
 
   static void _validateUniqueness(ProjectManifest manifest) {
@@ -194,6 +296,31 @@ class ProjectValidator {
         d.defaultStartNode,
         contextLabel: 'Dialogue $id defaultStartNode',
       );
+      final outcomeIds = <String>{};
+      for (final outcome in d.declaredOutcomes) {
+        final outcomeId = outcome.id.trim();
+        if (outcomeId.isEmpty) {
+          throw ValidationException(
+            'Dialogue $id has a declared outcome with an empty id',
+          );
+        }
+        if (outcomeId == 'completed') {
+          throw ValidationException(
+            'Dialogue $id declared outcome "completed" is reserved for the '
+            'Scene fallback port',
+          );
+        }
+        if (outcome.label.trim().isEmpty) {
+          throw ValidationException(
+            'Dialogue $id outcome $outcomeId has an empty label',
+          );
+        }
+        if (!outcomeIds.add(outcomeId)) {
+          throw ValidationException(
+            'Dialogue $id has duplicate declared outcome: $outcomeId',
+          );
+        }
+      }
       final df = d.folderId?.trim();
       if (df != null && df.isNotEmpty && !dialogueFolderIds.contains(df)) {
         throw ValidationException(

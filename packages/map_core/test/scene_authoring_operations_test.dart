@@ -248,7 +248,26 @@ void main() {
         kind: SceneEdgeKind.defaultFlow,
       );
       final scene = _edgeAuthoringSceneWithYarnSource(
-        edges: [existingEdge],
+        edges: [
+          existingEdge,
+          SceneEdge(
+            id: 'edge_node_yarn_accept_node_end',
+            fromNodeId: 'node_yarn',
+            fromPortId: 'accept',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
+        ],
+        edgeLayouts: [
+          SceneEdgeLayout(
+            edgeId: existingEdge.id,
+            controlPoints: [SceneLayoutPoint(x: 420, y: 40)],
+          ),
+          SceneEdgeLayout(
+            edgeId: 'edge_node_yarn_accept_node_end',
+            controlPoints: [SceneLayoutPoint(x: 420, y: 120)],
+          ),
+        ],
       );
 
       final result = updateSceneYarnDialoguePayload(
@@ -256,16 +275,21 @@ void main() {
         nodeId: 'node_yarn',
         dialogueId: ' dialogue_updated ',
         yarnNodeName: ' UpdatedStart ',
+        expectedOutcomes: const ['continue', 'leave'],
       );
 
       final payload = result.updatedPayload;
       expect(payload.dialogueId, 'dialogue_updated');
       expect(payload.yarnNodeName, 'UpdatedStart');
-      expect(payload.expectedOutcomes, ['accept']);
+      expect(payload.expectedOutcomes, ['continue', 'leave']);
       expect(result.updatedNode.id, 'node_yarn');
       expect(result.updatedNode.kind, SceneNodeKind.yarnDialogue);
-      expect(result.updatedScene.graph.edges, scene.graph.edges);
-      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.graph.edges, [existingEdge]);
+      expect(
+        result.updatedScene.layout.edgeLayouts.map((layout) => layout.edgeId),
+        [existingEdge.id],
+      );
+      expect(result.updatedScene.layout.nodeLayouts, scene.layout.nodeLayouts);
       expect(result.updatedScene.declaredOutcomes, scene.declaredOutcomes);
       expect(result.updatedScene.metadata, scene.metadata);
       expect(
@@ -284,6 +308,7 @@ void main() {
           scene,
           nodeId: 'node_missing',
           dialogueId: 'dialogue_updated',
+          expectedOutcomes: const [],
         ),
         throwsArgumentError,
       );
@@ -292,6 +317,7 @@ void main() {
           scene,
           nodeId: 'node_start',
           dialogueId: 'dialogue_updated',
+          expectedOutcomes: const [],
         ),
         throwsArgumentError,
       );
@@ -300,6 +326,7 @@ void main() {
           scene,
           nodeId: 'node_yarn',
           dialogueId: '   ',
+          expectedOutcomes: const [],
         ),
         throwsArgumentError,
       );
@@ -536,6 +563,80 @@ void main() {
 
       expect(result.createdNode.title, 'Terminer une étape narrative');
       expect(result.createdPayload.consequence, consequence);
+    });
+
+    test('adds gameplay consequence action nodes with guided default titles',
+        () {
+      final cases = <(SceneConsequence, String)>[
+        (
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 2),
+          'Donner un objet',
+        ),
+        (
+          SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 1),
+          'Retirer un objet',
+        ),
+        (SceneConsequence.giveMoney(amount: 500), 'Donner de l’argent'),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_sproutle',
+            level: 5,
+            currentHp: 20,
+          ),
+          'Donner un Pokémon',
+        ),
+        (
+          SceneConsequence.giveConfiguredStarter(
+            starterOptionId: 'starter_sproutle',
+          ),
+          'Donner un starter configuré',
+        ),
+      ];
+
+      for (final (consequence, expectedTitle) in cases) {
+        final result = addSceneConsequenceActionNodeDraft(
+          _scene('scene_gameplay_consequence'),
+          consequence: consequence,
+        );
+
+        expect(result.createdNode.title, expectedTitle);
+        expect(result.createdPayload.consequence, consequence);
+      }
+    });
+
+    test('rejects invalid gameplay consequence action drafts', () {
+      final invalidConsequences = <SceneConsequence>[
+        SceneConsequence.giveItem(itemId: 'item_potion', quantity: 0),
+        SceneConsequence.takeItem(itemId: ' ', quantity: 1),
+        SceneConsequence.takeItem(itemId: 'item_ticket', quantity: -1),
+        SceneConsequence.giveMoney(amount: 0),
+        SceneConsequence.givePokemon(
+          speciesId: ' ',
+          level: 5,
+          currentHp: 20,
+        ),
+        SceneConsequence.givePokemon(
+          speciesId: 'species_test',
+          level: 101,
+          currentHp: 20,
+        ),
+        SceneConsequence.givePokemon(
+          speciesId: 'species_test',
+          level: 5,
+          currentHp: 0,
+        ),
+        SceneConsequence.giveConfiguredStarter(starterOptionId: ' '),
+      ];
+
+      for (final consequence in invalidConsequences) {
+        expect(
+          () => addSceneConsequenceActionNodeDraft(
+            _scene('scene_invalid_gameplay_consequence'),
+            consequence: consequence,
+          ),
+          throwsArgumentError,
+        );
+      }
     });
 
     test('rejects structurally invalid consequence action drafts', () {

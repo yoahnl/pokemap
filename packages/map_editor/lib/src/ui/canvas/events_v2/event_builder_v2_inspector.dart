@@ -45,10 +45,19 @@ class EventBuilderV2Inspector extends StatelessWidget {
         ),
       ),
       child: selected == null
-          ? const PokeMapEmptyState(
-              title: 'Aucun événement sélectionné',
-              description: 'Choisissez un événement dans la liste du projet.',
-              icon: Icon(CupertinoIcons.slider_horizontal_3),
+          ? Center(
+              child: Semantics(
+                key: const ValueKey('event-builder-v2-inspector-neutral'),
+                label: 'Inspecteur en attente d’un événement',
+                child: const ExcludeSemantics(
+                  child: PokeMapIconTile(
+                    icon: CupertinoIcons.slider_horizontal_3,
+                    tone: PokeMapTone.neutral,
+                    size: 48,
+                    iconSize: 20,
+                  ),
+                ),
+              ),
             )
           : SingleChildScrollView(
               key: const ValueKey('event-builder-v2-inspector-scroll'),

@@ -31,14 +31,14 @@ void main() {
       tileHeight: portBundle.manifest.settings.tileHeight,
       npcMapPresencePredicate: (_, __) => false,
     );
-    final bourgWorld = GameplayWorldState.initial(
-      map: bourg,
+    final bourgWorld = _fullyUnlockedWorld(
+      bundle: bourgBundle,
       playerPos: const GridPos(x: 28, y: 54),
-      playerMovementMode: MovementMode.walk,
-      project: bourgBundle.manifest,
-      tileWidth: bourgBundle.manifest.settings.tileWidth,
-      tileHeight: bourgBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: bourgBundle,
+      entityId: 'gate_bourg_to_port',
+      blockedCell: const GridPos(x: 28, y: 54),
     );
 
     final north = port.connections.where(
@@ -83,9 +83,11 @@ void main() {
     );
     expect(_passableZoneCells(entry, port, portWorld), isNotEmpty);
     expect(_passableZoneCells(center, port, portWorld), isNotEmpty);
-    final nest = port.placedElements.singleWhere(
-      (placed) => placed.id == 'pe_port_nid_goelise',
+    final nest = port.entities.singleWhere(
+      (entity) => entity.id == 'goelise_nest_proxy',
     );
+    expect(nest.editorVisual?.elementId, 'el_port_ref_nest');
+    expect(nest.blocksMovement, isFalse);
     final soline = port.entities.singleWhere(
       (entity) => entity.id == 'anchor_port_soline',
     );
@@ -161,14 +163,19 @@ void main() {
       mapId: 'map_maison_joueur',
     );
     final bourg = bourgBundle.map;
-    final world = GameplayWorldState.initial(
-      map: bourg,
+    final world = _fullyUnlockedWorld(
+      bundle: bourgBundle,
       playerPos: const GridPos(x: 17, y: 24),
-      playerMovementMode: MovementMode.walk,
-      project: bourgBundle.manifest,
-      tileWidth: bourgBundle.manifest.settings.tileWidth,
-      tileHeight: bourgBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: bourgBundle,
+      entityId: 'gate_bourg_to_port',
+      blockedCell: const GridPos(x: 28, y: 54),
+    );
+    _expectProjectedRouteLock(
+      bundle: bourgBundle,
+      entityId: 'gate_bourg_to_bois',
+      blockedCell: const GridPos(x: 54, y: 26),
     );
     expect(
       bourg.connections,
@@ -370,14 +377,14 @@ void main() {
       mapId: 'map_marais_salants',
     );
     final forest = forestBundle.map;
-    final world = GameplayWorldState.initial(
-      map: forest,
+    final world = _fullyUnlockedWorld(
+      bundle: forestBundle,
       playerPos: const GridPos(x: 0, y: 26),
-      playerMovementMode: MovementMode.walk,
-      project: forestBundle.manifest,
-      tileWidth: forestBundle.manifest.settings.tileWidth,
-      tileHeight: forestBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: forestBundle,
+      entityId: 'gate_bois_to_marais',
+      blockedCell: const GridPos(x: 44, y: 26),
     );
     PixelRect cellPixelRect(GridPos pos) => PixelRect(
           leftPx: pos.x * forestBundle.manifest.settings.tileWidth,
@@ -568,14 +575,14 @@ void main() {
       mapId: 'map_passage_dames',
     );
     final marsh = marshBundle.map;
-    final world = GameplayWorldState.initial(
-      map: marsh,
+    final world = _fullyUnlockedWorld(
+      bundle: marshBundle,
       playerPos: const GridPos(x: 0, y: 26),
-      playerMovementMode: MovementMode.walk,
-      project: marshBundle.manifest,
-      tileWidth: marshBundle.manifest.settings.tileWidth,
-      tileHeight: marshBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: marshBundle,
+      entityId: 'gate_marais_to_passage',
+      blockedCell: const GridPos(x: 32, y: 44),
     );
 
     expect(
@@ -703,14 +710,14 @@ void main() {
       mapId: 'map_phare_exterieur',
     );
     final passage = passageBundle.map;
-    final world = GameplayWorldState.initial(
-      map: passage,
+    final world = _fullyUnlockedWorld(
+      bundle: passageBundle,
       playerPos: const GridPos(x: 32, y: 0),
-      playerMovementMode: MovementMode.walk,
-      project: passageBundle.manifest,
-      tileWidth: passageBundle.manifest.settings.tileWidth,
-      tileHeight: passageBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: passageBundle,
+      entityId: 'gate_passage_to_phare',
+      blockedCell: const GridPos(x: 59, y: 14),
     );
 
     expect(
@@ -815,14 +822,14 @@ void main() {
       mapId: 'map_cabane_gardien',
     );
     final exterior = exteriorBundle.map;
-    final world = GameplayWorldState.initial(
-      map: exterior,
+    final world = _fullyUnlockedWorld(
+      bundle: exteriorBundle,
       playerPos: const GridPos(x: 0, y: 14),
-      playerMovementMode: MovementMode.walk,
-      project: exteriorBundle.manifest,
-      tileWidth: exteriorBundle.manifest.settings.tileWidth,
-      tileHeight: exteriorBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: exteriorBundle,
+      entityId: 'gate_cabin_door',
+      blockedCell: const GridPos(x: 8, y: 33),
     );
 
     expect(
@@ -949,14 +956,14 @@ void main() {
       mapId: 'map_sommet_phare',
     );
     final interior = interiorBundle.map;
-    final world = GameplayWorldState.initial(
-      map: interior,
+    final world = _fullyUnlockedWorld(
+      bundle: interiorBundle,
       playerPos: const GridPos(x: 18, y: 42),
-      playerMovementMode: MovementMode.walk,
-      project: interiorBundle.manifest,
-      tileWidth: interiorBundle.manifest.settings.tileWidth,
-      tileHeight: interiorBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: interiorBundle,
+      entityId: 'gate_lighthouse_top',
+      blockedCell: const GridPos(x: 18, y: 1),
     );
 
     expect(
@@ -1197,14 +1204,14 @@ void main() {
       mapId: 'map_passage_dames',
     );
     final cabin = cabinBundle.map;
-    final world = GameplayWorldState.initial(
-      map: cabin,
+    final world = _fullyUnlockedWorld(
+      bundle: cabinBundle,
       playerPos: const GridPos(x: 10, y: 13),
-      playerMovementMode: MovementMode.walk,
-      project: cabinBundle.manifest,
-      tileWidth: cabinBundle.manifest.settings.tileWidth,
-      tileHeight: cabinBundle.manifest.settings.tileHeight,
-      npcMapPresencePredicate: (_, __) => false,
+    );
+    _expectProjectedRouteLock(
+      bundle: cabinBundle,
+      entityId: 'gate_cabin_shortcut',
+      blockedCell: const GridPos(x: 19, y: 8),
     );
     final reached = _reachableCells(
       map: cabin,
@@ -1319,7 +1326,7 @@ void main() {
   });
 
   test(
-    'keeps all ten Selbrume maps mutually reachable through static geometry',
+    'keeps all ten Selbrume maps mutually reachable after route unlocks',
     () async {
       final bundles = await SelbrumeMapTestFixture.loadAllBetaBundles();
       _validateNavigationContract(
@@ -1624,6 +1631,126 @@ void main() {
   });
 }
 
+GameplayWorldState _fullyUnlockedWorld({
+  required RuntimeMapBundle bundle,
+  required GridPos playerPos,
+}) {
+  return _fullyUnlockedWorldForMap(
+    manifest: bundle.manifest,
+    map: bundle.map,
+    playerPos: playerPos,
+  );
+}
+
+GameplayWorldState _fullyUnlockedWorldForMap({
+  required ProjectManifest manifest,
+  required MapData map,
+  required GridPos playerPos,
+}) {
+  final projection = _fullyUnlockedProjection(manifest: manifest, map: map);
+  return GameplayWorldState.initial(
+    map: map,
+    playerPos: playerPos,
+    playerMovementMode: MovementMode.walk,
+    project: manifest,
+    tileWidth: manifest.settings.tileWidth,
+    tileHeight: manifest.settings.tileHeight,
+    // NPC placement is outside this static navigation contract. Non-NPC
+    // route locks, however, are filtered through the real World Rule result.
+    npcMapPresencePredicate: (_, __) => false,
+    mapEntityPresencePredicate: (_, entity) =>
+        projection.isMapEntityVisible(entity),
+  );
+}
+
+RuntimeWorldRuleProjectionState _fullyUnlockedProjection({
+  required ProjectManifest manifest,
+  required MapData map,
+}) {
+  final allFactsTrue = <String, bool>{
+    for (final fact in manifest.facts) fact.id: true,
+  };
+  final completedStepIds = <String>[
+    for (final storyline in manifest.storylines)
+      for (final chapter in storyline.chapters)
+        for (final step in chapter.steps) step.id,
+  ];
+  return const RuntimeWorldRuleProjectionHook().resolve(
+    project: manifest,
+    gameState: GameState(
+      saveId: 'selbrume_navigation_fully_unlocked',
+      currentMapId: '',
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: allFactsTrue,
+      ),
+      progression: PlayerProgression(completedStepIds: completedStepIds),
+    ),
+    map: map,
+  );
+}
+
+void _expectProjectedRouteLock({
+  required RuntimeMapBundle bundle,
+  required String entityId,
+  required GridPos blockedCell,
+}) {
+  final map = bundle.map;
+  final entity = map.entities.singleWhere((entry) => entry.id == entityId);
+  expect(entity.kind, MapEntityKind.sign, reason: '${map.id}/$entityId');
+  expect(entity.blocksMovement, isTrue, reason: '${map.id}/$entityId');
+  expect(entity.properties, const <String, String>{
+    'contractRole': 'selbrume_route_lock',
+    'unlockProjection': 'world_rule_entity_hidden',
+  });
+
+  final matchingRules = bundle.manifest.worldRules.where(
+    (rule) =>
+        rule.target.kind == WorldRuleTargetKind.mapEntity &&
+        rule.target.mapId == map.id &&
+        rule.target.entityId == entityId &&
+        rule.effect.kind == WorldRuleEffectKind.entityHidden,
+  );
+  expect(matchingRules, hasLength(1), reason: '${map.id}/$entityId');
+
+  final initiallyLocked = GameplayWorldState.initial(
+    map: map,
+    playerPos: blockedCell,
+    playerMovementMode: MovementMode.walk,
+    project: bundle.manifest,
+    tileWidth: bundle.manifest.settings.tileWidth,
+    tileHeight: bundle.manifest.settings.tileHeight,
+    npcMapPresencePredicate: (_, __) => false,
+  );
+  expect(
+    initiallyLocked.isBlocked(
+      blockedCell.x,
+      blockedCell.y,
+      movementMode: MovementMode.walk,
+    ),
+    isTrue,
+    reason: '${map.id}/$entityId must block before narrative progression.',
+  );
+
+  final projection = _fullyUnlockedProjection(
+    manifest: bundle.manifest,
+    map: map,
+  );
+  expect(projection.hiddenEntityIds, contains(entityId));
+  final unlocked = _fullyUnlockedWorld(
+    bundle: bundle,
+    playerPos: blockedCell,
+  );
+  expect(
+    unlocked.isBlocked(
+      blockedCell.x,
+      blockedCell.y,
+      movementMode: MovementMode.walk,
+    ),
+    isFalse,
+    reason: '${map.id}/$entityId must open through its authored World Rule.',
+  );
+}
+
 void _validateNavigationContract({
   required ProjectManifest manifest,
   required Map<String, MapData> mapsByManifestId,
@@ -1667,16 +1794,10 @@ void _validateNavigationContract({
 
   final worldByMapId = <String, GameplayWorldState>{
     for (final mapId in expectedMapIds)
-      mapId: GameplayWorldState.initial(
+      mapId: _fullyUnlockedWorldForMap(
+        manifest: manifest,
         map: mapsByManifestId[mapId]!,
         playerPos: const GridPos(x: 0, y: 0),
-        playerMovementMode: MovementMode.walk,
-        project: manifest,
-        tileWidth: manifest.settings.tileWidth,
-        tileHeight: manifest.settings.tileHeight,
-        // Narrative NPC positions are dynamic. This contract intentionally
-        // evaluates only authored static layers/elements/geometry.
-        npcMapPresencePredicate: (_, __) => false,
       ),
   };
   final outgoing = <String, Set<String>>{

@@ -13,6 +13,18 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   unknownEvent,
   unknownStoryStep,
   ambiguousStoryStep,
+  missingItemReference,
+  invalidQuantity,
+  insufficientItemQuantity,
+  invalidMoneyAmount,
+  missingPokemonSpeciesReference,
+  invalidPokemonLevel,
+  invalidPokemonCurrentHp,
+  invalidPokemonDefinition,
+  missingStarterOptionReference,
+  unknownStarterOption,
+  ambiguousStarterOption,
+  partyFull,
 }
 
 final class SceneConsequenceRuntimeWriteResult {

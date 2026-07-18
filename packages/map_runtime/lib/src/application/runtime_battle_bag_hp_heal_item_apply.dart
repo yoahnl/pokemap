@@ -185,6 +185,7 @@ RuntimePsdkBattleBagHpHealItemApplyResult?
     isTrainerBattle: isTrainerBattle,
     trainerId: trainerId,
     allowCapture: allowCapture,
+    allowFlee: displaySession.setup.allowFlee,
   );
   final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
     gameState: gameState,

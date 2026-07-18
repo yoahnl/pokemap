@@ -48,7 +48,8 @@ final class BattleBackgroundSpec {
   bool get hasExplicitImage =>
       (explicitImageAbsolutePath?.trim().isNotEmpty ?? false);
 
-  String get debugLabel => switch (key) {
+  String get debugLabel =>
+      switch (key) {
         BattleBackgroundKey.fallbackField => 'fallback_field',
         BattleBackgroundKey.wildOutdoor => 'wild_outdoor',
         BattleBackgroundKey.trainerOutdoor => 'trainer_outdoor',
@@ -133,6 +134,7 @@ final class BattleBackgroundResolver {
     return switch (request) {
       TrainerBattleStartRequest() => BattleBackgroundKey.trainerOutdoor,
       WildBattleStartRequest() => BattleBackgroundKey.wildOutdoor,
+      StaticBattleStartRequest() => BattleBackgroundKey.wildOutdoor,
     };
   }
 
@@ -171,6 +173,7 @@ final class BattleBackgroundResolver {
     final lookupPos = switch (request) {
       WildBattleStartRequest(:final playerPos) => playerPos,
       TrainerBattleStartRequest(:final playerPos) => playerPos,
+      StaticBattleStartRequest(:final playerPos) => playerPos,
     };
     final zone = _resolveEncounterZoneAtPos(
       bundle: bundle,

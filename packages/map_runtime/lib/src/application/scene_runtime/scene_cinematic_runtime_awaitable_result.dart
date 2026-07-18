@@ -8,6 +8,15 @@ enum SceneCinematicRuntimeAwaitableErrorCode {
   missingCinematicId,
   unknownCinematicId,
   playerFailed,
+  alreadyPlaying,
+  unsupportedStepKind,
+  unsupportedActorBinding,
+  invalidActorReference,
+  invalidTargetReference,
+  invalidStep,
+  preflightRejected,
+  cancelled,
+  sinkFailure,
 }
 
 final class SceneCinematicRuntimeAwaitableResult {

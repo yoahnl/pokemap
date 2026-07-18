@@ -16703,11 +16703,237 @@
       "sign": null,
       "item": null,
       "spawn": null,
-      "editorVisual": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_indice_verre",
+        "renderInForeground": false
+      },
       "blocksMovement": false,
       "properties": {
-        "contractRole": "phase_j_clue_source",
-        "visualOwnerId": "pe_marais_indice_verre"
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "npc_mado",
+      "name": "Mado",
+      "kind": "npc",
+      "pos": {
+        "x": 10,
+        "y": 12
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": {
+        "displayName": "Mado",
+        "dialogue": {
+          "dialogueId": "dialogue_mado",
+          "scriptPathRelative": "",
+          "startNode": "MadoIntro"
+        },
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "character_mado",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_canonical_narrative_source"
+      }
+    },
+    {
+      "id": "gate_marais_to_passage",
+      "name": "Passage des Dames fermé",
+      "kind": "sign",
+      "pos": {
+        "x": 0,
+        "y": 44
+      },
+      "size": {
+        "width": 45,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Passage des Dames fermé",
+        "dialogue": null,
+        "plainText": "Le Passage des Dames reste fermé. Rapporte les trois indices à Soline."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_passage_barriere_fermee",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    },
+    {
+      "id": "clue_electric_object",
+      "name": "Traces électriques",
+      "kind": "custom",
+      "pos": {
+        "x": 32,
+        "y": 10
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_indice_traces_electriques",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "clue_lens_object",
+      "name": "Repère de l’ancienne lentille",
+      "kind": "custom",
+      "pos": {
+        "x": 34,
+        "y": 34
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_indice_repere_lentille",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "crystal_1_object",
+      "name": "Premier cristal de sel",
+      "kind": "custom",
+      "pos": {
+        "x": 14,
+        "y": 7
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_cristal_1",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "crystal_2_object",
+      "name": "Deuxième cristal de sel",
+      "kind": "custom",
+      "pos": {
+        "x": 24,
+        "y": 28
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_cristal_2",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "crystal_3_object",
+      "name": "Troisième cristal de sel",
+      "kind": "custom",
+      "pos": {
+        "x": 38,
+        "y": 22
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_cristal_3",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "fog_marais",
+      "name": "Brume des Marais Salants",
+      "kind": "custom",
+      "pos": {
+        "x": 20,
+        "y": 20
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_brume_basse",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
       }
     }
   ],

@@ -41,7 +41,10 @@ export 'src/gameplay_step_result.dart'
         PlacedElementInteracted,
         MapEventInteracted;
 export 'src/gameplay_world_state.dart'
-    show GameplayWorldState, NpcMapPresencePredicate;
+    show
+        GameplayWorldState,
+        NpcMapPresencePredicate,
+        MapEntityPresencePredicate;
 export 'src/surf_evaluation.dart'
     show
         SurfAttemptEvaluation,
@@ -63,7 +66,10 @@ export 'src/event_page_resolver.dart' show EventPageResolver;
 export 'src/game_state_mutations.dart'
     show CaptureDestinationKind, CaptureDestinationResult, GameStateMutations;
 export 'src/new_game_state_builder.dart'
-    show createNewGameState, createNewGameStateFromMap;
+    show
+        createNewGameState,
+        createNewGameStateFromMap,
+        createNewGameStateFromProject;
 export 'src/narrative_event_dispatch_planner.dart'
     show NarrativeEventDispatchPlanner;
 export 'src/narrative_trigger_enter_fronts.dart'

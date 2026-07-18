@@ -96,8 +96,7 @@ class CreateProjectDialogueUseCase {
       name: trimmed,
       relativePath: relativePath,
       description: description?.trim() ?? '',
-      defaultStartNode:
-          dns == null || dns.isEmpty ? null : dns,
+      defaultStartNode: dns == null || dns.isEmpty ? null : dns,
       folderId: parent == null || parent.isEmpty ? null : parent,
       sortOrder: sortOrder,
     );
@@ -188,6 +187,7 @@ class UpdateProjectDialogueUseCase {
     String? name,
     String? description,
     List<String>? tags,
+    List<DialogueDeclaredOutcome>? declaredOutcomes,
     String? defaultStartNode,
     bool clearDefaultStartNode = false,
   }) async {
@@ -216,6 +216,7 @@ class UpdateProjectDialogueUseCase {
       name: newName,
       description: description != null ? description.trim() : cur.description,
       tags: tags ?? cur.tags,
+      declaredOutcomes: declaredOutcomes ?? cur.declaredOutcomes,
       defaultStartNode: dns,
     );
     final list = List<ProjectDialogueEntry>.from(project.dialogues);

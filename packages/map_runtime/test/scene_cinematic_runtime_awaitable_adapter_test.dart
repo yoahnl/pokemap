@@ -199,13 +199,19 @@ void main() {
       expect(adapterSource, isNot(contains('giveItem')));
     });
 
-    test('PlayableMapGame wires playCinematic through V1-40 adapter', () {
+    test('PlayableMapGame wires playCinematic through the visual controller',
+        () {
       final gameSource = File(
         'lib/src/presentation/flame/playable_map_game.dart',
       ).readAsStringSync();
 
       expect(gameSource, contains('SceneCinematicRuntimeAwaitableAdapter'));
-      expect(gameSource, contains('SceneCinematicRuntimeNoVisualPlayer'));
+      expect(gameSource, contains('CinematicRuntimePlaybackController'));
+      expect(gameSource, contains('player: _cinematicRuntimeController'));
+      expect(
+        gameSource,
+        isNot(contains('player: const SceneCinematicRuntimeNoVisualPlayer()')),
+      );
       expect(
         gameSource,
         isNot(contains('[scene_runtime] cinematic bridge acknowledged')),

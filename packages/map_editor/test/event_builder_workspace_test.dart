@@ -1639,7 +1639,8 @@ void main() {
   });
 
   group('NS-EVENT-40 shell pixel polish visual QA', () {
-    testWidgets('keeps reference layout shell visible', (tester) async {
+    testWidgets('keeps Event layout without the historical nested sidebar',
+        (tester) async {
       await _pumpNarrativeEventsShell(
         tester,
         project: _eventProjectWithWorldRules(),
@@ -1654,8 +1655,6 @@ void main() {
         find.byKey(const ValueKey('event-builder-polished-metrics-row')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-          findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('event-builder-polished-shell-header')),

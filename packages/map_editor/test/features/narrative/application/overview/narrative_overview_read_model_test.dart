@@ -74,6 +74,7 @@ void main() {
             timeline: CinematicTimeline(),
           ),
         ],
+        scenes: <SceneAsset>[_scene('test_scene_1')],
       );
 
       final model = buildNarrativeOverviewReadModel(project: project);
@@ -116,6 +117,27 @@ void main() {
           (module) => module.id == NarrativeOverviewModuleIds.facts);
       expect(factsModule.count, 0);
       expect(factsModule.availability, NarrativeOverviewAvailability.empty);
+    });
+
+    test('counts canonical Scene assets in the global Scenes metric', () {
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(),
+            _cutsceneScenario(
+              id: 'test_cutscene_1',
+              dialogueId: 'test_dialogue_1',
+            ),
+          ],
+          scenes: <SceneAsset>[
+            _scene('scene_one'),
+            _scene('scene_two'),
+          ],
+        ),
+      );
+
+      expect(model.metrics.scenes.count, 2);
+      expect(model.mainStory.linkedScenes.count, 1);
     });
 
     test('marks chapters as fallback when Global Story metadata is absent', () {
@@ -313,6 +335,7 @@ void main() {
 ProjectManifest _project({
   String name = 'test_project',
   List<ScenarioAsset> scenarios = const <ScenarioAsset>[],
+  List<SceneAsset> scenes = const <SceneAsset>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<CinematicAsset> cinematics = const <CinematicAsset>[],
 }) {
@@ -322,10 +345,32 @@ ProjectManifest _project({
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     scenarios: scenarios,
+    scenes: scenes,
     dialogues: dialogues,
     cinematics: cinematics,
   );
 }
+
+SceneAsset _scene(String id) => SceneAsset(
+      id: id,
+      name: id,
+      graph: SceneGraph(
+        startNodeId: 'start',
+        nodes: <SceneNode>[
+          SceneNode(id: 'start', kind: SceneNodeKind.start),
+          SceneNode(id: 'end', kind: SceneNodeKind.end),
+        ],
+        edges: <SceneEdge>[
+          SceneEdge(
+            id: 'edge',
+            fromNodeId: 'start',
+            fromPortId: 'completed',
+            toNodeId: 'end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+        ],
+      ),
+    );
 
 ScenarioAsset _globalStoryWithDocuments({
   String name = 'Test Global Story',

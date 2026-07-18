@@ -67,6 +67,7 @@ class BattleTransitionOverlayComponent extends PositionComponent {
       WildBattleStartRequest(:final speciesId) =>
         'Un $speciesId sauvage apparaît !',
       TrainerBattleStartRequest() => 'Un dresseur vous défie !',
+      StaticBattleStartRequest() => 'Un Pokémon puissant vous fait face !',
     };
   }
 

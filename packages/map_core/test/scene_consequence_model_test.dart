@@ -97,10 +97,122 @@ void main() {
       expect(decoded, equals(consequence));
     });
 
+    test('giveItem JSON round-trips quantity and stable item reference', () {
+      final consequence = SceneConsequence.giveItem(
+        itemId: 'item_potion',
+        quantity: 2,
+        label: 'Potion reward',
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json, {
+        'kind': 'giveItem',
+        'itemId': 'item_potion',
+        'quantity': 2,
+        'label': 'Potion reward',
+      });
+      expect(decoded, equals(consequence));
+      expect(decoded, isA<SceneGiveItemConsequence>());
+    });
+
+    test('takeItem JSON round-trips quantity and stable item reference', () {
+      final consequence = SceneConsequence.takeItem(
+        itemId: 'item_ticket',
+        quantity: 1,
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json['kind'], 'takeItem');
+      expect(json['itemId'], 'item_ticket');
+      expect(json['quantity'], 1);
+      expect(decoded, equals(consequence));
+      expect(decoded, isA<SceneTakeItemConsequence>());
+    });
+
+    test('giveMoney JSON round-trips a positive amount', () {
+      final consequence = SceneConsequence.giveMoney(
+        amount: 500,
+        notes: 'Quest reward.',
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json['kind'], 'giveMoney');
+      expect(json['amount'], 500);
+      expect(decoded, equals(consequence));
+      expect(decoded, isA<SceneGiveMoneyConsequence>());
+    });
+
+    test('givePokemon JSON round-trips species and construction defaults', () {
+      final consequence = SceneConsequence.givePokemon(
+        speciesId: 'species_sproutle',
+        level: 7,
+        currentHp: 24,
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json, {
+        'kind': 'givePokemon',
+        'speciesId': 'species_sproutle',
+        'level': 7,
+        'currentHp': 24,
+        'natureId': 'hardy',
+        'abilityId': 'unknown',
+      });
+      expect(decoded, equals(consequence));
+      expect(decoded, isA<SceneGivePokemonConsequence>());
+    });
+
+    test('legacy givePokemon JSON decodes level as an explicit migration flag',
+        () {
+      final decoded = SceneConsequence.fromJson(<String, dynamic>{
+        'kind': 'givePokemon',
+        'speciesId': 'species_legacy',
+        'level': 9,
+        'natureId': 'hardy',
+        'abilityId': 'legacy-ability',
+      }) as SceneGivePokemonConsequence;
+
+      expect(decoded.currentHp, 9);
+      expect(decoded.currentHpIsLegacyFallback, isTrue);
+      expect(decoded.toJson(), isNot(contains('currentHp')));
+    });
+
+    test('giveConfiguredStarter JSON round-trips only the authored option ref',
+        () {
+      final consequence = SceneConsequence.giveConfiguredStarter(
+        starterOptionId: 'starter_bulbasaur',
+        label: 'Recevoir Bulbizarre',
+      );
+
+      final json =
+          jsonDecode(jsonEncode(consequence.toJson())) as Map<String, dynamic>;
+      final decoded = SceneConsequence.fromJson(json);
+
+      expect(json, <String, dynamic>{
+        'kind': 'giveConfiguredStarter',
+        'starterOptionId': 'starter_bulbasaur',
+        'label': 'Recevoir Bulbizarre',
+      });
+      expect(decoded, consequence);
+      expect(decoded, isA<SceneGiveConfiguredStarterConsequence>());
+    });
+
     test('rejects unknown consequence kind', () {
       expect(
         () => SceneConsequence.fromJson({
-          'kind': 'giveItem',
+          'kind': 'teleportToMoon',
           'itemId': 'item_test',
         }),
         throwsA(isA<FormatException>()),

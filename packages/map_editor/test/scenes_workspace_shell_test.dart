@@ -3,35 +3,42 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
+import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
+
+import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('NS-SCENES-V1-09 scene validation diagnostics', () {
     testWidgets('Narrative Studio exposes a real Scenes navigation entry',
         (tester) async {
-      final container = await _pumpNarrativeShell(
+      final project = _emptyProject();
+      final container = await pumpEditorShellPage(
         tester,
-        project: _emptyProject(),
-        workspaceMode: EditorWorkspaceMode.globalStory,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.globalStory,
+        ),
+        surfaceSize: const Size(1672, 941),
       );
 
-      final sidebar = find.byKey(const ValueKey('narrative-studio-sidebar'));
-      expect(sidebar, findsOneWidget);
       expect(
-        find.byKey(const ValueKey('narrative-studio-sidebar-scenes')),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(of: sidebar, matching: find.text('Scènes')),
+        find.byKey(const ValueKey('narrative-studio-product-nav-scenes')),
         findsOneWidget,
       );
 
       await tester.tap(
-        find.byKey(const ValueKey('narrative-studio-sidebar-scenes')),
+        find.byKey(const ValueKey('narrative-studio-product-nav-scenes')),
       );
       await tester.pumpAndSettle();
 
@@ -41,6 +48,7 @@ void main() {
       );
       expect(
           find.byKey(const ValueKey('scenes-workspace-shell')), findsOneWidget);
+      expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets(
@@ -282,7 +290,7 @@ void main() {
       expect(find.text('node_end_2'), findsWidgets);
     });
 
-    testWidgets('keeps unsupported node kinds disabled in the palette',
+    testWidgets('keeps unsupported kinds disabled and action available',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -293,7 +301,6 @@ void main() {
       for (final key in [
         'scenes-add-node-start-disabled',
         'scenes-add-node-yarn-disabled',
-        'scenes-add-node-action-disabled',
         'scenes-add-node-battle-disabled',
         'scenes-add-node-cinematic-disabled',
         'scenes-add-node-branch-disabled',
@@ -303,6 +310,16 @@ void main() {
         );
         expect(button.onPressed, isNull, reason: key);
       }
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scenes-add-node-action-consequence'),
+              ),
+            )
+            .onPressed,
+        isNotNull,
+      );
       expect(find.text('Selbrume Demo'), findsNothing);
       expect(find.text('Annonce au port'), findsNothing);
     });
@@ -332,7 +349,7 @@ void main() {
       expect(
         find.text(
             'Dialogue outcomes are not exposed by a public contract yet.'),
-        findsOneWidget,
+        findsNothing,
       );
       expect(find.text('confident'), findsNothing);
       expect(find.text('hesitant'), findsNothing);
@@ -421,13 +438,16 @@ void main() {
       await tester.ensureVisible(
         find.byKey(const ValueKey('scenes-add-node-action-consequence')),
       );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
       await tester.tap(
         find.byKey(const ValueKey('scenes-add-node-action-consequence')),
       );
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const ValueKey('scene-consequence-picker-dialog')),
+        find.byKey(const ValueKey('scene-consequence-picker-sheet')),
         findsOneWidget,
       );
       expect(find.text('Porte ouverte'), findsOneWidget);
@@ -526,6 +546,960 @@ void main() {
       expect(consequence.mapId, 'map_test');
       expect(consequence.eventId, 'event_gate');
       expect(find.textContaining('Event Gate'), findsWidgets);
+    });
+
+    testWidgets(
+        'creates giveItem from the local item catalog without raw id input',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: [
+                PokemonItemCatalogEntryView(
+                  id: 'item_antidote',
+                  name: 'Antidote',
+                  shortDesc: 'Soigne le poison.',
+                  pocketId: 'medicine',
+                ),
+                PokemonItemCatalogEntryView(
+                  id: 'item_potion',
+                  name: 'Potion',
+                  shortDesc: 'Restaure quelques PV.',
+                  pocketId: 'medicine',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('scene-consequence-picker-sheet')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-kind-giveItem')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Antidote'), findsOneWidget);
+      expect(find.text('Potion'), findsOneWidget);
+      expect(find.text('item_antidote'), findsNothing);
+      expect(find.text('item_potion'), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-item-option-item_potion'),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-item-quantity-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '3',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final payload = node.payload as SceneActionPayload;
+      final consequence = payload.consequence as SceneGiveItemConsequence;
+      expect(consequence.itemId, 'item_potion');
+      expect(consequence.quantity, 3);
+      expect(node.title, 'Donner un objet');
+    });
+
+    testWidgets('creates giveMoney with inline positive amount validation',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-kind-giveMoney')),
+      );
+      await tester.pump();
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-money-amount-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '0',
+      );
+      await tester.pump();
+      expect(
+        find.text('Saisissez un montant supérieur à zéro.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scene-consequence-create-action'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-money-amount-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '250',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneGiveMoneyConsequence;
+      expect(consequence.amount, 250);
+      expect(node.title, 'Donner de l’argent');
+    });
+
+    testWidgets(
+        'keeps money available and explains unavailable gameplay catalogs',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithScene(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-consequence-items-catalog-diagnostic'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-consequence-species-catalog-diagnostic'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scene-consequence-kind-giveItem'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scene-consequence-kind-givePokemon'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scene-consequence-kind-giveMoney'),
+              ),
+            )
+            .onPressed,
+        isNotNull,
+      );
+    });
+
+    testWidgets('creates takeItem from the same guided local item catalog',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: [
+                PokemonItemCatalogEntryView(
+                  id: 'item_potion',
+                  name: 'Potion',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-kind-takeItem')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-item-option-item_potion'),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-item-quantity-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '2',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneTakeItemConsequence;
+      expect(consequence.itemId, 'item_potion');
+      expect(consequence.quantity, 2);
+      expect(node.title, 'Retirer un objet');
+    });
+
+    testWidgets(
+        'creates givePokemon from an enabled local species with level validation',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: <PokemonItemCatalogEntryView>[],
+              isAvailable: false,
+              description: 'Aucun objet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const [
+              PokemonDatabaseIndexEntry(
+                id: 'species_sproutle',
+                nationalDex: 1,
+                primaryName: 'Sproutle',
+                genIntroduced: 1,
+                types: ['grass'],
+                isEnabledInProject: true,
+                refs: PokemonDatabaseIndexRefs(
+                  learnset: 'learnsets/sproutle.json',
+                  evolution: 'evolutions/sproutle.json',
+                  media: 'media/sproutle.json',
+                ),
+              ),
+              PokemonDatabaseIndexEntry(
+                id: 'species_disabled',
+                nationalDex: 2,
+                primaryName: 'Dormantmon',
+                genIntroduced: 1,
+                types: ['normal'],
+                isEnabledInProject: false,
+                refs: PokemonDatabaseIndexRefs(
+                  learnset: 'learnsets/dormantmon.json',
+                  evolution: 'evolutions/dormantmon.json',
+                  media: 'media/dormantmon.json',
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-kind-givePokemon')),
+      );
+      await tester.pump();
+
+      expect(find.text('Sproutle'), findsOneWidget);
+      expect(find.text('Dormantmon'), findsNothing);
+      expect(find.text('species_sproutle'), findsNothing);
+      expect(find.text('species_disabled'), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-species-option-species_sproutle',
+          ),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-level-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '101',
+      );
+      await tester.pump();
+      expect(
+        find.text('Choisissez un niveau entre 1 et 100.'),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-level-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '7',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-consequence-pokemon-current-hp-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '23',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneGivePokemonConsequence;
+      expect(consequence.speciesId, 'species_sproutle');
+      expect(consequence.level, 7);
+      expect(consequence.currentHp, 23);
+      expect(node.title, 'Donner un Pokémon');
+    });
+
+    testWidgets(
+        'creates a configured starter from New Game options without raw IDs',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithConsequenceAuthoringTargets(),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-consequence-kind-giveConfiguredStarter'),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Bulbizarre'), findsOneWidget);
+      expect(find.text('starter_bulbasaur'), findsNothing);
+      expect(find.text('bulbasaur'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'scene-consequence-configured-starter-option-starter_bulbasaur',
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('scene-consequence-create-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .last;
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneGiveConfiguredStarterConsequence;
+      expect(consequence.starterOptionId, 'starter_bulbasaur');
+      expect(node.title, 'Donner un starter configuré');
+    });
+
+    testWidgets(
+        'inspector resolves and edits takeItem through the local item catalog',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.takeItem(itemId: 'item_potion', quantity: 1),
+        ),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: [
+                PokemonItemCatalogEntryView(
+                  id: 'item_potion',
+                  name: 'Potion',
+                  shortDesc: 'Restaure quelques PV.',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Retirer un objet'), findsWidgets);
+      expect(find.text('Potion'), findsOneWidget);
+      expect(find.text('item_potion'), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-edit-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('scene-gameplay-consequence-edit-sheet')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-gameplay-consequence-item-picker')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-quantity-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '2',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-save-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final node = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single
+          .graph
+          .nodes
+          .firstWhere((candidate) => candidate.id == 'node_action');
+      final consequence = (node.payload as SceneActionPayload).consequence
+          as SceneTakeItemConsequence;
+      expect(consequence.itemId, 'item_potion');
+      expect(consequence.quantity, 2);
+    });
+
+    testWidgets(
+        'inspector keeps giveItem typed while editing its guided quantity',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 1),
+        ),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: [
+                PokemonItemCatalogEntryView(
+                  id: 'item_potion',
+                  name: 'Potion',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Donner un objet'), findsWidgets);
+      expect(find.text('Potion'), findsOneWidget);
+      expect(find.text('item_potion'), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-edit-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-quantity-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '4',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-save-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final consequence = (container
+              .read(editorNotifierProvider)
+              .project!
+              .scenes
+              .single
+              .graph
+              .nodes
+              .firstWhere((candidate) => candidate.id == 'node_action')
+              .payload as SceneActionPayload)
+          .consequence as SceneGiveItemConsequence;
+      expect(consequence.itemId, 'item_potion');
+      expect(consequence.quantity, 4);
+    });
+
+    testWidgets('inspector edits giveMoney through a validated amount field',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.giveMoney(amount: 100),
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Donner de l’argent'), findsWidgets);
+      expect(find.text('100'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-edit-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-money-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '0',
+      );
+      await tester.pump();
+      expect(
+        find.text('Saisissez un montant supérieur à zéro.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(
+                const ValueKey('scene-gameplay-consequence-save-action'),
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-money-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '300',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-save-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final consequence = (container
+              .read(editorNotifierProvider)
+              .project!
+              .scenes
+              .single
+              .graph
+              .nodes
+              .firstWhere((candidate) => candidate.id == 'node_action')
+              .payload as SceneActionPayload)
+          .consequence as SceneGiveMoneyConsequence;
+      expect(consequence.amount, 300);
+    });
+
+    testWidgets(
+        'inspector resolves and edits givePokemon through local species',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.givePokemon(
+            speciesId: 'species_sproutle',
+            level: 5,
+            currentHp: 20,
+          ),
+        ),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: <PokemonItemCatalogEntryView>[],
+              isAvailable: false,
+              description: 'Aucun objet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const [
+              PokemonDatabaseIndexEntry(
+                id: 'species_sproutle',
+                nationalDex: 1,
+                primaryName: 'Sproutle',
+                genIntroduced: 1,
+                types: ['grass'],
+                isEnabledInProject: true,
+                refs: PokemonDatabaseIndexRefs(
+                  learnset: 'learnsets/sproutle.json',
+                  evolution: 'evolutions/sproutle.json',
+                  media: 'media/sproutle.json',
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Sproutle'), findsOneWidget);
+      expect(find.text('species_sproutle'), findsNothing);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-edit-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-species-picker'),
+        ),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-level-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '8',
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(
+            const ValueKey('scene-gameplay-consequence-current-hp-field'),
+          ),
+          matching: find.byType(TextField),
+        ),
+        '27',
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-save-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final consequence = (container
+              .read(editorNotifierProvider)
+              .project!
+              .scenes
+              .single
+              .graph
+              .nodes
+              .firstWhere((candidate) => candidate.id == 'node_action')
+              .payload as SceneActionPayload)
+          .consequence as SceneGivePokemonConsequence;
+      expect(consequence.speciesId, 'species_sproutle');
+      expect(consequence.level, 8);
+      expect(consequence.currentHp, 27);
+    });
+
+    testWidgets(
+        'inspector edits a configured starter through labels without raw IDs',
+        (tester) async {
+      final container = await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.giveConfiguredStarter(
+            starterOptionId: 'starter_bulbasaur',
+          ),
+          newGame: const ProjectNewGameConfig(
+            starterOptions: <ProjectStarterOption>[
+              ProjectStarterOption(
+                id: 'starter_bulbasaur',
+                label: 'Bulbizarre',
+                pokemon: PlayerPokemon(
+                  speciesId: 'bulbasaur',
+                  natureId: 'hardy',
+                  abilityId: 'overgrow',
+                  level: 16,
+                  currentHp: 40,
+                  knownMoveIds: <String>['vine_whip'],
+                ),
+              ),
+            ],
+          ),
+        ),
+        workspaceMode: EditorWorkspaceMode.scenes,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Bulbizarre'), findsOneWidget);
+      expect(find.text('starter_bulbasaur'), findsNothing);
+      expect(find.text('bulbasaur'), findsNothing);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-edit-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(
+          const ValueKey(
+            'scene-gameplay-consequence-configured-starter-picker',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(TextField), findsNothing);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-save-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final consequence = (container
+              .read(editorNotifierProvider)
+              .project!
+              .scenes
+              .single
+              .graph
+              .nodes
+              .firstWhere((candidate) => candidate.id == 'node_action')
+              .payload as SceneActionPayload)
+          .consequence as SceneGiveConfiguredStarterConsequence;
+      expect(consequence.starterOptionId, 'starter_bulbasaur');
+    });
+
+    testWidgets('inspector diagnoses a gameplay reference missing from catalog',
+        (tester) async {
+      await _pumpNarrativeShell(
+        tester,
+        project: _projectWithGameplayConsequenceActionScene(
+          SceneConsequence.giveItem(itemId: 'item_missing', quantity: 1),
+        ),
+        projectRootPath: '/project',
+        workspaceMode: EditorWorkspaceMode.scenes,
+        overrides: [
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _SceneTestWorkspaceFactory(),
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: [
+                PokemonItemCatalogEntryView(
+                  id: 'item_potion',
+                  name: 'Potion',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_action')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-gameplay-consequence-catalog-diagnostic'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Objet introuvable dans le catalogue local.'),
+        findsOneWidget,
+      );
+      expect(find.text('item_missing'), findsNothing);
     });
 
     testWidgets('edits a setFact consequence action payload from inspector',
@@ -631,7 +1605,7 @@ void main() {
     });
 
     testWidgets(
-        'bridge-only cinematic action and branch remain honestly disabled',
+        'bridge-only cinematic and branch stay disabled while money action is available',
         (tester) async {
       await _pumpNarrativeShell(
         tester,
@@ -643,17 +1617,16 @@ void main() {
         find.byKey(const ValueKey('scenes-add-node-cinematic-disabled')).first,
       );
       final actionButton = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('scenes-add-node-action-disabled')).first,
+        find.byKey(const ValueKey('scenes-add-node-action-consequence')).first,
       );
       final branchButton = tester.widget<PokeMapButton>(
         find.byKey(const ValueKey('scenes-add-node-branch-disabled')).first,
       );
 
       expect(cinematicButton.onPressed, isNull);
-      expect(actionButton.onPressed, isNull);
+      expect(actionButton.onPressed, isNotNull);
       expect(branchButton.onPressed, isNull);
       expect(find.textContaining('bridges legacy'), findsOneWidget);
-      expect(find.textContaining('Fact ou event requis'), findsOneWidget);
       expect(find.textContaining('mapping futur'), findsOneWidget);
       expect(find.text('CinematicAsset final'), findsNothing);
       expect(find.text('mael_intro'), findsNothing);
@@ -706,7 +1679,7 @@ void main() {
       final payload = node.payload as SceneYarnDialoguePayload;
       expect(payload.dialogueId, 'dialogue_updated');
       expect(payload.yarnNodeName, 'UpdatedStart');
-      expect(payload.expectedOutcomes, ['accept']);
+      expect(payload.expectedOutcomes, ['continue', 'leave']);
       expect(scene.graph.edges.map((edge) => edge.id), [
         'edge_dialogue_completed_end',
         'edge_battle_victory_end',
@@ -2277,10 +3250,17 @@ void main() {
       expect(find.byKey(const ValueKey('scenes-legacy-header')), findsNothing);
       expect(
         find.descendant(
-          of: find.byKey(const ValueKey('scenes-tree-panel')),
+          of: find.byType(NarrativeStudioWorkspacePage),
           matching: find.byKey(const ValueKey('scenes-create-scene-action')),
         ),
         findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('scenes-tree-panel')),
+          matching: find.byKey(const ValueKey('scenes-create-scene-action')),
+        ),
+        findsNothing,
       );
       expect(treeSize.width, lessThan(270));
       expect(inspectorSize.width, closeTo(320, 0.1));
@@ -2557,14 +3537,18 @@ void main() {
     });
 
     testWidgets('Storylines workspace remains selectable', (tester) async {
-      final container = await _pumpNarrativeShell(
+      final project = _emptyProject();
+      final container = await pumpEditorShellPage(
         tester,
-        project: _emptyProject(),
-        workspaceMode: EditorWorkspaceMode.scenes,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1920, 941),
       );
 
       await tester.tap(
-        find.byKey(const ValueKey('narrative-studio-sidebar-storylines')),
+        find.byKey(const ValueKey('narrative-studio-product-nav-storylines')),
       );
       await tester.pumpAndSettle();
 
@@ -2576,6 +3560,7 @@ void main() {
         find.byKey(const ValueKey('storylines-workspace-shell')),
         findsOneWidget,
       );
+      expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets('keeps the V1-08 scene draft visual flow valid',
@@ -3029,11 +4014,13 @@ Future<ProviderContainer> _pumpNarrativeShell(
   required ProjectManifest project,
   required EditorWorkspaceMode workspaceMode,
   MapData? activeMap,
+  String? projectRootPath,
+  List<Override> overrides = const <Override>[],
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
-  final container = ProviderContainer();
+  final container = ProviderContainer(overrides: overrides);
   addTearDown(container.dispose);
   final editorSubscription = container.listen(
     editorNotifierProvider,
@@ -3042,6 +4029,7 @@ Future<ProviderContainer> _pumpNarrativeShell(
   addTearDown(editorSubscription.close);
 
   container.read(editorNotifierProvider.notifier).state = EditorState(
+    projectRootPath: projectRootPath,
     project: project,
     workspaceMode: workspaceMode,
     activeMap: activeMap,
@@ -3067,6 +4055,79 @@ Future<ProviderContainer> _pumpNarrativeShell(
   await tester.pump();
   await tester.pump();
   return container;
+}
+
+class _SceneTestWorkspaceFactory implements ProjectWorkspaceFactory {
+  const _SceneTestWorkspaceFactory();
+
+  @override
+  ProjectWorkspace create(String projectRootPath) {
+    return _SceneTestWorkspace(projectRootPath);
+  }
+}
+
+class _SceneTestWorkspace implements ProjectWorkspace {
+  const _SceneTestWorkspace(this.projectRoot);
+
+  @override
+  final String projectRoot;
+
+  @override
+  String get projectManifestPath => '$projectRoot/project.json';
+
+  @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {}
+
+  @override
+  Future<void> deleteRelativeFile(String relativePath) async {}
+
+  @override
+  Future<bool> directoryExists(String path) async => true;
+
+  @override
+  Future<void> ensureDirectoryExists(String path) async {}
+
+  @override
+  Future<bool> fileExists(String path) async => true;
+
+  @override
+  String getMapPath(String mapId) => '$projectRoot/maps/$mapId.json';
+
+  @override
+  String getMapRelativePath(String mapId) => 'maps/$mapId.json';
+
+  @override
+  Future<String> importTilesetImage(
+    String sourcePath, {
+    String? preferredName,
+  }) async =>
+      '$projectRoot/assets/${preferredName ?? 'tileset.png'}';
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<String> readTextFile(String path) async => '';
+
+  @override
+  String resolveMapPath(String relativePath) => '$projectRoot/$relativePath';
+
+  @override
+  String resolveProjectRelativePath(String relativePath) =>
+      '$projectRoot/$relativePath';
+
+  @override
+  String resolveTilesetPath(String relativePath) =>
+      '$projectRoot/$relativePath';
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {}
 }
 
 ProjectManifest _emptyProject() {
@@ -3370,6 +4431,60 @@ ProjectManifest _projectWithTypedConsequenceActionScene() {
   );
 }
 
+ProjectManifest _projectWithGameplayConsequenceActionScene(
+  SceneConsequence consequence, {
+  ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
+}) {
+  return ProjectManifest(
+    name: 'Scenes gameplay consequence action test',
+    maps: const [],
+    tilesets: const [],
+    scenes: [
+      SceneAsset(
+        id: 'scene_gameplay_consequence_action',
+        name: 'Gameplay Consequence Action Test Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_action',
+              kind: SceneNodeKind.action,
+              title: 'Action gameplay',
+              payload: SceneActionPayload.consequence(consequence),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_action',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_action',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_action_end',
+              fromNodeId: 'node_action',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_action', x: 260, y: 80),
+            SceneNodeLayout(nodeId: 'node_end', x: 520, y: 80),
+          ],
+        ),
+      ),
+    ],
+    newGame: newGame,
+  );
+}
+
 ProjectManifest _projectWithConsequenceAuthoringTargets() {
   return ProjectManifest(
     name: 'Scenes consequence authoring test',
@@ -3396,6 +4511,22 @@ ProjectManifest _projectWithConsequenceAuthoringTargets() {
       ),
     ],
     scenes: [_sceneWithId('scene_consequence_authoring')],
+    newGame: const ProjectNewGameConfig(
+      starterOptions: <ProjectStarterOption>[
+        ProjectStarterOption(
+          id: 'starter_bulbasaur',
+          label: 'Bulbizarre',
+          pokemon: PlayerPokemon(
+            speciesId: 'bulbasaur',
+            natureId: 'hardy',
+            abilityId: 'overgrow',
+            level: 16,
+            currentHp: 40,
+            knownMoveIds: <String>['tackle', 'growl', 'vine_whip'],
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -3571,12 +4702,19 @@ ProjectManifest _projectWithEditablePayloadNodes() {
         name: 'Old Dialogue',
         relativePath: 'dialogues/dialogue_old.yarn',
         defaultStartNode: 'OldStart',
+        declaredOutcomes: [
+          DialogueDeclaredOutcome(id: 'accept', label: 'Accept'),
+        ],
       ),
       ProjectDialogueEntry(
         id: 'dialogue_updated',
         name: 'Updated Dialogue',
         relativePath: 'dialogues/dialogue_updated.yarn',
         defaultStartNode: 'UpdatedStart',
+        declaredOutcomes: [
+          DialogueDeclaredOutcome(id: 'continue', label: 'Continue'),
+          DialogueDeclaredOutcome(id: 'leave', label: 'Leave'),
+        ],
       ),
     ],
     trainers: const [

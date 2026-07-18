@@ -57,6 +57,36 @@ void main() {
       );
     });
 
+    test('exposes declared dialogue outcomes without inventing labels', () {
+      final dialogue = ProjectDialogueEntry.fromJson({
+        'id': 'dialogue_intro',
+        'name': 'Introduction',
+        'relativePath': 'dialogues/intro.yarn',
+        'declaredOutcomes': [
+          {'id': 'accepted', 'label': 'Accepter'},
+          {'id': 'refused', 'label': 'Refuser'},
+        ],
+      });
+
+      final contract = buildDialoguePublicContracts(
+        _manifest(dialogues: [dialogue]),
+      ).single;
+
+      expect(
+        contract.declaredOutcomes,
+        const [
+          LinkedAssetOutcomeContract(id: 'accepted', label: 'Accepter'),
+          LinkedAssetOutcomeContract(id: 'refused', label: 'Refuser'),
+        ],
+      );
+      expect(
+        contract.diagnostics.map((diagnostic) => diagnostic.code),
+        isNot(contains(
+          LinkedAssetContractDiagnosticCode.missingOutcomeContract,
+        )),
+      );
+    });
+
     test('builds trainer battle contracts without exposing map_battle types',
         () {
       final contracts = buildBattlePublicContracts(
@@ -107,6 +137,32 @@ void main() {
         contracts.single.diagnostics.map((diagnostic) => diagnostic.code),
         contains(LinkedAssetContractDiagnosticCode.emptyTrainerTeam),
       );
+    });
+
+    test('exposes tagged static encounter profiles as static contracts', () {
+      final contract = buildBattlePublicContracts(
+        _manifest(
+          trainers: const [
+            ProjectTrainerEntry(
+              id: 'boss_lanturn',
+              name: 'Lanturn affolé',
+              trainerClass: 'Pokémon du phare',
+              team: [
+                ProjectTrainerPokemonEntry(speciesId: 'lanturn', level: 14),
+              ],
+              tags: ['static-encounter', 'boss'],
+            ),
+          ],
+        ),
+      ).single;
+
+      expect(contract.id, 'static:boss_lanturn');
+      expect(contract.battleRefId, 'static:boss_lanturn');
+      expect(contract.battleKind, BattlePublicContractKind.staticEncounter);
+      expect(contract.possibleOutcomes.map((outcome) => outcome.id), [
+        'victory',
+        'defeat',
+      ]);
     });
 
     test('builds cinematic scenario bridge contracts from cutscene metadata',

@@ -5,13 +5,22 @@ import 'package:map_runtime/map_runtime.dart';
 
 import 'support/selbrume_event_v2_test_fixture.dart';
 
+const _clueGlassFactId = 'fact_clue_glass_found';
+const _portAlertFactId = 'fact_port_alert_seen';
+const _portStepId = 'step_go_to_port';
+// Real bundle/image loading and movement scheduling need timers and I/O turns;
+// a zero-duration microtask loop starves the canonical Port dispatch. The
+// waits below remain state-driven and bounded, with this minimal event-loop
+// yield only between simulated runtime ticks.
+const _asyncRuntimeYield = Duration(milliseconds: 1);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('J3 Selbrume sources through PlayableMapGame production hooks', () {
     for (final fixture in <SelbrumeEventV2RuntimeFixture>[
       SelbrumeEventV2RuntimeFixture.locate(),
-      SelbrumeEventV2RuntimeFixture.locatePromoted(),
+      SelbrumeEventV2RuntimeFixture.locateCanonical(),
     ]) {
       for (final target in const <_EntityTarget>[
         _EntityTarget(
@@ -22,7 +31,7 @@ void main() {
           sceneId: selbrumeLysaSceneId,
           playerPos: GridPos(x: 26, y: 17),
           facing: EntityFacing.north,
-          completesImmediately: false,
+          canonicalPrerequisiteFactId: 'fact_port_alert_seen',
         ),
         _EntityTarget(
           label: 'glass clue object',
@@ -32,7 +41,8 @@ void main() {
           sceneId: selbrumeClueSceneId,
           playerPos: GridPos(x: 8, y: 33),
           facing: EntityFacing.north,
-          completesImmediately: true,
+          terminalFactId: _clueGlassFactId,
+          canonicalPrerequisiteFactId: 'fact_mado_met',
         ),
       ]) {
         test(
@@ -61,6 +71,17 @@ void main() {
           game = _TestPlayableMapGame(
             bundle: bundle,
             projectFilePath: fixture.projectPath,
+            saveData: fixture.isCanonicalProject
+                ? _canonicalSaveData(
+                    mapId: target.mapId,
+                    playerPos: target.playerPos,
+                    facing: target.facing,
+                    prerequisiteFactId: target.canonicalPrerequisiteFactId!,
+                  )
+                : null,
+            initialMapActivationReason: fixture.isCanonicalProject
+                ? MapActivationReason.saveRestore
+                : MapActivationReason.initialBoot,
             beforeNarrativeAuthorityPreparation: (occurrence) async {
               if (occurrence.source == source) prepared.add(occurrence.source);
             },
@@ -84,7 +105,32 @@ void main() {
             isTrue,
           );
           await _pumpUntil(game, () => prepared.isNotEmpty);
-          if (target.completesImmediately) {
+          final closesCanonicalDialogue =
+              fixture.isCanonicalProject && target.terminalFactId != null;
+          if (target.terminalFactId == null || closesCanonicalDialogue) {
+            await _pumpUntil(
+              game,
+              () => game.debugFlowPhaseName == 'dialogue',
+            );
+          }
+          if (closesCanonicalDialogue) {
+            expect(
+              game.gameStateSnapshot.narrativeEventProgress
+                  .consumedNarrativeEventIds,
+              isNot(contains(target.eventId)),
+              reason: 'A one-shot Event must not be consumed while Yarn is '
+                  'still open.',
+            );
+            expect(
+              game.gameStateSnapshot.narrativeFactRuntimeState
+                  .overridesByFactId[target.terminalFactId],
+              isNot(isTrue),
+              reason: 'Scene consequences run only after Yarn closes.',
+            );
+            expect(game.debugIsNarrativeSpatialDispatchInFlight, isTrue);
+            await _completeOpenDialogue(game);
+          }
+          if (target.terminalFactId != null) {
             await _pumpUntil(
               game,
               () => game.gameStateSnapshot.narrativeEventProgress
@@ -99,37 +145,69 @@ void main() {
             (decisions.single as NarrativeEventDispatchHandled).sceneId,
             target.sceneId,
           );
-          if (target.completesImmediately) {
+          if (target.terminalFactId != null) {
             expect(
               game.gameStateSnapshot.narrativeEventProgress
                   .consumedNarrativeEventIds,
               contains(target.eventId),
             );
+            if (closesCanonicalDialogue) {
+              expect(
+                game.gameStateSnapshot.narrativeFactRuntimeState
+                    .overridesByFactId[target.terminalFactId],
+                isTrue,
+                reason: 'The clue consequence must commit after Yarn closes.',
+              );
+            }
             expect(
               game.handleRuntimeInputEvent(
                 const RuntimeInputEvent.press(RuntimeInputControl.primary),
               ),
               isTrue,
             );
-            await _pumpTicks(game, 30);
-            expect(
-              prepared,
-              <NarrativeEventSourceRef>[source, source],
-            );
-            expect(decisions, hasLength(2));
-            final ineligible = decisions.last;
-            expect(ineligible, isNot(isA<NarrativeEventDispatchHandled>()));
-            expect(
-              _reasons(ineligible),
-              contains(NarrativeEventDispatchReason.eventConsumed),
-              reason: 'A consumed one-shot source must be ineligible.',
-            );
+            if (closesCanonicalDialogue) {
+              for (var index = 0; index < 10; index++) {
+                game.update(0.016);
+                await Future<void>.delayed(_asyncRuntimeYield);
+              }
+              expect(prepared, <NarrativeEventSourceRef>[source]);
+              expect(decisions, hasLength(1));
+              expect(
+                const RuntimeWorldRuleProjectionHook()
+                    .resolve(
+                      project: bundle.manifest,
+                      gameState: game.gameStateSnapshot,
+                      map: bundle.map,
+                    )
+                    .hiddenEntityIds,
+                contains(target.entityId),
+                reason: 'The canonical collected clue is removed from the '
+                    'world before a second interaction can dispatch.',
+              );
+            } else {
+              await _pumpUntil(game, () => decisions.length == 2);
+              expect(
+                prepared,
+                <NarrativeEventSourceRef>[source, source],
+              );
+              expect(decisions, hasLength(2));
+              final ineligible = decisions.last;
+              expect(ineligible, isNot(isA<NarrativeEventDispatchHandled>()));
+              expect(
+                _reasons(ineligible),
+                contains(NarrativeEventDispatchReason.eventConsumed),
+                reason: 'A consumed one-shot source must be ineligible.',
+              );
+            }
           } else {
+            expect(game.debugFlowPhaseName, 'dialogue');
             expect(
               game.gameStateSnapshot.narrativeEventProgress
                   .consumedNarrativeEventIds,
               isNot(contains(target.eventId)),
-              reason: 'Lysa remains in-flight until the host closes Yarn.',
+              reason: 'SEL-FIN-00 proves NPC dispatch and Yarn opening only; '
+                  'Lysa remains in-flight until the future combat E2E lot '
+                  'closes Yarn and resolves battle.',
             );
             expect(game.debugIsNarrativeSpatialDispatchInFlight, isTrue);
           }
@@ -161,6 +239,17 @@ void main() {
         game = _TestPlayableMapGame(
           bundle: bundle,
           projectFilePath: fixture.projectPath,
+          saveData: fixture.isCanonicalProject
+              ? _canonicalSaveData(
+                  mapId: selbrumePortMapId,
+                  playerPos: const GridPos(x: 25, y: 1),
+                  facing: EntityFacing.east,
+                  prerequisiteFactId: 'fact_mael_mission_given',
+                )
+              : null,
+          initialMapActivationReason: fixture.isCanonicalProject
+              ? MapActivationReason.saveRestore
+              : MapActivationReason.initialBoot,
           beforeNarrativeAuthorityPreparation: (occurrence) async {
             if (occurrence.source == source) prepared.add(occurrence.source);
           },
@@ -178,6 +267,28 @@ void main() {
         expect(prepared, isEmpty,
             reason: 'Spawn outside must not be an entry.');
         await _runSingleMove(game, RuntimeInputControl.right);
+        await _pumpUntil(game, () => prepared.isNotEmpty);
+        final closesCanonicalDialogue = fixture.isCanonicalProject;
+        if (closesCanonicalDialogue) {
+          await _pumpUntil(
+            game,
+            () => game.debugFlowPhaseName == 'dialogue',
+          );
+          expect(
+            game.gameStateSnapshot.narrativeEventProgress
+                .consumedNarrativeEventIds,
+            isNot(contains(selbrumePortEntryEventId)),
+            reason: 'PortAlert remains in-flight until Yarn closes.',
+          );
+          expect(
+            game.gameStateSnapshot.narrativeFactRuntimeState
+                .overridesByFactId[_portAlertFactId],
+            isNot(isTrue),
+            reason: 'Port alert state must not commit before Yarn closes.',
+          );
+          expect(game.debugIsNarrativeSpatialDispatchInFlight, isTrue);
+          await _completeOpenDialogue(game);
+        }
         await _pumpUntil(
           game,
           () => game.gameStateSnapshot.narrativeEventProgress
@@ -192,10 +303,24 @@ void main() {
           (decisions.single as NarrativeEventDispatchHandled).sceneId,
           selbrumePortEntrySceneId,
         );
+        if (closesCanonicalDialogue) {
+          expect(
+            game.gameStateSnapshot.narrativeFactRuntimeState
+                .overridesByFactId[_portAlertFactId],
+            isTrue,
+            reason: 'Port alert state must commit after Yarn closes.',
+          );
+          expect(
+            game.gameStateSnapshot.progression.completedStepIds,
+            contains(_portStepId),
+            reason: 'SEL-FIN-00 gates lifecycle closure only; mutually '
+                'exclusive crowd-choice Facts belong to SEL-FIN-02.',
+          );
+        }
 
         await _runSingleMove(game, RuntimeInputControl.left);
         await _runSingleMove(game, RuntimeInputControl.right);
-        await _pumpTicks(game, 30);
+        await _pumpUntil(game, () => decisions.length == 2);
         expect(
           prepared,
           <NarrativeEventSourceRef>[source, source],
@@ -223,11 +348,23 @@ List<NarrativeEventDispatchReason> _reasons(
   };
 }
 
-Future<void> _pumpTicks(PlayableMapGame game, int ticks) async {
-  for (var index = 0; index < ticks; index++) {
+Future<void> _completeOpenDialogue(PlayableMapGame game) async {
+  expect(game.debugFlowPhaseName, 'dialogue');
+  // Advance actual Yarn states (lines, default choice, jumps) until the host
+  // reports closure. The explicit bound is a guard against a stuck dialogue,
+  // not a wall-clock wait that could conceal a lifecycle regression.
+  for (var advanceCount = 0; advanceCount < 20; advanceCount++) {
+    if (game.debugFlowPhaseName != 'dialogue') return;
+    expect(
+      game.handleRuntimeInputEvent(
+        const RuntimeInputEvent.press(RuntimeInputControl.primary),
+      ),
+      isTrue,
+    );
     game.update(0.016);
-    await Future<void>.delayed(const Duration(milliseconds: 1));
+    await Future<void>.delayed(Duration.zero);
   }
+  fail('Yarn stayed open after 20 explicit primary inputs.');
 }
 
 Future<void> _load(PlayableMapGame game) async {
@@ -252,7 +389,7 @@ Future<void> _runSingleMove(
   );
   for (var index = 0; index < 180; index++) {
     game.update(0.016);
-    await Future<void>.delayed(const Duration(milliseconds: 1));
+    await Future<void>.delayed(_asyncRuntimeYield);
     if (!game.debugIsPlayerStepping) return;
   }
   fail('Timed out waiting for the Selbrume movement step.');
@@ -266,7 +403,7 @@ Future<void> _pumpUntil(
   for (var index = 0; index < maxTicks; index++) {
     if (done()) return;
     game.update(0.016);
-    await Future<void>.delayed(const Duration(milliseconds: 1));
+    await Future<void>.delayed(_asyncRuntimeYield);
   }
   fail('Timed out waiting for the Selbrume Event V2 runtime dispatch.');
 }
@@ -275,6 +412,8 @@ final class _TestPlayableMapGame extends PlayableMapGame {
   _TestPlayableMapGame({
     required super.bundle,
     required super.projectFilePath,
+    super.saveData,
+    super.initialMapActivationReason,
     super.beforeNarrativeAuthorityPreparation,
     super.afterNarrativeAuthorityPreparation,
   });
@@ -292,7 +431,8 @@ final class _EntityTarget {
     required this.sceneId,
     required this.playerPos,
     required this.facing,
-    required this.completesImmediately,
+    this.terminalFactId,
+    this.canonicalPrerequisiteFactId,
   });
 
   final String label;
@@ -302,5 +442,26 @@ final class _EntityTarget {
   final String sceneId;
   final GridPos playerPos;
   final EntityFacing facing;
-  final bool completesImmediately;
+  final String? terminalFactId;
+  final String? canonicalPrerequisiteFactId;
 }
+
+SaveData _canonicalSaveData({
+  required String mapId,
+  required GridPos playerPos,
+  required EntityFacing facing,
+  required String prerequisiteFactId,
+}) =>
+    saveDataFromGameState(
+      GameState(
+        saveId: 'sel_fin_00_$mapId',
+        currentMapId: mapId,
+        playerPosition: playerPos,
+        playerFacing: facing,
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: <String, bool>{
+            prerequisiteFactId: true,
+          },
+        ),
+      ),
+    );

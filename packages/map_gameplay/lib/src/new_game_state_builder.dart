@@ -84,3 +84,71 @@ GameState createNewGameStateFromMap({
     playerName: playerName,
   );
 }
+
+/// Crée l'état initial depuis le contrat de nouvelle partie du projet.
+///
+/// Contrairement à [createNewGameStateFromMap], cette variante applique le
+/// contenu authoré : spawn explicite, équipe, sac, argent et Facts initiaux.
+/// Le runtime peut ainsi démarrer un projet réel sans fixture côté hôte.
+GameState createNewGameStateFromProject({
+  required ProjectManifest project,
+  required MapData startMap,
+  String saveId = 'new_game',
+  int tileWidthPx = 16,
+  int tileHeightPx = 16,
+}) {
+  final config = project.newGame;
+  if (!config.enabled) {
+    throw StateError('Project newGame config must be enabled.');
+  }
+
+  ProjectValidator.validate(project);
+
+  final configuredMapId = config.startMapId.trim();
+  final actualMapId = startMap.id.trim();
+  if (actualMapId != configuredMapId) {
+    throw ArgumentError.value(
+      startMap.id,
+      'startMap',
+      'Expected authored start map "$configuredMapId".',
+    );
+  }
+
+  final spawn = resolveInitialPlayerSpawn(
+    startMap,
+    preferredSpawnId: config.startSpawnId,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  );
+  final normalizedParty =
+      PlayerParty(members: config.initialParty).normalized();
+  final initialFacts = <String, bool>{...config.initialFacts};
+  final existingPartyFactId = config.existingPartyFactId?.trim();
+  if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
+    initialFacts[existingPartyFactId] = normalizedParty.members.isNotEmpty;
+  }
+
+  return normalizeLoadedGameState(
+    GameState(
+      saveId: saveId.trim().isEmpty ? 'new_game' : saveId.trim(),
+      currentMapId: configuredMapId,
+      playerPosition: spawn.pos,
+      playerFacing: spawn.facing.asFacing,
+      playerMovementMode: MovementMode.walk,
+      party: normalizedParty,
+      trainerProfile: TrainerProfile(
+        name: config.playerName,
+        money: config.startingMoney,
+      ).normalized(),
+      bag: Bag(entries: config.initialBag).normalized(),
+      progression: const PlayerProgression(),
+      scriptVariables: const ScriptVariables(),
+      storyFlags: const StoryFlags(),
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: initialFacts,
+      ),
+      consumedEventIds: const <String>{},
+      metadata: const <String, String>{},
+    ),
+  );
+}

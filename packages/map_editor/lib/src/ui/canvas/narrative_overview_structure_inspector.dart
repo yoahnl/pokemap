@@ -420,10 +420,13 @@ class _EditorialStatusBlock extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _BodyText(editorialStatus.diagnosticSourceSummary),
-        const SizedBox(height: 4),
-        _BodyText(
-          'Project Health : ${_projectHealthLabel(projectHealth.healthKind)}',
-        ),
+        if (projectHealth.healthKind !=
+            NarrativeProjectHealthKind.notEvaluated) ...[
+          const SizedBox(height: 4),
+          _BodyText(
+            'Project Health : ${_projectHealthLabel(projectHealth.healthKind)}',
+          ),
+        ],
       ],
     );
   }

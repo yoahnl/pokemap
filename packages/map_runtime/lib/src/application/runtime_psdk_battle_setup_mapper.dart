@@ -111,6 +111,43 @@ final class RuntimePsdkBattleSetupMapper {
             ),
           );
         }(),
+      StaticBattleStartRequest() => () async {
+          final opponent =
+              _findTrainer(bundle.manifest, request.opponentProfileId);
+          if (opponent.team.isEmpty) {
+            throw RuntimeBattleSetupException(
+              'Le boss statique "${opponent.name}" n’a aucun Pokémon authoré.',
+              debugDetails: 'opponentProfileId=${opponent.id}',
+            );
+          }
+
+          final activeSeed =
+              await combatantSeedBuilder.buildTrainerPsdkCombatantSeed(
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: bundle.manifest.pokemon,
+            movesCatalog: movesCatalog,
+            teamMember: opponent.team.first,
+            trainerName: opponent.name,
+          );
+          final reserveSeeds = <RuntimePsdkBattleCombatantSeed>[];
+          for (final teamMember in opponent.team.skip(1)) {
+            reserveSeeds.add(
+              await combatantSeedBuilder.buildTrainerPsdkCombatantSeed(
+                projectRootDirectory: bundle.projectRootDirectory,
+                pokemonConfig: bundle.manifest.pokemon,
+                movesCatalog: movesCatalog,
+                teamMember: teamMember,
+                trainerName: opponent.name,
+              ),
+            );
+          }
+          return _RuntimePsdkBattleEnemyLineup(
+            active: activeSeed,
+            reserve: List<RuntimePsdkBattleCombatantSeed>.unmodifiable(
+              reserveSeeds,
+            ),
+          );
+        }(),
     };
 
     return PsdkBattleSetup.singles(
@@ -144,7 +181,7 @@ final class RuntimePsdkBattleSetupMapper {
         moveAccuracy: 31,
         generic: 47,
       ),
-      canFlee: request is WildBattleStartRequest,
+      canFlee: request.allowsPlayerFlee,
     );
   }
 

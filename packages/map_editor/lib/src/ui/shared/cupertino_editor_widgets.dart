@@ -464,7 +464,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DefaultTextStyle(
+              DefaultTextStyle.merge(
                 style: TextStyle(
                   color: fgColor,
                   fontSize: 13,
@@ -478,7 +478,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
               if (hasSubtitle) ...[
                 const SizedBox(height: 2),
                 Flexible(
-                  child: DefaultTextStyle(
+                  child: DefaultTextStyle.merge(
                     style: TextStyle(
                       color: subtitleColor,
                       fontSize: 11,
@@ -495,7 +495,7 @@ class _EditorSidebarListRowState extends State<EditorSidebarListRow> {
         ),
         if (widget.trailing != null) ...[
           const SizedBox(width: 8),
-          DefaultTextStyle(
+          DefaultTextStyle.merge(
             style: TextStyle(
               color: fgColor,
               fontSize: 11,

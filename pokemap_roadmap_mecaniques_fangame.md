@@ -1703,7 +1703,7 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 | FG-182 | Golden Slice End-to-End Smoke V0 | `⬜ TODO` | — |
 | FG-183 | Regression Matrix V0 | `⬜ TODO` | — |
 | FG-184 | Roadmap Status Dashboard Generator V0 | `⬜ TODO` | — |
-| FG-185 | MVP Release Gate V0 | `⬜ TODO` | — |
+| FG-185 | MVP Release Gate V0 | `🟨 PARTIAL` | `reports/gameplay/fg_185_mvp_release_gate_v0.md` — gate fail-closed livrée, verdict global NO-GO |
 
 ## FG-180 — Project Gameplay Readiness Report V0
 
@@ -1809,6 +1809,11 @@ Objectif : prouver qu’un vrai mini-fangame peut être créé et terminé.
 ## FG-185 — MVP Release Gate V0
 
 **But :** décider objectivement “PokeMap est un outil fangame MVP”.
+
+**État vérifié le 2026-07-18 : `PARTIAL / NO-GO`.** L'agrégateur de
+preuves fail-closed est livré, mais la Golden Slice globale et le rapport
+Gameplay Readiness complet ne satisfont pas encore le périmètre MVP. Voir
+`reports/gameplay/fg_185_mvp_release_gate_v0.md`.
 
 ### DoD
 

@@ -17,11 +17,17 @@ const selbrumePortEntryEventId = 'evt_019abcde-4000-7000-8000-000000000002';
 const selbrumeClueEventId = 'evt_019abcde-4000-7000-8000-000000000003';
 
 final class SelbrumeEventV2RuntimeFixture {
-  SelbrumeEventV2RuntimeFixture._(this.root, this.projectPath, this.label);
+  SelbrumeEventV2RuntimeFixture._(
+    this.root,
+    this.projectPath,
+    this.label, {
+    required this.isCanonicalProject,
+  });
 
   final Directory root;
   final String projectPath;
   final String label;
+  final bool isCanonicalProject;
 
   static SelbrumeEventV2RuntimeFixture locate() {
     var current = Directory.current.absolute;
@@ -38,7 +44,8 @@ final class SelbrumeEventV2RuntimeFixture {
         return SelbrumeEventV2RuntimeFixture._(
           candidate,
           p.join(candidate.path, 'project.json'),
-          'versioned fixture',
+          'historical J5 fixture',
+          isCanonicalProject: false,
         );
       }
       final parent = current.parent;
@@ -49,7 +56,7 @@ final class SelbrumeEventV2RuntimeFixture {
     }
   }
 
-  static SelbrumeEventV2RuntimeFixture locatePromoted() {
+  static SelbrumeEventV2RuntimeFixture locateCanonical() {
     var current = Directory.current.absolute;
     while (true) {
       final candidate = Directory(p.join(current.path, 'selbrume'));
@@ -58,12 +65,13 @@ final class SelbrumeEventV2RuntimeFixture {
         return SelbrumeEventV2RuntimeFixture._(
           candidate,
           p.join(candidate.path, 'project.json'),
-          'promoted Selbrume',
+          'canonical Selbrume',
+          isCanonicalProject: true,
         );
       }
       final parent = current.parent;
       if (parent.path == current.path) {
-        throw StateError('Promoted Selbrume project not found.');
+        throw StateError('Canonical Selbrume project not found.');
       }
       current = parent;
     }

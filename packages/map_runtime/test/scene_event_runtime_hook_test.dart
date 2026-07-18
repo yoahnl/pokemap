@@ -215,6 +215,113 @@ void main() {
       expect(result.consequenceWriteResult?.appliedConsequences, hasLength(1));
     });
 
+    test('commits typed gameplay consequences only after Scene completion',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithConsequenceSequence([
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 2),
+          SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 1),
+          SceneConsequence.giveMoney(amount: 500),
+          SceneConsequence.givePokemon(
+            speciesId: 'species_sproutle',
+            level: 7,
+            currentHp: 23,
+          ),
+        ]),
+      );
+      const gameState = GameState(
+        saveId: 'save_scene_gameplay_consequences',
+        trainerProfile: TrainerProfile(name: 'Player', money: 100),
+        bag: Bag(
+          entries: [
+            BagEntry(
+              itemId: 'item_ticket',
+              categoryId: 'items',
+              quantity: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.completed);
+      expect(result.consequenceWriteResult?.appliedConsequences, hasLength(4));
+      expect(result.updatedGameState?.trainerProfile.money, 600);
+      expect(
+        result.updatedGameState?.bag.entries
+            .singleWhere((entry) => entry.itemId == 'item_potion')
+            .quantity,
+        2,
+      );
+      expect(
+        result.updatedGameState?.bag.entries
+            .any((entry) => entry.itemId == 'item_ticket'),
+        isFalse,
+      );
+      expect(
+        result.updatedGameState?.party.members.single.speciesId,
+        'species_sproutle',
+      );
+      expect(gameState.trainerProfile.money, 100);
+      expect(gameState.party.members, isEmpty);
+    });
+
+    test('rolls back staged gameplay consequences when takeItem is impossible',
+        () async {
+      final fixture = _fixture(
+        scene: _sceneWithConsequenceSequence([
+          SceneConsequence.giveMoney(amount: 500),
+          SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 2),
+        ]),
+      );
+      const gameState = GameState(
+        saveId: 'save_scene_gameplay_rollback',
+        trainerProfile: TrainerProfile(name: 'Player', money: 100),
+        bag: Bag(
+          entries: [
+            BagEntry(
+              itemId: 'item_ticket',
+              categoryId: 'items',
+              quantity: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result = await SceneEventRuntimeHook(
+        callbacks: _callbacks(calls: <String>[]),
+      ).runForEventPage(
+        project: fixture.project,
+        map: fixture.map,
+        event: fixture.event,
+        page: fixture.event.pages.single,
+        gameState: gameState,
+      );
+
+      expect(result.status, SceneEventRuntimeHookStatus.failed);
+      expect(
+        result.errorCode,
+        SceneEventRuntimeHookErrorCode.sceneConsequenceWriteFailed,
+      );
+      expect(
+        result.consequenceWriteResult?.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,
+      );
+      expect(identical(result.consequenceWriteResult?.gameState, gameState),
+          isTrue);
+      expect(gameState.trainerProfile.money, 100);
+      expect(gameState.bag.entries.single.quantity, 1);
+    });
+
     test('stages setFact consequence and waits for pending dialogue', () async {
       final fixture = _fixture(
         scene: _sceneWithSetFactConsequenceThenDialogue(),
@@ -1083,6 +1190,56 @@ SceneAsset _sceneWithMarkEventConsumedConsequence() {
         mapId: 'map_test_runtime',
         eventId: 'event_test_scene',
       ),
+    ),
+  );
+}
+
+SceneAsset _sceneWithConsequenceSequence(
+  List<SceneConsequence> consequences,
+) {
+  final actionNodeIds = [
+    for (var index = 0; index < consequences.length; index++)
+      'node_action_$index',
+  ];
+  return SceneAsset(
+    id: 'scene_test_runtime',
+    name: 'Runtime Hook Gameplay Consequences Scene',
+    graph: SceneGraph(
+      startNodeId: 'node_start',
+      nodes: [
+        SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+        for (var index = 0; index < consequences.length; index++)
+          SceneNode(
+            id: actionNodeIds[index],
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(consequences[index]),
+          ),
+        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+      ],
+      edges: [
+        SceneEdge(
+          id: 'edge_start_action_0',
+          fromNodeId: 'node_start',
+          fromPortId: 'completed',
+          toNodeId: actionNodeIds.first,
+          kind: SceneEdgeKind.defaultFlow,
+        ),
+        for (var index = 0; index < actionNodeIds.length - 1; index++)
+          SceneEdge(
+            id: 'edge_action_${index}_action_${index + 1}',
+            fromNodeId: actionNodeIds[index],
+            fromPortId: 'completed',
+            toNodeId: actionNodeIds[index + 1],
+            kind: SceneEdgeKind.actionCompleted,
+          ),
+        SceneEdge(
+          id: 'edge_action_${actionNodeIds.length - 1}_end',
+          fromNodeId: actionNodeIds.last,
+          fromPortId: 'completed',
+          toNodeId: 'node_end',
+          kind: SceneEdgeKind.actionCompleted,
+        ),
+      ],
     ),
   );
 }

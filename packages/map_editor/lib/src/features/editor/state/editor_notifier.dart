@@ -2591,6 +2591,11 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectWorldRulesWorkspace(state);
   }
 
+  /// Ouvre le verdict global de jouabilité narrative sans muter le projet.
+  void selectNarrativeValidatorWorkspace() {
+    state = _editorWorkspaceController.selectNarrativeValidatorWorkspace(state);
+  }
+
   /// Bascule vers Path Studio.
   ///
   /// Navigation pure de shell : aucune mutation de manifest, aucune génération
@@ -9026,6 +9031,41 @@ class EditorNotifier extends _$EditorNotifier {
       dialogueId: dialogueId,
       newName: newName,
     );
+  }
+
+  Future<bool> updateProjectDialogueDeclaredOutcomes({
+    required String dialogueId,
+    required List<DialogueDeclaredOutcome> declaredOutcomes,
+  }) async {
+    state =
+        await _projectContentController.updateProjectDialogueDeclaredOutcomes(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+      declaredOutcomes: declaredOutcomes,
+    );
+    if (state.errorMessage != null) {
+      return false;
+    }
+    final project = state.project;
+    if (project == null) {
+      return false;
+    }
+    for (final dialogue in project.dialogues) {
+      if (dialogue.id != dialogueId) {
+        continue;
+      }
+      if (dialogue.declaredOutcomes.length != declaredOutcomes.length) {
+        return false;
+      }
+      for (var index = 0; index < declaredOutcomes.length; index += 1) {
+        if (dialogue.declaredOutcomes[index] != declaredOutcomes[index]) {
+          return false;
+        }
+      }
+      return true;
+    }
+    return false;
   }
 
   Future<void> deleteProjectDialogue(String dialogueId) async {

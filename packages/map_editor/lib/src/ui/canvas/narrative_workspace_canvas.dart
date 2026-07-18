@@ -9,6 +9,9 @@ import '../../features/narrative/application/narrative_workspace_projection.dart
 import '../../features/narrative/state/narrative_workspace_providers.dart';
 import '../../features/narrative/state/narrative_workspace_state.dart';
 import '../../features/narrative/state/narrative_scene_focus_provider.dart';
+import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
+import '../../features/narrative/state/narrative_validator_providers.dart';
+import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
@@ -18,7 +21,10 @@ import 'events/event_builder_workspace.dart';
 import 'events_v2/event_builder_v2_product_route.dart';
 import 'facts_world_rules/facts_world_rules_workspace.dart';
 import 'narrative_overview_workspace.dart';
-import 'narrative_studio_shell.dart';
+import 'narrative_validator_workspace.dart';
+import 'narrative_studio/narrative_studio_destination.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes_workspace.dart';
 import 'step_studio_workspace.dart';
@@ -46,17 +52,259 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ref.read(narrativeWorkspaceControllerProvider.notifier);
     final projection = ref.watch(narrativeWorkspaceProjectionProvider);
     final sceneFocus = ref.watch(narrativeSceneFocusProvider);
+    final sceneConsequenceCatalogsAsync =
+        editor.workspaceMode == EditorWorkspaceMode.scenes
+            ? ref.watch(
+                sceneConsequenceCatalogsProvider(editor.projectRootPath),
+              )
+            : const AsyncValue<SceneConsequenceCatalogs>.data(
+                SceneConsequenceCatalogs.unavailable(),
+              );
+    final baseSceneConsequenceCatalogs = sceneConsequenceCatalogsAsync.when(
+      data: (catalogs) => catalogs,
+      loading: () => const SceneConsequenceCatalogs.loading(),
+      error: (_, __) => const SceneConsequenceCatalogs(
+        items: SceneConsequenceCatalogSection(
+          status: SceneConsequenceCatalogStatus.failed,
+          options: <SceneConsequenceCatalogOption>[],
+          message: 'Impossible de charger le catalogue local des objets.',
+        ),
+        species: SceneConsequenceCatalogSection(
+          status: SceneConsequenceCatalogStatus.failed,
+          options: <SceneConsequenceCatalogOption>[],
+          message: 'Impossible de charger les espèces locales du projet.',
+        ),
+      ),
+    );
+    final sceneConsequenceCatalogs =
+        baseSceneConsequenceCatalogs.withConfiguredStarters(
+      editor.project?.newGame.starterOptions ?? const <ProjectStarterOption>[],
+    );
 
-    if (projection == null) {
-      return Center(
-        child: Text(
-          'Load a project to start structuring Global Story, Steps and Cutscenes.',
-          textAlign: TextAlign.center,
-          style: DefaultTextStyle.of(context).style.copyWith(
-                color: EditorChrome.subtleLabel(context),
-              ),
+    if (editor.workspaceMode == EditorWorkspaceMode.narrativeValidator) {
+      final project = editor.project;
+      final projectRootPath = editor.projectRootPath?.trim();
+      if (project == null ||
+          projectRootPath == null ||
+          projectRootPath.isEmpty) {
+        return NarrativeStudioWorkspacePage(
+          presentation: narrativeStudioRoutePresentationFor(
+            EditorWorkspaceMode.narrativeValidator,
+          )!,
+          body: const PokeMapEmptyState(
+            title: 'Aucun projet chargé',
+            description:
+                'Chargez un projet pour calculer son verdict de jouabilité narrative.',
+            icon: Icon(CupertinoIcons.checkmark_shield),
+          ),
+        );
+      }
+      final request = NarrativeValidatorSnapshotRequest.fromProject(
+        projectRootPath: projectRootPath,
+        project: project,
+        activeMap: editor.activeMap,
+      );
+      final pokemonCatalogRequest =
+          NarrativeValidatorPokemonCatalogRequest.fromValidationRequest(
+        request,
+      );
+      final report = ref.watch(narrativeValidatorReportProvider(request));
+
+      void refreshReport() {
+        ref.invalidate(
+          narrativeValidatorPokemonCatalogSnapshotProvider(
+            pokemonCatalogRequest,
+          ),
+        );
+        ref.invalidate(narrativeValidatorReportProvider(request));
+      }
+
+      Future<void> openMap(String mapId) async {
+        final entry = _findProjectMapById(project, mapId);
+        if (entry == null) return;
+        await editorNotifier.loadMap(entry.relativePath);
+        editorNotifier.selectMapWorkspace();
+      }
+
+      Future<void> openEvent(String eventId, {String? mapId}) async {
+        final selected = ref
+            .read(narrativeEventMapBridgeControllerProvider.notifier)
+            .selectNarrativeEventV2(project, eventId);
+        if (selected) {
+          editorNotifier.selectEventsWorkspace();
+          return;
+        }
+        if (mapId == null) return;
+        final entry = _findProjectMapById(project, mapId);
+        if (entry == null) return;
+        await editorNotifier.loadMap(entry.relativePath);
+        editorNotifier.selectMapEvent(eventId);
+        editorNotifier.selectEventsWorkspace();
+      }
+
+      void openDiagnostic(NarrativeProjectDiagnostic diagnostic) {
+        switch (diagnostic.destination) {
+          case NarrativeProjectDiagnosticDestination.map:
+            final mapId = diagnostic.mapId;
+            if (mapId != null) openMap(mapId);
+          case NarrativeProjectDiagnosticDestination.event:
+            final eventId = diagnostic.eventId;
+            if (eventId != null) {
+              openEvent(eventId, mapId: diagnostic.mapId);
+            }
+          case NarrativeProjectDiagnosticDestination.scene:
+            final sceneId = diagnostic.sceneId;
+            if (sceneId != null) {
+              ref.read(narrativeSceneFocusProvider.notifier).focus(sceneId);
+              editorNotifier.selectScenesWorkspace();
+            }
+          case NarrativeProjectDiagnosticDestination.storyline:
+            narrativeController.openGlobalStory(
+              scenarioId: diagnostic.storylineId,
+            );
+            editorNotifier.selectGlobalStoryWorkspace();
+          case NarrativeProjectDiagnosticDestination.dialogue:
+            editorNotifier.selectProjectDialogue(diagnostic.dialogueId);
+            editorNotifier.selectDialogueWorkspace();
+          case NarrativeProjectDiagnosticDestination.cinematic:
+            final cinematicId = diagnostic.cinematicId;
+            if (cinematicId != null) {
+              narrativeController.openCutscene(
+                cutsceneScenarioId: cinematicId,
+              );
+            }
+            editorNotifier.selectCutsceneWorkspace();
+          case NarrativeProjectDiagnosticDestination.fact:
+            editorNotifier.selectFactsWorkspace();
+          case NarrativeProjectDiagnosticDestination.worldRule:
+            editorNotifier.selectWorldRulesWorkspace();
+          case NarrativeProjectDiagnosticDestination.overview:
+            editorNotifier.selectNarrativeOverviewWorkspace();
+        }
+      }
+
+      return NarrativeStudioWorkspacePage(
+        presentation: narrativeStudioRoutePresentationFor(
+          EditorWorkspaceMode.narrativeValidator,
+        )!,
+        actions: [
+          PokeMapButton(
+            key: const ValueKey('narrative-validator-refresh'),
+            onPressed: refreshReport,
+            size: PokeMapButtonSize.compact,
+            variant: PokeMapButtonVariant.secondary,
+            leading: const Icon(CupertinoIcons.refresh),
+            child: const Text('Actualiser'),
+          ),
+        ],
+        body: report.when(
+          data: (value) => NarrativeValidatorWorkspace(
+            report: value,
+            onOpenDiagnostic: openDiagnostic,
+            onOpenEvent: openEvent,
+            onOpenMap: openMap,
+          ),
+          loading: () => const PokeMapEmptyState(
+            title: 'Analyse du projet…',
+            description:
+                'Chargement des maps et agrégation des diagnostics narratifs.',
+            icon: Icon(CupertinoIcons.hourglass),
+          ),
+          error: (error, _) => PokeMapEmptyState(
+            title: 'Validation indisponible',
+            description: error.toString(),
+            icon: const Icon(CupertinoIcons.exclamationmark_triangle),
+            action: PokeMapButton(
+              onPressed: refreshReport,
+              size: PokeMapButtonSize.compact,
+              child: const Text('Réessayer'),
+            ),
+          ),
         ),
       );
+    }
+
+    if (projection == null) {
+      switch (editor.workspaceMode) {
+        case EditorWorkspaceMode.narrativeOverview:
+          // Overview owns the honest project-unavailable state. Keeping it
+          // here also preserves the shared route context when no project is
+          // loaded instead of replacing it with historical placeholder copy.
+          return const NarrativeOverviewWorkspace(readModel: null);
+        case EditorWorkspaceMode.dialogue:
+          // Dialogue Studio hides its real creation action until a project is
+          // available and presents its own no-project empty state.
+          return const DialogueStudioWorkspace();
+        case EditorWorkspaceMode.globalStory:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              EditorWorkspaceMode.globalStory,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description: 'Chargez un projet pour structurer ses storylines.',
+              icon: Icon(CupertinoIcons.rectangle_grid_1x2),
+            ),
+          );
+        case EditorWorkspaceMode.scenes:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              EditorWorkspaceMode.scenes,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description: 'Chargez un projet pour créer et relier ses scènes.',
+              icon: Icon(CupertinoIcons.photo),
+            ),
+          );
+        case EditorWorkspaceMode.step:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              EditorWorkspaceMode.step,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description:
+                  'Chargez un projet pour ouvrir une étape de storyline.',
+              icon: Icon(CupertinoIcons.flag),
+            ),
+          );
+        case EditorWorkspaceMode.events:
+          // EditorShellPage already owns the Event workspace context bar.
+          return const PokeMapEmptyState(
+            title: 'Aucun projet chargé',
+            description: 'Chargez un projet pour configurer ses événements.',
+            icon: Icon(CupertinoIcons.bolt_horizontal_circle),
+          );
+        case EditorWorkspaceMode.facts:
+        case EditorWorkspaceMode.worldRules:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              editor.workspaceMode,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description:
+                  'Chargez un projet pour gérer ses faits et règles du monde.',
+              icon: Icon(CupertinoIcons.doc_text),
+            ),
+          );
+        case EditorWorkspaceMode.cutscene:
+          return NarrativeStudioWorkspacePage(
+            presentation: narrativeStudioRoutePresentationFor(
+              EditorWorkspaceMode.cutscene,
+            )!,
+            body: const PokeMapEmptyState(
+              title: 'Aucun projet chargé',
+              description:
+                  'Chargez un projet pour ouvrir la bibliothèque et les outils cinématiques.',
+              icon: Icon(CupertinoIcons.film),
+            ),
+          );
+        default:
+          break;
+      }
+      return const SizedBox.shrink();
     }
 
     final selectedGlobal = _resolveScenarioById(
@@ -79,10 +327,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       fallback: projection.steps.isNotEmpty ? projection.steps.first : null,
     );
 
-    void openOverview() {
-      editorNotifier.selectNarrativeOverviewWorkspace();
-    }
-
     void openGlobalStory() {
       editorNotifier.selectGlobalStoryWorkspace();
       narrativeController.openGlobalStory(
@@ -93,10 +337,6 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
     void openScenes() {
       editorNotifier.selectScenesWorkspace();
       narrativeController.openScenes();
-    }
-
-    void openEvents() {
-      editorNotifier.selectEventsWorkspace();
     }
 
     void openCutscene() {
@@ -159,6 +399,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   editor.project!,
                   activeMap: editor.activeMap,
                 ),
+          consequenceCatalogs: sceneConsequenceCatalogs,
           onCreateSceneDraft: ({
             required String name,
             String? description,
@@ -431,6 +672,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
             required String nodeId,
             required String dialogueId,
             String? yarnNodeName,
+            required List<String> expectedOutcomes,
           }) async {
             final project = editor.project;
             if (project == null) {
@@ -447,6 +689,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                 nodeId: nodeId,
                 dialogueId: dialogueId,
                 yarnNodeName: yarnNodeName,
+                expectedOutcomes: expectedOutcomes,
               );
               final scenes = project.scenes.toList(growable: true);
               scenes[sceneIndex] = result.updatedScene;
@@ -663,29 +906,10 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       _ => const SizedBox.shrink(),
     };
 
-    final eventSystemMode =
-        editor.project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
-    if (editor.workspaceMode == EditorWorkspaceMode.events &&
-        eventSystemMode != EventSystemMode.legacyOnly) {
-      // Event V2 is mounted inside EventBuilderV2ProductShell by the real
-      // EditorShellPage. Returning its route directly prevents a second,
-      // narrower Narrative Studio sidebar from reappearing inside that shell.
-      // Legacy Event authoring intentionally keeps the historical composition.
-      return mainContent;
-    }
-
-    return NarrativeStudioShell(
-      workspaceMode: editor.workspaceMode,
-      onSelectOverview: openOverview,
-      onSelectGlobal: openGlobalStory,
-      onSelectScenes: openScenes,
-      onSelectEvents: openEvents,
-      onSelectCutscene: openCutscene,
-      onSelectDialogue: openDialogue,
-      onSelectFacts: openFacts,
-      onSelectWorldRules: openWorldRules,
-      child: mainContent,
-    );
+    // Every Narrative Studio destination now owns its shared inner page and is
+    // mounted in the single product shell by EditorShellPage. Returning the
+    // business route directly makes the historical nested shell impossible.
+    return mainContent;
   }
 }
 
@@ -1286,35 +1510,32 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     }
 
     if (_showLegacyCutsceneStudio) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: PokeMapButton(
-              key: const ValueKey('cinematics-library-back-button'),
-              onPressed: () {
-                setState(() => _showLegacyCutsceneStudio = false);
-              },
-              variant: PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              leading: const Icon(CupertinoIcons.chevron_left),
-              child: const Text('Retour à la Library cinématiques'),
-            ),
+      return NarrativeStudioWorkspacePage(
+        presentation: const NarrativeStudioRoutePresentation(
+          destination: NarrativeStudioDestination.cinematics,
+          label: 'Cinématiques',
+          breadcrumbLabels: ['Cinématiques', 'Ancien studio'],
+        ),
+        leading: PokeMapIconButton(
+          key: const ValueKey('cinematics-library-back-button'),
+          onPressed: () {
+            setState(() => _showLegacyCutsceneStudio = false);
+          },
+          tooltip: 'Retour à la bibliothèque de cinématiques',
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.chevron_left),
+        ),
+        body: PokeMapPageSurface(
+          child: _CutsceneWorkspaceBody(
+            editorNotifier: widget.editorNotifier,
+            project: project,
+            activeMap: widget.activeMap,
+            projection: widget.projection,
+            selectedCutscene: widget.selectedCutscene,
+            onSelectCutscene: widget.onSelectCutscene,
+            onSelectOutcome: widget.onSelectOutcome,
           ),
-          const SizedBox(height: 10),
-          Expanded(
-            child: _CutsceneWorkspaceBody(
-              editorNotifier: widget.editorNotifier,
-              project: project,
-              activeMap: widget.activeMap,
-              projection: widget.projection,
-              selectedCutscene: widget.selectedCutscene,
-              onSelectCutscene: widget.onSelectCutscene,
-              onSelectOutcome: widget.onSelectOutcome,
-            ),
-          ),
-        ],
+        ),
       );
     }
 

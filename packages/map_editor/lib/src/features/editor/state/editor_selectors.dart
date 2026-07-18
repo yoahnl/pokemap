@@ -156,6 +156,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     EditorWorkspaceMode.facts => 'Facts Manager',
     EditorWorkspaceMode.worldRules => 'World Rules Manager',
+    EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
   };
@@ -189,6 +190,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Registre no-code des faits persistants lisibles par les scènes et règles du monde.',
     EditorWorkspaceMode.worldRules =>
       'Règles visibles du monde basées sur des sources authorées et des cibles de carte.',
+    EditorWorkspaceMode.narrativeValidator =>
+      'Verdict de jouabilité, solvabilité et raccordements Event par map.',
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>

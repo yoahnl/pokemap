@@ -58,53 +58,111 @@ class _StorylinesGraphToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    return DecoratedBox(
-      key: const ValueKey('storylines-graph-toolbar'),
-      decoration: BoxDecoration(
-        color: colors.controlSurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: colors.borderSubtle),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620 ||
+            MediaQuery.textScalerOf(context).scale(1) > 1.2;
+        if (!compact) {
+          return DecoratedBox(
+            key: const ValueKey('storylines-graph-toolbar'),
+            decoration: BoxDecoration(
+              color: colors.controlSurface,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.borderSubtle),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const PokeMapIconTile(
+                        icon: CupertinoIcons.arrow_branch,
+                        tone: PokeMapTone.narrative,
+                        size: 32,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Graph read-only',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const _StorylinesGraphBadge(label: 'Read-only'),
+                      const Spacer(),
+                      Flexible(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: _GraphStatusBadges(
+                            model: model,
+                            sideQuestAttached: sideQuestAttached,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const _StorylinesGraphLegend(compact: true),
+                ],
+              ),
+            ),
+          );
+        }
+        final identity = Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            const PokeMapIconTile(
+              icon: CupertinoIcons.arrow_branch,
+              tone: PokeMapTone.narrative,
+              size: 32,
+            ),
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'Graph read-only',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const _StorylinesGraphBadge(label: 'Read-only'),
+          ],
+        );
+        final status = _GraphStatusBadges(
+          model: model,
+          sideQuestAttached: sideQuestAttached,
+        );
+        return DecoratedBox(
+          key: const ValueKey('storylines-graph-toolbar'),
+          decoration: BoxDecoration(
+            color: colors.controlSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.borderSubtle),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const PokeMapIconTile(
-                  icon: CupertinoIcons.arrow_branch,
-                  tone: PokeMapTone.narrative,
-                  size: 32,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Graph read-only',
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const _StorylinesGraphBadge(label: 'Read-only'),
-                const Spacer(),
-                Flexible(
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: _GraphStatusBadges(
-                      model: model,
-                      sideQuestAttached: sideQuestAttached,
-                    ),
-                  ),
-                ),
+                identity,
+                const SizedBox(height: 7),
+                Align(alignment: Alignment.centerLeft, child: status),
+                const SizedBox(height: 6),
+                const _StorylinesGraphLegend(compact: true),
               ],
             ),
-            const SizedBox(height: 6),
-            const _StorylinesGraphLegend(compact: true),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
@@ -132,6 +190,16 @@ class _StorylineGraphCanvas extends StatelessWidget {
     final colors = context.pokeMapColors;
     return LayoutBuilder(
       builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context)
+            .scale(1)
+            .clamp(1.0, 1.5)
+            .toDouble();
+        final usesScaledGeometry = textScale > 1;
+        final rootHeight =
+            usesScaledGeometry ? _rootHeight * textScale + 12 : _rootHeight;
+        final sideQuestHeight = usesScaledGeometry
+            ? _sideQuestHeight * textScale
+            : _sideQuestHeight;
         final maxItemCount = model.chapters.fold<int>(
           0,
           (current, chapter) => math.max(
@@ -139,17 +207,17 @@ class _StorylineGraphCanvas extends StatelessWidget {
             _graphItemCountForChapter(chapter),
           ),
         );
-        final chapterHeight = _chapterHeight(maxItemCount);
+        final chapterHeight = _chapterHeight(maxItemCount, textScale);
         final sideQuestRowsAbove = _sideQuestRowsAbove();
         final sideQuestBandAbove = sideQuestRowsAbove == 0
             ? 0.0
-            : sideQuestRowsAbove * (_sideQuestHeight + _sideQuestGap);
+            : sideQuestRowsAbove * (sideQuestHeight + _sideQuestGap);
         final chapterTop = _topPadding + sideQuestBandAbove;
         final sideQuestRowsBelow = _sideQuestRowsBelow();
         final sideQuestBandBelow = sideQuestRowsBelow == 0
             ? 0.0
             : _sideQuestGap +
-                sideQuestRowsBelow * (_sideQuestHeight + _sideQuestGap);
+                sideQuestRowsBelow * (sideQuestHeight + _sideQuestGap);
         final contentWidth = _leftPadding +
             _rootWidth +
             _rootToChapterGap +
@@ -157,7 +225,7 @@ class _StorylineGraphCanvas extends StatelessWidget {
             _leftPadding;
         final contentHeight = math.max(
           chapterTop + chapterHeight + sideQuestBandBelow + _topPadding,
-          _topPadding + _sideQuestBandHeight + _rootHeight + 220,
+          _topPadding + _sideQuestBandHeight * textScale + rootHeight + 220,
         );
         final canvasWidth = math
             .max(
@@ -174,9 +242,9 @@ class _StorylineGraphCanvas extends StatelessWidget {
             .toDouble();
         final rootRect = Rect.fromLTWH(
           _leftPadding,
-          chapterTop + (chapterHeight - _rootHeight) / 2,
+          chapterTop + (chapterHeight - rootHeight) / 2,
           _rootWidth,
-          _rootHeight,
+          rootHeight,
         );
         final chapterRects = <String, Rect>{};
         for (var index = 0; index < model.chapters.length; index += 1) {
@@ -188,10 +256,13 @@ class _StorylineGraphCanvas extends StatelessWidget {
                 index * (_chapterWidth + _chapterGap),
             chapterTop,
             _chapterWidth,
-            _chapterHeight(_graphItemCountForChapter(chapter)),
+            _chapterHeight(_graphItemCountForChapter(chapter), textScale),
           );
         }
-        final sideQuestRects = _sideQuestRects(chapterRects);
+        final sideQuestRects = _sideQuestRects(
+          chapterRects,
+          sideQuestHeight: sideQuestHeight,
+        );
         final paintEdges = _paintEdges(rootRect, chapterRects, sideQuestRects);
         return DecoratedBox(
           decoration: BoxDecoration(
@@ -286,9 +357,11 @@ class _StorylineGraphCanvas extends StatelessWidget {
         (chapter.steps.length > _maxVisibleStepsPerChapter ? 1 : 0);
   }
 
-  double _chapterHeight(int itemCount) {
+  double _chapterHeight(int itemCount, double textScale) {
     final effectiveItems = math.max(1, itemCount);
-    return 144 + effectiveItems * (_stepHeight + 8);
+    final nominalHeight = 144 + effectiveItems * (_stepHeight + 8);
+    if (textScale <= 1) return nominalHeight.toDouble();
+    return nominalHeight * textScale + 12;
   }
 
   int _sideQuestRowsBelow() {
@@ -315,7 +388,10 @@ class _StorylineGraphCanvas extends StatelessWidget {
     return maxRows;
   }
 
-  Map<String, Rect> _sideQuestRects(Map<String, Rect> chapterRects) {
+  Map<String, Rect> _sideQuestRects(
+    Map<String, Rect> chapterRects, {
+    required double sideQuestHeight,
+  }) {
     final rects = <String, Rect>{};
     for (final chapter in model.chapters) {
       final chapterRect = chapterRects[chapter.id];
@@ -331,15 +407,15 @@ class _StorylineGraphCanvas extends StatelessWidget {
         final xOffset = index.isEven ? -18.0 : 18.0;
         final left = chapterRect.center.dx - _sideQuestWidth / 2 + xOffset;
         final top = above
-            ? _topPadding + row * (_sideQuestHeight + _sideQuestGap)
+            ? _topPadding + row * (sideQuestHeight + _sideQuestGap)
             : chapterRect.bottom +
                 _sideQuestGap +
-                row * (_sideQuestHeight + _sideQuestGap);
+                row * (sideQuestHeight + _sideQuestGap);
         rects[attachment.relationshipId] = Rect.fromLTWH(
           left,
           top,
           _sideQuestWidth,
-          _sideQuestHeight,
+          sideQuestHeight,
         );
       }
     }

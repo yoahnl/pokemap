@@ -61,6 +61,50 @@ void main() {
         isTrue,
       );
     });
+
+    test('does not paint a non-NPC entity rejected by world presence',
+        () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: const MapData(
+            id: 'world-presence-render',
+            name: 'World presence render',
+            size: GridSize(width: 1, height: 1),
+            entities: <MapEntity>[
+              MapEntity(
+                id: 'fog-prop',
+                kind: MapEntityKind.custom,
+                pos: GridPos(x: 0, y: 0),
+                editorVisual: MapEntityEditorVisual(elementId: 'fog'),
+              ),
+            ],
+          ),
+          elements: const <ProjectElementEntry>[
+            ProjectElementEntry(
+              id: 'fog',
+              name: 'Fog',
+              tilesetId: 'entity',
+              categoryId: 'world-state',
+              frames: <TilesetVisualFrame>[
+                TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 0, y: 0),
+                ),
+              ],
+            ),
+          ],
+        ),
+        tileImagesByTilesetId: {
+          'entity': await runtimeTilesetImage(
+            const <Color>[Color(0xFF6B82A8)],
+          ),
+        },
+        mapEntityPresencePredicate: (_, entity) => entity.id != 'fog-prop',
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 0, 0));
+    });
   });
 
   group('MapLayersComponent explicit foreground tile markers', () {

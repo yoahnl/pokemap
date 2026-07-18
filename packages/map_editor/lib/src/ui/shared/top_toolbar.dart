@@ -565,6 +565,7 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.dialogue => 'Dialogue Studio',
                 EditorWorkspaceMode.facts => 'Facts Manager',
                 EditorWorkspaceMode.worldRules => 'World Rules Manager',
+                EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
                 EditorWorkspaceMode.pathStudio => 'Path Studio',
                 EditorWorkspaceMode.environmentStudio => 'Environment Studio',
               },

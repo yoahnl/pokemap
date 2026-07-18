@@ -297,8 +297,20 @@ void main() {
         .map((placed) => placed.elementId)
         .where((id) => id.startsWith('el_port_ref_'))
         .toSet();
+    final dynamicPortElementIds = bundle.map.entities
+        .map((entity) => entity.editorVisual?.elementId)
+        .whereType<String>()
+        .where((id) => id.startsWith('el_port_ref_'))
+        .toSet();
     expect(
       placedPortElementIds,
+      isNot(contains('el_port_ref_nest')),
+      reason: 'The nest is a World Rule-compatible entity visual now; a '
+          'static duplicate would remain painted after collection.',
+    );
+    expect(dynamicPortElementIds, <String>{'el_port_ref_nest'});
+    expect(
+      <String>{...placedPortElementIds, ...dynamicPortElementIds},
       unorderedEquals(const <String>{
         'el_port_ref_barrel_buoy_small',
         'el_port_ref_bench',

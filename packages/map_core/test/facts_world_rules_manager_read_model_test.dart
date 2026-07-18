@@ -67,7 +67,11 @@ void main() {
 
       expect(readModel.worldRuleCount, 2);
       expect(readModel.enabledWorldRuleCount, 2);
-      expect(readModel.worldRuleDiagnosticCount, 1);
+      expect(readModel.worldRuleDiagnosticCount, 2);
+      expect(
+        readModel.worldRules.first.diagnostics.single.code,
+        WorldRuleDiagnosticCode.worldRuleSourceNeverProduced,
+      );
       expect(
         readModel.worldRules.first.humanSummary,
         'Si Gate open est vrai alors Event désactivé sur Gate event',

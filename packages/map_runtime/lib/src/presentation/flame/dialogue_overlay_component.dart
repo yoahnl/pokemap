@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../../application/dialogue_runtime_models.dart';
 
-typedef OnDialogueFinished = void Function();
+typedef OnDialogueFinished = void Function(String? outcomeId);
 
 class DialogueOverlayComponent extends PositionComponent {
   DialogueOverlayComponent({
@@ -91,8 +91,7 @@ class DialogueOverlayComponent extends PositionComponent {
   }
 
   void _rebuildChoicePainters(DialogueWaitingForChoice state) {
-    final maxW =
-        size.x - 32 - _kPaddingH * 2 - _cursorPainter.width - 8;
+    final maxW = size.x - 32 - _kPaddingH * 2 - _cursorPainter.width - 8;
     _choicePainters = state.choices
         .map(
           (c) => TextPainter(
@@ -194,10 +193,14 @@ class DialogueOverlayComponent extends PositionComponent {
   }
 
   bool confirmChoice() {
+    final state = _session.state;
+    final choiceOutcomeId = state is DialogueWaitingForChoice
+        ? state.choices[state.selectedIndex].outcomeId
+        : null;
     final next = _session.confirmChoice();
     if (next == null) {
       removeFromParent();
-      onFinished();
+      onFinished(choiceOutcomeId ?? _session.selectedOutcomeId);
       return false;
     }
     _session = next;
@@ -209,7 +212,7 @@ class DialogueOverlayComponent extends PositionComponent {
     final next = _session.advance();
     if (next == null) {
       removeFromParent();
-      onFinished();
+      onFinished(_session.selectedOutcomeId);
       return false;
     }
     _session = next;

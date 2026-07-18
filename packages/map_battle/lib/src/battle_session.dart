@@ -509,8 +509,9 @@ class BattleSession {
     final captureChoice = !setup.isTrainerBattle && setup.allowCapture
         ? const PlayerBattleChoiceCapture()
         : null;
-    final runChoice =
-        !setup.isTrainerBattle ? const PlayerBattleChoiceRun() : null;
+    final runChoice = !setup.isTrainerBattle && setup.allowFlee
+        ? const PlayerBattleChoiceRun()
+        : null;
 
     if (moveChoices.isEmpty &&
         switchChoices.isEmpty &&
@@ -644,6 +645,12 @@ class BattleSession {
     if (request is BattleWaitRequest) {
       throw StateError(
         'Aucune décision joueur n’est attendue actuellement (${request.reason.name}).',
+      );
+    }
+    if (choice is PlayerBattleChoiceRun &&
+        (setup.isTrainerBattle || !setup.allowFlee)) {
+      throw StateError(
+        'PlayerBattleChoiceRun est interdit pour ce combat.',
       );
     }
     if (!request.allows(choice)) {

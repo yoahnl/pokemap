@@ -119,6 +119,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
           ? const ProjectPokemonConfig()
           : ProjectPokemonConfig.fromJson(
               json['pokemon'] as Map<String, dynamic>),
+      newGame: json['newGame'] == null
+          ? const ProjectNewGameConfig()
+          : ProjectNewGameConfig.fromJson(
+              json['newGame'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
       surfaceCatalog: json['surfaceCatalog'] == null
@@ -174,6 +178,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'characters': instance.characters.map((e) => e.toJson()).toList(),
       'settings': instance.settings.toJson(),
       'pokemon': instance.pokemon.toJson(),
+      'newGame': instance.newGame.toJson(),
       'globalProperties': instance.globalProperties,
       'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
       'shadowCatalog': const ProjectShadowCatalogJsonConverter()
@@ -333,6 +338,20 @@ Map<String, dynamic> _$$ProjectDialogueFolderImplToJson(
       'sortOrder': instance.sortOrder,
     };
 
+_$DialogueDeclaredOutcomeImpl _$$DialogueDeclaredOutcomeImplFromJson(
+        Map<String, dynamic> json) =>
+    _$DialogueDeclaredOutcomeImpl(
+      id: json['id'] as String,
+      label: json['label'] as String,
+    );
+
+Map<String, dynamic> _$$DialogueDeclaredOutcomeImplToJson(
+        _$DialogueDeclaredOutcomeImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'label': instance.label,
+    };
+
 _$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
         Map<String, dynamic> json) =>
     _$ProjectDialogueEntryImpl(
@@ -343,6 +362,11 @@ _$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
           (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
               const [],
       description: json['description'] as String? ?? '',
+      declaredOutcomes: (json['declaredOutcomes'] as List<dynamic>?)
+              ?.map((e) =>
+                  DialogueDeclaredOutcome.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
       defaultStartNode: json['defaultStartNode'] as String?,
       folderId: json['folderId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
@@ -356,6 +380,8 @@ Map<String, dynamic> _$$ProjectDialogueEntryImplToJson(
       'relativePath': instance.relativePath,
       'tags': instance.tags,
       'description': instance.description,
+      'declaredOutcomes':
+          instance.declaredOutcomes.map((e) => e.toJson()).toList(),
       'defaultStartNode': instance.defaultStartNode,
       'folderId': instance.folderId,
       'sortOrder': instance.sortOrder,

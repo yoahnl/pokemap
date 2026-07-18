@@ -31,6 +31,7 @@ final class RuntimePsdkBattleSessionAdapter {
     required bool isTrainerBattle,
     String? trainerId,
     bool allowCapture = false,
+    bool allowFlee = true,
   }) {
     final outcome = state.isFinished
         ? createLegacyOutcome(
@@ -44,6 +45,7 @@ final class RuntimePsdkBattleSessionAdapter {
         isTrainerBattle: isTrainerBattle,
         trainerId: trainerId,
         allowCapture: allowCapture,
+        allowFlee: allowFlee,
       ),
     ).withRuntimeDisplayState(
       phase: state.isFinished ? BattlePhase.finished : BattlePhase.playerChoice,
@@ -347,6 +349,7 @@ final class RuntimePsdkBattleSessionAdapter {
     required bool isTrainerBattle,
     required String? trainerId,
     required bool allowCapture,
+    required bool allowFlee,
   }) {
     final psdkState = state.psdkState;
     return BattleSetup(
@@ -367,6 +370,7 @@ final class RuntimePsdkBattleSessionAdapter {
       isTrainerBattle: isTrainerBattle,
       trainerId: trainerId,
       allowCapture: allowCapture,
+      allowFlee: allowFlee,
       fieldState: _toLegacyFieldState(psdkState.field),
     );
   }

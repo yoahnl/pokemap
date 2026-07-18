@@ -5,21 +5,66 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/facts_world_rules/facts_world_rules_workspace.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 
+import 'support/narrative_studio_capture_fonts.dart';
+
 void main() {
-  testWidgets('Facts manager opens from sidebar and edits bool facts',
+  testWidgets(
+      'Facts and World Rules share one workspace page whose route follows mode updates',
+      (tester) async {
+    final mode = ValueNotifier(FactsWorldRulesWorkspaceMode.facts);
+    addTearDown(mode.dispose);
+
+    await _pumpFactsWorldRulesWorkspace(tester, mode: mode);
+
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(find.byKey(narrativeStudioWorkspaceContextKey), findsOneWidget);
+    expect(find.text('Narrative Studio  /  Facts'), findsOneWidget);
+    expect(
+      tester
+          .widget<NarrativeStudioWorkspacePage>(
+            find.byType(NarrativeStudioWorkspacePage),
+          )
+          .actions,
+      isEmpty,
+    );
+    expect(find.byKey(const ValueKey('facts-create-submit')), findsOneWidget);
+
+    mode.value = FactsWorldRulesWorkspaceMode.worldRules;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(find.text('Narrative Studio  /  Facts'), findsNothing);
+    expect(
+      find.text('Narrative Studio  /  Règles du monde'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<NarrativeStudioWorkspacePage>(
+            find.byType(NarrativeStudioWorkspacePage),
+          )
+          .actions,
+      isEmpty,
+    );
+    expect(find.byKey(const ValueKey('facts-create-submit')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('world-rule-create-submit')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Facts manager edits bool facts in the shared route body',
       (tester) async {
     final container = await _pumpNarrativeShell(
       tester,
       project: _project(),
-      workspaceMode: EditorWorkspaceMode.narrativeOverview,
+      workspaceMode: EditorWorkspaceMode.facts,
       activeMap: _map(),
     );
-
-    await tester
-        .tap(find.byKey(const ValueKey('narrative-studio-sidebar-facts')));
-    await tester.pumpAndSettle();
 
     expect(container.read(editorNotifierProvider).workspaceMode,
         EditorWorkspaceMode.facts);
@@ -88,14 +133,9 @@ void main() {
     final container = await _pumpNarrativeShell(
       tester,
       project: _project(facts: [fact]),
-      workspaceMode: EditorWorkspaceMode.narrativeOverview,
+      workspaceMode: EditorWorkspaceMode.worldRules,
       activeMap: _map(),
     );
-
-    await tester.tap(
-      find.byKey(const ValueKey('narrative-studio-sidebar-world-rules')),
-    );
-    await tester.pumpAndSettle();
 
     expect(container.read(editorNotifierProvider).workspaceMode,
         EditorWorkspaceMode.worldRules);
@@ -146,7 +186,11 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('world-rule-editor-delete')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('world-rules-confirm-delete')));
+    final confirmDelete =
+        find.byKey(const ValueKey('world-rules-confirm-delete'));
+    await tester.ensureVisible(confirmDelete);
+    await tester.pumpAndSettle();
+    await tester.tap(confirmDelete);
     await tester.pumpAndSettle();
 
     expect(container.read(editorNotifierProvider).project!.worldRules, isEmpty);
@@ -179,6 +223,7 @@ void main() {
 
   testWidgets('writes V1-35 Facts and World Rules manager screenshot',
       (tester) async {
+    await _loadFactsWorldRulesGoldenFonts();
     final fact = NarrativeFactDefinition(
       id: 'fact_gate_open',
       label: 'Gate open',
@@ -203,6 +248,82 @@ void main() {
       ),
     );
   });
+}
+
+Future<void> _loadFactsWorldRulesGoldenFonts() async {
+  await loadNarrativeStudioCaptureFonts(
+    textFamilies: const <String>[
+      'Roboto',
+      'Arial',
+      '.SF Pro Text',
+      'SF Pro Text',
+    ],
+  );
+}
+
+Future<void> _pumpFactsWorldRulesWorkspace(
+  WidgetTester tester, {
+  required ValueNotifier<FactsWorldRulesWorkspaceMode> mode,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1440, 900));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: PokeMapTheme.light(),
+      darkTheme: PokeMapTheme.dark(),
+      themeMode: ThemeMode.dark,
+      home: Scaffold(
+        body: SizedBox(
+          width: 1440,
+          height: 900,
+          child: ValueListenableBuilder<FactsWorldRulesWorkspaceMode>(
+            valueListenable: mode,
+            builder: (context, currentMode, _) {
+              return FactsWorldRulesWorkspace(
+                project: _project(),
+                activeMap: _map(),
+                initialMode: currentMode,
+                onCreateFact: ({required label}) async => null,
+                onUpdateFact: ({
+                  required factId,
+                  required label,
+                  required description,
+                  required category,
+                  required defaultValue,
+                }) async =>
+                    false,
+                onRemoveFact: ({required factId}) async => false,
+                onCreateWorldRule: ({
+                  required label,
+                  required description,
+                  required enabled,
+                  required source,
+                  required target,
+                  required effect,
+                  required priority,
+                }) async =>
+                    null,
+                onUpdateWorldRule: ({
+                  required ruleId,
+                  required label,
+                  required description,
+                  required enabled,
+                  required source,
+                  required target,
+                  required effect,
+                  required priority,
+                }) async =>
+                    false,
+                onRemoveWorldRule: ({required ruleId}) async => false,
+              );
+            },
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
 }
 
 Future<ProviderContainer> _pumpNarrativeShell(

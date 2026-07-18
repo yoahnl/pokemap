@@ -201,7 +201,7 @@ final class SceneRuntimeExecutor {
         return _callbackOutput(
           intent,
           callbacks.showDialogue,
-          const {'completed'},
+          {'completed', ...intent.expectedOutcomes},
         );
       case SceneRuntimePlanIntentKind.startBattle:
         return _callbackOutput(

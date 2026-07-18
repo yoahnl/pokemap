@@ -68,6 +68,7 @@ void main() {
           ('node_start', 'completed'),
           ('node_dialogue', 'completed'),
           ('node_battle', 'victory'),
+          ('node_mark_victory', 'completed'),
           ('node_end_victory', null),
         ],
       );
@@ -187,6 +188,7 @@ const _allowedFixtureIds = {
   'node_start',
   'node_dialogue',
   'node_battle',
+  'node_mark_victory',
   'node_end_victory',
   'node_end_defeat',
 };
@@ -311,6 +313,17 @@ SceneAsset _scene() {
             declaredOutcomes: const ['victory', 'defeat'],
           ),
         ),
+        SceneNode(
+          id: 'node_mark_victory',
+          kind: SceneNodeKind.action,
+          payload: SceneActionPayload.consequence(
+            SceneConsequence.setFact(
+              factId: 'fact_test_rival_defeated',
+              value: true,
+              label: 'Mark test rival defeated',
+            ),
+          ),
+        ),
         SceneNode(id: 'node_end_victory', kind: SceneNodeKind.end),
         SceneNode(id: 'node_end_defeat', kind: SceneNodeKind.end),
       ],
@@ -330,11 +343,18 @@ SceneAsset _scene() {
           kind: SceneEdgeKind.defaultFlow,
         ),
         SceneEdge(
-          id: 'edge_battle_victory',
+          id: 'edge_battle_mark_victory',
           fromNodeId: 'node_battle',
           fromPortId: 'victory',
-          toNodeId: 'node_end_victory',
+          toNodeId: 'node_mark_victory',
           kind: SceneEdgeKind.battleVictory,
+        ),
+        SceneEdge(
+          id: 'edge_mark_victory_end',
+          fromNodeId: 'node_mark_victory',
+          fromPortId: 'completed',
+          toNodeId: 'node_end_victory',
+          kind: SceneEdgeKind.defaultFlow,
         ),
         SceneEdge(
           id: 'edge_battle_defeat',
@@ -350,7 +370,8 @@ SceneAsset _scene() {
         SceneNodeLayout(nodeId: 'node_start', x: 0, y: 0),
         SceneNodeLayout(nodeId: 'node_dialogue', x: 280, y: 0),
         SceneNodeLayout(nodeId: 'node_battle', x: 560, y: 0),
-        SceneNodeLayout(nodeId: 'node_end_victory', x: 840, y: -90),
+        SceneNodeLayout(nodeId: 'node_mark_victory', x: 840, y: -90),
+        SceneNodeLayout(nodeId: 'node_end_victory', x: 1120, y: -90),
         SceneNodeLayout(nodeId: 'node_end_defeat', x: 840, y: 90),
       ],
     ),

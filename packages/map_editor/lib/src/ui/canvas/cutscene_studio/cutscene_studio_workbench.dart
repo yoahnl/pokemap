@@ -203,8 +203,6 @@ class CutsceneStudioWorkbench extends StatefulWidget {
     required this.hasUnsavedChanges,
     required this.onSave,
     required this.onReset,
-    required this.onTest,
-    required this.onSimulate,
     required this.onCreateNew,
     required this.selectedBlockId,
     required this.onSelectBlock,
@@ -225,8 +223,6 @@ class CutsceneStudioWorkbench extends StatefulWidget {
   final bool hasUnsavedChanges;
   final VoidCallback onSave;
   final VoidCallback onReset;
-  final VoidCallback onTest;
-  final VoidCallback onSimulate;
   final VoidCallback onCreateNew;
   final String? selectedBlockId;
   final ValueChanged<String?> onSelectBlock;
@@ -356,8 +352,6 @@ class _CutsceneStudioWorkbenchState extends State<CutsceneStudioWorkbench> {
             canEdit: widget.canEdit,
             onSave: widget.onSave,
             onReset: widget.onReset,
-            onTest: widget.onTest,
-            onSimulate: widget.onSimulate,
             onCreateNew: widget.onCreateNew,
           ),
           if (widget.compatibilityBanner != null) widget.compatibilityBanner!,
@@ -527,8 +521,6 @@ class _WorkbenchTopBar extends StatefulWidget {
     required this.canEdit,
     required this.onSave,
     required this.onReset,
-    required this.onTest,
-    required this.onSimulate,
     required this.onCreateNew,
   });
 
@@ -539,8 +531,6 @@ class _WorkbenchTopBar extends StatefulWidget {
   final bool canEdit;
   final VoidCallback onSave;
   final VoidCallback onReset;
-  final VoidCallback onTest;
-  final VoidCallback onSimulate;
   final VoidCallback onCreateNew;
 
   @override
@@ -583,71 +573,42 @@ class _WorkbenchTopBarState extends State<_WorkbenchTopBar> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Narrative Studio  ›  Step  ›  Cutscene',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final identity = Row(
+            children: [
+              Expanded(
+                child: CupertinoTextField(
+                  placeholder: 'Nom de la cutscene',
+                  controller: _name,
+                  onSubmitted: widget.canEdit ? widget.onRename : null,
+                  enabled: widget.canEdit && !widget.busy,
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: EditorChrome.subtleLabel(context),
+                    color: EditorChrome.primaryLabel(context),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: const BoxDecoration(),
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+              if (widget.hasUnsavedChanges)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Text(
+                    'Modifications non sauvegardées',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: EditorChrome.inspectorJoyCoral,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Expanded(
-                      child: CupertinoTextField(
-                        placeholder: 'Nom de la cutscene',
-                        controller: _name,
-                        onSubmitted:
-                            widget.canEdit ? (v) => widget.onRename(v) : null,
-                        enabled: widget.canEdit && !widget.busy,
-                        style: TextStyle(
-                          color: EditorChrome.primaryLabel(context),
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        decoration: const BoxDecoration(),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                    if (widget.hasUnsavedChanges)
-                      const Padding(
-                        padding: EdgeInsets.only(left: 8),
-                        child: Text(
-                          'Modifications non sauvegardées',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: EditorChrome.inspectorJoyCoral,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Row(
+            ],
+          );
+          final actions = Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _TopBarTextButton(
-                label: 'Tester',
-                enabled: !widget.busy,
-                onPressed: widget.onTest,
-              ),
-              const SizedBox(width: 6),
-              _TopBarTextButton(
-                label: 'Simuler',
-                enabled: !widget.busy,
-                onPressed: widget.onSimulate,
-              ),
-              const SizedBox(width: 10),
               _TopBarPrimaryButton(
                 label: 'Sauvegarder',
                 enabled:
@@ -668,8 +629,29 @@ class _WorkbenchTopBarState extends State<_WorkbenchTopBar> {
                 onPressed: widget.onCreateNew,
               ),
             ],
-          ),
-        ],
+          );
+          if (constraints.maxWidth < 980) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                identity,
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: actions,
+                ),
+              ],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: identity),
+              const SizedBox(width: 12),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
@@ -1117,14 +1099,18 @@ class _MainDropSlot extends StatelessWidget {
                 color: EditorChrome.subtleLabel(context),
               ),
               const SizedBox(width: 8),
-              Text(
-                enabled
-                    ? '+ Déposer un bloc ici'
-                    : 'Lecture seule — dépôt désactivé',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: EditorChrome.subtleLabel(context),
+              Expanded(
+                child: Text(
+                  enabled
+                      ? '+ Déposer un bloc ici'
+                      : 'Lecture seule — dépôt désactivé',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: EditorChrome.subtleLabel(context),
+                  ),
                 ),
               ),
             ],

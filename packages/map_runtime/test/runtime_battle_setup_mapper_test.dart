@@ -628,6 +628,53 @@ void main() {
       expect(setup.enemyReservePokemon, isEmpty);
     });
 
+    test('maps a static boss profile without trainer or capture semantics',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Lanturn affolé',
+            trainerClass: 'Pokémon du phare',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['water_gun', 'tail_whip'],
+              ),
+            ],
+            tags: <String>['static-encounter', 'boss'],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _staticRequest(),
+      );
+
+      expect(setup.enemyPokemon.speciesId, 'aquafi');
+      expect(setup.enemyPokemon.level, 18);
+      expect(setup.isTrainerBattle, isFalse);
+      expect(setup.trainerId, isNull);
+      expect(setup.allowCapture, isFalse);
+      expect(setup.allowFlee, isFalse);
+
+      final session = createBattleSession(setup);
+      expect(
+        session.decisionRequest.allowedChoices
+            .whereType<PlayerBattleChoiceRun>(),
+        isEmpty,
+      );
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceRun()),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('maps trainer reserves instead of stopping at trainer.team.first',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -1606,6 +1653,23 @@ TrainerBattleStartRequest _trainerRequest() {
     ),
     trainerId: 'trainer_ace',
     npcEntityId: 'npc_ace',
+    mapId: 'field_map',
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+StaticBattleStartRequest _staticRequest() {
+  return const StaticBattleStartRequest(
+    requestId: 'static-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.south,
+    ),
+    battleId: 'battle_lighthouse_pokemon',
+    opponentProfileId: 'trainer_ace',
+    entityId: 'boss_phare_pokemon',
     mapId: 'field_map',
     playerPos: GridPos(x: 1, y: 1),
   );

@@ -475,6 +475,67 @@ void main() {
       );
     });
 
+    test('dialogue expected outcomes must exist in its public contract', () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_dialogue',
+            kind: SceneNodeKind.yarnDialogue,
+            payload: SceneYarnDialoguePayload(
+              dialogueId: 'dialogue_test',
+              expectedOutcomes: const ['ghost'],
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+        edges: [
+          SceneEdge(
+            id: 'edge_start_dialogue',
+            fromNodeId: 'node_start',
+            fromPortId: 'completed',
+            toNodeId: 'node_dialogue',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_dialogue_completed',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'completed',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.defaultFlow,
+          ),
+          SceneEdge(
+            id: 'edge_dialogue_ghost',
+            fromNodeId: 'node_dialogue',
+            fromPortId: 'ghost',
+            toNodeId: 'node_end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
+        ],
+      );
+      final project = _project(
+        dialogues: const [
+          ProjectDialogueEntry(
+            id: 'dialogue_test',
+            name: 'Dialogue test',
+            relativePath: 'dialogues/test.yarn',
+            declaredOutcomes: [
+              DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+            ],
+          ),
+        ],
+      );
+
+      final report = diagnoseSceneAgainstProject(scene, project);
+
+      final diagnostic = report
+          .byCode(SceneDiagnosticCode.dialogueExpectedOutcomeUnknown)
+          .single;
+      expect(diagnostic.severity, SceneDiagnosticSeverity.error);
+      expect(diagnostic.nodeId, 'node_dialogue');
+      expect(diagnostic.outcomeId, 'ghost');
+    });
+
     test('cinematic completed output is validated as cinematic flow', () {
       final scene = _scene(
         nodes: [
@@ -944,6 +1005,97 @@ void main() {
       );
     });
 
+    test('gameplay consequence shape errors are blocking diagnostics', () {
+      final consequences = <SceneConsequence>[
+        SceneConsequence.giveItem(itemId: ' ', quantity: 1),
+        SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 0),
+        SceneConsequence.giveMoney(amount: -1),
+        SceneConsequence.givePokemon(
+          speciesId: 'species_test',
+          level: 101,
+          currentHp: 20,
+        ),
+        SceneConsequence.givePokemon(
+          speciesId: 'species_test',
+          level: 5,
+          currentHp: 0,
+        ),
+        SceneConsequence.giveConfiguredStarter(starterOptionId: ' '),
+      ];
+
+      for (final consequence in consequences) {
+        final scene = _scene(
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_action',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.consequence(consequence),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_action',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_action',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_action_end',
+              fromNodeId: 'node_action',
+              fromPortId: 'completed',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        );
+
+        final diagnostics = diagnoseScene(scene).diagnostics.where(
+              (diagnostic) =>
+                  diagnostic.code ==
+                      SceneDiagnosticCode.consequenceMissingTarget ||
+                  diagnostic.code ==
+                      SceneDiagnosticCode.consequenceInvalidValue,
+            );
+        expect(diagnostics, hasLength(1));
+        expect(diagnostics.single.severity, SceneDiagnosticSeverity.error);
+      }
+    });
+
+    test('legacy givePokemon HP fallback remains readable but is diagnosed',
+        () {
+      final consequence = SceneConsequence.fromJson(<String, dynamic>{
+        'kind': 'givePokemon',
+        'speciesId': 'species_legacy',
+        'level': 9,
+        'natureId': 'hardy',
+        'abilityId': 'legacy-ability',
+      });
+      final scene = _scene(
+        nodes: <SceneNode>[
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(consequence),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final report = diagnoseScene(scene);
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.consequenceLegacyPokemonHpFallback)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.warning,
+      );
+      expect(report.hasErrors, isFalse);
+    });
+
     test('fact source references must resolve against ProjectManifest facts',
         () {
       final scene = _scene(
@@ -1115,6 +1267,62 @@ void main() {
       );
     });
 
+    test('configured starter consequence must resolve against New Game options',
+        () {
+      final scene = _scene(
+        nodes: [
+          SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+          SceneNode(
+            id: 'node_action_starter',
+            kind: SceneNodeKind.action,
+            payload: SceneActionPayload.consequence(
+              SceneConsequence.giveConfiguredStarter(
+                starterOptionId: 'starter_bulbasaur',
+              ),
+            ),
+          ),
+          SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        ],
+      );
+
+      final missingReport = diagnoseSceneAgainstProject(scene, _project());
+      expect(
+        missingReport
+            .byCode(SceneDiagnosticCode.consequenceUnknownStarterOption)
+            .single
+            .nodeId,
+        'node_action_starter',
+      );
+
+      final validReport = diagnoseSceneAgainstProject(
+        scene,
+        _project(
+          newGame: const ProjectNewGameConfig(
+            starterOptions: <ProjectStarterOption>[
+              ProjectStarterOption(
+                id: 'starter_bulbasaur',
+                label: 'Bulbizarre',
+                pokemon: PlayerPokemon(
+                  speciesId: 'bulbasaur',
+                  natureId: 'hardy',
+                  abilityId: 'overgrow',
+                  level: 16,
+                  currentHp: 40,
+                  knownMoveIds: <String>['vine_whip'],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      expect(
+        validReport.byCode(
+          SceneDiagnosticCode.consequenceUnknownStarterOption,
+        ),
+        isEmpty,
+      );
+    });
+
     test('future and incomplete condition sources are diagnosed', () {
       final futureScene = _scene(
         nodes: [
@@ -1178,6 +1386,7 @@ ProjectManifest _project({
   List<ProjectTrainerEntry> trainers = const [],
   List<ScenarioAsset> scenarios = const [],
   List<WorldRuleDefinition> worldRules = const [],
+  ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
   return ProjectManifest(
     name: 'Scene diagnostics test',
@@ -1188,6 +1397,7 @@ ProjectManifest _project({
     trainers: trainers,
     scenarios: scenarios,
     worldRules: worldRules,
+    newGame: newGame,
   );
 }
 

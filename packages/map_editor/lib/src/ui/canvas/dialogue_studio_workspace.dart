@@ -26,7 +26,10 @@ import '../../features/dialogue/application/mistral_dialogue_client.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 part 'dialogue_studio/dialogs/dialogue_studio_dialogs.dart';
 part 'dialogue_studio/widgets/library/dialogue_library_tree.dart';
 part 'dialogue_studio/widgets/canvas/dialogue_canvas_cards.dart';
@@ -59,6 +62,45 @@ class _AssignDialogueFolderDest {
   const _AssignDialogueFolderDest(this.label, this.folderId);
   final String label;
   final String? folderId;
+}
+
+@visibleForTesting
+class DialoguePreviewEndedView extends StatelessWidget {
+  const DialoguePreviewEndedView({
+    super.key,
+    required this.event,
+  });
+
+  final DialoguePreviewEnded event;
+
+  @override
+  Widget build(BuildContext context) {
+    final reason = event.reason;
+    final outcomeId = event.outcomeId;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            reason == null ? '— Fin —' : 'Fin : $reason',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              color: PokeMapLegacyColors.secondaryLabel(context),
+            ),
+          ),
+          if (outcomeId != null) ...[
+            const SizedBox(height: 6),
+            PokeMapBadge(
+              label: 'Résultat · $outcomeId',
+              variant: PokeMapBadgeVariant.narrative,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class DialogueStudioWorkspace extends ConsumerStatefulWidget {
@@ -185,23 +227,57 @@ class _DialogueStudioWorkspaceState
     }
 
     final project = editor.project;
-    if (project == null) {
-      return const Center(
-          child: Text('Charger un projet pour Dialogue Studio.'));
-    }
+    final hasProjectWorkspace =
+        project != null && (editor.projectRootPath?.trim().isNotEmpty ?? false);
+    final presentation = narrativeStudioRoutePresentationFor(
+      EditorWorkspaceMode.dialogue,
+    )!;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-            width: 300, child: _buildLibraryColumn(context, editor, notifier)),
-        const SizedBox(width: 10),
-        Expanded(child: _buildCenterColumn(context, editor, notifier)),
-        const SizedBox(width: 10),
-        SizedBox(
-            width: 320,
-            child: _buildInspectorColumn(context, editor, notifier)),
+    return NarrativeStudioWorkspacePage(
+      presentation: presentation,
+      actions: [
+        if (hasProjectWorkspace)
+          PokeMapButton(
+            key: const ValueKey<String>('dialogue-studio-new-dialogue'),
+            onPressed: () => _promptNewDialogue(context, notifier),
+            size: PokeMapButtonSize.compact,
+            leading: const Icon(CupertinoIcons.add, size: 14),
+            child: const Text('Nouveau dialogue'),
+          ),
       ],
+      body: switch ((project, hasProjectWorkspace)) {
+        (null, _) => const PokeMapEmptyState(
+            title: 'Aucun projet chargé',
+            description:
+                'Chargez un projet pour ouvrir sa bibliothèque de dialogues.',
+            icon: Icon(CupertinoIcons.chat_bubble_2),
+          ),
+        (_, false) => const PokeMapEmptyState(
+            key: ValueKey<String>('dialogue-studio-workspace-unavailable'),
+            title: 'Dossier projet indisponible',
+            description:
+                'Ouvrez le dossier du projet pour créer, importer ou modifier ses dialogues.',
+            icon: Icon(CupertinoIcons.folder_badge_minus),
+          ),
+        (_, true) => Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 300,
+                child: _buildLibraryColumn(context, editor, notifier),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _buildCenterColumn(context, editor, notifier),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                width: 320,
+                child: _buildInspectorColumn(context, editor, notifier),
+              ),
+            ],
+          ),
+      },
     );
   }
 
@@ -327,29 +403,6 @@ class _DialogueStudioWorkspaceState
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
-                Expanded(
-                  child: CupertinoButton(
-                    padding: EdgeInsets.zero,
-                    onPressed: () => _promptNewDialogue(context, notifier),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: EditorChrome.inspectorJoyBlue,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Text(
-                        '+ Nouveau',
-                        style: TextStyle(
-                          color: PokeMapLegacyColors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
                 Expanded(
                   child: CupertinoButton(
                     padding: EdgeInsets.zero,
@@ -603,16 +656,14 @@ class _DialogueStudioWorkspaceState
   ) {
     final id = editor.selectedProjectDialogueId;
     if (id == null) {
-      return EditorPaneSurface(
+      return const EditorPaneSurface(
         radius: 20,
         tint: EditorChrome.islandWarmTint,
-        child: Center(
-          child: Text(
-            'Sélectionnez un dialogue dans la liste à gauche.',
-            style: TextStyle(
-              color: PokeMapLegacyColors.secondaryLabel(context),
-            ),
-          ),
+        child: PokeMapEmptyState(
+          title: 'Sélectionnez un dialogue',
+          description:
+              'Choisissez un fichier dans la bibliothèque pour afficher son montage.',
+          icon: Icon(CupertinoIcons.chat_bubble_text),
         ),
       );
     }
@@ -1041,17 +1092,7 @@ class _DialogueStudioWorkspaceState
                         ],
                       ),
                     ),
-                  DialoguePreviewEnded(:final reason) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        reason == null ? '— Fin —' : 'Fin : $reason',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
-                          color: PokeMapLegacyColors.secondaryLabel(context),
-                        ),
-                      ),
-                    ),
+                  DialoguePreviewEnded() => DialoguePreviewEndedView(event: ev),
                 };
               },
             ),
@@ -1112,9 +1153,15 @@ class _DialogueStudioWorkspaceState
     EditorState editor,
     EditorNotifier notifier,
   ) {
+    final dialogueEntry = _selectedDialogueEntry(editor);
     final issues = _doc == null
         ? <DialogueValidationIssue>[]
-        : validateDialogueDocument(_doc!);
+        : validateDialogueDocument(
+            _doc!,
+            declaredOutcomeIds:
+                dialogueEntry?.declaredOutcomes.map((outcome) => outcome.id) ??
+                    const <String>[],
+          );
 
     return EditorPaneSurface(
       radius: 20,
@@ -1148,7 +1195,7 @@ class _DialogueStudioWorkspaceState
               ),
             )
           else
-            _buildInspectorBody(context, notifier),
+            _buildInspectorBody(context, editor, notifier),
           const SizedBox(height: 16),
           const Text(
             'Validation',
@@ -1194,7 +1241,21 @@ class _DialogueStudioWorkspaceState
     );
   }
 
-  Widget _buildInspectorBody(BuildContext context, EditorNotifier notifier) {
+  ProjectDialogueEntry? _selectedDialogueEntry(EditorState editor) {
+    final selectedId = editor.selectedProjectDialogueId;
+    if (selectedId == null) return null;
+    for (final entry
+        in editor.project?.dialogues ?? const <ProjectDialogueEntry>[]) {
+      if (entry.id == selectedId) return entry;
+    }
+    return null;
+  }
+
+  Widget _buildInspectorBody(
+    BuildContext context,
+    EditorState editor,
+    EditorNotifier notifier,
+  ) {
     final doc = _doc!;
     final sel = _selection!;
     final step = _findStep(doc, sel);
@@ -1259,6 +1320,14 @@ class _DialogueStudioWorkspaceState
                 padding: const EdgeInsets.all(8),
               ),
               const SizedBox(height: 6),
+              _buildChoiceOutcomePicker(
+                context,
+                editor,
+                notifier,
+                sel,
+                branches[i],
+              ),
+              const SizedBox(height: 10),
             ],
             CupertinoButton(
               padding: EdgeInsets.zero,
@@ -1311,6 +1380,80 @@ class _DialogueStudioWorkspaceState
       DeEndStep() =>
         const Text('Fin de conversation (marqueur pour le montage).'),
     };
+  }
+
+  Widget _buildChoiceOutcomePicker(
+    BuildContext context,
+    EditorState editor,
+    EditorNotifier notifier,
+    _StepSelection selection,
+    DeChoiceBranch branch,
+  ) {
+    final entry = _selectedDialogueEntry(editor);
+    final outcomes =
+        entry?.declaredOutcomes ?? const <DialogueDeclaredOutcome>[];
+    final currentOutcomeId = branch.outcomeId?.trim() ?? '';
+    final knownCurrent = currentOutcomeId.isEmpty ||
+        outcomes.any((outcome) => outcome.id == currentOutcomeId);
+    final items = <PokeMapDropdownItem<String>>[
+      const PokeMapDropdownItem<String>(
+        value: '',
+        label: 'Aucun résultat',
+      ),
+      for (final outcome in outcomes)
+        PokeMapDropdownItem<String>(
+          value: outcome.id,
+          label: '${outcome.label} · ${outcome.id}',
+        ),
+      if (!knownCurrent)
+        PokeMapDropdownItem<String>(
+          value: currentOutcomeId,
+          label: 'Résultat inconnu · $currentOutcomeId',
+        ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PokeMapDropdownField<String>(
+          key: ValueKey('dialogue-choice-outcome-${branch.id}'),
+          label: 'Résultat envoyé à la Scene',
+          value: currentOutcomeId,
+          items: items,
+          onChanged: (value) =>
+              _patchChoiceOutcome(selection, branch.id, value),
+        ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: PokeMapButton(
+            key: ValueKey('dialogue-choice-new-outcome-${branch.id}'),
+            onPressed: entry == null
+                ? null
+                : () => _promptNewDialogueOutcome(
+                      context,
+                      notifier,
+                      entry,
+                      selection,
+                      branch,
+                    ),
+            variant: PokeMapButtonVariant.ghost,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.add, size: 14),
+            child: const Text('Nouveau résultat'),
+          ),
+        ),
+        if (outcomes.isEmpty) ...[
+          const SizedBox(height: 6),
+          const PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            title: 'Aucun résultat public',
+            message:
+                'Créez un résultat nommé : son identifiant stable sera généré automatiquement.',
+          ),
+        ],
+      ],
+    );
   }
 
   Widget _fieldLabel(BuildContext context, String t) {
@@ -1503,6 +1646,25 @@ class _DialogueStudioWorkspaceState
           setState(() {});
           return;
         }
+      }
+    }
+  }
+
+  void _patchChoiceOutcome(
+    _StepSelection sel,
+    String branchId,
+    String outcomeId,
+  ) {
+    final node = _doc!.nodeById(sel.nodeId);
+    if (node == null) return;
+    for (final step in node.steps) {
+      if (step is! DeChoiceStep || step.id != sel.stepId) continue;
+      for (final branch in step.branches) {
+        if (branch.id != branchId) continue;
+        final normalized = outcomeId.trim();
+        branch.outcomeId = normalized.isEmpty ? null : normalized;
+        setState(() {});
+        return;
       }
     }
   }

@@ -91,6 +91,16 @@ class PlayerComponent extends PositionComponent {
 
   bool get isStepping => _moveTo != null && _moveRemaining > 0;
 
+  EntityFacing get cinematicFacing =>
+      EntityFacing.values.byName(_state.facing.name);
+
+  void setCinematicFacing(EntityFacing facing) {
+    _state = _state.copyWith(
+      facing: Direction.values.byName(facing.name),
+    );
+    _actor?.setMotion(facing, CharacterAnimationState.idle);
+  }
+
   /// Centre du sprite (caméra / focus).
   Vector2 get focusPoint => Vector2(
         position.x + size.x / 2,

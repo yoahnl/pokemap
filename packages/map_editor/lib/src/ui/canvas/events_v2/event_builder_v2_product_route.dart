@@ -63,6 +63,7 @@ class _EventBuilderV2ProductRouteState
   String? _validationNavigationMessage;
   bool _migrationBusy = false;
   String? _migrationMessage;
+  bool _globalDiagnosticsExpanded = false;
 
   @override
   Widget build(BuildContext context) {
@@ -306,24 +307,20 @@ class _EventBuilderV2ProductRouteState
     );
     final navigationFailure = bridge.lastNavigationResult;
     final notices = <Widget>[];
-    for (final item in validationSnapshot?.state.global ??
-        const <NarrativeEventValidationItem>[]) {
+    final globalDiagnostics = validationSnapshot?.state.global ??
+        const <NarrativeEventValidationItem>[];
+    if (globalDiagnostics.isNotEmpty) {
       notices.add(
-        PokeMapDiagnosticCallout(
-          key: ValueKey(
-            'event-builder-v2-global-diagnostic-'
-            '${item.diagnostic.stableKey}',
+        _GlobalDiagnosticsPanel(
+          diagnostics: globalDiagnostics,
+          expanded: _globalDiagnosticsExpanded,
+          onToggle: () => setState(
+            () => _globalDiagnosticsExpanded = !_globalDiagnosticsExpanded,
           ),
-          severity: _validationDiagnosticSeverity(item.diagnostic.severity),
-          title: 'Diagnostic du registre Event',
-          message: item.diagnostic.message,
-          actionLabel: item.actionable ? 'Examiner' : null,
-          onAction: item.actionable
-              ? () => _navigateFromValidation(
-                    item,
-                    readModel: readModel,
-                  )
-              : null,
+          onAction: (item) => _navigateFromValidation(
+            item,
+            readModel: readModel,
+          ),
         ),
       );
     }
@@ -1261,6 +1258,205 @@ class _EventBuilderV2ProductRouteState
     );
   }
 }
+
+class _GlobalDiagnosticsPanel extends StatelessWidget {
+  const _GlobalDiagnosticsPanel({
+    required this.diagnostics,
+    required this.expanded,
+    required this.onToggle,
+    required this.onAction,
+  });
+
+  final List<NarrativeEventValidationItem> diagnostics;
+  final bool expanded;
+  final VoidCallback onToggle;
+  final ValueChanged<NarrativeEventValidationItem> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = _deduplicateGlobalDiagnostics(diagnostics);
+    final errorCount = diagnostics.where(_isErrorDiagnostic).length;
+    final warningCount = diagnostics.where(_isWarningDiagnostic).length;
+    final infoCount = diagnostics.length - errorCount - warningCount;
+    final visibleGroups = expanded
+        ? groups
+        : groups.where(
+            (group) => _isErrorDiagnostic(group.item),
+          );
+    final hasHiddenGroups = groups.any(
+      (group) => !_isErrorDiagnostic(group.item),
+    );
+
+    return Semantics(
+      key: const ValueKey('event-builder-v2-global-diagnostics'),
+      container: true,
+      liveRegion: errorCount > 0,
+      label: 'Diagnostics du registre Event',
+      child: PokeMapCard(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                PokeMapIconTile(
+                  key: const ValueKey(
+                    'event-builder-v2-global-diagnostics-icon',
+                  ),
+                  icon: errorCount > 0
+                      ? CupertinoIcons.exclamationmark_octagon_fill
+                      : warningCount > 0
+                          ? CupertinoIcons.exclamationmark_triangle_fill
+                          : CupertinoIcons.info_circle_fill,
+                  tone: errorCount > 0
+                      ? PokeMapTone.danger
+                      : warningCount > 0
+                          ? PokeMapTone.warning
+                          : PokeMapTone.info,
+                  size: 28,
+                  iconSize: 14,
+                ),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Diagnostics du registre Event',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                if (errorCount > 0) ...[
+                  PokeMapBadge(
+                    label: _diagnosticCountLabel(
+                      errorCount,
+                      singular: 'erreur',
+                      plural: 'erreurs',
+                    ),
+                    variant: PokeMapBadgeVariant.error,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                if (warningCount > 0) ...[
+                  PokeMapBadge(
+                    label: _diagnosticCountLabel(
+                      warningCount,
+                      singular: 'avertissement',
+                      plural: 'avertissements',
+                    ),
+                    variant: PokeMapBadgeVariant.warning,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                if (infoCount > 0) ...[
+                  PokeMapBadge(
+                    label: _diagnosticCountLabel(
+                      infoCount,
+                      singular: 'information',
+                      plural: 'informations',
+                    ),
+                    variant: PokeMapBadgeVariant.info,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                if (hasHiddenGroups)
+                  PokeMapButton(
+                    key: const ValueKey(
+                      'event-builder-v2-global-diagnostics-toggle',
+                    ),
+                    onPressed: onToggle,
+                    size: PokeMapButtonSize.small,
+                    variant: PokeMapButtonVariant.ghost,
+                    leading: Icon(
+                      expanded
+                          ? CupertinoIcons.chevron_up
+                          : CupertinoIcons.chevron_down,
+                    ),
+                    child: Text(
+                      expanded ? 'Replier les détails' : 'Afficher les détails',
+                    ),
+                  ),
+              ],
+            ),
+            for (final group in visibleGroups) ...[
+              const SizedBox(height: 8),
+              PokeMapDiagnosticCallout(
+                key: ValueKey(
+                  'event-builder-v2-global-diagnostic-'
+                  '${group.item.diagnostic.stableKey}',
+                ),
+                severity: _validationDiagnosticSeverity(
+                  group.item.diagnostic.severity,
+                ),
+                title: 'Diagnostic du registre Event',
+                message: group.item.diagnostic.message,
+                actionLabel: group.item.actionable ? 'Examiner' : null,
+                onAction:
+                    group.item.actionable ? () => onAction(group.item) : null,
+              ),
+              if (group.occurrences > 1) ...[
+                const SizedBox(height: 5),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PokeMapBadge(
+                    label: '${group.occurrences} occurrences',
+                    variant: PokeMapBadgeVariant.neutral,
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GlobalDiagnosticGroup {
+  const _GlobalDiagnosticGroup({
+    required this.item,
+    required this.occurrences,
+  });
+
+  final NarrativeEventValidationItem item;
+  final int occurrences;
+}
+
+List<_GlobalDiagnosticGroup> _deduplicateGlobalDiagnostics(
+  List<NarrativeEventValidationItem> diagnostics,
+) {
+  final groups = <String, _GlobalDiagnosticGroup>{};
+  for (final item in diagnostics) {
+    final diagnostic = item.diagnostic;
+    final key = <String>[
+      diagnostic.severity.name,
+      diagnostic.message,
+      diagnostic.action.name,
+      diagnostic.destination.stableKey,
+    ].join('\u001f');
+    final previous = groups[key];
+    groups[key] = _GlobalDiagnosticGroup(
+      item: previous?.item ?? item,
+      occurrences: (previous?.occurrences ?? 0) + 1,
+    );
+  }
+  return List<_GlobalDiagnosticGroup>.unmodifiable(groups.values);
+}
+
+bool _isErrorDiagnostic(NarrativeEventValidationItem item) =>
+    item.diagnostic.severity == NarrativeEventValidationSeverity.error;
+
+bool _isWarningDiagnostic(NarrativeEventValidationItem item) =>
+    item.diagnostic.severity == NarrativeEventValidationSeverity.warning;
+
+String _diagnosticCountLabel(
+  int count, {
+  required String singular,
+  required String plural,
+}) =>
+    '$count ${count == 1 ? singular : plural}';
 
 PokeMapDiagnosticSeverity _feedbackSeverity(
   NarrativeEventBuilderV2WriteStatus? status,

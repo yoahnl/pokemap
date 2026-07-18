@@ -14,12 +14,14 @@ final class SceneDialogueRuntimeDialogueRequest {
     required this.createdAtEpochMs,
     required this.dialogueId,
     this.yarnNodeName,
+    this.expectedOutcomes = const <String>[],
   });
 
   final String requestId;
   final int createdAtEpochMs;
   final String dialogueId;
   final String? yarnNodeName;
+  final List<String> expectedOutcomes;
 }
 
 final class SceneDialogueRuntimeAwaitableAdapter {
@@ -50,10 +52,22 @@ final class SceneDialogueRuntimeAwaitableAdapter {
       createdAtEpochMs: now,
       dialogueId: dialogueId,
       yarnNodeName: intent.yarnNodeName,
+      expectedOutcomes: intent.expectedOutcomes,
     );
 
     try {
-      return await launcher.showDialogue(request);
+      final result = await launcher.showDialogue(request);
+      if (!result.success || result.outcomeId == null) {
+        return result;
+      }
+      if (!intent.expectedOutcomes.contains(result.outcomeId)) {
+        return SceneDialogueRuntimeAwaitableResult.failed(
+          errorCode: SceneDialogueRuntimeAwaitableErrorCode.unsupportedOutcome,
+          message: 'Scene dialogue returned unsupported outcome '
+              '"${result.outcomeId}" for dialogue "$dialogueId".',
+        );
+      }
+      return result;
     } catch (error) {
       return SceneDialogueRuntimeAwaitableResult.failed(
         errorCode: SceneDialogueRuntimeAwaitableErrorCode.launcherFailed,

@@ -266,4 +266,38 @@ extension _DialogueStudioWorkspaceDialogs on _DialogueStudioWorkspaceState {
     if (name.isEmpty) return;
     await n.renameProjectDialogue(dialogueId: entry.id, newName: name);
   }
+
+  Future<void> _promptNewDialogueOutcome(
+    BuildContext context,
+    EditorNotifier notifier,
+    ProjectDialogueEntry entry,
+    _StepSelection selection,
+    DeChoiceBranch branch,
+  ) async {
+    final controller = TextEditingController(text: branch.label.trim());
+    final confirmed = await showMacosEditorPromptSheet(
+      context,
+      title: 'Nouveau résultat de dialogue',
+      controller: controller,
+      confirmLabel: 'Créer et associer',
+      placeholder: 'Nom lisible, par exemple « Rassurer »',
+    );
+    if (!confirmed || !context.mounted) return;
+    final label = controller.text.trim();
+    if (label.isEmpty) return;
+
+    final id = availableDialogueOutcomeId(
+      label,
+      entry.declaredOutcomes.map((outcome) => outcome.id).toSet(),
+    );
+    final saved = await notifier.updateProjectDialogueDeclaredOutcomes(
+      dialogueId: entry.id,
+      declaredOutcomes: <DialogueDeclaredOutcome>[
+        ...entry.declaredOutcomes,
+        DialogueDeclaredOutcome(id: id, label: label),
+      ],
+    );
+    if (!mounted || !saved) return;
+    _patchChoiceOutcome(selection, branch.id, id);
+  }
 }

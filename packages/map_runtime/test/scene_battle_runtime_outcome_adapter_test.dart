@@ -49,6 +49,36 @@ void main() {
       expect(result.scenePortId, 'defeat');
     });
 
+    test('maps a static boss Scene intent to an explicit static request',
+        () async {
+      final requests = <SceneBattleRuntimeBattleRequest>[];
+      final adapter = SceneBattleRuntimeOutcomeAdapter(
+        runtimeSourceId: 'scene:map:boss:0',
+        defaultNpcEntityId: 'boss_phare_pokemon',
+        createdAtEpochMs: () => 4321,
+        launcher: _Launcher((request) {
+          requests.add(request);
+          return const SceneBattleRuntimeOutcomeResult.completed(
+            port: SceneBattleRuntimeOutcomePort.victory,
+          );
+        }),
+      );
+
+      final result = await adapter.startBattle(
+        SceneRuntimePlanIntent.startBattle(
+          battleKind: 'static',
+          trainerId: 'trainer_boss_phare_pokemon',
+          npcEntityId: 'boss_phare_pokemon',
+          declaredOutcomes: const <String>['victory', 'defeat'],
+        ),
+      );
+
+      expect(result.scenePortId, 'victory');
+      expect(requests.single.battleKind, 'static');
+      expect(requests.single.trainerId, 'trainer_boss_phare_pokemon');
+      expect(requests.single.npcEntityId, 'boss_phare_pokemon');
+    });
+
     test('fails clearly when intent has no trainerId', () async {
       final adapter = _adapterReturning(SceneBattleRuntimeOutcomePort.victory);
 

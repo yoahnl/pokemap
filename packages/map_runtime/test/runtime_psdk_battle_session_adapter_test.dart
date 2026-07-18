@@ -4,6 +4,25 @@ import 'package:map_runtime/src/application/runtime_psdk_battle_session_adapter.
 
 void main() {
   group('RuntimePsdkBattleSessionAdapter', () {
+    test('legacy display session preserves an explicit no-flee policy', () {
+      final session = RuntimePsdkBattleSessionAdapter.fromSetup(_setup());
+      final displaySession = session.createLegacyDisplaySession(
+        isTrainerBattle: false,
+        allowFlee: false,
+      );
+
+      expect(displaySession.setup.allowFlee, isFalse);
+      expect(
+        displaySession.decisionRequest.allowedChoices
+            .whereType<PlayerBattleChoiceRun>(),
+        isEmpty,
+      );
+      expect(
+        () => displaySession.applyChoice(const PlayerBattleChoiceRun()),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('uses PSDK AI by default so opponents can choose a damaging move', () {
       final session = RuntimePsdkBattleSessionAdapter.fromSetup(_setup());
 

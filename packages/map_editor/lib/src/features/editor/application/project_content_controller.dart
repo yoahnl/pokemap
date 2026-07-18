@@ -27,14 +27,12 @@ class ProjectContentController {
         createDialogueLibraryFolderUseCase,
     required RenameDialogueLibraryFolderUseCase
         renameDialogueLibraryFolderUseCase,
-    required MoveDialogueLibraryFolderUseCase
-        moveDialogueLibraryFolderUseCase,
+    required MoveDialogueLibraryFolderUseCase moveDialogueLibraryFolderUseCase,
     required DeleteDialogueLibraryFolderUseCase
         deleteDialogueLibraryFolderUseCase,
     required AssignDialogueToLibraryFolderUseCase
         assignDialogueToLibraryFolderUseCase,
-    required MoveDialogueToLibraryRootUseCase
-        moveDialogueToLibraryRootUseCase,
+    required MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase,
     required SaveDialogueYarnBodyUseCase saveDialogueYarnBodyUseCase,
     required CreateProjectScenarioUseCase createProjectScenarioUseCase,
     required UpdateProjectScenarioUseCase updateProjectScenarioUseCase,
@@ -185,6 +183,26 @@ class ProjectContentController {
       ),
       statusMessage: 'Dialogue renamed',
       errorPrefix: 'Failed to rename dialogue',
+    );
+  }
+
+  Future<EditorState> updateProjectDialogueDeclaredOutcomes({
+    required EditorState current,
+    required ProjectWorkspace? workspace,
+    required String dialogueId,
+    required List<DialogueDeclaredOutcome> declaredOutcomes,
+  }) async {
+    return _runProjectMutation(
+      current: current,
+      workspace: workspace,
+      mutate: (ws, project) => _updateProjectDialogueUseCase.execute(
+        ws,
+        project,
+        dialogueId: dialogueId,
+        declaredOutcomes: declaredOutcomes,
+      ),
+      statusMessage: 'Dialogue outcomes updated',
+      errorPrefix: 'Failed to update dialogue outcomes',
     );
   }
 

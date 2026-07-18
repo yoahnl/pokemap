@@ -8,6 +8,7 @@ import 'package:map_editor/src/features/narrative/application/global_story_studi
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_workspace_state.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 
 void main() {
@@ -23,10 +24,11 @@ void main() {
         await _pumpGlobalStoryCanvas(tester, project);
 
         expect(find.byType(NarrativeWorkspaceCanvas), findsOneWidget);
-        expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-            findsOneWidget);
-        expect(find.byKey(const ValueKey('narrative-studio-shell')),
-            findsOneWidget);
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(
+          find.byKey(narrativeStudioWorkspaceContextKey),
+          findsOneWidget,
+        );
         expect(find.byKey(const ValueKey('storylines-workspace-shell')),
             findsOneWidget);
 
@@ -45,11 +47,12 @@ void main() {
           findsOneWidget,
         );
 
-        // NS-HOME guardrail: Maps is not an internal Narrative Studio entry.
+        // The isolated canvas owns only the workspace page. Product navigation
+        // is mounted once by EditorShellPage on the real route.
         expect(find.text('Maps'), findsNothing);
-        expect(find.text('Facts'), findsWidgets);
-        expect(find.text('Règles du monde'), findsWidgets);
-        expect(find.text('Validateur'), findsOneWidget);
+        expect(find.text('Facts'), findsNothing);
+        expect(find.text('Règles du monde'), findsNothing);
+        expect(find.text('Validateur'), findsNothing);
 
         // localEventFlow is available to the projection, but is not displayed
         // as a side quest/storyline in the legacy Global Story workspace.

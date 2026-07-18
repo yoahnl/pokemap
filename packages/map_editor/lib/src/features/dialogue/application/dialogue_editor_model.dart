@@ -21,6 +21,54 @@ String newDialogueEditorId() {
       '${Random().nextInt(1 << 30)}';
 }
 
+/// Builds a stable public outcome id from a readable author label.
+///
+/// `completed` is reserved by the Scene runtime for the no-outcome fallback,
+/// so the generated id always skips it even when no dialogue outcome currently
+/// uses that value.
+String availableDialogueOutcomeId(
+  String label,
+  Iterable<String> usedIds,
+) {
+  var base = label.toLowerCase();
+  const replacements = <String, String>{
+    'à': 'a',
+    'â': 'a',
+    'ä': 'a',
+    'ç': 'c',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'î': 'i',
+    'ï': 'i',
+    'ô': 'o',
+    'ö': 'o',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'œ': 'oe',
+  };
+  for (final replacement in replacements.entries) {
+    base = base.replaceAll(replacement.key, replacement.value);
+  }
+  base = base
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  if (base.isEmpty) base = 'outcome';
+
+  final unavailableIds = <String>{
+    'completed',
+    for (final id in usedIds) id.trim(),
+  };
+  if (!unavailableIds.contains(base)) return base;
+  var suffix = 2;
+  while (unavailableIds.contains('${base}_$suffix')) {
+    suffix += 1;
+  }
+  return '${base}_$suffix';
+}
+
 /// Document édité dans Dialogue Studio : liste ordonnée de nœuds (= blocs `title:` Yarn).
 class DialogueEditorDocument {
   const DialogueEditorDocument({required this.nodes});
@@ -32,7 +80,8 @@ class DialogueEditorDocument {
   }
 
   /// Titres Yarn de tous les nœuds (utile pour validation des sauts).
-  Set<String> nodeTitles() => nodes.map((n) => n.title.trim()).where((t) => t.isNotEmpty).toSet();
+  Set<String> nodeTitles() =>
+      nodes.map((n) => n.title.trim()).where((t) => t.isNotEmpty).toSet();
 
   DialogueEditorNode? nodeById(String id) {
     for (final n in nodes) {
@@ -128,11 +177,18 @@ class DeChoiceBranch {
   DeChoiceBranch({
     required this.id,
     required this.label,
+    this.outcomeId,
     required this.steps,
   });
 
   final String id;
   String label;
+
+  /// Stable public result returned by this branch to its owning Scene.
+  ///
+  /// This identity is intentionally independent from [label], which remains
+  /// editable and localizable. Legacy choices can keep it `null`.
+  String? outcomeId;
 
   /// Étapes exécutées si l’option est choisie (souvent un `<<jump …>>`).
   List<DialogueEditorStep> steps;

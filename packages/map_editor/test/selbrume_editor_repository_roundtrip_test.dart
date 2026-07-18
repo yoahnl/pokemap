@@ -28,7 +28,7 @@ final _fixtureRelativePaths = <String>[
 
 const _canonicalPlacementCounts = <String, int>{
   'map_bourg_selbrume': 84,
-  'map_port_brisants': 44,
+  'map_port_brisants': 43,
   'map_bois_chaise_brume': 12,
   'map_marais_salants': 22,
   'map_passage_dames': 13,
@@ -167,7 +167,7 @@ void main() {
     );
 
     test(
-      'real EditorNotifier sessions retain all 476 placements after an edit',
+      'real EditorNotifier sessions retain all 475 placements after an edit',
       () async {
         final sourceRoot = _resolveSelbrumeSourceRoot();
         final sourceSnapshot = await _snapshotFixtureFiles(sourceRoot);
@@ -194,6 +194,9 @@ void main() {
           final expectedCount = _canonicalPlacementCounts[entry.id];
           expect(expectedCount, isNotNull, reason: entry.id);
           expect(loaded.placedElements, hasLength(expectedCount!));
+          if (entry.id == 'map_port_brisants') {
+            _expectPromotedGoeliseNest(loaded);
+          }
 
           final pathLayers = loaded.layers.whereType<PathLayer>().toList();
           if (pathLayers.isNotEmpty) {
@@ -227,18 +230,32 @@ void main() {
             loaded.placedElements,
             reason: entry.id,
           );
+          if (entry.id == 'map_port_brisants') {
+            _expectPromotedGoeliseNest(verifier.state.activeMap!);
+          }
           expect(verifier.state.isDirty, isFalse, reason: entry.id);
           secondSession.dispose();
         }
 
         expect(
           _canonicalPlacementCounts.values.reduce((a, b) => a + b),
-          476,
+          475,
         );
         expect(await _snapshotFixtureFiles(sourceRoot), sourceSnapshot);
       },
     );
   });
+}
+
+void _expectPromotedGoeliseNest(MapData map) {
+  expect(
+    map.placedElements.map((placement) => placement.id),
+    isNot(contains('pe_port_nid_goelise')),
+  );
+  final nest = map.entities.singleWhere(
+    (entity) => entity.id == 'goelise_nest_proxy',
+  );
+  expect(nest.editorVisual?.elementId, 'el_port_ref_nest');
 }
 
 Future<Map<String, MapData>> _loadCanonicalMaps({

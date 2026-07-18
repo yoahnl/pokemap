@@ -9,11 +9,68 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_plan_loader.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 const _referenceCinematicSurfaceSize = Size(1663, 926);
 
 void main() {
+  testWidgets(
+      'uses the shared Cinematics workspace page without a duplicate header',
+      (tester) async {
+    _setLargeSurface(tester);
+    var legacyOpenCount = 0;
+
+    await tester.pumpWidget(
+      _Harness(
+        project: _project(),
+        onOpenLegacyCutsceneStudio: () => legacyOpenCount++,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(find.byKey(narrativeStudioWorkspaceContextKey), findsOneWidget);
+    expect(find.text('Narrative Studio  /  Cinématiques'), findsOneWidget);
+    expect(
+      find.text('Séquences visuelles linéaires jouées depuis les Scènes.'),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
+      findsOneWidget,
+    );
+    expect(find.text('Nouvelle cinématique'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('cinematics-library-create-title-field')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematics-library-create-button')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-create-title-field')),
+    );
+    await tester.pump();
+    final editable = tester.widget<EditableText>(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey('cinematics-library-create-title-field'),
+        ),
+        matching: find.byType(EditableText),
+      ),
+    );
+    expect(editable.focusNode.hasFocus, isTrue);
+
+    await tester.tap(
+      find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
+    );
+    await tester.pump();
+    expect(legacyOpenCount, 1);
+  });
+
   testWidgets('shows empty state and creates a cinematic shell',
       (tester) async {
     _setLargeSurface(tester);
@@ -71,6 +128,56 @@ void main() {
     );
     expect(find.text('Migration future'), findsOneWidget);
     expect(find.text('Sauvegarder les métadonnées'), findsNothing);
+  });
+
+  testWidgets('keeps canonical and legacy filters wired to the library',
+      (tester) async {
+    _setLargeSurface(tester);
+    await tester.pumpWidget(_Harness(project: _project()));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Canoniques'),
+        matching: find.byType(PokeMapButton),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.ancestor(
+        of: find.text('Bridge legacy').first,
+        matching: find.byType(PokeMapButton),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-scenario_cutscene')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shows timeline summary and scene usages for canonical entry',
@@ -273,7 +380,14 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-workspace')),
       findsOneWidget,
     );
-    expect(find.text('Cinematic Builder V0'), findsOneWidget);
+    expect(find.text('Cinematic Builder V0'), findsNothing);
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(
+      find.text(
+        'Narrative Studio  /  Cinématiques  /  Intro cinematic',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Intro cinematic'), findsWidgets);
     expect(find.text('cinematic_intro'), findsWidgets);
     expect(find.text('Aperçu sandbox'), findsOneWidget);
@@ -1074,12 +1188,14 @@ class _Harness extends StatefulWidget {
     required this.project,
     this.stageMapSnapshots,
     this.resolveTilesetPath,
+    this.onOpenLegacyCutsceneStudio,
     this.surfaceSize = const Size(1280, 820),
   });
 
   final ProjectManifest project;
   final Map<String, MapData?>? stageMapSnapshots;
   final String? Function(String tilesetId)? resolveTilesetPath;
+  final VoidCallback? onOpenLegacyCutsceneStudio;
   final Size surfaceSize;
 
   @override
@@ -1502,7 +1618,8 @@ class _HarnessState extends State<_Harness> {
                 return mapId == 'map_lab' ? _stageMapData() : null;
               },
               onResolveBackdropTilesetPath: widget.resolveTilesetPath,
-              onOpenLegacyCutsceneStudio: () {},
+              onOpenLegacyCutsceneStudio:
+                  widget.onOpenLegacyCutsceneStudio ?? () {},
             ),
           ),
         ),

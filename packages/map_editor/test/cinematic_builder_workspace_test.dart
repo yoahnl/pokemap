@@ -17,6 +17,7 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_rende
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_preview_playback_actor_overlay_adapter.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_stage_preview_readiness.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_renderer.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_preview_resolver.dart';
@@ -26,7 +27,8 @@ const _defaultBuilderSurfaceSize = Size(1280, 860);
 const _referenceTimelineSurfaceSize = Size(1663, 926);
 
 void main() {
-  testWidgets('shows populated read-only cinematic builder shell', (
+  testWidgets('shows populated cinematic builder in the shared workspace page',
+      (
     tester,
   ) async {
     _setLargeSurface(tester);
@@ -42,7 +44,14 @@ void main() {
       find.byKey(const ValueKey('cinematic-builder-workspace')),
       findsOneWidget,
     );
-    expect(find.text('Cinematic Builder V0'), findsOneWidget);
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(
+      find.text(
+        'Narrative Studio  /  Cinématiques  /  Intro cinematic',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Cinematic Builder V0'), findsNothing);
     expect(find.text('Intro cinematic'), findsWidgets);
     expect(find.text('cinematic_intro'), findsWidgets);
 
@@ -76,11 +85,9 @@ void main() {
       'cinematic-builder-validate-button',
       'cinematic-builder-preview-button',
       'cinematic-builder-save-button',
+      'cinematic-builder-more-button',
     ]) {
-      final button = tester.widget<PokeMapButton>(
-        find.byKey(ValueKey<String>(key)),
-      );
-      expect(button.onPressed, isNull);
+      expect(find.byKey(ValueKey<String>(key)), findsNothing);
     }
 
     expect(find.text('Ajouter un bloc'), findsNothing);
@@ -12556,7 +12563,10 @@ void main() {
     );
     expect(find.text('Aucune action de correction dans ce lot.'), findsWidgets);
     expect(find.text('Ajouter un bloc'), findsNothing);
-    expect(find.text('Sauvegarder'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-save-button')),
+      findsNothing,
+    );
     expect(project.toJson(), before);
   });
 
@@ -13704,7 +13714,9 @@ void main() {
     );
   });
 
-  testWidgets('calls back to library from builder header', (tester) async {
+  testWidgets('calls back to library from the shared leading action', (
+    tester,
+  ) async {
     _setLargeSurface(tester);
     var returned = false;
     await _pumpBuilder(
@@ -13714,12 +13726,57 @@ void main() {
       onBackToLibrary: () => returned = true,
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey('cinematic-builder-back-button')),
+    final backButton = find.byKey(
+      const ValueKey('cinematic-builder-back-button'),
     );
+    expect(backButton, findsOneWidget);
+    expect(
+      find.byTooltip('Retour à la bibliothèque de cinématiques'),
+      findsOneWidget,
+    );
+    expect(tester.widget<PokeMapIconButton>(backButton).onPressed, isNotNull);
+    expect(
+      find.descendant(
+        of: backButton,
+        matching: find.byType(FocusableActionDetector),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(backButton);
     await tester.pumpAndSettle();
 
     expect(returned, isTrue);
+  });
+
+  testWidgets('keeps the builder usable at 125 percent text scale', (
+    tester,
+  ) async {
+    _setLargeSurface(tester, _referenceTimelineSurfaceSize);
+    final project = _project();
+
+    await _pumpBuilder(
+      tester,
+      _entry(project, 'cinematic_intro'),
+      asset: _asset(project, 'cinematic_intro'),
+      surfaceSize: _referenceTimelineSurfaceSize,
+      textScaler: const TextScaler.linear(1.25),
+    );
+
+    expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-preview-placeholder')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-timeline-placeholder')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-builder-inspector-placeholder')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('captures V1-43 builder timeline screenshot when requested', (
@@ -18383,11 +18440,16 @@ Future<void> _pumpBuilder(
   CinematicActorSpritePreviewPlan? actorSpritePreviewPlan,
   bool provideStageMapSourceCatalog = true,
   Size surfaceSize = _defaultBuilderSurfaceSize,
+  TextScaler textScaler = TextScaler.noScaling,
 }) async {
   await tester.pumpWidget(
     MacosTheme(
       data: MacosThemeData.dark(),
       child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: child!,
+        ),
         home: Scaffold(
           body: SizedBox(
             width: surfaceSize.width,

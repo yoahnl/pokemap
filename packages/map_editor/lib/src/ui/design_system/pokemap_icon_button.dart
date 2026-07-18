@@ -103,6 +103,7 @@ class _PokeMapIconButtonState extends State<PokeMapIconButton> {
     Widget content = Semantics(
       button: true,
       enabled: !isDisabled,
+      label: widget.tooltip,
       child: FocusableActionDetector(
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(

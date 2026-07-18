@@ -21,27 +21,66 @@ void _runtimeHostSaveLog(String message) {
 /// la meilleure source de vérité pour l'état joueur initial.
 const kRuntimeHostLaunchSaveFileName = 'runtime_host_launch_save.json';
 
-/// Resolves the explicit map-activation reason for the runtime host.
+/// State and activation semantics selected for one runtime-host launch.
+final class RuntimeHostLaunchPlan {
+  const RuntimeHostLaunchPlan({
+    required this.saveData,
+    required this.initialMapActivationReason,
+  });
+
+  final SaveData? saveData;
+  final MapActivationReason initialMapActivationReason;
+}
+
+/// Whether host-owned manual/demo party seeds may participate in this launch.
 ///
-/// A versioned project save is a real restoration. Manual and demo seeds are
-/// authoring conveniences, so they intentionally remain an initial boot even
-/// though they are represented by [SaveData]. This keeps ADR-EV2-015 from
-/// turning `saveData != null` into an implicit restoration heuristic.
-MapActivationReason resolveRuntimeHostInitialMapActivationReason({
+/// Project New Game configuration owns fresh state when enabled. A versioned
+/// launch save owns restoration when present. Synthetic host seeds are kept
+/// only as the historical fallback for legacy projects.
+bool allowsRuntimeHostSyntheticLaunchSeed({
+  required ProjectNewGameConfig newGame,
+  required SaveData? versionedLaunchSave,
+}) {
+  return !newGame.enabled && versionedLaunchSave == null;
+}
+
+/// Resolves launch-state priority without depending on widget state.
+///
+/// Priority is deliberate and product-owned:
+/// 1. a real versioned launch save restores the project;
+/// 2. enabled Project New Game lets [PlayableMapGame] build fresh state by
+///    receiving `saveData: null`;
+/// 3. legacy projects retain manual then demo seed fallbacks.
+RuntimeHostLaunchPlan resolveRuntimeHostLaunchPlan({
+  required ProjectNewGameConfig newGame,
   required SaveData? versionedLaunchSave,
   required SaveData? manualLaunchOverride,
+  required SaveData? demoLaunchFallback,
 }) {
-  if (versionedLaunchSave != null && manualLaunchOverride == null) {
-    return MapActivationReason.saveRestore;
+  if (versionedLaunchSave != null) {
+    return RuntimeHostLaunchPlan(
+      saveData: versionedLaunchSave,
+      initialMapActivationReason: MapActivationReason.saveRestore,
+    );
   }
-  return MapActivationReason.initialBoot;
+  if (newGame.enabled) {
+    return const RuntimeHostLaunchPlan(
+      saveData: null,
+      initialMapActivationReason: MapActivationReason.initialBoot,
+    );
+  }
+  return RuntimeHostLaunchPlan(
+    saveData: manualLaunchOverride ?? demoLaunchFallback,
+    initialMapActivationReason: MapActivationReason.initialBoot,
+  );
 }
 
 /// Charge la save versionnée de lancement d'un projet runtime, si elle existe.
 ///
 /// Politique volontairement stricte :
-/// - absence du fichier => `null`, le host peut alors retomber sur son seed
-///   de démo historique ;
+/// - absence du fichier => `null`, le host laisse d'abord Project New Game
+///   construire l'état frais, puis retombe sur son seed de démo uniquement
+///   pour un projet legacy ;
 /// - fichier présent mais invalide => erreur explicite ;
 /// - aucune fallback silencieuse vers une autre save si ce seam produit est
 ///   cassé, parce qu'on veut que le golden slice reste honnête.

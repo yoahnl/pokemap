@@ -40,6 +40,7 @@ class MapLayersComponent extends PositionComponent {
     this.renderPass = MapLayerRenderPass.background,
     this.showCollisionOverlay = false,
     this.npcMapPresencePredicate,
+    this.mapEntityPresencePredicate,
     this.shadowCollectionProvider,
     this.shadowRenderer = const ShadowRuntimeRenderer(),
   })  : _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
@@ -73,6 +74,10 @@ class MapLayersComponent extends PositionComponent {
   /// Si non null, les PNJ pour lesquels ce filtre retourne `false` ne sont pas
   /// peints (sprites « élément projet » sans personnage dédié).
   NpcMapPresencePredicate? npcMapPresencePredicate;
+
+  /// Si non null, les entités projet rejetées ne sont pas peintes. Ce filtre
+  /// couvre aussi les objets et props pilotés par les World Rules.
+  MapEntityPresencePredicate? mapEntityPresencePredicate;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   final ShadowRuntimeRenderer shadowRenderer;
   final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
@@ -526,6 +531,10 @@ class MapLayersComponent extends PositionComponent {
     final elapsedMs = (_animElapsed * 1000).toInt();
     final visibleRect = _visibleLocalRect;
     for (final entity in bundle.map.entities) {
+      final entityPresence = mapEntityPresencePredicate;
+      if (entityPresence != null && !entityPresence(bundle.map.id, entity)) {
+        continue;
+      }
       // On garde deux passes explicites :
       // - background: rendu normal des entités élément-projet ;
       // - foreground: props explicitement forcés devant le décor.

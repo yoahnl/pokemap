@@ -4456,7 +4456,58 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "boss_phare_pokemon",
+      "name": "Lanturn affolé du phare",
+      "kind": "custom",
+      "pos": {
+        "x": 12,
+        "y": 10
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_lumiere_instable",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "fog_sommet",
+      "name": "Brume concentrée au sommet",
+      "kind": "custom",
+      "pos": {
+        "x": 12,
+        "y": 12
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_brume_basse",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    }
+  ],
   "connections": [],
   "warps": [
     {

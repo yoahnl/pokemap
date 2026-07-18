@@ -3,6 +3,9 @@ import '../models/game_state.dart';
 import '../models/map_data.dart';
 import '../models/narrative_fact_runtime_state.dart';
 import '../models/project_manifest.dart';
+import '../models/scene_asset.dart';
+import '../models/scene_consequence.dart';
+import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
 import '../operations/narrative_fact_runtime.dart';
 
@@ -22,6 +25,8 @@ enum WorldRuleDiagnosticCode {
   worldRuleEffectUnsupported,
   worldRuleEffectTargetMismatch,
   worldRuleConflict,
+  worldRuleSourceNeverProduced,
+  worldRuleBlockingEntityNeverReleased,
   worldRuleUsesRawTechnicalId,
   worldRuleLegacyPredicateLeak,
   worldRuleFactRuntimeCollision,
@@ -128,6 +133,8 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
   final dialogueIds = project.dialogues.map((dialogue) => dialogue.id).toSet();
   final storyStepIds = _storyStepIds(project);
   final consumedEventIds = _eventIds(maps);
+  final producibleFactValues = _producibleFactValues(project);
+  final producibleStoryStepIds = _producibleStoryStepIds(project);
 
   for (final rule in project.worldRules) {
     _diagnoseSource(
@@ -136,6 +143,13 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
       factResolver: factResolver,
       storyStepIds: storyStepIds,
       consumedEventIds: consumedEventIds,
+    );
+    _diagnoseSourceProducibility(
+      rule,
+      diagnostics,
+      factResolver: factResolver,
+      producibleFactValues: producibleFactValues,
+      producibleStoryStepIds: producibleStoryStepIds,
     );
     _diagnoseTarget(
       rule,
@@ -151,6 +165,11 @@ WorldRuleDiagnosticsReport diagnoseWorldRules(
     _diagnoseLabels(rule, diagnostics);
   }
   _diagnoseConflicts(project.worldRules, diagnostics);
+  _diagnoseBlockingEntityRelease(
+    project.worldRules,
+    mapsById: mapsById,
+    diagnostics: diagnostics,
+  );
   return WorldRuleDiagnosticsReport(diagnostics: diagnostics);
 }
 
@@ -421,31 +440,313 @@ void _diagnoseConflicts(
   List<WorldRuleDefinition> rules,
   List<WorldRuleDiagnostic> diagnostics,
 ) {
-  final seen = <String, WorldRuleDefinition>{};
+  final alreadyInvalidRuleIds = <String>{
+    for (final diagnostic in diagnostics)
+      if (diagnostic.severity == WorldRuleDiagnosticSeverity.error)
+        diagnostic.ruleId,
+  };
+  final enabled = rules
+      .where(
+        (rule) => rule.enabled && !alreadyInvalidRuleIds.contains(rule.id),
+      )
+      .toList(growable: false);
+  final emitted = <String>{};
+  for (var leftIndex = 0; leftIndex < enabled.length; leftIndex++) {
+    final left = enabled[leftIndex];
+    for (var rightIndex = leftIndex + 1;
+        rightIndex < enabled.length;
+        rightIndex++) {
+      final right = enabled[rightIndex];
+      if (left.priority != right.priority ||
+          _targetIdentity(left.target) != _targetIdentity(right.target) ||
+          _sourcesMutuallyExclusive(left.source, right.source)) {
+        continue;
+      }
+      final sameEffect = _sameResolvedEffect(left.effect, right.effect);
+      if (sameEffect) {
+        final diagnosticKey = 'duplicate:${right.id}';
+        if (emitted.add(diagnosticKey)) {
+          diagnostics.add(
+            _conflictDiagnostic(
+              right,
+              severity: WorldRuleDiagnosticSeverity.warning,
+              message:
+                  'Plusieurs World Rules actives produisent le même effet avec la même priorité.',
+            ),
+          );
+        }
+        continue;
+      }
+      for (final rule in <WorldRuleDefinition>[left, right]) {
+        final diagnosticKey = 'opposed:${rule.id}';
+        if (!emitted.add(diagnosticKey)) {
+          continue;
+        }
+        diagnostics.add(
+          _conflictDiagnostic(
+            rule,
+            severity: WorldRuleDiagnosticSeverity.error,
+            message:
+                'Des World Rules compatibles peuvent produire des états opposés sur la même cible et avec la même priorité.',
+          ),
+        );
+      }
+    }
+  }
+}
+
+WorldRuleDiagnostic _conflictDiagnostic(
+  WorldRuleDefinition rule, {
+  required WorldRuleDiagnosticSeverity severity,
+  required String message,
+}) {
+  return WorldRuleDiagnostic(
+    code: WorldRuleDiagnosticCode.worldRuleConflict,
+    severity: severity,
+    message: message,
+    ruleId: rule.id,
+    targetId: _targetIdentity(rule.target),
+    mapId: rule.target.mapId,
+    suggestedFixLabel: 'Changer la priorité ou rendre les sources exclusives.',
+  );
+}
+
+bool _sameResolvedEffect(WorldRuleEffect left, WorldRuleEffect right) {
+  return left.kind == right.kind && left.dialogueId == right.dialogueId;
+}
+
+bool _sourcesMutuallyExclusive(WorldRuleSource left, WorldRuleSource right) {
+  if (left.kind != right.kind || left.sourceId != right.sourceId) {
+    return false;
+  }
+  return switch ((left.predicate, right.predicate)) {
+    (WorldRuleSourcePredicate.isTrue, WorldRuleSourcePredicate.isFalse) ||
+    (WorldRuleSourcePredicate.isFalse, WorldRuleSourcePredicate.isTrue) ||
+    (
+      WorldRuleSourcePredicate.completed,
+      WorldRuleSourcePredicate.notCompleted
+    ) ||
+    (
+      WorldRuleSourcePredicate.notCompleted,
+      WorldRuleSourcePredicate.completed
+    ) ||
+    (WorldRuleSourcePredicate.consumed, WorldRuleSourcePredicate.notConsumed) ||
+    (WorldRuleSourcePredicate.notConsumed, WorldRuleSourcePredicate.consumed) =>
+      true,
+    _ => false,
+  };
+}
+
+void _diagnoseSourceProducibility(
+  WorldRuleDefinition rule,
+  List<WorldRuleDiagnostic> diagnostics, {
+  required NarrativeFactRuntimeResolver factResolver,
+  required Map<String, Set<bool>> producibleFactValues,
+  required Set<String> producibleStoryStepIds,
+}) {
+  if (rule.source.kind == WorldRuleSourceKind.storyStepCompletion) {
+    if (rule.source.predicate != WorldRuleSourcePredicate.completed ||
+        producibleStoryStepIds.contains(rule.source.sourceId)) {
+      return;
+    }
+    diagnostics.add(
+      WorldRuleDiagnostic(
+        code: WorldRuleDiagnosticCode.worldRuleSourceNeverProduced,
+        severity: WorldRuleDiagnosticSeverity.warning,
+        message:
+            'Aucune Scene ni liaison narrative ne peut terminer l’étape attendue par cette World Rule.',
+        ruleId: rule.id,
+        sourceId: rule.source.sourceId,
+        suggestedFixLabel:
+            'Lier une Scene à cette étape ou ajouter une conséquence completeStoryStep.',
+      ),
+    );
+    return;
+  }
+  if (rule.source.kind != WorldRuleSourceKind.fact ||
+      (rule.source.predicate != WorldRuleSourcePredicate.isTrue &&
+          rule.source.predicate != WorldRuleSourcePredicate.isFalse)) {
+    return;
+  }
+  final resolution = factResolver.resolve(
+    factId: rule.source.sourceId,
+    runtimeState: const NarrativeFactRuntimeState.empty(),
+    storyFlags: const StoryFlags(),
+  );
+  if (resolution is! NarrativeFactRuntimeResolved) {
+    return;
+  }
+  final expected = rule.source.predicate == WorldRuleSourcePredicate.isTrue;
+  if (producibleFactValues[rule.source.sourceId]?.contains(expected) == true) {
+    return;
+  }
+  diagnostics.add(
+    WorldRuleDiagnostic(
+      code: WorldRuleDiagnosticCode.worldRuleSourceNeverProduced,
+      severity: WorldRuleDiagnosticSeverity.warning,
+      message:
+          'Aucun état initial ni aucune Scene ne peut produire la valeur de Fact attendue par cette World Rule.',
+      ruleId: rule.id,
+      sourceId: rule.source.sourceId,
+      suggestedFixLabel:
+          'Initialiser ce Fact ou ajouter une conséquence Scene qui produit cette valeur.',
+    ),
+  );
+}
+
+Map<String, Set<bool>> _producibleFactValues(ProjectManifest project) {
+  final values = <String, Set<bool>>{
+    for (final fact in project.facts) fact.id: <bool>{fact.defaultValue},
+  };
+  for (final entry in project.newGame.initialFacts.entries) {
+    values.putIfAbsent(entry.key, () => <bool>{}).add(entry.value);
+  }
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) {
+        continue;
+      }
+      final consequence = payload.consequence;
+      if (consequence is SceneSetFactConsequence) {
+        values
+            .putIfAbsent(consequence.factId, () => <bool>{})
+            .add(consequence.value);
+      }
+    }
+  }
+  for (final scenario in project.scenarios) {
+    for (final node in scenario.nodes) {
+      final producedValue = switch (node.payload.actionKind?.trim()) {
+        'setFlag' => true,
+        'clearFlag' => false,
+        _ => null,
+      };
+      final flagName = node.binding.flagName?.trim() ?? '';
+      if (producedValue == null || flagName.isEmpty) {
+        continue;
+      }
+      for (final fact in project.facts) {
+        if (fact.id == flagName || fact.legacyFlagName == flagName) {
+          values.putIfAbsent(fact.id, () => <bool>{}).add(producedValue);
+        }
+      }
+    }
+  }
+  for (final storyline in project.storylines) {
+    for (final link in storyline.sceneLinks) {
+      for (final outcome in link.outcomeLinks) {
+        for (final effect in outcome.effects) {
+          if (effect.type != StorylineEffectType.emitFact) {
+            continue;
+          }
+          final parsed = switch (effect.value?.trim().toLowerCase()) {
+            'true' => true,
+            'false' => false,
+            _ => null,
+          };
+          if (parsed != null) {
+            values.putIfAbsent(effect.targetId, () => <bool>{}).add(parsed);
+          }
+        }
+      }
+    }
+  }
+  return values;
+}
+
+void _diagnoseBlockingEntityRelease(
+  List<WorldRuleDefinition> rules, {
+  required Map<String, MapData> mapsById,
+  required List<WorldRuleDiagnostic> diagnostics,
+}) {
+  final neverProducedRuleIds = <String>{
+    for (final diagnostic in diagnostics)
+      if (diagnostic.code ==
+          WorldRuleDiagnosticCode.worldRuleSourceNeverProduced)
+        diagnostic.ruleId,
+  };
   for (final rule in rules) {
-    if (!rule.enabled) {
+    if (!rule.enabled ||
+        !neverProducedRuleIds.contains(rule.id) ||
+        rule.target.kind != WorldRuleTargetKind.mapEntity ||
+        rule.effect.kind != WorldRuleEffectKind.entityHidden) {
       continue;
     }
-    final key =
-        '${_targetIdentity(rule.target)}|${rule.effect.kind.name}|${rule.priority}';
-    final previous = seen[key];
-    if (previous == null) {
-      seen[key] = rule;
+    final map = mapsById[rule.target.mapId];
+    if (map == null) {
+      continue;
+    }
+    final entity = _findEntity(map, rule.target.entityId ?? '');
+    if (entity == null || !entity.blocksMovement) {
+      continue;
+    }
+    final hasAnotherReleaseRule = rules.any(
+      (candidate) =>
+          candidate.enabled &&
+          candidate.id != rule.id &&
+          !neverProducedRuleIds.contains(candidate.id) &&
+          candidate.target.kind == WorldRuleTargetKind.mapEntity &&
+          _targetIdentity(candidate.target) == _targetIdentity(rule.target) &&
+          candidate.effect.kind == WorldRuleEffectKind.entityHidden,
+    );
+    if (hasAnotherReleaseRule) {
       continue;
     }
     diagnostics.add(
       WorldRuleDiagnostic(
-        code: WorldRuleDiagnosticCode.worldRuleConflict,
+        code: WorldRuleDiagnosticCode.worldRuleBlockingEntityNeverReleased,
         severity: WorldRuleDiagnosticSeverity.warning,
         message:
-            'Plusieurs World Rules actives ciblent le même effet avec la même priorité.',
+            'Cette entité bloquante ne possède aucune règle atteignable qui puisse la retirer du parcours.',
         ruleId: rule.id,
-        targetId: _targetIdentity(rule.target),
+        sourceId: rule.source.sourceId,
+        targetId: entity.id,
         mapId: rule.target.mapId,
-        suggestedFixLabel: 'Changer la priorité ou fusionner ces règles.',
+        suggestedFixLabel:
+            'Rendre la source atteignable ou ajouter une autre règle de déverrouillage.',
       ),
     );
   }
+}
+
+Set<String> _producibleStoryStepIds(ProjectManifest project) {
+  final result = <String>{};
+  for (final scenario in project.scenarios) {
+    for (final node in scenario.nodes) {
+      if (node.payload.actionKind?.trim() != 'completeStep') {
+        continue;
+      }
+      final stepId = node.payload.params['stepId']?.trim() ?? '';
+      if (stepId.isNotEmpty) {
+        result.add(stepId);
+      }
+    }
+  }
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneActionPayload) {
+        continue;
+      }
+      final consequence = payload.consequence;
+      if (consequence is SceneCompleteStoryStepConsequence) {
+        result.add(consequence.stepId);
+      }
+    }
+  }
+  for (final storyline in project.storylines) {
+    for (final link in storyline.sceneLinks) {
+      for (final outcome in link.outcomeLinks) {
+        for (final effect in outcome.effects) {
+          if (effect.type == StorylineEffectType.completeStep) {
+            result.add(effect.targetId);
+          }
+        }
+      }
+    }
+  }
+  return result;
 }
 
 WorldRuleDiagnostic _missingTarget(WorldRuleDefinition rule, String label) {

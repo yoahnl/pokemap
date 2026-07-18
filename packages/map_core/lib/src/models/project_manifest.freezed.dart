@@ -85,6 +85,7 @@ mixin _$ProjectManifest {
       throw _privateConstructorUsedError;
   ProjectSettings get settings => throw _privateConstructorUsedError;
   ProjectPokemonConfig get pokemon => throw _privateConstructorUsedError;
+  ProjectNewGameConfig get newGame => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
   @JsonKey(
@@ -171,6 +172,7 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
+      ProjectNewGameConfig newGame,
       Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -233,6 +235,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? characters = null,
     Object? settings = null,
     Object? pokemon = null,
+    Object? newGame = null,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? shadowCatalog = null,
@@ -355,6 +358,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.pokemon
           : pokemon // ignore: cast_nullable_to_non_nullable
               as ProjectPokemonConfig,
+      newGame: null == newGame
+          ? _value.newGame
+          : newGame // ignore: cast_nullable_to_non_nullable
+              as ProjectNewGameConfig,
       globalProperties: null == globalProperties
           ? _value.globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
@@ -455,6 +462,7 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
+      ProjectNewGameConfig newGame,
       Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -517,6 +525,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? characters = null,
     Object? settings = null,
     Object? pokemon = null,
+    Object? newGame = null,
     Object? globalProperties = null,
     Object? surfaceCatalog = null,
     Object? shadowCatalog = null,
@@ -639,6 +648,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value.pokemon
           : pokemon // ignore: cast_nullable_to_non_nullable
               as ProjectPokemonConfig,
+      newGame: null == newGame
+          ? _value.newGame
+          : newGame // ignore: cast_nullable_to_non_nullable
+              as ProjectNewGameConfig,
       globalProperties: null == globalProperties
           ? _value._globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
@@ -703,6 +716,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
       this.pokemon = const ProjectPokemonConfig(),
+      this.newGame = const ProjectNewGameConfig(),
       final Map<String, dynamic> globalProperties = const {},
       @JsonKey(
           name: 'surfaceCatalog',
@@ -993,6 +1007,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   @override
   @JsonKey()
   final ProjectPokemonConfig pokemon;
+  @override
+  @JsonKey()
+  final ProjectNewGameConfig newGame;
   final Map<String, dynamic> _globalProperties;
   @override
   @JsonKey()
@@ -1022,7 +1039,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1077,6 +1094,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             (identical(other.settings, settings) ||
                 other.settings == settings) &&
             (identical(other.pokemon, pokemon) || other.pokemon == pokemon) &&
+            (identical(other.newGame, newGame) || other.newGame == newGame) &&
             const DeepCollectionEquality()
                 .equals(other._globalProperties, _globalProperties) &&
             (identical(other.surfaceCatalog, surfaceCatalog) ||
@@ -1122,6 +1140,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_characters),
         settings,
         pokemon,
+        newGame,
         const DeepCollectionEquality().hash(_globalProperties),
         surfaceCatalog,
         shadowCatalog,
@@ -1199,6 +1218,7 @@ abstract class _ProjectManifest implements ProjectManifest {
       final List<ProjectCharacterEntry> characters,
       final ProjectSettings settings,
       final ProjectPokemonConfig pokemon,
+      final ProjectNewGameConfig newGame,
       final Map<String, dynamic> globalProperties,
       @JsonKey(
           name: 'surfaceCatalog',
@@ -1299,6 +1319,8 @@ abstract class _ProjectManifest implements ProjectManifest {
   ProjectSettings get settings;
   @override
   ProjectPokemonConfig get pokemon;
+  @override
+  ProjectNewGameConfig get newGame;
   @override
   Map<String, dynamic> get globalProperties;
   @override
@@ -2743,6 +2765,179 @@ abstract class _ProjectDialogueFolder implements ProjectDialogueFolder {
       get copyWith => throw _privateConstructorUsedError;
 }
 
+DialogueDeclaredOutcome _$DialogueDeclaredOutcomeFromJson(
+    Map<String, dynamic> json) {
+  return _DialogueDeclaredOutcome.fromJson(json);
+}
+
+/// @nodoc
+mixin _$DialogueDeclaredOutcome {
+  String get id => throw _privateConstructorUsedError;
+  String get label => throw _privateConstructorUsedError;
+
+  /// Serializes this DialogueDeclaredOutcome to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of DialogueDeclaredOutcome
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $DialogueDeclaredOutcomeCopyWith<DialogueDeclaredOutcome> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $DialogueDeclaredOutcomeCopyWith<$Res> {
+  factory $DialogueDeclaredOutcomeCopyWith(DialogueDeclaredOutcome value,
+          $Res Function(DialogueDeclaredOutcome) then) =
+      _$DialogueDeclaredOutcomeCopyWithImpl<$Res, DialogueDeclaredOutcome>;
+  @useResult
+  $Res call({String id, String label});
+}
+
+/// @nodoc
+class _$DialogueDeclaredOutcomeCopyWithImpl<$Res,
+        $Val extends DialogueDeclaredOutcome>
+    implements $DialogueDeclaredOutcomeCopyWith<$Res> {
+  _$DialogueDeclaredOutcomeCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of DialogueDeclaredOutcome
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? label = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$DialogueDeclaredOutcomeImplCopyWith<$Res>
+    implements $DialogueDeclaredOutcomeCopyWith<$Res> {
+  factory _$$DialogueDeclaredOutcomeImplCopyWith(
+          _$DialogueDeclaredOutcomeImpl value,
+          $Res Function(_$DialogueDeclaredOutcomeImpl) then) =
+      __$$DialogueDeclaredOutcomeImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({String id, String label});
+}
+
+/// @nodoc
+class __$$DialogueDeclaredOutcomeImplCopyWithImpl<$Res>
+    extends _$DialogueDeclaredOutcomeCopyWithImpl<$Res,
+        _$DialogueDeclaredOutcomeImpl>
+    implements _$$DialogueDeclaredOutcomeImplCopyWith<$Res> {
+  __$$DialogueDeclaredOutcomeImplCopyWithImpl(
+      _$DialogueDeclaredOutcomeImpl _value,
+      $Res Function(_$DialogueDeclaredOutcomeImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of DialogueDeclaredOutcome
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? label = null,
+  }) {
+    return _then(_$DialogueDeclaredOutcomeImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      label: null == label
+          ? _value.label
+          : label // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$DialogueDeclaredOutcomeImpl implements _DialogueDeclaredOutcome {
+  const _$DialogueDeclaredOutcomeImpl({required this.id, required this.label});
+
+  factory _$DialogueDeclaredOutcomeImpl.fromJson(Map<String, dynamic> json) =>
+      _$$DialogueDeclaredOutcomeImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String label;
+
+  @override
+  String toString() {
+    return 'DialogueDeclaredOutcome(id: $id, label: $label)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$DialogueDeclaredOutcomeImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.label, label) || other.label == label));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, label);
+
+  /// Create a copy of DialogueDeclaredOutcome
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$DialogueDeclaredOutcomeImplCopyWith<_$DialogueDeclaredOutcomeImpl>
+      get copyWith => __$$DialogueDeclaredOutcomeImplCopyWithImpl<
+          _$DialogueDeclaredOutcomeImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$DialogueDeclaredOutcomeImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _DialogueDeclaredOutcome implements DialogueDeclaredOutcome {
+  const factory _DialogueDeclaredOutcome(
+      {required final String id,
+      required final String label}) = _$DialogueDeclaredOutcomeImpl;
+
+  factory _DialogueDeclaredOutcome.fromJson(Map<String, dynamic> json) =
+      _$DialogueDeclaredOutcomeImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get label;
+
+  /// Create a copy of DialogueDeclaredOutcome
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$DialogueDeclaredOutcomeImplCopyWith<_$DialogueDeclaredOutcomeImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectDialogueEntry _$ProjectDialogueEntryFromJson(Map<String, dynamic> json) {
   return _ProjectDialogueEntry.fromJson(json);
 }
@@ -2756,6 +2951,8 @@ mixin _$ProjectDialogueEntry {
   String get relativePath => throw _privateConstructorUsedError;
   List<String> get tags => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
+  List<DialogueDeclaredOutcome> get declaredOutcomes =>
+      throw _privateConstructorUsedError;
 
   /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   String? get defaultStartNode => throw _privateConstructorUsedError;
@@ -2786,6 +2983,7 @@ abstract class $ProjectDialogueEntryCopyWith<$Res> {
       String relativePath,
       List<String> tags,
       String description,
+      List<DialogueDeclaredOutcome> declaredOutcomes,
       String? defaultStartNode,
       String? folderId,
       int sortOrder});
@@ -2812,6 +3010,7 @@ class _$ProjectDialogueEntryCopyWithImpl<$Res,
     Object? relativePath = null,
     Object? tags = null,
     Object? description = null,
+    Object? declaredOutcomes = null,
     Object? defaultStartNode = freezed,
     Object? folderId = freezed,
     Object? sortOrder = null,
@@ -2837,6 +3036,10 @@ class _$ProjectDialogueEntryCopyWithImpl<$Res,
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      declaredOutcomes: null == declaredOutcomes
+          ? _value.declaredOutcomes
+          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+              as List<DialogueDeclaredOutcome>,
       defaultStartNode: freezed == defaultStartNode
           ? _value.defaultStartNode
           : defaultStartNode // ignore: cast_nullable_to_non_nullable
@@ -2867,6 +3070,7 @@ abstract class _$$ProjectDialogueEntryImplCopyWith<$Res>
       String relativePath,
       List<String> tags,
       String description,
+      List<DialogueDeclaredOutcome> declaredOutcomes,
       String? defaultStartNode,
       String? folderId,
       int sortOrder});
@@ -2890,6 +3094,7 @@ class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
     Object? relativePath = null,
     Object? tags = null,
     Object? description = null,
+    Object? declaredOutcomes = null,
     Object? defaultStartNode = freezed,
     Object? folderId = freezed,
     Object? sortOrder = null,
@@ -2915,6 +3120,10 @@ class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
           ? _value.description
           : description // ignore: cast_nullable_to_non_nullable
               as String,
+      declaredOutcomes: null == declaredOutcomes
+          ? _value._declaredOutcomes
+          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+              as List<DialogueDeclaredOutcome>,
       defaultStartNode: freezed == defaultStartNode
           ? _value.defaultStartNode
           : defaultStartNode // ignore: cast_nullable_to_non_nullable
@@ -2941,10 +3150,12 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
       required this.relativePath,
       final List<String> tags = const [],
       this.description = '',
+      final List<DialogueDeclaredOutcome> declaredOutcomes = const [],
       this.defaultStartNode,
       this.folderId,
       this.sortOrder = 0})
-      : _tags = tags;
+      : _tags = tags,
+        _declaredOutcomes = declaredOutcomes;
 
   factory _$ProjectDialogueEntryImpl.fromJson(Map<String, dynamic> json) =>
       _$$ProjectDialogueEntryImplFromJson(json);
@@ -2969,6 +3180,15 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
   @override
   @JsonKey()
   final String description;
+  final List<DialogueDeclaredOutcome> _declaredOutcomes;
+  @override
+  @JsonKey()
+  List<DialogueDeclaredOutcome> get declaredOutcomes {
+    if (_declaredOutcomes is EqualUnmodifiableListView)
+      return _declaredOutcomes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_declaredOutcomes);
+  }
 
   /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   @override
@@ -2983,7 +3203,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
 
   @override
   String toString() {
-    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
+    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
   }
 
   @override
@@ -2998,6 +3218,8 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
             const DeepCollectionEquality().equals(other._tags, _tags) &&
             (identical(other.description, description) ||
                 other.description == description) &&
+            const DeepCollectionEquality()
+                .equals(other._declaredOutcomes, _declaredOutcomes) &&
             (identical(other.defaultStartNode, defaultStartNode) ||
                 other.defaultStartNode == defaultStartNode) &&
             (identical(other.folderId, folderId) ||
@@ -3015,6 +3237,7 @@ class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
       relativePath,
       const DeepCollectionEquality().hash(_tags),
       description,
+      const DeepCollectionEquality().hash(_declaredOutcomes),
       defaultStartNode,
       folderId,
       sortOrder);
@@ -3044,6 +3267,7 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
       required final String relativePath,
       final List<String> tags,
       final String description,
+      final List<DialogueDeclaredOutcome> declaredOutcomes,
       final String? defaultStartNode,
       final String? folderId,
       final int sortOrder}) = _$ProjectDialogueEntryImpl;
@@ -3063,6 +3287,8 @@ abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
   List<String> get tags;
   @override
   String get description;
+  @override
+  List<DialogueDeclaredOutcome> get declaredOutcomes;
 
   /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
   @override

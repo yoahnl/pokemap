@@ -78,6 +78,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.worldRules);
   }
 
+  EditorState selectNarrativeValidatorWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.narrativeValidator);
+  }
+
   EditorState selectPathStudioWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.pathStudio);
   }

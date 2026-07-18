@@ -16475,7 +16475,38 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "gate_bois_to_marais",
+      "name": "Accès aux Marais Salants fermé",
+      "kind": "sign",
+      "pos": {
+        "x": 44,
+        "y": 0
+      },
+      "size": {
+        "width": 1,
+        "height": 45
+      },
+      "npc": null,
+      "sign": {
+        "title": "Accès aux Marais Salants fermé",
+        "dialogue": null,
+        "plainText": "Les ronces et la brume barrent encore la route des marais."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_bois_ronces",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    }
+  ],
   "connections": [
     {
       "direction": "west",

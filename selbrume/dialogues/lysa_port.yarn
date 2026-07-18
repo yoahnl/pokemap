@@ -1,6 +1,25 @@
 title: LysaPort
-tags: phase-j selbrume
+tags: selbrume chapter-1 golden-slice
 ---
 Lysa: La brume se lève sur le Port des Brisants.
 Lysa: Si tu veux continuer, montre-moi ce que vaut ton équipe.
+-> Répondre avec assurance
+    <<outcome confident>>
+    Joueur: Je ne reculerai pas devant un peu de brume.
+-> Rester prudent
+    <<outcome hesitant>>
+    Joueur: Je préfère comprendre avant de foncer.
+-> La provoquer
+    <<outcome aggressive>>
+    Joueur: Tu parles beaucoup pour quelqu'un qui bloque le passage.
+===
+title: RivalAfterWin
+tags: selbrume chapter-1
+---
+Lysa: D'accord. Tu peux tenir le rythme. Je pars devant vers les marais.
+===
+title: RivalAfterLoss
+tags: selbrume chapter-1
+---
+Lysa: Tu manques encore d'expérience, mais la brume n'attendra pas. Suis-moi quand tu seras prêt.
 ===

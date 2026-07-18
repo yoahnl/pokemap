@@ -344,6 +344,7 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
   required String nodeId,
   required String dialogueId,
   String? yarnNodeName,
+  required List<String> expectedOutcomes,
 }) {
   final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
   if (node.kind != SceneNodeKind.yarnDialogue ||
@@ -363,7 +364,7 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
   final updatedPayload = SceneYarnDialoguePayload(
     dialogueId: normalizedDialogueId,
     yarnNodeName: _trimOptional(yarnNodeName),
-    expectedOutcomes: currentPayload.expectedOutcomes,
+    expectedOutcomes: expectedOutcomes,
     speakerHints: currentPayload.speakerHints,
   );
   final updatedNode = SceneNode(
@@ -373,7 +374,44 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
     description: node.description,
     payload: updatedPayload,
   );
-  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+  final supportedOutcomeIds = updatedPayload.expectedOutcomes.toSet();
+  final staleEdgeIds = <String>{};
+  final updatedEdges = <SceneEdge>[];
+  for (final edge in scene.graph.edges) {
+    final isStaleDialogueOutcome = edge.fromNodeId == nodeId &&
+        edge.kind == SceneEdgeKind.dialogueOutcome &&
+        !supportedOutcomeIds.contains(edge.fromPortId);
+    if (isStaleDialogueOutcome) {
+      staleEdgeIds.add(edge.id);
+    } else {
+      updatedEdges.add(edge);
+    }
+  }
+  final updatedScene = SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [
+        for (final candidate in scene.graph.nodes)
+          if (candidate.id == updatedNode.id) updatedNode else candidate,
+      ],
+      edges: updatedEdges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: scene.layout.nodeLayouts,
+      edgeLayouts: [
+        for (final layout in scene.layout.edgeLayouts)
+          if (!staleEdgeIds.contains(layout.edgeId)) layout,
+      ],
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
 
   return SceneYarnDialoguePayloadUpdateResult(
     updatedScene: updatedScene,
@@ -1014,12 +1052,81 @@ void _validateSceneConsequenceForAuthoring(SceneConsequence consequence) {
         'consequence.stepId',
         'completeStoryStep consequence requires a Story Step id.',
       );
-    case _:
-      throw ArgumentError.value(
-        consequence,
-        'consequence',
-        'Unsupported Scene consequence kind for authoring V0.',
+    case SceneGiveItemConsequence():
+      _validateItemConsequenceForAuthoring(
+        itemId: consequence.itemId,
+        quantity: consequence.quantity,
+        kind: 'giveItem',
       );
+    case SceneTakeItemConsequence():
+      _validateItemConsequenceForAuthoring(
+        itemId: consequence.itemId,
+        quantity: consequence.quantity,
+        kind: 'takeItem',
+      );
+    case SceneGiveMoneyConsequence():
+      if (consequence.amount <= 0) {
+        throw ArgumentError.value(
+          consequence.amount,
+          'consequence.amount',
+          'giveMoney consequence requires a positive amount.',
+        );
+      }
+    case SceneGivePokemonConsequence():
+      _trimRequired(
+        consequence.speciesId,
+        'consequence.speciesId',
+        'givePokemon consequence requires a species id.',
+      );
+      _trimRequired(
+        consequence.natureId,
+        'consequence.natureId',
+        'givePokemon consequence requires a nature id.',
+      );
+      _trimRequired(
+        consequence.abilityId,
+        'consequence.abilityId',
+        'givePokemon consequence requires an ability id.',
+      );
+      if (consequence.level < 1 || consequence.level > 100) {
+        throw ArgumentError.value(
+          consequence.level,
+          'consequence.level',
+          'givePokemon consequence level must be between 1 and 100.',
+        );
+      }
+      if (consequence.currentHp <= 0) {
+        throw ArgumentError.value(
+          consequence.currentHp,
+          'consequence.currentHp',
+          'givePokemon consequence currentHp must be positive.',
+        );
+      }
+    case SceneGiveConfiguredStarterConsequence():
+      _trimRequired(
+        consequence.starterOptionId,
+        'consequence.starterOptionId',
+        'giveConfiguredStarter consequence requires a New Game starter option.',
+      );
+  }
+}
+
+void _validateItemConsequenceForAuthoring({
+  required String itemId,
+  required int quantity,
+  required String kind,
+}) {
+  _trimRequired(
+    itemId,
+    'consequence.itemId',
+    '$kind consequence requires an item id.',
+  );
+  if (quantity <= 0) {
+    throw ArgumentError.value(
+      quantity,
+      'consequence.quantity',
+      '$kind consequence requires a positive quantity.',
+    );
   }
 }
 
@@ -1300,6 +1407,11 @@ String _defaultConsequenceActionTitle(SceneConsequence consequence) {
     SceneSetFactConsequence() => 'Définir un Fact',
     SceneMarkEventConsumedConsequence() => 'Marquer event consommé',
     SceneCompleteStoryStepConsequence() => 'Terminer une étape narrative',
+    SceneGiveItemConsequence() => 'Donner un objet',
+    SceneTakeItemConsequence() => 'Retirer un objet',
+    SceneGiveMoneyConsequence() => 'Donner de l’argent',
+    SceneGivePokemonConsequence() => 'Donner un Pokémon',
+    SceneGiveConfiguredStarterConsequence() => 'Donner un starter configuré',
     _ => 'Conséquence',
   };
 }

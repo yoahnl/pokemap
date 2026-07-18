@@ -12,6 +12,9 @@ import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import '../../shared/pokemap_macos_ui_shim.dart'
     show MacosPopupButton, MacosPopupMenuItem;
+import '../narrative_studio/narrative_studio_destination.dart';
+import '../narrative_studio/narrative_studio_route_presentation.dart';
+import '../narrative_studio/narrative_studio_workspace_page.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_renderer.dart';
 import 'cinematic_actor_walking_animation_preview_resolver.dart';
@@ -631,291 +634,302 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
 
     return Material(
       type: MaterialType.transparency,
-      child: PokeMapPageSurface(
+      child: NarrativeStudioWorkspacePage(
         key: const ValueKey('cinematic-builder-workspace'),
-        // Wrap the workspace in a global Focus key event listener so pressing ESC anywhere
-        // in the builder workspace will cancel the Stage Point placement mode, provided
-        // we are not focused on a text input.
-        child: Focus(
-          autofocus: true,
-          onKeyEvent: (node, event) {
-            if (event is KeyDownEvent &&
-                event.logicalKey == LogicalKeyboardKey.escape &&
-                _addStagePointMode) {
-              setState(() {
-                _addStagePointMode = false;
-              });
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _BuilderHeader(
-                entry: widget.entry,
-                onBackToLibrary: widget.onBackToLibrary,
-                readiness: readiness,
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    SizedBox(
-                      width: 250,
-                      child: _BlockPalette(
-                        entry: widget.entry,
-                        asset: widget.asset,
-                        onAddBasicBlock: _addBasicBlock,
-                        onAddRequiredActor: _addRequiredActor,
-                        onAddMovementTarget: _addMovementTarget,
-                        onUpdateMovementTarget: _updateMovementTarget,
-                        onRemoveMovementTarget: _removeMovementTarget,
-                        onAddActorFacing: _addActorFacing,
-                        onAddActorMove: _addActorMove,
-                        onAddActorEmote: _addActorEmote,
+        presentation: NarrativeStudioRoutePresentation(
+          destination: NarrativeStudioDestination.cinematics,
+          label: 'Cinématiques',
+          breadcrumbLabels: ['Cinématiques', widget.entry.title],
+        ),
+        leading: PokeMapIconButton(
+          key: const ValueKey('cinematic-builder-back-button'),
+          onPressed: widget.onBackToLibrary,
+          tooltip: 'Retour à la bibliothèque de cinématiques',
+          variant: PokeMapIconButtonVariant.soft,
+          icon: const Icon(CupertinoIcons.chevron_left),
+        ),
+        body: PokeMapPageSurface(
+          // Wrap the workspace in a global Focus key event listener so pressing ESC anywhere
+          // in the builder workspace will cancel the Stage Point placement mode, provided
+          // we are not focused on a text input.
+          child: Focus(
+            autofocus: true,
+            onKeyEvent: (node, event) {
+              if (event is KeyDownEvent &&
+                  event.logicalKey == LogicalKeyboardKey.escape &&
+                  _addStagePointMode) {
+                setState(() {
+                  _addStagePointMode = false;
+                });
+                return KeyEventResult.handled;
+              }
+              return KeyEventResult.ignored;
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(
+                        width: 250,
+                        child: _BlockPalette(
+                          entry: widget.entry,
+                          asset: widget.asset,
+                          onAddBasicBlock: _addBasicBlock,
+                          onAddRequiredActor: _addRequiredActor,
+                          onAddMovementTarget: _addMovementTarget,
+                          onUpdateMovementTarget: _updateMovementTarget,
+                          onRemoveMovementTarget: _removeMovementTarget,
+                          onAddActorFacing: _addActorFacing,
+                          onAddActorMove: _addActorMove,
+                          onAddActorEmote: _addActorEmote,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final timelineHeight = _builderTimelineHeight(
-                            constraints.maxHeight,
-                            hasBackdrop: widget.backdropPreviewModel != null,
-                          );
-                          final previewHeight = math.max(
-                            0.0,
-                            constraints.maxHeight -
-                                _builderTimelineGap -
-                                timelineHeight,
-                          );
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              SizedBox(
-                                height: previewHeight,
-                                child: _PreviewSandbox(
-                                  entry: widget.entry,
-                                  asset: widget.asset,
-                                  backdropPreviewModel:
-                                      widget.backdropPreviewModel,
-                                  backdropTileRenderPlan:
-                                      widget.backdropTileRenderPlan,
-                                  backdropLayerRenderPlan:
-                                      widget.backdropLayerRenderPlan,
-                                  actorDisplayPreviewModel:
-                                      widget.actorDisplayPreviewModel,
-                                  actorPlaybackPreviewModel:
-                                      playbackActorOverlayModel,
-                                  actorSpritePreviewPlan:
-                                      previewActorSpritePreviewPlan,
-                                  playbackFrame: playbackFrame,
-                                  fadeState: playbackFrame.fadeState,
-                                  cameraPose: playbackFrame.cameraPose,
-                                  playbackPreviewStatus: playbackPreviewStatus,
-                                  backdropFramingState: _backdropFramingState,
-                                  stagePoints:
-                                      widget.asset.stageContext?.stagePoints ??
-                                          const [],
-                                  selectedStagePointId: _selectedStagePointId,
-                                  addStagePointMode: _addStagePointMode,
-                                  onSelectStagePointId: (id) {
-                                    setState(() {
-                                      _selectedStagePointId = id;
-                                    });
-                                  },
-                                  onUpdateStagePoint: _updateStagePoint,
-                                  onAddStagePointAtTile: _addStagePointAtTile,
-                                  onAddStagePointModeChanged: (val) {
-                                    setState(() {
-                                      _addStagePointMode = val;
-                                    });
-                                  },
-                                  onBackdropFramingModeChanged: (mode) {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        mode: mode,
-                                        panTiles: Offset.zero,
-                                      );
-                                    });
-                                  },
-                                  onBackdropFramingZoomChanged: (zoom) {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        zoom: zoom,
-                                      );
-                                    });
-                                  },
-                                  onBackdropFramingPanChanged: (panTiles) {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        panTiles: panTiles,
-                                      );
-                                    });
-                                  },
-                                  onBackdropFramingResetView: () {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        zoom:
-                                            CinematicBackdropPreviewFramingState
-                                                .minZoom,
-                                        panTiles: Offset.zero,
-                                      );
-                                    });
-                                  },
-                                  onBackdropFramingDetailsChanged:
-                                      (showDetails) {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        showDetails: showDetails,
-                                      );
-                                    });
-                                  },
-                                  onBackdropFramingGridChanged: (showGrid) {
-                                    setState(() {
-                                      _backdropFramingState =
-                                          _backdropFramingState.copyWith(
-                                        showGrid: showGrid,
-                                      );
-                                    });
-                                  },
-                                  selectedStep: selectedStep,
-                                  selectedStepIndex: selectedStepIndex,
-                                  timelineProbeTimeMs: _timelineProbeTimeMs,
-                                  readiness: readiness,
-                                ),
-                              ),
-                              const SizedBox(height: _builderTimelineGap),
-                              SizedBox(
-                                height: timelineHeight,
-                                child: _TimelinePlaceholder(
-                                  entry: widget.entry,
-                                  asset: widget.asset,
-                                  selectedStepId: _selectedStepId,
-                                  timelineProbeTimeMs: _timelineProbeTimeMs,
-                                  timelineProbeSnapHint: _timelineProbeSnapHint,
-                                  playbackPlan: playbackPlan,
-                                  playbackFrame: playbackFrame,
-                                  playbackTimeMs: playbackTimeMs,
-                                  isPlaybackPlaying: _isPlaybackPlaying,
-                                  onStepSelected: (step) {
-                                    if (_isPlaybackPlaying) {
-                                      _pausePlaybackWithoutSetState();
-                                    }
-                                    setState(() {
-                                      _selectedStepId = step.id;
-                                      _timelineProbeTimeMs = null;
-                                      _timelineProbeSnapHint = null;
-                                    });
-                                  },
-                                  onTimelineProbeChanged: (probe) {
-                                    setState(() {
-                                      _timelineProbeTimeMs = probe.timeMs;
-                                      _timelineProbeSnapHint = probe.snapHint;
-                                    });
-                                  },
-                                  onTimelineProbeCleared: () {
-                                    setState(() {
-                                      _timelineProbeTimeMs = null;
-                                      _timelineProbeSnapHint = null;
-                                    });
-                                  },
-                                  onPlaybackSeekRequested: (position) =>
-                                      _seekPlayback(playbackPlan, position),
-                                  onPlaybackScrubStart: (position) =>
-                                      _beginPlaybackScrub(
-                                    playbackPlan,
-                                    position,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final timelineHeight = _builderTimelineHeight(
+                              constraints.maxHeight,
+                              hasBackdrop: widget.backdropPreviewModel != null,
+                            );
+                            final previewHeight = math.max(
+                              0.0,
+                              constraints.maxHeight -
+                                  _builderTimelineGap -
+                                  timelineHeight,
+                            );
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  height: previewHeight,
+                                  child: _PreviewSandbox(
+                                    entry: widget.entry,
+                                    asset: widget.asset,
+                                    backdropPreviewModel:
+                                        widget.backdropPreviewModel,
+                                    backdropTileRenderPlan:
+                                        widget.backdropTileRenderPlan,
+                                    backdropLayerRenderPlan:
+                                        widget.backdropLayerRenderPlan,
+                                    actorDisplayPreviewModel:
+                                        widget.actorDisplayPreviewModel,
+                                    actorPlaybackPreviewModel:
+                                        playbackActorOverlayModel,
+                                    actorSpritePreviewPlan:
+                                        previewActorSpritePreviewPlan,
+                                    playbackFrame: playbackFrame,
+                                    fadeState: playbackFrame.fadeState,
+                                    cameraPose: playbackFrame.cameraPose,
+                                    playbackPreviewStatus:
+                                        playbackPreviewStatus,
+                                    backdropFramingState: _backdropFramingState,
+                                    stagePoints: widget
+                                            .asset.stageContext?.stagePoints ??
+                                        const [],
+                                    selectedStagePointId: _selectedStagePointId,
+                                    addStagePointMode: _addStagePointMode,
+                                    onSelectStagePointId: (id) {
+                                      setState(() {
+                                        _selectedStagePointId = id;
+                                      });
+                                    },
+                                    onUpdateStagePoint: _updateStagePoint,
+                                    onAddStagePointAtTile: _addStagePointAtTile,
+                                    onAddStagePointModeChanged: (val) {
+                                      setState(() {
+                                        _addStagePointMode = val;
+                                      });
+                                    },
+                                    onBackdropFramingModeChanged: (mode) {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          mode: mode,
+                                          panTiles: Offset.zero,
+                                        );
+                                      });
+                                    },
+                                    onBackdropFramingZoomChanged: (zoom) {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          zoom: zoom,
+                                        );
+                                      });
+                                    },
+                                    onBackdropFramingPanChanged: (panTiles) {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          panTiles: panTiles,
+                                        );
+                                      });
+                                    },
+                                    onBackdropFramingResetView: () {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          zoom:
+                                              CinematicBackdropPreviewFramingState
+                                                  .minZoom,
+                                          panTiles: Offset.zero,
+                                        );
+                                      });
+                                    },
+                                    onBackdropFramingDetailsChanged:
+                                        (showDetails) {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          showDetails: showDetails,
+                                        );
+                                      });
+                                    },
+                                    onBackdropFramingGridChanged: (showGrid) {
+                                      setState(() {
+                                        _backdropFramingState =
+                                            _backdropFramingState.copyWith(
+                                          showGrid: showGrid,
+                                        );
+                                      });
+                                    },
+                                    selectedStep: selectedStep,
+                                    selectedStepIndex: selectedStepIndex,
+                                    timelineProbeTimeMs: _timelineProbeTimeMs,
+                                    readiness: readiness,
                                   ),
-                                  onPlaybackScrubUpdate: (position) =>
-                                      _updatePlaybackScrub(
-                                    playbackPlan,
-                                    position,
-                                  ),
-                                  onPlaybackScrubEnd: () =>
-                                      _endPlaybackScrub(playbackPlan),
-                                  onPlaybackScrubCancel: () =>
-                                      _cancelPlaybackScrub(playbackPlan),
-                                  onStepDurationResized:
-                                      _resizeTimelineStepDuration,
-                                  onAddDraftStep: _addDraftStep,
-                                  onPlaybackPlayPause: () =>
-                                      _togglePlayback(playbackPlan),
-                                  onPlaybackStop: _stopPlayback,
-                                  onPlaybackReset: _resetPlayback,
                                 ),
-                              ),
-                            ],
-                          );
-                        },
+                                const SizedBox(height: _builderTimelineGap),
+                                SizedBox(
+                                  height: timelineHeight,
+                                  child: _TimelinePlaceholder(
+                                    entry: widget.entry,
+                                    asset: widget.asset,
+                                    selectedStepId: _selectedStepId,
+                                    timelineProbeTimeMs: _timelineProbeTimeMs,
+                                    timelineProbeSnapHint:
+                                        _timelineProbeSnapHint,
+                                    playbackPlan: playbackPlan,
+                                    playbackFrame: playbackFrame,
+                                    playbackTimeMs: playbackTimeMs,
+                                    isPlaybackPlaying: _isPlaybackPlaying,
+                                    onStepSelected: (step) {
+                                      if (_isPlaybackPlaying) {
+                                        _pausePlaybackWithoutSetState();
+                                      }
+                                      setState(() {
+                                        _selectedStepId = step.id;
+                                        _timelineProbeTimeMs = null;
+                                        _timelineProbeSnapHint = null;
+                                      });
+                                    },
+                                    onTimelineProbeChanged: (probe) {
+                                      setState(() {
+                                        _timelineProbeTimeMs = probe.timeMs;
+                                        _timelineProbeSnapHint = probe.snapHint;
+                                      });
+                                    },
+                                    onTimelineProbeCleared: () {
+                                      setState(() {
+                                        _timelineProbeTimeMs = null;
+                                        _timelineProbeSnapHint = null;
+                                      });
+                                    },
+                                    onPlaybackSeekRequested: (position) =>
+                                        _seekPlayback(playbackPlan, position),
+                                    onPlaybackScrubStart: (position) =>
+                                        _beginPlaybackScrub(
+                                      playbackPlan,
+                                      position,
+                                    ),
+                                    onPlaybackScrubUpdate: (position) =>
+                                        _updatePlaybackScrub(
+                                      playbackPlan,
+                                      position,
+                                    ),
+                                    onPlaybackScrubEnd: () =>
+                                        _endPlaybackScrub(playbackPlan),
+                                    onPlaybackScrubCancel: () =>
+                                        _cancelPlaybackScrub(playbackPlan),
+                                    onStepDurationResized:
+                                        _resizeTimelineStepDuration,
+                                    onAddDraftStep: _addDraftStep,
+                                    onPlaybackPlayPause: () =>
+                                        _togglePlayback(playbackPlan),
+                                    onPlaybackStop: _stopPlayback,
+                                    onPlaybackReset: _resetPlayback,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    SizedBox(
-                      width: 300,
-                      child: _InspectorPlaceholder(
-                        entry: widget.entry,
-                        asset: widget.asset,
-                        stageMaps: widget.stageMaps,
-                        groups: widget.groups,
-                        characters: widget.characters,
-                        stageMapSourceCatalog: widget.stageMapSourceCatalog,
-                        selectedStep: selectedStep,
-                        selectedStepIndex: selectedStepIndex,
-                        startExpanded: widget.startExpanded,
-                        onUpdateStageMap: _updateStageMap,
-                        onUpdateStageContext: _updateStageContext,
-                        onRenameRequiredActor: _renameRequiredActor,
-                        onRemoveRequiredActor: _removeRequiredActor,
-                        onUpsertActorBinding: _upsertActorBinding,
-                        onUpsertActorAppearanceBinding:
-                            _upsertActorAppearanceBinding,
-                        onRemoveActorAppearanceBinding:
-                            _removeActorAppearanceBinding,
-                        onUpsertActorInitialPlacement:
-                            _upsertActorInitialPlacement,
-                        onUpsertMovementTargetBinding:
-                            _upsertMovementTargetBinding,
-                        onRemoveDraftStep: _removeDraftStep,
-                        onUpdateBasicBlock: _updateBasicBlock,
-                        onUpdateActorFacing: _updateActorFacing,
-                        onUpdateActorMove: _updateActorMove,
-                        onUpdateActorEmote: _updateActorEmote,
-                        onRemoveAuthoringStep: _removeAuthoringStep,
-                        onAddRequiredActor: _addRequiredActor,
-                        onUpdateMovementTarget: _updateMovementTarget,
-                        onRemoveMovementTarget: _removeMovementTarget,
-                        onAddMovementTarget: _addMovementTarget,
-                        onToggleActorMovePathMode: _toggleActorMovePathMode,
-                        onAddManualPathWaypoint: _addManualPathWaypoint,
-                        onRemoveManualPathWaypoint: _removeManualPathWaypoint,
-                        onReorderManualPathWaypoint: _reorderManualPathWaypoint,
-                        actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
-                        tilesets: widget.tilesets,
-                        selectedStagePointId: _selectedStagePointId,
-                        onSelectStagePointId: (id) {
-                          setState(() {
-                            _selectedStagePointId = id;
-                          });
-                        },
-                        onUpdateStagePoint: _updateStagePoint,
-                        onRemoveStagePoint: _removeStagePoint,
-                        mapWidth: widget.backdropPreviewModel?.mapWidth,
-                        mapHeight: widget.backdropPreviewModel?.mapHeight,
-                        readiness: readiness,
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 300,
+                        child: _InspectorPlaceholder(
+                          entry: widget.entry,
+                          asset: widget.asset,
+                          stageMaps: widget.stageMaps,
+                          groups: widget.groups,
+                          characters: widget.characters,
+                          stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                          selectedStep: selectedStep,
+                          selectedStepIndex: selectedStepIndex,
+                          startExpanded: widget.startExpanded,
+                          onUpdateStageMap: _updateStageMap,
+                          onUpdateStageContext: _updateStageContext,
+                          onRenameRequiredActor: _renameRequiredActor,
+                          onRemoveRequiredActor: _removeRequiredActor,
+                          onUpsertActorBinding: _upsertActorBinding,
+                          onUpsertActorAppearanceBinding:
+                              _upsertActorAppearanceBinding,
+                          onRemoveActorAppearanceBinding:
+                              _removeActorAppearanceBinding,
+                          onUpsertActorInitialPlacement:
+                              _upsertActorInitialPlacement,
+                          onUpsertMovementTargetBinding:
+                              _upsertMovementTargetBinding,
+                          onRemoveDraftStep: _removeDraftStep,
+                          onUpdateBasicBlock: _updateBasicBlock,
+                          onUpdateActorFacing: _updateActorFacing,
+                          onUpdateActorMove: _updateActorMove,
+                          onUpdateActorEmote: _updateActorEmote,
+                          onRemoveAuthoringStep: _removeAuthoringStep,
+                          onAddRequiredActor: _addRequiredActor,
+                          onUpdateMovementTarget: _updateMovementTarget,
+                          onRemoveMovementTarget: _removeMovementTarget,
+                          onAddMovementTarget: _addMovementTarget,
+                          onToggleActorMovePathMode: _toggleActorMovePathMode,
+                          onAddManualPathWaypoint: _addManualPathWaypoint,
+                          onRemoveManualPathWaypoint: _removeManualPathWaypoint,
+                          onReorderManualPathWaypoint:
+                              _reorderManualPathWaypoint,
+                          actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
+                          tilesets: widget.tilesets,
+                          selectedStagePointId: _selectedStagePointId,
+                          onSelectStagePointId: (id) {
+                            setState(() {
+                              _selectedStagePointId = id;
+                            });
+                          },
+                          onUpdateStagePoint: _updateStagePoint,
+                          onRemoveStagePoint: _removeStagePoint,
+                          mapWidth: widget.backdropPreviewModel?.mapWidth,
+                          mapHeight: widget.backdropPreviewModel?.mapHeight,
+                          readiness: readiness,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1660,137 +1674,6 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() => _selectedStepId = null);
-  }
-}
-
-class _BuilderHeader extends StatelessWidget {
-  const _BuilderHeader({
-    required this.entry,
-    required this.onBackToLibrary,
-    required this.readiness,
-  });
-
-  final CinematicsLibraryEntry entry;
-  final VoidCallback onBackToLibrary;
-  final CinematicStagePreviewReadiness readiness;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    final backAction = PokeMapIconButton(
-      key: const ValueKey('cinematic-builder-back-button'),
-      onPressed: onBackToLibrary,
-      variant: PokeMapIconButtonVariant.soft,
-      icon: const Icon(CupertinoIcons.chevron_left),
-    );
-    final title = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'Cinematic Builder V0',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: DefaultTextStyle.of(context).style.copyWith(
-                color: colors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '${entry.title} • ${entry.id}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: DefaultTextStyle.of(context).style.copyWith(
-                color: colors.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-        ),
-      ],
-    );
-    final itemsToComplete = readiness.items
-            .where((i) => i.kind != CinematicStagePreviewReadinessItemKind.ok)
-            .length +
-        readiness.diagnostics.length;
-    final badges = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        PokeMapBadge(
-          label: readiness.kind == CinematicStagePreviewReadinessKind.ready
-              ? 'Scène prête'
-              : (itemsToComplete == 1
-                  ? '1 élément à compléter'
-                  : '$itemsToComplete éléments à compléter'),
-          variant: readiness.kind == CinematicStagePreviewReadinessKind.ready
-              ? PokeMapBadgeVariant.success
-              : PokeMapBadgeVariant.warning,
-        ),
-        _TestHidden(
-          child: PokeMapBadge(
-            label: '${entry.timeline.stepCount} step(s)',
-            variant: PokeMapBadgeVariant.neutral,
-          ),
-        ),
-      ],
-    );
-    final actions = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const _TestHidden(
-          child: PokeMapButton(
-            key: ValueKey('cinematic-builder-validate-button'),
-            onPressed: null,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            child: SizedBox.shrink(),
-          ),
-        ),
-        const PokeMapButton(
-          key: ValueKey('cinematic-builder-preview-button'),
-          onPressed: null,
-          variant: PokeMapButtonVariant.secondary,
-          size: PokeMapButtonSize.small,
-          leading: Icon(CupertinoIcons.play_fill),
-          child: Text('Aperçu'),
-        ),
-        const SizedBox(width: 8),
-        const PokeMapButton(
-          key: ValueKey('cinematic-builder-save-button'),
-          onPressed: null,
-          variant: PokeMapButtonVariant.primary,
-          size: PokeMapButtonSize.small,
-          leading: Icon(CupertinoIcons.doc_fill),
-          child: Text('Sauvegarder'),
-        ),
-        const SizedBox(width: 8),
-        PokeMapIconButton(
-          key: const ValueKey('cinematic-builder-more-button'),
-          onPressed: () {},
-          variant: PokeMapIconButtonVariant.ghost,
-          icon: const Icon(CupertinoIcons.ellipsis_vertical),
-        ),
-      ],
-    );
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        backAction,
-        const SizedBox(width: 10),
-        const PokeMapIconTile(
-          icon: CupertinoIcons.film,
-          tone: PokeMapTone.cinematic,
-        ),
-        const SizedBox(width: 10),
-        Expanded(child: title),
-        const SizedBox(width: 10),
-        badges,
-        const SizedBox(width: 12),
-        actions,
-      ],
-    );
   }
 }
 
@@ -3642,45 +3525,9 @@ class _TimelinePlaceholderState extends State<_TimelinePlaceholder> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // Transport controls row
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const PokeMapIconButton(
-                        key: ValueKey(
-                          'cinematic-builder-header-transport-play-button',
-                        ),
-                        tooltip: 'Lire (à venir)',
-                        size: 28,
-                        variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
-                        icon: Icon(CupertinoIcons.play_fill),
-                      ),
-                      const SizedBox(width: 4),
-                      const PokeMapIconButton(
-                        tooltip: 'Annuler (à venir)',
-                        size: 28,
-                        variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
-                        icon: Icon(CupertinoIcons.arrow_counterclockwise),
-                      ),
-                      const SizedBox(width: 4),
-                      const PokeMapIconButton(
-                        tooltip: 'Rétablir (à venir)',
-                        size: 28,
-                        variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
-                        icon: Icon(CupertinoIcons.arrow_clockwise),
-                      ),
-                      const SizedBox(width: 4),
-                      const PokeMapIconButton(
-                        tooltip: 'Recadrer (à venir)',
-                        size: 28,
-                        variant: PokeMapIconButtonVariant.soft,
-                        onPressed: null,
-                        icon: Icon(CupertinoIcons.crop),
-                      ),
-                      const SizedBox(width: 4),
                       PokeMapIconButton(
                         key: const ValueKey(
                           'cinematic-builder-timeline-zoom-out-button',
@@ -7667,45 +7514,53 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
                       ),
                     ),
                     // Status Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        color: isComplete
-                            ? colors.successSoft
-                            : colors.warningSoft,
-                        border: Border.all(
-                          color: isComplete
-                              ? colors.successBorder
-                              : colors.warningBorder,
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color:
-                                  isComplete ? colors.success : colors.warning,
-                            ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: isComplete
+                              ? colors.successSoft
+                              : colors.warningSoft,
+                          border: Border.all(
+                            color: isComplete
+                                ? colors.successBorder
+                                : colors.warningBorder,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            isComplete ? 'Prêt' : 'À compléter',
-                            style: TextStyle(
-                              color:
-                                  isComplete ? colors.success : colors.warning,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: isComplete
+                                    ? colors.success
+                                    : colors.warning,
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                isComplete ? 'Prêt' : 'À compléter',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: isComplete
+                                      ? colors.success
+                                      : colors.warning,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),

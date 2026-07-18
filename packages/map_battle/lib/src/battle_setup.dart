@@ -22,6 +22,9 @@ class BattleSetup {
   /// [allowCapture] - true si le runtime autorise explicitement la capture
   ///   pour ce combat. Le lot 13 l'utilise uniquement pour les rencontres
   ///   sauvages quand la party a encore de la place.
+  /// [allowFlee] - true si ce combat non-trainer autorise explicitement la
+  ///   fuite. Les rencontres statiques peuvent ainsi garder leur identité
+  ///   non-trainer sans exposer une sortie de combat mensongère.
   /// [fieldState] - État de champ initial si le setup battle veut démarrer
   ///   sous une météo ou un pseudoWeather déjà actifs.
   const BattleSetup({
@@ -32,6 +35,7 @@ class BattleSetup {
     required this.isTrainerBattle,
     required this.trainerId,
     this.allowCapture = false,
+    this.allowFlee = true,
     this.fieldState = const BattleFieldState(),
   });
 
@@ -74,6 +78,13 @@ class BattleSetup {
   ///   proprement dans l'état joueur ;
   /// - on évite ainsi toute promesse mensongère quand la party est pleine.
   final bool allowCapture;
+
+  /// true si l'action Run peut être exposée dans un combat non-trainer.
+  ///
+  /// Les trainer battles restent toujours non-fuyables, même si un ancien
+  /// call site conserve la valeur par défaut. Ce flag distingue surtout les
+  /// rencontres sauvages ordinaires des boss statiques non capturables.
+  final bool allowFlee;
 
   /// État de champ initial du combat.
   ///

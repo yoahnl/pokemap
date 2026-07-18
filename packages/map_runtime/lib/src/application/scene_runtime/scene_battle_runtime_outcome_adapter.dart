@@ -14,6 +14,7 @@ final class SceneBattleRuntimeBattleRequest {
     required this.createdAtEpochMs,
     required this.trainerId,
     required this.npcEntityId,
+    this.battleKind = 'trainer',
     this.battleTemplateId,
   });
 
@@ -21,6 +22,7 @@ final class SceneBattleRuntimeBattleRequest {
   final int createdAtEpochMs;
   final String trainerId;
   final String npcEntityId;
+  final String battleKind;
   final String? battleTemplateId;
 }
 
@@ -41,7 +43,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
     SceneRuntimePlanIntent intent,
   ) async {
     final battleKind = intent.battleKind?.trim();
-    if (battleKind != 'trainer') {
+    if (battleKind != 'trainer' && battleKind != 'static') {
       return SceneBattleRuntimeOutcomeResult.failed(
         errorCode: SceneBattleRuntimeOutcomeErrorCode.unsupportedBattleKind,
         message: 'Scene battle kind "$battleKind" is not supported in V0.',
@@ -70,6 +72,7 @@ final class SceneBattleRuntimeOutcomeAdapter {
       createdAtEpochMs: now,
       trainerId: trainerId,
       npcEntityId: npcEntityId,
+      battleKind: battleKind!,
       battleTemplateId: intent.battleTemplateId,
     );
 

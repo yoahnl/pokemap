@@ -10,6 +10,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
+import 'package:map_editor/src/ui/canvas/step_studio_workspace.dart';
+import 'package:map_editor/src/ui/canvas/storylines_workspace.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_explorer_module_card.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/narrative_library_panel.dart';
@@ -18,6 +22,60 @@ import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import '../../shell_chrome_test_harness.dart';
 
 void main() {
+  testWidgets(
+    'Step route selects Storylines and the product navigation returns to its parent',
+    (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: _minimalProject('step_navigation_project').copyWith(
+            scenarios: const [
+              ScenarioAsset(
+                id: 'global_story',
+                name: 'Global Story',
+                scope: ScenarioScope.globalStory,
+                entryNodeId: 'start',
+              ),
+            ],
+          ),
+          workspaceMode: EditorWorkspaceMode.step,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(StepStudioWorkspace), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-storylines'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-product-nav-step')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-storylines'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.globalStory,
+      );
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(StorylinesWorkspace), findsOneWidget);
+      expect(find.byType(StepStudioWorkspace), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'NarrativeWorkspaceCanvas routes overview mode to the overview shell',
     (tester) async {
@@ -49,7 +107,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Aperçu'), findsWidgets);
+      expect(find.text('Narrative Studio  /  Aperçu'), findsOneWidget);
       expect(find.textContaining('test_project'), findsWidgets);
       expect(find.textContaining('Non évalué'), findsWidgets);
       expect(find.textContaining('Selbrume'), findsNothing);
@@ -61,7 +119,7 @@ void main() {
   );
 
   testWidgets(
-    'NarrativeWorkspaceCanvas renders the internal Narrative Studio shell',
+    'NarrativeWorkspaceCanvas delegates migrated Overview to one shared workspace page',
     (tester) async {
       tester.view.physicalSize = const Size(1200, 1000);
       tester.view.devicePixelRatio = 1;
@@ -89,12 +147,7 @@ void main() {
                 child: SizedBox(
                   width: 1200,
                   height: 760,
-                  child: Column(
-                    children: [
-                      Expanded(child: NarrativeWorkspaceCanvas()),
-                      _WorkspaceModeProbe(),
-                    ],
-                  ),
+                  child: NarrativeWorkspaceCanvas(),
                 ),
               ),
             ),
@@ -103,172 +156,15 @@ void main() {
       );
       await tester.pump();
 
-      final shell = find.byKey(const ValueKey('narrative-studio-shell'));
-      final sidebar = find.byKey(const ValueKey('narrative-studio-sidebar'));
-      final transientNavigation = find
-          .byKey(const ValueKey('narrative-studio-transitional-navigation'));
-      final mainContent =
-          find.byKey(const ValueKey('narrative-studio-main-content'));
-
-      expect(shell, findsOneWidget);
-      expect(sidebar, findsOneWidget);
-      expect(transientNavigation, findsNothing);
-      expect(mainContent, findsOneWidget);
-      expect(find.text('Narrative Studio'), findsWidgets);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byKey(narrativeStudioWorkspaceContextKey), findsOneWidget);
+      expect(find.text('Narrative Studio  /  Aperçu'), findsOneWidget);
       expect(
-        find.descendant(
-          of: shell,
-          matching: find.byKey(const ValueKey('narrative-overview-scroll')),
-        ),
+        find.byKey(const ValueKey('narrative-overview-scroll')),
         findsOneWidget,
       );
-      expect(
-        find.descendant(of: shell, matching: find.byType(ProjectExplorerPanel)),
-        findsNothing,
-      );
-
-      expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('narrative-studio-sidebar-overview')),
-          matching: find.text('Actif'),
-        ),
-        findsOneWidget,
-      );
-
-      for (final label in <String>[
-        'Aperçu',
-        'Storylines',
-        'Scènes',
-        'Événements',
-      ]) {
-        expect(
-          find.descendant(of: sidebar, matching: find.text(label)),
-          findsOneWidget,
-        );
-      }
-      for (final label in <String>['Cinématiques', 'Dialogues']) {
-        expect(
-          find.descendant(of: sidebar, matching: find.text(label)),
-          findsOneWidget,
-        );
-      }
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Storylines')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:globalStory'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Aperçu')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Scènes')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:scenes'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Événements')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:events'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('event-builder-workspace')),
-        findsOneWidget,
-      );
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Cinématiques')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:cutscene'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('cinematics-library-workspace')),
-        findsOneWidget,
-      );
-      expect(find.text('Ouvrir l’ancien Cutscene Studio'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Dialogues')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:dialogue'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Aperçu')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-
-      expect(
-        find.descendant(of: sidebar, matching: find.text('Maps')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: sidebar, matching: find.text('À clarifier')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: sidebar, matching: find.text('Étapes')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: sidebar, matching: find.text('Étapes narratives')),
-        findsNothing,
-      );
-
-      for (final label in <String>[
-        'Facts',
-        'Règles du monde',
-        'Validateur',
-      ]) {
-        expect(
-          find.descendant(of: sidebar, matching: find.text(label)),
-          findsOneWidget,
-        );
-      }
-      for (final sidebarState in <String>[
-        'Faits du monde',
-        'Changements visibles',
-        'Non branché',
-      ]) {
-        expect(
-          find.descendant(of: sidebar, matching: find.text(sidebarState)),
-          findsOneWidget,
-        );
-      }
-
-      await tester
-          .tap(find.descendant(of: sidebar, matching: find.text('Facts')));
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:facts'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Règles du monde')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:worldRules'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Aperçu')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-
-      await tester.tap(
-        find.descendant(of: sidebar, matching: find.text('Validateur')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-
-      expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
+      expect(find.byType(ProjectExplorerPanel), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -316,7 +212,12 @@ void main() {
       await tester.pump();
 
       Future<void> returnToOverview() async {
-        await tester.tap(find.text('Aperçu').first);
+        final canvasContext = tester.element(
+          find.byType(NarrativeWorkspaceCanvas),
+        );
+        ProviderScope.containerOf(canvasContext)
+            .read(editorNotifierProvider.notifier)
+            .selectNarrativeOverviewWorkspace();
         await tester.pumpAndSettle();
         expect(find.text('workspace:narrativeOverview'), findsOneWidget);
       }
@@ -460,7 +361,7 @@ void main() {
   );
 
   testWidgets(
-    'EditorShellPage presents coherent Narrative Studio overview chrome',
+    'EditorShellPage presents coherent shared-product Overview chrome',
     (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -472,97 +373,28 @@ void main() {
         surfaceSize: const Size(1600, 1000),
       );
 
-      expect(find.text('Narrative Studio'), findsWidgets);
-      expect(find.textContaining('Métriques disponibles'), findsWidgets);
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(ProjectExplorerPanel), findsNothing);
+      expect(find.byKey(narrativeStudioWorkspaceContextKey), findsOneWidget);
+      expect(find.text('Narrative Studio  /  Aperçu'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('narrative-studio-product-nav-overview')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-overview-kpi-grid')),
+        findsOneWidget,
+      );
+      expect(find.text('Indicateurs auteur'), findsOneWidget);
+      expect(find.textContaining('test_project'), findsWidgets);
+      expect(find.textContaining('Métriques disponibles'), findsNothing);
       expect(find.textContaining('Narrative Overview'), findsNothing);
-      expect(
-        find.text(
-          'Aperçu, storylines, scènes, événements, cinématiques et dialogues',
-        ),
-        findsOneWidget,
-      );
       expect(find.text('World Explorer'), findsNothing);
-
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is ProjectExplorerModuleCard &&
-              widget.title == 'Narrative Studio' &&
-              widget.selected,
-        ),
-        findsOneWidget,
-      );
-
-      final narrativeCard = find.byWidgetPredicate(
-        (widget) =>
-            widget is ProjectExplorerModuleCard &&
-            widget.title == 'Narrative Studio',
-      );
-      final tilesetCard = find.byWidgetPredicate(
-        (widget) =>
-            widget is ProjectExplorerModuleCard &&
-            widget.title == 'Tileset Library',
-      );
-      final catalogsCard = find.byWidgetPredicate(
-        (widget) =>
-            widget is ProjectExplorerModuleCard &&
-            widget.title == 'Catalogues Pokémon',
-      );
-
-      expect(
-        tester.getTopLeft(narrativeCard).dy,
-        greaterThan(tester.getTopLeft(tilesetCard).dy),
-      );
-      expect(
-        tester.getTopLeft(narrativeCard).dy,
-        greaterThan(tester.getTopLeft(catalogsCard).dy),
-      );
-
-      await tester.ensureVisible(narrativeCard);
-      await tester.tap(narrativeCard);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(find.text('Aperçu'), findsWidgets);
-      expect(find.text('Histoire globale'), findsWidgets);
-      expect(find.text('Étape'), findsWidgets);
-      expect(find.text('Cinématique'), findsWidgets);
-      expect(find.text('Dialogue'), findsWidgets);
-      expect(find.text('World Maps'), findsOneWidget);
-      expect(find.text('Tileset Library'), findsOneWidget);
-      expect(find.text('Catalogues Pokémon'), findsOneWidget);
-      final projectExplorer = find.byType(ProjectExplorerPanel);
-      expect(
-        find.descendant(
-          of: projectExplorer,
-          matching: find.text('Trainer Studio'),
-        ),
-        findsWidgets,
-      );
-      expect(find.text('Path Library'), findsOneWidget);
-      expect(find.text('Environment Studio'), findsWidgets);
-      expect(
-        find.descendant(of: projectExplorer, matching: find.text('Facts')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(
-            of: projectExplorer, matching: find.text('World Rules')),
-        findsNothing,
-      );
-      expect(
-        find.descendant(of: projectExplorer, matching: find.text('Validateur')),
-        findsNothing,
-      );
-
       expect(find.text('Locale : FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);
       expect(find.textContaining('Selbrume'), findsNothing);
-      expect(find.text('42'), findsNothing);
-      expect(find.text('1 236'), findsNothing);
-      expect(find.text('1236'), findsNothing);
-      expect(find.text('24'), findsNothing);
-      expect(find.text('12'), findsNothing);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -596,7 +428,19 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.byKey(const ValueKey('narrative-studio-sidebar')),
+          find.byType(NarrativeStudioProductShell),
+          findsOneWidget,
+        );
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(find.byType(ProjectExplorerPanel), findsNothing);
+        expect(
+          find.byKey(
+            ValueKey(
+              workspaceMode == EditorWorkspaceMode.facts
+                  ? 'narrative-studio-product-nav-facts'
+                  : 'narrative-studio-product-nav-worldRules',
+            ),
+          ),
           findsOneWidget,
         );
         expect(find.byKey(const ValueKey('editor_right_m')), findsNothing);
@@ -686,7 +530,7 @@ void main() {
       expect(find.text('Tileset Library'), findsOneWidget);
       expect(find.text('Catalogues Pokémon'), findsOneWidget);
       expect(find.text('Facts'), findsNothing);
-      expect(find.text('World Rules'), findsNothing);
+      expect(find.text('Règles du monde'), findsNothing);
       expect(find.text('Validateur'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
@@ -695,7 +539,7 @@ void main() {
   );
 
   testWidgets(
-    'EditorShellPage keeps the NS-HOME-21 visual harmonization contract',
+    'EditorShellPage keeps Overview hierarchy inside the shared product shell',
     (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -707,16 +551,13 @@ void main() {
         surfaceSize: const Size(1600, 1000),
       );
 
-      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const ValueKey('project-explorer-reduced')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
-          findsOneWidget);
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(ProjectExplorerPanel), findsNothing);
+      expect(
+        find.byKey(const ValueKey('narrative-overview-kpi-grid')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const ValueKey('narrative-overview-structure-inspector')),
         findsOneWidget,
@@ -729,22 +570,25 @@ void main() {
         find.byKey(const ValueKey('narrative-overview-main-story-card')),
       );
       expect(kpiGrid.top, lessThan(mainStory.top));
-      expect(kpiGrid.height, lessThanOrEqualTo(130));
 
-      final sidebar = find.byKey(const ValueKey('narrative-studio-sidebar'));
-      expect(find.descendant(of: sidebar, matching: find.text('Maps')),
-          findsNothing);
-      for (final disabled in <String>[
-        'Facts',
-        'Règles du monde',
-        'Validateur',
-      ]) {
-        expect(
-          find.descendant(of: sidebar, matching: find.text(disabled)),
-          findsOneWidget,
-        );
-      }
-
+      expect(
+        find.byKey(const ValueKey('narrative-studio-product-nav-maps')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-product-nav-facts')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-studio-product-nav-worldRules')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-validator'),
+        ),
+        findsOneWidget,
+      );
       expect(find.textContaining('Selbrume'), findsNothing);
       expect(find.text('FR'), findsNothing);
       expect(find.text('v0.3.0'), findsNothing);

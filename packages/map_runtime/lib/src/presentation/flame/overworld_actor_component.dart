@@ -88,6 +88,7 @@ class OverworldActorComponent extends PositionComponent {
 
   int get frameWidthTiles => _frameWidthTiles;
   int get frameHeightTiles => _frameHeightTiles;
+  EntityFacing get facing => _facing;
   double get footOffsetY => (_frameHeightTiles - 1) * _cellHeight;
   double get depthSortY => position.y + size.y;
   bool get isStepping => _moveTo != null && _moveRemaining > 0;

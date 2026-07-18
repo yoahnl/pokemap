@@ -7,11 +7,85 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
+import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/step_studio_workspace.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 
 void main() {
   group('Step Studio regressions', () {
+    testWidgets(
+      'wraps project and global-story empty states in the nested Step context',
+      (tester) async {
+        await _pumpStepWorkspace(
+          tester,
+          project: null,
+          selectedStepId: null,
+        );
+
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(
+          find.text('Narrative Studio  /  Storylines  /  Étape'),
+          findsOneWidget,
+        );
+        expect(find.text('Chargez un projet pour éditer les steps.'),
+            findsOneWidget);
+        expect(find.byKey(const ValueKey('step-studio-save-action')),
+            findsNothing);
+        expect(find.byKey(const ValueKey('step-studio-reset-action')),
+            findsNothing);
+
+        await _pumpStepWorkspace(
+          tester,
+          project: _stepProjectWithoutGlobalStory,
+          selectedStepId: null,
+        );
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(find.text('Aucun scénario global'), findsOneWidget);
+        expect(find.text('Créer le scénario global'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'keeps Step identity and mutations while save and reset live once in the shared header',
+      (tester) async {
+        final project = _stepProjectWithDraft();
+        await _pumpStepWorkspace(
+          tester,
+          project: project,
+          selectedStepId: 'step_port',
+        );
+
+        final contextHeader = find.byKey(narrativeStudioWorkspaceContextKey);
+        final saveAction =
+            find.byKey(const ValueKey('step-studio-save-action'));
+        final resetAction =
+            find.byKey(const ValueKey('step-studio-reset-action'));
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(
+          find.text(
+            'Narrative Studio  /  Storylines  /  Étape  /  Aller au port',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: contextHeader, matching: saveAction),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(of: contextHeader, matching: resetAction),
+          findsOneWidget,
+        );
+        expect(saveAction, findsOneWidget);
+        expect(resetAction, findsOneWidget);
+        expect(find.text('Nouvelle step'), findsOneWidget);
+        expect(find.text('Ajouter une step'), findsNothing);
+        expect(find.text('Gabarit produit : Choix du starter'), findsOneWidget);
+        expect(find.text('Aller au port'), findsWidgets);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets(
       'defers initial step selection callback after frame (provider-safe)',
       (tester) async {
@@ -365,3 +439,97 @@ void main() {
 }
 
 void _noop() {}
+
+const _stepProjectWithoutGlobalStory = ProjectManifest(
+  surfaceCatalog: ProjectSurfaceCatalog.empty(),
+  name: 'Step empty state',
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[],
+);
+
+ProjectManifest _stepProjectWithDraft() {
+  const document = StepStudioDocument(
+    globalStoryScenarioId: 'global_story',
+    steps: <StepStudioStep>[
+      StepStudioStep(
+        id: 'step_port',
+        name: 'Aller au port',
+        description: 'Rejoindre le rival.',
+        order: 0,
+        activation: StepStudioActivationRule(
+          mode: StepStudioActivationMode.atGameStart,
+        ),
+        completion: StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.manual,
+        ),
+      ),
+      StepStudioStep(
+        id: 'step_rival',
+        name: 'Affronter le rival',
+        description: 'Premier combat.',
+        order: 1,
+        activation: StepStudioActivationRule(
+          mode: StepStudioActivationMode.afterPreviousStep,
+        ),
+        completion: StepStudioCompletionRule(
+          mode: StepStudioCompletionMode.manual,
+        ),
+      ),
+    ],
+  );
+  return ProjectManifest(
+    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+    name: 'Step convergence',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[],
+    scenarios: <ScenarioAsset>[
+      ScenarioAsset(
+        id: 'global_story',
+        name: 'La brume de Selbrume',
+        scope: ScenarioScope.globalStory,
+        entryNodeId: 'start',
+        metadata: <String, String>{
+          kStepStudioDocumentMetadataKey: document.toMetadataJson(),
+        },
+      ),
+    ],
+  );
+}
+
+Future<void> _pumpStepWorkspace(
+  WidgetTester tester, {
+  required ProjectManifest? project,
+  required String? selectedStepId,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1600, 1000));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  final projection = buildNarrativeWorkspaceProjection(
+    project ?? _stepProjectWithoutGlobalStory,
+  );
+
+  await tester.pumpWidget(
+    ProviderScope(
+      child: Consumer(
+        builder: (context, ref, _) {
+          final notifier = ref.read(editorNotifierProvider.notifier);
+          return MaterialApp(
+            theme: PokeMapTheme.dark(),
+            home: Scaffold(
+              body: StepStudioWorkspace(
+                editorNotifier: notifier,
+                project: project,
+                activeMap: null,
+                projection: projection,
+                selectedStepId: selectedStepId,
+                onSelectStep: (_) {},
+                onSelectOutcome: (_) {},
+              ),
+            ),
+          );
+        },
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pump();
+}

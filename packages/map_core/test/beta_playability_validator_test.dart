@@ -188,6 +188,39 @@ void main() {
       expect(diagnostic.moveId, _enemyMoveId);
     });
 
+    test('treats an explicitly empty Pokemon catalog as authoritative', () {
+      final result = validateBetaPlayability(
+        _manifest(),
+        context: BetaPlayabilityValidationContext(
+          mapsById: <String, MapData>{_mapId: _map()},
+          speciesCatalogIsAuthoritative: true,
+          moveCatalogIsAuthoritative: true,
+          initialPartySpeciesIds: const <String>{_starterSpeciesId},
+          initialPartyMoveIds: const <String>{_starterMoveId},
+        ),
+      );
+
+      final missingSpecies = result.diagnostics
+          .where(
+            (diagnostic) =>
+                diagnostic.kind ==
+                BetaPlayabilityDiagnosticKind.missingPokemonSpecies,
+          )
+          .map((diagnostic) => diagnostic.speciesId)
+          .toSet();
+      final missingMoves = result.diagnostics
+          .where(
+            (diagnostic) =>
+                diagnostic.kind ==
+                BetaPlayabilityDiagnosticKind.missingPokemonMove,
+          )
+          .map((diagnostic) => diagnostic.moveId)
+          .toSet();
+
+      expect(missingSpecies, {_starterSpeciesId, _enemySpeciesId});
+      expect(missingMoves, {_starterMoveId, _enemyMoveId});
+    });
+
     test('warns honestly when no starter or initial party source is provided',
         () {
       final result = validateBetaPlayability(

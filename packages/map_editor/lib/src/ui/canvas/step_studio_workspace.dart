@@ -5,10 +5,14 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/use_cases/project_scenario_use_cases.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../features/narrative/application/step_studio_authoring.dart';
+import '../design_system/design_system.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'step_studio/step_flow_canvas.dart';
 import 'step_studio/step_flow_focus.dart';
 import 'step_studio/step_flow_palette.dart';
@@ -1046,13 +1050,63 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
 
   @override
   Widget build(BuildContext context) {
+    NarrativeStudioWorkspacePage workspacePage({
+      required Widget body,
+      StepStudioStep? selectedStep,
+      bool exposeDraftActions = false,
+    }) {
+      final basePresentation = narrativeStudioRoutePresentationFor(
+        EditorWorkspaceMode.step,
+      )!;
+      final selectedStepName = selectedStep?.name.trim();
+      final presentation = selectedStepName == null || selectedStepName.isEmpty
+          ? basePresentation
+          : NarrativeStudioRoutePresentation(
+              destination: basePresentation.destination,
+              label: basePresentation.label,
+              breadcrumbLabels: [
+                ...basePresentation.breadcrumbLabels,
+                selectedStepName,
+              ],
+            );
+
+      return NarrativeStudioWorkspacePage(
+        presentation: presentation,
+        actions: exposeDraftActions
+            ? [
+                PokeMapButton(
+                  key: const ValueKey('step-studio-save-action'),
+                  onPressed: _canEdit && _hasUnsavedChanges ? _saveDraft : null,
+                  variant: PokeMapButtonVariant.successOutline,
+                  size: PokeMapButtonSize.compact,
+                  leading: const Icon(CupertinoIcons.floppy_disk, size: 15),
+                  child: const Text('Sauvegarder'),
+                ),
+                PokeMapButton(
+                  key: const ValueKey('step-studio-reset-action'),
+                  onPressed:
+                      _canEdit && _hasUnsavedChanges ? _resetDraft : null,
+                  variant: PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.compact,
+                  leading:
+                      const Icon(CupertinoIcons.arrow_uturn_left, size: 15),
+                  child: const Text('Réinitialiser'),
+                ),
+              ]
+            : const [],
+        body: body,
+      );
+    }
+
     final project = widget.project;
     if (project == null) {
-      return const EditorPaneSurface(
-        radius: 20,
-        tint: EditorChrome.islandWarmTint,
-        child: Center(
-          child: Text('Chargez un projet pour éditer les steps.'),
+      return workspacePage(
+        body: const EditorPaneSurface(
+          radius: 20,
+          tint: EditorChrome.islandWarmTint,
+          child: Center(
+            child: Text('Chargez un projet pour éditer les steps.'),
+          ),
         ),
       );
     }
@@ -1061,30 +1115,43 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
         .where((entry) => entry.scope == ScenarioScope.globalStory)
         .toList(growable: false);
     if (globalStories.isEmpty) {
-      return _buildNoGlobalStoryState(context);
+      return workspacePage(body: _buildNoGlobalStoryState(context));
     }
 
     final selectedStep = _selectedStep;
     final draft = _draftDocument;
 
-    return Row(
-      children: [
-        SizedBox(
-          width: 320,
-          child: _buildStepNavigatorCard(
-            context: context,
-            globalStories: globalStories,
-            draft: draft,
-            selectedStep: selectedStep,
-          ),
+    return workspacePage(
+      selectedStep: selectedStep,
+      exposeDraftActions: draft != null,
+      body: PokeMapPageSurface(
+        key: const ValueKey('step-studio-workspace-shell'),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 320,
+              child: _buildStepNavigatorCard(
+                context: context,
+                globalStories: globalStories,
+                draft: draft,
+                selectedStep: selectedStep,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: draft == null || selectedStep == null
+                  ? _buildNoStepSelectedState(context)
+                  : _buildStepEditor(
+                      context,
+                      draft,
+                      selectedStep,
+                      globalStories,
+                    ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: draft == null || selectedStep == null
-              ? _buildNoStepSelectedState(context)
-              : _buildStepEditor(context, draft, selectedStep, globalStories),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1365,25 +1432,24 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                 );
 
                 if (useStackedLayout) {
-                  // Pas de hauteurs fixes : en tests la zone utile peut être très basse.
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: palette,
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        flex: 4,
-                        child: canvas,
-                      ),
-                      const SizedBox(height: 8),
-                      Expanded(
-                        flex: 3,
-                        child: inspector,
-                      ),
-                    ],
+                  final textScale = MediaQuery.textScalerOf(context)
+                      .scale(1)
+                      .clamp(1.0, 1.5)
+                      .toDouble();
+                  final paletteHeight = 300 * textScale;
+                  final canvasHeight = 420 * textScale;
+                  final inspectorHeight = 280 * textScale;
+                  return SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(height: paletteHeight, child: palette),
+                        const SizedBox(height: 8),
+                        SizedBox(height: canvasHeight, child: canvas),
+                        const SizedBox(height: 8),
+                        SizedBox(height: inspectorHeight, child: inspector),
+                      ],
+                    ),
                   );
                 }
 
@@ -1986,41 +2052,6 @@ class _StepStudioWorkspaceState extends State<StepStudioWorkspace> {
                     ),
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: InspectorEmbeddedPrimaryCapsule(
-                  accent: EditorChrome.inspectorJoyBlue,
-                  icon: CupertinoIcons.floppy_disk,
-                  label: 'Sauvegarder',
-                  prominent: true,
-                  enabled: _canEdit && _hasUnsavedChanges,
-                  onPressed: _saveDraft,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InspectorEmbeddedSecondaryCapsule(
-                  accent: EditorChrome.inspectorJoyCyan,
-                  icon: CupertinoIcons.arrow_uturn_left,
-                  label: 'Réinitialiser',
-                  enabled: _canEdit && _hasUnsavedChanges,
-                  onPressed: _resetDraft,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: InspectorEmbeddedSecondaryCapsule(
-                  accent: EditorChrome.inspectorJoyMint,
-                  icon: CupertinoIcons.plus_circle_fill,
-                  label: 'Ajouter une step',
-                  enabled: _canEdit,
-                  onPressed: _addStep,
-                ),
-              ),
             ],
           ),
           const SizedBox(height: 8),

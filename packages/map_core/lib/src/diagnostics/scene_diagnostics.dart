@@ -36,7 +36,10 @@ enum SceneDiagnosticCode {
   consequenceUnknownEvent,
   consequenceUnknownStoryStep,
   consequenceAmbiguousStoryStep,
+  consequenceUnknownStarterOption,
   consequenceMissingTarget,
+  consequenceInvalidValue,
+  consequenceLegacyPokemonHpFallback,
   consequenceWouldApplyWorldRuleDirectly,
   actionPayloadLegacyUnsupported,
   consequenceRuntimeUnsupported,
@@ -50,6 +53,7 @@ enum SceneDiagnosticCode {
   actionNodeUnsupported,
   branchByOutcomeUnsupported,
   dialogueRefUnknown,
+  dialogueExpectedOutcomeUnknown,
   battleTrainerRefUnknown,
   cinematicRefUnknown,
   emptyGraph,
@@ -387,8 +391,9 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
 }) {
   final diagnostics = diagnoseScene(scene).diagnostics.toList(growable: true);
   final contracts = buildLinkedAssetContractsSnapshot(project);
-  final dialogueIds =
-      contracts.dialogues.map((dialogue) => dialogue.id).toSet();
+  final dialogueById = <String, DialoguePublicContract>{
+    for (final dialogue in contracts.dialogues) dialogue.id: dialogue,
+  };
   final trainerIds =
       contracts.battles.map((battle) => battle.trainerId).toSet();
   final cinematicById = {
@@ -397,6 +402,8 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
   final factIds = project.facts.map((fact) => fact.id).toSet();
   final worldRuleIds = project.worldRules.map((rule) => rule.id).toSet();
   final projectMapIds = project.maps.map((map) => map.id).toSet();
+  final starterOptionIds =
+      project.newGame.starterOptions.map((option) => option.id).toSet();
   final storyStepCounts = <String, int>{};
   for (final storyline in project.storylines) {
     for (final chapter in storyline.chapters) {
@@ -411,7 +418,8 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
     final payload = node.payload;
     switch (payload) {
       case SceneYarnDialoguePayload():
-        if (!dialogueIds.contains(payload.dialogueId)) {
+        final dialogue = dialogueById[payload.dialogueId];
+        if (dialogue == null) {
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.dialogueRefUnknown,
@@ -423,20 +431,42 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
               suggestedFixLabel: 'Choisir un dialogue existant.',
             ),
           );
+        } else {
+          final declaredOutcomeIds =
+              dialogue.declaredOutcomes.map((outcome) => outcome.id).toSet();
+          for (final expectedOutcomeId in payload.expectedOutcomes) {
+            if (declaredOutcomeIds.contains(expectedOutcomeId)) continue;
+            diagnostics.add(
+              SceneDiagnostic(
+                code: SceneDiagnosticCode.dialogueExpectedOutcomeUnknown,
+                severity: SceneDiagnosticSeverity.error,
+                message:
+                    'La Scene attend un résultat que ce dialogue ne déclare pas.',
+                sceneId: scene.id,
+                nodeId: node.id,
+                outcomeId: expectedOutcomeId,
+                target: SceneDiagnosticTarget.outcome,
+                suggestedFixLabel:
+                    'Choisir un résultat déclaré par le dialogue.',
+              ),
+            );
+          }
         }
       case SceneBattlePayload():
-        if (payload.battleKind == 'trainer' &&
+        if ((payload.battleKind == 'trainer' ||
+                payload.battleKind == 'static') &&
             (payload.trainerId == null ||
                 !trainerIds.contains(payload.trainerId))) {
           diagnostics.add(
             SceneDiagnostic(
               code: SceneDiagnosticCode.battleTrainerRefUnknown,
               severity: SceneDiagnosticSeverity.error,
-              message: 'Le combat trainer référence un dresseur absent.',
+              message:
+                  'Le combat référence un profil d’adversaire absent du projet.',
               sceneId: scene.id,
               nodeId: node.id,
               target: SceneDiagnosticTarget.node,
-              suggestedFixLabel: 'Choisir un trainer existant.',
+              suggestedFixLabel: 'Choisir un adversaire existant.',
             ),
           );
         }
@@ -515,6 +545,7 @@ SceneDiagnosticsReport diagnoseSceneAgainstProject(
           factIds: factIds,
           projectMapIds: projectMapIds,
           storyStepCounts: storyStepCounts,
+          starterOptionIds: starterOptionIds,
           mapsById: mapsById,
           diagnostics: diagnostics,
         );
@@ -622,6 +653,146 @@ void _diagnoseConsequenceShape(
           ),
         );
       }
+    case SceneGiveItemConsequence():
+      _diagnoseItemConsequenceShape(
+        scene,
+        node,
+        kind: 'giveItem',
+        itemId: consequence.itemId,
+        quantity: consequence.quantity,
+        diagnostics: diagnostics,
+      );
+    case SceneTakeItemConsequence():
+      _diagnoseItemConsequenceShape(
+        scene,
+        node,
+        kind: 'takeItem',
+        itemId: consequence.itemId,
+        quantity: consequence.quantity,
+        diagnostics: diagnostics,
+      );
+    case SceneGiveMoneyConsequence():
+      if (consequence.amount <= 0) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceInvalidValue,
+            severity: SceneDiagnosticSeverity.error,
+            message: 'La conséquence giveMoney exige un montant positif.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Saisir un montant supérieur à zéro.',
+          ),
+        );
+      }
+    case SceneGivePokemonConsequence():
+      if (consequence.speciesId.trim().isEmpty ||
+          consequence.natureId.trim().isEmpty ||
+          consequence.abilityId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence givePokemon doit cibler une espèce valide.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un Pokémon dans le catalogue.',
+          ),
+        );
+      } else if (consequence.level < 1 || consequence.level > 100) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceInvalidValue,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence givePokemon exige un niveau entre 1 et 100.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un niveau entre 1 et 100.',
+          ),
+        );
+      } else if (consequence.currentHp <= 0) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceInvalidValue,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence givePokemon exige des PV courants positifs.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Saisir des PV courants supérieurs à zéro.',
+          ),
+        );
+      }
+      if (consequence.currentHpIsLegacyFallback) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceLegacyPokemonHpFallback,
+            severity: SceneDiagnosticSeverity.warning,
+            message:
+                'Cette ancienne conséquence givePokemon utilise encore le niveau comme PV courants de secours.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel:
+                'Réenregistrer la conséquence avec des PV courants explicites.',
+          ),
+        );
+      }
+    case SceneGiveConfiguredStarterConsequence():
+      if (consequence.starterOptionId.trim().isEmpty) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceMissingTarget,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence giveConfiguredStarter doit cibler une option Nouveau Jeu.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un starter configuré dans le projet.',
+          ),
+        );
+      }
+  }
+}
+
+void _diagnoseItemConsequenceShape(
+  SceneAsset scene,
+  SceneNode node, {
+  required String kind,
+  required String itemId,
+  required int quantity,
+  required List<SceneDiagnostic> diagnostics,
+}) {
+  if (itemId.trim().isEmpty) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.consequenceMissingTarget,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La conséquence $kind doit cibler un objet.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Choisir un objet dans le catalogue.',
+      ),
+    );
+  } else if (quantity <= 0) {
+    diagnostics.add(
+      SceneDiagnostic(
+        code: SceneDiagnosticCode.consequenceInvalidValue,
+        severity: SceneDiagnosticSeverity.error,
+        message: 'La conséquence $kind exige une quantité positive.',
+        sceneId: scene.id,
+        nodeId: node.id,
+        target: SceneDiagnosticTarget.node,
+        suggestedFixLabel: 'Saisir une quantité supérieure à zéro.',
+      ),
+    );
   }
 }
 
@@ -632,6 +803,7 @@ void _diagnoseActionConsequenceAgainstProject(
   required Set<String> factIds,
   required Set<String> projectMapIds,
   required Map<String, int> storyStepCounts,
+  required Set<String> starterOptionIds,
   required Map<String, MapData> mapsById,
   required List<SceneDiagnostic> diagnostics,
 }) {
@@ -725,6 +897,29 @@ void _diagnoseActionConsequenceAgainstProject(
             nodeId: node.id,
             target: SceneDiagnosticTarget.node,
             suggestedFixLabel: 'Rendre les IDs d’étape uniques dans le projet.',
+          ),
+        );
+      }
+    case SceneGiveItemConsequence():
+    case SceneTakeItemConsequence():
+    case SceneGiveMoneyConsequence():
+    case SceneGivePokemonConsequence():
+      break;
+    case SceneGiveConfiguredStarterConsequence():
+      if (consequence.starterOptionId.trim().isEmpty) {
+        return;
+      }
+      if (!starterOptionIds.contains(consequence.starterOptionId)) {
+        diagnostics.add(
+          SceneDiagnostic(
+            code: SceneDiagnosticCode.consequenceUnknownStarterOption,
+            severity: SceneDiagnosticSeverity.error,
+            message:
+                'La conséquence giveConfiguredStarter référence une option Nouveau Jeu absente.',
+            sceneId: scene.id,
+            nodeId: node.id,
+            target: SceneDiagnosticTarget.node,
+            suggestedFixLabel: 'Choisir un starter configuré dans le projet.',
           ),
         );
       }
@@ -1101,13 +1296,7 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
           required: true,
         ),
       ],
-    SceneNodeKind.yarnDialogue => const [
-        _SceneOutputPortSpec(
-          id: 'completed',
-          edgeKinds: {SceneEdgeKind.defaultFlow},
-          required: true,
-        ),
-      ],
+    SceneNodeKind.yarnDialogue => _yarnDialogueOutputPortSpecs(node),
     SceneNodeKind.battle => const [
         _SceneOutputPortSpec(
           id: 'victory',
@@ -1140,6 +1329,24 @@ List<_SceneOutputPortSpec>? _v0OutputPortSpecsForNode(SceneNode node) {
     SceneNodeKind.end => const [],
     SceneNodeKind.branchByOutcome => null,
   };
+}
+
+List<_SceneOutputPortSpec> _yarnDialogueOutputPortSpecs(SceneNode node) {
+  final payload = node.payload as SceneYarnDialoguePayload;
+  return [
+    const _SceneOutputPortSpec(
+      id: 'completed',
+      edgeKinds: {SceneEdgeKind.defaultFlow},
+      required: true,
+    ),
+    for (final outcomeId in payload.expectedOutcomes)
+      if (outcomeId != 'completed')
+        _SceneOutputPortSpec(
+          id: outcomeId,
+          edgeKinds: const {SceneEdgeKind.dialogueOutcome},
+          required: true,
+        ),
+  ];
 }
 
 _SceneOutputPortSpec? _findPortSpec(

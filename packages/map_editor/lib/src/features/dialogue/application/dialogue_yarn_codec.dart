@@ -37,8 +37,13 @@ class _PChoice extends _PStep {
 }
 
 class _PBranch {
-  _PBranch({required this.label, required this.steps});
+  _PBranch({
+    required this.label,
+    required this.outcomeId,
+    required this.steps,
+  });
   final String label;
+  final String? outcomeId;
   final List<_PStep> steps;
 }
 
@@ -62,6 +67,7 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
   var inChoiceBlock = false;
   final currentChoices = <_PBranch>[];
   String? currentChoiceText;
+  String? currentChoiceOutcomeId;
   final currentChoiceSteps = <_PStep>[];
 
   void closeChoiceOption() {
@@ -69,10 +75,12 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
       currentChoices.add(
         _PBranch(
           label: currentChoiceText!,
+          outcomeId: currentChoiceOutcomeId,
           steps: List<_PStep>.from(currentChoiceSteps),
         ),
       );
       currentChoiceText = null;
+      currentChoiceOutcomeId = null;
       currentChoiceSteps.clear();
     }
   }
@@ -100,6 +108,7 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
     inChoiceBlock = false;
     currentChoices.clear();
     currentChoiceText = null;
+    currentChoiceOutcomeId = null;
     currentChoiceSteps.clear();
   }
 
@@ -116,6 +125,7 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         inChoiceBlock = false;
         currentChoices.clear();
         currentChoiceText = null;
+        currentChoiceOutcomeId = null;
         currentChoiceSteps.clear();
       }
     } else {
@@ -128,7 +138,11 @@ List<_ParsedNode> _parseYarnToParsedNodes(String content) {
         // Ligne vide ignorée (comme le runtime).
       } else if (line.startsWith(' ') || line.startsWith('\t')) {
         // Branche de choix : lignes indentées.
-        if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
+        final outcomeMatch =
+            RegExp(r'^<<outcome\s+([^>]+)>>$').firstMatch(trimmed);
+        if (outcomeMatch != null) {
+          currentChoiceOutcomeId = outcomeMatch.group(1)?.trim();
+        } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
           final target =
               trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
           currentChoiceSteps.add(_PJump(target));
@@ -210,6 +224,7 @@ DialogueEditorStep _convertParsedStep(_PStep step) {
               (b) => DeChoiceBranch(
                 id: newDialogueEditorId(),
                 label: b.label,
+                outcomeId: b.outcomeId,
                 steps: b.steps.map(_convertParsedStep).toList(),
               ),
             )
@@ -278,7 +293,8 @@ void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
   switch (step) {
     case DeLineStep(:final speaker, :final body):
       final sp = speaker;
-      final line = (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: $body' : body;
+      final line =
+          (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: $body' : body;
       sb.writeln('$indent$line');
     case DeNarrationStep(:final text):
       sb.writeln('$indent($text)');
@@ -291,6 +307,10 @@ void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
       for (final b in branches) {
         sb.writeln('$indent-> ${b.label}');
         final innerIndent = '$indent  ';
+        final outcomeId = b.outcomeId?.trim() ?? '';
+        if (outcomeId.isNotEmpty) {
+          sb.writeln('$innerIndent<<outcome $outcomeId>>');
+        }
         for (final st in b.steps) {
           _emitStep(sb, st, innerIndent);
         }

@@ -1,9 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
+import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'scenes/scene_cinematic_picker.dart';
 import 'scenes/scene_graph_read_only_view.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
@@ -75,6 +79,7 @@ typedef SceneYarnDialoguePayloadUpdater = Future<bool> Function({
   required String nodeId,
   required String dialogueId,
   String? yarnNodeName,
+  required List<String> expectedOutcomes,
 });
 
 typedef SceneBattlePayloadUpdater = Future<bool> Function({
@@ -95,6 +100,8 @@ typedef SceneActionConsequenceUpdater = Future<bool> Function({
   required SceneConsequence consequence,
 });
 
+const _scenesInlineInspectorMinWidth = 1240.0;
+
 class ScenesWorkspace extends StatefulWidget {
   const ScenesWorkspace({
     super.key,
@@ -104,6 +111,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.conditionSourceOptions = const [],
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
+    this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.requestedSceneId,
     this.requestedSceneFocusNonce,
     required this.onCreateSceneDraft,
@@ -127,6 +135,7 @@ class ScenesWorkspace extends StatefulWidget {
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final String? requestedSceneId;
   final int? requestedSceneFocusNonce;
   final SceneDraftCreator onCreateSceneDraft;
@@ -148,6 +157,12 @@ class ScenesWorkspace extends StatefulWidget {
 }
 
 class _ScenesWorkspaceState extends State<ScenesWorkspace> {
+  final FocusNode _inspectorLauncherFocusNode = FocusNode(
+    debugLabel: 'Scenes inspector launcher',
+  );
+  final ValueNotifier<int> _inspectorRevision = ValueNotifier<int>(0);
+  bool _inspectorSheetOpen = false;
+  bool _inspectorRefreshScheduled = false;
   String? _selectedSceneId;
   String? _selectedNodeId;
   String? _selectedEdgeId;
@@ -168,6 +183,13 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
         oldWidget.requestedSceneId != requestedSceneId) {
       _applyRequestedSceneFocus();
     }
+  }
+
+  @override
+  void dispose() {
+    _inspectorLauncherFocusNode.dispose();
+    _inspectorRevision.dispose();
+    super.dispose();
   }
 
   String? get requestedSceneId => widget.requestedSceneId;
@@ -232,108 +254,171 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   @override
   Widget build(BuildContext context) {
     final selectedScene = _selectedScene;
+    _scheduleInspectorSheetRefresh();
 
-    return PokeMapPageSurface(
-      key: const ValueKey('scenes-workspace-shell'),
-      padding: const EdgeInsets.all(8),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 1120;
-          final treeWidth = compact ? 220.0 : 244.0;
-          final inspectorWidth = compact ? 300.0 : 320.0;
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                key: const ValueKey('scenes-tree-column'),
-                width: treeWidth,
-                child: _SceneTreePanel(
-                  scenes: widget.scenes,
-                  selectedSceneId: selectedScene?.id,
-                  onCreateSceneDraft: _createSceneDraft,
-                  onSelectScene: (sceneId) {
-                    setState(() {
-                      _selectedSceneId = sceneId;
-                      _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
-                      _selectedEdgeId = null;
-                      _pendingConnection = null;
-                    });
-                  },
-                ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < _scenesInlineInspectorMinWidth;
+        final treeWidth = compact ? 220.0 : 244.0;
+        return NarrativeStudioWorkspacePage(
+          presentation: narrativeStudioRoutePresentationFor(
+            EditorWorkspaceMode.scenes,
+          )!,
+          actions: [
+            if (compact)
+              PokeMapButton(
+                key: const ValueKey('scenes-open-inspector-action'),
+                focusNode: _inspectorLauncherFocusNode,
+                onPressed: _openInspectorSheet,
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.slider_horizontal_3),
+                child: const Text('Inspecteur'),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: SizedBox.expand(
-                  key: const ValueKey('scenes-graph-column'),
-                  child: _SceneReadOnlySummary(
+            PokeMapButton(
+              key: const ValueKey('scenes-create-scene-action'),
+              onPressed: _createSceneDraft,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.compact,
+              leading: const Icon(CupertinoIcons.plus),
+              child: const Text('Nouvelle scène'),
+            ),
+          ],
+          body: PokeMapPageSurface(
+            key: const ValueKey('scenes-workspace-shell'),
+            padding: const EdgeInsets.all(8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  key: const ValueKey('scenes-tree-column'),
+                  width: treeWidth,
+                  child: _SceneTreePanel(
+                    scenes: widget.scenes,
+                    selectedSceneId: selectedScene?.id,
+                    onSelectScene: (sceneId) {
+                      setState(() {
+                        _selectedSceneId = sceneId;
+                        _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                        _selectedEdgeId = null;
+                        _pendingConnection = null;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox.expand(
+                    key: const ValueKey('scenes-graph-column'),
+                    child: _SceneReadOnlySummary(
+                      scene: selectedScene,
+                      selectedNodeId: _selectedNodeId,
+                      selectedEdgeId: _selectedEdgeId,
+                      pendingConnection: _pendingConnection,
+                      onSelectNode: _handleGraphNodeTap,
+                      onSelectEdge: _handleGraphEdgeTap,
+                      onAddNodeDraft: _addNodeDraft,
+                      onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
+                      onAddConsequenceActionNodeDraft:
+                          _addConsequenceActionNodeDraft,
+                      linkedAssetContracts: widget.linkedAssetContracts,
+                      cinematicsLibrary: widget.cinematicsLibrary,
+                      consequenceFactOptions: widget.consequenceFactOptions,
+                      consequenceEventOptions: widget.consequenceEventOptions,
+                      consequenceCatalogs: widget.consequenceCatalogs,
+                      onAddEdgeDraft: _addEdgeDraft,
+                      onStartConnection: _startConnection,
+                      onCancelConnection: _cancelConnection,
+                      onUpdateNodeLayout: _updateNodeLayout,
+                    ),
+                  ),
+                ),
+                if (!compact) ...[
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    key: const ValueKey('scenes-inspector-column'),
+                    width: 320,
+                    child: _buildInspectorPane(selectedScene),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInspectorPane(NarrativeSceneSummary? selectedScene) {
+    return LayoutBuilder(
+      builder: (context, inspectorConstraints) {
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: inspectorConstraints.maxHeight,
+            ),
+            child: selectedScene == null
+                ? const _SceneInspectorEmptyPanel()
+                : SceneNodeReadOnlyInspector(
                     scene: selectedScene,
                     selectedNodeId: _selectedNodeId,
                     selectedEdgeId: _selectedEdgeId,
-                    pendingConnection: _pendingConnection,
-                    onSelectNode: _handleGraphNodeTap,
-                    onSelectEdge: _handleGraphEdgeTap,
-                    onAddNodeDraft: _addNodeDraft,
-                    onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
-                    onAddConsequenceActionNodeDraft:
-                        _addConsequenceActionNodeDraft,
+                    onRemoveEdgeDraft: _removeSelectedEdgeDraft,
+                    onRemoveNodeDraft: _removeSelectedNodeDraft,
+                    conditionSourceOptions: widget.conditionSourceOptions,
+                    onUpdateConditionSource: _updateConditionSource,
                     linkedAssetContracts: widget.linkedAssetContracts,
                     cinematicsLibrary: widget.cinematicsLibrary,
+                    onUpdateYarnDialoguePayload: _updateYarnDialoguePayload,
+                    onUpdateBattlePayload: _updateBattlePayload,
+                    onUpdateCinematicPayload: _updateCinematicPayload,
                     consequenceFactOptions: widget.consequenceFactOptions,
                     consequenceEventOptions: widget.consequenceEventOptions,
-                    onAddEdgeDraft: _addEdgeDraft,
-                    onStartConnection: _startConnection,
-                    onCancelConnection: _cancelConnection,
-                    onUpdateNodeLayout: _updateNodeLayout,
+                    consequenceCatalogs: widget.consequenceCatalogs,
+                    onUpdateActionConsequence: _updateActionConsequence,
                   ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              SizedBox(
-                key: const ValueKey('scenes-inspector-column'),
-                width: inspectorWidth,
-                child: LayoutBuilder(
-                  builder: (context, inspectorConstraints) {
-                    return SingleChildScrollView(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: inspectorConstraints.maxHeight,
-                        ),
-                        child: selectedScene == null
-                            ? const _SceneInspectorEmptyPanel()
-                            : SceneNodeReadOnlyInspector(
-                                scene: selectedScene,
-                                selectedNodeId: _selectedNodeId,
-                                selectedEdgeId: _selectedEdgeId,
-                                onRemoveEdgeDraft: _removeSelectedEdgeDraft,
-                                onRemoveNodeDraft: _removeSelectedNodeDraft,
-                                conditionSourceOptions:
-                                    widget.conditionSourceOptions,
-                                onUpdateConditionSource: _updateConditionSource,
-                                linkedAssetContracts:
-                                    widget.linkedAssetContracts,
-                                cinematicsLibrary: widget.cinematicsLibrary,
-                                onUpdateYarnDialoguePayload:
-                                    _updateYarnDialoguePayload,
-                                onUpdateBattlePayload: _updateBattlePayload,
-                                onUpdateCinematicPayload:
-                                    _updateCinematicPayload,
-                                consequenceFactOptions:
-                                    widget.consequenceFactOptions,
-                                consequenceEventOptions:
-                                    widget.consequenceEventOptions,
-                                onUpdateActionConsequence:
-                                    _updateActionConsequence,
-                              ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
+  }
+
+  void _scheduleInspectorSheetRefresh() {
+    if (!_inspectorSheetOpen || _inspectorRefreshScheduled) {
+      return;
+    }
+    _inspectorRefreshScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _inspectorRefreshScheduled = false;
+      if (mounted && _inspectorSheetOpen) {
+        _inspectorRevision.value += 1;
+      }
+    });
+  }
+
+  Future<void> _openInspectorSheet() async {
+    _inspectorSheetOpen = true;
+    try {
+      await showPokeMapDesktopSideSheet<void>(
+        context: context,
+        title: 'Inspecteur de scène',
+        semanticLabel: 'Inspecteur de la scène sélectionnée',
+        barrierLabel: 'Fermer l’inspecteur de scène',
+        width: 380,
+        builder: (context) => ValueListenableBuilder<int>(
+          valueListenable: _inspectorRevision,
+          builder: (context, revision, child) => SizedBox.expand(
+            key: const ValueKey('scenes-inspector-sheet-content'),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: _buildInspectorPane(_selectedScene),
+            ),
+          ),
+        ),
+      );
+    } finally {
+      _inspectorSheetOpen = false;
+    }
   }
 
   Future<void> _createSceneDraft() async {
@@ -594,6 +679,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     required String nodeId,
     required String dialogueId,
     String? yarnNodeName,
+    required List<String> expectedOutcomes,
   }) async {
     final selected = _selectedScene;
     if (selected == null) {
@@ -604,6 +690,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
       nodeId: nodeId,
       dialogueId: dialogueId,
       yarnNodeName: yarnNodeName,
+      expectedOutcomes: expectedOutcomes,
     );
     if (!mounted || !updated) {
       return false;
@@ -856,13 +943,11 @@ class _SceneTreePanel extends StatelessWidget {
   const _SceneTreePanel({
     required this.scenes,
     required this.selectedSceneId,
-    required this.onCreateSceneDraft,
     required this.onSelectScene,
   });
 
   final List<NarrativeSceneSummary> scenes;
   final String? selectedSceneId;
-  final VoidCallback onCreateSceneDraft;
   final ValueChanged<String> onSelectScene;
 
   @override
@@ -871,7 +956,7 @@ class _SceneTreePanel extends StatelessWidget {
       key: const ValueKey('scenes-tree-panel'),
       expandChild: true,
       padding: EdgeInsets.zero,
-      header: _SceneTreeHeader(onCreateSceneDraft: onCreateSceneDraft),
+      header: const _SceneTreeHeader(),
       child: scenes.isEmpty
           ? const _SceneTreeEmptyState()
           : _SceneTreeList(
@@ -884,9 +969,7 @@ class _SceneTreePanel extends StatelessWidget {
 }
 
 class _SceneTreeHeader extends StatelessWidget {
-  const _SceneTreeHeader({required this.onCreateSceneDraft});
-
-  final VoidCallback onCreateSceneDraft;
+  const _SceneTreeHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -908,15 +991,6 @@ class _SceneTreeHeader extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          PokeMapButton(
-            key: const ValueKey('scenes-create-scene-action'),
-            onPressed: onCreateSceneDraft,
-            variant: PokeMapButtonVariant.secondary,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.plus),
-            child: const Text('Créer'),
           ),
         ],
       ),
@@ -1036,6 +1110,7 @@ class _SceneTreeItem extends StatelessWidget {
       label: scene.name,
       subtitle:
           '${scene.nodeCount} nodes • ${scene.edgeCount} edges • ${scene.declaredOutcomeCount} outcomes',
+      growForTextScale: true,
       trailing: scene.hasDiagnostics
           ? _SceneDiagnosticBadge(scene: scene)
           : const Icon(CupertinoIcons.chevron_right, size: 14),
@@ -1093,6 +1168,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
+    required this.consequenceCatalogs,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -1113,6 +1189,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -1140,6 +1217,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               cinematicsLibrary: cinematicsLibrary,
               consequenceFactOptions: consequenceFactOptions,
               consequenceEventOptions: consequenceEventOptions,
+              consequenceCatalogs: consequenceCatalogs,
               onAddEdgeDraft: onAddEdgeDraft,
               onStartConnection: onStartConnection,
               onCancelConnection: onCancelConnection,
@@ -1179,6 +1257,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
+    required this.consequenceCatalogs,
     required this.onAddEdgeDraft,
     required this.onStartConnection,
     required this.onCancelConnection,
@@ -1199,6 +1278,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneVisualEdgeDraftCreator onAddEdgeDraft;
   final ValueChanged<SceneAuthorableOutputPort> onStartConnection;
   final VoidCallback onCancelConnection;
@@ -1241,6 +1321,7 @@ class _SelectedSceneSummary extends StatelessWidget {
             cinematicsLibrary: cinematicsLibrary,
             consequenceFactOptions: consequenceFactOptions,
             consequenceEventOptions: consequenceEventOptions,
+            consequenceCatalogs: consequenceCatalogs,
             onAddNodeDraft: onAddNodeDraft,
             onAddLinkedAssetNodeDraft: onAddLinkedAssetNodeDraft,
             onAddConsequenceActionNodeDraft: onAddConsequenceActionNodeDraft,
@@ -1298,6 +1379,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     required this.cinematicsLibrary,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
+    required this.consequenceCatalogs,
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
     required this.onAddConsequenceActionNodeDraft,
@@ -1307,6 +1389,7 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
   final _SelectedLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
   final _SelectedConsequenceActionNodeDraftCreator
@@ -1322,8 +1405,6 @@ class _SceneNodeDraftPalette extends StatelessWidget {
     final canonicalCinematics = library?.canonicalEntries ?? const [];
     final bridgeCinematics = library?.bridgeEntries ?? const [];
     final hasCanonicalCinematics = canonicalCinematics.isNotEmpty;
-    final hasConsequenceTargets =
-        consequenceFactOptions.isNotEmpty || consequenceEventOptions.isNotEmpty;
     final cinematicReason = hasCanonicalCinematics
         ? null
         : bridgeCinematics.isNotEmpty
@@ -1401,20 +1482,12 @@ class _SceneNodeDraftPalette extends StatelessWidget {
                     disabledReason: 'déjà unique',
                   ),
                   _NodeDraftButton(
-                    buttonKey: hasConsequenceTargets
-                        ? const ValueKey(
-                            'scenes-add-node-action-consequence',
-                          )
-                        : const ValueKey(
-                            'scenes-add-node-action-disabled',
-                          ),
+                    buttonKey: const ValueKey(
+                      'scenes-add-node-action-consequence',
+                    ),
                     label: 'Action',
                     icon: CupertinoIcons.bolt,
-                    disabledReason:
-                        hasConsequenceTargets ? null : 'Fact ou event requis',
-                    onPressed: hasConsequenceTargets
-                        ? () => _pickConsequenceAndAddNode(context)
-                        : null,
+                    onPressed: () => _pickConsequenceAndAddNode(context),
                   ),
                   _NodeDraftButton(
                     buttonKey: hasCanonicalCinematics
@@ -1506,11 +1579,15 @@ class _SceneNodeDraftPalette extends StatelessWidget {
   }
 
   Future<void> _pickConsequenceAndAddNode(BuildContext context) async {
-    final consequence = await showCupertinoDialog<SceneConsequence>(
+    final consequence = await showPokeMapDesktopSideSheet<SceneConsequence>(
       context: context,
+      title: 'Ajouter une conséquence',
+      semanticLabel: 'Créer une conséquence de gameplay pour la scène',
+      width: 480,
       builder: (context) => _SceneConsequencePickerDialog(
         facts: consequenceFactOptions,
         events: consequenceEventOptions,
+        catalogs: consequenceCatalogs,
       ),
     );
     if (consequence == null) {
@@ -1523,16 +1600,23 @@ class _SceneNodeDraftPalette extends StatelessWidget {
 enum _SceneConsequencePickerMode {
   setFact,
   markEventConsumed,
+  giveItem,
+  takeItem,
+  giveMoney,
+  givePokemon,
+  giveConfiguredStarter,
 }
 
 class _SceneConsequencePickerDialog extends StatefulWidget {
   const _SceneConsequencePickerDialog({
     required this.facts,
     required this.events,
+    required this.catalogs,
   });
 
   final List<SceneConsequenceFactPickerOption> facts;
   final List<SceneConsequenceEventPickerOption> events;
+  final SceneConsequenceCatalogs catalogs;
 
   @override
   State<_SceneConsequencePickerDialog> createState() =>
@@ -1544,7 +1628,18 @@ class _SceneConsequencePickerDialogState
   late _SceneConsequencePickerMode _mode;
   SceneConsequenceFactPickerOption? _selectedFact;
   SceneConsequenceEventPickerOption? _selectedEvent;
+  SceneConsequenceCatalogOption? _selectedItem;
+  SceneConsequenceCatalogOption? _selectedSpecies;
+  SceneConsequenceCatalogOption? _selectedConfiguredStarter;
   bool _setFactValue = true;
+  final TextEditingController _quantityController =
+      TextEditingController(text: '1');
+  final TextEditingController _moneyAmountController =
+      TextEditingController(text: '100');
+  final TextEditingController _pokemonLevelController =
+      TextEditingController(text: '5');
+  final TextEditingController _pokemonCurrentHpController =
+      TextEditingController(text: '20');
 
   @override
   void initState() {
@@ -1554,83 +1649,174 @@ class _SceneConsequencePickerDialogState
         : _SceneConsequencePickerMode.markEventConsumed;
     _selectedFact = widget.facts.firstOrNull;
     _selectedEvent = widget.events.firstOrNull;
+    _selectedItem = widget.catalogs.items.options.firstOrNull;
+    _selectedSpecies = widget.catalogs.species.options.firstOrNull;
+    _selectedConfiguredStarter =
+        widget.catalogs.configuredStarters.options.firstOrNull;
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _moneyAmountController.dispose();
+    _pokemonLevelController.dispose();
+    _pokemonCurrentHpController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final consequence = _buildConsequence();
-    return CupertinoAlertDialog(
-      key: const ValueKey('scene-consequence-picker-dialog'),
-      title: const Text('Ajouter une conséquence'),
-      content: SizedBox(
-        width: 420,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Padding(
+      key: const ValueKey('scene-consequence-picker-sheet'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: PokeMapButton(
-                      key: const ValueKey('scene-consequence-kind-setFact'),
-                      onPressed: widget.facts.isEmpty
-                          ? null
-                          : () => setState(
-                                () =>
-                                    _mode = _SceneConsequencePickerMode.setFact,
-                              ),
-                      variant: _mode == _SceneConsequencePickerMode.setFact
-                          ? PokeMapButtonVariant.primary
-                          : PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.small,
-                      child: const Text('setFact'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: PokeMapButton(
-                      key: const ValueKey(
-                        'scene-consequence-kind-markEventConsumed',
-                      ),
-                      onPressed: widget.events.isEmpty
-                          ? null
-                          : () => setState(
-                                () => _mode = _SceneConsequencePickerMode
-                                    .markEventConsumed,
-                              ),
-                      variant:
-                          _mode == _SceneConsequencePickerMode.markEventConsumed
-                              ? PokeMapButtonVariant.primary
-                              : PokeMapButtonVariant.secondary,
-                      size: PokeMapButtonSize.small,
-                      child: const Text('event consommé'),
-                    ),
-                  ),
-                ],
+              _kindButton(
+                key: const ValueKey('scene-consequence-kind-setFact'),
+                label: 'Définir un fait',
+                mode: _SceneConsequencePickerMode.setFact,
+                enabled: widget.facts.isNotEmpty,
               ),
-              const SizedBox(height: 10),
-              if (_mode == _SceneConsequencePickerMode.setFact)
-                ..._setFactControls()
-              else
-                ..._markEventControls(),
+              _kindButton(
+                key: const ValueKey(
+                  'scene-consequence-kind-markEventConsumed',
+                ),
+                label: 'Marquer joué',
+                mode: _SceneConsequencePickerMode.markEventConsumed,
+                enabled: widget.events.isNotEmpty,
+              ),
+              _kindButton(
+                key: const ValueKey('scene-consequence-kind-giveItem'),
+                label: 'Donner un objet',
+                mode: _SceneConsequencePickerMode.giveItem,
+                enabled: widget.catalogs.items.isReady,
+              ),
+              _kindButton(
+                key: const ValueKey('scene-consequence-kind-takeItem'),
+                label: 'Retirer un objet',
+                mode: _SceneConsequencePickerMode.takeItem,
+                enabled: widget.catalogs.items.isReady,
+              ),
+              _kindButton(
+                key: const ValueKey('scene-consequence-kind-giveMoney'),
+                label: 'Donner de l’argent',
+                mode: _SceneConsequencePickerMode.giveMoney,
+                // Money has no catalog reference, so it remains authorable
+                // while item/species catalogs are loading or unavailable.
+                enabled: true,
+              ),
+              _kindButton(
+                key: const ValueKey('scene-consequence-kind-givePokemon'),
+                label: 'Donner un Pokémon',
+                mode: _SceneConsequencePickerMode.givePokemon,
+                enabled: widget.catalogs.species.isReady,
+              ),
+              _kindButton(
+                key: const ValueKey(
+                  'scene-consequence-kind-giveConfiguredStarter',
+                ),
+                label: 'Donner un starter',
+                mode: _SceneConsequencePickerMode.giveConfiguredStarter,
+                enabled: widget.catalogs.configuredStarters.isReady,
+              ),
             ],
           ),
-        ),
+          if (!widget.catalogs.items.isReady) ...[
+            const SizedBox(height: 10),
+            PokeMapDiagnosticCallout(
+              key: const ValueKey(
+                'scene-consequence-items-catalog-diagnostic',
+              ),
+              severity: widget.catalogs.items.status ==
+                      SceneConsequenceCatalogStatus.failed
+                  ? PokeMapDiagnosticSeverity.error
+                  : PokeMapDiagnosticSeverity.warning,
+              title: 'Objets indisponibles',
+              message: widget.catalogs.items.message,
+            ),
+          ],
+          if (!widget.catalogs.species.isReady) ...[
+            const SizedBox(height: 10),
+            PokeMapDiagnosticCallout(
+              key: const ValueKey(
+                'scene-consequence-species-catalog-diagnostic',
+              ),
+              severity: widget.catalogs.species.status ==
+                      SceneConsequenceCatalogStatus.failed
+                  ? PokeMapDiagnosticSeverity.error
+                  : PokeMapDiagnosticSeverity.warning,
+              title: 'Pokémon indisponibles',
+              message: widget.catalogs.species.message,
+            ),
+          ],
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: switch (_mode) {
+                  _SceneConsequencePickerMode.setFact => _setFactControls(),
+                  _SceneConsequencePickerMode.markEventConsumed =>
+                    _markEventControls(),
+                  _SceneConsequencePickerMode.giveItem => _giveItemControls(),
+                  _SceneConsequencePickerMode.takeItem => _giveItemControls(),
+                  _SceneConsequencePickerMode.giveMoney => _giveMoneyControls(),
+                  _SceneConsequencePickerMode.givePokemon =>
+                    _givePokemonControls(),
+                  _SceneConsequencePickerMode.giveConfiguredStarter =>
+                    _giveConfiguredStarterControls(),
+                },
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PokeMapButton(
+                key: const ValueKey('scene-consequence-cancel-action'),
+                onPressed: () => Navigator.of(context).pop(),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Annuler'),
+              ),
+              const SizedBox(width: 8),
+              PokeMapButton(
+                key: const ValueKey('scene-consequence-create-action'),
+                onPressed: consequence == null
+                    ? null
+                    : () => Navigator.of(context).pop(consequence),
+                variant: PokeMapButtonVariant.primary,
+                size: PokeMapButtonSize.small,
+                child: const Text('Créer'),
+              ),
+            ],
+          ),
+        ],
       ),
-      actions: [
-        CupertinoDialogAction(
-          child: const Text('Annuler'),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        CupertinoDialogAction(
-          key: const ValueKey('scene-consequence-create-action'),
-          onPressed: consequence == null
-              ? null
-              : () => Navigator.of(context).pop(consequence),
-          child: const Text('Créer'),
-        ),
-      ],
+    );
+  }
+
+  Widget _kindButton({
+    required Key key,
+    required String label,
+    required _SceneConsequencePickerMode mode,
+    required bool enabled,
+  }) {
+    return PokeMapButton(
+      key: key,
+      onPressed: enabled ? () => setState(() => _mode = mode) : null,
+      variant: _mode == mode
+          ? PokeMapButtonVariant.primary
+          : PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      child: Text(label),
     );
   }
 
@@ -1704,6 +1890,108 @@ class _SceneConsequencePickerDialogState
     ];
   }
 
+  List<Widget> _giveItemControls() {
+    final quantity = int.tryParse(_quantityController.text.trim());
+    final quantityError = quantity == null || quantity <= 0
+        ? 'Saisissez une quantité supérieure à zéro.'
+        : null;
+    return [
+      for (final item in widget.catalogs.items.options)
+        _ConsequencePickerCard(
+          key: ValueKey(
+            'scene-consequence-item-option-${_pickerKeyPart(item.id)}',
+          ),
+          selected: _selectedItem?.id == item.id,
+          title: item.label,
+          subtitle: 'Objet du catalogue local',
+          details: item.details,
+          onTap: () => setState(() => _selectedItem = item),
+        ),
+      const SizedBox(height: 4),
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-item-quantity-field'),
+        label: 'Quantité',
+        controller: _quantityController,
+        keyboardType: TextInputType.number,
+        errorText: quantityError,
+        onChanged: (_) => setState(() {}),
+      ),
+    ];
+  }
+
+  List<Widget> _giveMoneyControls() {
+    final amount = int.tryParse(_moneyAmountController.text.trim());
+    return [
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-money-amount-field'),
+        label: 'Montant',
+        controller: _moneyAmountController,
+        keyboardType: TextInputType.number,
+        errorText: amount == null || amount <= 0
+            ? 'Saisissez un montant supérieur à zéro.'
+            : null,
+        onChanged: (_) => setState(() {}),
+      ),
+    ];
+  }
+
+  List<Widget> _givePokemonControls() {
+    final level = int.tryParse(_pokemonLevelController.text.trim());
+    final currentHp = int.tryParse(_pokemonCurrentHpController.text.trim());
+    return [
+      for (final species in widget.catalogs.species.options)
+        _ConsequencePickerCard(
+          key: ValueKey(
+            'scene-consequence-species-option-${_pickerKeyPart(species.id)}',
+          ),
+          selected: _selectedSpecies?.id == species.id,
+          title: species.label,
+          subtitle: 'Espèce locale activée',
+          details: species.details,
+          onTap: () => setState(() => _selectedSpecies = species),
+        ),
+      const SizedBox(height: 4),
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-pokemon-level-field'),
+        label: 'Niveau',
+        controller: _pokemonLevelController,
+        keyboardType: TextInputType.number,
+        errorText: level == null || level < 1 || level > 100
+            ? 'Choisissez un niveau entre 1 et 100.'
+            : null,
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 12),
+      PokeMapTextField(
+        key: const ValueKey('scene-consequence-pokemon-current-hp-field'),
+        label: 'PV courants',
+        controller: _pokemonCurrentHpController,
+        keyboardType: TextInputType.number,
+        errorText: currentHp == null || currentHp <= 0
+            ? 'Saisissez des PV courants supérieurs à zéro.'
+            : null,
+        onChanged: (_) => setState(() {}),
+      ),
+    ];
+  }
+
+  List<Widget> _giveConfiguredStarterControls() {
+    return <Widget>[
+      for (final starter in widget.catalogs.configuredStarters.options)
+        _ConsequencePickerCard(
+          key: ValueKey(
+            'scene-consequence-configured-starter-option-'
+            '${_pickerKeyPart(starter.id)}',
+          ),
+          selected: _selectedConfiguredStarter?.id == starter.id,
+          title: starter.label,
+          subtitle: 'Starter configuré dans Nouveau Jeu',
+          details: starter.details,
+          onTap: () => setState(() => _selectedConfiguredStarter = starter),
+        ),
+    ];
+  }
+
   SceneConsequence? _buildConsequence() {
     return switch (_mode) {
       _SceneConsequencePickerMode.setFact => _selectedFact == null
@@ -1718,6 +2006,43 @@ class _SceneConsequencePickerDialogState
               mapId: _selectedEvent!.mapId,
               eventId: _selectedEvent!.eventId,
             ),
+      _SceneConsequencePickerMode.giveItem => _selectedItem == null ||
+              (int.tryParse(_quantityController.text.trim()) ?? 0) <= 0
+          ? null
+          : SceneConsequence.giveItem(
+              itemId: _selectedItem!.id,
+              quantity: int.parse(_quantityController.text.trim()),
+            ),
+      _SceneConsequencePickerMode.takeItem => _selectedItem == null ||
+              (int.tryParse(_quantityController.text.trim()) ?? 0) <= 0
+          ? null
+          : SceneConsequence.takeItem(
+              itemId: _selectedItem!.id,
+              quantity: int.parse(_quantityController.text.trim()),
+            ),
+      _SceneConsequencePickerMode.giveMoney =>
+        (int.tryParse(_moneyAmountController.text.trim()) ?? 0) <= 0
+            ? null
+            : SceneConsequence.giveMoney(
+                amount: int.parse(_moneyAmountController.text.trim()),
+              ),
+      _SceneConsequencePickerMode.givePokemon => _selectedSpecies == null ||
+              (int.tryParse(_pokemonLevelController.text.trim()) ?? 0) < 1 ||
+              (int.tryParse(_pokemonLevelController.text.trim()) ?? 101) >
+                  100 ||
+              (int.tryParse(_pokemonCurrentHpController.text.trim()) ?? 0) <= 0
+          ? null
+          : SceneConsequence.givePokemon(
+              speciesId: _selectedSpecies!.id,
+              level: int.parse(_pokemonLevelController.text.trim()),
+              currentHp: int.parse(_pokemonCurrentHpController.text.trim()),
+            ),
+      _SceneConsequencePickerMode.giveConfiguredStarter =>
+        _selectedConfiguredStarter == null
+            ? null
+            : SceneConsequence.giveConfiguredStarter(
+                starterOptionId: _selectedConfiguredStarter!.id,
+              ),
     };
   }
 }

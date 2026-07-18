@@ -138,6 +138,42 @@ class RuntimeBattleSetupMapper {
                 List<RuntimeBattleCombatantSeed>.unmodifiable(reserveSeeds),
           );
         }(),
+      StaticBattleStartRequest() => () async {
+          final opponent =
+              _findTrainer(bundle.manifest, request.opponentProfileId);
+          if (opponent.team.isEmpty) {
+            throw RuntimeBattleSetupException(
+              'Le boss statique "${opponent.name}" n’a aucun Pokémon authoré.',
+              debugDetails: 'opponentProfileId=${opponent.id}',
+            );
+          }
+
+          final activeSeed =
+              await combatantSeedBuilder.buildTrainerCombatantSeed(
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: bundle.manifest.pokemon,
+            movesCatalog: movesCatalog,
+            teamMember: opponent.team.first,
+            trainerName: opponent.name,
+          );
+          final reserveSeeds = <RuntimeBattleCombatantSeed>[];
+          for (final teamMember in opponent.team.skip(1)) {
+            reserveSeeds.add(
+              await combatantSeedBuilder.buildTrainerCombatantSeed(
+                projectRootDirectory: bundle.projectRootDirectory,
+                pokemonConfig: bundle.manifest.pokemon,
+                movesCatalog: movesCatalog,
+                teamMember: teamMember,
+                trainerName: opponent.name,
+              ),
+            );
+          }
+          return _RuntimeBattleEnemyLineup(
+            active: activeSeed,
+            reserve:
+                List<RuntimeBattleCombatantSeed>.unmodifiable(reserveSeeds),
+          );
+        }(),
     };
 
     return BattleSetup(
@@ -171,6 +207,7 @@ class RuntimeBattleSetupMapper {
       // - aucune capture sans Poké Ball réelle dans le bag du joueur.
       allowCapture: request is WildBattleStartRequest &&
           playerHasAtLeastOneRuntimePokeBall(gameState.bag),
+      allowFlee: request.allowsPlayerFlee,
     );
   }
 

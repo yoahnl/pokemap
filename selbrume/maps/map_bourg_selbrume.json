@@ -19798,23 +19798,23 @@
       }
     },
     {
-      "id": "npc",
-      "name": "npc",
+      "id": "npc_mael",
+      "name": "Maël",
       "kind": "npc",
       "pos": {
-        "x": 34,
-        "y": 29
+        "x": 27,
+        "y": 20
       },
       "size": {
-        "width": 2,
-        "height": 2
+        "width": 1,
+        "height": 1
       },
       "npc": {
-        "displayName": "npc",
+        "displayName": "Maël",
         "dialogue": {
-          "dialogueId": "test",
+          "dialogueId": "dialogue_mael_intro",
           "scriptPathRelative": "",
-          "startNode": null
+          "startNode": "MaelIntro"
         },
         "facing": "south",
         "visualElementId": "",
@@ -19837,7 +19837,92 @@
       "spawn": null,
       "editorVisual": null,
       "blocksMovement": true,
-      "properties": {}
+      "properties": {
+        "contractRole": "selbrume_canonical_narrative_source"
+      }
+    },
+    {
+      "id": "npc",
+      "name": "Ancre historique du PNJ du bourg",
+      "kind": "custom",
+      "pos": {
+        "x": 34,
+        "y": 29
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "canonical_map_generator_compatibility_anchor",
+        "inert": "true"
+      }
+    },
+    {
+      "id": "gate_bourg_to_port",
+      "name": "Route du Port des Brisants fermée",
+      "kind": "sign",
+      "pos": {
+        "x": 0,
+        "y": 54
+      },
+      "size": {
+        "width": 55,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Route du Port des Brisants fermée",
+        "dialogue": null,
+        "plainText": "Avant de partir au port, va parler à Maël sur la place."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_passage_barriere_fermee",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    },
+    {
+      "id": "gate_bourg_to_bois",
+      "name": "Route du Bois de la Chaise fermée",
+      "kind": "sign",
+      "pos": {
+        "x": 54,
+        "y": 0
+      },
+      "size": {
+        "width": 1,
+        "height": 55
+      },
+      "npc": null,
+      "sign": {
+        "title": "Route du Bois de la Chaise fermée",
+        "dialogue": null,
+        "plainText": "La brume est trop dense. Lysa doit d’abord ouvrir la voie."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_bois_ronces",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
     }
   ],
   "connections": [

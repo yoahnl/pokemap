@@ -2,8 +2,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
+import '../narrative_studio/narrative_studio_route_presentation.dart';
+import '../narrative_studio/narrative_studio_workspace_page.dart';
 
 enum FactsWorldRulesWorkspaceMode {
   facts,
@@ -129,22 +132,29 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
       maps: maps,
     );
     _ensureValidSelections(readModel);
+    final workspaceMode = switch (_mode) {
+      FactsWorldRulesWorkspaceMode.facts => EditorWorkspaceMode.facts,
+      FactsWorldRulesWorkspaceMode.worldRules => EditorWorkspaceMode.worldRules,
+    };
 
     return Material(
       type: MaterialType.transparency,
-      child: PokeMapPageSurface(
-        key: const ValueKey('facts-world-rules-workspace'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _MetricsStrip(readModel: readModel),
-            const SizedBox(height: 14),
-            Expanded(
-              child: _mode == FactsWorldRulesWorkspaceMode.facts
-                  ? _buildFactsManager(context, readModel)
-                  : _buildWorldRulesManager(context, readModel),
-            ),
-          ],
+      child: NarrativeStudioWorkspacePage(
+        presentation: narrativeStudioRoutePresentationFor(workspaceMode)!,
+        body: PokeMapPageSurface(
+          key: const ValueKey('facts-world-rules-workspace'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _MetricsStrip(readModel: readModel),
+              const SizedBox(height: 14),
+              Expanded(
+                child: _mode == FactsWorldRulesWorkspaceMode.facts
+                    ? _buildFactsManager(context, readModel)
+                    : _buildWorldRulesManager(context, readModel),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -995,8 +1005,12 @@ class _MetricsStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5).toDouble();
     return SizedBox(
-      height: 132,
+      // Metric cards include a subtitle; reserve the extra line-height at
+      // accessible text scales instead of clipping the shared DS primitive.
+      height: 132 + ((textScale - 1) * 32),
       child: Row(
         children: [
           Expanded(

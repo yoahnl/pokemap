@@ -20,7 +20,8 @@ BattleOpponentPolicy resolveRuntimeTrainerOpponentPolicy({
   required BattleStartRequest request,
   required ProjectManifest manifest,
 }) {
-  if (request is! TrainerBattleStartRequest) {
+  if (request is! TrainerBattleStartRequest &&
+      request is! StaticBattleStartRequest) {
     return const BattleFirstLegalOpponentPolicy();
   }
 
@@ -42,11 +43,13 @@ ProjectTrainerEntry? findTrainerEntryForBattleRequest({
   required BattleStartRequest request,
   required ProjectManifest manifest,
 }) {
-  if (request is! TrainerBattleStartRequest) {
-    return null;
-  }
-
-  final normalizedTrainerId = request.trainerId.trim();
+  final normalizedTrainerId = switch (request) {
+    TrainerBattleStartRequest(:final trainerId) => trainerId.trim(),
+    StaticBattleStartRequest(:final opponentProfileId) =>
+      opponentProfileId.trim(),
+    _ => '',
+  };
+  if (normalizedTrainerId.isEmpty) return null;
   for (final trainer in manifest.trainers) {
     if (trainer.id == normalizedTrainerId) {
       return trainer;

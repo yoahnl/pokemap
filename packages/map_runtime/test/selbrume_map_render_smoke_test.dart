@@ -18,7 +18,7 @@ import 'support/selbrume_map_test_fixture.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('port render paints registered placements and planned landmarks',
+  test('port render paints static placements and keeps dynamic nest contract',
       () async {
     final bundle = await loadRuntimeMapBundle(
       projectFilePath: SelbrumeMapTestFixture.projectFilePath,
@@ -30,7 +30,17 @@ void main() {
     };
     expect(placedById['pe_port_bateau']?.pos, const GridPos(x: 0, y: 21));
     expect(placedById['pe_port_hangar']?.pos, const GridPos(x: 31, y: 11));
-    expect(placedById['pe_port_nid_goelise']?.pos, const GridPos(x: 7, y: 9));
+    expect(placedById, isNot(contains('pe_port_nid_goelise')));
+    final nest = bundle.map.entities.singleWhere(
+      (entity) => entity.id == 'goelise_nest_proxy',
+    );
+    expect(nest.pos, const GridPos(x: 7, y: 9));
+    expect(nest.kind, MapEntityKind.custom);
+    expect(nest.blocksMovement, isFalse);
+    expect(nest.editorVisual?.elementId, 'el_port_ref_nest');
+    expect(nest.properties, const <String, String>{
+      'contractRole': 'selbrume_world_state_visual',
+    });
     expect(
       bundle.map.placedElements.map((placed) => placed.elementId),
       containsAll(<String>[
@@ -38,7 +48,6 @@ void main() {
         'el_port_ref_boat_medium',
         'el_port_ref_harbor_master',
         'el_port_ref_fish_crates_small',
-        'el_port_ref_nest',
       ]),
     );
 

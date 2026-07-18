@@ -13,12 +13,16 @@ enum SceneDialogueRuntimeAwaitableErrorCode {
 final class SceneDialogueRuntimeAwaitableResult {
   const SceneDialogueRuntimeAwaitableResult._({
     required this.status,
+    this.outcomeId,
     this.errorCode,
     this.message,
   });
 
-  const SceneDialogueRuntimeAwaitableResult.completed()
-      : this._(status: SceneDialogueRuntimeAwaitableStatus.completed);
+  const SceneDialogueRuntimeAwaitableResult.completed({String? outcomeId})
+      : this._(
+          status: SceneDialogueRuntimeAwaitableStatus.completed,
+          outcomeId: outcomeId,
+        );
 
   const SceneDialogueRuntimeAwaitableResult.failed({
     required SceneDialogueRuntimeAwaitableErrorCode errorCode,
@@ -30,6 +34,7 @@ final class SceneDialogueRuntimeAwaitableResult {
         );
 
   final SceneDialogueRuntimeAwaitableStatus status;
+  final String? outcomeId;
   final SceneDialogueRuntimeAwaitableErrorCode? errorCode;
   final String? message;
 
@@ -37,7 +42,7 @@ final class SceneDialogueRuntimeAwaitableResult {
 
   String? get scenePortId {
     return switch (status) {
-      SceneDialogueRuntimeAwaitableStatus.completed => 'completed',
+      SceneDialogueRuntimeAwaitableStatus.completed => outcomeId ?? 'completed',
       SceneDialogueRuntimeAwaitableStatus.failed => null,
     };
   }

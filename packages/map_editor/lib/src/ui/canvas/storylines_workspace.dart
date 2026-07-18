@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'storylines/storylines_graph_view.dart';
 import 'storylines/storylines_structure_view.dart';
 
@@ -27,9 +30,18 @@ class StorylinesWorkspace extends ConsumerStatefulWidget {
 class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
   static const _closedChapterSelectionId = '__storylines_closed_chapter__';
 
+  final FocusNode _createStorylineFocusNode = FocusNode(
+    debugLabel: 'Storylines create launcher',
+  );
   _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
   String? _selectedStorylineId;
   String? _selectedChapterId;
+
+  @override
+  void dispose() {
+    _createStorylineFocusNode.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,94 +57,109 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
         widget.projection.steps.isEmpty ? null : widget.projection.steps.first;
     final legacyStepCount = widget.projection.steps.length;
 
-    return PokeMapPageSurface(
-      key: const ValueKey('storylines-workspace-shell'),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            width: 240,
-            child: _StorylinesV1SecondaryPanel(
-              storylines: storylines,
-              selectedStorylineId: selectedStoryline?.id,
-              legacyGlobalStory: legacyGlobalStory,
-              onStorylineSelected: _selectStoryline,
+    return NarrativeStudioWorkspacePage(
+      presentation: narrativeStudioRoutePresentationFor(
+        EditorWorkspaceMode.globalStory,
+      )!,
+      actions: [
+        PokeMapButton(
+          key: const ValueKey('storylines-create-main-cta'),
+          focusNode: _createStorylineFocusNode,
+          onPressed: project == null
+              ? null
+              : () => _openCreateStorylineDialog(project),
+          variant: PokeMapButtonVariant.success,
+          size: PokeMapButtonSize.compact,
+          leading: const Icon(CupertinoIcons.plus, size: 16),
+          child: const Text('Nouvelle storyline'),
+        ),
+      ],
+      body: PokeMapPageSurface(
+        key: const ValueKey('storylines-workspace-shell'),
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              width: 240,
+              child: _StorylinesV1SecondaryPanel(
+                storylines: storylines,
+                selectedStorylineId: selectedStoryline?.id,
+                legacyGlobalStory: legacyGlobalStory,
+                onStorylineSelected: _selectStoryline,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _StorylinesV1MainPanel(
-              selectedStoryline: selectedStoryline,
-              selectedChapter: selectedChapter,
-              storylines: storylines,
-              selectedTab: _selectedTab,
-              legacyGlobalStory: legacyGlobalStory,
-              legacyStep: legacyStep,
-              legacyStepCount: legacyStepCount,
-              canCreateStoryline: project != null,
-              onTabSelected: _selectTab,
-              onChapterSelected: _selectChapter,
-              onCreateStoryline: project == null
-                  ? null
-                  : () => _openCreateStorylineDialog(project),
-              onCreateChapter: project == null || selectedStoryline == null
-                  ? null
-                  : () => _openCreateChapterDialog(project, selectedStoryline),
-              onEditChapter: project == null || selectedStoryline == null
-                  ? null
-                  : (chapter) => _openEditChapterDialog(
-                        project,
-                        selectedStoryline,
-                        chapter,
-                      ),
-              onCreateStep: project == null ||
-                      selectedStoryline == null ||
-                      selectedChapter == null
-                  ? null
-                  : () => _openCreateStepDialog(
-                        project,
-                        selectedStoryline,
-                        selectedChapter,
-                      ),
-              onEditStep: project == null || selectedStoryline == null
-                  ? null
-                  : (chapter, step) => _openEditStepDialog(
-                        project,
-                        selectedStoryline,
-                        chapter,
-                        step,
-                      ),
-              onReorderSteps: project == null || selectedStoryline == null
-                  ? null
-                  : (chapter, oldIndex, newIndex) => _reorderSteps(
-                        project,
-                        selectedStoryline,
-                        chapter,
-                        oldIndex,
-                        newIndex,
-                      ),
-              onAttachSideQuest: project == null ||
-                      selectedStoryline == null ||
-                      selectedStoryline.type != StorylineType.sideQuest
-                  ? null
-                  : () => _openAttachSideQuestDialog(
-                        project,
-                        selectedStoryline,
-                      ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _StorylinesV1MainPanel(
+                selectedStoryline: selectedStoryline,
+                selectedChapter: selectedChapter,
+                storylines: storylines,
+                selectedTab: _selectedTab,
+                legacyGlobalStory: legacyGlobalStory,
+                legacyStep: legacyStep,
+                legacyStepCount: legacyStepCount,
+                onTabSelected: _selectTab,
+                onChapterSelected: _selectChapter,
+                onCreateChapter: project == null || selectedStoryline == null
+                    ? null
+                    : () =>
+                        _openCreateChapterDialog(project, selectedStoryline),
+                onEditChapter: project == null || selectedStoryline == null
+                    ? null
+                    : (chapter) => _openEditChapterDialog(
+                          project,
+                          selectedStoryline,
+                          chapter,
+                        ),
+                onCreateStep: project == null ||
+                        selectedStoryline == null ||
+                        selectedChapter == null
+                    ? null
+                    : () => _openCreateStepDialog(
+                          project,
+                          selectedStoryline,
+                          selectedChapter,
+                        ),
+                onEditStep: project == null || selectedStoryline == null
+                    ? null
+                    : (chapter, step) => _openEditStepDialog(
+                          project,
+                          selectedStoryline,
+                          chapter,
+                          step,
+                        ),
+                onReorderSteps: project == null || selectedStoryline == null
+                    ? null
+                    : (chapter, oldIndex, newIndex) => _reorderSteps(
+                          project,
+                          selectedStoryline,
+                          chapter,
+                          oldIndex,
+                          newIndex,
+                        ),
+                onAttachSideQuest: project == null ||
+                        selectedStoryline == null ||
+                        selectedStoryline.type != StorylineType.sideQuest
+                    ? null
+                    : () => _openAttachSideQuestDialog(
+                          project,
+                          selectedStoryline,
+                        ),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 280,
-            child: _StorylinesV1InspectorPanel(
-              selectedStoryline: selectedStoryline,
-              selectedChapter: _selectedTab == _StorylineContentTab.structure
-                  ? selectedChapter
-                  : null,
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 280,
+              child: _StorylinesV1InspectorPanel(
+                selectedStoryline: selectedStoryline,
+                selectedChapter: _selectedTab == _StorylineContentTab.structure
+                    ? selectedChapter
+                    : null,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -204,6 +231,9 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
         storylines: project.storylines,
       ),
     );
+    if (mounted) {
+      _createStorylineFocusNode.requestFocus();
+    }
     if (draft == null || !mounted) {
       return;
     }
@@ -1242,10 +1272,8 @@ class _StorylinesV1MainPanel extends StatelessWidget {
     required this.legacyGlobalStory,
     required this.legacyStep,
     required this.legacyStepCount,
-    required this.canCreateStoryline,
     required this.onTabSelected,
     required this.onChapterSelected,
-    required this.onCreateStoryline,
     required this.onCreateChapter,
     required this.onEditChapter,
     required this.onCreateStep,
@@ -1261,10 +1289,8 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   final NarrativeScenarioSummary? legacyGlobalStory;
   final NarrativeStepSummary? legacyStep;
   final int legacyStepCount;
-  final bool canCreateStoryline;
   final ValueChanged<_StorylineContentTab> onTabSelected;
   final ValueChanged<StorylineChapter?> onChapterSelected;
-  final VoidCallback? onCreateStoryline;
   final VoidCallback? onCreateChapter;
   final ValueChanged<StorylineChapter>? onEditChapter;
   final VoidCallback? onCreateStep;
@@ -1286,8 +1312,6 @@ class _StorylinesV1MainPanel extends StatelessWidget {
         children: [
           _StorylinesV1Header(
             selectedStoryline: selectedStoryline,
-            canCreateStoryline: canCreateStoryline,
-            onCreateStoryline: onCreateStoryline,
             compact: compactMode,
           ),
           SizedBox(height: compactMode ? 8 : 12),
@@ -1332,14 +1356,10 @@ class _StorylinesV1MainPanel extends StatelessWidget {
 class _StorylinesV1Header extends StatelessWidget {
   const _StorylinesV1Header({
     required this.selectedStoryline,
-    required this.canCreateStoryline,
-    required this.onCreateStoryline,
     required this.compact,
   });
 
   final StorylineAsset? selectedStoryline;
-  final bool canCreateStoryline;
-  final VoidCallback? onCreateStoryline;
   final bool compact;
 
   @override
@@ -1378,20 +1398,6 @@ class _StorylinesV1Header extends StatelessWidget {
                         label: _sideQuestAttachmentStatus(selectedStoryline!),
                       ),
                   ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            PokeMapButton(
-              key: const ValueKey('storylines-create-main-cta'),
-              onPressed: canCreateStoryline ? onCreateStoryline : null,
-              variant: PokeMapButtonVariant.primary,
-              leading: const Icon(CupertinoIcons.plus, size: 16),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('Nouvelle'),
-                  Text(' storyline'),
                 ],
               ),
             ),
@@ -1452,20 +1458,6 @@ class _StorylinesV1Header extends StatelessWidget {
                     height: 1.35,
                   ),
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          PokeMapButton(
-            key: const ValueKey('storylines-create-main-cta'),
-            onPressed: canCreateStoryline ? onCreateStoryline : null,
-            variant: PokeMapButtonVariant.primary,
-            leading: const Icon(CupertinoIcons.plus, size: 16),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Nouvelle'),
-                Text(' storyline'),
               ],
             ),
           ),
@@ -2318,106 +2310,126 @@ class _CreateStructureItemDialogState
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final title = _titleController.text.trim();
+    final maxDialogHeight =
+        (MediaQuery.sizeOf(context).height - 48).clamp(320.0, 720.0);
     return Center(
       child: SizedBox(
         width: 460,
         child: PokeMapPanel(
           key: widget.dialogKey,
           padding: const EdgeInsets.all(18),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                widget.title,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              _StorylinesV1TextField(
-                key: widget.titleFieldKey,
-                controller: _titleController,
-                placeholder: 'Titre',
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 10),
-              _StorylinesV1TextField(
-                key: widget.descriptionFieldKey,
-                controller: _descriptionController,
-                placeholder: 'Description optionnelle',
-                maxLines: 3,
-              ),
-              if (widget.availableScenes != null) ...[
-                const SizedBox(height: 14),
-                _StorylineStepSceneLinksSection(
-                  sceneLinkIds: _sceneLinkIds,
-                  availableScenes: widget.availableScenes!,
-                  onLinkScene: _linkScene,
-                  onUnlinkScene: _unlinkScene,
-                ),
-              ],
-              if (title.isEmpty) ...[
-                const SizedBox(height: 8),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxDialogHeight),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 Text(
-                  'Titre obligatoire.',
+                  widget.title,
                   style: TextStyle(
-                    color: colors.warning,
-                    fontSize: 12,
+                    color: colors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ],
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  if (widget.deleteKey != null)
-                    PokeMapButton(
-                      key: widget.deleteKey,
-                      onPressed: () => Navigator.of(context).pop(
-                        const _StructureItemDraft.delete(),
-                      ),
-                      variant: PokeMapButtonVariant.danger,
-                      size: PokeMapButtonSize.small,
-                      leading: const Icon(CupertinoIcons.trash),
-                      child: const Text('Supprimer'),
+                const SizedBox(height: 14),
+                Flexible(
+                  fit: FlexFit.loose,
+                  child: SingleChildScrollView(
+                    key: const ValueKey(
+                      'storylines-structure-item-dialog-scroll',
                     ),
-                  PokeMapButton(
-                    key: widget.cancelKey,
-                    onPressed: () => Navigator.of(context).pop(),
-                    variant: PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.small,
-                    child: const Text('Annuler'),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _StorylinesV1TextField(
+                          key: widget.titleFieldKey,
+                          controller: _titleController,
+                          placeholder: 'Titre',
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 10),
+                        _StorylinesV1TextField(
+                          key: widget.descriptionFieldKey,
+                          controller: _descriptionController,
+                          placeholder: 'Description optionnelle',
+                          maxLines: 3,
+                        ),
+                        if (widget.availableScenes != null) ...[
+                          const SizedBox(height: 14),
+                          _StorylineStepSceneLinksSection(
+                            sceneLinkIds: _sceneLinkIds,
+                            availableScenes: widget.availableScenes!,
+                            onLinkScene: _linkScene,
+                            onUnlinkScene: _unlinkScene,
+                          ),
+                        ],
+                        if (title.isEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Titre obligatoire.',
+                            style: TextStyle(
+                              color: colors.warning,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                  PokeMapButton(
-                    key: widget.submitKey,
-                    onPressed: title.isEmpty
-                        ? null
-                        : () {
-                            final description =
-                                _descriptionController.text.trim();
-                            Navigator.of(context).pop(
-                              _StructureItemDraft(
-                                title: title,
-                                description:
-                                    description.isEmpty ? null : description,
-                                sceneLinkIds: widget.availableScenes == null
-                                    ? null
-                                    : List<String>.unmodifiable(_sceneLinkIds),
-                              ),
-                            );
-                          },
-                    variant: PokeMapButtonVariant.primary,
-                    size: PokeMapButtonSize.small,
-                    child: Text(widget.submitLabel),
-                  ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    if (widget.deleteKey != null)
+                      PokeMapButton(
+                        key: widget.deleteKey,
+                        onPressed: () => Navigator.of(context).pop(
+                          const _StructureItemDraft.delete(),
+                        ),
+                        variant: PokeMapButtonVariant.danger,
+                        size: PokeMapButtonSize.small,
+                        leading: const Icon(CupertinoIcons.trash),
+                        child: const Text('Supprimer'),
+                      ),
+                    PokeMapButton(
+                      key: widget.cancelKey,
+                      onPressed: () => Navigator.of(context).pop(),
+                      variant: PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.small,
+                      child: const Text('Annuler'),
+                    ),
+                    PokeMapButton(
+                      key: widget.submitKey,
+                      onPressed: title.isEmpty
+                          ? null
+                          : () {
+                              final description =
+                                  _descriptionController.text.trim();
+                              Navigator.of(context).pop(
+                                _StructureItemDraft(
+                                  title: title,
+                                  description:
+                                      description.isEmpty ? null : description,
+                                  sceneLinkIds: widget.availableScenes == null
+                                      ? null
+                                      : List<String>.unmodifiable(
+                                          _sceneLinkIds,
+                                        ),
+                                ),
+                              );
+                            },
+                      variant: PokeMapButtonVariant.primary,
+                      size: PokeMapButtonSize.small,
+                      child: Text(widget.submitLabel),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

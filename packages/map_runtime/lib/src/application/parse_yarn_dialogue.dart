@@ -8,6 +8,7 @@ List<YarnNode> parseYarnFile(String content) {
   bool inChoiceBlock = false;
   final currentChoices = <YarnChoice>[];
   String? currentChoiceText;
+  String? currentChoiceOutcomeId;
   final currentChoiceSteps = <YarnStep>[];
 
   void closeChoiceOption() {
@@ -15,8 +16,10 @@ List<YarnNode> parseYarnFile(String content) {
       currentChoices.add(YarnChoice(
         text: currentChoiceText!,
         steps: List.unmodifiable(currentChoiceSteps),
+        outcomeId: currentChoiceOutcomeId,
       ));
       currentChoiceText = null;
+      currentChoiceOutcomeId = null;
       currentChoiceSteps.clear();
     }
   }
@@ -43,6 +46,7 @@ List<YarnNode> parseYarnFile(String content) {
         inChoiceBlock = false;
         currentChoices.clear();
         currentChoiceText = null;
+        currentChoiceOutcomeId = null;
         currentChoiceSteps.clear();
       }
     } else {
@@ -61,7 +65,15 @@ List<YarnNode> parseYarnFile(String content) {
       } else if (trimmed.isEmpty) {
         // skip
       } else if (line.startsWith(' ') || line.startsWith('\t')) {
-        if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
+        if (currentChoiceText != null &&
+            trimmed.startsWith('<<outcome ') &&
+            trimmed.endsWith('>>')) {
+          final outcomeId =
+              trimmed.substring('<<outcome '.length, trimmed.length - 2).trim();
+          if (outcomeId.isNotEmpty) {
+            currentChoiceOutcomeId = outcomeId;
+          }
+        } else if (trimmed.startsWith('<<jump ') && trimmed.endsWith('>>')) {
           final target =
               trimmed.substring('<<jump '.length, trimmed.length - 2).trim();
           currentChoiceSteps.add(YarnStepJump(target));

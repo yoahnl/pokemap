@@ -551,7 +551,9 @@ const Map<String, Set<String>> _authoredRequiredTriggers =
     'tr_sommet_confrontation',
     'tr_lighthouse_top',
   },
-  'map_cabane_gardien': <String>{'tr_cabane_journal', 'tr_cabane_cle'},
+  // The narrative seed moves the key outside the cabin and owns its exterior
+  // Event V2 trigger; only the journal remains a cabin trigger contract.
+  'map_cabane_gardien': <String>{'tr_cabane_journal'},
   'map_maison_joueur': <String>{'zone_player_house_exit'},
 };
 
@@ -1321,6 +1323,17 @@ void _validateAuthoredMapContract(
   for (final contract in _authoredLandmarks[map.id] ??
       const <(String, String, String, GridPos, bool)>[]) {
     final placed = placedById[contract.$1];
+    if (map.id == 'map_port_brisants' &&
+        contract.$1 == 'pe_port_nid_goelise') {
+      // The promoted project must never retain both visual owners: the static
+      // placement cannot react to World Rules, whereas the entity proxy can.
+      if (placed != null || !_matchesPromotedNarrativeLandmark(map, contract)) {
+        throw StateError(
+          '${map.id} required landmark ${contract.$1} is missing or changed.',
+        );
+      }
+      continue;
+    }
     if (placed == null ||
         placed.elementId != contract.$2 ||
         placed.layerId != contract.$3 ||
@@ -1349,6 +1362,30 @@ void _validateAuthoredMapContract(
     map.gameplayZones.map((zone) => zone.id).toSet(),
     _authoredRequiredZones[map.id] ?? const <String>{},
   );
+}
+
+bool _matchesPromotedNarrativeLandmark(
+  MapData map,
+  (String, String, String, GridPos, bool) contract,
+) {
+  if (map.id != 'map_port_brisants' ||
+      contract.$1 != 'pe_port_nid_goelise' ||
+      contract.$2 != 'el_port_ref_nest' ||
+      contract.$4 != const GridPos(x: 7, y: 9) ||
+      contract.$5) {
+    return false;
+  }
+  final proxies = map.entities.where(
+    (entity) => entity.id == 'goelise_nest_proxy',
+  );
+  if (proxies.length != 1) return false;
+  final proxy = proxies.single;
+  return proxy.kind == MapEntityKind.custom &&
+      proxy.pos == contract.$4 &&
+      proxy.size == const GridSize(width: 1, height: 1) &&
+      !proxy.blocksMovement &&
+      proxy.editorVisual?.elementId == contract.$2 &&
+      proxy.properties['contractRole'] == 'selbrume_world_state_visual';
 }
 
 void _validateAuthoredTopology(Map<String, MapData> maps) {

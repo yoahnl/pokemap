@@ -6188,6 +6188,85 @@ void main() {
     );
   });
 
+  test('validate-authored requires the promoted Goélise nest proxy', () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final portFile = File(
+      p.join(fixture.path, 'maps', 'map_port_brisants.json'),
+    );
+    final port = _readJson(portFile);
+    (port['entities'] as List<dynamic>).removeWhere(
+      (entity) =>
+          (entity as Map<String, dynamic>)['id'] == 'goelise_nest_proxy',
+    );
+    portFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(port)}\n',
+    );
+
+    await expectLater(
+      () => generateSelbrumeCanonicalMaps(
+        SelbrumeGeneratorOptions(
+          projectRoot: fixture,
+          validateAuthored: true,
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.toString(),
+          'message',
+          allOf(
+            contains('map_port_brisants'),
+            contains('pe_port_nid_goelise'),
+          ),
+        ),
+      ),
+    );
+  });
+
+  test('validate-authored rejects the legacy static Goélise nest', () async {
+    final fixture = _copyAuthoredSelbrumeFixture();
+    addTearDown(() => fixture.parent.delete(recursive: true));
+    final portFile = File(
+      p.join(fixture.path, 'maps', 'map_port_brisants.json'),
+    );
+    final port = _readJson(portFile);
+    (port['entities'] as List<dynamic>).removeWhere(
+      (entity) =>
+          (entity as Map<String, dynamic>)['id'] == 'goelise_nest_proxy',
+    );
+    final placements = port['placedElements'] as List<dynamic>;
+    final legacyNest = (jsonDecode(jsonEncode(placements.first)) as Map)
+        .cast<String, dynamic>()
+      ..['id'] = 'pe_port_nid_goelise'
+      ..['layerId'] = 'l_tile_port_ref_ground'
+      ..['elementId'] = 'el_port_ref_nest'
+      ..['pos'] = <String, dynamic>{'x': 7, 'y': 9}
+      ..['applyCollision'] = false;
+    placements.add(legacyNest);
+    portFile.writeAsStringSync(
+      '${const JsonEncoder.withIndent('  ').convert(port)}\n',
+    );
+
+    await expectLater(
+      () => generateSelbrumeCanonicalMaps(
+        SelbrumeGeneratorOptions(
+          projectRoot: fixture,
+          validateAuthored: true,
+        ),
+      ),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.toString(),
+          'message',
+          allOf(
+            contains('map_port_brisants'),
+            contains('pe_port_nid_goelise'),
+          ),
+        ),
+      ),
+    );
+  });
+
   test('validate-authored rejects removal of a required connection', () async {
     final fixture = _copyAuthoredSelbrumeFixture();
     addTearDown(() => fixture.parent.delete(recursive: true));

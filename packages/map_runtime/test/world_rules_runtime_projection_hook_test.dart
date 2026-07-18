@@ -213,6 +213,97 @@ void main() {
       );
     });
 
+    test('Story Step progression replaces the intro dialogue after save/load',
+        () async {
+      final fixture = _fixture(
+        dialogues: const [
+          ProjectDialogueEntry(
+            id: 'dialogue_gate_intro',
+            name: 'Gate intro',
+            relativePath: 'dialogues/gate_intro.yarn',
+          ),
+          ProjectDialogueEntry(
+            id: 'dialogue_gate_after',
+            name: 'Gate after',
+            relativePath: 'dialogues/gate_after.yarn',
+          ),
+        ],
+        storylines: [
+          StorylineAsset(
+            id: 'storyline_gate',
+            type: StorylineType.main,
+            title: 'Gate storyline',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_gate',
+                title: 'Gate chapter',
+                order: 0,
+                steps: [
+                  StorylineStep(
+                    id: 'step_gate',
+                    title: 'Open gate',
+                    order: 0,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+        worldRules: [
+          _npcDialogueRule(
+            id: 'world_rule_dialogue_intro',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.storyStepCompletion,
+              sourceId: 'step_gate',
+              predicate: WorldRuleSourcePredicate.notCompleted,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.npcDialogueOverride,
+              dialogueId: 'dialogue_gate_intro',
+            ),
+          ),
+          _npcDialogueRule(
+            id: 'world_rule_dialogue_after',
+            source: const WorldRuleSource(
+              kind: WorldRuleSourceKind.storyStepCompletion,
+              sourceId: 'step_gate',
+              predicate: WorldRuleSourcePredicate.completed,
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.npcDialogueOverride,
+              dialogueId: 'dialogue_gate_after',
+            ),
+          ),
+        ],
+      );
+      final before = const RuntimeWorldRuleProjectionHook().resolve(
+        project: fixture.project,
+        gameState: const GameState(saveId: _saveId),
+        map: fixture.map,
+      );
+      final reloaded = await _saveAndReload(
+        const GameState(
+          saveId: _saveId,
+          progression: PlayerProgression(
+            completedStepIds: <String>['step_gate'],
+          ),
+        ),
+      );
+      final after = const RuntimeWorldRuleProjectionHook().resolve(
+        project: fixture.project,
+        gameState: reloaded,
+        map: fixture.map,
+      );
+
+      expect(before.dialogueOverrideForEntity(_npcId), 'dialogue_gate_intro');
+      expect(after.dialogueOverrideForEntity(_npcId), 'dialogue_gate_after');
+      expect(
+        diagnoseWorldRules(fixture.project, maps: [fixture.map])
+            .byCode(WorldRuleDiagnosticCode.worldRuleConflict),
+        isEmpty,
+      );
+    });
+
     test('ignores rules targeting other maps', () {
       final fixture = _fixture(
         worldRules: [
@@ -446,6 +537,7 @@ Future<GameState> _saveAndReload(GameState state) async {
 _ProjectionFixture _fixture({
   List<ProjectDialogueEntry> dialogues = const [],
   List<SceneAsset> scenes = const [],
+  List<StorylineAsset> storylines = const [],
   List<WorldRuleDefinition> worldRules = const [],
 }) {
   const npc = MapEntity(
@@ -504,6 +596,7 @@ _ProjectionFixture _fixture({
     ],
     dialogues: dialogues,
     scenes: scenes,
+    storylines: storylines,
     worldRules: worldRules,
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
@@ -547,23 +640,26 @@ WorldRuleDefinition _npcDialogueRule({
   required String id,
   bool enabled = true,
   String mapId = _mapId,
+  WorldRuleSource source = const WorldRuleSource(
+    kind: WorldRuleSourceKind.fact,
+    sourceId: _factId,
+    predicate: WorldRuleSourcePredicate.isTrue,
+  ),
   required WorldRuleEffect effect,
+  int priority = 0,
 }) {
   return WorldRuleDefinition(
     id: id,
     label: 'Readable $id',
     enabled: enabled,
-    source: const WorldRuleSource(
-      kind: WorldRuleSourceKind.fact,
-      sourceId: _factId,
-      predicate: WorldRuleSourcePredicate.isTrue,
-    ),
+    source: source,
     target: WorldRuleTarget(
       kind: WorldRuleTargetKind.npcDialogue,
       mapId: mapId,
       entityId: _npcId,
     ),
     effect: effect,
+    priority: priority,
   );
 }
 

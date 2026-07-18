@@ -88,7 +88,10 @@ void main() {
       expect(
           find.byKey(const ValueKey('storylines-step-row-step_enter_marais')),
           findsNothing);
-      expect(find.textContaining('Aucune scène liée'), findsWidgets);
+      expect(find.textContaining('Aucune scène liée'), findsNothing);
+      expect(find.text('1 scène liée'), findsAtLeastNWidgets(2));
+      expect(find.text('2 scènes liées'), findsAtLeastNWidgets(1));
+      expect(find.text('3 scènes liées'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('accordion chapter selection opens another without mutation',

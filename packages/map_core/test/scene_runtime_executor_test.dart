@@ -125,6 +125,54 @@ void main() {
       ]);
     });
 
+    test('builds and routes declared Yarn outcome ports from a SceneAsset',
+        () async {
+      final scene = SceneAsset(
+        id: 'scene_dialogue_outcome',
+        name: 'Dialogue outcome',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_test',
+                expectedOutcomes: const ['accept'],
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_dialogue',
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'edge_dialogue_accept',
+              fromNodeId: 'node_dialogue',
+              fromPortId: 'accept',
+              toNodeId: 'node_end',
+              kind: SceneEdgeKind.dialogueOutcome,
+            ),
+          ],
+        ),
+      );
+      final build = buildSceneRuntimePlan(scene);
+
+      expect(build.diagnostics, isEmpty);
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(build.plan!);
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end');
+    });
+
     test('executes start to dialogue completed to end', () async {
       final plan = _plan(
         nodes: [_startNode(), _dialogueNode(), _endNode()],
@@ -152,6 +200,27 @@ void main() {
         result.trace.map((entry) => entry.nodeId),
         ['node_start', 'node_dialogue', 'node_end'],
       );
+    });
+
+    test('routes an expected dialogue outcome through its dynamic port',
+        () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'accept'),
+      ).execute(_dialogueOutcomePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_accept');
+      expect(result.trace[1].outputPortId, 'accept');
+    });
+
+    test('keeps completed fallback when dialogue declares outcomes', () async {
+      final result = await SceneRuntimeExecutor(
+        callbacks: _callbacks(showDialogue: (_) => 'completed'),
+      ).execute(_dialogueOutcomePlan());
+
+      expect(result.status, SceneRuntimeExecutionStatus.completed);
+      expect(result.finalNodeId, 'node_end_completed');
+      expect(result.trace[1].outputPortId, 'completed');
     });
 
     test('executes battle victory branch', () async {
@@ -513,6 +582,41 @@ SceneRuntimePlan _dialoguePlan() {
   );
 }
 
+SceneRuntimePlan _dialogueOutcomePlan() {
+  return _plan(
+    nodes: [
+      _startNode(),
+      _dialogueNode(expectedOutcomes: const ['accept', 'refuse']),
+      _endNode(id: 'node_end_accept'),
+      _endNode(id: 'node_end_refuse'),
+      _endNode(id: 'node_end_completed'),
+    ],
+    edges: [
+      _edge('edge_start_dialogue', 'node_start', 'completed', 'node_dialogue'),
+      _edge(
+        'edge_dialogue_accept',
+        'node_dialogue',
+        'accept',
+        'node_end_accept',
+        kind: SceneEdgeKind.dialogueOutcome,
+      ),
+      _edge(
+        'edge_dialogue_refuse',
+        'node_dialogue',
+        'refuse',
+        'node_end_refuse',
+        kind: SceneEdgeKind.dialogueOutcome,
+      ),
+      _edge(
+        'edge_dialogue_completed',
+        'node_dialogue',
+        'completed',
+        'node_end_completed',
+      ),
+    ],
+  );
+}
+
 SceneRuntimePlan _battleBranchPlan() {
   return _plan(
     nodes: [
@@ -595,11 +699,16 @@ SceneRuntimePlanNode _startNode() {
   );
 }
 
-SceneRuntimePlanNode _dialogueNode() {
+SceneRuntimePlanNode _dialogueNode({
+  List<String> expectedOutcomes = const <String>[],
+}) {
   return SceneRuntimePlanNode(
     id: 'node_dialogue',
     kind: SceneNodeKind.yarnDialogue,
-    intent: SceneRuntimePlanIntent.showDialogue(dialogueId: 'dialogue_test'),
+    intent: SceneRuntimePlanIntent.showDialogue(
+      dialogueId: 'dialogue_test',
+      expectedOutcomes: expectedOutcomes,
+    ),
   );
 }
 

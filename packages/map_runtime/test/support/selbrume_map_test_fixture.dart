@@ -77,7 +77,6 @@ abstract final class SelbrumeMapTestFixture {
 
   static const Map<String, List<String>> requiredNarrativePlacedIdsByMap =
       <String, List<String>>{
-    'map_port_brisants': <String>['pe_port_nid_goelise'],
     'map_marais_salants': <String>[
       'pe_marais_indice_verre',
       'pe_marais_indice_traces_electriques',
@@ -91,6 +90,53 @@ abstract final class SelbrumeMapTestFixture {
       'pe_cabane_journal',
       'pe_cabane_cle',
     ],
+  };
+
+  // Narrative V1 projections can only hide map entities. These IDs therefore
+  // replace the former static-only assumptions for route locks, NPC sources,
+  // collectible visuals, fog and the lighthouse boss.
+  static const Map<String, List<String>> requiredNarrativeEntityIdsByMap =
+      <String, List<String>>{
+    'map_bourg_selbrume': <String>[
+      'npc_mael',
+      'gate_bourg_to_port',
+      'gate_bourg_to_bois',
+    ],
+    'map_port_brisants': <String>[
+      'npc_lysa',
+      'npc_soline',
+      'npc_pecheur',
+      'goelise_nest_proxy',
+      'fog_port',
+    ],
+    'map_bois_chaise_brume': <String>['gate_bois_to_marais'],
+    'map_marais_salants': <String>[
+      'npc_mado',
+      'gate_marais_to_passage',
+      'clue_glass_object',
+      'clue_electric_object',
+      'clue_lens_object',
+      'crystal_1_object',
+      'crystal_2_object',
+      'crystal_3_object',
+      'fog_marais',
+    ],
+    'map_passage_dames': <String>[
+      'gate_passage_to_phare',
+      'fog_passage',
+    ],
+    'map_phare_exterieur': <String>[
+      'npc_yvon',
+      'gate_cabin_door',
+      'cabin_key_object',
+      'fog_phare',
+    ],
+    'map_phare_interieur': <String>['gate_lighthouse_top'],
+    'map_sommet_phare': <String>[
+      'boss_phare_pokemon',
+      'fog_sommet',
+    ],
+    'map_cabane_gardien': <String>['gate_cabin_shortcut'],
   };
 
   // This table is deliberately explicit: legacy landmarks keep their existing
@@ -107,7 +153,6 @@ abstract final class SelbrumeMapTestFixture {
     'map_port_brisants': <String, Set<String>>{
       'pe_port_bateau': <String>{'el_port_ref_boat_large'},
       'pe_port_hangar': <String>{'el_port_ref_chandlery'},
-      'pe_port_nid_goelise': <String>{'el_port_ref_nest'},
     },
     'map_bois_chaise_brume': <String, Set<String>>{
       'pe_bois_pin_grand_001': <String>{'el_selbrume_bois_pin_grand'},

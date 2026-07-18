@@ -34,6 +34,7 @@ void main() {
       expect(requests.single.createdAtEpochMs, 1234);
       expect(requests.single.dialogueId, 'dialogue_test_intro');
       expect(requests.single.yarnNodeName, 'Start');
+      expect(requests.single.expectedOutcomes, isEmpty);
     });
 
     test('fails clearly when intent has no dialogueId', () async {
@@ -131,6 +132,58 @@ void main() {
 
       expect(result.scenePortId, 'completed');
       expect(unsupportedPorts, isNot(contains(result.scenePortId)));
+    });
+
+    test('propagates a declared launcher outcome to its Scene port', () async {
+      final requests = <SceneDialogueRuntimeDialogueRequest>[];
+      final adapter = SceneDialogueRuntimeAwaitableAdapter(
+        runtimeSourceId: 'scene:map_test:event_test:0',
+        launcher: _SceneTestDialogueLauncher((request) {
+          requests.add(request);
+          return const SceneDialogueRuntimeAwaitableResult.completed(
+            outcomeId: 'accepted',
+          );
+        }),
+      );
+
+      final result = await adapter.showDialogue(
+        SceneRuntimePlanIntent.showDialogue(
+          dialogueId: 'dialogue_test_intro',
+          expectedOutcomes: const ['accepted', 'refused'],
+        ),
+      );
+
+      expect(result.status, SceneDialogueRuntimeAwaitableStatus.completed);
+      expect(result.scenePortId, 'accepted');
+      expect(result.outcomeId, 'accepted');
+      expect(requests.single.expectedOutcomes, ['accepted', 'refused']);
+    });
+
+    test('rejects a launcher outcome not declared by the Scene intent',
+        () async {
+      final adapter = SceneDialogueRuntimeAwaitableAdapter(
+        runtimeSourceId: 'scene:map_test:event_test:0',
+        launcher: _SceneTestDialogueLauncher((request) {
+          return const SceneDialogueRuntimeAwaitableResult.completed(
+            outcomeId: 'unexpected',
+          );
+        }),
+      );
+
+      final result = await adapter.showDialogue(
+        SceneRuntimePlanIntent.showDialogue(
+          dialogueId: 'dialogue_test_intro',
+          expectedOutcomes: const ['accepted', 'refused'],
+        ),
+      );
+
+      expect(result.status, SceneDialogueRuntimeAwaitableStatus.failed);
+      expect(
+        result.errorCode,
+        SceneDialogueRuntimeAwaitableErrorCode.unsupportedOutcome,
+      );
+      expect(result.scenePortId, isNull);
+      expect(result.message, contains('unexpected'));
     });
 
     test('does not mutate GameState or apply Scene consequences directly',

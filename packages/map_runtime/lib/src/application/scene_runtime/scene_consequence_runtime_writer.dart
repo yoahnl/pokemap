@@ -14,6 +14,8 @@ final class SceneConsequenceRuntimeWriter {
   final Map<String, MapData> mapsById;
   final GameStateMutations mutations;
 
+  static const int _maxPartySize = 6;
+
   SceneConsequenceRuntimeWriteResult applyAll(
     GameState gameState,
     List<SceneConsequence> consequences,
@@ -61,6 +63,26 @@ final class SceneConsequenceRuntimeWriter {
       SceneConsequenceKind.completeStoryStep => _applyCompleteStoryStep(
           gameState,
           consequence as SceneCompleteStoryStepConsequence,
+        ),
+      SceneConsequenceKind.giveItem => _applyGiveItem(
+          gameState,
+          consequence as SceneGiveItemConsequence,
+        ),
+      SceneConsequenceKind.takeItem => _applyTakeItem(
+          gameState,
+          consequence as SceneTakeItemConsequence,
+        ),
+      SceneConsequenceKind.giveMoney => _applyGiveMoney(
+          gameState,
+          consequence as SceneGiveMoneyConsequence,
+        ),
+      SceneConsequenceKind.givePokemon => _applyGivePokemon(
+          gameState,
+          consequence as SceneGivePokemonConsequence,
+        ),
+      SceneConsequenceKind.giveConfiguredStarter => _applyConfiguredStarter(
+          gameState,
+          consequence as SceneGiveConfiguredStarterConsequence,
         ),
     };
   }
@@ -145,6 +167,179 @@ final class SceneConsequenceRuntimeWriter {
     }
     return _SceneConsequenceRuntimeWriteStep.applied(
       mutations.completeStep(gameState, consequence.stepId),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyGiveItem(
+    GameState gameState,
+    SceneGiveItemConsequence consequence,
+  ) {
+    final validation = _validateItemReferenceAndQuantity(
+      itemId: consequence.itemId,
+      quantity: consequence.quantity,
+      kind: 'giveItem',
+    );
+    if (validation != null) {
+      return validation;
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.giveItem(gameState, consequence.itemId, consequence.quantity),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyTakeItem(
+    GameState gameState,
+    SceneTakeItemConsequence consequence,
+  ) {
+    final validation = _validateItemReferenceAndQuantity(
+      itemId: consequence.itemId,
+      quantity: consequence.quantity,
+      kind: 'takeItem',
+    );
+    if (validation != null) {
+      return validation;
+    }
+    final availableQuantity = gameState.bag
+        .normalized()
+        .entries
+        .where((entry) => entry.itemId.trim() == consequence.itemId)
+        .fold<int>(0, (total, entry) => total + entry.quantity);
+    if (availableQuantity < consequence.quantity) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,
+        'Scene consequence takeItem requires ${consequence.quantity} of '
+        '"${consequence.itemId}", but only $availableQuantity is available.',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.consumeItem(
+        gameState,
+        consequence.itemId,
+        consequence.quantity,
+      ),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep? _validateItemReferenceAndQuantity({
+    required String itemId,
+    required int quantity,
+    required String kind,
+  }) {
+    if (itemId.trim().isEmpty) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingItemReference,
+        'Scene consequence $kind requires a non-empty item reference.',
+      );
+    }
+    if (quantity <= 0) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidQuantity,
+        'Scene consequence $kind requires a positive quantity.',
+      );
+    }
+    return null;
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyGiveMoney(
+    GameState gameState,
+    SceneGiveMoneyConsequence consequence,
+  ) {
+    if (consequence.amount <= 0) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidMoneyAmount,
+        'Scene consequence giveMoney requires a positive amount.',
+      );
+    }
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.addMoney(gameState, consequence.amount),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyGivePokemon(
+    GameState gameState,
+    SceneGivePokemonConsequence consequence,
+  ) {
+    if (consequence.speciesId.trim().isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingPokemonSpeciesReference,
+        'Scene consequence givePokemon requires a non-empty species reference.',
+      );
+    }
+    if (consequence.level < 1 || consequence.level > 100) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonLevel,
+        'Scene consequence givePokemon level must be between 1 and 100.',
+      );
+    }
+    if (consequence.currentHp <= 0) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonCurrentHp,
+        'Scene consequence givePokemon requires positive authored current HP.',
+      );
+    }
+    if (consequence.natureId.trim().isEmpty ||
+        consequence.abilityId.trim().isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        'Scene consequence givePokemon requires non-empty nature and ability '
+        'references.',
+      );
+    }
+    if (gameState.party.members.length >= _maxPartySize) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.partyFull,
+        'Scene consequence givePokemon cannot add "${consequence.speciesId}": '
+        'the party is full.',
+      );
+    }
+
+    final pokemon = PlayerPokemon(
+      speciesId: consequence.speciesId,
+      natureId: consequence.natureId,
+      abilityId: consequence.abilityId,
+      level: consequence.level,
+      currentHp: consequence.currentHp,
+    );
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.givePokemon(gameState, pokemon: pokemon),
+    );
+  }
+
+  _SceneConsequenceRuntimeWriteStep _applyConfiguredStarter(
+    GameState gameState,
+    SceneGiveConfiguredStarterConsequence consequence,
+  ) {
+    final optionId = consequence.starterOptionId.trim();
+    if (optionId.isEmpty) {
+      return const _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.missingStarterOptionReference,
+        'Scene consequence giveConfiguredStarter requires a configured New Game option.',
+      );
+    }
+    final matches = project.newGame.starterOptions
+        .where((option) => option.id == optionId)
+        .toList(growable: false);
+    if (matches.isEmpty) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.unknownStarterOption,
+        'Scene consequence giveConfiguredStarter references unknown New Game option "$optionId".',
+      );
+    }
+    if (matches.length > 1) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.ambiguousStarterOption,
+        'Scene consequence giveConfiguredStarter references ambiguous New Game option "$optionId".',
+      );
+    }
+    if (gameState.party.members.length >= _maxPartySize) {
+      return _SceneConsequenceRuntimeWriteStep.failed(
+        SceneConsequenceRuntimeWriteErrorCode.partyFull,
+        'Scene consequence giveConfiguredStarter cannot add "$optionId": the party is full.',
+      );
+    }
+
+    return _SceneConsequenceRuntimeWriteStep.applied(
+      mutations.givePokemon(gameState, pokemon: matches.single.pokemon),
     );
   }
 }

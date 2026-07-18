@@ -8,7 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 import 'shared/pokemap_macos_ui_shim.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
-import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_route_presentation.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_shell_policy.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
@@ -96,16 +100,23 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       editorNotifierProvider.select((state) => state.projectRootPath),
     );
     final projectIsDirty = ref.watch(
-      editorNotifierProvider.select((state) => state.isDirty),
+      editorNotifierProvider.select(
+        (state) => state.isDirty || state.isProjectDirty,
+      ),
     );
     final activeMap =
         ref.watch(editorNotifierProvider.select((s) => s.activeMap));
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final usesEventV2ProductShell =
-        workspaceMode == EditorWorkspaceMode.events &&
-            (project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly) !=
-                EventSystemMode.legacyOnly;
+    final eventSystemMode =
+        project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
+    final usesNarrativeStudioProductShell =
+        NarrativeStudioShellPolicy.shouldUseProductShell(
+      workspaceMode: workspaceMode,
+      eventSystemMode: eventSystemMode,
+    );
+    final canRevalidateEventProject =
+        project != null && (projectRootPath?.trim().isNotEmpty ?? false);
 
     void revalidateEventProject() {
       final root = projectRootPath?.trim();
@@ -115,6 +126,31 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         project: project,
       );
       ref.invalidate(narrativeEventValidationSnapshotProvider(request));
+    }
+
+    void selectNarrativeDestination(
+      NarrativeStudioDestination destination,
+    ) {
+      switch (destination) {
+        case NarrativeStudioDestination.overview:
+          notifier.selectNarrativeOverviewWorkspace();
+        case NarrativeStudioDestination.storylines:
+          notifier.selectGlobalStoryWorkspace();
+        case NarrativeStudioDestination.scenes:
+          notifier.selectScenesWorkspace();
+        case NarrativeStudioDestination.events:
+          notifier.selectEventsWorkspace();
+        case NarrativeStudioDestination.cinematics:
+          notifier.selectCutsceneWorkspace();
+        case NarrativeStudioDestination.dialogues:
+          notifier.selectDialogueWorkspace();
+        case NarrativeStudioDestination.facts:
+          notifier.selectFactsWorkspace();
+        case NarrativeStudioDestination.worldRules:
+          notifier.selectWorldRulesWorkspace();
+        case NarrativeStudioDestination.validator:
+          notifier.selectNarrativeValidatorWorkspace();
+      }
     }
 
     final isNarrativeWorkspace = switch (workspaceMode) {
@@ -128,6 +164,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.worldRules =>
         true,
+      EditorWorkspaceMode.narrativeValidator => true,
       _ => false,
     };
 
@@ -167,6 +204,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             EditorWorkspaceMode.facts ||
             EditorWorkspaceMode.worldRules =>
               true,
+            EditorWorkspaceMode.narrativeValidator => true,
             _ => false,
           };
       final isNarrative = switch (next) {
@@ -180,6 +218,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         EditorWorkspaceMode.facts ||
         EditorWorkspaceMode.worldRules =>
           true,
+        EditorWorkspaceMode.narrativeValidator => true,
         _ => false,
       };
       if (isNarrative && (prev == null || !wasNarrative)) {
@@ -247,31 +286,56 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           },
           child: Focus(
             autofocus: true,
-            child: usesEventV2ProductShell
+            child: usesNarrativeStudioProductShell
                 ? Stack(
                     fit: StackFit.expand,
                     clipBehavior: Clip.none,
                     children: [
-                      EventBuilderV2ProductShell(
-                        projectName: project?.name ?? 'Projet PokeMap',
-                        projectIsDirty: projectIsDirty,
-                        workspace: const EditorCanvasHost(),
-                        onOpenOverview:
-                            notifier.selectNarrativeOverviewWorkspace,
-                        onOpenStorylines: notifier.selectGlobalStoryWorkspace,
+                      NarrativeStudioProductShell(
+                        selectedDestination:
+                            narrativeStudioRoutePresentationFor(workspaceMode)!
+                                .destination,
+                        onSelectDestination: selectNarrativeDestination,
                         onOpenMaps: notifier.selectMapWorkspace,
-                        onOpenScenes: notifier.selectScenesWorkspace,
-                        onOpenEvents: notifier.selectEventsWorkspace,
-                        onOpenCinematics: notifier.selectCutsceneWorkspace,
-                        onOpenDialogues: notifier.selectDialogueWorkspace,
-                        onOpenFacts: notifier.selectFactsWorkspace,
-                        onOpenWorldRules: notifier.selectWorldRulesWorkspace,
-                        onValidate: revalidateEventProject,
-                        onPreview: () => _flashToast(
-                          'L’aperçu jouable du projet sera disponible dans '
-                          'une prochaine version.',
-                          isError: false,
-                        ),
+                        project: project == null
+                            ? null
+                            : _NarrativeStudioProjectCard(
+                                projectName: project.name,
+                              ),
+                        status: project == null
+                            ? null
+                            : _NarrativeStudioSaveStatus(
+                                isDirty: projectIsDirty,
+                              ),
+                        workspace: workspaceMode == EditorWorkspaceMode.events
+                            ? NarrativeStudioWorkspacePage(
+                                presentation:
+                                    narrativeStudioRoutePresentationFor(
+                                  workspaceMode,
+                                )!,
+                                actions: eventSystemMode ==
+                                        EventSystemMode.legacyOnly
+                                    ? const []
+                                    : [
+                                        PokeMapButton(
+                                          key: const ValueKey(
+                                            'event-builder-v2-validate-project',
+                                          ),
+                                          onPressed: canRevalidateEventProject
+                                              ? revalidateEventProject
+                                              : null,
+                                          size: PokeMapButtonSize.compact,
+                                          variant: PokeMapButtonVariant
+                                              .successOutline,
+                                          leading: const Icon(
+                                            CupertinoIcons.checkmark_shield,
+                                          ),
+                                          child: const Text('Valider'),
+                                        ),
+                                      ],
+                                body: const EditorCanvasHost(),
+                              )
+                            : const EditorCanvasHost(),
                       ),
                       if (_toastMessage != null)
                         Positioned(
@@ -748,6 +812,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
+                                                                  .narrativeValidator =>
+                                                              EditorChrome
+                                                                  .islandCoolTint,
+                                                            EditorWorkspaceMode
                                                                   .pathStudio =>
                                                               EditorChrome
                                                                   .islandCoolTint,
@@ -784,6 +852,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .worldRules =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                  .narrativeValidator =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .pathStudio =>
@@ -833,6 +904,85 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                   ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _NarrativeStudioProjectCard extends StatelessWidget {
+  const _NarrativeStudioProjectCard({required this.projectName});
+
+  final String projectName;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.symmetric(horizontal: 7),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: Image.asset(
+              'assets/branding/pokemap_event_builder_project_thumb.png',
+              width: 26,
+              height: 26,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.medium,
+            ),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(
+              projectName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NarrativeStudioSaveStatus extends StatelessWidget {
+  const _NarrativeStudioSaveStatus({required this.isDirty});
+
+  final bool isDirty;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    return PokeMapCard(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+      child: Row(
+        children: [
+          Icon(
+            CupertinoIcons.circle_fill,
+            size: 7,
+            color: isDirty ? colors.warning : colors.success,
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              isDirty
+                  ? 'Modifications non enregistrées'
+                  : 'Tous les changements enregistrés',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textMuted,
+                fontSize: 8,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -948,7 +1098,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
-      EditorWorkspaceMode.worldRules =>
+      EditorWorkspaceMode.worldRules ||
+      EditorWorkspaceMode.narrativeValidator =>
         colors.narrative,
       EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
@@ -967,7 +1118,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
-      EditorWorkspaceMode.worldRules =>
+      EditorWorkspaceMode.worldRules ||
+      EditorWorkspaceMode.narrativeValidator =>
         PokeMapBadgeVariant.narrative,
       _ => PokeMapBadgeVariant.neutral,
     };
@@ -986,6 +1138,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.dialogue => 'Dialogue',
       EditorWorkspaceMode.facts => 'Facts',
       EditorWorkspaceMode.worldRules => 'Règles',
+      EditorWorkspaceMode.narrativeValidator => 'Validateur',
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
     };
@@ -1142,6 +1295,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
               EditorWorkspaceMode.facts => CupertinoIcons.doc_text,
               EditorWorkspaceMode.worldRules => CupertinoIcons.checkmark_seal,
+              EditorWorkspaceMode.narrativeValidator =>
+                CupertinoIcons.checkmark_shield,
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
             },

@@ -10,10 +10,13 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_providers.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_map_bridge_state.dart';
+import 'package:map_editor/src/features/narrative/state/narrative_event_validation_state.dart';
 import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_product_route.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_workspace.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
@@ -23,6 +26,273 @@ import '../../support/event_builder_v2_visual_harness.dart';
 
 void main() {
   group('NS-EVENT-V2 H1 product route', () {
+    for (final mode in EventSystemMode.values) {
+      testWidgets(
+          'mounts the shared Event product shell on the real ${mode.name} route',
+          (tester) async {
+        final fixture = await createEventBuilderV2ProductRouteFixture(
+          tester,
+          mode: mode,
+        );
+        var validationLoads = 0;
+
+        final container = await pumpEventBuilderV2FullProductRoute(
+          tester,
+          fixture: fixture,
+          validationLoader: (_) async {
+            validationLoads++;
+            return buildEventBuilderV2ProductRouteValidationSnapshot(fixture);
+          },
+        );
+
+        final usesLegacy = mode == EventSystemMode.legacyOnly;
+        expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('project-explorer-region')),
+          findsNothing,
+        );
+        expect(find.text('Selbrume Route Test'), findsOneWidget);
+        expect(
+          find.byType(EventBuilderWorkspace),
+          usesLegacy ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.byType(EventBuilderV2Workspace),
+          usesLegacy ? findsNothing : findsOneWidget,
+        );
+
+        final validate = find.byKey(
+          const ValueKey('event-builder-v2-validate-project'),
+        );
+        expect(validate, usesLegacy ? findsNothing : findsOneWidget);
+        if (usesLegacy) {
+          expect(
+            find.byKey(const ValueKey('event-builder-new-event-button')),
+            findsOneWidget,
+          );
+          expect(validationLoads, 0);
+        } else {
+          final initialLoads = validationLoads;
+          expect(initialLoads, greaterThanOrEqualTo(1));
+          await tester.tap(validate);
+          await pumpEventBuilderV2ProductRouteFrames(
+            tester,
+            container: container,
+          );
+          expect(validationLoads, greaterThan(initialLoads));
+        }
+
+        for (final key in const <ValueKey<String>>[
+          ValueKey('event-builder-v2-new-storyline'),
+          ValueKey('event-builder-v2-preview-project'),
+          ValueKey('event-builder-v2-search-project'),
+          ValueKey('event-builder-v2-project-notifications'),
+          ValueKey('event-builder-v2-project-settings'),
+          ValueKey('event-builder-v2-product-nav-validator'),
+        ]) {
+          expect(find.byKey(key), findsNothing);
+        }
+        expect(find.text('Project Health'), findsNothing);
+        expect(find.text('Bon'), findsNothing);
+      });
+    }
+
+    testWidgets('derives the Event save status from map or project dirtiness',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.legacyOnly,
+      );
+      final container = await pumpEventBuilderV2FullProductRoute(
+        tester,
+        fixture: fixture,
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      expect(find.text('Tous les changements enregistrés'), findsOneWidget);
+
+      notifier.state = notifier.state.copyWith(isProjectDirty: true);
+      await tester.pump();
+      expect(find.text('Modifications non enregistrées'), findsOneWidget);
+
+      notifier.state = notifier.state.copyWith(
+        isProjectDirty: false,
+        isDirty: true,
+      );
+      await tester.pump();
+      expect(find.text('Modifications non enregistrées'), findsOneWidget);
+    });
+
+    for (final mode in const [
+      EventSystemMode.dualRead,
+      EventSystemMode.v2Only,
+    ]) {
+      testWidgets(
+          'disables validation on the real ${mode.name} route without a project root',
+          (tester) async {
+        final semantics = tester.ensureSemantics();
+        final fixture = await createEventBuilderV2ProductRouteFixture(
+          tester,
+          mode: mode,
+        );
+
+        await pumpEventBuilderV2FullProductRoute(
+          tester,
+          fixture: fixture,
+          includeProjectRootPath: false,
+        );
+
+        final validate = find.byKey(
+          const ValueKey('event-builder-v2-validate-project'),
+        );
+        expect(validate, findsOneWidget);
+        expect(tester.widget<PokeMapButton>(validate).onPressed, isNull);
+        expect(
+          find.descendant(
+            of: validate,
+            matching: find.byWidgetPredicate(
+              (widget) =>
+                  widget is Semantics && widget.properties.enabled == false,
+            ),
+          ),
+          findsOneWidget,
+        );
+        semantics.dispose();
+      });
+    }
+
+    testWidgets(
+        'deduplicates and collapses global diagnostics without hiding errors',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.v2Only,
+      );
+      final warning = NarrativeEventValidationDiagnostic(
+        code: 'registry.readableLabel',
+        severity: NarrativeEventValidationSeverity.warning,
+        path: r'$.eventRegistry.records',
+        message: 'Libellé lisible identique à l’identifiant technique.',
+        action: NarrativeEventValidationAction.reviewRegistry,
+        destination: NarrativeEventValidationDestination(
+          kind: NarrativeEventValidationDestinationKind.registry,
+        ),
+      );
+      final error = NarrativeEventValidationDiagnostic(
+        code: 'registry.schema',
+        severity: NarrativeEventValidationSeverity.error,
+        path: r'$.eventRegistry.schemaVersion',
+        message: 'Version du registre Event incompatible.',
+        action: NarrativeEventValidationAction.none,
+        destination: NarrativeEventValidationDestination(
+          kind: NarrativeEventValidationDestinationKind.unavailable,
+        ),
+      );
+
+      await pumpEventBuilderV2ProductRoute(
+        tester,
+        fixture: fixture,
+        validationLoader: (_) async => _validationWithDiagnostics(
+          fixture,
+          [warning, warning, error],
+        ),
+      );
+
+      expect(
+        find.byKey(const ValueKey('event-builder-v2-global-diagnostics')),
+        findsOneWidget,
+      );
+      expect(find.text('1 erreur'), findsOneWidget);
+      expect(find.text('2 avertissements'), findsOneWidget);
+      expect(find.text(error.message), findsOneWidget);
+      expect(find.text(warning.message), findsNothing);
+      expect(
+        tester.getSemantics(find.text(error.message)).label,
+        contains(error.message),
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('event-builder-v2-global-diagnostics-toggle'),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(error.message), findsOneWidget);
+      expect(find.text(warning.message), findsOneWidget);
+      expect(find.text('2 occurrences'), findsOneWidget);
+      expect(find.text('Replier les détails'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      semantics.dispose();
+    });
+
+    testWidgets('keeps one primary empty state and a neutral inspector',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.v2Only,
+      );
+
+      await pumpEventBuilderV2ProductRoute(tester, fixture: fixture);
+
+      expect(find.text('Sélectionnez un événement'), findsOneWidget);
+      final neutralInspector = find.byKey(
+        const ValueKey('event-builder-v2-inspector-neutral'),
+      );
+      expect(neutralInspector, findsOneWidget);
+      expect(
+        find.descendant(
+          of: neutralInspector,
+          matching: find.byType(PokeMapEmptyState),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.text('Choisissez un événement dans la liste du projet.'),
+        findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('uses an informational tone for info-only diagnostics',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.v2Only,
+      );
+      final info = NarrativeEventValidationDiagnostic(
+        code: 'registry.info',
+        severity: NarrativeEventValidationSeverity.info,
+        path: r'$.eventRegistry',
+        message: 'Information du registre Event.',
+        action: NarrativeEventValidationAction.none,
+        destination: NarrativeEventValidationDestination(
+          kind: NarrativeEventValidationDestinationKind.unavailable,
+        ),
+      );
+
+      await pumpEventBuilderV2ProductRoute(
+        tester,
+        fixture: fixture,
+        validationLoader: (_) async => _validationWithDiagnostics(
+          fixture,
+          [info],
+        ),
+      );
+
+      final tile = tester.widget<PokeMapIconTile>(
+        find.byKey(
+          const ValueKey('event-builder-v2-global-diagnostics-icon'),
+        ),
+      );
+      expect(tile.tone, PokeMapTone.info);
+      expect(tile.icon, CupertinoIcons.info_circle_fill);
+      expect(find.text('1 information'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     for (final mode in EventSystemMode.values) {
       testWidgets('routes ${mode.name} to its single authorized workspace',
           (tester) async {
@@ -670,96 +940,75 @@ void main() {
       expect(shell, findsOneWidget);
       expect(tester.getSize(shell), const Size(1672, 941));
 
-      // K2-R guards the production route, not the isolated visual harness.
-      // The Event workspace owns one purpose-built shell at this viewport; the
-      // generic map toolbar, reduced explorer and nested Narrative sidebar
-      // would otherwise compress the four authoring columns again.
+      // NS-UI-CVG-03 guards the production route, not an isolated visual
+      // harness. Event now consumes the same shell and context page as every
+      // Narrative Studio destination while retaining its four business
+      // columns below that shared chrome.
       expect(
         tester.getRect(
-          find.byKey(
-            const ValueKey('event-builder-v2-product-shell-header'),
-          ),
+          find.byKey(narrativeStudioProductShellHeaderKey),
         ),
         const Rect.fromLTWH(0, 0, 1672, 50),
       );
       expect(
         tester.getRect(
-          find.byKey(
-            const ValueKey('event-builder-v2-product-shell-context-bar'),
-          ),
+          find.byKey(narrativeStudioWorkspaceContextKey),
         ),
-        const Rect.fromLTWH(207, 50, 1465, 52),
+        const Rect.fromLTWH(199, 50, 1465, 52),
       );
-      // The action strip is part of the visual contract too: all controls are
-      // full 36px targets with borders, rather than the old bare glyphs that
-      // visually collapsed the right side of the reference header.
       for (final key in const <ValueKey<String>>[
+        ValueKey('event-builder-v2-new-storyline'),
+        ValueKey('event-builder-v2-preview-project'),
         ValueKey('event-builder-v2-search-project'),
         ValueKey('event-builder-v2-project-notifications'),
         ValueKey('event-builder-v2-project-settings'),
       ]) {
-        final control = find.byKey(key);
-        expect(tester.getSize(control), const Size(36, 36));
-        expect(
-          tester.widget<PokeMapIconButton>(control).onPressed,
-          isNull,
-          reason: 'A visible shell control must not advertise a no-op action.',
-        );
+        expect(find.byKey(key), findsNothing);
       }
       expect(
         tester.getRect(
-          find.byKey(
-            const ValueKey('event-builder-v2-product-shell-project'),
-          ),
+          find.byKey(narrativeStudioProductShellProjectKey),
         ),
-        const Rect.fromLTWH(16, 58, 182, 36),
+        const Rect.fromLTWH(0, 50, 191, 52),
       );
       expect(
         tester.getRect(
-          find.byKey(
-            const ValueKey('event-builder-v2-product-shell-navigation'),
-          ),
+          find.byKey(narrativeStudioProductShellNavigationKey),
         ),
-        const Rect.fromLTWH(8, 102, 191, 817),
+        const Rect.fromLTWH(8, 110, 183, 823),
       );
       expect(
         tester.getRect(
-          find.byKey(
-            const ValueKey('event-builder-v2-product-shell-workspace'),
-          ),
+          find.byKey(narrativeStudioProductShellWorkspaceKey),
         ),
-        const Rect.fromLTWH(207, 102, 1456, 817),
+        const Rect.fromLTWH(199, 50, 1465, 883),
       );
       expect(
         tester.getRect(
           find.byKey(const ValueKey('event-builder-v2-list')),
         ),
-        const Rect.fromLTWH(207, 102, 266, 817),
+        const Rect.fromLTWH(199, 102, 266, 831),
       );
       expect(
         tester.getRect(
           find.byKey(const ValueKey('event-builder-v2-library')),
         ),
-        const Rect.fromLTWH(481, 102, 213, 817),
+        const Rect.fromLTWH(473, 102, 213, 831),
       );
       expect(
         tester.getRect(
           find.byKey(const ValueKey('event-builder-v2-editor')),
         ),
-        const Rect.fromLTWH(702, 102, 565, 817),
+        const Rect.fromLTWH(694, 102, 574, 831),
       );
       expect(
         tester.getRect(
           find.byKey(const ValueKey('event-builder-v2-inspector')),
         ),
-        const Rect.fromLTWH(1275, 102, 388, 817),
+        const Rect.fromLTWH(1276, 102, 388, 831),
       );
       expect(
         find.byKey(const ValueKey('project-explorer-region')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('narrative-studio-sidebar')),
         findsNothing,
       );
 
@@ -773,7 +1022,55 @@ void main() {
         matchesGoldenFile(output.absolute.path),
       );
     });
+
+    testWidgets('captures the full legacy product shell at the north-star size',
+        (tester) async {
+      await loadEventBuilderV2PhaseKCaptureFonts();
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.legacyOnly,
+      );
+      await pumpEventBuilderV2FullProductRoute(
+        tester,
+        fixture: fixture,
+        fontFamily: eventBuilderV2PhaseKCaptureFontFamily,
+      );
+
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(EventBuilderWorkspace), findsOneWidget);
+      expect(find.byType(EventBuilderV2Workspace), findsNothing);
+      expect(
+        find.byKey(const ValueKey('event-builder-v2-validate-project')),
+        findsNothing,
+      );
+
+      final output = File(
+        'test/goldens/narrative_studio/events/'
+        'event_builder_legacy_full_product_route_1672x941.png',
+      );
+      output.parent.createSync(recursive: true);
+      await expectLater(
+        find.byType(EditorShellPage),
+        matchesGoldenFile(output.absolute.path),
+      );
+    });
   });
+}
+
+NarrativeEventValidationSnapshot _validationWithDiagnostics(
+  EventBuilderV2ProductRouteFixture fixture,
+  List<NarrativeEventValidationDiagnostic> diagnostics,
+) {
+  final base = buildEventBuilderV2ProductRouteValidationSnapshot(fixture);
+  final report = NarrativeEventValidationReport(diagnostics: diagnostics);
+  return NarrativeEventValidationSnapshot(
+    registry: base.registry,
+    catalog: base.catalog,
+    report: report,
+    state: NarrativeEventValidationState.fromReport(report),
+    recalculatedEventIds: base.recalculatedEventIds,
+  );
 }
 
 Future<void> _waitForWidget(WidgetTester tester, Finder finder) async {

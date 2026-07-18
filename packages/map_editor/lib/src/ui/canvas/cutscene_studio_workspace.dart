@@ -699,18 +699,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         hasUnsavedChanges: _hasUnsavedChanges,
         onSave: _saveDraftToProject,
         onReset: _restoreSavedDocument,
-        onTest: () => _showCutsceneStudioNotice(
-          context,
-          title: 'Tester',
-          message:
-              'L’aperçu runtime interactif sera branché ici. Pour l’instant, enregistrez puis lancez le jeu.',
-        ),
-        onSimulate: () => _showCutsceneStudioNotice(
-          context,
-          title: 'Simuler',
-          message:
-              'La simulation pas-à-pas arrive dans une prochaine itération.',
-        ),
         onCreateNew: _createCutsceneFromTemplateFlow,
         selectedBlockId: _selectedBlockId,
         onSelectBlock: (id) => setState(() => _selectedBlockId = id),
@@ -743,18 +731,6 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: _CutsceneRuntimeHonestyCard(lines: lines),
-    );
-  }
-
-  void _showCutsceneStudioNotice(
-    BuildContext context, {
-    required String title,
-    required String message,
-  }) {
-    showCupertinoEditorAlert(
-      context,
-      title: title,
-      message: message,
     );
   }
 

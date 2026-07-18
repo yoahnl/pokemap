@@ -8,11 +8,40 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_workspace_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('NS-STORYLINES-V1-12 visual graph enrichment', () {
+    testWidgets(
+      'owns one shared workspace context and moves the real create flow there',
+      (tester) async {
+        await _pumpStorylinesShell(tester);
+
+        expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+        expect(
+          find.text('Narrative Studio  /  Storylines'),
+          findsOneWidget,
+        );
+
+        final contextHeader = find.byKey(narrativeStudioWorkspaceContextKey);
+        final createAction =
+            find.byKey(const ValueKey('storylines-create-main-cta'));
+        expect(
+          find.descendant(of: contextHeader, matching: createAction),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('storylines-header-section')),
+            matching: createAction,
+          ),
+          findsNothing,
+        );
+      },
+    );
+
     testWidgets('shows only Graph and Structure tabs', (tester) async {
       await _pumpStorylinesShell(tester);
 
@@ -62,6 +91,10 @@ void main() {
         (tester) async {
       final harness = await _pumpStorylinesShell(tester);
       final before = harness.project.toJson();
+      final launcher = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey('storylines-create-main-cta')),
+      );
+      expect(launcher.focusNode, isNotNull);
 
       await _openCreateDialog(tester);
       expect(find.byKey(const ValueKey('storylines-create-main-dialog')),
@@ -85,6 +118,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('storylines-create-main-dialog')),
           findsNothing);
+      expect(launcher.focusNode!.hasFocus, isTrue);
       expect(harness.project.storylines, isEmpty);
       expect(harness.project.toJson(), before);
     });
@@ -602,6 +636,78 @@ void main() {
       expect(find.text('Aucune scène liée'), findsOneWidget);
       expect(find.text('Ajoutez un chapitre dans Structure'), findsNothing);
       expect(find.text('Quête annexe fake'), findsNothing);
+    });
+
+    testWidgets('Graph keeps its nominal 100% toolbar row and node geometry',
+        (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 1;
+      addTearDown(
+        tester.platformDispatcher.clearTextScaleFactorTestValue,
+      );
+      await _pumpStorylinesShell(
+        tester,
+        surfaceSize: const Size(1920, 1000),
+        project: _projectWithStorylines([
+          StorylineAsset(
+            id: 'storyline_nominal_geometry',
+            type: StorylineType.main,
+            title: 'Nominal geometry',
+            chapters: [
+              StorylineChapter(
+                id: 'chapter_nominal_geometry',
+                title: 'Nominal chapter',
+                order: 0,
+                steps: [
+                  StorylineStep(
+                    id: 'step_nominal_first',
+                    title: 'First step',
+                    order: 0,
+                  ),
+                  StorylineStep(
+                    id: 'step_nominal_second',
+                    title: 'Second step',
+                    order: 1,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ]),
+      );
+
+      await _openGraphTab(tester);
+
+      final toolbar = find.byKey(
+        const ValueKey('storylines-graph-toolbar'),
+      );
+      final toolbarTitle = find.text('Graph read-only');
+      final readOnlyBadge = find.text('Read-only');
+      expect(toolbar, findsOneWidget);
+      expect(
+        tester.getCenter(toolbarTitle).dy,
+        closeTo(tester.getCenter(readOnlyBadge).dy, 0.1),
+      );
+      expect(tester.getSize(toolbar).height, closeTo(67, 0.1));
+
+      final canvas = find.byKey(
+        const ValueKey('storylines-graph-canvas'),
+      );
+      final root = find.byKey(
+        const ValueKey(
+          'storylines-graph-node-storyline-storyline_nominal_geometry',
+        ),
+      );
+      final chapter = find.byKey(
+        const ValueKey(
+          'storylines-graph-node-chapter-chapter_nominal_geometry',
+        ),
+      );
+      final canvasOrigin = tester.getTopLeft(canvas);
+
+      expect(tester.getSize(root), const Size(220, 188));
+      expect(tester.getTopLeft(root) - canvasOrigin, const Offset(28, 50));
+      expect(tester.getSize(chapter), const Size(270, 244));
+      expect(tester.getTopLeft(chapter) - canvasOrigin, const Offset(304, 22));
     });
 
     testWidgets('Graph orders chapters and steps by author order',

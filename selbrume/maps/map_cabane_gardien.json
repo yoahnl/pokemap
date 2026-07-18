@@ -3069,7 +3069,35 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "gate_cabin_shortcut",
+      "name": "Raccourci du gardien fermé",
+      "kind": "sign",
+      "pos": {
+        "x": 19,
+        "y": 8
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Raccourci du gardien fermé",
+        "dialogue": null,
+        "plainText": "Le mécanisme est bloqué. Le carnet du gardien doit contenir la solution."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    }
+  ],
   "connections": [],
   "warps": [
     {
@@ -3130,25 +3158,6 @@
       },
       "properties": {
         "eventId": "event_selbrume_cabane_journal",
-        "reservedForNarrative": "true"
-      }
-    },
-    {
-      "id": "tr_cabane_cle",
-      "name": "tr_cabane_cle",
-      "type": "custom",
-      "area": {
-        "pos": {
-          "x": 14,
-          "y": 9
-        },
-        "size": {
-          "width": 1,
-          "height": 1
-        }
-      },
-      "properties": {
-        "eventId": "event_selbrume_cabane_cle",
         "reservedForNarrative": "true"
       }
     }

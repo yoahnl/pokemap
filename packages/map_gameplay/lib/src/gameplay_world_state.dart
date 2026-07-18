@@ -24,6 +24,17 @@ typedef NpcMapPresencePredicate = bool Function(
   MapEntity npcEntity,
 );
 
+/// Indique si une entité de map doit exister dans les caches spatiaux.
+///
+/// Contrairement à [NpcMapPresencePredicate], ce filtre s'applique aussi aux
+/// objets et panneaux. Les deux prédicats sont combinés pour les PNJ afin de
+/// préserver les règles historiques tout en permettant aux World Rules de
+/// masquer un indice ou une barrière physique.
+typedef MapEntityPresencePredicate = bool Function(
+  String mapId,
+  MapEntity entity,
+);
+
 class GameplayWorldState {
   GameplayWorldState._({
     required this.map,
@@ -50,6 +61,7 @@ class GameplayWorldState {
     required int tileWidth,
     required int tileHeight,
     this.npcMapPresencePredicate,
+    this.mapEntityPresencePredicate,
     required ProjectManifest? projectManifest,
   })  : _tileCollisionCellCache = tileCollisionCellCache,
         _placedElementCellCollisionCache = placedElementCellCollisionCache,
@@ -83,10 +95,12 @@ class GameplayWorldState {
     int tileWidth = 16,
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
+    MapEntityPresencePredicate? mapEntityPresencePredicate,
   }) {
     final blockingEntities = _buildBlockingEntityByPos(
       map,
       npcPresence: npcMapPresencePredicate,
+      entityPresence: mapEntityPresencePredicate,
     );
     final placedElementCellCollisionCache =
         _buildPlacedElementCellCollisionCache(
@@ -120,6 +134,7 @@ class GameplayWorldState {
       entityByPos: _buildEntityByPos(
         map,
         npcPresence: npcMapPresencePredicate,
+        entityPresence: mapEntityPresencePredicate,
       ),
       actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
         map,
@@ -176,6 +191,7 @@ class GameplayWorldState {
       tileWidth: tileWidth,
       tileHeight: tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
       projectManifest: project,
     );
   }
@@ -186,6 +202,7 @@ class GameplayWorldState {
     int tileWidth = 16,
     int tileHeight = 16,
     NpcMapPresencePredicate? npcMapPresencePredicate,
+    MapEntityPresencePredicate? mapEntityPresencePredicate,
   }) {
     final player = resolveInitialPlayerSpawn(
       map,
@@ -201,6 +218,7 @@ class GameplayWorldState {
     final blockingEntities = _buildBlockingEntityByPos(
       map,
       npcPresence: npcMapPresencePredicate,
+      entityPresence: mapEntityPresencePredicate,
     );
     final pixelCache = _buildPixelCollisionCache(
       map,
@@ -214,6 +232,7 @@ class GameplayWorldState {
     final entities = _buildEntityByPos(
       map,
       npcPresence: npcMapPresencePredicate,
+      entityPresence: mapEntityPresencePredicate,
     );
     final world = GameplayWorldState._(
       map: map,
@@ -279,6 +298,7 @@ class GameplayWorldState {
       tileWidth: tileWidth,
       tileHeight: tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
       projectManifest: project,
     );
     if (world.worldStaticObstaclesCollidePlayerCollisionRect()) {
@@ -295,6 +315,9 @@ class GameplayWorldState {
 
   /// Filtre optionnel de présence des PNJ sur la grille (voir [NpcMapPresencePredicate]).
   final NpcMapPresencePredicate? npcMapPresencePredicate;
+
+  /// Filtre optionnel commun aux PNJ, objets et panneaux.
+  final MapEntityPresencePredicate? mapEntityPresencePredicate;
 
   /// Calque collision **tuiles** uniquement (grille auteur). Pas les éléments placés.
   final List<bool> _tileCollisionCellCache;
@@ -632,6 +655,7 @@ class GameplayWorldState {
         tileWidth: _tileWidth,
         tileHeight: _tileHeight,
         npcMapPresencePredicate: npcMapPresencePredicate,
+        mapEntityPresencePredicate: mapEntityPresencePredicate,
         projectManifest: _projectManifest,
       );
 
@@ -642,6 +666,7 @@ class GameplayWorldState {
     final newBlocking = _buildBlockingEntityByPos(
       map,
       npcPresence: predicate,
+      entityPresence: mapEntityPresencePredicate,
     );
     return GameplayWorldState._(
       map: map,
@@ -657,7 +682,11 @@ class GameplayWorldState {
         blockingEntityByPos: newBlocking,
       ),
       blockingEntityByPos: newBlocking,
-      entityByPos: _buildEntityByPos(map, npcPresence: predicate),
+      entityByPos: _buildEntityByPos(
+        map,
+        npcPresence: predicate,
+        entityPresence: mapEntityPresencePredicate,
+      ),
       warpCandidatesByPos: _warpCandidatesByPos,
       actionBehaviorByPos: _actionBehaviorByPos,
       enterBehaviorByPos: _enterBehaviorByPos,
@@ -675,6 +704,58 @@ class GameplayWorldState {
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       npcMapPresencePredicate: predicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
+      projectManifest: _projectManifest,
+    );
+  }
+
+  /// Reconstruit les caches spatiaux de toutes les entités après projection
+  /// d'un changement de monde (barrière, indice, objet consommé, etc.).
+  GameplayWorldState withMapEntityPresencePredicate(
+    MapEntityPresencePredicate? predicate,
+  ) {
+    final newBlocking = _buildBlockingEntityByPos(
+      map,
+      npcPresence: npcMapPresencePredicate,
+      entityPresence: predicate,
+    );
+    return GameplayWorldState._(
+      map: map,
+      player: player,
+      tileCollisionCellCache: _tileCollisionCellCache,
+      placedElementCellCollisionCache: _placedElementCellCollisionCache,
+      pixelCollisionCache: _buildPixelCollisionCache(
+        map,
+        project: _projectManifest,
+        tileWidth: _tileWidth,
+        tileHeight: _tileHeight,
+        placedElementCellCollisionCache: _placedElementCellCollisionCache,
+        blockingEntityByPos: newBlocking,
+      ),
+      blockingEntityByPos: newBlocking,
+      entityByPos: _buildEntityByPos(
+        map,
+        npcPresence: npcMapPresencePredicate,
+        entityPresence: predicate,
+      ),
+      warpCandidatesByPos: _warpCandidatesByPos,
+      actionBehaviorByPos: _actionBehaviorByPos,
+      enterBehaviorByPos: _enterBehaviorByPos,
+      bumpBehaviorByPos: _bumpBehaviorByPos,
+      exitBehaviorByPos: _exitBehaviorByPos,
+      nearBehaviorByPos: _nearBehaviorByPos,
+      placedElementCoverageByPos: _placedElementCoverageByPos,
+      pathRuleOnEnterByPos: _pathRuleOnEnterByPos,
+      pathRuleOnStepByPos: _pathRuleOnStepByPos,
+      pathRuleOnActionByPos: _pathRuleOnActionByPos,
+      pathRuleOnBumpByPos: _pathRuleOnBumpByPos,
+      pathRuleOnNearByPos: _pathRuleOnNearByPos,
+      pathRuleWhileInsideByPos: _pathRuleWhileInsideByPos,
+      waterCellCache: _waterCellCache,
+      tileWidth: _tileWidth,
+      tileHeight: _tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: predicate,
       projectManifest: _projectManifest,
     );
   }
@@ -717,6 +798,7 @@ class GameplayWorldState {
     final newBlocking = _buildBlockingEntityByPos(
       updatedMap,
       npcPresence: npcMapPresencePredicate,
+      entityPresence: mapEntityPresencePredicate,
     );
     return GameplayWorldState._(
       map: updatedMap,
@@ -736,6 +818,7 @@ class GameplayWorldState {
       entityByPos: _buildEntityByPos(
         updatedMap,
         npcPresence: npcMapPresencePredicate,
+        entityPresence: mapEntityPresencePredicate,
       ),
       // Les warps/behaviors/path rules restent valides: ils ne dépendent pas
       // de la position des entités map dans le modèle actuel.
@@ -756,6 +839,7 @@ class GameplayWorldState {
       tileWidth: _tileWidth,
       tileHeight: _tileHeight,
       npcMapPresencePredicate: npcMapPresencePredicate,
+      mapEntityPresencePredicate: mapEntityPresencePredicate,
       projectManifest: _projectManifest,
     );
   }
@@ -1157,20 +1241,33 @@ bool _includeMapEntityInSpatialCaches(
   MapData map,
   MapEntity entity,
   NpcMapPresencePredicate? npcPresence,
+  MapEntityPresencePredicate? entityPresence,
 ) {
-  if (entity.kind != MapEntityKind.npc) return true;
-  if (npcPresence == null) return true;
+  if (entityPresence != null && !entityPresence(map.id, entity)) {
+    return false;
+  }
+  if (entity.kind != MapEntityKind.npc || npcPresence == null) {
+    return true;
+  }
   return npcPresence(map.id, entity);
 }
 
 Map<int, MapEntity> _buildBlockingEntityByPos(
   MapData map, {
   NpcMapPresencePredicate? npcPresence,
+  MapEntityPresencePredicate? entityPresence,
 }) {
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
-    if (!_includeMapEntityInSpatialCaches(map, entity, npcPresence)) continue;
+    if (!_includeMapEntityInSpatialCaches(
+      map,
+      entity,
+      npcPresence,
+      entityPresence,
+    )) {
+      continue;
+    }
     if (!_isEntityBlockingCandidate(entity)) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||
@@ -1188,11 +1285,19 @@ Map<int, MapEntity> _buildBlockingEntityByPos(
 Map<int, MapEntity> _buildEntityByPos(
   MapData map, {
   NpcMapPresencePredicate? npcPresence,
+  MapEntityPresencePredicate? entityPresence,
 }) {
   final w = map.size.width;
   final result = <int, MapEntity>{};
   for (final entity in map.entities) {
-    if (!_includeMapEntityInSpatialCaches(map, entity, npcPresence)) continue;
+    if (!_includeMapEntityInSpatialCaches(
+      map,
+      entity,
+      npcPresence,
+      entityPresence,
+    )) {
+      continue;
+    }
     if (entity.kind == MapEntityKind.spawn) continue;
     for (final cell in resolveEntityCollisionCells(entity)) {
       if (cell.x < 0 ||

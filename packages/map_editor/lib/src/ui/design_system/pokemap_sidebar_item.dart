@@ -14,6 +14,7 @@ class PokeMapSidebarItem extends StatefulWidget {
     this.icon,
     this.trailing,
     this.compact = false,
+    this.growForTextScale = false,
     this.selected = false,
     this.disabled = false,
     this.onTap,
@@ -37,6 +38,10 @@ class PokeMapSidebarItem extends StatefulWidget {
   /// opt in explicitly so the design-system primitive still owns spacing,
   /// typography and focus treatment instead of duplicating a local row.
   final bool compact;
+
+  /// Keeps the established row height as a minimum while allowing scaled
+  /// labels and subtitles to request the vertical space they need.
+  final bool growForTextScale;
 
   /// If true, highlights the item as the current active page/selection.
   final bool selected;
@@ -64,6 +69,9 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
     final iconGap = widget.compact ? 7.0 : 10.0;
     final trailingGap = widget.compact ? 5.0 : 8.0;
     final labelSize = widget.compact ? 11.0 : 13.0;
+    final itemHeight = widget.subtitle == null
+        ? (widget.compact ? 34.0 : 38.0)
+        : (widget.compact ? 42.0 : 46.0);
 
     // Visual attributes resolution
     Color? bg;
@@ -109,9 +117,10 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                 : SystemMouseCursors.click,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 100),
-              height: widget.subtitle == null
-                  ? (widget.compact ? 34 : 38)
-                  : (widget.compact ? 42 : 46),
+              height: widget.growForTextScale ? null : itemHeight,
+              constraints: widget.growForTextScale
+                  ? BoxConstraints(minHeight: itemHeight)
+                  : null,
               padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
               decoration: BoxDecoration(
                 color: bg,

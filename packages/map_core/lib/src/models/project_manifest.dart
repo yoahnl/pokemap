@@ -5,6 +5,7 @@ import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
+import 'project_new_game_config.dart';
 import 'cinematic_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_fact.dart';
@@ -383,6 +384,7 @@ class ProjectManifest with _$ProjectManifest {
     @Default([]) List<ProjectCharacterEntry> characters,
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
+    @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @Default({}) Map<String, dynamic> globalProperties,
     @Default(ProjectSurfaceCatalog.empty())
     @JsonKey(
@@ -496,6 +498,17 @@ class ProjectDialogueFolder with _$ProjectDialogueFolder {
 }
 
 @freezed
+class DialogueDeclaredOutcome with _$DialogueDeclaredOutcome {
+  const factory DialogueDeclaredOutcome({
+    required String id,
+    required String label,
+  }) = _DialogueDeclaredOutcome;
+
+  factory DialogueDeclaredOutcome.fromJson(Map<String, dynamic> json) =>
+      _$DialogueDeclaredOutcomeFromJson(json);
+}
+
+@freezed
 class ProjectDialogueEntry with _$ProjectDialogueEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectDialogueEntry({
@@ -506,6 +519,7 @@ class ProjectDialogueEntry with _$ProjectDialogueEntry {
     required String relativePath,
     @Default([]) List<String> tags,
     @Default('') String description,
+    @Default([]) List<DialogueDeclaredOutcome> declaredOutcomes,
 
     /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
     String? defaultStartNode,

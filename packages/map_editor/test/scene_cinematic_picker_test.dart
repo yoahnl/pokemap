@@ -226,6 +226,11 @@ Future<ProviderContainer> _pumpNarrativeShell(
   required ProjectManifest project,
   Size surfaceSize = const Size(1440, 900),
 }) async {
+  // Some tests deliberately replace the Scene workspace in the same test.
+  // Unmount first so Riverpod can drain the autoDispose catalog cleanup timer
+  // before another ProviderContainer owns the widget tree.
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 

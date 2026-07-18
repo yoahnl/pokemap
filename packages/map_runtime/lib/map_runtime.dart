@@ -7,7 +7,8 @@ export 'src/application/battle_start_request.dart'
         OverworldReturnContext,
         BattleStartRequest,
         WildBattleStartRequest,
-        TrainerBattleStartRequest;
+        TrainerBattleStartRequest,
+        StaticBattleStartRequest;
 export 'src/application/encounter_to_battle_request.dart'
     show buildBattleStartRequestFromEncounter;
 export 'src/application/trainer_battle_request.dart'
@@ -53,6 +54,11 @@ export 'src/application/narrative_spatial_production_dispatch_bridge.dart'
 export 'src/application/world_rules/runtime_world_rule_projection_hook.dart'
     show RuntimeWorldRuleProjectionHook, RuntimeWorldRuleProjectionState;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
+export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
+    show
+        FlameCinematicRuntimeActorHandle,
+        FlameCinematicRuntimeHost,
+        FlameCinematicRuntimePlaybackSink;
 export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show
         BattleCommandOverlayMode,
@@ -116,6 +122,13 @@ export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_adapter.
         SceneCinematicRuntimePlayer,
         SceneCinematicRuntimeRequest,
         SceneCinematicRuntimeNoVisualPlayer;
+export 'src/application/scene_runtime/cinematic_runtime_playback_controller.dart'
+    show
+        CinematicRuntimePlaybackController,
+        CinematicRuntimePlaybackSink,
+        CinematicRuntimeSinkPreflightResult,
+        CinematicRuntimeStepContext,
+        CinematicRuntimeTermination;
 export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart'
     show
         SceneCinematicRuntimeAwaitableErrorCode,

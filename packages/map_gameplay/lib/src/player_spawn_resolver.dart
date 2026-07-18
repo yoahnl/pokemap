@@ -11,16 +11,33 @@ const Direction _kDefaultFacing = Direction.south;
 /// [tileWidthPx] / [tileHeightPx] : taille tuile projet (même repère que le bitmap monde).
 GameplayPlayerState resolveInitialPlayerSpawn(
   MapData map, {
+  String? preferredSpawnId,
   int tileWidthPx = 16,
   int tileHeightPx = 16,
 }) {
+  final authoredSpawnId = preferredSpawnId?.trim();
+  if (authoredSpawnId != null && authoredSpawnId.isNotEmpty) {
+    return _resolveBySpawnId(
+      map,
+      authoredSpawnId,
+      tileWidthPx: tileWidthPx,
+      tileHeightPx: tileHeightPx,
+    );
+  }
   final spawnId = map.mapMetadata.defaultSpawnId?.trim();
   if (spawnId != null && spawnId.isNotEmpty) {
-    return _resolveBySpawnId(map, spawnId,
-        tileWidthPx: tileWidthPx, tileHeightPx: tileHeightPx);
+    return _resolveBySpawnId(
+      map,
+      spawnId,
+      tileWidthPx: tileWidthPx,
+      tileHeightPx: tileHeightPx,
+    );
   }
-  return _resolveByPlayerStartRole(map,
-      tileWidthPx: tileWidthPx, tileHeightPx: tileHeightPx);
+  return _resolveByPlayerStartRole(
+    map,
+    tileWidthPx: tileWidthPx,
+    tileHeightPx: tileHeightPx,
+  );
 }
 
 GameplayPlayerState _resolveBySpawnId(
@@ -98,7 +115,8 @@ GameplayPlayerState _stateFromSpawnEntity(
     spriteWidthPx: spriteW,
     spriteHeightPx: spriteH,
   );
-  final hitbox = PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+  final hitbox =
+      PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
     spriteTopLeftPx: topLeft,
     spriteWidthPx: spriteW,
     spriteHeightPx: spriteH,

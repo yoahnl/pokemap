@@ -30,6 +30,9 @@ dev_dependencies:
   build_runner: ^2.4.8
   freezed: ^2.4.7
   json_serializable: ^6.7.1
+  # Debug-only desktop QA bridge. The production entrypoint never imports it.
+  marionette_flutter: ^0.5.0
+  marionette_mcp: ^0.6.0
   riverpod_generator: ^2.3.9
 
 flutter:
@@ -39,5 +42,9 @@ flutter:
     # raster source avoids replacing a visible brand asset with drawn UI art.
     - assets/branding/pokemap_event_builder_mark.png
     - assets/branding/pokemap_event_builder_project_thumb.png
+    # Versioned open-source font used only to make visual-test output portable
+    # and deterministic across desktop hosts.
+    - assets/fonts/pokemap_capture_sans_regular.ttf
+    - assets/fonts/pokemap_capture_sans_LICENSE.txt
     - assets/cinematics/emotes/emotions.png
     - assets/cinematics/emotes/emotions2.png

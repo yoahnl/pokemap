@@ -99,6 +99,84 @@ void main() {
       expect(repo.lastSavedProject?.dialogues, isEmpty);
     });
 
+    test('updateProjectDialogueDeclaredOutcomes persists the public contract',
+        () async {
+      final repo = _FakeProjectRepository();
+      final controller = _buildController(repo);
+      final workspace = _TempProjectWorkspace(tmp.path);
+      const current = EditorState(
+        projectRootPath: '/tmp/demo',
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          dialogues: <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'intro_scene',
+              name: 'Intro Scene',
+              relativePath: 'dialogues/intro_scene.yarn',
+            ),
+          ],
+        ),
+      );
+
+      final next = await controller.updateProjectDialogueDeclaredOutcomes(
+        current: current,
+        workspace: workspace,
+        dialogueId: 'intro_scene',
+        declaredOutcomes: const [
+          DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+          DialogueDeclaredOutcome(id: 'refused', label: 'Refuser'),
+        ],
+      );
+
+      expect(
+        next.project!.dialogues.single.declaredOutcomes
+            .map((outcome) => outcome.id),
+        ['accepted', 'refused'],
+      );
+      expect(next.statusMessage, 'Dialogue outcomes updated');
+      expect(repo.lastSavedProject, next.project);
+    });
+
+    test('failed outcome persistence keeps the previous public contract',
+        () async {
+      final repo = _FakeProjectRepository()..failOnSave = true;
+      final controller = _buildController(repo);
+      final workspace = _TempProjectWorkspace(tmp.path);
+      const current = EditorState(
+        projectRootPath: '/tmp/demo',
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog.empty(),
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          dialogues: <ProjectDialogueEntry>[
+            ProjectDialogueEntry(
+              id: 'intro_scene',
+              name: 'Intro Scene',
+              relativePath: 'dialogues/intro_scene.yarn',
+            ),
+          ],
+        ),
+      );
+
+      final next = await controller.updateProjectDialogueDeclaredOutcomes(
+        current: current,
+        workspace: workspace,
+        dialogueId: 'intro_scene',
+        declaredOutcomes: const [
+          DialogueDeclaredOutcome(id: 'accepted', label: 'Accepter'),
+        ],
+      );
+
+      expect(next.project, same(current.project));
+      expect(next.project!.dialogues.single.declaredOutcomes, isEmpty);
+      expect(next.errorMessage, contains('Failed to update dialogue outcomes'));
+      expect(repo.lastSavedProject, isNull);
+    });
+
     test('createProjectScenario updates manifest and status', () async {
       final repo = _FakeProjectRepository();
       final controller = _buildController(repo);
@@ -163,6 +241,7 @@ ProjectContentController _buildController(_FakeProjectRepository repo) {
 
 class _FakeProjectRepository implements ProjectRepository {
   ProjectManifest? lastSavedProject;
+  bool failOnSave = false;
 
   @override
   Future<ProjectManifest> loadProject(String path) async {
@@ -171,6 +250,9 @@ class _FakeProjectRepository implements ProjectRepository {
 
   @override
   Future<void> saveProject(ProjectManifest project, String path) async {
+    if (failOnSave) {
+      throw StateError('simulated project save failure');
+    }
     lastSavedProject = project;
   }
 }

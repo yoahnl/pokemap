@@ -16445,7 +16445,129 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "npc_yvon",
+      "name": "Yvon",
+      "kind": "npc",
+      "pos": {
+        "x": 10,
+        "y": 12
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": {
+        "displayName": "Yvon",
+        "dialogue": {
+          "dialogueId": "dialogue_yvon_cabin",
+          "scriptPathRelative": "",
+          "startNode": "YvonCabin"
+        },
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "character_yvon",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_canonical_narrative_source"
+      }
+    },
+    {
+      "id": "gate_cabin_door",
+      "name": "Cabane du gardien verrouillée",
+      "kind": "sign",
+      "pos": {
+        "x": 8,
+        "y": 33
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Cabane du gardien verrouillée",
+        "dialogue": null,
+        "plainText": "La porte est verrouillée. Yvon a parlé d’une clé."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    },
+    {
+      "id": "cabin_key_object",
+      "name": "Clé de la cabane",
+      "kind": "custom",
+      "pos": {
+        "x": 14,
+        "y": 28
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_cabane_cle",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "fog_phare",
+      "name": "Brume autour du vieux phare",
+      "kind": "custom",
+      "pos": {
+        "x": 22,
+        "y": 22
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_brume_basse",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    }
+  ],
   "connections": [
     {
       "direction": "west",
@@ -16512,6 +16634,25 @@
       },
       "properties": {
         "eventId": "event_lighthouse_exterior_arrival",
+        "reservedForNarrative": "true"
+      }
+    },
+    {
+      "id": "tr_cabin_key_outside",
+      "name": "tr_cabin_key_outside",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 14,
+          "y": 28
+        },
+        "size": {
+          "width": 1,
+          "height": 1
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_cabin_key_outside",
         "reservedForNarrative": "true"
       }
     }

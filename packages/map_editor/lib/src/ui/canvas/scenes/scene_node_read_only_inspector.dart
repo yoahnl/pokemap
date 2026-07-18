@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
+import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'scene_cinematic_picker.dart';
@@ -15,6 +16,7 @@ typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
   required String nodeId,
   required String dialogueId,
   String? yarnNodeName,
+  required List<String> expectedOutcomes,
 });
 
 typedef SceneBattlePayloadDraftUpdater = Future<bool> Function({
@@ -99,6 +101,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onUpdateCinematicPayload,
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
+    this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.onUpdateActionConsequence,
   });
 
@@ -116,6 +119,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
 
   @override
@@ -152,6 +156,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   onUpdateCinematicPayload: onUpdateCinematicPayload,
                   consequenceFactOptions: consequenceFactOptions,
                   consequenceEventOptions: consequenceEventOptions,
+                  consequenceCatalogs: consequenceCatalogs,
                   onUpdateActionConsequence: onUpdateActionConsequence,
                 ),
     );
@@ -254,6 +259,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onUpdateCinematicPayload,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
+    required this.consequenceCatalogs,
     required this.onUpdateActionConsequence,
   });
 
@@ -269,6 +275,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
+  final SceneConsequenceCatalogs consequenceCatalogs;
   final SceneActionConsequenceDraftUpdater? onUpdateActionConsequence;
 
   @override
@@ -344,6 +351,7 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneActionPayload,
               factOptions: consequenceFactOptions,
               eventOptions: consequenceEventOptions,
+              catalogs: consequenceCatalogs,
               onUpdatePayload: onUpdateActionConsequence,
             ),
             const SizedBox(height: 10),
@@ -739,6 +747,9 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
       nodeId: node.id,
       dialogueId: contract.id,
       yarnNodeName: contract.defaultStartNode,
+      expectedOutcomes: [
+        for (final outcome in contract.declaredOutcomes) outcome.id,
+      ],
     );
   }
 }
@@ -969,6 +980,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     required this.payload,
     required this.factOptions,
     required this.eventOptions,
+    required this.catalogs,
     required this.onUpdatePayload,
   });
 
@@ -976,6 +988,7 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
   final SceneActionPayload payload;
   final List<SceneConsequenceFactPickerOption> factOptions;
   final List<SceneConsequenceEventPickerOption> eventOptions;
+  final SceneConsequenceCatalogs catalogs;
   final SceneActionConsequenceDraftUpdater? onUpdatePayload;
 
   @override
@@ -997,6 +1010,24 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
           ..._setFactRows(context, consequence)
         else if (consequence is SceneMarkEventConsumedConsequence)
           ..._markEventRows(context, consequence)
+        else if (consequence is SceneGiveItemConsequence)
+          ..._itemRows(
+            context,
+            consequence,
+            typeLabel: 'Donner un objet',
+          )
+        else if (consequence is SceneTakeItemConsequence)
+          ..._itemRows(
+            context,
+            consequence,
+            typeLabel: 'Retirer un objet',
+          )
+        else if (consequence is SceneGiveMoneyConsequence)
+          ..._moneyRows(context, consequence)
+        else if (consequence is SceneGivePokemonConsequence)
+          ..._pokemonRows(context, consequence)
+        else if (consequence is SceneGiveConfiguredStarterConsequence)
+          ..._configuredStarterRows(context, consequence)
         else
           const _InspectorRow(
             label: 'Type',
@@ -1096,6 +1127,193 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     ];
   }
 
+  List<Widget> _itemRows(
+    BuildContext context,
+    SceneConsequence consequence, {
+    required String typeLabel,
+  }) {
+    final itemId = switch (consequence) {
+      SceneGiveItemConsequence(:final itemId) => itemId,
+      SceneTakeItemConsequence(:final itemId) => itemId,
+      _ => '',
+    };
+    final quantity = switch (consequence) {
+      SceneGiveItemConsequence(:final quantity) => quantity,
+      SceneTakeItemConsequence(:final quantity) => quantity,
+      _ => 0,
+    };
+    final item = _catalogOptionFor(catalogs.items, itemId);
+    return [
+      _InspectorRow(label: 'Type', value: typeLabel),
+      _InspectorRow(
+        label: 'Objet',
+        value: item?.label ?? 'Référence objet indisponible',
+      ),
+      _InspectorRow(label: 'Quantité', value: '$quantity'),
+      if (item == null) ...[
+        const SizedBox(height: 6),
+        PokeMapDiagnosticCallout(
+          key: const ValueKey(
+            'scene-gameplay-consequence-catalog-diagnostic',
+          ),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Référence à corriger',
+          message: catalogs.items.isReady
+              ? 'Objet introuvable dans le catalogue local.'
+              : catalogs.items.message,
+        ),
+      ],
+      const SizedBox(height: 6),
+      _gameplayEditButton(
+        context,
+        consequence,
+        enabled: catalogs.items.options.isNotEmpty,
+      ),
+    ];
+  }
+
+  List<Widget> _moneyRows(
+    BuildContext context,
+    SceneGiveMoneyConsequence consequence,
+  ) {
+    return [
+      const _InspectorRow(label: 'Type', value: 'Donner de l’argent'),
+      _InspectorRow(label: 'Montant', value: '${consequence.amount}'),
+      const SizedBox(height: 6),
+      _gameplayEditButton(context, consequence),
+    ];
+  }
+
+  List<Widget> _pokemonRows(
+    BuildContext context,
+    SceneGivePokemonConsequence consequence,
+  ) {
+    final species = _catalogOptionFor(
+      catalogs.species,
+      consequence.speciesId,
+    );
+    return [
+      const _InspectorRow(label: 'Type', value: 'Donner un Pokémon'),
+      _InspectorRow(
+        label: 'Pokémon',
+        value: species?.label ?? 'Espèce locale indisponible',
+      ),
+      _InspectorRow(label: 'Niveau', value: '${consequence.level}'),
+      _InspectorRow(label: 'PV courants', value: '${consequence.currentHp}'),
+      if (species == null) ...[
+        const SizedBox(height: 6),
+        PokeMapDiagnosticCallout(
+          key: const ValueKey(
+            'scene-gameplay-consequence-catalog-diagnostic',
+          ),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Référence à corriger',
+          message: catalogs.species.isReady
+              ? 'Espèce introuvable dans le catalogue local.'
+              : catalogs.species.message,
+        ),
+      ],
+      const SizedBox(height: 6),
+      _gameplayEditButton(
+        context,
+        consequence,
+        enabled: catalogs.species.options.isNotEmpty,
+      ),
+    ];
+  }
+
+  List<Widget> _configuredStarterRows(
+    BuildContext context,
+    SceneGiveConfiguredStarterConsequence consequence,
+  ) {
+    final starter = _catalogOptionFor(
+      catalogs.configuredStarters,
+      consequence.starterOptionId,
+    );
+    return <Widget>[
+      const _InspectorRow(
+        label: 'Type',
+        value: 'Donner un starter configuré',
+      ),
+      _InspectorRow(
+        label: 'Starter',
+        value: starter?.label ?? 'Starter configuré indisponible',
+      ),
+      if (starter == null) ...<Widget>[
+        const SizedBox(height: 6),
+        PokeMapDiagnosticCallout(
+          key: const ValueKey(
+            'scene-gameplay-consequence-catalog-diagnostic',
+          ),
+          severity: PokeMapDiagnosticSeverity.error,
+          title: 'Référence à corriger',
+          message: catalogs.configuredStarters.isReady
+              ? 'Starter introuvable dans les options Nouveau Jeu.'
+              : catalogs.configuredStarters.message,
+        ),
+      ],
+      const SizedBox(height: 6),
+      _gameplayEditButton(
+        context,
+        consequence,
+        enabled: catalogs.configuredStarters.options.isNotEmpty,
+      ),
+    ];
+  }
+
+  Widget _gameplayEditButton(
+    BuildContext context,
+    SceneConsequence consequence, {
+    bool enabled = true,
+  }) {
+    return PokeMapButton(
+      key: const ValueKey('scene-gameplay-consequence-edit-action'),
+      onPressed: onUpdatePayload == null || !enabled
+          ? null
+          : () => _editGameplayConsequence(context, consequence),
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      leading: const Icon(CupertinoIcons.pencil),
+      child: const Text('Modifier'),
+    );
+  }
+
+  SceneConsequenceCatalogOption? _catalogOptionFor(
+    SceneConsequenceCatalogSection section,
+    String id,
+  ) {
+    for (final option in section.options) {
+      if (option.id == id) {
+        return option;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _editGameplayConsequence(
+    BuildContext context,
+    SceneConsequence consequence,
+  ) async {
+    final updater = onUpdatePayload;
+    if (updater == null) {
+      return;
+    }
+    final updated = await showPokeMapDesktopSideSheet<SceneConsequence>(
+      context: context,
+      title: 'Modifier la conséquence',
+      semanticLabel: 'Modifier une conséquence de gameplay',
+      width: 420,
+      builder: (context) => _GameplayConsequenceEditSheet(
+        initialConsequence: consequence,
+        catalogs: catalogs,
+      ),
+    );
+    if (updated == null || !context.mounted) {
+      return;
+    }
+    await updater(nodeId: node.id, consequence: updated);
+  }
+
   SceneConsequenceFactPickerOption? _factOptionFor(String factId) {
     for (final option in factOptions) {
       if (option.factId == factId) {
@@ -1181,6 +1399,335 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
         value: value,
       ),
     );
+  }
+}
+
+class _GameplayConsequenceEditSheet extends StatefulWidget {
+  const _GameplayConsequenceEditSheet({
+    required this.initialConsequence,
+    required this.catalogs,
+  });
+
+  final SceneConsequence initialConsequence;
+  final SceneConsequenceCatalogs catalogs;
+
+  @override
+  State<_GameplayConsequenceEditSheet> createState() =>
+      _GameplayConsequenceEditSheetState();
+}
+
+class _GameplayConsequenceEditSheetState
+    extends State<_GameplayConsequenceEditSheet> {
+  late String? _selectedItemId;
+  late String? _selectedSpeciesId;
+  late String? _selectedConfiguredStarterId;
+  late final TextEditingController _quantityController;
+  late final TextEditingController _moneyController;
+  late final TextEditingController _levelController;
+  late final TextEditingController _currentHpController;
+
+  @override
+  void initState() {
+    super.initState();
+    final consequence = widget.initialConsequence;
+    final initialItemId = switch (consequence) {
+      SceneGiveItemConsequence(:final itemId) => itemId,
+      SceneTakeItemConsequence(:final itemId) => itemId,
+      _ => null,
+    };
+    final initialSpeciesId = switch (consequence) {
+      SceneGivePokemonConsequence(:final speciesId) => speciesId,
+      _ => null,
+    };
+    final initialConfiguredStarterId = switch (consequence) {
+      SceneGiveConfiguredStarterConsequence(:final starterOptionId) =>
+        starterOptionId,
+      _ => null,
+    };
+    _selectedItemId = _resolveInitialSelection(
+      widget.catalogs.items.options,
+      initialItemId,
+    );
+    _selectedSpeciesId = _resolveInitialSelection(
+      widget.catalogs.species.options,
+      initialSpeciesId,
+    );
+    _selectedConfiguredStarterId = _resolveInitialSelection(
+      widget.catalogs.configuredStarters.options,
+      initialConfiguredStarterId,
+    );
+    _quantityController = TextEditingController(
+      text: switch (consequence) {
+        SceneGiveItemConsequence(:final quantity) => '$quantity',
+        SceneTakeItemConsequence(:final quantity) => '$quantity',
+        _ => '1',
+      },
+    );
+    _moneyController = TextEditingController(
+      text: consequence is SceneGiveMoneyConsequence
+          ? '${consequence.amount}'
+          : '100',
+    );
+    _levelController = TextEditingController(
+      text: consequence is SceneGivePokemonConsequence
+          ? '${consequence.level}'
+          : '5',
+    );
+    _currentHpController = TextEditingController(
+      text: consequence is SceneGivePokemonConsequence
+          ? '${consequence.currentHp}'
+          : '20',
+    );
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _moneyController.dispose();
+    _levelController.dispose();
+    _currentHpController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final consequence = _buildConsequence();
+    return Padding(
+      key: const ValueKey('scene-gameplay-consequence-edit-sheet'),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: _controls(),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PokeMapButton(
+                onPressed: () => Navigator.of(context).pop(),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Annuler'),
+              ),
+              const SizedBox(width: 8),
+              PokeMapButton(
+                key: const ValueKey(
+                  'scene-gameplay-consequence-save-action',
+                ),
+                onPressed: consequence == null
+                    ? null
+                    : () => Navigator.of(context).pop(consequence),
+                variant: PokeMapButtonVariant.primary,
+                size: PokeMapButtonSize.small,
+                child: const Text('Enregistrer'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _controls() {
+    final consequence = widget.initialConsequence;
+    if (consequence is SceneGiveItemConsequence ||
+        consequence is SceneTakeItemConsequence) {
+      final quantity = int.tryParse(_quantityController.text.trim());
+      return [
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scene-gameplay-consequence-item-picker'),
+          label: 'Objet',
+          value: _selectedItemId ?? '',
+          items: [
+            for (final option in widget.catalogs.items.options)
+              PokeMapDropdownItem(value: option.id, label: option.label),
+          ],
+          enabled: widget.catalogs.items.options.isNotEmpty,
+          onChanged: (value) => setState(() => _selectedItemId = value),
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey(
+            'scene-gameplay-consequence-quantity-field',
+          ),
+          label: 'Quantité',
+          controller: _quantityController,
+          keyboardType: TextInputType.number,
+          errorText: quantity == null || quantity <= 0
+              ? 'Saisissez une quantité supérieure à zéro.'
+              : null,
+          onChanged: (_) => setState(() {}),
+        ),
+      ];
+    }
+    if (consequence is SceneGiveMoneyConsequence) {
+      final amount = int.tryParse(_moneyController.text.trim());
+      return [
+        PokeMapTextField(
+          key: const ValueKey('scene-gameplay-consequence-money-field'),
+          label: 'Montant',
+          controller: _moneyController,
+          keyboardType: TextInputType.number,
+          errorText: amount == null || amount <= 0
+              ? 'Saisissez un montant supérieur à zéro.'
+              : null,
+          onChanged: (_) => setState(() {}),
+        ),
+      ];
+    }
+    if (consequence is SceneGivePokemonConsequence) {
+      final level = int.tryParse(_levelController.text.trim());
+      final currentHp = int.tryParse(_currentHpController.text.trim());
+      return [
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scene-gameplay-consequence-species-picker'),
+          label: 'Pokémon',
+          value: _selectedSpeciesId ?? '',
+          items: [
+            for (final option in widget.catalogs.species.options)
+              PokeMapDropdownItem(value: option.id, label: option.label),
+          ],
+          enabled: widget.catalogs.species.options.isNotEmpty,
+          onChanged: (value) => setState(() => _selectedSpeciesId = value),
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey('scene-gameplay-consequence-level-field'),
+          label: 'Niveau',
+          controller: _levelController,
+          keyboardType: TextInputType.number,
+          errorText: level == null || level < 1 || level > 100
+              ? 'Choisissez un niveau entre 1 et 100.'
+              : null,
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 12),
+        PokeMapTextField(
+          key: const ValueKey(
+            'scene-gameplay-consequence-current-hp-field',
+          ),
+          label: 'PV courants',
+          controller: _currentHpController,
+          keyboardType: TextInputType.number,
+          errorText: currentHp == null || currentHp <= 0
+              ? 'Saisissez des PV courants supérieurs à zéro.'
+              : null,
+          onChanged: (_) => setState(() {}),
+        ),
+      ];
+    }
+    if (consequence is SceneGiveConfiguredStarterConsequence) {
+      return <Widget>[
+        PokeMapDropdownField<String>(
+          key: const ValueKey(
+            'scene-gameplay-consequence-configured-starter-picker',
+          ),
+          label: 'Starter',
+          value: _selectedConfiguredStarterId ?? '',
+          items: <PokeMapDropdownItem<String>>[
+            for (final option in widget.catalogs.configuredStarters.options)
+              PokeMapDropdownItem(value: option.id, label: option.label),
+          ],
+          enabled: widget.catalogs.configuredStarters.options.isNotEmpty,
+          onChanged: (value) =>
+              setState(() => _selectedConfiguredStarterId = value),
+        ),
+      ];
+    }
+    return const [
+      PokeMapDiagnosticCallout(
+        severity: PokeMapDiagnosticSeverity.error,
+        message: 'Cette conséquence ne peut pas être modifiée ici.',
+      ),
+    ];
+  }
+
+  SceneConsequence? _buildConsequence() {
+    final initial = widget.initialConsequence;
+    final quantity = int.tryParse(_quantityController.text.trim());
+    final amount = int.tryParse(_moneyController.text.trim());
+    final level = int.tryParse(_levelController.text.trim());
+    final currentHp = int.tryParse(_currentHpController.text.trim());
+    // The sheet edits only guided gameplay fields. Optional metadata that is
+    // not exposed by SEL-FIN-03B remains value-for-value represented in the
+    // new typed consequence instead of being silently discarded.
+    return switch (initial) {
+      SceneGiveItemConsequence(:final label, :final notes) =>
+        _selectedItemId == null || quantity == null || quantity <= 0
+            ? null
+            : SceneConsequence.giveItem(
+                itemId: _selectedItemId!,
+                quantity: quantity,
+                label: label,
+                notes: notes,
+              ),
+      SceneTakeItemConsequence(:final label, :final notes) =>
+        _selectedItemId == null || quantity == null || quantity <= 0
+            ? null
+            : SceneConsequence.takeItem(
+                itemId: _selectedItemId!,
+                quantity: quantity,
+                label: label,
+                notes: notes,
+              ),
+      SceneGiveMoneyConsequence(:final label, :final notes) =>
+        amount == null || amount <= 0
+            ? null
+            : SceneConsequence.giveMoney(
+                amount: amount,
+                label: label,
+                notes: notes,
+              ),
+      SceneGivePokemonConsequence(
+        :final natureId,
+        :final abilityId,
+        :final label,
+        :final notes,
+      ) =>
+        _selectedSpeciesId == null ||
+                level == null ||
+                level < 1 ||
+                level > 100 ||
+                currentHp == null ||
+                currentHp <= 0
+            ? null
+            : SceneConsequence.givePokemon(
+                speciesId: _selectedSpeciesId!,
+                level: level,
+                currentHp: currentHp,
+                natureId: natureId,
+                abilityId: abilityId,
+                label: label,
+                notes: notes,
+              ),
+      SceneGiveConfiguredStarterConsequence(:final label, :final notes) =>
+        _selectedConfiguredStarterId == null
+            ? null
+            : SceneConsequence.giveConfiguredStarter(
+                starterOptionId: _selectedConfiguredStarterId!,
+                label: label,
+                notes: notes,
+              ),
+      _ => null,
+    };
+  }
+
+  String? _resolveInitialSelection(
+    List<SceneConsequenceCatalogOption> options,
+    String? requestedId,
+  ) {
+    if (requestedId != null &&
+        options.any((option) => option.id == requestedId)) {
+      return requestedId;
+    }
+    return options.firstOrNull?.id;
   }
 }
 
@@ -2116,6 +2663,39 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
       ),
       _InspectorRow(label: 'mapId', value: consequence.mapId),
       _InspectorRow(label: 'eventId', value: consequence.eventId),
+    ];
+  }
+  if (consequence is SceneGiveItemConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'Donner un objet'),
+      _InspectorRow(label: 'quantité', value: '${consequence.quantity}'),
+    ];
+  }
+  if (consequence is SceneTakeItemConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'Retirer un objet'),
+      _InspectorRow(label: 'quantité', value: '${consequence.quantity}'),
+    ];
+  }
+  if (consequence is SceneGiveMoneyConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'Donner de l’argent'),
+      _InspectorRow(label: 'montant', value: '${consequence.amount}'),
+    ];
+  }
+  if (consequence is SceneGivePokemonConsequence) {
+    return [
+      const _InspectorRow(label: 'consequence', value: 'Donner un Pokémon'),
+      _InspectorRow(label: 'niveau', value: '${consequence.level}'),
+      _InspectorRow(label: 'PV courants', value: '${consequence.currentHp}'),
+    ];
+  }
+  if (consequence is SceneGiveConfiguredStarterConsequence) {
+    return const [
+      _InspectorRow(
+        label: 'consequence',
+        value: 'Donner un starter configuré',
+      ),
     ];
   }
   return const [

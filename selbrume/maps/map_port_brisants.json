@@ -19300,25 +19300,6 @@
       "properties": {
         "pokemapPlacementOrigin": "environment"
       }
-    },
-    {
-      "id": "pe_port_nid_goelise",
-      "layerId": "l_tile_port_ref_ground",
-      "elementId": "el_port_ref_nest",
-      "pos": {
-        "x": 7,
-        "y": 9
-      },
-      "applyCollision": false,
-      "opacity": 1.0,
-      "animation": null,
-      "shadowOverride": null,
-      "behaviors": [],
-      "properties": {
-        "pokemapPlacementOrigin": "authored",
-        "eventId": "event_goelise_nest_found",
-        "reservedForNarrative": "true"
-      }
     }
   ],
   "entities": [
@@ -19429,6 +19410,144 @@
       "blocksMovement": true,
       "properties": {
         "contractRole": "phase_j_lysa_source"
+      }
+    },
+    {
+      "id": "npc_soline",
+      "name": "Soline",
+      "kind": "npc",
+      "pos": {
+        "x": 39,
+        "y": 10
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": {
+        "displayName": "Soline",
+        "dialogue": {
+          "dialogueId": "dialogue_soline",
+          "scriptPathRelative": "",
+          "startNode": "SolineClues"
+        },
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "character_soline",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_canonical_narrative_source"
+      }
+    },
+    {
+      "id": "npc_pecheur",
+      "name": "Pêcheur inquiet",
+      "kind": "npc",
+      "pos": {
+        "x": 13,
+        "y": 17
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": {
+        "displayName": "Pêcheur inquiet",
+        "dialogue": {
+          "dialogueId": "dialogue_goelise_port",
+          "scriptPathRelative": "",
+          "startNode": "FisherIntro"
+        },
+        "facing": "south",
+        "visualElementId": "",
+        "trainerId": null,
+        "lineOfSightRange": 0,
+        "defeatDialogueRef": null,
+        "characterId": "character_pecheur",
+        "movement": {
+          "mode": "idle",
+          "waypoints": [],
+          "loop": true,
+          "pauseDurationMs": 0,
+          "stepDurationMs": 200
+        },
+        "visibilityRule": null,
+        "conditionalDialogues": []
+      },
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": null,
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_canonical_narrative_source"
+      }
+    },
+    {
+      "id": "fog_port",
+      "name": "Banc de brume du port",
+      "kind": "custom",
+      "pos": {
+        "x": 22,
+        "y": 11
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_brume_basse",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    },
+    {
+      "id": "goelise_nest_proxy",
+      "name": "Nid du Goélise déplacé par la brume",
+      "kind": "custom",
+      "pos": {
+        "x": 7,
+        "y": 9
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_port_ref_nest",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
       }
     }
   ],

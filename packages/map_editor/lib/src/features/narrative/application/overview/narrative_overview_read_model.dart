@@ -3,7 +3,6 @@ import 'package:map_core/map_core.dart';
 import '../../../dialogue/application/dialogue_editor_validation.dart';
 import '../cutscene_studio/cutscene_studio_models.dart';
 import '../global_story_studio_authoring.dart';
-import '../narrative_workspace_projection.dart';
 import '../step_studio_authoring.dart';
 
 enum NarrativeOverviewAvailability {
@@ -322,7 +321,6 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   List<DialogueValidationIssue> dialogueIssues =
       const <DialogueValidationIssue>[],
 }) {
-  final projection = buildNarrativeWorkspaceProjection(project);
   final globalStories = project.scenarios
       .where((scenario) => scenario.scope == ScenarioScope.globalStory)
       .toList(growable: false);
@@ -357,10 +355,9 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   final scenes = _metricWithCount(
     id: 'scenes',
     label: 'Scènes',
-    count: _countLinkedResolvedScenes(projection.steps, cutsceneScenarioIds),
-    emptyStateMessage: 'Aucune scène narrative liée.',
-    unavailableMessage:
-        'Les scènes nécessitent des liens Step Studio vers des cutscenes.',
+    count: project.scenes.length,
+    emptyStateMessage: 'Aucune Scene authorée.',
+    unavailableMessage: 'Scenes indisponibles.',
   );
   final cutscenes = _metricWithCount(
     id: 'cutscenes',
@@ -750,17 +747,6 @@ bool _hasCutsceneStudioMetadata(ScenarioAsset scenario) {
   final flow = scenario.metadata[kCutsceneStudioFlowMetadataKey]?.trim();
   return (schema != null && schema.isNotEmpty) ||
       (flow != null && flow.isNotEmpty);
-}
-
-int _countLinkedResolvedScenes(
-  List<NarrativeStepSummary> steps,
-  Set<String> cutsceneScenarioIds,
-) {
-  return steps
-      .expand((step) => step.linkedCutsceneIds)
-      .where(cutsceneScenarioIds.contains)
-      .toSet()
-      .length;
 }
 
 int _countNarrativeConditions(

@@ -26,6 +26,30 @@ MapData _mapEmma1x1() {
   );
 }
 
+MapData _mapWithBlockingClue() {
+  return const MapData(
+    id: 'map',
+    name: 'Map',
+    size: GridSize(width: 12, height: 12),
+    layers: <MapLayer>[
+      MapLayer.collision(
+        id: 'collision',
+        name: 'Collision',
+        collisions: <bool>[],
+      ),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'clue',
+        kind: MapEntityKind.item,
+        pos: GridPos(x: 5, y: 5),
+        size: GridSize(width: 1, height: 1),
+        blocksMovement: true,
+      ),
+    ],
+  );
+}
+
 void main() {
   test('PNJ absent des caches spatiaux quand le prédicat retourne false', () {
     final map = MapData(
@@ -56,11 +80,13 @@ void main() {
       npcMapPresencePredicate: (_, __) => false,
     );
 
-    expect(hidden.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isFalse);
+    expect(
+        hidden.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isFalse);
     expect(hidden.entityAt(5, 5), isNull);
 
     final visible = hidden.withNpcMapPresencePredicate((_, __) => true);
-    expect(visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
+    expect(
+        visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
     expect(visible.entityAt(5, 5)?.id, 'emma');
   });
 
@@ -76,7 +102,8 @@ void main() {
     expect(r.world.player.pos, const GridPos(x: 5, y: 5));
   });
 
-  test('InteractIntent : pas de NpcInteracted si le PNJ est retiré du prédicat', () {
+  test('InteractIntent : pas de NpcInteracted si le PNJ est retiré du prédicat',
+      () {
     final world = GameplayWorldState.initial(
       map: _mapEmma1x1(),
       playerPos: const GridPos(x: 4, y: 5),
@@ -87,7 +114,9 @@ void main() {
     expect(r, isA<NothingToInteract>());
   });
 
-  test('Réapparition : withNpcMapPresencePredicate réactive blocage + interaction', () {
+  test(
+      'Réapparition : withNpcMapPresencePredicate réactive blocage + interaction',
+      () {
     final hidden = GameplayWorldState.initial(
       map: _mapEmma1x1(),
       playerPos: const GridPos(x: 4, y: 5),
@@ -102,5 +131,33 @@ void main() {
     final interact = stepGameplayWorld(shown, const InteractIntent());
     expect(interact, isA<NpcInteracted>());
     expect((interact as NpcInteracted).entity.id, 'emma');
+  });
+
+  test(
+      'MapEntityPresencePredicate retire puis restaure un objet des collisions et interactions',
+      () {
+    final hidden = GameplayWorldState.initial(
+      map: _mapWithBlockingClue(),
+      playerPos: const GridPos(x: 4, y: 5),
+      playerFacing: Direction.east,
+      mapEntityPresencePredicate: (_, entity) => entity.id != 'clue',
+    );
+
+    expect(hidden.entityAt(5, 5), isNull);
+    expect(
+        hidden.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isFalse);
+    expect(
+      stepGameplayWorld(hidden, const InteractIntent()),
+      isA<NothingToInteract>(),
+    );
+
+    final visible = hidden.withMapEntityPresencePredicate((_, __) => true);
+    expect(visible.entityAt(5, 5)?.id, 'clue');
+    expect(
+        visible.isCellCenterBlockedLegacyForGridIndexedSystems(5, 5), isTrue);
+    expect(
+      stepGameplayWorld(visible, const InteractIntent()),
+      isA<ItemInteracted>(),
+    );
   });
 }

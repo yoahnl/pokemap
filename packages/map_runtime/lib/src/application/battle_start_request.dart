@@ -4,11 +4,13 @@ import 'package:map_gameplay/map_gameplay.dart';
 enum RuntimeBattleKind {
   wild,
   trainer,
+  staticEncounter,
 }
 
 enum RuntimeBattleSourceKind {
   encounterZone,
   trainerInteraction,
+  staticEncounter,
   script,
 }
 
@@ -46,6 +48,13 @@ sealed class BattleStartRequest {
   final RuntimeBattleKind kind;
   final RuntimeBattleSourceKind source;
   final OverworldReturnContext returnContext;
+
+  /// Politique runtime explicite pour l'action de fuite.
+  ///
+  /// Seule une rencontre sauvage ordinaire est fuyable. Un boss statique
+  /// reste volontairement non-trainer pour son write-back, mais ne doit pas
+  /// hériter pour autant des actions sauvages Capture/Run.
+  bool get allowsPlayerFlee => kind == RuntimeBattleKind.wild;
 
   Map<String, dynamic> toJson();
 }
@@ -132,6 +141,50 @@ class TrainerBattleStartRequest extends BattleStartRequest {
       'returnContext': returnContext.toJson(),
       'trainerId': trainerId,
       'npcEntityId': npcEntityId,
+      'mapId': mapId,
+      'playerPos': playerPos.toJson(),
+    };
+  }
+}
+
+/// Combat unique contre un Pokémon ou un boss placé dans le monde.
+///
+/// Le profil d'adversaire réutilise volontairement la donnée d'équipe du
+/// projet afin de ne pas dupliquer le catalogue Pokémon. Contrairement à un
+/// combat de dresseur, ce type ne marque aucun trainer comme vaincu et ne
+/// permet ni fuite ni capture dans le contrat V0.
+class StaticBattleStartRequest extends BattleStartRequest {
+  const StaticBattleStartRequest({
+    required super.requestId,
+    required super.createdAtEpochMs,
+    required super.returnContext,
+    required this.battleId,
+    required this.opponentProfileId,
+    required this.entityId,
+    required this.mapId,
+    required this.playerPos,
+  }) : super(
+          kind: RuntimeBattleKind.staticEncounter,
+          source: RuntimeBattleSourceKind.staticEncounter,
+        );
+
+  final String battleId;
+  final String opponentProfileId;
+  final String entityId;
+  final String mapId;
+  final GridPos playerPos;
+
+  @override
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'requestId': requestId,
+      'createdAtEpochMs': createdAtEpochMs,
+      'kind': kind.name,
+      'source': source.name,
+      'returnContext': returnContext.toJson(),
+      'battleId': battleId,
+      'opponentProfileId': opponentProfileId,
+      'entityId': entityId,
       'mapId': mapId,
       'playerPos': playerPos.toJson(),
     };

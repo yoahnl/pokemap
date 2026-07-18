@@ -15,19 +15,21 @@ const _lysaEntityId = 'npc_lysa';
 const _clueEntityId = 'clue_glass_object';
 const _portTriggerId = 'zone_port_entry';
 const _lysaEventId = 'evt_019abcde-4000-7000-8000-000000000001';
-const _lysaFactId = 'fact_lysa_port_resolved';
-const _lysaStepId = 'step_rival_battle';
+const _portEntryEventId = 'evt_019abcde-4000-7000-8000-000000000002';
+const _clueEventId = 'evt_019abcde-4000-7000-8000-000000000003';
 const _lysaTrainerId = 'trainer_lysa_port';
 const _lysaWorldRuleId = 'world_rule_lysa_port_resolved';
+const _canonicalSeededProjectManifestSha256 =
+    'sha256:b62423b77b97f2d10bfb9ee5be8cef006607bf5a4aa60e00b341608462c48e26';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('J5 promoted Selbrume bytes load and play the Lysa Golden Slice',
+  test('SEL-FIN-00 canonical Selbrume loads and plays the Lysa Golden Slice',
       () async {
     final repositoryRoot = _findRepositoryRoot();
     final selbrumeRoot = Directory(p.join(repositoryRoot.path, 'selbrume'));
-    final fixtureRoot = Directory(
+    final historicalFixtureRoot = Directory(
       p.join(
         repositoryRoot.path,
         'examples',
@@ -35,28 +37,56 @@ void main() {
         'event_builder_v2_selbrume_slice',
       ),
     );
-    final promotion = _jsonObject(
+    final historicalPromotion = _jsonObject(
       jsonDecode(
-        await File(p.join(fixtureRoot.path, 'promotion_manifest.json'))
-            .readAsString(),
+        await File(
+          p.join(historicalFixtureRoot.path, 'promotion_manifest.json'),
+        ).readAsString(),
       ),
     );
-    final orderedFiles = _jsonObjects(promotion['orderedFiles']);
-    expect(promotion['state'], 'frozenForJ5');
-    expect(orderedFiles, hasLength(4));
-    for (final entry in orderedFiles) {
-      final promoted = File(
-        p.join(repositoryRoot.path, entry['destination']! as String),
-      );
-      expect(await promoted.exists(), isTrue, reason: promoted.path);
+    final historicalSources = _jsonObjects(
+      historicalPromotion['orderedFiles'],
+    );
+    expect(historicalPromotion['state'], 'frozenForJ5');
+    expect(historicalSources, hasLength(4));
+    expect(
+      historicalSources.map((entry) => entry['order']),
+      <int>[1, 2, 3, 4],
+    );
+    expect(
+      historicalSources.map((entry) => entry['source']),
+      <String>[
+        'promotion_payload/project.json',
+        'promotion_payload/maps/map_port_brisants.json',
+        'promotion_payload/maps/map_marais_salants.json',
+        'promotion_payload/dialogues/lysa_port.yarn',
+      ],
+    );
+    for (final entry in historicalSources) {
+      final source = entry['source']! as String;
       expect(
-        narrativeEventBytesFingerprint(await promoted.readAsBytes()),
-        entry['afterSha256'],
-        reason: 'J5 must run on the promoted bytes, not fixture bytes.',
+        p.posix.isWithin('promotion_payload', source),
+        isTrue,
+        reason: 'Historical J5 proof must read promotion_payload sources.',
+      );
+      final sourceFile = File(p.join(historicalFixtureRoot.path, source));
+      expect(await sourceFile.exists(), isTrue, reason: sourceFile.path);
+      expect(
+        narrativeEventBytesFingerprint(await sourceFile.readAsBytes()),
+        entry['sha256'],
+        reason: 'The immutable J5 source must retain its recorded SHA-256.',
       );
     }
 
     final projectPath = p.join(selbrumeRoot.path, 'project.json');
+    // This fingerprint covers only the seeded project.json manifest. The
+    // separate seeder idempotence test/check gate all authored maps and Yarn
+    // bytes without pretending current destinations still equal J5 payloads.
+    expect(
+      narrativeEventBytesFingerprint(await File(projectPath).readAsBytes()),
+      _canonicalSeededProjectManifestSha256,
+      reason: 'The canonical seeded project manifest must stay stable.',
+    );
     final bundles = <String, RuntimeMapBundle>{};
     Future<RuntimeMapBundle> load(String mapId) async {
       return bundles[mapId] ??= await loadRuntimeMapBundle(
@@ -86,7 +116,13 @@ void main() {
       contains(_portTriggerId),
     );
     expect(project.eventRegistry?.mode, EventSystemMode.dualRead);
-    expect(project.eventRegistry?.records, hasLength(3));
+    expect(
+      project.eventRegistry?.records
+          .map((record) => record.definitionOrNull?.id),
+      containsAll(<String>[_lysaEventId, _portEntryEventId, _clueEventId]),
+      reason: 'The seeded campaign may add Events without dropping the '
+          'three promoted runtime sources.',
+    );
     expect(
       project.worldRules.map((entry) => entry.id),
       contains(_lysaWorldRuleId),
@@ -104,10 +140,15 @@ void main() {
         return (project: bundle.manifest, map: bundle.map);
       },
     );
-    var state = const GameState(
+    var state = GameState(
       saveId: 'phase_j_promoted_lysa',
       currentMapId: _portMapId,
-      playerPosition: GridPos(x: 26, y: 17),
+      playerPosition: const GridPos(x: 26, y: 17),
+      narrativeFactRuntimeState: NarrativeFactRuntimeState(
+        overridesByFactId: const <String, bool>{
+          'fact_port_alert_seen': true,
+        },
+      ),
     );
     final transactions = NarrativeEventStateTransactions(state);
     final source = NarrativeEventSourceRef.entityInteract(
@@ -146,11 +187,11 @@ void main() {
               dialogueCalls++;
               expect(intent.dialogueId, 'dialogue_lysa_port');
               expect(intent.yarnNodeName, 'LysaPort');
-              return 'completed';
+              return 'confident';
             },
             playCinematic: (intent) {
               cinematicCalls++;
-              expect(intent.cinematicId, 'cinematic_lysa_port');
+              expect(intent.cinematicId, 'cinematic_rival_smiles');
               return 'completed';
             },
             startBattle: (intent) {
@@ -180,6 +221,16 @@ void main() {
       occurrenceId: 'phase-j-promoted-lysa',
       occurrence: NarrativeEventOccurrence(source: source),
     );
+    if (dispatched
+        case NarrativeSpatialProductionDispatchFailed(
+          :final failure,
+          :final stackTrace,
+        )) {
+      final details = failure is NarrativeEventExecutionFailure
+          ? '${failure.kind}: ${failure.cause}\n${failure.stackTrace}'
+          : '$failure\n$stackTrace';
+      fail('Lysa production dispatch failed: $details');
+    }
     expect(dispatched, isA<NarrativeSpatialProductionDispatchV2Handled>());
     expect(
       (dispatched as NarrativeSpatialProductionDispatchV2Handled)
@@ -193,19 +244,17 @@ void main() {
       contains(_lysaEventId),
     );
     expect(
-      state.narrativeFactRuntimeState.overridesByFactId[_lysaFactId],
-      isTrue,
-    );
-    expect(state.progression.completedStepIds, contains(_lysaStepId));
-    expect(
-      const RuntimeWorldRuleProjectionHook()
-          .resolve(
-            project: project,
-            gameState: state,
-            map: portBundle.map,
-          )
-          .hiddenEntityIds,
-      contains(_lysaEntityId),
+      state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries
+          .map((delivery) => delivery.outcome),
+      contains(
+        NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.scene,
+          producerId: 'scene_lysa_port',
+          outcomeId: 'lysa.victory',
+        ),
+      ),
+      reason: 'The production Scene must publish the qualified outcome that '
+          'the runtime outbox will deliver to scene_rival_after_win.',
     );
 
     final reloaded = gameStateFromSaveData(
@@ -219,10 +268,9 @@ void main() {
       contains(_lysaEventId),
     );
     expect(
-      reloaded.narrativeFactRuntimeState.overridesByFactId[_lysaFactId],
-      isTrue,
+      reloaded.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
+      state.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
     );
-    expect(reloaded.progression.completedStepIds, contains(_lysaStepId));
   });
 }
 

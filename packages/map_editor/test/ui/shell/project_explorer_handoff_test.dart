@@ -1,18 +1,20 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
 import '../../shell_chrome_test_harness.dart';
+import '../../support/narrative_studio_capture_fonts.dart';
 
 void main() {
   testWidgets(
-    'EditorShellPage reduces and restores the global Project Explorer in Narrative Studio',
+    'EditorShellPage replaces the global Project Explorer with one Narrative Studio product shell',
     (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -24,46 +26,21 @@ void main() {
         surfaceSize: const Size(1600, 1000),
       );
 
-      expect(find.byKey(const ValueKey('project-explorer-region')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('project-explorer-toggle')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-          findsOneWidget);
-      expect(find.byType(ProjectExplorerPanel), findsOneWidget);
+      expect(find.byType(NarrativeStudioProductShell), findsOneWidget);
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(find.byType(ProjectExplorerPanel), findsNothing);
       expect(
-        find.descendant(
-          of: find.byKey(const ValueKey('narrative-studio-shell')),
-          matching: find.byType(ProjectExplorerPanel),
-        ),
-        findsNothing,
-      );
-      expect(_opacity(tester, 'project-explorer-expanded-state'), 1);
-      expect(_opacity(tester, 'project-explorer-reduced-state'), 0);
-
-      await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const ValueKey('project-explorer-reduced')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('narrative-studio-sidebar')),
-          findsOneWidget);
+          find.byKey(const ValueKey('project-explorer-region')), findsNothing);
       expect(find.text('Facts'), findsWidgets);
       expect(find.text('Règles du monde'), findsWidgets);
-      expect(find.text('Validateur'), findsWidgets);
-      expect(find.text('Maps'), findsNothing);
-      expect(_opacity(tester, 'project-explorer-expanded-state'), 0);
-      expect(_opacity(tester, 'project-explorer-reduced-state'), 1);
-
-      await tester
-          .tap(find.byKey(const ValueKey('project-explorer-reopen-toggle')));
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-
-      expect(_opacity(tester, 'project-explorer-expanded-state'), 1);
-      expect(_opacity(tester, 'project-explorer-reduced-state'), 0);
-      expect(find.text('World Maps'), findsOneWidget);
+      expect(find.text('Maps'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-validator'),
+        ),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -84,8 +61,6 @@ void main() {
       expect(find.byKey(const ValueKey('project-explorer-region')),
           findsOneWidget);
       expect(find.byType(ProjectExplorerPanel), findsOneWidget);
-      expect(
-          find.byKey(const ValueKey('narrative-studio-sidebar')), findsNothing);
       expect(find.text('World Explorer'), findsOneWidget);
       expect(find.text('World Maps'), findsOneWidget);
       expect(_opacity(tester, 'project-explorer-expanded-state'), 1);
@@ -126,11 +101,6 @@ void main() {
             : const Size(1600, 1000),
       );
 
-      if (!captureNonNarrative) {
-        await tester.tap(find.byKey(const ValueKey('project-explorer-toggle')));
-        await tester.pump(const Duration(milliseconds: 350));
-      }
-
       final screenshotFile = File(
         '../../reports/narrativeStudio/ui/screenshots/'
         '${captureNonNarrative ? 'ns_home_19_project_explorer_non_narrative_regression.png' : captureReducedFocus ? 'ns_home_19_project_explorer_handoff_reduced_focus.png' : 'ns_home_19_project_explorer_handoff_reduced_desktop.png'}',
@@ -142,12 +112,6 @@ void main() {
       );
 
       expect(screenshotFile.existsSync(), isTrue);
-      if (!captureNonNarrative) {
-        await tester
-            .tap(find.byKey(const ValueKey('project-explorer-reopen-toggle')));
-        await tester.pump(const Duration(milliseconds: 350));
-        await tester.pumpAndSettle();
-      }
     },
   );
 }
@@ -157,18 +121,14 @@ double _opacity(WidgetTester tester, String key) {
 }
 
 Future<void> _loadShellScreenshotFonts() async {
-  final fontBytes =
-      File('/System/Library/Fonts/Supplemental/Arial.ttf').readAsBytesSync();
-  for (final family in <String>[
-    'Roboto',
-    'Arial',
-    '.SF Pro Text',
-    'SF Pro Text',
-  ]) {
-    final loader = FontLoader(family)
-      ..addFont(Future<ByteData>.value(ByteData.sublistView(fontBytes)));
-    await loader.load();
-  }
+  await loadNarrativeStudioCaptureFonts(
+    textFamilies: const <String>[
+      'Roboto',
+      'Arial',
+      '.SF Pro Text',
+      'SF Pro Text',
+    ],
+  );
 }
 
 ProjectManifest _project() {

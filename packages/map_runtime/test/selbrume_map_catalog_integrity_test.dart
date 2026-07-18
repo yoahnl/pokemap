@@ -132,15 +132,54 @@ void main() {
         containsAll(<String>[
           'pe_port_bateau',
           'pe_port_hangar',
-          'pe_port_nid_goelise',
         ]));
     expect(placedById['pe_port_bateau']!.pos, const GridPos(x: 0, y: 21));
     expect(placedById['pe_port_bateau']!.elementId, 'el_port_ref_boat_large');
     expect(placedById['pe_port_hangar']!.pos, const GridPos(x: 31, y: 11));
     expect(placedById['pe_port_hangar']!.elementId, 'el_port_ref_chandlery');
-    expect(placedById['pe_port_nid_goelise']!.pos, const GridPos(x: 7, y: 9));
-    expect(placedById['pe_port_nid_goelise']!.elementId, 'el_port_ref_nest');
-    expect(placedById['pe_port_nid_goelise']!.behaviors, isEmpty);
+    expect(placedById, isNot(contains('pe_port_nid_goelise')));
+    final entitiesById = <String, MapEntity>{
+      for (final entity in map.entities) entity.id: entity,
+    };
+    expect(
+      entitiesById.keys,
+      unorderedEquals(<String>[
+        'anchor_port_lysa',
+        'anchor_port_soline',
+        'anchor_port_pecheurs',
+        'npc_lysa',
+        'npc_soline',
+        'npc_pecheur',
+        'fog_port',
+        'goelise_nest_proxy',
+      ]),
+    );
+    _expectNarrativeNpc(
+      map,
+      id: 'npc_soline',
+      pos: const GridPos(x: 39, y: 10),
+      characterId: 'character_soline',
+      dialogueId: 'dialogue_soline',
+    );
+    _expectNarrativeNpc(
+      map,
+      id: 'npc_pecheur',
+      pos: const GridPos(x: 13, y: 17),
+      characterId: 'character_pecheur',
+      dialogueId: 'dialogue_goelise_port',
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'goelise_nest_proxy',
+      pos: const GridPos(x: 7, y: 9),
+      elementId: 'el_port_ref_nest',
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'fog_port',
+      pos: const GridPos(x: 22, y: 11),
+      elementId: 'el_selbrume_fx_brume_basse',
+    );
     expect(map.events, isEmpty);
   });
 
@@ -201,7 +240,14 @@ void main() {
     };
     expect(
       entitiesById.keys,
-      unorderedEquals(<String>['spawn', 'p6_03_intro_sign', 'npc']),
+      unorderedEquals(<String>[
+        'spawn',
+        'p6_03_intro_sign',
+        'npc_mael',
+        'npc',
+        'gate_bourg_to_port',
+        'gate_bourg_to_bois',
+      ]),
     );
     expect(entitiesById['spawn']?.pos, const GridPos(x: 17, y: 24));
     expect(
@@ -209,7 +255,33 @@ void main() {
       const GridPos(x: 22, y: 25),
     );
     expect(entitiesById['npc']?.pos, const GridPos(x: 34, y: 29));
-    expect(entitiesById['npc']?.npc?.characterId, 'mael');
+    expect(entitiesById['npc']?.kind, MapEntityKind.custom);
+    expect(entitiesById['npc']?.blocksMovement, isFalse);
+    expect(entitiesById['npc']?.properties, <String, String>{
+      'contractRole': 'canonical_map_generator_compatibility_anchor',
+      'inert': 'true',
+    });
+    _expectNarrativeNpc(
+      map,
+      id: 'npc_mael',
+      pos: const GridPos(x: 27, y: 20),
+      characterId: 'mael',
+      dialogueId: 'dialogue_mael_intro',
+    );
+    _expectRouteLock(
+      map,
+      id: 'gate_bourg_to_port',
+      pos: const GridPos(x: 0, y: 54),
+      size: const GridSize(width: 55, height: 1),
+      visualElementId: 'el_selbrume_passage_barriere_fermee',
+    );
+    _expectRouteLock(
+      map,
+      id: 'gate_bourg_to_bois',
+      pos: const GridPos(x: 54, y: 0),
+      size: const GridSize(width: 1, height: 55),
+      visualElementId: 'el_selbrume_bois_ronces',
+    );
 
     _expectPlacement(
       map,
@@ -420,7 +492,15 @@ void main() {
       returnsNormally,
     );
     expect(map.connections, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(map.entities.map((entity) => entity.id), <String>[
+      'gate_cabin_shortcut',
+    ]);
+    _expectRouteLock(
+      map,
+      id: 'gate_cabin_shortcut',
+      pos: const GridPos(x: 19, y: 8),
+      size: const GridSize(width: 1, height: 1),
+    );
     expect(map.events, isEmpty);
     expect(map.gameplayZones, isEmpty);
     expect(map.placedElements, hasLength(50));
@@ -492,7 +572,7 @@ void main() {
         ),
       ],
     );
-    expect(map.triggers, hasLength(2));
+    expect(map.triggers, hasLength(1));
     final triggersById = <String, MapTrigger>{
       for (final trigger in map.triggers) trigger.id: trigger,
     };
@@ -510,13 +590,7 @@ void main() {
         'reservedForNarrative': 'true',
       },
     );
-    expect(
-      triggersById['tr_cabane_cle']?.area,
-      const MapRect(
-        pos: GridPos(x: 14, y: 9),
-        size: GridSize(width: 1, height: 1),
-      ),
-    );
+    expect(triggersById, isNot(contains('tr_cabane_cle')));
     expect(
       manifest.groups
           .singleWhere((group) => group.id == 'group_selbrume_bourg')
@@ -580,7 +654,16 @@ void main() {
     expect(map.warps, isEmpty);
     expect(map.events, isEmpty);
     expect(map.triggers, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(map.entities.map((entity) => entity.id), <String>[
+      'gate_bois_to_marais',
+    ]);
+    _expectRouteLock(
+      map,
+      id: 'gate_bois_to_marais',
+      pos: const GridPos(x: 44, y: 0),
+      size: const GridSize(width: 1, height: 45),
+      visualElementId: 'el_selbrume_bois_ronces',
+    );
 
     const grassAreas = <String, MapRect>{
       'zone_bois_herbe_1': MapRect(
@@ -719,6 +802,14 @@ void main() {
         'grant',
         'anchor_marais_mado',
         'clue_glass_object',
+        'npc_mado',
+        'gate_marais_to_passage',
+        'clue_electric_object',
+        'clue_lens_object',
+        'crystal_1_object',
+        'crystal_2_object',
+        'crystal_3_object',
+        'fog_marais',
       ]),
     );
     final grant = entities['grant']!;
@@ -736,16 +827,64 @@ void main() {
       'contractRole': 'reserved_character_anchor',
       'inert': 'true',
     });
-    final clue = entities['clue_glass_object']!;
-    expect(clue.kind, MapEntityKind.custom);
-    expect(clue.pos, const GridPos(x: 8, y: 32));
-    expect(clue.size, const GridSize(width: 1, height: 1));
-    expect(clue.blocksMovement, isFalse);
-    expect(clue.npc, isNull);
-    expect(clue.properties, <String, String>{
-      'contractRole': 'phase_j_clue_source',
-      'visualOwnerId': 'pe_marais_indice_verre',
-    });
+    _expectNarrativeNpc(
+      map,
+      id: 'npc_mado',
+      pos: const GridPos(x: 10, y: 12),
+      characterId: 'character_mado',
+      dialogueId: 'dialogue_mado',
+    );
+    _expectRouteLock(
+      map,
+      id: 'gate_marais_to_passage',
+      pos: const GridPos(x: 0, y: 44),
+      size: const GridSize(width: 45, height: 1),
+      visualElementId: 'el_selbrume_passage_barriere_fermee',
+    );
+    for (final contract in const <(String, GridPos, String)>[
+      (
+        'clue_glass_object',
+        GridPos(x: 8, y: 32),
+        'el_selbrume_indice_verre',
+      ),
+      (
+        'clue_electric_object',
+        GridPos(x: 32, y: 10),
+        'el_selbrume_indice_traces_electriques',
+      ),
+      (
+        'clue_lens_object',
+        GridPos(x: 34, y: 34),
+        'el_selbrume_indice_repere_lentille',
+      ),
+      (
+        'crystal_1_object',
+        GridPos(x: 14, y: 7),
+        'el_selbrume_cristal_1',
+      ),
+      (
+        'crystal_2_object',
+        GridPos(x: 24, y: 28),
+        'el_selbrume_cristal_2',
+      ),
+      (
+        'crystal_3_object',
+        GridPos(x: 38, y: 22),
+        'el_selbrume_cristal_3',
+      ),
+      (
+        'fog_marais',
+        GridPos(x: 20, y: 20),
+        'el_selbrume_fx_brume_basse',
+      ),
+    ]) {
+      _expectWorldStateVisual(
+        map,
+        id: contract.$1,
+        pos: contract.$2,
+        elementId: contract.$3,
+      );
+    }
 
     const encounterAreas = <String, MapRect>{
       'zone': MapRect(
@@ -898,7 +1037,23 @@ void main() {
     );
     expect(map.warps, isEmpty);
     expect(map.events, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(
+      map.entities.map((entity) => entity.id),
+      unorderedEquals(<String>['gate_passage_to_phare', 'fog_passage']),
+    );
+    _expectRouteLock(
+      map,
+      id: 'gate_passage_to_phare',
+      pos: const GridPos(x: 59, y: 0),
+      size: const GridSize(width: 1, height: 24),
+      visualElementId: 'el_selbrume_passage_barriere_fermee',
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'fog_passage',
+      pos: const GridPos(x: 28, y: 8),
+      elementId: 'el_selbrume_fx_brume_basse',
+    );
     expect(map.gameplayZones, hasLength(1));
     final zone = map.gameplayZones.single;
     expect(zone.id, 'zone_passage_entry');
@@ -1027,7 +1182,40 @@ void main() {
       ]),
     );
     expect(map.events, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(
+      map.entities.map((entity) => entity.id),
+      unorderedEquals(<String>[
+        'npc_yvon',
+        'gate_cabin_door',
+        'cabin_key_object',
+        'fog_phare',
+      ]),
+    );
+    _expectNarrativeNpc(
+      map,
+      id: 'npc_yvon',
+      pos: const GridPos(x: 10, y: 12),
+      characterId: 'character_yvon',
+      dialogueId: 'dialogue_yvon_cabin',
+    );
+    _expectRouteLock(
+      map,
+      id: 'gate_cabin_door',
+      pos: const GridPos(x: 8, y: 33),
+      size: const GridSize(width: 1, height: 1),
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'cabin_key_object',
+      pos: const GridPos(x: 14, y: 28),
+      elementId: 'el_selbrume_cabane_cle',
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'fog_phare',
+      pos: const GridPos(x: 22, y: 22),
+      elementId: 'el_selbrume_fx_brume_basse',
+    );
     expect(map.gameplayZones, hasLength(1));
     final zone = map.gameplayZones.single;
     expect(zone.id, 'zone_lighthouse_entry');
@@ -1043,13 +1231,29 @@ void main() {
       'contractRole': 'navigation_anchor',
       'inert': 'true',
     });
-    expect(map.triggers, hasLength(1));
-    expect(map.triggers.single.id, 'zone_lighthouse_entry');
-    expect(map.triggers.single.area, zone.area);
-    expect(map.triggers.single.properties, <String, String>{
+    expect(map.triggers, hasLength(2));
+    final triggersById = <String, MapTrigger>{
+      for (final trigger in map.triggers) trigger.id: trigger,
+    };
+    expect(triggersById['zone_lighthouse_entry']?.area, zone.area);
+    expect(triggersById['zone_lighthouse_entry']?.properties, <String, String>{
       'eventId': 'event_lighthouse_exterior_arrival',
       'reservedForNarrative': 'true',
     });
+    expect(
+      triggersById['tr_cabin_key_outside']?.area,
+      const MapRect(
+        pos: GridPos(x: 14, y: 28),
+        size: GridSize(width: 1, height: 1),
+      ),
+    );
+    expect(
+      triggersById['tr_cabin_key_outside']?.properties,
+      <String, String>{
+        'eventId': 'event_selbrume_cabin_key_outside',
+        'reservedForNarrative': 'true',
+      },
+    );
 
     _expectPlacement(
       map,
@@ -1113,7 +1317,16 @@ void main() {
     );
     expect(map.connections, isEmpty);
     expect(map.events, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(map.entities.map((entity) => entity.id), <String>[
+      'gate_lighthouse_top',
+    ]);
+    _expectRouteLock(
+      map,
+      id: 'gate_lighthouse_top',
+      pos: const GridPos(x: 18, y: 1),
+      size: const GridSize(width: 1, height: 1),
+      visualElementId: 'el_selbrume_fx_lumiere_instable',
+    );
     expect(
       map.warps,
       unorderedEquals(const <MapWarp>[
@@ -1158,8 +1371,11 @@ void main() {
       expect(zone.kind, GameplayZoneKind.special);
       expect(zone.special?.properties['inert'], 'true');
     }
-    expect(map.triggers, hasLength(1));
-    final noteTrigger = map.triggers.single;
+    expect(map.triggers, hasLength(3));
+    final triggersById = <String, MapTrigger>{
+      for (final trigger in map.triggers) trigger.id: trigger,
+    };
+    final noteTrigger = triggersById['tr_phare_note']!;
     expect(noteTrigger.id, 'tr_phare_note');
     expect(
       noteTrigger.area,
@@ -1171,6 +1387,20 @@ void main() {
     expect(
       noteTrigger.properties['eventId'],
       'event_selbrume_phare_note_ancien_gardien',
+    );
+    expect(
+      triggersById['tr_phare_guardian_1']?.area,
+      const MapRect(
+        pos: GridPos(x: 7, y: 32),
+        size: GridSize(width: 2, height: 2),
+      ),
+    );
+    expect(
+      triggersById['tr_phare_guardian_2']?.area,
+      const MapRect(
+        pos: GridPos(x: 24, y: 14),
+        size: GridSize(width: 2, height: 2),
+      ),
     );
 
     _expectPlacement(
@@ -1247,7 +1477,23 @@ void main() {
     );
     expect(map.connections, isEmpty);
     expect(map.events, isEmpty);
-    expect(map.entities, isEmpty);
+    expect(
+      map.entities.map((entity) => entity.id),
+      unorderedEquals(<String>['boss_phare_pokemon', 'fog_sommet']),
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'boss_phare_pokemon',
+      pos: const GridPos(x: 12, y: 10),
+      elementId: 'el_selbrume_fx_lumiere_instable',
+      blocksMovement: true,
+    );
+    _expectWorldStateVisual(
+      map,
+      id: 'fog_sommet',
+      pos: const GridPos(x: 12, y: 12),
+      elementId: 'el_selbrume_fx_brume_basse',
+    );
     expect(
       map.warps,
       const <MapWarp>[
@@ -1477,6 +1723,19 @@ void main() {
       }
     }
 
+    for (final requirement
+        in SelbrumeMapTestFixture.requiredNarrativeEntityIdsByMap.entries) {
+      final map = bundles[requirement.key]!.map;
+      for (final entityId in requirement.value) {
+        expect(
+          map.entities.where((entity) => entity.id == entityId),
+          hasLength(1),
+          reason:
+              '${requirement.key} must contain narrative entity $entityId exactly once.',
+        );
+      }
+    }
+
     for (final mapRequirement
         in SelbrumeMapTestFixture.allowedElementIdsByLandmarkByMap.entries) {
       final map = bundles[mapRequirement.key]!.map;
@@ -1633,6 +1892,76 @@ MapPlacedElement _expectPlacement(
   expect(placed.layerId, layerId);
   expect(placed.pos, pos);
   return placed;
+}
+
+MapEntity _expectNarrativeNpc(
+  MapData map, {
+  required String id,
+  required GridPos pos,
+  required String characterId,
+  required String dialogueId,
+}) {
+  final matches = map.entities.where((entity) => entity.id == id);
+  expect(matches, hasLength(1));
+  final entity = matches.single;
+  expect(entity.kind, MapEntityKind.npc, reason: '${map.id}/$id');
+  expect(entity.pos, pos, reason: '${map.id}/$id');
+  expect(entity.size, const GridSize(width: 1, height: 1));
+  expect(entity.blocksMovement, isTrue, reason: '${map.id}/$id');
+  expect(entity.npc?.characterId, characterId, reason: '${map.id}/$id');
+  expect(
+    entity.npc?.dialogue?.dialogueId,
+    dialogueId,
+    reason: '${map.id}/$id',
+  );
+  expect(entity.properties, const <String, String>{
+    'contractRole': 'selbrume_canonical_narrative_source',
+  });
+  return entity;
+}
+
+MapEntity _expectRouteLock(
+  MapData map, {
+  required String id,
+  required GridPos pos,
+  required GridSize size,
+  String? visualElementId,
+}) {
+  final matches = map.entities.where((entity) => entity.id == id);
+  expect(matches, hasLength(1));
+  final entity = matches.single;
+  expect(entity.kind, MapEntityKind.sign, reason: '${map.id}/$id');
+  expect(entity.pos, pos, reason: '${map.id}/$id');
+  expect(entity.size, size, reason: '${map.id}/$id');
+  expect(entity.blocksMovement, isTrue, reason: '${map.id}/$id');
+  expect(entity.sign?.plainText.trim(), isNotEmpty, reason: '${map.id}/$id');
+  expect(entity.editorVisual?.elementId, visualElementId);
+  expect(entity.properties, const <String, String>{
+    'contractRole': 'selbrume_route_lock',
+    'unlockProjection': 'world_rule_entity_hidden',
+  });
+  return entity;
+}
+
+MapEntity _expectWorldStateVisual(
+  MapData map, {
+  required String id,
+  required GridPos pos,
+  required String elementId,
+  bool blocksMovement = false,
+}) {
+  final matches = map.entities.where((entity) => entity.id == id);
+  expect(matches, hasLength(1));
+  final entity = matches.single;
+  expect(entity.kind, MapEntityKind.custom, reason: '${map.id}/$id');
+  expect(entity.pos, pos, reason: '${map.id}/$id');
+  expect(entity.size, const GridSize(width: 1, height: 1));
+  expect(entity.blocksMovement, blocksMovement, reason: '${map.id}/$id');
+  expect(entity.editorVisual?.elementId, elementId, reason: '${map.id}/$id');
+  expect(entity.properties, const <String, String>{
+    'contractRole': 'selbrume_world_state_visual',
+  });
+  return entity;
 }
 
 void _expectCanonicalInteriorLayers(

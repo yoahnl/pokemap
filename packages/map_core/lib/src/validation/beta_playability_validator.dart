@@ -57,6 +57,8 @@ class BetaPlayabilityValidationContext {
     this.startMapId,
     this.knownSpeciesIds = const <String>{},
     this.knownMoveIds = const <String>{},
+    this.speciesCatalogIsAuthoritative = false,
+    this.moveCatalogIsAuthoritative = false,
     this.initialPartySpeciesIds = const <String>{},
     this.initialPartyMoveIds = const <String>{},
     this.requiresInitialParty = true,
@@ -71,6 +73,8 @@ class BetaPlayabilityValidationContext {
   final String? startMapId;
   final Set<String> knownSpeciesIds;
   final Set<String> knownMoveIds;
+  final bool speciesCatalogIsAuthoritative;
+  final bool moveCatalogIsAuthoritative;
   final Set<String> initialPartySpeciesIds;
   final Set<String> initialPartyMoveIds;
   final bool requiresInitialParty;
@@ -177,6 +181,8 @@ BetaPlayabilityValidationResult validateBetaPlayability(
     context.mapsById.values,
     knownSpeciesIds: knownSpeciesIds,
     knownMoveIds: knownMoveIds,
+    speciesCatalogIsAuthoritative: context.speciesCatalogIsAuthoritative,
+    moveCatalogIsAuthoritative: context.moveCatalogIsAuthoritative,
     requiresTrainerBattle: context.requiresTrainerBattle,
     diagnostics: diagnostics,
   );
@@ -286,7 +292,7 @@ void _validateInitialParty(
     );
   }
 
-  if (knownSpeciesIds.isNotEmpty) {
+  if (context.speciesCatalogIsAuthoritative || knownSpeciesIds.isNotEmpty) {
     for (final speciesId in initialSpeciesIds) {
       if (!knownSpeciesIds.contains(speciesId)) {
         diagnostics.add(
@@ -304,7 +310,7 @@ void _validateInitialParty(
     }
   }
 
-  if (knownMoveIds.isNotEmpty) {
+  if (context.moveCatalogIsAuthoritative || knownMoveIds.isNotEmpty) {
     for (final moveId in initialMoveIds) {
       if (!knownMoveIds.contains(moveId)) {
         diagnostics.add(
@@ -328,6 +334,8 @@ void _validateTrainers(
   Iterable<MapData> maps, {
   required Set<String> knownSpeciesIds,
   required Set<String> knownMoveIds,
+  required bool speciesCatalogIsAuthoritative,
+  required bool moveCatalogIsAuthoritative,
   required bool requiresTrainerBattle,
   required List<BetaPlayabilityDiagnostic> diagnostics,
 }) {
@@ -379,6 +387,8 @@ void _validateTrainers(
           entityId: entity.id,
           knownSpeciesIds: knownSpeciesIds,
           knownMoveIds: knownMoveIds,
+          speciesCatalogIsAuthoritative: speciesCatalogIsAuthoritative,
+          moveCatalogIsAuthoritative: moveCatalogIsAuthoritative,
           diagnostics: diagnostics,
         );
       }
@@ -392,6 +402,8 @@ void _validateTrainerTeam(
   required String entityId,
   required Set<String> knownSpeciesIds,
   required Set<String> knownMoveIds,
+  required bool speciesCatalogIsAuthoritative,
+  required bool moveCatalogIsAuthoritative,
   required List<BetaPlayabilityDiagnostic> diagnostics,
 }) {
   final trainerId = trainer.id.trim();
@@ -429,7 +441,7 @@ void _validateTrainerTeam(
           trainerId: trainerId,
         ),
       );
-    } else if (knownSpeciesIds.isNotEmpty &&
+    } else if ((speciesCatalogIsAuthoritative || knownSpeciesIds.isNotEmpty) &&
         !knownSpeciesIds.contains(speciesId)) {
       diagnostics.add(
         BetaPlayabilityDiagnostic(
@@ -467,7 +479,7 @@ void _validateTrainerTeam(
       continue;
     }
 
-    if (knownMoveIds.isEmpty) {
+    if (!moveCatalogIsAuthoritative && knownMoveIds.isEmpty) {
       continue;
     }
 

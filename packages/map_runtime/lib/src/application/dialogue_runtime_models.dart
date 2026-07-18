@@ -16,9 +16,10 @@ class YarnStepChoiceBlock extends YarnStep {
 }
 
 class YarnChoice {
-  YarnChoice({required this.text, required this.steps});
+  YarnChoice({required this.text, required this.steps, this.outcomeId});
   final String text;
   final List<YarnStep> steps;
+  final String? outcomeId;
 }
 
 class YarnNode {
@@ -35,7 +36,8 @@ class DialogueShowingLine extends DialogueSessionState {
 }
 
 class DialogueWaitingForChoice extends DialogueSessionState {
-  DialogueWaitingForChoice({required this.choices, required this.selectedIndex});
+  DialogueWaitingForChoice(
+      {required this.choices, required this.selectedIndex});
   final List<YarnChoice> choices;
   final int selectedIndex;
 }
@@ -47,17 +49,21 @@ class DialogueSession {
     required String? currentNodeTitle,
     required List<YarnStep> currentSteps,
     required int stepIndex,
+    required String? selectedOutcomeId,
   })  : _currentNodeTitle = currentNodeTitle,
         _currentSteps = currentSteps,
-        _stepIndex = stepIndex;
+        _stepIndex = stepIndex,
+        _selectedOutcomeId = selectedOutcomeId;
 
   final List<YarnNode> nodes;
   final DialogueSessionState state;
   final String? _currentNodeTitle;
   final List<YarnStep> _currentSteps;
   final int _stepIndex;
+  final String? _selectedOutcomeId;
 
   String? get currentNodeTitle => _currentNodeTitle;
+  String? get selectedOutcomeId => _selectedOutcomeId;
 
   bool get isLastContent {
     if (state is! DialogueShowingLine) return false;
@@ -66,7 +72,12 @@ class DialogueSession {
 
   DialogueSession? advance() {
     if (state is! DialogueShowingLine) return this;
-    return _resolveStep(_currentSteps, _stepIndex + 1, nodes);
+    return _resolveStep(
+      _currentSteps,
+      _stepIndex + 1,
+      nodes,
+      selectedOutcomeId: _selectedOutcomeId,
+    );
   }
 
   DialogueSession moveChoiceCursor(int delta) {
@@ -75,17 +86,25 @@ class DialogueSession {
     final newIndex = (s.selectedIndex + delta).clamp(0, s.choices.length - 1);
     return DialogueSession._(
       nodes: nodes,
-      state: DialogueWaitingForChoice(choices: s.choices, selectedIndex: newIndex),
+      state:
+          DialogueWaitingForChoice(choices: s.choices, selectedIndex: newIndex),
       currentNodeTitle: _currentNodeTitle,
       currentSteps: _currentSteps,
       stepIndex: _stepIndex,
+      selectedOutcomeId: _selectedOutcomeId,
     );
   }
 
   DialogueSession? confirmChoice() {
     final s = state;
     if (s is! DialogueWaitingForChoice) return this;
-    return _resolveStep(s.choices[s.selectedIndex].steps, 0, nodes);
+    final choice = s.choices[s.selectedIndex];
+    return _resolveStep(
+      choice.steps,
+      0,
+      nodes,
+      selectedOutcomeId: choice.outcomeId ?? _selectedOutcomeId,
+    );
   }
 
   static DialogueSession? start(List<YarnNode> nodes, String? startNodeTitle) {
@@ -96,7 +115,12 @@ class DialogueSession {
       if (found != -1) index = found;
     }
     final node = nodes[index];
-    return _resolveStep(node.steps, 0, nodes, nodeTitle: node.title);
+    return _resolveStep(
+      node.steps,
+      0,
+      nodes,
+      nodeTitle: node.title,
+    );
   }
 }
 
@@ -105,6 +129,7 @@ DialogueSession? _resolveStep(
   int index,
   List<YarnNode> nodes, {
   String? nodeTitle,
+  String? selectedOutcomeId,
 }) {
   var currentSteps = steps;
   var currentIndex = index;
@@ -121,6 +146,7 @@ DialogueSession? _resolveStep(
           currentNodeTitle: currentTitle,
           currentSteps: currentSteps,
           stepIndex: currentIndex,
+          selectedOutcomeId: selectedOutcomeId,
         );
       case YarnStepJump():
         final nodeIndex = nodes.indexWhere((n) => n.title == step.targetNode);
@@ -139,6 +165,7 @@ DialogueSession? _resolveStep(
           currentNodeTitle: currentTitle,
           currentSteps: currentSteps,
           stepIndex: currentIndex,
+          selectedOutcomeId: selectedOutcomeId,
         );
     }
   }

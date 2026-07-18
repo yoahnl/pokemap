@@ -13,8 +13,7 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
   required RuntimePlayerBattleLineupSelection playerLineup,
   RuntimePokemonSpeciesLoader? speciesLoader,
 }) async {
-  final effectiveSpeciesLoader =
-      speciesLoader ?? RuntimePokemonSpeciesLoader();
+  final effectiveSpeciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader();
   final playerGenderIdsByIndex = <int, String>{};
   for (final entry in playerLineup.lineupPartyIndices.asMap().entries) {
     final lineupIndex = entry.key;
@@ -23,10 +22,10 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
       continue;
     }
     final resolvedGenderId = await _resolvePlayerPartyGenderId(
-        bundle: bundle,
-        speciesLoader: effectiveSpeciesLoader,
-        playerPokemon: gameState.party.members[partyIndex],
-      );
+      bundle: bundle,
+      speciesLoader: effectiveSpeciesLoader,
+      playerPokemon: gameState.party.members[partyIndex],
+    );
     if (resolvedGenderId != null) {
       playerGenderIdsByIndex[lineupIndex] = resolvedGenderId;
     }
@@ -43,6 +42,11 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
         speciesLoader: effectiveSpeciesLoader,
         request: request,
       ),
+    StaticBattleStartRequest() => await _buildStaticEnemyGenderIdsByIndex(
+        bundle: bundle,
+        speciesLoader: effectiveSpeciesLoader,
+        request: request,
+      ),
   };
 
   return BattleCombatantGenderResolver(
@@ -50,6 +54,18 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
         Map<int, String>.unmodifiable(playerGenderIdsByIndex),
     enemyLineupGenderIdsByIndex:
         Map<int, String>.unmodifiable(enemyGenderIdsByIndex),
+  );
+}
+
+Future<Map<int, String>> _buildStaticEnemyGenderIdsByIndex({
+  required RuntimeMapBundle bundle,
+  required RuntimePokemonSpeciesLoader speciesLoader,
+  required StaticBattleStartRequest request,
+}) async {
+  return _buildAuthoredOpponentGenderIdsByIndex(
+    bundle: bundle,
+    speciesLoader: speciesLoader,
+    opponentProfileId: request.opponentProfileId,
   );
 }
 
@@ -76,8 +92,20 @@ Future<Map<int, String>> _buildTrainerEnemyGenderIdsByIndex({
   required RuntimePokemonSpeciesLoader speciesLoader,
   required TrainerBattleStartRequest request,
 }) async {
+  return _buildAuthoredOpponentGenderIdsByIndex(
+    bundle: bundle,
+    speciesLoader: speciesLoader,
+    opponentProfileId: request.trainerId,
+  );
+}
+
+Future<Map<int, String>> _buildAuthoredOpponentGenderIdsByIndex({
+  required RuntimeMapBundle bundle,
+  required RuntimePokemonSpeciesLoader speciesLoader,
+  required String opponentProfileId,
+}) async {
   final trainer = bundle.manifest.trainers.firstWhere(
-    (entry) => entry.id == request.trainerId,
+    (entry) => entry.id == opponentProfileId,
     orElse: () => const ProjectTrainerEntry(
       id: '',
       name: '',

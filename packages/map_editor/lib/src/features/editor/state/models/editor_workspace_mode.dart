@@ -46,6 +46,9 @@ enum EditorWorkspaceMode {
   /// Manager no-code des règles visibles du monde.
   worldRules,
 
+  /// Verdict global de jouabilité narrative et Map Events View.
+  narrativeValidator,
+
   /// Shell Path Studio V0.
   ///
   /// Ce mode expose une surface read-only pour les `ProjectPathPatternPreset` :

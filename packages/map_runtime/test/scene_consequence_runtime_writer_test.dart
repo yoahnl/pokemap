@@ -421,7 +421,295 @@ void main() {
         contains('fact_gate_open'),
       );
     });
+
+    test('applies item money and Pokemon consequences through gameplay', () {
+      const state = GameState(
+        saveId: 'save_gameplay_consequences',
+        trainerProfile: TrainerProfile(name: 'Player', money: 100),
+        bag: Bag(
+          entries: [
+            BagEntry(
+              itemId: 'item_ticket',
+              categoryId: 'items',
+              quantity: 2,
+            ),
+          ],
+        ),
+      );
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+
+      final result = writer.applyAll(
+        state,
+        [
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 3),
+          SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 1),
+          SceneConsequence.giveMoney(amount: 500),
+          SceneConsequence.givePokemon(
+            speciesId: 'species_sproutle',
+            level: 7,
+            currentHp: 23,
+          ),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      expect(result.appliedConsequences, hasLength(4));
+      expect(result.gameState.trainerProfile.money, 600);
+      expect(
+        result.gameState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'item_potion')
+            .quantity,
+        3,
+      );
+      expect(
+        result.gameState.bag.entries
+            .singleWhere((entry) => entry.itemId == 'item_ticket')
+            .quantity,
+        1,
+      );
+      expect(
+          result.gameState.party.members.single.speciesId, 'species_sproutle');
+      expect(result.gameState.party.members.single.level, 7);
+      expect(result.gameState.party.members.single.currentHp, 23);
+      expect(state.trainerProfile.money, 100);
+      expect(state.party.members, isEmpty);
+
+      final reloaded = GameState.fromJson(result.gameState.toJson());
+      expect(reloaded.trainerProfile.money, 600);
+      expect(reloaded.bag, result.gameState.bag);
+      expect(reloaded.party, result.gameState.party);
+    });
+
+    test('takeItem insufficient quantity fails without partial state', () {
+      const state = GameState(
+        saveId: 'save_take_item',
+        bag: Bag(
+          entries: [
+            BagEntry(
+              itemId: 'item_ticket',
+              categoryId: 'items',
+              quantity: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result =
+          SceneConsequenceRuntimeWriter(project: _project()).applyAll(
+        state,
+        [SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 2)],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,
+      );
+      expect(identical(result.gameState, state), isTrue);
+      expect(result.appliedConsequences, isEmpty);
+      expect(result.message, contains('item_ticket'));
+    });
+
+    test('givePokemon fails explicitly when the party is full', () {
+      final state = GameState(
+        saveId: 'save_full_party',
+        party: PlayerParty(
+          members: [
+            for (var index = 0; index < 6; index++) _pokemon('species_$index'),
+          ],
+        ),
+      );
+
+      final result =
+          SceneConsequenceRuntimeWriter(project: _project()).applyAll(
+        state,
+        [
+          SceneConsequence.givePokemon(
+            speciesId: 'species_reward',
+            level: 5,
+            currentHp: 20,
+          ),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.partyFull,
+      );
+      expect(identical(result.gameState, state), isTrue);
+      expect(state.party.members, hasLength(6));
+    });
+
+    test('rolls back earlier gameplay rewards when a later takeItem fails', () {
+      const state = GameState(
+        saveId: 'save_atomic_rewards',
+        trainerProfile: TrainerProfile(name: 'Player', money: 25),
+        bag: Bag(
+          entries: [
+            BagEntry(
+              itemId: 'item_ticket',
+              categoryId: 'items',
+              quantity: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result =
+          SceneConsequenceRuntimeWriter(project: _project()).applyAll(
+        state,
+        [
+          SceneConsequence.giveMoney(amount: 1000),
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 2),
+          SceneConsequence.takeItem(itemId: 'item_ticket', quantity: 2),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.insufficientItemQuantity,
+      );
+      expect(identical(result.gameState, state), isTrue);
+      expect(result.gameState.trainerProfile.money, 25);
+      expect(
+        result.gameState.bag.entries.any(
+          (entry) => entry.itemId == 'item_potion',
+        ),
+        isFalse,
+      );
+      expect(result.appliedConsequences, isEmpty);
+    });
+
+    test('rejects missing references and invalid gameplay values explicitly',
+        () {
+      final cases = <(SceneConsequence, SceneConsequenceRuntimeWriteErrorCode)>[
+        (
+          SceneConsequence.giveItem(itemId: ' ', quantity: 1),
+          SceneConsequenceRuntimeWriteErrorCode.missingItemReference,
+        ),
+        (
+          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 0),
+          SceneConsequenceRuntimeWriteErrorCode.invalidQuantity,
+        ),
+        (
+          SceneConsequence.giveMoney(amount: 0),
+          SceneConsequenceRuntimeWriteErrorCode.invalidMoneyAmount,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: ' ',
+            level: 5,
+            currentHp: 20,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.missingPokemonSpeciesReference,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            level: 0,
+            currentHp: 20,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.invalidPokemonLevel,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            level: 5,
+            currentHp: 20,
+            natureId: ' ',
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.invalidPokemonDefinition,
+        ),
+        (
+          SceneConsequence.givePokemon(
+            speciesId: 'species_test',
+            level: 5,
+            currentHp: 0,
+          ),
+          SceneConsequenceRuntimeWriteErrorCode.invalidPokemonCurrentHp,
+        ),
+      ];
+      const state = GameState(saveId: 'save_invalid_consequences');
+      final writer = SceneConsequenceRuntimeWriter(project: _project());
+
+      for (final (consequence, expectedError) in cases) {
+        final result = writer.applyAll(state, [consequence]);
+        expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+        expect(result.errorCode, expectedError);
+        expect(identical(result.gameState, state), isTrue);
+      }
+    });
+
+    test('giveConfiguredStarter grants the exact project-owned Pokemon', () {
+      const authored = PlayerPokemon(
+        speciesId: 'bulbasaur',
+        natureId: 'modest',
+        abilityId: 'overgrow',
+        gender: 'female',
+        level: 16,
+        currentHp: 40,
+        knownMoveIds: <String>['tackle', 'growl', 'vine_whip'],
+        heldItemId: 'miracle_seed',
+      );
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          newGame: const ProjectNewGameConfig(
+            starterOptions: <ProjectStarterOption>[
+              ProjectStarterOption(
+                id: 'starter_bulbasaur',
+                label: 'Bulbizarre',
+                pokemon: authored,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      final result = writer.applyAll(
+        const GameState(saveId: 'save_configured_starter'),
+        <SceneConsequence>[
+          SceneConsequence.giveConfiguredStarter(
+            starterOptionId: 'starter_bulbasaur',
+          ),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.applied);
+      expect(result.gameState.party.members, const <PlayerPokemon>[authored]);
+    });
+
+    test('giveConfiguredStarter rejects an option absent from New Game', () {
+      const state = GameState(saveId: 'save_unknown_configured_starter');
+      final result =
+          SceneConsequenceRuntimeWriter(project: _project()).applyAll(
+        state,
+        <SceneConsequence>[
+          SceneConsequence.giveConfiguredStarter(
+            starterOptionId: 'starter_missing',
+          ),
+        ],
+      );
+
+      expect(result.status, SceneConsequenceRuntimeWriteStatus.failed);
+      expect(
+        result.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.unknownStarterOption,
+      );
+      expect(identical(result.gameState, state), isTrue);
+    });
   });
+}
+
+PlayerPokemon _pokemon(String speciesId) {
+  return PlayerPokemon(
+    speciesId: speciesId,
+    natureId: 'hardy',
+    abilityId: 'unknown',
+    level: 5,
+    currentHp: 5,
+  );
 }
 
 ProjectManifest _project({
@@ -429,6 +717,7 @@ ProjectManifest _project({
   List<NarrativeFactDefinition> facts = const [],
   List<WorldRuleDefinition> worldRules = const [],
   List<StorylineAsset> storylines = const [],
+  ProjectNewGameConfig newGame = const ProjectNewGameConfig(),
 }) {
   return ProjectManifest(
     name: 'Scene consequence runtime writer test',
@@ -437,6 +726,7 @@ ProjectManifest _project({
     facts: facts,
     worldRules: worldRules,
     storylines: storylines,
+    newGame: newGame,
   );
 }
 

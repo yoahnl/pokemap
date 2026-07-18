@@ -4,6 +4,11 @@ enum SceneConsequenceKind {
   setFact,
   markEventConsumed,
   completeStoryStep,
+  giveItem,
+  takeItem,
+  giveMoney,
+  givePokemon,
+  giveConfiguredStarter,
 }
 
 @immutable
@@ -30,6 +35,42 @@ abstract base class SceneConsequence {
     String? notes,
   }) = SceneCompleteStoryStepConsequence;
 
+  factory SceneConsequence.giveItem({
+    required String itemId,
+    required int quantity,
+    String? label,
+    String? notes,
+  }) = SceneGiveItemConsequence;
+
+  factory SceneConsequence.takeItem({
+    required String itemId,
+    required int quantity,
+    String? label,
+    String? notes,
+  }) = SceneTakeItemConsequence;
+
+  factory SceneConsequence.giveMoney({
+    required int amount,
+    String? label,
+    String? notes,
+  }) = SceneGiveMoneyConsequence;
+
+  factory SceneConsequence.givePokemon({
+    required String speciesId,
+    required int level,
+    required int currentHp,
+    String natureId,
+    String abilityId,
+    String? label,
+    String? notes,
+  }) = SceneGivePokemonConsequence;
+
+  factory SceneConsequence.giveConfiguredStarter({
+    required String starterOptionId,
+    String? label,
+    String? notes,
+  }) = SceneGiveConfiguredStarterConsequence;
+
   factory SceneConsequence.fromJson(Map<String, dynamic> json) {
     final kind = _readKind(json['kind']);
     return switch (kind) {
@@ -38,6 +79,14 @@ abstract base class SceneConsequence {
         SceneMarkEventConsumedConsequence.fromJson(json),
       SceneConsequenceKind.completeStoryStep =>
         SceneCompleteStoryStepConsequence.fromJson(json),
+      SceneConsequenceKind.giveItem => SceneGiveItemConsequence.fromJson(json),
+      SceneConsequenceKind.takeItem => SceneTakeItemConsequence.fromJson(json),
+      SceneConsequenceKind.giveMoney =>
+        SceneGiveMoneyConsequence.fromJson(json),
+      SceneConsequenceKind.givePokemon =>
+        SceneGivePokemonConsequence.fromJson(json),
+      SceneConsequenceKind.giveConfiguredStarter =>
+        SceneGiveConfiguredStarterConsequence.fromJson(json),
     };
   }
 
@@ -196,6 +245,280 @@ final class SceneCompleteStoryStepConsequence extends SceneConsequence {
   int get hashCode => Object.hash(stepId, label, notes);
 }
 
+@immutable
+final class SceneGiveItemConsequence extends SceneConsequence {
+  SceneGiveItemConsequence({
+    required String itemId,
+    required this.quantity,
+    String? label,
+    String? notes,
+  })  : itemId = itemId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGiveItemConsequence.fromJson(Map<String, dynamic> json) {
+    return SceneGiveItemConsequence(
+      itemId: _readRequiredString(json, 'itemId'),
+      quantity: _readRequiredInt(json, 'quantity'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.giveItem;
+
+  final String itemId;
+  final int quantity;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'itemId': itemId,
+        'quantity': quantity,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGiveItemConsequence &&
+          other.itemId == itemId &&
+          other.quantity == quantity &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(itemId, quantity, label, notes);
+}
+
+@immutable
+final class SceneTakeItemConsequence extends SceneConsequence {
+  SceneTakeItemConsequence({
+    required String itemId,
+    required this.quantity,
+    String? label,
+    String? notes,
+  })  : itemId = itemId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneTakeItemConsequence.fromJson(Map<String, dynamic> json) {
+    return SceneTakeItemConsequence(
+      itemId: _readRequiredString(json, 'itemId'),
+      quantity: _readRequiredInt(json, 'quantity'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.takeItem;
+
+  final String itemId;
+  final int quantity;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'itemId': itemId,
+        'quantity': quantity,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneTakeItemConsequence &&
+          other.itemId == itemId &&
+          other.quantity == quantity &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(itemId, quantity, label, notes);
+}
+
+@immutable
+final class SceneGiveMoneyConsequence extends SceneConsequence {
+  SceneGiveMoneyConsequence({
+    required this.amount,
+    String? label,
+    String? notes,
+  })  : label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGiveMoneyConsequence.fromJson(Map<String, dynamic> json) {
+    return SceneGiveMoneyConsequence(
+      amount: _readRequiredInt(json, 'amount'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.giveMoney;
+
+  final int amount;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'amount': amount,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGiveMoneyConsequence &&
+          other.amount == amount &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(amount, label, notes);
+}
+
+@immutable
+final class SceneGivePokemonConsequence extends SceneConsequence {
+  SceneGivePokemonConsequence({
+    required String speciesId,
+    required this.level,
+    required this.currentHp,
+    this.currentHpIsLegacyFallback = false,
+    String natureId = 'hardy',
+    String abilityId = 'unknown',
+    String? label,
+    String? notes,
+  })  : speciesId = speciesId.trim(),
+        natureId = natureId.trim(),
+        abilityId = abilityId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGivePokemonConsequence.fromJson(Map<String, dynamic> json) {
+    final level = _readRequiredInt(json, 'level');
+    final hasAuthoredCurrentHp = json.containsKey('currentHp');
+    return SceneGivePokemonConsequence(
+      speciesId: _readRequiredString(json, 'speciesId'),
+      level: level,
+      currentHp:
+          hasAuthoredCurrentHp ? _readRequiredInt(json, 'currentHp') : level,
+      currentHpIsLegacyFallback: !hasAuthoredCurrentHp,
+      natureId: _readOptionalString(json, 'natureId') ?? 'hardy',
+      abilityId: _readOptionalString(json, 'abilityId') ?? 'unknown',
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.givePokemon;
+
+  final String speciesId;
+  final int level;
+  final int currentHp;
+  final bool currentHpIsLegacyFallback;
+  final String natureId;
+  final String abilityId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'speciesId': speciesId,
+        'level': level,
+        if (!currentHpIsLegacyFallback) 'currentHp': currentHp,
+        'natureId': natureId,
+        'abilityId': abilityId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGivePokemonConsequence &&
+          other.speciesId == speciesId &&
+          other.level == level &&
+          other.currentHp == currentHp &&
+          other.currentHpIsLegacyFallback == currentHpIsLegacyFallback &&
+          other.natureId == natureId &&
+          other.abilityId == abilityId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(
+        speciesId,
+        level,
+        currentHp,
+        currentHpIsLegacyFallback,
+        natureId,
+        abilityId,
+        label,
+        notes,
+      );
+}
+
+@immutable
+final class SceneGiveConfiguredStarterConsequence extends SceneConsequence {
+  SceneGiveConfiguredStarterConsequence({
+    required String starterOptionId,
+    String? label,
+    String? notes,
+  })  : starterOptionId = starterOptionId.trim(),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  factory SceneGiveConfiguredStarterConsequence.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SceneGiveConfiguredStarterConsequence(
+      starterOptionId: _readRequiredString(json, 'starterOptionId'),
+      label: _readOptionalString(json, 'label'),
+      notes: _readOptionalString(json, 'notes'),
+    );
+  }
+
+  @override
+  SceneConsequenceKind get kind => SceneConsequenceKind.giveConfiguredStarter;
+
+  final String starterOptionId;
+  final String? label;
+  final String? notes;
+
+  @override
+  Map<String, dynamic> toJson() => _withoutNulls({
+        'kind': _kindToJson(kind),
+        'starterOptionId': starterOptionId,
+        'label': label,
+        'notes': notes,
+      });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SceneGiveConfiguredStarterConsequence &&
+          other.starterOptionId == starterOptionId &&
+          other.label == label &&
+          other.notes == notes;
+
+  @override
+  int get hashCode => Object.hash(starterOptionId, label, notes);
+}
+
 SceneConsequenceKind _readKind(Object? value) {
   if (value is! String) {
     throw FormatException(
@@ -216,6 +539,11 @@ String _kindToJson(SceneConsequenceKind kind) {
     SceneConsequenceKind.setFact => 'setFact',
     SceneConsequenceKind.markEventConsumed => 'markEventConsumed',
     SceneConsequenceKind.completeStoryStep => 'completeStoryStep',
+    SceneConsequenceKind.giveItem => 'giveItem',
+    SceneConsequenceKind.takeItem => 'takeItem',
+    SceneConsequenceKind.giveMoney => 'giveMoney',
+    SceneConsequenceKind.givePokemon => 'givePokemon',
+    SceneConsequenceKind.giveConfiguredStarter => 'giveConfiguredStarter',
   };
 }
 
@@ -242,6 +570,14 @@ bool _readRequiredBool(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is! bool) {
     throw FormatException('SceneConsequence.$key must be a boolean.');
+  }
+  return value;
+}
+
+int _readRequiredInt(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value is! int) {
+    throw FormatException('SceneConsequence.$key must be an integer.');
   }
   return value;
 }

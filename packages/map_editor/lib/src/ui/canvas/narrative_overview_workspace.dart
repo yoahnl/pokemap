@@ -1,18 +1,20 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
+import '../design_system/design_system.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import 'narrative_overview_empty_states.dart';
 import 'narrative_overview_structure_inspector.dart';
+import 'new_game/project_new_game_configuration_sheet.dart';
+import 'narrative_studio/narrative_studio_route_presentation.dart';
+import 'narrative_studio/narrative_studio_workspace_page.dart';
 
-/// Shell V0 de la page "Aperçu" du Narrative Studio.
-///
-/// Ce widget reste volontairement sobre : il prouve le point d'entrée UI et la
-/// consommation du read model sans construire le dashboard final.
+/// Authoring overview of the Narrative Studio project.
 class NarrativeOverviewWorkspace extends StatelessWidget {
   const NarrativeOverviewWorkspace({
     super.key,
-    required this.readModel,
+    this.readModel,
     this.onOpenStorylines,
     this.onOpenScenes,
     this.onOpenCutscenes,
@@ -21,7 +23,7 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
     this.onOpenWorldRules,
   });
 
-  final NarrativeOverviewReadModel readModel;
+  final NarrativeOverviewReadModel? readModel;
   final VoidCallback? onOpenStorylines;
   final VoidCallback? onOpenScenes;
   final VoidCallback? onOpenCutscenes;
@@ -31,125 +33,52 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      key: const ValueKey('narrative-overview-scroll'),
-      padding: const EdgeInsets.fromLTRB(18, 5, 18, 18),
-      children: [
-        const _OverviewPageHeader(),
-        const SizedBox(height: 7),
-        _OverviewResponsiveBody(
-          readModel: readModel,
-          onOpenStorylines: onOpenStorylines,
-          onOpenScenes: onOpenScenes,
-          onOpenCutscenes: onOpenCutscenes,
-          onOpenDialogues: onOpenDialogues,
-          onOpenFacts: onOpenFacts,
-          onOpenWorldRules: onOpenWorldRules,
-        ),
-      ],
-    );
-  }
-}
-
-class _OverviewPageHeader extends StatelessWidget {
-  const _OverviewPageHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const ValueKey('narrative-overview-page-header'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Wrap(
-          key: ValueKey('narrative-overview-breadcrumb'),
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 5,
-          runSpacing: 2,
-          children: [
-            _BreadcrumbSegment(label: 'PokeMap'),
-            _BreadcrumbSeparator(),
-            _BreadcrumbSegment(label: 'Narrative Studio'),
-            _BreadcrumbSeparator(),
-            _BreadcrumbSegment(label: 'Aperçu', current: true),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'Aperçu',
-          style: TextStyle(
-            color: EditorChrome.primaryLabel(context),
-            fontSize: 21,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          'Métriques disponibles et statuts honnêtes.',
-          style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BreadcrumbSegment extends StatelessWidget {
-  const _BreadcrumbSegment({
-    required this.label,
-    this.current = false,
-  });
-
-  final String label;
-  final bool current;
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = current
-        ? EditorChrome.activeAccent(context)
-        : EditorChrome.subtleLabel(context);
-    final child = Text(
-      label,
-      style: TextStyle(
-        color: textColor,
-        fontSize: 10.5,
-        fontWeight: current ? FontWeight.w700 : FontWeight.w600,
-      ),
-    );
-    if (!current) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 1.5),
-        child: child,
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
-      decoration: BoxDecoration(
-        color: EditorChrome.chipFill(context),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: EditorChrome.activeAccent(context).withValues(alpha: 0.42),
-        ),
-      ),
-      child: child,
-    );
-  }
-}
-
-class _BreadcrumbSeparator extends StatelessWidget {
-  const _BreadcrumbSeparator();
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      '/',
-      style: TextStyle(
-        color: EditorChrome.subtleLabel(context),
-        fontSize: 10.5,
-        fontWeight: FontWeight.w600,
-      ),
+    final overview = readModel;
+    return NarrativeStudioWorkspacePage(
+      presentation: narrativeStudioRoutePresentationFor(
+        EditorWorkspaceMode.narrativeOverview,
+      )!,
+      actions: overview == null
+          ? const <Widget>[]
+          : <Widget>[
+              PokeMapButton(
+                key: projectNewGameConfigurationLauncherKey,
+                onPressed: () => showPokeMapDesktopSideSheet<void>(
+                  context: context,
+                  title: 'Nouveau Jeu',
+                  semanticLabel: 'Configuration du Nouveau Jeu',
+                  width: 560,
+                  builder: (_) => const ProjectNewGameConfigurationSheet(),
+                ),
+                variant: PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.compact,
+                leading: const Icon(CupertinoIcons.play_circle),
+                child: const Text('Nouveau Jeu'),
+              ),
+            ],
+      body: overview == null
+          ? const PokeMapEmptyState(
+              key: ValueKey('narrative-overview-project-unavailable'),
+              title: 'Aucun projet chargé',
+              description:
+                  'Chargez un projet pour consulter ses indicateurs narratifs.',
+              icon: Icon(CupertinoIcons.folder_open),
+            )
+          : ListView(
+              key: const ValueKey('narrative-overview-scroll'),
+              padding: const EdgeInsets.all(18),
+              children: [
+                _OverviewResponsiveBody(
+                  readModel: overview,
+                  onOpenStorylines: onOpenStorylines,
+                  onOpenScenes: onOpenScenes,
+                  onOpenCutscenes: onOpenCutscenes,
+                  onOpenDialogues: onOpenDialogues,
+                  onOpenFacts: onOpenFacts,
+                  onOpenWorldRules: onOpenWorldRules,
+                ),
+              ],
+            ),
     );
   }
 }
@@ -251,9 +180,10 @@ class _OverviewMainColumn extends StatelessWidget {
           editorialStatusLabel: _editorialStatusLabel(
             readModel.editorialStatus.validationState,
           ),
-          projectHealthLabel: _projectHealthLabel(
-            readModel.projectHealth.healthKind,
-          ),
+          projectHealthLabel: readModel.projectHealth.healthKind ==
+                  NarrativeProjectHealthKind.notEvaluated
+              ? null
+              : _projectHealthLabel(readModel.projectHealth.healthKind),
         ),
         const SizedBox(height: 8),
         _KpiCardsSection(
@@ -304,12 +234,12 @@ class _ProjectSummaryStrip extends StatelessWidget {
   const _ProjectSummaryStrip({
     required this.projectName,
     required this.editorialStatusLabel,
-    required this.projectHealthLabel,
+    this.projectHealthLabel,
   });
 
   final String projectName;
   final String editorialStatusLabel;
-  final String projectHealthLabel;
+  final String? projectHealthLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -344,10 +274,11 @@ class _ProjectSummaryStrip extends StatelessWidget {
             label: 'Statut éditorial',
             value: editorialStatusLabel,
           ),
-          _ProjectSummaryItem(
-            label: 'Project Health',
-            value: projectHealthLabel,
-          ),
+          if (projectHealthLabel case final projectHealthLabel?)
+            _ProjectSummaryItem(
+              label: 'Project Health',
+              value: projectHealthLabel,
+            ),
         ],
       ),
     );
@@ -548,6 +479,9 @@ class _ModuleCardState extends State<_ModuleCard> {
           const SizedBox(height: 10),
           Text(
             _moduleCardValue(widget.module),
+            key: ValueKey(
+              'narrative-overview-module-${widget.module.id}-value',
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
@@ -662,6 +596,7 @@ class _ModuleSecondaryStat extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = _availabilityAccent(context, stat.availability);
     return Container(
+      key: ValueKey('narrative-overview-module-stat-${stat.id}'),
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
@@ -1263,9 +1198,13 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _availabilityAccent(context, metric.availability);
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5).toDouble();
     final content = Container(
       key: ValueKey('narrative-overview-kpi-${metric.id}'),
-      height: 130,
+      // The compact desktop grid remains fixed-width, but its rows must grow
+      // with accessible text so support labels never fall outside the card.
+      height: 130 + ((textScale - 1) * 80),
       decoration: BoxDecoration(
         color: EditorChrome.largeIslandSurfaceColor(
           context,

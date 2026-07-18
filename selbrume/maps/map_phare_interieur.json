@@ -14044,7 +14044,38 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "gate_lighthouse_top",
+      "name": "Escalier du sommet instable",
+      "kind": "sign",
+      "pos": {
+        "x": 18,
+        "y": 1
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": {
+        "title": "Escalier du sommet instable",
+        "dialogue": null,
+        "plainText": "Les deux échos du phare doivent être dissipés avant de monter."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_lumiere_instable",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    }
+  ],
   "connections": [],
   "warps": [
     {
@@ -14105,6 +14136,44 @@
       },
       "properties": {
         "eventId": "event_selbrume_phare_note_ancien_gardien",
+        "reservedForNarrative": "true"
+      }
+    },
+    {
+      "id": "tr_phare_guardian_1",
+      "name": "tr_phare_guardian_1",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 7,
+          "y": 32
+        },
+        "size": {
+          "width": 2,
+          "height": 2
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_phare_guardian_1",
+        "reservedForNarrative": "true"
+      }
+    },
+    {
+      "id": "tr_phare_guardian_2",
+      "name": "tr_phare_guardian_2",
+      "type": "custom",
+      "area": {
+        "pos": {
+          "x": 24,
+          "y": 14
+        },
+        "size": {
+          "width": 2,
+          "height": 2
+        }
+      },
+      "properties": {
+        "eventId": "event_selbrume_phare_guardian_2",
         "reservedForNarrative": "true"
       }
     }

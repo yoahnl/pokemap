@@ -73,6 +73,7 @@ Future<ProviderContainer> pumpEditorShellPage(
   required EditorState initialState,
   Size surfaceSize = const Size(1800, 1000),
   String? fontFamily,
+  String? cupertinoFontFamily,
   List<Override> overrides = const <Override>[],
 }) async {
   _installMacosAccentColorMock();
@@ -112,9 +113,23 @@ Future<ProviderContainer> pumpEditorShellPage(
       child: MaterialApp(
         theme: theme,
         builder: (context, child) {
-          return PokeMapMacosCompatibilityBridge(
+          Widget result = PokeMapMacosCompatibilityBridge(
             child: child ?? const SizedBox.shrink(),
           );
+          if (cupertinoFontFamily != null) {
+            final cupertinoTheme = CupertinoTheme.of(context);
+            result = CupertinoTheme(
+              data: cupertinoTheme.copyWith(
+                textTheme: _cupertinoTextThemeWithFontFamily(
+                  cupertinoTheme.textTheme,
+                  cupertinoTheme.primaryColor,
+                  cupertinoFontFamily,
+                ),
+              ),
+              child: result,
+            );
+          }
+          return result;
         },
         home: const EditorShellPage(),
       ),
@@ -122,7 +137,41 @@ Future<ProviderContainer> pumpEditorShellPage(
   );
   await tester.pump();
   await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  if (fontFamily != null) {
+    final context = tester.element(find.byType(EditorShellPage));
+    await tester.runAsync(() async {
+      for (final asset in const <String>[
+        'assets/branding/pokemap_event_builder_mark.png',
+        'assets/branding/pokemap_event_builder_project_thumb.png',
+      ]) {
+        await precacheImage(AssetImage(asset), context);
+      }
+    });
+    await tester.pump();
+  }
   return container;
+}
+
+CupertinoTextThemeData _cupertinoTextThemeWithFontFamily(
+  CupertinoTextThemeData source,
+  Color primaryColor,
+  String fontFamily,
+) {
+  TextStyle withFamily(TextStyle style) =>
+      style.copyWith(fontFamily: fontFamily);
+
+  return CupertinoTextThemeData(
+    primaryColor: primaryColor,
+    textStyle: withFamily(source.textStyle),
+    actionTextStyle: withFamily(source.actionTextStyle),
+    actionSmallTextStyle: withFamily(source.actionSmallTextStyle),
+    tabLabelTextStyle: withFamily(source.tabLabelTextStyle),
+    navTitleTextStyle: withFamily(source.navTitleTextStyle),
+    navLargeTitleTextStyle: withFamily(source.navLargeTitleTextStyle),
+    navActionTextStyle: withFamily(source.navActionTextStyle),
+    pickerTextStyle: withFamily(source.pickerTextStyle),
+    dateTimePickerTextStyle: withFamily(source.dateTimePickerTextStyle),
+  );
 }
 
 Future<ProviderContainer> pumpEditorCanvasHostHarness(

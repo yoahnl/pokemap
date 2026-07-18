@@ -9,7 +9,9 @@
 
 import 'dialogue_editor_model.dart';
 
-sealed class DialoguePreviewEvent {}
+sealed class DialoguePreviewEvent {
+  const DialoguePreviewEvent();
+}
 
 class DialoguePreviewLine extends DialoguePreviewEvent {
   DialoguePreviewLine(this.displayText);
@@ -22,8 +24,9 @@ class DialoguePreviewChoicePrompt extends DialoguePreviewEvent {
 }
 
 class DialoguePreviewEnded extends DialoguePreviewEvent {
-  DialoguePreviewEnded({this.reason});
+  const DialoguePreviewEnded({this.reason, this.outcomeId});
   final String? reason;
+  final String? outcomeId;
 }
 
 /// État mutable du mode preview (machine simple).
@@ -45,6 +48,9 @@ class DialoguePreviewSession {
   List<DialogueEditorStep> _activeSteps = [];
   var _index = 0;
   List<DeChoiceBranch>? _pendingChoices;
+  String? _selectedOutcomeId;
+
+  String? get selectedOutcomeId => _selectedOutcomeId;
 
   DialogueEditorNode? get _startNode {
     if (document.nodes.isEmpty) return null;
@@ -60,11 +66,14 @@ class DialoguePreviewSession {
   void _reset() {
     transcript.clear();
     _pendingChoices = null;
+    _selectedOutcomeId = null;
     final start = _startNode;
     if (start == null) {
       _activeSteps = [];
       _index = 0;
-      transcript.add(DialoguePreviewEnded(reason: 'Aucun nœud dans ce dialogue.'));
+      transcript.add(
+        const DialoguePreviewEnded(reason: 'Aucun nœud dans ce dialogue.'),
+      );
       return;
     }
     _activeSteps = List<DialogueEditorStep>.from(start.steps);
@@ -87,7 +96,10 @@ class DialoguePreviewSession {
         return;
       }
       if (_index >= _activeSteps.length) {
-        transcript.add(DialoguePreviewEnded(reason: 'Fin du nœud.'));
+        transcript.add(DialoguePreviewEnded(
+          reason: 'Fin du nœud.',
+          outcomeId: _selectedOutcomeId,
+        ));
         return;
       }
       final step = _activeSteps[_index];
@@ -98,7 +110,8 @@ class DialoguePreviewSession {
           break;
         case DeLineStep(:final speaker, :final body):
           final sp = speaker;
-          final prefix = (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: ' : '';
+          final prefix =
+              (sp != null && sp.trim().isNotEmpty) ? '${sp.trim()}: ' : '';
           transcript.add(DialoguePreviewLine('$prefix$body'));
         case DeNarrationStep(:final text):
           transcript.add(DialoguePreviewLine('($text)'));
@@ -115,7 +128,9 @@ class DialoguePreviewSession {
           break;
         case DeChoiceStep(:final branches):
           if (branches.isEmpty) {
-            transcript.add(DialoguePreviewEnded(reason: 'Choix sans option.'));
+            transcript.add(
+              const DialoguePreviewEnded(reason: 'Choix sans option.'),
+            );
             return;
           }
           _pendingChoices = branches;
@@ -137,6 +152,10 @@ class DialoguePreviewSession {
       return;
     }
     _pendingChoices = null;
+    final outcomeId = pending[i].outcomeId?.trim() ?? '';
+    if (outcomeId.isNotEmpty) {
+      _selectedOutcomeId = outcomeId;
+    }
     _activeSteps = List<DialogueEditorStep>.from(pending[i].steps);
     _index = 0;
     _drain();

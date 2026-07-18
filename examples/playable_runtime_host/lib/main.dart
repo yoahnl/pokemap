@@ -22,6 +22,7 @@ import 'src/runtime_launch_options.dart';
 import 'src/runtime_party_builder.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
+import 'src/runtime_project_launch_map.dart';
 import 'src/runtime_projects_directory.dart';
 import 'src/runtime_touch_controls.dart';
 import 'src/runtime_touch_controls_visibility.dart';
@@ -240,8 +241,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
-  // Cette lecture du manifest sert uniquement à alimenter le host :
-  // on récupère la liste des maps disponibles sans toucher au save system.
+  // Cette lecture alimente le host et résout la map de lancement : une vraie
+  // save versionnée, puis New Game, puis seulement les préférences legacy.
   Future<void> _loadProjectMapsFromManifest(
     String projectFilePath, {
     String? preferredMapId,
@@ -265,23 +266,16 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       _runtimeHostLog(
         'manifest parsed maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
       );
-      final maps = List<ProjectMapEntry>.of(manifest.maps)
-        ..sort((a, b) {
-          final byOrder = a.sortOrder.compareTo(b.sortOrder);
-          if (byOrder != 0) return byOrder;
-          return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-        });
-      String? nextSelected = _selectedMapId;
-      final preferred = preferredMapId?.trim();
-      if (preferred != null &&
-          preferred.isNotEmpty &&
-          maps.any((m) => m.id == preferred)) {
-        nextSelected = preferred;
-      } else if (nextSelected == null ||
-          nextSelected.isEmpty ||
-          !maps.any((m) => m.id == nextSelected)) {
-        nextSelected = maps.isEmpty ? null : maps.first.id;
-      }
+      final versionedLaunchSave = await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      );
+      final selection = resolveRuntimeHostProjectMapSelection(
+        manifest,
+        versionedLaunchMapId: versionedLaunchSave?.currentMapId,
+        preferredMapId: preferredMapId,
+      );
+      final maps = selection.maps;
+      final nextSelected = selection.selectedMapId;
       if (!mounted) return;
       setState(() {
         _availableMaps = maps;
@@ -465,14 +459,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   // Il ne modifie pas la structure métier des saves.
   Future<void> _load() async {
     final projectFilePath = _projectFilePath;
-    final mapId = (_selectedMapId ?? '').trim();
+    final selectedMapId = (_selectedMapId ?? '').trim();
+    var mapId = selectedMapId;
 
     if (projectFilePath.isEmpty) {
       _runtimeHostLog('map load blocked: empty projectFilePath');
       setState(() => _error = 'Sélectionnez un dossier projet valide.');
       return;
     }
-    if (mapId.isEmpty) {
+    if (selectedMapId.isEmpty) {
       _runtimeHostLog(
           'map load blocked: empty mapId projectFilePath=$projectFilePath');
       setState(() => _error = 'Saisissez un identifiant de map.');
@@ -489,6 +484,20 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     });
 
     try {
+      // A versioned launch save is gameplay state, unlike host preferences.
+      // Resolve it before the bundle so PlayableMapGame receives the map that
+      // actually owns the restored position/state.
+      _runtimeHostLog('launch save load start');
+      final launchSaveData = await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      );
+      final restoredMapId = launchSaveData?.currentMapId.trim();
+      if (restoredMapId != null && restoredMapId.isNotEmpty) {
+        mapId = restoredMapId;
+      }
+      _runtimeHostLog(
+        'launch save load ${launchSaveData == null ? 'missing: will use project/legacy fallback' : 'ok: mapId=$mapId'}',
+      );
       _runtimeHostLog('bundle load start mapId=$mapId');
       final bundle = await loadRuntimeMapBundle(
         projectFilePath: projectFilePath,
@@ -500,47 +509,46 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       // Phase A privilégie un vrai état joueur versionné quand le projet en
       // fournit un. Le seed de démo historique reste un fallback pratique pour
       // les projets génériques qui n'ont pas encore de save de lancement.
-      _runtimeHostLog('launch save load start');
-      final launchSaveData = await loadRuntimeHostLaunchSaveData(
-        projectFilePath: projectFilePath,
+      final allowsSyntheticLaunchSeed = allowsRuntimeHostSyntheticLaunchSeed(
+        newGame: bundle.manifest.newGame,
+        versionedLaunchSave: launchSaveData,
       );
+      final selectedManualPartySeed =
+          allowsSyntheticLaunchSeed ? _buildManualPartySeed() : null;
       _runtimeHostLog(
-        'launch save load ${launchSaveData == null ? 'missing: will use fallback if available' : 'ok'}',
+        'party seed source=${selectedManualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon syntheticAllowed=$allowsSyntheticLaunchSeed',
       );
-      final manualPartySeed = _buildManualPartySeed();
-      _runtimeHostLog(
-        'party seed source=${manualPartySeed == null ? 'auto/demo' : 'manual'} seedDemoPokemon=$_seedDemoPokemon',
-      );
-      final launchDemoSeed = manualPartySeed == null
-          ? await buildRuntimeHostLaunchDemoPartySeed(
-              seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
-              projectFilePath: projectFilePath,
-            )
-          : null;
+      final launchDemoSeed =
+          selectedManualPartySeed == null && allowsSyntheticLaunchSeed
+              ? await buildRuntimeHostLaunchDemoPartySeed(
+                  seedDemoPokemon: _seedDemoPokemon,
+                  projectFilePath: projectFilePath,
+                )
+              : null;
       if (!mounted) return;
-      final launchSaveOverride = manualPartySeed == null
+      final launchSaveOverride = selectedManualPartySeed == null
           ? null
           : buildRuntimeHostLaunchDemoSaveData(
               mapId: mapId,
-              seed: manualPartySeed,
+              seed: selectedManualPartySeed,
             );
-      final selectedLaunchSave = launchSaveOverride ??
-          launchSaveData ??
-          (launchDemoSeed == null
-              ? null
-              : buildRuntimeHostLaunchDemoSaveData(
-                  mapId: mapId,
-                  seed: launchDemoSeed,
-                ));
+      final demoLaunchFallback = launchDemoSeed == null
+          ? null
+          : buildRuntimeHostLaunchDemoSaveData(
+              mapId: mapId,
+              seed: launchDemoSeed,
+            );
+      final launchPlan = resolveRuntimeHostLaunchPlan(
+        newGame: bundle.manifest.newGame,
+        versionedLaunchSave: launchSaveData,
+        manualLaunchOverride: launchSaveOverride,
+        demoLaunchFallback: demoLaunchFallback,
+      );
       final nextGame = PlayableMapGame(
         bundle: bundle,
         projectFilePath: projectFilePath,
-        saveData: selectedLaunchSave,
-        initialMapActivationReason:
-            resolveRuntimeHostInitialMapActivationReason(
-          versionedLaunchSave: launchSaveData,
-          manualLaunchOverride: launchSaveOverride,
-        ),
+        saveData: launchPlan.saveData,
+        initialMapActivationReason: launchPlan.initialMapActivationReason,
       );
       _runtimeHostLog('game instance created mapId=$mapId');
       setState(() {

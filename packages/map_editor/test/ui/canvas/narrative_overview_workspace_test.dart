@@ -10,10 +10,11 @@ import 'package:map_editor/src/features/narrative/application/global_story_studi
 import 'package:map_editor/src/features/narrative/application/overview/narrative_overview_read_model.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/ui/canvas/narrative_overview_workspace.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 
 void main() {
   testWidgets(
-    'NarrativeOverviewWorkspace renders a minimal authoring overview from the read model',
+    'NarrativeOverviewWorkspace uses one shared Overview context without the old header',
     (tester) async {
       final readModel = buildNarrativeOverviewReadModel(
         project: _minimalProject('test_project'),
@@ -25,23 +26,37 @@ void main() {
       );
 
       expect(
-        find.byKey(const ValueKey('narrative-overview-page-header')),
+        find.byType(NarrativeStudioWorkspacePage),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(narrativeStudioWorkspaceContextKey),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Narrative Studio  /  Aperçu'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-overview-page-header')),
+        findsNothing,
       );
       expect(
         find.byKey(const ValueKey('narrative-overview-breadcrumb')),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('PokeMap'), findsOneWidget);
-      expect(find.widgetWithText(CupertinoButton, 'PokeMap'), findsNothing);
-      expect(find.text('Narrative Studio'), findsOneWidget);
-      expect(find.text('Aperçu'), findsWidgets);
       expect(
-        find.text(
-          'Métriques disponibles et statuts honnêtes.',
+        find.descendant(
+          of: find.byKey(narrativeStudioWorkspaceContextKey),
+          matching: find.byType(CupertinoButton),
         ),
-        findsOneWidget,
+        findsNothing,
       );
+      expect(find.text('PokeMap'), findsNothing);
+      expect(find.text('Métriques disponibles et statuts honnêtes.'),
+          findsNothing);
+      expect(find.textContaining('Project Health'), findsNothing);
+      expect(find.text('Valider'), findsNothing);
       expect(find.textContaining('Narrative Overview'), findsNothing);
       expect(find.textContaining('progression'), findsNothing);
       expect(find.textContaining('jouable'), findsNothing);
@@ -83,6 +98,65 @@ void main() {
         find.text('Données à venir', skipOffstage: false),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace keeps the shared context when no project is loaded',
+    (tester) async {
+      await _pumpOverview(tester, null, width: 900, height: 720);
+
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(
+        find.byKey(narrativeStudioWorkspaceContextKey),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('narrative-overview-project-unavailable'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Aucun projet chargé'), findsOneWidget);
+      expect(
+        find.text(
+          'Chargez un projet pour consulter ses indicateurs narratifs.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('narrative-overview-kpi-grid')),
+        findsNothing,
+      );
+      expect(find.textContaining('Project Health'), findsNothing);
+      expect(find.text('Valider'), findsNothing);
+      expect(find.text('Aperçu', findRichText: true), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace shows project health only after real validation',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('validated_project'),
+        narrativeValidationReport: NarrativeValidationReport(
+          diagnostics: const <NarrativeValidationDiagnostic>[
+            NarrativeValidationDiagnostic(
+              severity: NarrativeValidationSeverity.warning,
+              kind: NarrativeValidationDiagnosticKind
+                  .scenarioChoiceNodeRuntimeUnsupported,
+              message: 'Choice node is not runtime-supported yet.',
+              path: 'scenarios.test.nodes.choice',
+            ),
+          ],
+        ),
+      );
+
+      await _pumpOverview(tester, readModel, width: 1440, height: 980);
+
+      expect(find.text('Project Health : À revoir'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -135,6 +209,66 @@ void main() {
       expect(find.text('1236'), findsNothing);
       expect(find.text('24'), findsNothing);
       expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace preserves every available authoring shortcut callback',
+    (tester) async {
+      final openedDestinations = <String>[];
+
+      await _pumpOverview(
+        tester,
+        _storyOverviewReadModel(),
+        width: 1040,
+        height: 900,
+        onOpenStorylines: () => openedDestinations.add('storylines'),
+        onOpenScenes: () => openedDestinations.add('scenes'),
+        onOpenCutscenes: () => openedDestinations.add('cutscenes'),
+        onOpenDialogues: () => openedDestinations.add('dialogues'),
+        onOpenFacts: () => openedDestinations.add('facts'),
+        onOpenWorldRules: () => openedDestinations.add('world_rules'),
+      );
+
+      for (final metricId in <String>[
+        'chapters',
+        'scenes',
+        'cutscenes',
+        'dialogues',
+      ]) {
+        final shortcut = find.byKey(
+          ValueKey('narrative-overview-kpi-$metricId'),
+        );
+        await tester.ensureVisible(shortcut);
+        await tester.tap(shortcut);
+        await tester.pump();
+      }
+
+      for (final moduleId in <String>[
+        NarrativeOverviewModuleIds.facts,
+        NarrativeOverviewModuleIds.worldRules,
+      ]) {
+        final shortcut = find.byKey(
+          ValueKey('narrative-overview-module-$moduleId'),
+        );
+        await tester.scrollUntilVisible(shortcut, 320);
+        await tester.tap(shortcut);
+        await tester.pump();
+      }
+
+      expect(
+        openedDestinations,
+        <String>[
+          'storylines',
+          'scenes',
+          'cutscenes',
+          'dialogues',
+          'facts',
+          'world_rules',
+        ],
+      );
+      expect(find.byType(NarrativeStudioWorkspacePage), findsOneWidget);
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -272,13 +406,9 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 620, height: 720);
 
-      expect(find.text('Aperçu'), findsWidgets);
-      expect(
-        find.text(
-          'Métriques disponibles et statuts honnêtes.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Narrative Studio  /  Aperçu'), findsOneWidget);
+      expect(find.text('Métriques disponibles et statuts honnêtes.'),
+          findsNothing);
       expect(find.textContaining('test_project'), findsWidgets);
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
@@ -287,7 +417,7 @@ void main() {
   );
 
   testWidgets(
-    'NarrativeOverviewWorkspace keeps KPI cards visible after header density polish',
+    'NarrativeOverviewWorkspace keeps KPI cards visible below the shared context',
     (tester) async {
       final readModel = buildNarrativeOverviewReadModel(
         project: _minimalProject('test_project'),
@@ -295,14 +425,16 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 1440, height: 720);
 
-      final header = find.byKey(
-        const ValueKey('narrative-overview-page-header'),
-      );
+      final header = find.byKey(narrativeStudioWorkspaceContextKey);
       final kpiGrid = find.byKey(
         const ValueKey('narrative-overview-kpi-grid'),
       );
 
       expect(header, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('narrative-overview-page-header')),
+        findsNothing,
+      );
       expect(kpiGrid, findsOneWidget);
       expect(tester.getTopLeft(kpiGrid).dy, lessThanOrEqualTo(165));
       expect(find.text('Indicateurs auteur'), findsOneWidget);
@@ -586,6 +718,18 @@ void main() {
           worldRules: [_overviewWorldRule()],
         ),
       );
+      final worldRulesModule = readModel.modules.singleWhere(
+        (module) => module.id == NarrativeOverviewModuleIds.worldRules,
+      );
+      expect(worldRulesModule.count, 1);
+      expect(
+        worldRulesModule.secondaryStats
+            .singleWhere(
+              (stat) => stat.id == 'world_rule_diagnostics',
+            )
+            .count,
+        1,
+      );
 
       await _pumpOverview(tester, readModel, width: 1040, height: 1120);
 
@@ -595,8 +739,11 @@ void main() {
           findsOneWidget);
       expect(_textInModule(NarrativeOverviewModuleIds.conditions, '2'),
           findsOneWidget);
-      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '1'),
-          findsOneWidget);
+      final worldRuleValue = find.byKey(
+        const ValueKey('narrative-overview-module-world_rules-value'),
+      );
+      expect(worldRuleValue, findsOneWidget);
+      expect(tester.widget<Text>(worldRuleValue).data, '1');
       expect(
         _textInModule(NarrativeOverviewModuleIds.worldRules, 'Diagnostics'),
         findsOneWidget,
@@ -608,8 +755,10 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(_textInModule(NarrativeOverviewModuleIds.worldRules, '0'),
-          findsOneWidget);
+      expect(
+        _textInModuleStat('world_rule_diagnostics', '1'),
+        findsOneWidget,
+      );
       expect(
         _textInModule(NarrativeOverviewModuleIds.dialogues, 'Indisponible'),
         findsOneWidget,
@@ -782,6 +931,18 @@ void main() {
               id: 'test_cinematic_1',
               title: 'Test Cinematic',
               timeline: CinematicTimeline(),
+            ),
+          ],
+          scenes: [
+            SceneAsset(
+              id: 'test_scene_1',
+              name: 'Test Scene',
+              graph: SceneGraph(
+                startNodeId: 'start',
+                nodes: [
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                ],
+              ),
             ),
           ],
         ),
@@ -1553,6 +1714,13 @@ Finder _textInModule(String moduleId, String text) {
   );
 }
 
+Finder _textInModuleStat(String statId, String text) {
+  return find.descendant(
+    of: find.byKey(ValueKey('narrative-overview-module-stat-$statId')),
+    matching: find.text(text),
+  );
+}
+
 Finder _textInStructureInspector(String text) {
   return find.descendant(
     of: find.byKey(
@@ -1626,13 +1794,15 @@ NarrativeOverviewReadModel _storyOverviewReadModel() {
 
 Future<void> _pumpOverview(
   WidgetTester tester,
-  NarrativeOverviewReadModel readModel, {
+  NarrativeOverviewReadModel? readModel, {
   double width = 900,
   double height = 1220,
   VoidCallback? onOpenStorylines,
   VoidCallback? onOpenScenes,
   VoidCallback? onOpenCutscenes,
   VoidCallback? onOpenDialogues,
+  VoidCallback? onOpenFacts,
+  VoidCallback? onOpenWorldRules,
 }) {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -1654,6 +1824,8 @@ Future<void> _pumpOverview(
               onOpenScenes: onOpenScenes,
               onOpenCutscenes: onOpenCutscenes,
               onOpenDialogues: onOpenDialogues,
+              onOpenFacts: onOpenFacts,
+              onOpenWorldRules: onOpenWorldRules,
             ),
           ),
         ),
@@ -1669,6 +1841,7 @@ ProjectManifest _minimalProject(
   List<NarrativeFactDefinition> facts = const <NarrativeFactDefinition>[],
   List<WorldRuleDefinition> worldRules = const <WorldRuleDefinition>[],
   List<CinematicAsset> cinematics = const <CinematicAsset>[],
+  List<SceneAsset> scenes = const <SceneAsset>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -1686,6 +1859,7 @@ ProjectManifest _minimalProject(
     facts: facts,
     worldRules: worldRules,
     cinematics: cinematics,
+    scenes: scenes,
   );
 }
 

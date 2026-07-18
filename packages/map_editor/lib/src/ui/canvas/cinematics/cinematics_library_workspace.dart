@@ -4,8 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
+import '../narrative_studio/narrative_studio_route_presentation.dart';
+import '../narrative_studio/narrative_studio_workspace_page.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_resolver.dart';
 import 'cinematic_builder_workspace.dart';
@@ -408,42 +411,55 @@ class _CinematicsLibraryWorkspaceState
 
     return Material(
       type: MaterialType.transparency,
-      child: PokeMapPageSurface(
-        key: const ValueKey('cinematics-library-workspace'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 126,
-              child: _MetricsStrip(readModel: readModel),
-            ),
-            const SizedBox(height: 12),
-            _buildFilterBar(context),
-            const SizedBox(height: 12),
-            Expanded(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(
-                    width: 310,
-                    child: _buildExplorer(context, readModel),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: _buildDetails(context, selectedEntry),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 300,
-                    child: _buildUsageAndDiagnostics(context, selectedEntry),
-                  ),
-                ],
+      child: NarrativeStudioWorkspacePage(
+        presentation: narrativeStudioRoutePresentationFor(
+          EditorWorkspaceMode.cutscene,
+        )!,
+        actions: [
+          PokeMapButton(
+            key: const ValueKey('cinematics-library-open-legacy-button'),
+            onPressed: widget.onOpenLegacyCutsceneStudio,
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.archivebox),
+            child: const Text('Ouvrir l’ancien Cutscene Studio'),
+          ),
+        ],
+        body: PokeMapPageSurface(
+          key: const ValueKey('cinematics-library-workspace'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 126,
+                child: _MetricsStrip(readModel: readModel),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              _buildFilterBar(context),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: 310,
+                      child: _buildExplorer(context, readModel),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: _buildDetails(context, selectedEntry),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 300,
+                      child: _buildUsageAndDiagnostics(context, selectedEntry),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -827,55 +843,6 @@ class _CinematicsLibraryWorkspaceState
       _resolvedActorTilesets = const {};
       _loadingActorTilesetIds.clear();
     });
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Row(
-      children: [
-        const PokeMapIconTile(
-          icon: CupertinoIcons.film,
-          tone: PokeMapTone.cinematic,
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Cinématiques',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textPrimary,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Séquences visuelles linéaires jouées depuis les Scènes.',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: DefaultTextStyle.of(context).style.copyWith(
-                      color: colors.textMuted,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
-          ),
-        ),
-        PokeMapButton(
-          key: const ValueKey('cinematics-library-open-legacy-button'),
-          onPressed: widget.onOpenLegacyCutsceneStudio,
-          variant: PokeMapButtonVariant.secondary,
-          size: PokeMapButtonSize.small,
-          leading: const Icon(CupertinoIcons.archivebox),
-          child: const Text('Ouvrir l’ancien Cutscene Studio'),
-        ),
-      ],
-    );
   }
 
   Widget _buildFilterBar(BuildContext context) {

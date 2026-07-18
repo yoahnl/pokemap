@@ -9,34 +9,77 @@ import 'package:pokemap_loader/src/runtime_launch_save.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('resolveRuntimeHostInitialMapActivationReason', () {
+  group('resolveRuntimeHostLaunchPlan', () {
     const versionedSave = SaveData(saveId: 'versioned');
     const manualSeed = SaveData(saveId: 'manual-seed');
+    const demoSeed = SaveData(saveId: 'demo-seed');
 
-    test('uses saveRestore only for the selected versioned project save', () {
+    test('versioned save stays ahead of project New Game and host seeds', () {
+      final plan = resolveRuntimeHostLaunchPlan(
+        newGame: const ProjectNewGameConfig(enabled: true),
+        versionedLaunchSave: versionedSave,
+        manualLaunchOverride: manualSeed,
+        demoLaunchFallback: demoSeed,
+      );
+
+      expect(plan.saveData, same(versionedSave));
+      expect(plan.initialMapActivationReason, MapActivationReason.saveRestore);
       expect(
-        resolveRuntimeHostInitialMapActivationReason(
+        allowsRuntimeHostSyntheticLaunchSeed(
+          newGame: const ProjectNewGameConfig(enabled: true),
           versionedLaunchSave: versionedSave,
-          manualLaunchOverride: null,
         ),
-        MapActivationReason.saveRestore,
+        isFalse,
       );
     });
 
-    test('manual and absent launch saves remain initialBoot', () {
-      expect(
-        resolveRuntimeHostInitialMapActivationReason(
-          versionedLaunchSave: versionedSave,
-          manualLaunchOverride: manualSeed,
-        ),
-        MapActivationReason.initialBoot,
+    test('project New Game is not replaced by manual or demo host seeds', () {
+      final plan = resolveRuntimeHostLaunchPlan(
+        newGame: const ProjectNewGameConfig(enabled: true),
+        versionedLaunchSave: null,
+        manualLaunchOverride: manualSeed,
+        demoLaunchFallback: demoSeed,
       );
+
+      expect(plan.saveData, isNull);
+      expect(plan.initialMapActivationReason, MapActivationReason.initialBoot);
       expect(
-        resolveRuntimeHostInitialMapActivationReason(
+        allowsRuntimeHostSyntheticLaunchSeed(
+          newGame: const ProjectNewGameConfig(enabled: true),
           versionedLaunchSave: null,
-          manualLaunchOverride: null,
         ),
-        MapActivationReason.initialBoot,
+        isFalse,
+      );
+    });
+
+    test('legacy projects preserve manual then demo seed fallbacks', () {
+      const legacyNewGame = ProjectNewGameConfig();
+
+      final manualPlan = resolveRuntimeHostLaunchPlan(
+        newGame: legacyNewGame,
+        versionedLaunchSave: null,
+        manualLaunchOverride: manualSeed,
+        demoLaunchFallback: demoSeed,
+      );
+      final demoPlan = resolveRuntimeHostLaunchPlan(
+        newGame: legacyNewGame,
+        versionedLaunchSave: null,
+        manualLaunchOverride: null,
+        demoLaunchFallback: demoSeed,
+      );
+
+      expect(manualPlan.saveData, same(manualSeed));
+      expect(demoPlan.saveData, same(demoSeed));
+      expect(manualPlan.initialMapActivationReason,
+          MapActivationReason.initialBoot);
+      expect(
+          demoPlan.initialMapActivationReason, MapActivationReason.initialBoot);
+      expect(
+        allowsRuntimeHostSyntheticLaunchSeed(
+          newGame: legacyNewGame,
+          versionedLaunchSave: null,
+        ),
+        isTrue,
       );
     });
   });

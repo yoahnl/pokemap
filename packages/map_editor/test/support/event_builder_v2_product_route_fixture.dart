@@ -326,6 +326,7 @@ Future<ProviderContainer> pumpEventBuilderV2FullProductRoute(
   WidgetTester tester, {
   required EventBuilderV2ProductRouteFixture fixture,
   MapData? activeMap,
+  bool includeProjectRootPath = true,
   Size viewport = const Size(1672, 941),
   String? fontFamily,
   LoadNarrativeEventBuilderV2ReadModel? readModelLoader,
@@ -360,7 +361,7 @@ Future<ProviderContainer> pumpEventBuilderV2FullProductRoute(
   final container = await pumpEditorShellPage(
     tester,
     initialState: EditorState(
-      projectRootPath: fixture.root.path,
+      projectRootPath: includeProjectRootPath ? fixture.root.path : null,
       project: fixture.project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: activeMap ?? fixture.portMap,

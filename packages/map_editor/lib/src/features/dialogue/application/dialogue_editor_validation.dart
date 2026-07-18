@@ -34,6 +34,8 @@ void _walkSteps({
   required void Function(DialogueValidationIssue) emit,
   required Set<String> titles,
   required void Function(String target, String? stepId) registerJump,
+  required Set<String> declaredOutcomeIds,
+  required Set<String> usedOutcomeIds,
 }) {
   for (final s in steps) {
     switch (s) {
@@ -51,7 +53,8 @@ void _walkSteps({
         if (speaker == null || speaker.trim().isEmpty) {
           emit(DialogueValidationIssue(
             severity: DialogueValidationSeverity.warning,
-            message: 'Interlocuteur non renseigné (réplique sans préfixe « X : »).',
+            message:
+                'Interlocuteur non renseigné (réplique sans préfixe « X : »).',
             nodeTitle: nodeTitle,
             stepId: id,
           ));
@@ -114,11 +117,52 @@ void _walkSteps({
             stepId: id,
           ));
         }
+        final seenOutcomeIds = <String>{};
         for (final b in branches) {
           if (b.label.trim().isEmpty) {
             emit(DialogueValidationIssue(
               severity: DialogueValidationSeverity.error,
               message: 'Option de choix sans libellé.',
+              nodeTitle: nodeTitle,
+              stepId: id,
+            ));
+          }
+          final outcomeId = b.outcomeId?.trim() ?? '';
+          if (declaredOutcomeIds.isNotEmpty && outcomeId.isEmpty) {
+            emit(DialogueValidationIssue(
+              severity: DialogueValidationSeverity.warning,
+              message:
+                  'Option « ${b.label} » : aucun résultat déclaré n’est associé.',
+              nodeTitle: nodeTitle,
+              stepId: id,
+            ));
+          }
+          if (outcomeId.isNotEmpty && !seenOutcomeIds.add(outcomeId)) {
+            emit(DialogueValidationIssue(
+              severity: DialogueValidationSeverity.error,
+              message:
+                  'Résultat de choix dupliqué dans ce bloc : « $outcomeId ».',
+              nodeTitle: nodeTitle,
+              stepId: id,
+            ));
+          }
+          if (outcomeId.isNotEmpty) {
+            usedOutcomeIds.add(outcomeId);
+          }
+          if (outcomeId.isNotEmpty && declaredOutcomeIds.isEmpty) {
+            emit(DialogueValidationIssue(
+              severity: DialogueValidationSeverity.error,
+              message:
+                  'Résultat « $outcomeId » utilisé sans registre public sur le dialogue.',
+              nodeTitle: nodeTitle,
+              stepId: id,
+            ));
+          } else if (outcomeId.isNotEmpty &&
+              !declaredOutcomeIds.contains(outcomeId)) {
+            emit(DialogueValidationIssue(
+              severity: DialogueValidationSeverity.error,
+              message:
+                  'Résultat de choix non déclaré par le dialogue : « $outcomeId ».',
               nodeTitle: nodeTitle,
               stepId: id,
             ));
@@ -151,6 +195,8 @@ void _walkSteps({
             emit: emit,
             titles: titles,
             registerJump: registerJump,
+            declaredOutcomeIds: declaredOutcomeIds,
+            usedOutcomeIds: usedOutcomeIds,
           );
         }
     }
@@ -158,11 +204,19 @@ void _walkSteps({
 }
 
 /// Analyse complète : erreurs bloquantes, avertissements, infos.
-List<DialogueValidationIssue> validateDialogueDocument(DialogueEditorDocument doc) {
+List<DialogueValidationIssue> validateDialogueDocument(
+  DialogueEditorDocument doc, {
+  Iterable<String> declaredOutcomeIds = const <String>[],
+}) {
   final out = <DialogueValidationIssue>[];
   void emit(DialogueValidationIssue i) => out.add(i);
 
   final titles = doc.nodeTitles();
+  final normalizedDeclaredOutcomeIds = declaredOutcomeIds
+      .map((outcomeId) => outcomeId.trim())
+      .where((outcomeId) => outcomeId.isNotEmpty)
+      .toSet();
+  final usedOutcomeIds = <String>{};
   final seenTitles = <String>{};
   for (final n in doc.nodes) {
     final t = n.title.trim();
@@ -194,7 +248,18 @@ List<DialogueValidationIssue> validateDialogueDocument(DialogueEditorDocument do
       emit: emit,
       titles: titles,
       registerJump: registerJump,
+      declaredOutcomeIds: normalizedDeclaredOutcomeIds,
+      usedOutcomeIds: usedOutcomeIds,
     );
+  }
+
+  for (final declaredOutcomeId in normalizedDeclaredOutcomeIds) {
+    if (usedOutcomeIds.contains(declaredOutcomeId)) continue;
+    emit(DialogueValidationIssue(
+      severity: DialogueValidationSeverity.warning,
+      message:
+          'Résultat public déclaré mais jamais utilisé : « $declaredOutcomeId ».',
+    ));
   }
 
   // Nœuds jamais ciblés par un jump (sauf le premier titre = entrée probable).

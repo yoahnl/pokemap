@@ -190,7 +190,7 @@ GoldenSliceReadinessReport buildGoldenSliceReadinessReport(
               }
             case SceneBattlePayload(:final battleKind, :final trainerId):
               battleNodeIds.add(node.id);
-              if (battleKind == 'trainer' &&
+              if ((battleKind == 'trainer' || battleKind == 'static') &&
                   (trainerId == null || !trainerIds.contains(trainerId))) {
                 issues.add(
                   GoldenSliceReadinessIssue(
@@ -198,7 +198,7 @@ GoldenSliceReadinessReport buildGoldenSliceReadinessReport(
                         .goldenSliceBattleRefMissing,
                     severity: GoldenSliceReadinessIssueSeverity.error,
                     message:
-                        'La Scene V1 référence un trainer absent du projet.',
+                        'La Scene V1 référence un adversaire absent du projet.',
                     mapId: map.id,
                     eventId: event.id,
                     pageNumber: page.pageNumber,

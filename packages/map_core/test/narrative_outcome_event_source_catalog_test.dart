@@ -28,6 +28,13 @@ void main() {
               id: 'dialogue_port',
               name: 'Dialogue du port',
               relativePath: 'dialogues/dialogue_port.yarn',
+              declaredOutcomes: [
+                DialogueDeclaredOutcome(
+                  id: 'dialogue_done',
+                  label: 'Dialogue terminé',
+                ),
+                DialogueDeclaredOutcome(id: 'ghost', label: 'Fantôme'),
+              ],
             ),
           ],
         ),
@@ -114,6 +121,12 @@ void main() {
               id: 'dialogue_port',
               name: 'Dialogue du port',
               relativePath: 'dialogues/dialogue_port.yarn',
+              declaredOutcomes: [
+                DialogueDeclaredOutcome(
+                  id: 'dialogue_done',
+                  label: 'Dialogue terminé',
+                ),
+              ],
             ),
           ],
         ),
@@ -776,6 +789,16 @@ SceneAsset _scene({
         toNodeId: 'end',
         kind: SceneEdgeKind.defaultFlow,
       ),
+    if (hasYarn)
+      for (final outcomeId in yarnExpectedOutcomes)
+        if (outcomeId != 'completed')
+          SceneEdge(
+            id: 'edge_dialogue_$outcomeId',
+            fromNodeId: 'dialogue',
+            fromPortId: outcomeId,
+            toNodeId: 'end',
+            kind: SceneEdgeKind.dialogueOutcome,
+          ),
   ];
   return SceneAsset(
     id: id,

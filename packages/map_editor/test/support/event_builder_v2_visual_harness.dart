@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/narrative/state/narrative_event_builder_v2_state.dart';
@@ -11,6 +10,8 @@ import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_element_library.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_workspace.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
+
+import 'narrative_studio_capture_fonts.dart';
 
 const eventBuilderV2PhaseKReferenceViewport = Size(1672, 941);
 const eventBuilderV2PhaseKCaptureViewports = <Size>[
@@ -56,36 +57,10 @@ Future<ui.Image> _loadEventBuilderV2PhaseKAppIcon() {
   }();
 }
 
-/// Loads readable text and product icon glyphs for opt-in macOS captures.
-///
-/// This is deliberately test-only and fails explicitly when the macOS font is
-/// unavailable instead of silently producing Ahem blocks in review artifacts.
-Future<void> loadEventBuilderV2PhaseKCaptureFonts() async {
-  final textFont = File('/System/Library/Fonts/SFNS.ttf');
-  if (!textFont.existsSync()) {
-    throw TestFailure(
-      'Phase K capture requires the macOS system font at '
-      '${textFont.path}.',
+Future<void> loadEventBuilderV2PhaseKCaptureFonts() =>
+    loadNarrativeStudioCaptureFonts(
+      textFamilies: const <String>[eventBuilderV2PhaseKCaptureFontFamily],
     );
-  }
-  final textFontBytes = textFont.readAsBytesSync();
-  final textFontLoader = FontLoader(eventBuilderV2PhaseKCaptureFontFamily)
-    ..addFont(
-      Future<ByteData>.value(ByteData.sublistView(textFontBytes)),
-    );
-  await textFontLoader.load();
-
-  final iconFontBytes = await rootBundle.load(
-    'packages/cupertino_icons/assets/CupertinoIcons.ttf',
-  );
-  final effectiveIconFamily = const TextStyle(
-    fontFamily: CupertinoIcons.iconFont,
-    package: CupertinoIcons.iconFontPackage,
-  ).fontFamily!;
-  final iconFontLoader = FontLoader(effectiveIconFamily)
-    ..addFont(Future<ByteData>.value(iconFontBytes));
-  await iconFontLoader.load();
-}
 
 Future<void> pumpEventBuilderV2PhaseK(
   WidgetTester tester, {

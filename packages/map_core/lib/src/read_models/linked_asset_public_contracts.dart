@@ -34,6 +34,7 @@ enum LinkedAssetContractStatus {
 
 enum BattlePublicContractKind {
   trainer,
+  staticEncounter,
 }
 
 enum CinematicPublicContractSourceKind {
@@ -337,11 +338,12 @@ List<DialoguePublicContract> buildDialoguePublicContracts(
         fallbackId: id,
         sourceId: id,
       ),
-      const LinkedAssetContractDiagnostic(
-        code: LinkedAssetContractDiagnosticCode.missingOutcomeContract,
-        severity: LinkedAssetContractDiagnosticSeverity.warning,
-        message: 'Dialogue outcomes are not exposed by a public contract yet.',
-      ),
+      if (entry.declaredOutcomes.isEmpty)
+        const LinkedAssetContractDiagnostic(
+          code: LinkedAssetContractDiagnosticCode.missingOutcomeContract,
+          severity: LinkedAssetContractDiagnosticSeverity.warning,
+          message: 'Dialogue declares no public outcomes.',
+        ),
     ];
     if (id.isEmpty) {
       diagnostics.add(
@@ -359,7 +361,13 @@ List<DialoguePublicContract> buildDialoguePublicContracts(
       sourceRef: entry.relativePath.trim(),
       defaultStartNode: _trimOrNull(entry.defaultStartNode),
       availableStartNodes: const [],
-      declaredOutcomes: const [],
+      declaredOutcomes: [
+        for (final outcome in entry.declaredOutcomes)
+          LinkedAssetOutcomeContract(
+            id: outcome.id.trim(),
+            label: outcome.label.trim(),
+          ),
+      ],
       diagnostics: diagnostics,
       status: id.isEmpty
           ? LinkedAssetContractStatus.unavailable
@@ -379,8 +387,15 @@ List<DialoguePublicContract> buildDialoguePublicContracts(
 List<BattlePublicContract> buildBattlePublicContracts(ProjectManifest project) {
   final contracts = project.trainers.map((trainer) {
     final trainerId = trainer.id.trim();
+    final isStaticEncounter = trainer.tags.any(
+      (tag) => tag.trim().toLowerCase() == 'static-encounter',
+    );
+    final battleKind = isStaticEncounter
+        ? BattlePublicContractKind.staticEncounter
+        : BattlePublicContractKind.trainer;
     final trainerLabel = _labelOrId(trainer.name, trainerId);
-    final battleRefId = 'trainer:$trainerId';
+    final battleRefId =
+        '${isStaticEncounter ? 'static' : 'trainer'}:$trainerId';
     final label = _battleLabel(trainer, trainerLabel, trainerId);
     final diagnostics = <LinkedAssetContractDiagnostic>[
       ..._labelDiagnostics(
@@ -413,7 +428,7 @@ List<BattlePublicContract> buildBattlePublicContracts(ProjectManifest project) {
       id: battleRefId,
       battleRefId: battleRefId,
       label: label,
-      battleKind: BattlePublicContractKind.trainer,
+      battleKind: battleKind,
       trainerId: trainerId,
       trainerLabel: trainerLabel,
       possibleOutcomes: const [

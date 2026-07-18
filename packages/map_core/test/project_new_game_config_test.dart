@@ -1,0 +1,190 @@
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('Project new game config', () {
+    test('legacy manifests default to a disabled config', () {
+      final manifest = ProjectManifest.fromJson({
+        'name': 'legacy',
+        'maps': <Object?>[],
+        'tilesets': <Object?>[],
+      });
+
+      expect(manifest.newGame.enabled, isFalse);
+      expect(manifest.newGame.initialParty, isEmpty);
+      expect(manifest.newGame.starterOptions, isEmpty);
+      expect(manifest.toJson()['newGame'], isA<Map<String, dynamic>>());
+    });
+
+    test('round-trips spawn, inventory, facts, party and starter options', () {
+      const config = ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'map_start',
+        startSpawnId: 'spawn_home',
+        playerName: 'Maël',
+        startingMoney: 500,
+        initialBag: [
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+        ],
+        initialParty: [
+          PlayerPokemon(
+            speciesId: 'eevee',
+            natureId: 'hardy',
+            abilityId: 'run-away',
+            level: 5,
+            currentHp: 20,
+          ),
+        ],
+        initialFacts: {'fact_intro_active': true},
+        existingPartyFactId: 'fact_existing_party',
+        starterSelectionSceneId: 'scene_starter_choice',
+        starterOptions: [
+          ProjectStarterOption(
+            id: 'starter_bulbasaur',
+            label: 'Bulbizarre',
+            pokemon: PlayerPokemon(
+              speciesId: 'bulbasaur',
+              natureId: 'hardy',
+              abilityId: 'overgrow',
+              level: 5,
+              currentHp: 20,
+            ),
+          ),
+        ],
+      );
+      final manifest = _manifest(config);
+
+      final decoded = ProjectManifest.fromJson(manifest.toJson());
+
+      expect(decoded.newGame, config);
+      expect(decoded.newGame.starterOptions.single.id, 'starter_bulbasaur');
+    });
+
+    test('validator rejects references and structurally invalid values', () {
+      final invalidConfigs = <ProjectNewGameConfig>[
+        const ProjectNewGameConfig(enabled: true),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'missing_map',
+        ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          startingMoney: -1,
+        ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          initialBag: [
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 0),
+          ],
+        ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          existingPartyFactId: 'missing_fact',
+        ),
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          starterSelectionSceneId: 'missing_scene',
+        ),
+      ];
+
+      for (final config in invalidConfigs) {
+        expect(
+          () => ProjectValidator.validate(_manifest(config)),
+          throwsA(isA<ValidationException>()),
+          reason: config.toString(),
+        );
+      }
+    });
+
+    test('validator accepts both empty-party and existing-party starts', () {
+      for (final initialParty in <List<PlayerPokemon>>[
+        const [],
+        const [
+          PlayerPokemon(
+            speciesId: 'eevee',
+            natureId: 'hardy',
+            abilityId: 'run-away',
+            level: 5,
+            currentHp: 20,
+          ),
+        ],
+      ]) {
+        final manifest = _manifest(
+          ProjectNewGameConfig(
+            enabled: true,
+            startMapId: 'map_start',
+            existingPartyFactId: 'fact_existing_party',
+            initialParty: initialParty,
+            starterSelectionSceneId: 'scene_starter_choice',
+            starterOptions: const [
+              ProjectStarterOption(
+                id: 'starter_bulbasaur',
+                label: 'Bulbizarre',
+                pokemon: PlayerPokemon(
+                  speciesId: 'bulbasaur',
+                  natureId: 'hardy',
+                  abilityId: 'overgrow',
+                  level: 5,
+                  currentHp: 20,
+                ),
+              ),
+            ],
+          ),
+        );
+
+        expect(() => ProjectValidator.validate(manifest), returnsNormally);
+      }
+    });
+  });
+}
+
+ProjectManifest _manifest(ProjectNewGameConfig newGame) {
+  return ProjectManifest(
+    name: 'new game config test',
+    maps: const [
+      ProjectMapEntry(
+        id: 'map_start',
+        name: 'Start',
+        relativePath: 'maps/map_start.json',
+      ),
+    ],
+    tilesets: const [],
+    facts: [
+      NarrativeFactDefinition(
+        id: 'fact_intro_active',
+        label: 'Introduction active',
+      ),
+      NarrativeFactDefinition(
+        id: 'fact_existing_party',
+        label: 'Équipe existante',
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_starter_choice',
+        name: 'Starter choice',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'edge_start_end',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      ),
+    ],
+    newGame: newGame,
+  );
+}

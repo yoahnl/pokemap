@@ -31,6 +31,9 @@ pubspec.lock
 # Local OS/editor noise
 .DS_Store
 .idea/
+**/.pokemap-project-*.lock
+**/flutter_*.log
+packages/map_editor/test/**/failures/
 
 /pokemon-showdown-master/
 /pokemon-showdown-client-master/

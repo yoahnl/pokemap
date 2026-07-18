@@ -16,6 +16,7 @@ void main() {
       bool isTrainerBattle = false,
       String? trainerId,
       bool allowCapture = false,
+      bool allowFlee = true,
     }) {
       return BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -40,6 +41,7 @@ void main() {
         isTrainerBattle: isTrainerBattle,
         trainerId: trainerId,
         allowCapture: allowCapture,
+        allowFlee: allowFlee,
       );
     }
 
@@ -667,6 +669,26 @@ void main() {
       expect(choices[0], isA<PlayerBattleChoiceFight>());
       expect(choices[1], isA<PlayerBattleChoiceFight>());
       expect(choices[2], isA<PlayerBattleChoiceRun>());
+    });
+
+    test('getAvailableChoices hides run when the battle forbids fleeing', () {
+      final setup = createTestSetup(allowFlee: false);
+      final session = createBattleSession(setup);
+
+      expect(
+        session.getAvailableChoices().whereType<PlayerBattleChoiceRun>(),
+        isEmpty,
+      );
+    });
+
+    test('applyChoice rejects run when the battle forbids fleeing', () {
+      final setup = createTestSetup(allowFlee: false);
+      final session = createBattleSession(setup);
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceRun()),
+        throwsA(isA<StateError>()),
+      );
     });
 
     test('getAvailableChoices exposes capture in wild battle when allowed', () {

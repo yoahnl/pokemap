@@ -11810,7 +11810,63 @@
       "properties": {}
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "id": "gate_passage_to_phare",
+      "name": "Route du Vieux Phare fermée",
+      "kind": "sign",
+      "pos": {
+        "x": 59,
+        "y": 0
+      },
+      "size": {
+        "width": 1,
+        "height": 24
+      },
+      "npc": null,
+      "sign": {
+        "title": "Route du Vieux Phare fermée",
+        "dialogue": null,
+        "plainText": "La barrière ne s’ouvrira qu’après l’accord de Soline."
+      },
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_passage_barriere_fermee",
+        "renderInForeground": false
+      },
+      "blocksMovement": true,
+      "properties": {
+        "contractRole": "selbrume_route_lock",
+        "unlockProjection": "world_rule_entity_hidden"
+      }
+    },
+    {
+      "id": "fog_passage",
+      "name": "Brume du Passage des Dames",
+      "kind": "custom",
+      "pos": {
+        "x": 28,
+        "y": 8
+      },
+      "size": {
+        "width": 1,
+        "height": 1
+      },
+      "npc": null,
+      "sign": null,
+      "item": null,
+      "spawn": null,
+      "editorVisual": {
+        "elementId": "el_selbrume_fx_brume_basse",
+        "renderInForeground": false
+      },
+      "blocksMovement": false,
+      "properties": {
+        "contractRole": "selbrume_world_state_visual"
+      }
+    }
+  ],
   "connections": [
     {
       "direction": "north",

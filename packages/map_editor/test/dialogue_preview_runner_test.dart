@@ -30,5 +30,35 @@ prof: Bye
         greaterThan(1),
       );
     });
+
+    test('exposes the stable outcome selected by the preview player', () {
+      const yarn = '''
+title: Start
+---
+-> Répondre avec assurance
+  <<outcome confident>>
+  Joueur: Je peux aider.
+  <<jump Next>>
+-> Rester prudent
+  <<outcome hesitant>>
+  Joueur: Je dois réfléchir.
+===
+title: Next
+---
+Lysa: Très bien.
+===
+''';
+
+      final session = DialoguePreviewSession(parseYarnToDocument(yarn));
+      expect(session.selectedOutcomeId, isNull);
+
+      session.choose(0);
+
+      expect(session.selectedOutcomeId, 'confident');
+      expect(
+        session.transcript.whereType<DialoguePreviewEnded>().last.outcomeId,
+        'confident',
+      );
+    });
   });
 }
