@@ -998,7 +998,7 @@ void main() {
     );
   });
 
-  testWidgets('edits metadata and deletes only unused canonicals',
+  testWidgets('rejects referenced deletion and deletes unused canonicals',
       (tester) async {
     _setLargeSurface(tester);
     await tester.pumpWidget(
@@ -1023,7 +1023,21 @@ void main() {
 
     final deleteButton =
         find.byKey(const ValueKey('cinematics-library-delete-button'));
-    expect(tester.widget<PokeMapButton>(deleteButton).onPressed, isNull);
+    expect(tester.widget<PokeMapButton>(deleteButton).onPressed, isNotNull);
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    expect(
+      find.text(
+        'Suppression non enregistrée. Consultez le diagnostic du projet.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey('cinematics-library-title-field')),
@@ -1263,9 +1277,13 @@ class _HarnessState extends State<_Harness> {
                 return true;
               },
               onRemoveCinematic: ({required String cinematicId}) async {
-                final result = removeCinematicAsset(_project, cinematicId);
-                setState(() => _project = result.updatedProject);
-                return true;
+                try {
+                  final result = removeCinematicAsset(_project, cinematicId);
+                  setState(() => _project = result.updatedProject);
+                  return true;
+                } on ArgumentError {
+                  return false;
+                }
               },
               onAddTimelineDraft: ({
                 required String cinematicId,

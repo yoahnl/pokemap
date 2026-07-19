@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
 import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
+import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
@@ -314,13 +316,17 @@ void main() {
 
     testWidgets('Cmd/Ctrl+S saves project outside map workspace',
         (tester) async {
-      await pumpEditorShellPage(
+      final projectRepository = _ImmediateProjectRepository();
+      final container = await pumpEditorShellPage(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/editor_shell_shortcut_path_studio',
           project: buildShellChromeProject(),
           workspaceMode: EditorWorkspaceMode.pathStudio,
         ),
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(projectRepository),
+        ],
       );
 
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -328,6 +334,10 @@ void main() {
       await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
       await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
       await tester.pumpAndSettle();
+
+      expect(container.read(editorNotifierProvider).isSaving, isFalse);
+      expect(container.read(editorNotifierProvider).errorMessage, isNull);
+      expect(projectRepository.savedProjects, hasLength(1));
       expect(find.byType(Placeholder), findsNothing);
     });
 
@@ -403,4 +413,18 @@ void main() {
       );
     });
   });
+}
+
+final class _ImmediateProjectRepository implements ProjectRepository {
+  final List<ProjectManifest> savedProjects = <ProjectManifest>[];
+
+  @override
+  Future<ProjectManifest> loadProject(String path) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> saveProject(ProjectManifest project, String path) async {
+    savedProjects.add(project);
+  }
 }

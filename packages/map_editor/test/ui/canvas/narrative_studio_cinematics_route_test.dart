@@ -1,8 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/application/models/narrative_authoring_transaction.dart';
+import 'package:map_editor/src/application/ports/narrative_authoring_persistence_gateway.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
@@ -120,6 +125,200 @@ void main() {
       expectSharedRoute();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
       expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
+    'Cinematics CRUD persists through the shared authoring transaction',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'cinematics_authoring_transaction_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final manifestFile = File('${root.path}/project.json');
+      final project = _cinematicsProject().copyWith(scenarios: const []);
+      manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
+      final gateway = _SynchronousManifestGateway();
+
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+        overrides: [
+          narrativeAuthoringPersistenceGatewayProvider.overrideWithValue(
+            gateway,
+          ),
+        ],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+      await tester.pump();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematics-library-create-title-field')),
+        'Départ du port',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-create-button')),
+      );
+      await tester.pump();
+      expect(
+        gateway.calls,
+        1,
+        reason: container.read(editorNotifierProvider).errorMessage,
+      );
+      await _pumpUntil(
+        tester,
+        () =>
+            !container.read(editorNotifierProvider).isSaving &&
+            container
+                .read(editorNotifierProvider)
+                .project!
+                .cinematics
+                .any((asset) => asset.title == 'Départ du port'),
+      );
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .cinematics
+            .map((asset) => asset.title),
+        contains('Départ du port'),
+      );
+      expect(
+        _readManifest(manifestFile).cinematics.map((asset) => asset.title),
+        contains('Départ du port'),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('cinematics-library-title-field')),
+        'Départ du phare',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-save-button')),
+      );
+      await _pumpUntil(
+        tester,
+        () =>
+            !container.read(editorNotifierProvider).isSaving &&
+            container
+                .read(editorNotifierProvider)
+                .project!
+                .cinematics
+                .any((asset) => asset.title == 'Départ du phare'),
+      );
+
+      expect(
+        _readManifest(manifestFile).cinematics.map((asset) => asset.title),
+        contains('Départ du phare'),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+
+      final deleteButton =
+          find.byKey(const ValueKey('cinematics-library-delete-button'));
+      await tester.tap(deleteButton);
+      await tester.pump();
+      await tester.tap(deleteButton);
+      await _pumpUntil(
+        tester,
+        () =>
+            !container.read(editorNotifierProvider).isSaving &&
+            container
+                .read(editorNotifierProvider)
+                .project!
+                .cinematics
+                .every((asset) => asset.title != 'Départ du phare'),
+      );
+
+      expect(
+        _readManifest(manifestFile).cinematics.map((asset) => asset.title),
+        isNot(contains('Départ du phare')),
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+      expect(gateway.calls, 3);
+    },
+  );
+
+  testWidgets(
+    'Cinematics never reports a dirty no-op retry as saved',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'cinematics_authoring_failed_retry_',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final manifestFile = File('${root.path}/project.json');
+      final project = _cinematicsProject().copyWith(scenarios: const []);
+      manifestFile.writeAsStringSync(jsonEncode(project.toJson()));
+      final gateway = _FailingManifestGateway();
+
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+        overrides: [
+          narrativeAuthoringPersistenceGatewayProvider.overrideWithValue(
+            gateway,
+          ),
+        ],
+      );
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(projectRootPath: root.path);
+      await tester.pump();
+
+      final titleField =
+          find.byKey(const ValueKey('cinematics-library-title-field'));
+      final saveButton =
+          find.byKey(const ValueKey('cinematics-library-save-button'));
+      await tester.enterText(titleField, 'Intro locale non enregistrée');
+      await tester.tap(saveButton);
+      await _pumpUntil(
+        tester,
+        () =>
+            !container.read(editorNotifierProvider).isSaving &&
+            container
+                    .read(editorNotifierProvider)
+                    .project!
+                    .cinematics
+                    .first
+                    .title ==
+                'Intro locale non enregistrée',
+      );
+
+      expect(gateway.calls, 1);
+      expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
+      expect(
+        find.text(
+          'Modification non enregistrée. Consultez le diagnostic du projet.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        _readManifest(manifestFile).cinematics.first.title,
+        isNot('Intro locale non enregistrée'),
+      );
+
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
+
+      expect(gateway.calls, 1);
+      expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
+      expect(container.read(editorNotifierProvider).errorMessage,
+          contains('seulement localement'));
+      expect(find.text('Métadonnées sauvegardées.'), findsNothing);
+      expect(
+        find.text(
+          'Modification non enregistrée. Consultez le diagnostic du projet.',
+        ),
+        findsOneWidget,
+      );
     },
   );
 
@@ -253,6 +452,60 @@ void main() {
           matchesGoldenFile(golden.absolute.path),
         );
       },
+    );
+  }
+}
+
+ProjectManifest _readManifest(File file) {
+  final decoded = jsonDecode(file.readAsStringSync());
+  return ProjectManifest.fromJson(Map<String, dynamic>.from(decoded as Map));
+}
+
+Future<void> _pumpUntil(
+  WidgetTester tester,
+  bool Function() condition,
+) async {
+  for (var attempt = 0; attempt < 100; attempt++) {
+    await tester.pump(const Duration(milliseconds: 20));
+    if (condition()) return;
+  }
+  fail('Timed out while waiting for the narrative authoring transaction.');
+}
+
+final class _SynchronousManifestGateway
+    implements NarrativeAuthoringPersistenceGateway {
+  int calls = 0;
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persist(
+    NarrativeAuthoringTransaction transaction,
+  ) {
+    calls += 1;
+    File(transaction.projectPath).writeAsStringSync(
+      jsonEncode(transaction.after.toJson()),
+      flush: true,
+    );
+    return Future.value(
+      const NarrativeAuthoringPersistenceResult.committed(),
+    );
+  }
+}
+
+final class _FailingManifestGateway
+    implements NarrativeAuthoringPersistenceGateway {
+  int calls = 0;
+
+  @override
+  Future<NarrativeAuthoringPersistenceResult> persist(
+    NarrativeAuthoringTransaction transaction,
+  ) {
+    calls += 1;
+    return Future.value(
+      const NarrativeAuthoringPersistenceResult(
+        status: NarrativeAuthoringPersistenceStatus.persistenceFailed,
+        code: 'staleProjectRevision',
+        message: 'The project changed externally.',
+      ),
     );
   }
 }

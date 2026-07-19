@@ -31,6 +31,7 @@ import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/narrative_event_spatial_link_journal_models.dart';
 import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
+import '../../../application/models/narrative_authoring_transaction.dart';
 import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
@@ -97,6 +98,9 @@ class EditorNotifier extends _$EditorNotifier {
   MapData? _narrativeEventSourceCleanupBaselineIdentity;
   _MapDiskMutationLease? _mapDiskMutationLease;
   Object? _narrativeEventSourceMapWriteLeaseToken;
+  Object? _narrativeAuthoringLeaseToken;
+  Object _projectSessionIdentity = Object();
+  _NarrativeAuthoringSaveInterlock? _narrativeAuthoringSaveInterlock;
 
   EditorWorkspaceController get _editorWorkspaceController =>
       ref.read(editorWorkspaceControllerProvider);
@@ -287,6 +291,8 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Projet "$name" créé avec succès',
       );
+      _projectSessionIdentity = Object();
+      _narrativeAuthoringSaveInterlock = null;
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
       );
@@ -338,6 +344,8 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Projet « ${manifest.name} » chargé',
       );
+      _projectSessionIdentity = Object();
+      _narrativeAuthoringSaveInterlock = null;
       didAdoptProject = true;
       _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
       _republishNarrativeEventSourceMapWriteLease(effectiveLeaseToken);
@@ -513,6 +521,197 @@ class EditorNotifier extends _$EditorNotifier {
           );
   }
 
+  /// Executes one validated Narrative Studio mutation through the shared
+  /// atomic persistence boundary.
+  ///
+  /// Applicable changes become visible and dirty before the write starts.
+  /// They are only announced as saved after persistence confirmation. A
+  /// conflict or I/O failure deliberately keeps the visible local document.
+  Future<NarrativeAuthoringTransactionResult?>
+      executeNarrativeAuthoringMutation(
+    NarrativeAssetMutationResult Function(ProjectManifest project)
+        buildMutation, {
+    required String operationId,
+  }) async {
+    final workspace = _projectWorkspace;
+    final project = state.project;
+    if (workspace == null || project == null) {
+      state = state.copyWith(
+        errorMessage: 'Aucun projet ouvert pour modifier le récit.',
+      );
+      return null;
+    }
+    final projectPath = workspace.projectManifestPath;
+    final projectSessionIdentity = _projectSessionIdentity;
+
+    late final NarrativeAssetMutationResult mutation;
+    try {
+      mutation = buildMutation(project);
+    } on Object catch (error) {
+      state = state.copyWith(
+        errorMessage: 'Modification narrative invalide : $error',
+      );
+      return null;
+    }
+
+    final transaction = NarrativeAuthoringTransaction.fromMutation(
+      projectPath: projectPath,
+      operationId: operationId,
+      mutation: mutation,
+    );
+    if (mutation.isApplicable &&
+        (_narrativeAuthoringLeaseToken != null ||
+            state.isSaving ||
+            state.isProjectDirty)) {
+      final result = NarrativeAuthoringTransactionResult(
+        status: NarrativeAuthoringTransactionStatus.busy,
+        code: state.isProjectDirty ? 'dirtyProject' : 'transactionBusy',
+        message: state.isProjectDirty
+            ? 'Enregistrez les modifications projet en attente avant cette '
+                'opération narrative.'
+            : 'Une autre sauvegarde est déjà en cours.',
+        transaction: transaction,
+      );
+      state = state.copyWith(errorMessage: result.message);
+      return result;
+    }
+
+    if (mutation is NarrativeAssetNoChange && state.isProjectDirty) {
+      final interlock = _narrativeAuthoringSaveInterlock;
+      final result = NarrativeAuthoringTransactionResult(
+        status: NarrativeAuthoringTransactionStatus.rejected,
+        code: 'unsavedLocalSnapshot',
+        message: interlock == null
+            ? 'Cette version existe seulement dans les modifications locales '
+                'non enregistrées.'
+            : 'Cette version existe seulement localement après l’échec '
+                '${interlock.code}. Rechargez le projet avant de réessayer.',
+        transaction: transaction,
+      );
+      // A semantic no-op against dirty memory is not a persistence success.
+      // Keeping it explicit prevents a retry from claiming that disk is saved.
+      state = state.copyWith(errorMessage: result.message);
+      return result;
+    }
+
+    final executor = ref.read(executeNarrativeAuthoringTransactionProvider);
+    if (!mutation.isApplicable) {
+      final result = await executor.execute(
+        projectPath: projectPath,
+        operationId: operationId,
+        mutation: mutation,
+      );
+      final rejectionMessage = switch (mutation) {
+        NarrativeAssetRejected(:final referencePaths)
+            when referencePaths.isNotEmpty =>
+          '${result.message} ${referencePaths.join(', ')}',
+        _ => result.message,
+      };
+      state = switch (result.status) {
+        NarrativeAuthoringTransactionStatus.noChange => state.copyWith(
+            statusMessage: 'Aucune modification narrative à enregistrer.',
+            errorMessage: null,
+          ),
+        _ => state.copyWith(errorMessage: rejectionMessage),
+      };
+      return result;
+    }
+
+    final token = Object();
+    _narrativeAuthoringLeaseToken = token;
+    final after = mutation.after;
+    state = state.copyWith(
+      project: after,
+      isProjectDirty: true,
+      isSaving: true,
+      statusMessage: 'Modification narrative locale en attente…',
+      errorMessage: null,
+    );
+
+    try {
+      final result = await executor.execute(
+        projectPath: projectPath,
+        operationId: operationId,
+        mutation: mutation,
+      );
+      if (!_canAdoptNarrativeAuthoringResult(
+        token: token,
+        projectSessionIdentity: projectSessionIdentity,
+        projectPath: projectPath,
+      )) {
+        // The write belongs to a project session that is no longer visible.
+        // Returning null prevents the old workspace callback from announcing
+        // success or selecting an asset id inside the newly opened project.
+        return null;
+      }
+      final exactSnapshotStillVisible = identical(state.project, after);
+      switch (result.status) {
+        case NarrativeAuthoringTransactionStatus.committed:
+          _narrativeAuthoringSaveInterlock = null;
+          state = state.copyWith(
+            isSaving: false,
+            isProjectDirty:
+                exactSnapshotStillVisible ? false : state.isProjectDirty,
+            statusMessage: exactSnapshotStillVisible
+                ? 'Modification narrative enregistrée.'
+                : 'Snapshot narratif enregistré ; des modifications locales '
+                    'plus récentes restent à enregistrer.',
+            errorMessage: null,
+          );
+        case NarrativeAuthoringTransactionStatus.persistenceFailed:
+        case NarrativeAuthoringTransactionStatus.recoveryRequired:
+          _narrativeAuthoringSaveInterlock = _NarrativeAuthoringSaveInterlock(
+            projectPath: projectPath,
+            code: result.code,
+            message: result.message,
+          );
+          state = state.copyWith(
+            isSaving: false,
+            isProjectDirty: true,
+            errorMessage:
+                'Modification locale conservée, mais non enregistrée : '
+                '${result.message}',
+          );
+        case NarrativeAuthoringTransactionStatus.rejected:
+        case NarrativeAuthoringTransactionStatus.noChange:
+        case NarrativeAuthoringTransactionStatus.busy:
+          _narrativeAuthoringSaveInterlock = _NarrativeAuthoringSaveInterlock(
+            projectPath: projectPath,
+            code: result.code,
+            message: result.message,
+          );
+          state = state.copyWith(
+            isSaving: false,
+            isProjectDirty: true,
+            errorMessage: result.message,
+          );
+      }
+      return result;
+    } finally {
+      if (identical(_narrativeAuthoringLeaseToken, token)) {
+        final canStillAdopt = _canAdoptNarrativeAuthoringResult(
+          token: token,
+          projectSessionIdentity: projectSessionIdentity,
+          projectPath: projectPath,
+        );
+        _narrativeAuthoringLeaseToken = null;
+        if (canStillAdopt && state.isSaving) {
+          state = state.copyWith(isSaving: false);
+        }
+      }
+    }
+  }
+
+  bool _canAdoptNarrativeAuthoringResult({
+    required Object token,
+    required Object projectSessionIdentity,
+    required String projectPath,
+  }) {
+    return identical(_narrativeAuthoringLeaseToken, token) &&
+        identical(_projectSessionIdentity, projectSessionIdentity) &&
+        _projectWorkspace?.projectManifestPath == projectPath;
+  }
+
   /// Adopts a registry already committed by the dedicated Event V2 writer.
   ///
   /// This intentionally changes no map document, selection or history field.
@@ -600,21 +799,44 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return false;
     }
+    final interlock = _narrativeAuthoringSaveInterlock;
+    if (interlock != null && interlock.projectPath == fs.projectManifestPath) {
+      state = state.copyWith(
+        errorMessage: 'Sauvegarde projet bloquée après un échec narratif '
+            '(${interlock.code}) afin de ne pas écraser une version externe. '
+            'Rechargez le projet avant de réessayer. ${interlock.message}',
+      );
+      return false;
+    }
+    if (state.isSaving) {
+      state = state.copyWith(
+        errorMessage: 'Une sauvegarde est déjà en cours.',
+      );
+      return false;
+    }
     debugPrint('EditorNotifier: saveProjectManifest()');
+    state = state.copyWith(isSaving: true, errorMessage: null);
     try {
       await ref.read(projectRepositoryProvider).saveProject(
             project,
             fs.projectManifestPath,
           );
+      final savedSnapshotIsStillCurrent = identical(state.project, project);
       state = state.copyWith(
-        isProjectDirty: false,
-        statusMessage: 'Projet sauvegardé via le flux projet existant.',
+        isSaving: false,
+        isProjectDirty:
+            savedSnapshotIsStillCurrent ? false : state.isProjectDirty,
+        statusMessage: savedSnapshotIsStillCurrent
+            ? 'Projet sauvegardé via le flux projet existant.'
+            : 'Snapshot sauvegardé ; des modifications locales plus récentes '
+                'restent à enregistrer.',
         errorMessage: null,
       );
       return true;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving project manifest: $e');
       state = state.copyWith(
+        isSaving: false,
         errorMessage: 'Failed to save project: $e',
       );
       return false;
@@ -10940,6 +11162,20 @@ TrainerFieldUpdate<T> _trainerFieldUpdate<T>(Object? rawValue) {
     return TrainerFieldUpdate<T>.keep();
   }
   return TrainerFieldUpdate<T>.set(rawValue as T?);
+}
+
+/// Prevents a generic manifest save from bypassing the baseline-aware
+/// narrative transaction after a failed or indeterminate commit.
+final class _NarrativeAuthoringSaveInterlock {
+  const _NarrativeAuthoringSaveInterlock({
+    required this.projectPath,
+    required this.code,
+    required this.message,
+  });
+
+  final String projectPath;
+  final String code;
+  final String message;
 }
 
 class _PaintPattern {

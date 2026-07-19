@@ -16,6 +16,7 @@ import '../../application/ports/pokemon_write_repository.dart';
 import '../../application/ports/project_workspace.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
 import '../../domain/repositories/repositories.dart';
+import 'atomic_project_manifest_persistence.dart';
 import 'narrative_event_registry_persistence.dart';
 import 'project_manifest_write_lock.dart';
 
@@ -23,10 +24,20 @@ class FileProjectRepository
     implements ProjectRepository, NarrativeEventRegistryPersistenceGateway {
   FileProjectRepository({
     NarrativeEventRegistryPersistence? eventRegistryPersistence,
+    AtomicProjectManifestPersistence? narrativeAuthoringPersistence,
   }) : _eventRegistryPersistence =
-            eventRegistryPersistence ?? NarrativeEventRegistryPersistence();
+            eventRegistryPersistence ?? NarrativeEventRegistryPersistence() {
+    _narrativeAuthoringPersistence = narrativeAuthoringPersistence ??
+        AtomicProjectManifestPersistence(
+          eventRegistryPersistence: _eventRegistryPersistence,
+        );
+  }
 
   final NarrativeEventRegistryPersistence _eventRegistryPersistence;
+  late final AtomicProjectManifestPersistence _narrativeAuthoringPersistence;
+
+  AtomicProjectManifestPersistence get narrativeAuthoringPersistence =>
+      _narrativeAuthoringPersistence;
 
   @override
   Future<NarrativeEventRegistryRecoveryInspection> inspectRecovery(

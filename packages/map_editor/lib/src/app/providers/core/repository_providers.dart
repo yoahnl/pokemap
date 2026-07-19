@@ -4,7 +4,9 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../application/ports/narrative_event_registry_persistence_gateway.dart';
 import '../../../application/ports/narrative_event_migration_persistence_gateway.dart';
 import '../../../application/ports/narrative_event_spatial_source_creation_gateway.dart';
+import '../../../application/ports/narrative_authoring_persistence_gateway.dart';
 import '../../../application/ports/project_workspace.dart';
+import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
@@ -20,6 +22,18 @@ final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
 final narrativeEventRegistryPersistenceGatewayProvider =
     Provider<NarrativeEventRegistryPersistenceGateway>((ref) {
   return ref.watch(fileProjectRepositoryProvider);
+});
+
+final narrativeAuthoringPersistenceGatewayProvider =
+    Provider<NarrativeAuthoringPersistenceGateway>((ref) {
+  return ref.watch(fileProjectRepositoryProvider).narrativeAuthoringPersistence;
+});
+
+final executeNarrativeAuthoringTransactionProvider =
+    Provider<ExecuteNarrativeAuthoringTransaction>((ref) {
+  return ExecuteNarrativeAuthoringTransaction(
+    ref.watch(narrativeAuthoringPersistenceGatewayProvider),
+  );
 });
 
 final narrativeEventSpatialSourceCreationGatewayProvider =

@@ -962,7 +962,6 @@ class _CinematicsLibraryWorkspaceState
     CinematicsLibraryEntry entry,
   ) {
     final asset = findCinematicById(widget.project, entry.id);
-    final deleteEnabled = entry.isRemovable;
     final deleteLabel = _pendingDeleteId == entry.id
         ? 'Confirmer suppression'
         : 'Supprimer la cinématique';
@@ -1036,8 +1035,7 @@ class _CinematicsLibraryWorkspaceState
                 ),
                 PokeMapButton(
                   key: const ValueKey('cinematics-library-delete-button'),
-                  onPressed:
-                      deleteEnabled ? () => _removeCinematic(entry) : null,
+                  onPressed: () => _removeCinematic(entry),
                   variant: PokeMapButtonVariant.danger,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(CupertinoIcons.trash),
@@ -1045,7 +1043,7 @@ class _CinematicsLibraryWorkspaceState
                 ),
               ],
             ),
-            if (!deleteEnabled) ...[
+            if (!entry.isRemovable) ...[
               const SizedBox(height: 8),
               const PokeMapBadge(
                 label: 'Utilisée par une scène',
@@ -1184,7 +1182,10 @@ class _CinematicsLibraryWorkspaceState
       return;
     }
     if (createdId == null) {
-      setState(() => _feedback = 'Création refusée.');
+      setState(
+        () => _feedback =
+            'Création non enregistrée. Consultez le diagnostic du projet.',
+      );
       return;
     }
     setState(() {
@@ -1208,7 +1209,9 @@ class _CinematicsLibraryWorkspaceState
     }
     setState(() {
       _loadedEditorId = null;
-      _feedback = saved ? 'Métadonnées sauvegardées.' : 'Sauvegarde refusée.';
+      _feedback = saved
+          ? 'Métadonnées sauvegardées.'
+          : 'Modification non enregistrée. Consultez le diagnostic du projet.';
     });
   }
 
@@ -1231,7 +1234,8 @@ class _CinematicsLibraryWorkspaceState
         _pendingDeleteId = null;
         _feedback = 'Cinématique supprimée.';
       } else {
-        _feedback = 'Suppression refusée.';
+        _feedback =
+            'Suppression non enregistrée. Consultez le diagnostic du projet.';
       }
     });
   }

@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/narrative_authoring_transaction.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
@@ -1579,32 +1580,27 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   }
 
   Future<String?> _createCinematicShell({required String title}) async {
-    final project = widget.project;
-    if (project == null) {
-      return null;
-    }
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {
       return null;
     }
-    final id = _nextCinematicAssetId(project, cleanTitle);
-    try {
-      final result = addCinematicAsset(
+    final result =
+        await widget.editorNotifier.executeNarrativeAuthoringMutation(
+      (project) => NarrativeAssetMutation.createCinematic(
         project,
-        CinematicAsset(
-          id: id,
-          title: cleanTitle,
-          timeline: CinematicTimeline(),
-        ),
-      );
-      widget.editorNotifier.applyInMemoryProjectManifest(
-        result.updatedProject,
-        statusMessage: 'CinematicAsset created',
-      );
-      return result.cinematic.id;
-    } on ArgumentError {
+        title: cleanTitle,
+      ),
+      operationId: _cinematicAuthoringOperationId('create'),
+    );
+    if (result == null) {
       return null;
     }
+    final mutation = result.transaction.mutation;
+    if (result.status != NarrativeAuthoringTransactionStatus.committed ||
+        mutation is! NarrativeAssetCreated) {
+      return null;
+    }
+    return mutation.asset.id;
   }
 
   Future<bool> _updateCinematicMetadata({
@@ -1613,59 +1609,60 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     required String description,
     required String notes,
   }) async {
-    final project = widget.project;
-    if (project == null) {
+    final result =
+        await widget.editorNotifier.executeNarrativeAuthoringMutation(
+      (project) {
+        final existing = findCinematicById(project, cinematicId);
+        if (existing == null) {
+          return NarrativeAssetRejected(
+            project: project,
+            code: 'assetNotFound',
+            message: 'The cinematic to update does not exist.',
+          );
+        }
+        return NarrativeAssetMutation.updateCinematic(
+          project,
+          cinematicId: cinematicId,
+          cinematic: CinematicAsset(
+            id: existing.id,
+            title: title.trim(),
+            description: description.trim(),
+            storylineId: existing.storylineId,
+            chapterId: existing.chapterId,
+            mapId: existing.mapId,
+            tags: existing.tags,
+            requiredActors: existing.requiredActors,
+            movementTargets: existing.movementTargets,
+            stageContext: existing.stageContext,
+            timeline: existing.timeline,
+            notes: notes.trim(),
+            metadata: existing.metadata,
+            legacyBridge: existing.legacyBridge,
+          ),
+        );
+      },
+      operationId: _cinematicAuthoringOperationId('update'),
+    );
+    if (result == null) {
       return false;
     }
-    final existing = findCinematicById(project, cinematicId);
-    if (existing == null) {
-      return false;
-    }
-    try {
-      final result = updateCinematicAsset(
-        project,
-        CinematicAsset(
-          id: existing.id,
-          title: title.trim(),
-          description: description.trim(),
-          storylineId: existing.storylineId,
-          chapterId: existing.chapterId,
-          mapId: existing.mapId,
-          tags: existing.tags,
-          requiredActors: existing.requiredActors,
-          movementTargets: existing.movementTargets,
-          stageContext: existing.stageContext,
-          timeline: existing.timeline,
-          notes: notes.trim(),
-          metadata: existing.metadata,
-          legacyBridge: existing.legacyBridge,
-        ),
-      );
-      widget.editorNotifier.applyInMemoryProjectManifest(
-        result.updatedProject,
-        statusMessage: 'CinematicAsset metadata updated',
-      );
-      return true;
-    } on ArgumentError {
-      return false;
-    }
+    return result.status == NarrativeAuthoringTransactionStatus.committed ||
+        result.status == NarrativeAuthoringTransactionStatus.noChange;
   }
 
   Future<bool> _removeCinematic({required String cinematicId}) async {
-    final project = widget.project;
-    if (project == null) {
+    final result =
+        await widget.editorNotifier.executeNarrativeAuthoringMutation(
+      (project) => NarrativeAssetMutation.deleteCinematic(
+        project,
+        cinematicId: cinematicId,
+      ),
+      operationId: _cinematicAuthoringOperationId('delete'),
+    );
+    if (result == null) {
       return false;
     }
-    try {
-      final result = removeCinematicAsset(project, cinematicId);
-      widget.editorNotifier.applyInMemoryProjectManifest(
-        result.updatedProject,
-        statusMessage: 'CinematicAsset removed',
-      );
-      return true;
-    } on ArgumentError {
-      return false;
-    }
+    return result.status == NarrativeAuthoringTransactionStatus.committed;
   }
 
   Future<String?> _addCinematicTimelineDraft({
@@ -2321,24 +2318,8 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
   }
 }
 
-String _nextCinematicAssetId(ProjectManifest project, String title) {
-  final slug = title
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
-      .replaceAll(RegExp(r'_+'), '_')
-      .replaceAll(RegExp(r'^_|_$'), '');
-  final base = slug.isEmpty ? 'cinematic' : 'cinematic_$slug';
-  final existingIds = project.cinematics.map((asset) => asset.id).toSet();
-  if (!existingIds.contains(base)) {
-    return base;
-  }
-  var index = 2;
-  while (existingIds.contains('${base}_$index')) {
-    index++;
-  }
-  return '${base}_$index';
-}
+String _cinematicAuthoringOperationId(String action) =>
+    'cinematic_${action}_${DateTime.now().microsecondsSinceEpoch}';
 
 class _CutsceneWorkspaceBody extends StatelessWidget {
   const _CutsceneWorkspaceBody({
