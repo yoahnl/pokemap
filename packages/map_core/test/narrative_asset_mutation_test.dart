@@ -372,6 +372,153 @@ void main() {
         throwsUnsupportedError,
       );
     });
+
+    test('validates a cinematic replacement with exact immutable coverage', () {
+      final project = _referencedProject();
+
+      final result = NarrativeAssetMutation.validateCinematicReplacement(
+        project,
+        sourceId: 'cinematic_intro',
+        replacementId: 'cinematic_replacement',
+      );
+
+      expect(result, isA<NarrativeReferenceReplacementValidated>());
+      final capability =
+          (result as NarrativeReferenceReplacementValidated).capability;
+      expect(
+        capability.source,
+        const NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.cinematic,
+          'cinematic_intro',
+        ),
+      );
+      expect(
+        capability.replacement,
+        const NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.cinematic,
+          'cinematic_replacement',
+        ),
+      );
+      expect(capability.coveredReferencePaths, [
+        'scenes[scene_a].graph.nodes[1].payload.cinematicId',
+        'scenes[scene_b].graph.nodes[1].payload.cinematicId',
+        'scenes[scene_b].graph.nodes[2].payload.cinematicId',
+      ]);
+      expect(
+        () => capability.coveredReferencePaths.add('forged'),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('validates a cinematic replacement without consumers', () {
+      final project = _project(
+        cinematics: [
+          _cinematic(id: 'cinematic_intro'),
+          _cinematic(id: 'cinematic_replacement'),
+        ],
+      );
+
+      final result = NarrativeAssetMutation.validateCinematicReplacement(
+        project,
+        sourceId: 'cinematic_intro',
+        replacementId: 'cinematic_replacement',
+      ) as NarrativeReferenceReplacementValidated;
+
+      expect(result.capability.coveredReferencePaths, isEmpty);
+    });
+
+    test('returns typed replacement validation rejections', () {
+      final project = _referencedProject();
+
+      NarrativeReferenceReplacementRejected rejected(
+        String sourceId,
+        String replacementId,
+      ) {
+        return NarrativeAssetMutation.validateCinematicReplacement(
+          project,
+          sourceId: sourceId,
+          replacementId: replacementId,
+        ) as NarrativeReferenceReplacementRejected;
+      }
+
+      expect(
+        rejected('cinematic_missing', 'cinematic_replacement').code,
+        'assetNotFound',
+      );
+      expect(
+        rejected('cinematic_intro', 'cinematic_intro').code,
+        'selfRewrite',
+      );
+
+      final ambiguousSource = _project(
+        cinematics: [
+          _cinematic(id: 'cinematic_intro'),
+          _cinematic(id: 'cinematic_intro'),
+          _cinematic(id: 'cinematic_replacement'),
+        ],
+      );
+      final ambiguousReplacement = project.copyWith(
+        cinematics: [
+          ...project.cinematics,
+          _cinematic(id: 'cinematic_replacement'),
+        ],
+      );
+
+      expect(
+        (NarrativeAssetMutation.validateCinematicReplacement(
+          ambiguousSource,
+          sourceId: 'cinematic_intro',
+          replacementId: 'cinematic_replacement',
+        ) as NarrativeReferenceReplacementRejected)
+            .code,
+        'assetIdAmbiguous',
+      );
+      expect(
+        (NarrativeAssetMutation.validateCinematicReplacement(
+          ambiguousReplacement,
+          sourceId: 'cinematic_intro',
+          replacementId: 'cinematic_replacement',
+        ) as NarrativeReferenceReplacementRejected)
+            .code,
+        'rewriteTargetAmbiguous',
+      );
+    });
+
+    test('revalidates replacement capability before applying deletion', () {
+      final project = _referencedProject();
+      final capability = (NarrativeAssetMutation.validateCinematicReplacement(
+        project,
+        sourceId: 'cinematic_intro',
+        replacementId: 'cinematic_replacement',
+      ) as NarrativeReferenceReplacementValidated)
+          .capability;
+      final changedProject = project.copyWith(
+        scenes: [
+          ...project.scenes,
+          _sceneWithCinematics('scene_new', ['cinematic_intro']),
+        ],
+      );
+
+      final stale =
+          NarrativeAssetMutation.deleteCinematicWithValidatedReplacement(
+        changedProject,
+        capability,
+      );
+      final applied =
+          NarrativeAssetMutation.deleteCinematicWithValidatedReplacement(
+        project,
+        capability,
+      );
+
+      expect(stale, isA<NarrativeAssetRejected>());
+      expect(
+          (stale as NarrativeAssetRejected).code, 'staleReplacementCapability');
+      expect(stale.after, same(changedProject));
+      expect(applied, isA<NarrativeAssetDeleted>());
+      expect(applied.after.cinematics.map((asset) => asset.id), [
+        'cinematic_replacement',
+      ]);
+    });
   });
 }
 

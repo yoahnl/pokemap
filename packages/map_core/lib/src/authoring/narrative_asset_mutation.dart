@@ -90,6 +90,46 @@ final class NarrativeAssetNoChange extends NarrativeAssetMutationResult {
   final String reason;
 }
 
+@immutable
+final class NarrativeReferenceReplacementCapability {
+  NarrativeReferenceReplacementCapability._({
+    required this.source,
+    required this.replacement,
+    required List<String> coveredReferencePaths,
+  }) : coveredReferencePaths = List<String>.unmodifiable(
+          coveredReferencePaths,
+        );
+
+  final NarrativeDependencyKey source;
+  final NarrativeDependencyKey replacement;
+  final List<String> coveredReferencePaths;
+}
+
+@immutable
+sealed class NarrativeReferenceReplacementValidationResult {
+  const NarrativeReferenceReplacementValidationResult();
+}
+
+@immutable
+final class NarrativeReferenceReplacementValidated
+    extends NarrativeReferenceReplacementValidationResult {
+  const NarrativeReferenceReplacementValidated(this.capability);
+
+  final NarrativeReferenceReplacementCapability capability;
+}
+
+@immutable
+final class NarrativeReferenceReplacementRejected
+    extends NarrativeReferenceReplacementValidationResult {
+  const NarrativeReferenceReplacementRejected({
+    required this.code,
+    required this.message,
+  });
+
+  final String code;
+  final String message;
+}
+
 /// Pure, Cinematic-only mutation boundary for Narrative Studio authoring.
 ///
 /// Other narrative asset families deliberately remain unsupported until they
@@ -240,6 +280,83 @@ abstract final class NarrativeAssetMutation {
     } on Object catch (error) {
       return _invalidProjection(project, error);
     }
+  }
+
+  static NarrativeReferenceReplacementValidationResult
+      validateCinematicReplacement(
+    ProjectManifest project, {
+    required String sourceId,
+    required String replacementId,
+  }) {
+    final result = deleteCinematic(
+      project,
+      cinematicId: sourceId,
+      rewrite: NarrativeReferenceRewrite.replaceWith(replacementId),
+    );
+    if (result case NarrativeAssetRejected(:final code, :final message)) {
+      return NarrativeReferenceReplacementRejected(
+        code: code,
+        message: message,
+      );
+    }
+    if (result is! NarrativeAssetDeleted) {
+      return const NarrativeReferenceReplacementRejected(
+        code: 'replacementValidationFailed',
+        message: 'The cinematic replacement could not be validated.',
+      );
+    }
+    final expectedPaths = _cinematicReferencePaths(project, sourceId.trim());
+    if (!_sameStrings(result.rewrittenReferencePaths, expectedPaths)) {
+      return const NarrativeReferenceReplacementRejected(
+        code: 'unsupportedReferenceRewrite',
+        message: 'At least one cinematic reference could not be rewritten.',
+      );
+    }
+    return NarrativeReferenceReplacementValidated(
+      NarrativeReferenceReplacementCapability._(
+        source: NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.cinematic,
+          sourceId.trim(),
+        ),
+        replacement: NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.cinematic,
+          replacementId.trim(),
+        ),
+        coveredReferencePaths: expectedPaths,
+      ),
+    );
+  }
+
+  static NarrativeAssetMutationResult deleteCinematicWithValidatedReplacement(
+    ProjectManifest project,
+    NarrativeReferenceReplacementCapability capability,
+  ) {
+    final validation = validateCinematicReplacement(
+      project,
+      sourceId: capability.source.id,
+      replacementId: capability.replacement.id,
+    );
+    if (validation is! NarrativeReferenceReplacementValidated ||
+        validation.capability.source != capability.source ||
+        validation.capability.replacement != capability.replacement ||
+        !_sameStrings(
+          validation.capability.coveredReferencePaths,
+          capability.coveredReferencePaths,
+        )) {
+      return NarrativeAssetRejected(
+        project: project,
+        code: 'staleReplacementCapability',
+        message:
+            'The cinematic replacement must be validated again for the current project.',
+      );
+    }
+    return deleteCinematic(
+      project,
+      cinematicId: capability.source.id,
+      rewrite: NarrativeReferenceRewrite.replaceWith(
+        capability.replacement.id,
+      ),
+    );
   }
 
   static NarrativeAssetMutationResult deleteCinematic(
@@ -443,4 +560,12 @@ String _nextCinematicId(ProjectManifest project, String title) {
 String? _trimOptional(String? value) {
   final trimmed = value?.trim();
   return trimmed == null || trimmed.isEmpty ? null : trimmed;
+}
+
+bool _sameStrings(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }

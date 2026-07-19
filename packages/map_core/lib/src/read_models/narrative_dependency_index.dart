@@ -398,6 +398,68 @@ final class NarrativeDependencyIndex {
   }
 }
 
+@immutable
+final class NarrativeDependencyInspectionReadModel {
+  NarrativeDependencyInspectionReadModel({
+    required this.target,
+    required List<NarrativeDependencyDefinition> definitions,
+    required List<NarrativeDependencyUsage> usages,
+    required List<NarrativeDependencyIssue> issues,
+  })  : definitions = List<NarrativeDependencyDefinition>.unmodifiable(
+          definitions,
+        ),
+        usages = List<NarrativeDependencyUsage>.unmodifiable(usages),
+        issues = List<NarrativeDependencyIssue>.unmodifiable(issues);
+
+  final NarrativeDependencyKey target;
+  final List<NarrativeDependencyDefinition> definitions;
+  final List<NarrativeDependencyUsage> usages;
+  final List<NarrativeDependencyIssue> issues;
+
+  bool get isMissing => definitions.isEmpty;
+
+  bool get isAmbiguous => definitions.length > 1;
+}
+
+NarrativeDependencyInspectionReadModel inspectNarrativeDependency(
+  NarrativeDependencyIndex index,
+  NarrativeDependencyKey target,
+) {
+  final usages = index.usagesFor(target);
+  final consumerOwners = <NarrativeDependencyKey>{
+    for (final usage in usages) usage.owner,
+  };
+  final issueIdentities = <(
+    NarrativeDependencyIssueKind,
+    NarrativeDependencyKey,
+    NarrativeDependencyKey?,
+    String?,
+    NarrativeDependencyCriticality,
+    String,
+  )>{};
+  final issues = <NarrativeDependencyIssue>[];
+  for (final issue in index.issues) {
+    if (issue.target != target && !consumerOwners.contains(issue.owner)) {
+      continue;
+    }
+    final identity = (
+      issue.kind,
+      issue.target,
+      issue.owner,
+      issue.path,
+      issue.criticality,
+      issue.message,
+    );
+    if (issueIdentities.add(identity)) issues.add(issue);
+  }
+  return NarrativeDependencyInspectionReadModel(
+    target: target,
+    definitions: index.definitionsFor(target),
+    usages: usages,
+    issues: issues,
+  );
+}
+
 NarrativeDependencyIndex buildNarrativeDependencyIndex({
   required ProjectManifest project,
   List<MapData> maps = const <MapData>[],
@@ -517,11 +579,18 @@ final class _NarrativeDependencyIndexBuilder {
         draft: (draft) => draft.name,
         configured: (definition, _) => definition.name,
       );
+      final publicationStatus = record.when(
+        draft: (_) => 'draft',
+        configured: (_, enabled) => enabled ? 'published' : 'inactive',
+      );
       _definition(
         NarrativeDependencyTargetKind.eventV2,
         record.id,
         label,
         path: 'eventRegistry.records[${record.id}]',
+        metadata: <String, String>{
+          'publicationStatus': publicationStatus,
+        },
       );
     }
   }
@@ -615,6 +684,7 @@ final class _NarrativeDependencyIndexBuilder {
           scope: _physicalMapScope,
           parentId: map.id,
           sourceKind: 'entity',
+          metadata: <String, String>{'entityKind': entity.kind.name},
         );
         if (entity.kind == MapEntityKind.npc) {
           final npc = entity.npc;

@@ -9,6 +9,7 @@ import '../models/project_manifest.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
+import 'narrative_dependency_index.dart';
 
 export '../models/narrative_event_source_ref.dart'
     show NarrativeEventSourceKind;
@@ -23,6 +24,348 @@ const String _legacyStepIdMetadataKey = 'step.id';
 const String _legacyStepNameMetadataKey = 'step.name';
 const String _legacyStepDescriptionMetadataKey = 'step.description';
 const String _legacyStepCutsceneIdsMetadataKey = 'step.cutsceneIds';
+
+enum NarrativeReferenceAvailability { available, incompatible, missing }
+
+enum NarrativeReferencePublicationStatus {
+  published,
+  draft,
+  inactive,
+  legacy,
+  unknown,
+}
+
+@immutable
+final class CanonicalNarrativeReferenceOption {
+  CanonicalNarrativeReferenceOption({
+    required this.key,
+    required this.label,
+    required this.technicalId,
+    required this.kindLabel,
+    required this.groupLabel,
+    required List<String> breadcrumbLabels,
+    required this.publicationStatus,
+    required this.availability,
+    required this.diagnostic,
+    required this.navigationIntent,
+    required this.usageCount,
+  }) : breadcrumbLabels = List<String>.unmodifiable(breadcrumbLabels);
+
+  final NarrativeDependencyKey key;
+  final String label;
+  final String technicalId;
+  final String kindLabel;
+  final String groupLabel;
+  final List<String> breadcrumbLabels;
+  final NarrativeReferencePublicationStatus publicationStatus;
+  final NarrativeReferenceAvailability availability;
+  final String? diagnostic;
+  final NarrativeDependencyNavigationIntent? navigationIntent;
+  final int usageCount;
+}
+
+@immutable
+final class CanonicalNarrativeReferenceGroup {
+  CanonicalNarrativeReferenceGroup({
+    required this.label,
+    required List<CanonicalNarrativeReferenceOption> options,
+  }) : options = List<CanonicalNarrativeReferenceOption>.unmodifiable(options);
+
+  final String label;
+  final List<CanonicalNarrativeReferenceOption> options;
+}
+
+@immutable
+final class CanonicalNarrativeReferencePickerReadModel {
+  CanonicalNarrativeReferencePickerReadModel({
+    required List<CanonicalNarrativeReferenceGroup> groups,
+    required this.missingSelection,
+    this.incompatibleSelection,
+  }) : groups = List<CanonicalNarrativeReferenceGroup>.unmodifiable(groups);
+
+  final List<CanonicalNarrativeReferenceGroup> groups;
+  final CanonicalNarrativeReferenceOption? missingSelection;
+  final CanonicalNarrativeReferenceOption? incompatibleSelection;
+
+  Iterable<CanonicalNarrativeReferenceOption> get options =>
+      groups.expand((group) => group.options);
+
+  CanonicalNarrativeReferencePickerReadModel search(String query) {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return this;
+    final filteredGroups = <CanonicalNarrativeReferenceGroup>[
+      for (final group in groups)
+        if (group.options.where((option) {
+          final searchableValues = <String>[
+            option.label,
+            option.technicalId,
+            option.kindLabel,
+            option.groupLabel,
+            ...option.breadcrumbLabels,
+            if (option.diagnostic != null) option.diagnostic!,
+          ];
+          return searchableValues.any(
+            (value) => value.toLowerCase().contains(normalizedQuery),
+          );
+        }).toList(growable: false)
+            case final matchingOptions when matchingOptions.isNotEmpty)
+          CanonicalNarrativeReferenceGroup(
+            label: group.label,
+            options: matchingOptions,
+          ),
+    ];
+    return CanonicalNarrativeReferencePickerReadModel(
+      groups: filteredGroups,
+      missingSelection: missingSelection,
+      incompatibleSelection: incompatibleSelection,
+    );
+  }
+}
+
+CanonicalNarrativeReferencePickerReadModel
+    buildCanonicalNarrativeReferencePickerReadModel({
+  required NarrativeDependencyIndex index,
+  required Set<NarrativeDependencyTargetKind> allowedKinds,
+  NarrativeDependencyKey? selectedKey,
+  Map<NarrativeDependencyKey, String> incompatibleReasons =
+      const <NarrativeDependencyKey, String>{},
+}) {
+  final definitionsByKey =
+      <NarrativeDependencyKey, List<NarrativeDependencyDefinition>>{};
+  for (final definition in index.definitions) {
+    final key = definition.key;
+    if (!allowedKinds.contains(key.kind)) continue;
+    if (key.kind == NarrativeDependencyTargetKind.sourceMap &&
+        !key.isPhysicalMapSource) {
+      continue;
+    }
+    definitionsByKey.putIfAbsent(key, () => []).add(definition);
+  }
+
+  final options = <CanonicalNarrativeReferenceOption>[
+    for (final entry in definitionsByKey.entries)
+      _canonicalOptionFor(
+        index: index,
+        key: entry.key,
+        definitions: entry.value,
+        incompatibleReason: incompatibleReasons[entry.key],
+      ),
+  ]..sort(_compareCanonicalOptions);
+
+  final groupsByLabel = <String, List<CanonicalNarrativeReferenceOption>>{};
+  for (final option in options) {
+    groupsByLabel.putIfAbsent(option.groupLabel, () => []).add(option);
+  }
+  final groupLabels = groupsByLabel.keys.toList(growable: false)..sort();
+  final groups = <CanonicalNarrativeReferenceGroup>[
+    for (final label in groupLabels)
+      CanonicalNarrativeReferenceGroup(
+        label: label,
+        options: groupsByLabel[label]!,
+      ),
+  ];
+
+  CanonicalNarrativeReferenceOption? missingSelection;
+  CanonicalNarrativeReferenceOption? incompatibleSelection;
+  if (selectedKey != null &&
+      !options.any((option) => option.key == selectedKey)) {
+    final selectedDefinitions = index.definitionsFor(selectedKey);
+    if (selectedDefinitions.isEmpty) {
+      missingSelection = CanonicalNarrativeReferenceOption(
+        key: selectedKey,
+        label: 'Référence manquante',
+        technicalId: selectedKey.id,
+        kindLabel: _canonicalKindLabel(selectedKey),
+        groupLabel: _canonicalGroupLabel(selectedKey),
+        breadcrumbLabels: const <String>[],
+        publicationStatus: NarrativeReferencePublicationStatus.unknown,
+        availability: NarrativeReferenceAvailability.missing,
+        diagnostic: 'La référence sélectionnée est introuvable.',
+        navigationIntent: null,
+        usageCount: index.usagesFor(selectedKey).length,
+      );
+    } else {
+      incompatibleSelection = _canonicalOptionFor(
+        index: index,
+        key: selectedKey,
+        definitions: selectedDefinitions,
+        incompatibleReason:
+            'Cette référence existe mais n’est pas compatible avec ce sélecteur.',
+      );
+    }
+  }
+
+  return CanonicalNarrativeReferencePickerReadModel(
+    groups: groups,
+    missingSelection: missingSelection,
+    incompatibleSelection: incompatibleSelection,
+  );
+}
+
+CanonicalNarrativeReferenceOption _canonicalOptionFor({
+  required NarrativeDependencyIndex index,
+  required NarrativeDependencyKey key,
+  required List<NarrativeDependencyDefinition> definitions,
+  required String? incompatibleReason,
+}) {
+  final definition = definitions.first;
+  final isAmbiguous = definitions.length > 1;
+  final hasExplicitIncompatibility = incompatibleReason != null;
+  final explainedIncompatibility = hasExplicitIncompatibility
+      ? (incompatibleReason.trim().isEmpty
+          ? 'Cette référence est incompatible dans ce contexte.'
+          : incompatibleReason)
+      : null;
+  final diagnostic = isAmbiguous
+      ? 'Référence ambiguë : ${definitions.length} définitions partagent cette identité.'
+      : explainedIncompatibility;
+  return CanonicalNarrativeReferenceOption(
+    key: key,
+    label: definition.label.trim().isEmpty ? key.id : definition.label.trim(),
+    technicalId: key.id,
+    kindLabel: _canonicalKindLabel(key, metadata: definition.metadata),
+    groupLabel: _canonicalGroupLabel(key, metadata: definition.metadata),
+    breadcrumbLabels: _canonicalBreadcrumb(index, definition),
+    publicationStatus: isAmbiguous
+        ? NarrativeReferencePublicationStatus.unknown
+        : _canonicalPublicationStatus(definition),
+    availability: isAmbiguous || hasExplicitIncompatibility
+        ? NarrativeReferenceAvailability.incompatible
+        : NarrativeReferenceAvailability.available,
+    diagnostic: diagnostic,
+    navigationIntent: isAmbiguous ? null : definition.navigationIntent,
+    usageCount: index.usagesFor(key).length,
+  );
+}
+
+List<String> _canonicalBreadcrumb(
+  NarrativeDependencyIndex index,
+  NarrativeDependencyDefinition definition,
+) {
+  final labels = <String>[];
+  final visited = <NarrativeDependencyKey>{definition.key};
+  var owner = definition.owner;
+  while (owner != null && visited.add(owner)) {
+    final ownerDefinitions = index.definitionsFor(owner);
+    if (ownerDefinitions.length != 1) break;
+    final ownerDefinition = ownerDefinitions.single;
+    labels.insert(
+      0,
+      ownerDefinition.label.trim().isEmpty
+          ? ownerDefinition.key.id
+          : ownerDefinition.label.trim(),
+    );
+    owner = ownerDefinition.owner;
+  }
+  return labels;
+}
+
+NarrativeReferencePublicationStatus _canonicalPublicationStatus(
+  NarrativeDependencyDefinition definition,
+) {
+  switch (definition.key.scope) {
+    case 'legacy':
+      return NarrativeReferencePublicationStatus.legacy;
+    case 'synthetic':
+    case 'migration':
+    case 'project':
+      return NarrativeReferencePublicationStatus.unknown;
+  }
+  return switch (definition.metadata['publicationStatus']) {
+    'draft' => NarrativeReferencePublicationStatus.draft,
+    'inactive' => NarrativeReferencePublicationStatus.inactive,
+    'published' => NarrativeReferencePublicationStatus.published,
+    _ => NarrativeReferencePublicationStatus.published,
+  };
+}
+
+String _canonicalKindLabel(
+  NarrativeDependencyKey key, {
+  Map<String, String> metadata = const <String, String>{},
+}) {
+  if (key.kind == NarrativeDependencyTargetKind.sourceMap) {
+    return switch (key.sourceKind) {
+      'map' => 'Map',
+      'entity' => switch (metadata['entityKind']) {
+          'npc' => 'PNJ',
+          'sign' => 'Panneau',
+          'item' => 'Objet',
+          'spawn' => 'Point d’apparition',
+          _ => 'Entité',
+        },
+      'element' => 'Objet placé',
+      'gameplayZone' => 'Zone',
+      'trigger' => 'Déclencheur',
+      'event' => 'Événement de map',
+      'warp' => 'Sortie de map',
+      _ => 'Source de map',
+    };
+  }
+  return switch (key.kind) {
+    NarrativeDependencyTargetKind.fact => 'Fact',
+    NarrativeDependencyTargetKind.eventV2 => 'Event',
+    NarrativeDependencyTargetKind.scene => 'Scene',
+    NarrativeDependencyTargetKind.dialogue => 'Dialogue',
+    NarrativeDependencyTargetKind.cinematic => 'Cinematic',
+    NarrativeDependencyTargetKind.storyline => 'Storyline',
+    NarrativeDependencyTargetKind.chapter => 'Chapter',
+    NarrativeDependencyTargetKind.step => 'Step',
+    NarrativeDependencyTargetKind.worldRule => 'World Rule',
+    NarrativeDependencyTargetKind.sourceMap => throw StateError('Handled'),
+  };
+}
+
+String _canonicalGroupLabel(
+  NarrativeDependencyKey key, {
+  Map<String, String> metadata = const <String, String>{},
+}) {
+  if (key.kind == NarrativeDependencyTargetKind.sourceMap) {
+    return switch (key.sourceKind) {
+      'map' => 'Maps',
+      'entity' => switch (metadata['entityKind']) {
+          'npc' => 'PNJ',
+          'sign' => 'Panneaux',
+          'item' => 'Objets',
+          'spawn' => 'Points d’apparition',
+          _ => 'Entités',
+        },
+      'element' => 'Objets placés',
+      'gameplayZone' => 'Zones',
+      'trigger' => 'Déclencheurs',
+      'event' => 'Événements de map',
+      'warp' => 'Sorties de map',
+      _ => 'Sources de map',
+    };
+  }
+  return switch (key.kind) {
+    NarrativeDependencyTargetKind.fact => 'Facts',
+    NarrativeDependencyTargetKind.eventV2 => 'Events',
+    NarrativeDependencyTargetKind.scene => 'Scenes',
+    NarrativeDependencyTargetKind.dialogue => 'Dialogues',
+    NarrativeDependencyTargetKind.cinematic => 'Cinematics',
+    NarrativeDependencyTargetKind.storyline => 'Storylines',
+    NarrativeDependencyTargetKind.chapter => 'Chapters',
+    NarrativeDependencyTargetKind.step => 'Steps',
+    NarrativeDependencyTargetKind.worldRule => 'World Rules',
+    NarrativeDependencyTargetKind.sourceMap => throw StateError('Handled'),
+  };
+}
+
+int _compareCanonicalOptions(
+  CanonicalNarrativeReferenceOption left,
+  CanonicalNarrativeReferenceOption right,
+) {
+  final byGroup = left.groupLabel.compareTo(right.groupLabel);
+  if (byGroup != 0) return byGroup;
+  final byLabel = _compareStringsCaseInsensitive(left.label, right.label);
+  if (byLabel != 0) return byLabel;
+  final byId = _compareStringsCaseInsensitive(
+    left.technicalId,
+    right.technicalId,
+  );
+  if (byId != 0) return byId;
+  return left.key.toString().compareTo(right.key.toString());
+}
 
 enum NarrativeBattleOutcomeKind {
   victory,

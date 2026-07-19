@@ -2,6 +2,8 @@
 /// Exposes reusable components styled according to the PokeMap color tokens and theme guidelines.
 library;
 
+export 'narrative/pokemap_dependency_inspector.dart';
+export 'narrative/pokemap_narrative_reference_picker.dart';
 export 'pokemap_badge.dart';
 export 'pokemap_button.dart';
 export 'pokemap_card.dart';

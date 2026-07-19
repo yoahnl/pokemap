@@ -1124,6 +1124,19 @@ void main() {
         );
       }
       expect(
+        index
+            .definitionsFor(
+              const NarrativeDependencyKey.mapSource(
+                mapId: 'map.port',
+                sourceKind: 'entity',
+                sourceId: 'npc.rival',
+              ),
+            )
+            .single
+            .metadata,
+        const {'entityKind': 'npc'},
+      );
+      expect(
         index.usagesFor(
           const NarrativeDependencyKey(
             NarrativeDependencyTargetKind.dialogue,
@@ -2558,6 +2571,180 @@ void main() {
             ),
         isTrue,
       );
+    });
+  });
+
+  group('Narrative dependency inspection', () {
+    const target = NarrativeDependencyKey(
+      NarrativeDependencyTargetKind.cinematic,
+      'cinematic.intro',
+    );
+    const sceneA = NarrativeDependencyKey.scene('scene.a');
+    const sceneB = NarrativeDependencyKey.scene('scene.b');
+    const unrelatedOwner = NarrativeDependencyKey.scene('scene.unrelated');
+    const unrelatedTarget = NarrativeDependencyKey(
+      NarrativeDependencyTargetKind.fact,
+      'fact.unrelated',
+    );
+
+    test('collects deterministic deduplicated target and consumer issues', () {
+      const usages = <NarrativeDependencyUsage>[
+        NarrativeDependencyUsage(
+          target: target,
+          owner: sceneA,
+          path: 'scenes[scene.a].graph.nodes[cinematic].payload.cinematicId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        ),
+        NarrativeDependencyUsage(
+          target: target,
+          owner: sceneB,
+          path: 'scenes[scene.b].graph.nodes[cinematic].payload.cinematicId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        ),
+      ];
+      const targetIssue = NarrativeDependencyIssue(
+        kind: NarrativeDependencyIssueKind.ambiguousReference,
+        target: target,
+        owner: sceneA,
+        path: 'target.path',
+        criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        message: 'Target issue',
+      );
+      const consumerIssue = NarrativeDependencyIssue(
+        kind: NarrativeDependencyIssueKind.missingReference,
+        target: unrelatedTarget,
+        owner: sceneB,
+        path: 'consumer.path',
+        criticality: NarrativeDependencyCriticality.authoringWarning,
+        message: 'Consumer issue',
+      );
+      const unrelatedIssue = NarrativeDependencyIssue(
+        kind: NarrativeDependencyIssueKind.missingReference,
+        target: unrelatedTarget,
+        owner: unrelatedOwner,
+        path: 'unrelated.path',
+        criticality: NarrativeDependencyCriticality.authoringWarning,
+        message: 'Unrelated issue',
+      );
+      final definitions = <NarrativeDependencyDefinition>[
+        NarrativeDependencyDefinition(key: target, label: 'Introduction'),
+      ];
+
+      NarrativeDependencyInspectionReadModel inspect(
+        Iterable<NarrativeDependencyIssue> issues,
+      ) {
+        return inspectNarrativeDependency(
+          NarrativeDependencyIndex(
+            definitions: definitions,
+            usages: usages,
+            issues: issues,
+          ),
+          target,
+        );
+      }
+
+      final forward = inspect(const [
+        targetIssue,
+        consumerIssue,
+        targetIssue,
+        unrelatedIssue,
+      ]);
+      final reversed = inspect(const [
+        unrelatedIssue,
+        targetIssue,
+        consumerIssue,
+        targetIssue,
+      ]);
+
+      expect(forward.definitions, hasLength(1));
+      expect(forward.usages, hasLength(2));
+      expect(
+        forward.issues.map((issue) => issue.message),
+        containsAll(<String>['Target issue', 'Consumer issue']),
+      );
+      expect(forward.issues, hasLength(2));
+      expect(
+        forward.issues.map((issue) => issue.message),
+        reversed.issues.map((issue) => issue.message),
+      );
+      expect(forward.isMissing, isFalse);
+      expect(forward.isAmbiguous, isFalse);
+      expect(() => forward.usages.clear(), throwsUnsupportedError);
+      expect(() => forward.issues.clear(), throwsUnsupportedError);
+    });
+
+    test('reports missing and ambiguous targets from definition count', () {
+      final missing = inspectNarrativeDependency(
+        NarrativeDependencyIndex(),
+        target,
+      );
+      final ambiguous = inspectNarrativeDependency(
+        NarrativeDependencyIndex(
+          definitions: <NarrativeDependencyDefinition>[
+            NarrativeDependencyDefinition(key: target, label: 'One'),
+            NarrativeDependencyDefinition(key: target, label: 'Two'),
+          ],
+        ),
+        target,
+      );
+
+      expect(missing.isMissing, isTrue);
+      expect(missing.isAmbiguous, isFalse);
+      expect(ambiguous.isMissing, isFalse);
+      expect(ambiguous.isAmbiguous, isTrue);
+    });
+
+    test('publishes draft, published and inactive Event metadata', () {
+      const draftId = 'evt_00000000-0000-7000-8000-000000000011';
+      const publishedId = 'evt_00000000-0000-7000-8000-000000000012';
+      const inactiveId = 'evt_00000000-0000-7000-8000-000000000013';
+      final configuredPublished = _event(
+        id: publishedId,
+        sceneId: 'scene.event',
+        source: NarrativeEventSourceRef.mapEnter('map.port'),
+      );
+      final configuredInactive = _event(
+        id: inactiveId,
+        sceneId: 'scene.event',
+        source: NarrativeEventSourceRef.mapEnter('map.port'),
+      );
+      final project = _project(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          legacyClaims: const [],
+          records: <NarrativeEventRecord>[
+            NarrativeEventRecord.draft(
+              NarrativeEventDraft(
+                id: draftId,
+                name: 'Draft',
+                conditions: const [],
+                priority: 0,
+                order: 0,
+              ),
+            ),
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              configuredPublished,
+              enabled: true,
+            ),
+            NarrativeEventRecord.configuredStructurallyUnchecked(
+              configuredInactive,
+              enabled: false,
+            ),
+          ],
+        ),
+      );
+
+      final index = buildNarrativeDependencyIndex(project: project);
+
+      String status(String id) => index
+          .definitionsFor(NarrativeDependencyKey.eventV2(id))
+          .single
+          .metadata['publicationStatus']!;
+
+      expect(status(draftId), 'draft');
+      expect(status(publishedId), 'published');
+      expect(status(inactiveId), 'inactive');
     });
   });
 }

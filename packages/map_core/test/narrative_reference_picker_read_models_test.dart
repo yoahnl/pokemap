@@ -535,6 +535,433 @@ void main() {
       );
     });
   });
+
+  group('Canonical narrative reference picker read model', () {
+    const mapPort = NarrativeDependencyKey.map('map.port');
+    const mapForest = NarrativeDependencyKey.map('map.forest');
+    const portNpc = NarrativeDependencyKey.mapSource(
+      mapId: 'map.port',
+      sourceKind: 'entity',
+      sourceId: 'npc.guide',
+    );
+    const forestNpc = NarrativeDependencyKey.mapSource(
+      mapId: 'map.forest',
+      sourceKind: 'entity',
+      sourceId: 'npc.guide',
+    );
+    const storyline = NarrativeDependencyKey(
+      NarrativeDependencyTargetKind.storyline,
+      'story.main',
+    );
+    const chapter = NarrativeDependencyKey(
+      NarrativeDependencyTargetKind.chapter,
+      'chapter.port',
+    );
+    const step = NarrativeDependencyKey(
+      NarrativeDependencyTargetKind.step,
+      'step_port',
+    );
+
+    NarrativeDependencyIndex canonicalIndex({
+      Iterable<NarrativeDependencyDefinition> extraDefinitions = const [],
+      Iterable<NarrativeDependencyUsage> usages = const [],
+      Iterable<NarrativeDependencyIssue> issues = const [],
+    }) {
+      return NarrativeDependencyIndex(
+        definitions: <NarrativeDependencyDefinition>[
+          NarrativeDependencyDefinition(key: mapPort, label: 'Port'),
+          NarrativeDependencyDefinition(key: mapForest, label: 'Forêt'),
+          NarrativeDependencyDefinition(
+            key: portNpc,
+            label: 'Guide',
+            owner: mapPort,
+            path: 'maps[map.port].entities[npc.guide]',
+            metadata: const {'entityKind': 'npc'},
+            navigationIntent: NarrativeDependencyNavigationIntent.fromKey(
+              portNpc,
+            ),
+          ),
+          NarrativeDependencyDefinition(
+            key: forestNpc,
+            label: 'Guide',
+            owner: mapForest,
+            path: 'maps[map.forest].entities[npc.guide]',
+            metadata: const {'entityKind': 'npc'},
+            navigationIntent: NarrativeDependencyNavigationIntent.fromKey(
+              forestNpc,
+            ),
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.scene('scene_port'),
+            label: 'Rencontre',
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.scene('scene_forest'),
+            label: 'Rencontre',
+          ),
+          NarrativeDependencyDefinition(key: storyline, label: 'Selbrume'),
+          NarrativeDependencyDefinition(
+            key: chapter,
+            label: 'Chapitre du port',
+            owner: storyline,
+          ),
+          NarrativeDependencyDefinition(
+            key: step,
+            label: 'Arrivée au port',
+            owner: chapter,
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.projectNewGame(),
+            label: 'Nouvelle partie',
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.legacyScenario('legacy.one'),
+            label: 'Ancien scénario',
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.legacySourceClaim(
+              'migration.one',
+            ),
+            label: 'Migration',
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.synthetic(
+              sourceKind: 'outcome',
+              sourceId: 'synthetic.one',
+            ),
+            label: 'Résultat synthétique',
+          ),
+          ...extraDefinitions,
+        ],
+        usages: usages,
+        issues: issues,
+      );
+    }
+
+    test('groups canonical options and keeps a broken selection explicit', () {
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: canonicalIndex(),
+        allowedKinds: const {
+          NarrativeDependencyTargetKind.scene,
+          NarrativeDependencyTargetKind.sourceMap,
+          NarrativeDependencyTargetKind.step,
+        },
+        selectedKey: const NarrativeDependencyKey.scene('scene_missing'),
+        incompatibleReasons: {
+          const NarrativeDependencyKey.scene('scene_forest'):
+              'Disponible dans une autre portée',
+        },
+      );
+
+      expect(model.groups.map((group) => group.label), [
+        'Maps',
+        'PNJ',
+        'Scenes',
+        'Steps',
+      ]);
+      expect(
+        model.options.where((option) => option.label == 'Rencontre'),
+        hasLength(2),
+      );
+      expect(model.missingSelection?.technicalId, 'scene_missing');
+      expect(
+        model.missingSelection?.availability,
+        NarrativeReferenceAvailability.missing,
+      );
+      expect(
+        model.options
+            .singleWhere((option) => option.technicalId == 'step_port')
+            .breadcrumbLabels,
+        ['Selbrume', 'Chapitre du port'],
+      );
+      expect(
+        model.options.any((option) => option.key.scope == 'legacy'),
+        isFalse,
+      );
+      expect(
+        model.options.any((option) => option.key.scope == 'synthetic'),
+        isFalse,
+      );
+      expect(
+        model.options.any((option) => option.key.scope == 'migration'),
+        isFalse,
+      );
+      expect(
+        model.options.any((option) => option.key.scope == 'project'),
+        isFalse,
+      );
+    });
+
+    test('preserves incompatibility reason and complete physical source keys',
+        () {
+      const reason = 'Disponible dans une autre portée — ne pas déplacer.';
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: canonicalIndex(),
+        allowedKinds: const {NarrativeDependencyTargetKind.sourceMap},
+        incompatibleReasons: {forestNpc: reason},
+      );
+
+      final guideOptions = model.options
+          .where((option) => option.technicalId == 'npc.guide')
+          .toList();
+      expect(guideOptions, hasLength(2));
+      expect(guideOptions.map((option) => option.key).toSet(), {
+        portNpc,
+        forestNpc,
+      });
+      expect(
+        guideOptions
+            .singleWhere((option) => option.key == forestNpc)
+            .diagnostic,
+        reason,
+      );
+      expect(
+        guideOptions
+            .singleWhere((option) => option.key == forestNpc)
+            .availability,
+        NarrativeReferenceAvailability.incompatible,
+      );
+      expect(
+        model.options.every((option) => option.key.isPhysicalMapSource),
+        isTrue,
+      );
+    });
+
+    test('maps publication statuses including legacy and unknown scopes', () {
+      const draft = NarrativeDependencyKey.eventV2('event.draft');
+      const published = NarrativeDependencyKey.eventV2('event.published');
+      const inactive = NarrativeDependencyKey.eventV2('event.inactive');
+      const legacy = NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.eventV2,
+        'event.legacy',
+        scope: 'legacy',
+      );
+      const unknown = NarrativeDependencyKey(
+        NarrativeDependencyTargetKind.eventV2,
+        'event.unknown',
+        scope: 'synthetic',
+      );
+      final index = NarrativeDependencyIndex(
+        definitions: <NarrativeDependencyDefinition>[
+          NarrativeDependencyDefinition(
+            key: draft,
+            label: 'Draft',
+            metadata: const {'publicationStatus': 'draft'},
+          ),
+          NarrativeDependencyDefinition(
+            key: published,
+            label: 'Published',
+            metadata: const {'publicationStatus': 'published'},
+          ),
+          NarrativeDependencyDefinition(
+            key: inactive,
+            label: 'Inactive',
+            metadata: const {'publicationStatus': 'inactive'},
+          ),
+          NarrativeDependencyDefinition(key: legacy, label: 'Legacy'),
+          NarrativeDependencyDefinition(key: unknown, label: 'Unknown'),
+        ],
+      );
+
+      final options = buildCanonicalNarrativeReferencePickerReadModel(
+        index: index,
+        allowedKinds: const {NarrativeDependencyTargetKind.eventV2},
+      ).options;
+
+      NarrativeReferencePublicationStatus statusOf(String id) => options
+          .singleWhere((option) => option.technicalId == id)
+          .publicationStatus;
+
+      expect(
+          statusOf('event.draft'), NarrativeReferencePublicationStatus.draft);
+      expect(
+        statusOf('event.published'),
+        NarrativeReferencePublicationStatus.published,
+      );
+      expect(
+        statusOf('event.inactive'),
+        NarrativeReferencePublicationStatus.inactive,
+      );
+      expect(
+        statusOf('event.legacy'),
+        NarrativeReferencePublicationStatus.legacy,
+      );
+      expect(
+        statusOf('event.unknown'),
+        NarrativeReferencePublicationStatus.unknown,
+      );
+    });
+
+    test('searches every readable and technical field case-insensitively', () {
+      final index = canonicalIndex(
+        extraDefinitions: <NarrativeDependencyDefinition>[
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.scene('scene_diagnostic'),
+            label: 'Autre scène',
+          ),
+          NarrativeDependencyDefinition(
+            key: const NarrativeDependencyKey.scene('scene_other_scope'),
+            label: 'Scène éloignée',
+          ),
+        ],
+      );
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: index,
+        allowedKinds: const {
+          NarrativeDependencyTargetKind.scene,
+          NarrativeDependencyTargetKind.sourceMap,
+          NarrativeDependencyTargetKind.step,
+        },
+        incompatibleReasons: {
+          const NarrativeDependencyKey.scene('scene_diagnostic'):
+              'Diagnostic exclusif',
+        },
+      );
+
+      expect(model.search('rencontre').options, hasLength(2));
+      expect(model.search('SCENE_OTHER_SCOPE').options, hasLength(1));
+      expect(model.search('scene').options, isNotEmpty);
+      expect(model.search('maps').options, hasLength(2));
+      expect(model.search('pnj').options, hasLength(2));
+      expect(model.search('selbrume').options.single.key, step);
+      expect(model.search('chapitre DU PORT').options.single.key, step);
+      expect(
+        model.search('diagnostic exclusif').options.single.technicalId,
+        'scene_diagnostic',
+      );
+      expect(model.search('introuvable').options, isEmpty);
+    });
+
+    test('consolidates ambiguous definitions into one disabled option', () {
+      const ambiguous = NarrativeDependencyKey.scene('scene.ambiguous');
+      final index = NarrativeDependencyIndex(
+        definitions: <NarrativeDependencyDefinition>[
+          NarrativeDependencyDefinition(key: ambiguous, label: 'Premier'),
+          NarrativeDependencyDefinition(key: ambiguous, label: 'Second'),
+        ],
+      );
+
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: index,
+        allowedKinds: const {NarrativeDependencyTargetKind.scene},
+      );
+      final option = model.options.single;
+
+      expect(option.key, ambiguous);
+      expect(option.availability, NarrativeReferenceAvailability.incompatible);
+      expect(option.publicationStatus,
+          NarrativeReferencePublicationStatus.unknown);
+      expect(option.diagnostic, contains('2 définitions'));
+      expect(
+          () => model.groups.add(model.groups.single), throwsUnsupportedError);
+      expect(
+        () => model.groups.single.options.add(option),
+        throwsUnsupportedError,
+      );
+      expect(
+        () => option.breadcrumbLabels.add('mutation'),
+        throwsUnsupportedError,
+      );
+    });
+
+    test('keeps filtered existing selections incompatible instead of missing',
+        () {
+      const existingLegacy = NarrativeDependencyKey.legacyScenario(
+        'legacy.one',
+      );
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: canonicalIndex(),
+        allowedKinds: const {NarrativeDependencyTargetKind.scene},
+        selectedKey: existingLegacy,
+      );
+
+      expect(model.missingSelection, isNull);
+      expect(model.incompatibleSelection?.key, existingLegacy);
+      expect(
+        model.incompatibleSelection?.availability,
+        NarrativeReferenceAvailability.incompatible,
+      );
+      expect(
+        model.incompatibleSelection?.diagnostic,
+        'Cette référence existe mais n’est pas compatible avec ce sélecteur.',
+      );
+    });
+
+    test('publishes physical map source types and searchable product groups',
+        () {
+      const map = NarrativeDependencyKey.map('map.port');
+      const entity = NarrativeDependencyKey.mapSource(
+        mapId: 'map.port',
+        sourceKind: 'entity',
+        sourceId: 'npc.rival',
+      );
+      final index = NarrativeDependencyIndex(
+        definitions: <NarrativeDependencyDefinition>[
+          NarrativeDependencyDefinition(key: map, label: 'Port'),
+          NarrativeDependencyDefinition(
+            key: entity,
+            label: 'Rival',
+            owner: map,
+            metadata: const {'entityKind': 'npc'},
+          ),
+          for (final entry in const <(String, String)>[
+            ('element', 'chest'),
+            ('gameplayZone', 'harbor'),
+            ('trigger', 'arrival'),
+            ('event', 'legacy'),
+            ('warp', 'exit'),
+          ])
+            NarrativeDependencyDefinition(
+              key: NarrativeDependencyKey.mapSource(
+                mapId: 'map.port',
+                sourceKind: entry.$1,
+                sourceId: entry.$2,
+              ),
+              label: entry.$2,
+              owner: map,
+            ),
+        ],
+      );
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: index,
+        allowedKinds: const {NarrativeDependencyTargetKind.sourceMap},
+      );
+
+      expect(
+        model.options.map((option) => option.kindLabel),
+        containsAll(<String>[
+          'Map',
+          'PNJ',
+          'Objet placé',
+          'Zone',
+          'Déclencheur',
+          'Événement de map',
+          'Sortie de map',
+        ]),
+      );
+      expect(model.search('pnj').options.single.key, entity);
+      expect(model.search('zones').options.single.technicalId, 'harbor');
+    });
+
+    test('substitutes an explicit reason for blank incompatibility text', () {
+      final model = buildCanonicalNarrativeReferencePickerReadModel(
+        index: canonicalIndex(),
+        allowedKinds: const {NarrativeDependencyTargetKind.scene},
+        incompatibleReasons: {
+          const NarrativeDependencyKey.scene('scene_port'): '   ',
+        },
+      );
+
+      final option = model.options.singleWhere(
+        (option) => option.technicalId == 'scene_port',
+      );
+      expect(option.availability, NarrativeReferenceAvailability.incompatible);
+      expect(
+        option.diagnostic,
+        'Cette référence est incompatible dans ce contexte.',
+      );
+    });
+  });
 }
 
 ProjectManifest _manifest({
