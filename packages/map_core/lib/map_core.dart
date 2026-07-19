@@ -136,6 +136,7 @@ export 'src/authoring/narrative_validator_authoring_adapter.dart';
 export 'src/authoring/cinematic_authoring_operations.dart';
 export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';
+export 'src/read_models/narrative_dependency_index.dart';
 export 'src/read_models/narrative_event_source_index.dart';
 export 'src/read_models/narrative_event_validation_read_model.dart';
 export 'src/read_models/narrative_event_reachability_report.dart';

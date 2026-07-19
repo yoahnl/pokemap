@@ -19,6 +19,7 @@ import '../operations/build_narrative_event_project_catalog.dart';
 import '../operations/narrative_event_canonical_json.dart';
 import '../operations/narrative_event_registry_codec.dart';
 import 'narrative_event_read_deduplication.dart';
+import 'narrative_dependency_index.dart';
 
 enum NarrativeEventProjectStatus {
   draftIncomplete,
@@ -524,6 +525,7 @@ NarrativeEventBuilderProjectReadModel
     buildNarrativeEventBuilderProjectReadModel({
   required ProjectManifest project,
   required List<MapData> maps,
+  NarrativeDependencyIndex? dependencyIndex,
 }) {
   final registry = project.eventRegistry ??
       NarrativeEventRegistry(
@@ -561,6 +563,7 @@ NarrativeEventBuilderProjectReadModel
   final indexes = _ProjectReadIndexes(
     project: project,
     catalog: catalog,
+    dependencyIndex: dependencyIndex,
   );
   final legacyInputs = <_LegacyProjectionInput>[
     for (final projection in legacyMapEvents)
@@ -1191,6 +1194,7 @@ final class _ProjectReadIndexes {
   _ProjectReadIndexes({
     required this.project,
     required this.catalog,
+    this.dependencyIndex,
   })  : mapLabelsById = {
           for (final map in project.maps)
             map.id: _display(map.name, fallback: map.id),
@@ -1232,6 +1236,7 @@ final class _ProjectReadIndexes {
 
   final ProjectManifest project;
   final NarrativeEventProjectCatalog catalog;
+  final NarrativeDependencyIndex? dependencyIndex;
   final Map<String, String> mapLabelsById;
   final Map<String, ScenarioAsset> scenariosById;
   final Map<NarrativeEventSourceRef, List<NarrativeSpatialEventSourceOption>>
@@ -1395,8 +1400,28 @@ final class _ProjectReadIndexes {
 
   List<NarrativeEventProjectReadDiagnostic> diagnosticsForEvent(
     String eventId,
-  ) =>
-      _diagnosticsByEventId[eventId] ?? const [];
+  ) {
+    final eventKey = NarrativeDependencyKey.eventV2(eventId);
+    final diagnostics = <NarrativeEventProjectReadDiagnostic>[
+      ..._diagnosticsByEventId[eventId] ?? const [],
+      for (final issue
+          in dependencyIndex?.issues ?? const <NarrativeDependencyIssue>[])
+        if (issue.owner == eventKey || issue.target == eventKey)
+          NarrativeEventProjectReadDiagnostic(
+            code: 'canonicalDependency.${issue.kind.name}',
+            severity: switch (issue.criticality) {
+              NarrativeDependencyCriticality.informational =>
+                NarrativeEventProjectSummarySeverity.info,
+              NarrativeDependencyCriticality.authoringWarning =>
+                NarrativeEventProjectSummarySeverity.warning,
+              NarrativeDependencyCriticality.runtimeBlocking =>
+                NarrativeEventProjectSummarySeverity.error,
+            },
+            message: issue.message,
+          ),
+    ];
+    return _deduplicateDiagnostics(diagnostics);
+  }
 
   NarrativeEventProjectionSummary projectionSummary(String? sceneId) {
     return _projectionsBySceneId[sceneId] ??

@@ -3,6 +3,7 @@ import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../models/project_manifest.dart';
 import '../models/storyline_asset.dart';
 import '../runtime/scene_runtime_plan_builder.dart';
+import 'narrative_dependency_index.dart';
 
 final class StorylineStepSceneLinksReadModel {
   StorylineStepSceneLinksReadModel({
@@ -44,6 +45,7 @@ final class StorylineStepSceneLinkView {
     required this.hasSceneErrors,
     required this.isRuntimeBuildable,
     required this.diagnostics,
+    this.referenceResolution = NarrativeDependencyResolution.resolved,
   });
 
   final String sceneId;
@@ -52,6 +54,7 @@ final class StorylineStepSceneLinkView {
   final bool hasSceneErrors;
   final bool isRuntimeBuildable;
   final List<StorylineSceneLinkDiagnostic> diagnostics;
+  final NarrativeDependencyResolution referenceResolution;
 }
 
 final class StorylineStepScenePickerOption {
@@ -73,6 +76,7 @@ StorylineStepSceneLinksReadModel buildStorylineStepSceneLinksReadModel({
   required StorylineAsset storyline,
   required StorylineChapter chapter,
   required StorylineStep step,
+  NarrativeDependencyIndex? dependencyIndex,
 }) {
   final sceneById = {
     for (final scene in project.scenes) scene.id: scene,
@@ -88,18 +92,35 @@ StorylineStepSceneLinksReadModel buildStorylineStepSceneLinksReadModel({
   final linkedScenes = [
     for (final sceneId in step.sceneLinkIds)
       () {
-        final scene = sceneById[sceneId];
+        final dependencyDefinitions = dependencyIndex?.definitionsFor(
+          NarrativeDependencyKey.scene(sceneId),
+        );
+        final isAmbiguousReference =
+            dependencyDefinitions != null && dependencyDefinitions.length > 1;
+        final scene = isAmbiguousReference ? null : sceneById[sceneId];
         final sceneDiagnostics = scene == null ? null : diagnoseScene(scene);
         final planResult = scene == null ? null : buildSceneRuntimePlan(scene);
+        final referenceResolution = dependencyDefinitions == null
+            ? scene == null
+                ? NarrativeDependencyResolution.missing
+                : NarrativeDependencyResolution.resolved
+            : dependencyDefinitions.isEmpty
+                ? NarrativeDependencyResolution.missing
+                : dependencyDefinitions.length == 1
+                    ? NarrativeDependencyResolution.resolved
+                    : NarrativeDependencyResolution.ambiguous;
         return StorylineStepSceneLinkView(
           sceneId: sceneId,
-          label: scene?.name ?? 'Scene introuvable',
-          exists: scene != null,
+          label: isAmbiguousReference
+              ? 'Scene ambiguë ($sceneId)'
+              : scene?.name ?? 'Scene introuvable',
+          exists: isAmbiguousReference || scene != null,
           hasSceneErrors: sceneDiagnostics?.hasErrors ?? false,
           isRuntimeBuildable: planResult?.canBuild ?? false,
           diagnostics: List<StorylineSceneLinkDiagnostic>.unmodifiable(
             diagnostics.where((diagnostic) => diagnostic.sceneId == sceneId),
           ),
+          referenceResolution: referenceResolution,
         );
       }(),
   ];

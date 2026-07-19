@@ -8,11 +8,16 @@ import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
+import 'narrative_dependency_index.dart';
 
 enum FactManagerUsageKind {
   sceneCondition,
   sceneConsequence,
   worldRuleSource,
+  newGame,
+  eventV2,
+  storylineEffect,
+  legacySource,
 }
 
 final class FactsWorldRulesManagerReadModel {
@@ -86,6 +91,9 @@ final class FactManagerUsage {
     required this.ownerId,
     required this.ownerLabel,
     required this.details,
+    this.referenceResolution = NarrativeDependencyResolution.resolved,
+    this.dependencyPath,
+    this.dependencyOwner,
   });
 
   final FactManagerUsageKind kind;
@@ -93,6 +101,9 @@ final class FactManagerUsage {
   final String ownerId;
   final String ownerLabel;
   final String details;
+  final NarrativeDependencyResolution referenceResolution;
+  final String? dependencyPath;
+  final NarrativeDependencyKey? dependencyOwner;
 }
 
 final class WorldRuleManagerEntry {
@@ -182,11 +193,15 @@ final class WorldRuleDialoguePickerOption {
 FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
   ProjectManifest project, {
   List<MapData> maps = const <MapData>[],
+  NarrativeDependencyIndex? dependencyIndex,
 }) {
   final usagesByFactId = <String, List<FactManagerUsage>>{
     for (final fact in project.facts) fact.id: <FactManagerUsage>[],
   };
-  for (final usage in _collectFactUsages(project)) {
+  final factUsages = dependencyIndex == null
+      ? _collectFactUsages(project)
+      : _collectFactUsagesFromDependencyIndex(dependencyIndex);
+  for (final usage in factUsages) {
     usagesByFactId.putIfAbsent(usage.factId, () => <FactManagerUsage>[]);
     usagesByFactId[usage.factId]!.add(usage);
   }
@@ -226,6 +241,58 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
     effectOptions: _buildEffectOptions(),
     dialogueOptions: _buildDialogueOptions(project),
   );
+}
+
+Iterable<FactManagerUsage> _collectFactUsagesFromDependencyIndex(
+  NarrativeDependencyIndex index,
+) sync* {
+  for (final usage in index.usages) {
+    if (usage.target.kind != NarrativeDependencyTargetKind.fact) continue;
+    yield FactManagerUsage(
+      kind: _factManagerKindForDependency(usage),
+      factId: usage.target.id,
+      ownerId: usage.owner.id,
+      ownerLabel: _dependencyOwnerLabel(index, usage.owner),
+      details: usage.path,
+      referenceResolution: usage.resolution,
+      dependencyPath: usage.path,
+      dependencyOwner: usage.owner,
+    );
+  }
+}
+
+FactManagerUsageKind _factManagerKindForDependency(
+  NarrativeDependencyUsage usage,
+) {
+  switch (usage.owner.kind) {
+    case NarrativeDependencyTargetKind.scene:
+      return usage.path.contains('.consequence.')
+          ? FactManagerUsageKind.sceneConsequence
+          : FactManagerUsageKind.sceneCondition;
+    case NarrativeDependencyTargetKind.worldRule:
+      return FactManagerUsageKind.worldRuleSource;
+    case NarrativeDependencyTargetKind.eventV2:
+      return FactManagerUsageKind.eventV2;
+    case NarrativeDependencyTargetKind.storyline:
+      return FactManagerUsageKind.storylineEffect;
+    case NarrativeDependencyTargetKind.sourceMap:
+      return usage.owner == const NarrativeDependencyKey.projectNewGame()
+          ? FactManagerUsageKind.newGame
+          : FactManagerUsageKind.legacySource;
+    default:
+      return FactManagerUsageKind.legacySource;
+  }
+}
+
+String _dependencyOwnerLabel(
+  NarrativeDependencyIndex index,
+  NarrativeDependencyKey owner,
+) {
+  if (owner == const NarrativeDependencyKey.projectNewGame()) {
+    return 'New Game';
+  }
+  final definitions = index.definitionsFor(owner);
+  return definitions.length == 1 ? definitions.single.label : owner.id;
 }
 
 Iterable<FactManagerUsage> _collectFactUsages(ProjectManifest project) sync* {

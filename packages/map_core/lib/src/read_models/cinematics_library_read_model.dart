@@ -5,6 +5,7 @@ import '../models/cinematic_asset.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import 'linked_asset_public_contracts.dart';
+import 'narrative_dependency_index.dart';
 
 enum CinematicsLibraryEntryKind {
   canonical,
@@ -156,6 +157,7 @@ final class CinematicsLibraryUsage {
     required this.nodeId,
     required this.nodeTitle,
     required this.referenceStatus,
+    this.referenceResolution = NarrativeDependencyResolution.resolved,
   });
 
   final String cinematicId;
@@ -164,6 +166,7 @@ final class CinematicsLibraryUsage {
   final String nodeId;
   final String nodeTitle;
   final CinematicsLibraryReferenceStatus referenceStatus;
+  final NarrativeDependencyResolution referenceResolution;
 }
 
 @immutable
@@ -201,8 +204,9 @@ final class CinematicsLibraryMetrics {
 }
 
 CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
-  ProjectManifest project,
-) {
+  ProjectManifest project, {
+  NarrativeDependencyIndex? dependencyIndex,
+}) {
   final contracts = buildCinematicPublicContracts(project);
   final bridgeContracts = {
     for (final contract in contracts)
@@ -217,6 +221,7 @@ CinematicsLibraryReadModel buildCinematicsLibraryReadModel(
     project.scenes,
     canonicalIds: canonicalIds,
     bridgeIds: bridgeIds,
+    dependencyIndex: dependencyIndex,
   );
   final diagnosticsByCinematicId = _groupCinematicDiagnostics(
     diagnoseCinematicsAgainstProject(project).diagnostics,
@@ -330,6 +335,7 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
   List<SceneAsset> scenes, {
   required Set<String> canonicalIds,
   required Set<String> bridgeIds,
+  NarrativeDependencyIndex? dependencyIndex,
 }) {
   final usages = <String, List<CinematicsLibraryUsage>>{};
   for (final scene in scenes) {
@@ -339,17 +345,36 @@ Map<String, List<CinematicsLibraryUsage>> _collectSceneUsages(
         continue;
       }
       final cinematicId = payload.cinematicId;
+      final referenceStatus = _referenceStatusFor(
+        cinematicId,
+        canonicalIds: canonicalIds,
+        bridgeIds: bridgeIds,
+      );
+      final indexedUsages = dependencyIndex?.usagesFor(
+        NarrativeDependencyKey(
+          NarrativeDependencyTargetKind.cinematic,
+          cinematicId,
+        ),
+      );
+      final indexedSceneUsage = indexedUsages
+          ?.where(
+            (usage) => usage.owner == NarrativeDependencyKey.scene(scene.id),
+          )
+          .firstOrNull;
       final usage = CinematicsLibraryUsage(
         cinematicId: cinematicId,
         sceneId: scene.id,
         sceneTitle: scene.name,
         nodeId: node.id,
         nodeTitle: node.title ?? node.id,
-        referenceStatus: _referenceStatusFor(
-          cinematicId,
-          canonicalIds: canonicalIds,
-          bridgeIds: bridgeIds,
-        ),
+        referenceStatus: referenceStatus,
+        referenceResolution: referenceStatus ==
+                CinematicsLibraryReferenceStatus.bridgeLegacy
+            ? NarrativeDependencyResolution.legacyExternal
+            : indexedSceneUsage?.resolution ??
+                (referenceStatus == CinematicsLibraryReferenceStatus.canonical
+                    ? NarrativeDependencyResolution.resolved
+                    : NarrativeDependencyResolution.missing),
       );
       usages.putIfAbsent(cinematicId, () => []).add(usage);
     }
