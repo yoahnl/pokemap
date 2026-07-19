@@ -4,6 +4,8 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../design_system/design_system.dart';
+import '../narrative_studio/narrative_studio_destination.dart';
+import '../narrative_studio/narrative_studio_navigation.dart';
 import '../../../application/models/narrative_event_map_bridge_models.dart';
 import '../../../application/models/narrative_event_spatial_link_journal_models.dart';
 import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
@@ -21,10 +23,16 @@ class NarrativeEventMapBanner extends ConsumerWidget {
     final editor = ref.watch(editorNotifierProvider);
     final bridge = ref.watch(narrativeEventMapBridgeControllerProvider);
     final token = bridge.pendingReturn;
+    final narrativeReturn =
+        ref.watch(narrativeStudioNavigationControllerProvider).pendingReturn;
     final map = editor.activeMap;
     final project = editor.project;
-    if (token == null ||
-        map == null ||
+    if (token == null) {
+      return narrativeReturn == null
+          ? const SizedBox.shrink()
+          : _NarrativeMapReturnBanner(expectation: narrativeReturn);
+    }
+    if (map == null ||
         project == null ||
         token.groupContext.kind != NarrativeEventGroupContextKind.map ||
         token.groupContext.mapId != map.id) {
@@ -63,6 +71,21 @@ class NarrativeEventMapBanner extends ConsumerWidget {
       controller.returnToEvent(
         project: currentProject,
         openExactEvent: ({required eventId, required groupContext}) {
+          final studioNavigation = ref.read(
+            narrativeStudioNavigationControllerProvider.notifier,
+          );
+          final restored = studioNavigation.restoreReturn();
+          if (restored == null) {
+            studioNavigation.replace(
+              NarrativeStudioRouteLocation.events(
+                selection: NarrativeStudioAssetSelection(
+                  kind: NarrativeStudioAssetKind.event,
+                  assetId: eventId,
+                  parentId: groupContext.mapId,
+                ),
+              ),
+            );
+          }
           notifier.selectEventsWorkspace();
         },
       );
@@ -596,6 +619,12 @@ class NarrativeEventMapBanner extends ConsumerWidget {
                         ? null
                         : () {
                             controller.cancelMapNavigation();
+                            ref
+                                .read(
+                                  narrativeStudioNavigationControllerProvider
+                                      .notifier,
+                                )
+                                .restoreReturn();
                             notifier.selectEventsWorkspace();
                           },
                     variant: PokeMapButtonVariant.ghost,
@@ -621,6 +650,96 @@ class NarrativeEventMapBanner extends ConsumerWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NarrativeMapReturnBanner extends ConsumerWidget {
+  const _NarrativeMapReturnBanner({required this.expectation});
+
+  final NarrativeStudioReturnExpectation expectation;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = context.pokeMapColors;
+    final label = switch (expectation.location.destination) {
+      NarrativeStudioDestination.overview => 'l’aperçu',
+      NarrativeStudioDestination.storylines => 'la Storyline',
+      NarrativeStudioDestination.scenes => 'la Scene',
+      NarrativeStudioDestination.events => 'l’Event Builder',
+      NarrativeStudioDestination.cinematics => 'la cinématique',
+      NarrativeStudioDestination.dialogues => 'le dialogue',
+      NarrativeStudioDestination.facts => 'la Fact',
+      NarrativeStudioDestination.worldRules => 'la règle du monde',
+      NarrativeStudioDestination.validator => 'le diagnostic',
+    };
+
+    void restore() {
+      final controller =
+          ref.read(narrativeStudioNavigationControllerProvider.notifier);
+      final restored = controller.restoreReturn();
+      if (restored == null) return;
+      final notifier = ref.read(editorNotifierProvider.notifier);
+      switch (restored.location.childRoute) {
+        case NarrativeStudioChildRoute.storylineStep:
+          notifier.selectStepWorkspace();
+        case NarrativeStudioChildRoute.overview:
+          notifier.selectNarrativeOverviewWorkspace();
+        case NarrativeStudioChildRoute.storylineLibrary:
+          notifier.selectGlobalStoryWorkspace();
+        case NarrativeStudioChildRoute.sceneBuilder:
+          notifier.selectScenesWorkspace();
+        case NarrativeStudioChildRoute.eventBuilder:
+        case NarrativeStudioChildRoute.mapEvents:
+          notifier.selectEventsWorkspace();
+        case NarrativeStudioChildRoute.cinematicLibrary:
+        case NarrativeStudioChildRoute.cinematicBuilder:
+        case NarrativeStudioChildRoute.cinematicLegacy:
+          notifier.selectCutsceneWorkspace();
+        case NarrativeStudioChildRoute.dialogueEditor:
+          notifier.selectDialogueWorkspace();
+        case NarrativeStudioChildRoute.factsManager:
+          notifier.selectFactsWorkspace();
+        case NarrativeStudioChildRoute.worldRulesManager:
+          notifier.selectWorldRulesWorkspace();
+        case NarrativeStudioChildRoute.validatorDiagnostics:
+          notifier.selectNarrativeValidatorWorkspace();
+      }
+    }
+
+    return SizedBox(
+      width: 360,
+      child: PokeMapPanel(
+        key: const ValueKey('narrative-map-generic-return-banner'),
+        padding: const EdgeInsets.all(12),
+        header: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Row(
+            children: [
+              Icon(CupertinoIcons.link, color: colors.narrative, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Navigation narrative',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        child: PokeMapButton(
+          key: const ValueKey('narrative-map-generic-return'),
+          onPressed: restore,
+          variant: PokeMapButtonVariant.secondary,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.chevron_left),
+          child: Text('Retour à $label'),
         ),
       ),
     );

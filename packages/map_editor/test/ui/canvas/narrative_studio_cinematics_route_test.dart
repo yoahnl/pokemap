@@ -14,6 +14,8 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
@@ -28,7 +30,7 @@ void main() {
       final project = _cinematicsProject();
       final before = project.toJson();
 
-      await pumpEditorShellPage(
+      final container = await pumpEditorShellPage(
         tester,
         initialState: EditorState(
           project: project,
@@ -80,6 +82,21 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .location
+            .childRoute,
+        NarrativeStudioChildRoute.cinematicBuilder,
+      );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .location
+            .selection
+            ?.assetId,
+        'cinematic_intro',
+      );
 
       await tester.tap(
         find.byKey(const ValueKey('cinematic-builder-back-button')),
@@ -88,6 +105,27 @@ void main() {
 
       expectSharedRoute();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
+      expect(
+        container.read(narrativeStudioNavigationControllerProvider).location,
+        NarrativeStudioRouteLocation.cinematics(),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('cinematics-library-open-builder-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(CinematicBuilderWorkspace), findsOneWidget);
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-cinematics'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
+      expect(
+        container.read(narrativeStudioNavigationControllerProvider).location,
+        NarrativeStudioRouteLocation.cinematics(),
+      );
 
       await tester.tap(
         find.byKey(
@@ -113,6 +151,13 @@ void main() {
         findsOneWidget,
       );
       expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .location
+            .childRoute,
+        NarrativeStudioChildRoute.cinematicLegacy,
+      );
+      expect(
         find.byKey(const ValueKey('cinematics-library-back-button')),
         findsOneWidget,
       );
@@ -124,7 +169,84 @@ void main() {
 
       expectSharedRoute();
       expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
+      expect(
+        container.read(narrativeStudioNavigationControllerProvider).location,
+        NarrativeStudioRouteLocation.cinematics(),
+      );
       expect(project.toJson(), before);
+    },
+  );
+
+  testWidgets(
+    'a stale Cinematic deep link fails closed without losing its return',
+    (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: _cinematicsProject(),
+          workspaceMode: EditorWorkspaceMode.cutscene,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+      final returnExpectation = NarrativeStudioReturnExpectation(
+        location: NarrativeStudioRouteLocation.cinematics(),
+      );
+      container
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .navigate(
+            NarrativeStudioRouteLocation.cinematics(
+              childRoute: NarrativeStudioChildRoute.cinematicBuilder,
+              selection: NarrativeStudioAssetSelection(
+                kind: NarrativeStudioAssetKind.cinematic,
+                assetId: 'cinematic_deleted',
+              ),
+            ),
+            returnExpectation: returnExpectation,
+          );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('cinematics-library-requested-unavailable'),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Cinématique introuvable'), findsOneWidget);
+      expect(find.byType(CinematicBuilderWorkspace), findsNothing);
+      expect(
+        find.byKey(const ValueKey('cinematic-entry-cinematic_intro')),
+        findsNothing,
+        reason: 'Une cible obsolète ne doit pas sélectionner le premier item.',
+      );
+      final staleNavigation =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(staleNavigation.pendingReturn, returnExpectation);
+      expect(staleNavigation.restorationRequest, isNull);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-return'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(narrativeStudioNavigationControllerProvider).location,
+        returnExpectation.location,
+      );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .pendingReturn,
+        isNull,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('cinematics-library-requested-unavailable'),
+        ),
+        findsNothing,
+      );
+      expect(find.byType(CinematicsLibraryWorkspace), findsOneWidget);
     },
   );
 

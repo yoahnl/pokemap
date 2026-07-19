@@ -197,13 +197,68 @@ final class NarrativeDependencyNavigationIntent {
     required this.kind,
     required this.assetId,
     this.parentId,
+    this.rootId,
+    this.scope,
+    this.sourceKind,
+    this.mapId,
     this.context,
   });
+
+  /// Builds a deep-link intent from the canonical dependency identity.
+  ///
+  /// Keeping every qualifier avoids reconstructing a map/source target by
+  /// parsing the human-facing path stored in [context].
+  factory NarrativeDependencyNavigationIntent.fromKey(
+    NarrativeDependencyKey key, {
+    String? parentId,
+    String? rootId,
+    String? context,
+  }) {
+    return NarrativeDependencyNavigationIntent(
+      kind: key.kind,
+      assetId: key.id,
+      parentId: key.parentId ?? parentId,
+      rootId: rootId,
+      scope: key.scope,
+      sourceKind: key.sourceKind,
+      mapId: key.physicalMapId,
+      context: context,
+    );
+  }
 
   final NarrativeDependencyTargetKind kind;
   final String assetId;
   final String? parentId;
+  final String? rootId;
+  final String? scope;
+  final String? sourceKind;
+  final String? mapId;
   final String? context;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is NarrativeDependencyNavigationIntent &&
+          other.kind == kind &&
+          other.assetId == assetId &&
+          other.parentId == parentId &&
+          other.rootId == rootId &&
+          other.scope == scope &&
+          other.sourceKind == sourceKind &&
+          other.mapId == mapId &&
+          other.context == context;
+
+  @override
+  int get hashCode => Object.hash(
+        kind,
+        assetId,
+        parentId,
+        rootId,
+        scope,
+        sourceKind,
+        mapId,
+        context,
+      );
 }
 
 @immutable
@@ -441,6 +496,7 @@ final class _NarrativeDependencyIndexBuilder {
             step.id,
             step.title,
             owner: chapterKey,
+            navigationRootId: storyline.id,
             path:
                 'storylines[${storyline.id}].chapters[${chapter.id}].steps[${step.id}]',
           );
@@ -2069,6 +2125,7 @@ final class _NarrativeDependencyIndexBuilder {
     String? scope,
     String? parentId,
     String? sourceKind,
+    String? navigationRootId,
     Map<String, String> metadata = const <String, String>{},
   }) {
     final key = NarrativeDependencyKey(
@@ -2084,10 +2141,10 @@ final class _NarrativeDependencyIndexBuilder {
         label: label,
         owner: owner,
         path: path,
-        navigationIntent: NarrativeDependencyNavigationIntent(
-          kind: kind,
-          assetId: id,
+        navigationIntent: NarrativeDependencyNavigationIntent.fromKey(
+          key,
           parentId: owner?.id,
+          rootId: navigationRootId,
           context: path,
         ),
         metadata: metadata,
@@ -2110,9 +2167,8 @@ final class _NarrativeDependencyIndexBuilder {
         path: path,
         criticality: criticality,
         resolution: resolution ?? NarrativeDependencyResolution.resolved,
-        navigationIntent: NarrativeDependencyNavigationIntent(
-          kind: owner.kind,
-          assetId: owner.id,
+        navigationIntent: NarrativeDependencyNavigationIntent.fromKey(
+          owner,
           context: path,
         ),
       ),
@@ -2326,6 +2382,14 @@ int _compareOptionalNavigationIntents(
   if (assetId != 0) return assetId;
   final parentId = (left.parentId ?? '').compareTo(right.parentId ?? '');
   if (parentId != 0) return parentId;
+  final rootId = (left.rootId ?? '').compareTo(right.rootId ?? '');
+  if (rootId != 0) return rootId;
+  final scope = (left.scope ?? '').compareTo(right.scope ?? '');
+  if (scope != 0) return scope;
+  final sourceKind = (left.sourceKind ?? '').compareTo(right.sourceKind ?? '');
+  if (sourceKind != 0) return sourceKind;
+  final mapId = (left.mapId ?? '').compareTo(right.mapId ?? '');
+  if (mapId != 0) return mapId;
   return (left.context ?? '').compareTo(right.context ?? '');
 }
 

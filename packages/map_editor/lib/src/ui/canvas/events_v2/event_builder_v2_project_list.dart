@@ -14,6 +14,8 @@ class EventBuilderV2ProjectList extends StatelessWidget {
     required this.hasNoMatchingEvents,
     required this.onSelectEvent,
     required this.onCreateEvent,
+    this.scrollController,
+    this.focusNodeForStableKey,
   });
 
   final List<NarrativeEventProjectGroup> groups;
@@ -24,6 +26,8 @@ class EventBuilderV2ProjectList extends StatelessWidget {
   final bool hasNoMatchingEvents;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
   final VoidCallback? onCreateEvent;
+  final ScrollController? scrollController;
+  final FocusNode Function(String stableKey)? focusNodeForStableKey;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +47,7 @@ class EventBuilderV2ProjectList extends StatelessWidget {
               )
             : ListView.separated(
                 key: const ValueKey('event-builder-v2-event-list-scroll'),
+                controller: scrollController,
                 padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                 itemCount: groups.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -52,6 +57,7 @@ class EventBuilderV2ProjectList extends StatelessWidget {
                     group: group,
                     selectedStableKey: selectedStableKey,
                     onSelectEvent: onSelectEvent,
+                    focusNodeForStableKey: focusNodeForStableKey,
                   );
                 },
               );
@@ -118,11 +124,13 @@ class _ProjectGroup extends StatelessWidget {
     required this.group,
     required this.selectedStableKey,
     required this.onSelectEvent,
+    required this.focusNodeForStableKey,
   });
 
   final NarrativeEventProjectGroup group;
   final String? selectedStableKey;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
+  final FocusNode Function(String stableKey)? focusNodeForStableKey;
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +184,7 @@ class _ProjectGroup extends StatelessWidget {
                       : CupertinoIcons.circle_fill,
                 ),
                 selected: selectedStableKey == event.stableKey,
+                focusNode: focusNodeForStableKey?.call(event.stableKey),
                 onTap: () => onSelectEvent(event),
               ),
             ),

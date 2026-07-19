@@ -18,6 +18,7 @@ class PokeMapSidebarItem extends StatefulWidget {
     this.selected = false,
     this.disabled = false,
     this.onTap,
+    this.focusNode,
   });
 
   /// The primary item label.
@@ -51,6 +52,9 @@ class PokeMapSidebarItem extends StatefulWidget {
 
   /// Triggered when the sidebar item is tapped.
   final VoidCallback? onTap;
+
+  /// Optional external focus anchor for reversible workspace navigation.
+  final FocusNode? focusNode;
 
   @override
   State<PokeMapSidebarItem> createState() => _PokeMapSidebarItemState();
@@ -92,6 +96,7 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
       selected: isActive,
       enabled: !isDisabled,
       child: FocusableActionDetector(
+        focusNode: widget.focusNode,
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(
             onInvoke: (intent) {

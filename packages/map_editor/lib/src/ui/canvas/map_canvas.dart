@@ -37,6 +37,7 @@ import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
+import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../shared/map_workspace_empty_state.dart';
 import '../../theme/theme.dart';
@@ -221,6 +222,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final colors = context.pokeMapColors;
     final state = ref.watch(editorNotifierProvider);
     final bridgeState = ref.watch(narrativeEventMapBridgeControllerProvider);
+    final narrativeNavigation =
+        ref.watch(narrativeStudioNavigationControllerProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final environmentMaskBrushSize =
         ref.watch(environmentMaskBrushSizeProvider);
@@ -712,7 +715,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         ),
                       ),
                     ),
-                    if (bridgeState.pendingReturn != null)
+                    if (bridgeState.pendingReturn != null ||
+                        narrativeNavigation.pendingReturn != null)
                       const Positioned(
                         left: 12,
                         top: 12,

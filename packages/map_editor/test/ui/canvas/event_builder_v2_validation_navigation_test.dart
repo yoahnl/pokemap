@@ -65,6 +65,10 @@ void main() {
       find.byKey(const ValueKey('scenes-selected-summary-scene_b')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('scenes-route-restoration-failure')),
+      findsNothing,
+    );
     expect(container.read(editorNotifierProvider).project, same(project));
   });
 }

@@ -19,6 +19,8 @@ import '../../../features/narrative/state/narrative_event_map_bridge_state.dart'
 import '../../../features/narrative/state/narrative_event_validation_state.dart';
 import '../../../features/narrative/state/narrative_scene_focus_provider.dart';
 import '../../design_system/design_system.dart';
+import '../narrative_studio/narrative_studio_destination.dart';
+import '../narrative_studio/narrative_studio_navigation.dart';
 import 'event_builder_v2_authoring_sheets.dart';
 import 'event_builder_v2_element_library.dart';
 import 'event_builder_v2_migration_sheet.dart';
@@ -64,6 +66,18 @@ class _EventBuilderV2ProductRouteState
   bool _migrationBusy = false;
   String? _migrationMessage;
   bool _globalDiagnosticsExpanded = false;
+  final ScrollController _eventListScrollController = ScrollController();
+  final Map<String, FocusNode> _eventFocusNodes = <String, FocusNode>{};
+  int? _eventRestorationRevisionInFlight;
+
+  @override
+  void dispose() {
+    _eventListScrollController.dispose();
+    for (final node in _eventFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +271,19 @@ class _EventBuilderV2ProductRouteState
       }
     }
 
+    final restoration = ref
+        .watch(narrativeStudioNavigationControllerProvider)
+        .restorationRequest;
+    if (restoration != null &&
+        restoration.expectation.location.destination ==
+            NarrativeStudioDestination.events &&
+        restoration.expectation.location.selection?.assetId ==
+            selected?.eventId &&
+        (restoration.expectation.focusAnchorId == null ||
+            restoration.expectation.focusAnchorId == selected?.stableKey)) {
+      _scheduleEventReturnRestoration(restoration);
+    }
+
     final workspace = EventBuilderV2Workspace(
       state: state,
       mode: mode,
@@ -298,6 +325,8 @@ class _EventBuilderV2ProductRouteState
           ? () => _openBehaviorSheet(selected!)
           : null,
       validationItems: validationItems,
+      eventListScrollController: _eventListScrollController,
+      eventFocusNodeForStableKey: _eventFocusNodeFor,
       onValidationAction: validationSnapshot == null
           ? null
           : (item) => _navigateFromValidation(
@@ -834,6 +863,7 @@ class _EventBuilderV2ProductRouteState
       applyFocus: notifier.focusNarrativeEventMapSource,
     );
     if (!result.succeeded || !mounted) return;
+    _rememberEventReturn(event);
     await _inspectPendingSourceCreation(controller);
     if (mounted) notifier.selectMapWorkspace();
   }
@@ -868,6 +898,7 @@ class _EventBuilderV2ProductRouteState
       activateMapSnapshot: notifier.activateNarrativeEventMapSnapshot,
     );
     if (!result.succeeded || !mounted) return;
+    _rememberEventReturn(event);
     await _inspectPendingSourceCreation(controller);
     if (mounted) notifier.selectMapWorkspace();
   }
@@ -882,6 +913,117 @@ class _EventBuilderV2ProductRouteState
       projectDirty: editor.isProjectDirty,
       saving: editor.isSaving,
     );
+  }
+
+  FocusNode _eventFocusNodeFor(String stableKey) =>
+      _eventFocusNodes.putIfAbsent(
+        stableKey,
+        () => FocusNode(debugLabel: 'Event Builder item $stableKey'),
+      );
+
+  void _scheduleEventReturnRestoration(
+    NarrativeStudioRestorationRequest restoration,
+  ) {
+    if (_eventRestorationRevisionInFlight == restoration.revision) return;
+    _eventRestorationRevisionInFlight = restoration.revision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreEventReturn(restoration, attempt: 0);
+    });
+  }
+
+  void _restoreEventReturn(
+    NarrativeStudioRestorationRequest restoration, {
+    required int attempt,
+  }) {
+    if (!mounted) return;
+    final current = ref
+        .read(narrativeStudioNavigationControllerProvider)
+        .restorationRequest;
+    if (current?.revision != restoration.revision) {
+      if (_eventRestorationRevisionInFlight == restoration.revision) {
+        _eventRestorationRevisionInFlight = null;
+      }
+      return;
+    }
+    if (!_eventListScrollController.hasClients) {
+      _retryEventReturn(restoration, attempt: attempt);
+      return;
+    }
+
+    final position = _eventListScrollController.position;
+    final expectedOffset = restoration.expectation.scrollOffset?.clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (expectedOffset != null &&
+        (_eventListScrollController.offset - expectedOffset).abs() > 0.01) {
+      _eventListScrollController.jumpTo(expectedOffset);
+    }
+
+    final focusAnchor = restoration.expectation.focusAnchorId;
+    if (focusAnchor != null) {
+      final focusNode = _eventFocusNodes[focusAnchor];
+      if (focusNode?.context == null) {
+        _retryEventReturn(restoration, attempt: attempt);
+        return;
+      }
+      if (!focusNode!.hasFocus) {
+        focusNode.requestFocus();
+        _retryEventReturn(restoration, attempt: attempt);
+        return;
+      }
+    }
+
+    if (expectedOffset != null &&
+        (_eventListScrollController.offset - expectedOffset).abs() > 0.01) {
+      _eventListScrollController.jumpTo(expectedOffset);
+      _retryEventReturn(restoration, attempt: attempt);
+      return;
+    }
+
+    ref
+        .read(narrativeStudioNavigationControllerProvider.notifier)
+        .consumeRestoration(restoration.revision);
+    _eventRestorationRevisionInFlight = null;
+  }
+
+  void _retryEventReturn(
+    NarrativeStudioRestorationRequest restoration, {
+    required int attempt,
+  }) {
+    if (attempt >= 12) {
+      if (_eventRestorationRevisionInFlight == restoration.revision) {
+        _eventRestorationRevisionInFlight = null;
+      }
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreEventReturn(restoration, attempt: attempt + 1);
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _rememberEventReturn(NarrativeEventProjectSummary event) {
+    final eventId = event.eventId;
+    if (eventId == null) return;
+    final group = narrativeEventGroupContextForSummary(event);
+    ref
+        .read(narrativeStudioNavigationControllerProvider.notifier)
+        .rememberExternalReturn(
+          NarrativeStudioReturnExpectation(
+            location: NarrativeStudioRouteLocation.events(
+              selection: NarrativeStudioAssetSelection(
+                kind: NarrativeStudioAssetKind.event,
+                assetId: eventId,
+                parentId: group.mapId,
+              ),
+            ),
+            scrollOffset: _eventListScrollController.hasClients
+                ? _eventListScrollController.offset
+                : 0,
+            focusAnchorId: event.stableKey,
+          ),
+        );
   }
 
   NarrativeEventBuilderV2UseCase _authoringUseCase() {

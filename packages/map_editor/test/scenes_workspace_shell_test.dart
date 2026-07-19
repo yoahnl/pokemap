@@ -14,6 +14,8 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 import 'shell_chrome_test_harness.dart';
@@ -1694,6 +1696,359 @@ void main() {
       ]);
       expect(find.text('dialogue_updated'), findsOneWidget);
       expect(find.text('selbrume_port'), findsNothing);
+    });
+
+    testWidgets('opens an exact Dialogue and restores its Scene node',
+        (tester) async {
+      final project = _projectWithDeepLinkPayloadNodes();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      final opened = container.read(editorNotifierProvider);
+      final navigation =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(opened.workspaceMode, EditorWorkspaceMode.dialogue);
+      expect(opened.selectedProjectDialogueId, 'dialogue_linked');
+      expect(navigation.location.selection?.assetId, 'dialogue_linked');
+      expect(navigation.pendingReturn?.location.selection?.assetId,
+          'scene_linked');
+      expect(
+        navigation.pendingReturn?.location.selection?.focusId,
+        'node_dialogue',
+      );
+      expect(navigation.pendingReturn?.scrollOffset, isNull);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-return'),
+        ),
+      );
+      await tester.pump();
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNotNull,
+        reason: 'Le retour reste en attente tant que le nœud n’a pas le focus.',
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.scenes,
+      );
+      expect(find.text('Dialogue lié'), findsOneWidget);
+      expect(find.textContaining('Linked Dialogue'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-node_dialogue'),
+        ),
+        findsOneWidget,
+      );
+      final dialogueNodeFocus = tester.widget<FocusableActionDetector>(
+        find.byKey(
+          const ValueKey('scene-graph-node-focus-node_dialogue'),
+        ),
+      );
+      expect(dialogueNodeFocus.focusNode?.hasFocus, isTrue);
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNull,
+      );
+    });
+
+    testWidgets('opens an exact Cinematic and restores its Scene node',
+        (tester) async {
+      final project = _projectWithDeepLinkPayloadNodes();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-open-cinematic-action')),
+      );
+      await tester.pumpAndSettle();
+
+      final navigation =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.cutscene,
+      );
+      expect(
+        navigation.location.childRoute,
+        NarrativeStudioChildRoute.cinematicBuilder,
+      );
+      expect(navigation.location.selection?.assetId, 'cinematic_linked');
+      expect(
+        find.byKey(const ValueKey('cinematic-builder-workspace')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-return'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.scenes,
+      );
+      expect(find.text('Cinématique'), findsWidgets);
+      expect(find.text('cinematic_linked'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-node_cinematic'),
+        ),
+        findsOneWidget,
+      );
+      final cinematicNodeFocus = tester.widget<FocusableActionDetector>(
+        find.byKey(
+          const ValueKey('scene-graph-node-focus-node_cinematic'),
+        ),
+      );
+      expect(cinematicNodeFocus.focusNode?.hasFocus, isTrue);
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNull,
+      );
+    });
+
+    testWidgets(
+        'does not reapply a consumed Scene deep link after local selection',
+        (tester) async {
+      final project = _projectWithDeepLinkPayloadNodes();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.tap(
+        find.byKey(const ValueKey('narrative-studio-product-nav-return')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-node_dialogue'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNull,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+      );
+      await tester.pumpAndSettle();
+      container
+          .read(editorNotifierProvider.notifier)
+          .applyInMemoryProjectManifest(
+            project.copyWith(
+              globalProperties: {
+                ...project.globalProperties,
+                'testMutation': true,
+              },
+            ),
+          );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-node_cinematic'),
+        ),
+        findsOneWidget,
+        reason: 'Une route déjà consommée ne doit pas écraser un choix local.',
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-node_dialogue'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets(
+        'keeps a Dialogue return pending when its exact Scene node is stale',
+        (tester) async {
+      final project = _projectWithDeepLinkPayloadNodes();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+      container
+          .read(editorNotifierProvider.notifier)
+          .applyInMemoryProjectManifest(
+            project.copyWith(
+              scenes: [
+                _sceneWithoutNode(project.scenes.single, 'node_dialogue'),
+              ],
+            ),
+          );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-return'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        find.byKey(const ValueKey('scenes-route-restoration-failure')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('node_dialogue'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+        findsNothing,
+        reason: 'Un nœud stale ne doit jamais retomber sur le premier nœud.',
+      );
+      final navigation =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(navigation.location.selection?.assetId, 'scene_linked');
+      expect(navigation.location.selection?.focusId, 'node_dialogue');
+      expect(navigation.restorationRequest, isNotNull);
+    });
+
+    testWidgets(
+        'keeps a Cinematic return pending when its exact Scene is stale',
+        (tester) async {
+      final project = _projectWithDeepLinkPayloadNodes();
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        ),
+        surfaceSize: const Size(1672, 941),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('scene-payload-open-cinematic-action')),
+      );
+      await tester.pumpAndSettle();
+      container
+          .read(editorNotifierProvider.notifier)
+          .applyInMemoryProjectManifest(
+            project.copyWith(scenes: [_fallbackScene()]),
+          );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('narrative-studio-product-nav-return'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        find.byKey(const ValueKey('scenes-route-restoration-failure')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('scene_linked'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-fallback_start'),
+        ),
+        findsNothing,
+        reason: 'Une scène stale ne doit jamais ouvrir la première scène.',
+      );
+      final navigation =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(navigation.location.selection?.assetId, 'scene_linked');
+      expect(navigation.location.selection?.focusId, 'node_cinematic');
+      expect(navigation.restorationRequest, isNotNull);
+
+      container
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .replace(NarrativeStudioRouteLocation.scenes());
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('scenes-route-restoration-failure')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const ValueKey('scene-graph-node-selected-fallback_start'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNull,
+      );
     });
 
     testWidgets('edits a trainer battle payload from real public contracts',
@@ -4795,6 +5150,113 @@ ProjectManifest _projectWithEditablePayloadNodes() {
         ),
       ),
     ],
+  );
+}
+
+ProjectManifest _projectWithDeepLinkPayloadNodes() {
+  return ProjectManifest(
+    name: 'Scenes deep-link test',
+    maps: const [],
+    tilesets: const [],
+    dialogues: const [
+      ProjectDialogueEntry(
+        id: 'dialogue_linked',
+        name: 'Linked Dialogue',
+        relativePath: 'dialogues/dialogue_linked.yarn',
+        defaultStartNode: 'Start',
+      ),
+    ],
+    cinematics: [
+      CinematicAsset(
+        id: 'cinematic_linked',
+        title: 'Linked Cinematic',
+        timeline: CinematicTimeline(),
+      ),
+    ],
+    scenes: [
+      SceneAsset(
+        id: 'scene_linked',
+        name: 'Linked Assets Scene',
+        graph: SceneGraph(
+          startNodeId: 'node_start',
+          nodes: [
+            SceneNode(id: 'node_start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'node_dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_linked',
+                yarnNodeName: 'Start',
+              ),
+            ),
+            SceneNode(
+              id: 'node_cinematic',
+              kind: SceneNodeKind.cinematic,
+              payload: SceneCinematicPayload(
+                cinematicId: 'cinematic_linked',
+              ),
+            ),
+            SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+          ],
+          edges: const [],
+        ),
+        layout: SceneGraphLayout(
+          nodeLayouts: [
+            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
+            SceneNodeLayout(nodeId: 'node_dialogue', x: 260, y: 80),
+            SceneNodeLayout(nodeId: 'node_cinematic', x: 260, y: 220),
+            SceneNodeLayout(nodeId: 'node_end', x: 560, y: 80),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+SceneAsset _sceneWithoutNode(SceneAsset scene, String nodeId) {
+  final retainedEdges = scene.graph.edges
+      .where(
+        (edge) => edge.fromNodeId != nodeId && edge.toNodeId != nodeId,
+      )
+      .toList();
+  return SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: scene.graph.nodes.where((node) => node.id != nodeId).toList(),
+      edges: retainedEdges,
+    ),
+    layout: SceneGraphLayout(
+      nodeLayouts: scene.layout.nodeLayouts
+          .where((layout) => layout.nodeId != nodeId)
+          .toList(),
+      edgeLayouts: scene.layout.edgeLayouts
+          .where(
+            (layout) => retainedEdges.any((edge) => edge.id == layout.edgeId),
+          )
+          .toList(),
+    ),
+    declaredOutcomes: scene.declaredOutcomes,
+    metadata: scene.metadata,
+  );
+}
+
+SceneAsset _fallbackScene() {
+  return SceneAsset(
+    id: 'scene_fallback',
+    name: 'Fallback Scene',
+    graph: SceneGraph(
+      startNodeId: 'fallback_start',
+      nodes: [
+        SceneNode(id: 'fallback_start', kind: SceneNodeKind.start),
+      ],
+      edges: const [],
+    ),
   );
 }
 

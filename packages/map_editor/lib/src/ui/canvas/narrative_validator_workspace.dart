@@ -21,9 +21,11 @@ const narrativeValidatorMapFilterKey =
 const narrativeValidatorDomainFilterKey =
     ValueKey<String>('narrative-validator-filter-domain');
 
-enum _ValidatorTab { diagnostics, mapEvents }
+enum NarrativeValidatorView { diagnostics, mapEvents }
 
 enum _SeverityFilter { all, errors, warnings }
+
+const _maxDiagnosticRestorationAttempts = 20;
 
 /// Global, read-only Narrative Validator surface.
 ///
@@ -37,12 +39,24 @@ class NarrativeValidatorWorkspace extends StatefulWidget {
     this.onOpenDiagnostic,
     this.onOpenEvent,
     this.onOpenMap,
+    this.initialView = NarrativeValidatorView.diagnostics,
+    this.showViewTabs = true,
+    this.requestedDiagnosticKey,
+    this.requestedDiagnosticNonce,
+    this.requestedRestorationRevision,
+    this.onRestorationApplied,
   });
 
   final NarrativeProjectValidationReport report;
   final ValueChanged<NarrativeProjectDiagnostic>? onOpenDiagnostic;
   final ValueChanged<String>? onOpenEvent;
   final ValueChanged<String>? onOpenMap;
+  final NarrativeValidatorView initialView;
+  final bool showViewTabs;
+  final String? requestedDiagnosticKey;
+  final int? requestedDiagnosticNonce;
+  final int? requestedRestorationRevision;
+  final ValueChanged<int>? onRestorationApplied;
 
   @override
   State<NarrativeValidatorWorkspace> createState() =>
@@ -51,11 +65,21 @@ class NarrativeValidatorWorkspace extends StatefulWidget {
 
 class _NarrativeValidatorWorkspaceState
     extends State<NarrativeValidatorWorkspace> {
-  _ValidatorTab _tab = _ValidatorTab.diagnostics;
+  late NarrativeValidatorView _tab;
   _SeverityFilter _severity = _SeverityFilter.all;
   String _domain = _allDomains;
   String _map = _allMaps;
   String? _selectedMapGroup;
+  final ScrollController _diagnosticsScrollController = ScrollController();
+  final Map<String, GlobalKey> _diagnosticAnchorKeys = <String, GlobalKey>{};
+  final Map<String, FocusNode> _diagnosticFocusNodes = <String, FocusNode>{};
+  Object? _lastAppliedDiagnosticRequest;
+
+  @override
+  void initState() {
+    super.initState();
+    _tab = widget.initialView;
+  }
 
   @override
   void didUpdateWidget(covariant NarrativeValidatorWorkspace oldWidget) {
@@ -73,6 +97,41 @@ class _NarrativeValidatorWorkspaceState
         _map = _allMaps;
       }
     }
+    if (oldWidget.initialView != widget.initialView) {
+      _tab = widget.initialView;
+    }
+    if (oldWidget.requestedDiagnosticKey != widget.requestedDiagnosticKey ||
+        oldWidget.requestedDiagnosticNonce != widget.requestedDiagnosticNonce) {
+      _tab = NarrativeValidatorView.diagnostics;
+      _severity = _SeverityFilter.all;
+      _domain = _allDomains;
+      _map = _allMaps;
+    }
+    if (!identical(oldWidget.report, widget.report)) {
+      final diagnosticKeys =
+          widget.report.diagnostics.map((value) => value.stableKey).toSet();
+      _diagnosticAnchorKeys.removeWhere(
+        (key, _) => !diagnosticKeys.contains(key),
+      );
+      final removedFocusNodes = <FocusNode>[];
+      _diagnosticFocusNodes.removeWhere((key, node) {
+        final removed = !diagnosticKeys.contains(key);
+        if (removed) removedFocusNodes.add(node);
+        return removed;
+      });
+      for (final node in removedFocusNodes) {
+        node.dispose();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _diagnosticsScrollController.dispose();
+    for (final node in _diagnosticFocusNodes.values) {
+      node.dispose();
+    }
+    super.dispose();
   }
 
   @override
@@ -91,39 +150,42 @@ class _NarrativeValidatorWorkspaceState
           children: [
             _VerdictHeader(report: report),
             const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: PokeMapSegmentedTabs(
-                    tabs: [
-                      PokeMapSegmentedTab(
-                        key: narrativeValidatorDiagnosticsTabKey,
-                        label: 'Diagnostics',
-                        icon: Icons.fact_check_outlined,
-                        selected: _tab == _ValidatorTab.diagnostics,
-                        onTap: () => setState(
-                          () => _tab = _ValidatorTab.diagnostics,
+            if (widget.showViewTabs) ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: PokeMapSegmentedTabs(
+                      tabs: [
+                        PokeMapSegmentedTab(
+                          key: narrativeValidatorDiagnosticsTabKey,
+                          label: 'Diagnostics',
+                          icon: Icons.fact_check_outlined,
+                          selected: _tab == NarrativeValidatorView.diagnostics,
+                          onTap: () => setState(
+                            () => _tab = NarrativeValidatorView.diagnostics,
+                          ),
                         ),
-                      ),
-                      PokeMapSegmentedTab(
-                        key: narrativeValidatorMapEventsTabKey,
-                        label: 'Events par map',
-                        icon: Icons.map_outlined,
-                        selected: _tab == _ValidatorTab.mapEvents,
-                        onTap: () => setState(
-                          () => _tab = _ValidatorTab.mapEvents,
+                        PokeMapSegmentedTab(
+                          key: narrativeValidatorMapEventsTabKey,
+                          label: 'Events par map',
+                          icon: Icons.map_outlined,
+                          selected: _tab == NarrativeValidatorView.mapEvents,
+                          onTap: () => setState(
+                            () => _tab = NarrativeValidatorView.mapEvents,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
             Expanded(
               child: switch (_tab) {
-                _ValidatorTab.diagnostics => _buildDiagnostics(context),
-                _ValidatorTab.mapEvents => _buildMapEvents(context),
+                NarrativeValidatorView.diagnostics =>
+                  _buildDiagnostics(context),
+                NarrativeValidatorView.mapEvents => _buildMapEvents(context),
               },
             ),
           ],
@@ -133,6 +195,20 @@ class _NarrativeValidatorWorkspaceState
   }
 
   Widget _buildDiagnostics(BuildContext context) {
+    final requestedKey = widget.requestedDiagnosticKey?.trim();
+    if (requestedKey != null &&
+        requestedKey.isNotEmpty &&
+        !widget.report.diagnostics.any(
+          (diagnostic) => diagnostic.stableKey == requestedKey,
+        )) {
+      return const PokeMapEmptyState(
+        key: ValueKey('narrative-validator-requested-unavailable'),
+        title: 'Diagnostic introuvable',
+        description:
+            'La cible demandée n’existe plus dans le rapport actuel. Actualisez le Validateur pour recalculer les sources.',
+        icon: Icon(Icons.search_off_outlined),
+      );
+    }
     final diagnostics = widget.report.diagnostics.where((diagnostic) {
       final matchesSeverity = switch (_severity) {
         _SeverityFilter.all => true,
@@ -149,6 +225,7 @@ class _NarrativeValidatorWorkspaceState
     final mapViews = widget.report.mapEventViews
         .where((view) => view.mapId != null)
         .toList(growable: false);
+    _scheduleRequestedDiagnosticFocus(diagnostics);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -264,27 +341,43 @@ class _NarrativeValidatorWorkspaceState
                   expandChild: true,
                   padding: EdgeInsets.zero,
                   child: ListView.separated(
+                    controller: _diagnosticsScrollController,
                     padding: const EdgeInsets.all(10),
                     itemCount: diagnostics.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final diagnostic = diagnostics[index];
-                      return KeyedSubtree(
-                        key: ValueKey<String>(
-                          'narrative-validator-diagnostic-$index',
+                      final stableKey = diagnostic.stableKey;
+                      final anchorKey = _diagnosticAnchorKeys.putIfAbsent(
+                        stableKey,
+                        GlobalKey.new,
+                      );
+                      final focusNode = _diagnosticFocusNodes.putIfAbsent(
+                        stableKey,
+                        () => FocusNode(
+                          debugLabel: 'Narrative diagnostic $stableKey',
                         ),
-                        child: PokeMapDiagnosticCallout(
-                          severity: _calloutSeverity(diagnostic.severity),
-                          title: _diagnosticTitle(diagnostic),
-                          message: diagnostic.message,
-                          actionLabel: widget.onOpenDiagnostic == null
-                              ? null
-                              : 'Ouvrir la source',
-                          onAction: widget.onOpenDiagnostic == null
-                              ? null
-                              : () => widget.onOpenDiagnostic!(diagnostic),
-                          semanticLabel:
-                              '${_domainLabel(diagnostic.domain)}. ${diagnostic.message}',
+                      );
+                      return Focus(
+                        key: ValueKey<String>(
+                          'narrative-validator-diagnostic-$stableKey',
+                        ),
+                        focusNode: focusNode,
+                        child: KeyedSubtree(
+                          key: anchorKey,
+                          child: PokeMapDiagnosticCallout(
+                            severity: _calloutSeverity(diagnostic.severity),
+                            title: _diagnosticTitle(diagnostic),
+                            message: diagnostic.message,
+                            actionLabel: widget.onOpenDiagnostic == null
+                                ? null
+                                : 'Ouvrir la source',
+                            onAction: widget.onOpenDiagnostic == null
+                                ? null
+                                : () => widget.onOpenDiagnostic!(diagnostic),
+                            semanticLabel:
+                                '${_domainLabel(diagnostic.domain)}. ${diagnostic.message}',
+                          ),
                         ),
                       );
                     },
@@ -293,6 +386,96 @@ class _NarrativeValidatorWorkspaceState
         ),
       ],
     );
+  }
+
+  void _scheduleRequestedDiagnosticFocus(
+    List<NarrativeProjectDiagnostic> diagnostics,
+  ) {
+    final requestedKey = widget.requestedDiagnosticKey?.trim();
+    if (requestedKey == null || requestedKey.isEmpty) return;
+    if (!diagnostics
+        .any((diagnostic) => diagnostic.stableKey == requestedKey)) {
+      return;
+    }
+    final request = (requestedKey, widget.requestedDiagnosticNonce);
+    if (_lastAppliedDiagnosticRequest == request) return;
+    _lastAppliedDiagnosticRequest = request;
+    final targetIndex = diagnostics.indexWhere(
+      (diagnostic) => diagnostic.stableKey == requestedKey,
+    );
+    _attemptRequestedDiagnosticFocus(
+      requestedKey: requestedKey,
+      request: request,
+      targetIndex: targetIndex,
+      diagnosticCount: diagnostics.length,
+      attempt: 0,
+    );
+  }
+
+  void _attemptRequestedDiagnosticFocus({
+    required String requestedKey,
+    required Object request,
+    required int targetIndex,
+    required int diagnosticCount,
+    required int attempt,
+  }) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _lastAppliedDiagnosticRequest != request) return;
+      final anchorContext = _diagnosticAnchorKeys[requestedKey]?.currentContext;
+      if (anchorContext != null) {
+        Scrollable.ensureVisible(
+          anchorContext,
+          alignment: 0.5,
+          duration: Duration.zero,
+        );
+        final focusNode = _diagnosticFocusNodes[requestedKey];
+        focusNode?.requestFocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _lastAppliedDiagnosticRequest != request) return;
+          if (focusNode?.hasFocus == true) {
+            final restorationRevision = widget.requestedRestorationRevision;
+            if (restorationRevision != null) {
+              widget.onRestorationApplied?.call(restorationRevision);
+            }
+            return;
+          }
+          if (attempt < _maxDiagnosticRestorationAttempts) {
+            _attemptRequestedDiagnosticFocus(
+              requestedKey: requestedKey,
+              request: request,
+              targetIndex: targetIndex,
+              diagnosticCount: diagnosticCount,
+              attempt: attempt + 1,
+            );
+          }
+        });
+        return;
+      }
+
+      if (_diagnosticsScrollController.hasClients) {
+        final position = _diagnosticsScrollController.position;
+        final fraction =
+            diagnosticCount <= 1 ? 0.0 : targetIndex / (diagnosticCount - 1);
+        final estimatedOffset = position.maxScrollExtent * fraction;
+        _diagnosticsScrollController.jumpTo(
+          estimatedOffset
+              .clamp(
+                position.minScrollExtent,
+                position.maxScrollExtent,
+              )
+              .toDouble(),
+        );
+      }
+      if (attempt < _maxDiagnosticRestorationAttempts) {
+        _attemptRequestedDiagnosticFocus(
+          requestedKey: requestedKey,
+          request: request,
+          targetIndex: targetIndex,
+          diagnosticCount: diagnosticCount,
+          attempt: attempt + 1,
+        );
+      }
+    });
   }
 
   Widget _buildMapEvents(BuildContext context) {

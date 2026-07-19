@@ -25,11 +25,17 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
     required this.onCreateWorldRule,
     required this.onUpdateWorldRule,
     required this.onRemoveWorldRule,
+    this.requestedFactId,
+    this.requestedWorldRuleId,
+    this.requestedSelectionNonce,
   });
 
   final ProjectManifest project;
   final MapData? activeMap;
   final FactsWorldRulesWorkspaceMode initialMode;
+  final String? requestedFactId;
+  final String? requestedWorldRuleId;
+  final int? requestedSelectionNonce;
   final Future<String?> Function({
     required String label,
   }) onCreateFact;
@@ -99,6 +105,9 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   String? _targetKey;
   String? _effectKey;
   String? _dialogueId;
+  Object? _lastAppliedSelectionRequest;
+  bool _requestedFactUnavailable = false;
+  bool _requestedWorldRuleUnavailable = false;
 
   @override
   void didUpdateWidget(covariant FactsWorldRulesWorkspace oldWidget) {
@@ -202,6 +211,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                     onSelect: (factId) {
                       setState(() {
                         _selectedFactId = factId;
+                        _requestedFactUnavailable = false;
                         _pendingFactDeleteId = null;
                         _factFeedback = null;
                       });
@@ -215,17 +225,29 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         const SizedBox(width: 12),
         Expanded(
           flex: 2,
-          child: selectedFact == null
-              ? const PokeMapPanel(
-                  key: ValueKey('facts-manager-empty-state'),
+          child: _requestedFactUnavailable
+              ? PokeMapPanel(
+                  key: const ValueKey(
+                    'facts-manager-requested-unavailable',
+                  ),
                   expandChild: true,
                   child: _CompactEmptyState(
-                    title: 'Aucun Fact sélectionné',
+                    title: 'Fact introuvable',
                     description:
-                        'Créez un Fact booléen, puis configurez son libellé auteur.',
+                        'La cible ${widget.requestedFactId} n’existe plus dans le projet.',
                   ),
                 )
-              : _buildFactEditor(context, selectedFact),
+              : selectedFact == null
+                  ? const PokeMapPanel(
+                      key: ValueKey('facts-manager-empty-state'),
+                      expandChild: true,
+                      child: _CompactEmptyState(
+                        title: 'Aucun Fact sélectionné',
+                        description:
+                            'Créez un Fact booléen, puis configurez son libellé auteur.',
+                      ),
+                    )
+                  : _buildFactEditor(context, selectedFact),
         ),
         const SizedBox(width: 12),
         SizedBox(
@@ -437,6 +459,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
                     onSelect: (ruleId) {
                       setState(() {
                         _selectedRuleId = ruleId;
+                        _requestedWorldRuleUnavailable = false;
                         _pendingRuleDeleteId = null;
                         _ruleFeedback = null;
                       });
@@ -455,17 +478,29 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
               _buildWorldRuleCreatePanel(context, readModel),
               const SizedBox(height: 12),
               Expanded(
-                child: selectedEntry == null
-                    ? const PokeMapPanel(
-                        key: ValueKey('world-rules-manager-empty-state'),
+                child: _requestedWorldRuleUnavailable
+                    ? PokeMapPanel(
+                        key: const ValueKey(
+                          'world-rules-manager-requested-unavailable',
+                        ),
                         expandChild: true,
                         child: _CompactEmptyState(
-                          title: 'Aucune règle sélectionnée',
+                          title: 'Règle du monde introuvable',
                           description:
-                              'Créez une règle depuis les pickers no-code.',
+                              'La cible ${widget.requestedWorldRuleId} n’existe plus dans le projet.',
                         ),
                       )
-                    : _buildWorldRuleEditor(context, selectedEntry),
+                    : selectedEntry == null
+                        ? const PokeMapPanel(
+                            key: ValueKey('world-rules-manager-empty-state'),
+                            expandChild: true,
+                            child: _CompactEmptyState(
+                              title: 'Aucune règle sélectionnée',
+                              description:
+                                  'Créez une règle depuis les pickers no-code.',
+                            ),
+                          )
+                        : _buildWorldRuleEditor(context, selectedEntry),
               ),
             ],
           ),
@@ -710,14 +745,65 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
 
   void _ensureValidSelections(FactsWorldRulesManagerReadModel readModel) {
     final factIds = readModel.facts.map((entry) => entry.fact.id).toSet();
-    if (_selectedFactId == null || !factIds.contains(_selectedFactId)) {
+    final ruleIds = readModel.worldRules.map((entry) => entry.rule.id).toSet();
+    final requestedFactId = widget.requestedFactId?.trim();
+    final requestedRuleId = widget.requestedWorldRuleId?.trim();
+    final request = (
+      widget.initialMode,
+      widget.requestedFactId,
+      widget.requestedWorldRuleId,
+      widget.requestedSelectionNonce,
+    );
+    if (_lastAppliedSelectionRequest != request) {
+      _lastAppliedSelectionRequest = request;
+      if (_mode == FactsWorldRulesWorkspaceMode.facts) {
+        _requestedFactUnavailable = requestedFactId != null &&
+            requestedFactId.isNotEmpty &&
+            !factIds.contains(requestedFactId);
+        if (!_requestedFactUnavailable &&
+            requestedFactId != null &&
+            requestedFactId.isNotEmpty) {
+          _selectedFactId = requestedFactId;
+          _loadedFactId = null;
+          _pendingFactDeleteId = null;
+        }
+      }
+      if (_mode == FactsWorldRulesWorkspaceMode.worldRules) {
+        _requestedWorldRuleUnavailable = requestedRuleId != null &&
+            requestedRuleId.isNotEmpty &&
+            !ruleIds.contains(requestedRuleId);
+        if (!_requestedWorldRuleUnavailable &&
+            requestedRuleId != null &&
+            requestedRuleId.isNotEmpty) {
+          _selectedRuleId = requestedRuleId;
+          _loadedRuleId = null;
+          _pendingRuleDeleteId = null;
+        }
+      }
+    }
+    if (_mode == FactsWorldRulesWorkspaceMode.facts &&
+        requestedFactId != null &&
+        requestedFactId.isNotEmpty &&
+        !factIds.contains(requestedFactId)) {
+      _requestedFactUnavailable = true;
+      _selectedFactId = null;
+    }
+    if (_mode == FactsWorldRulesWorkspaceMode.worldRules &&
+        requestedRuleId != null &&
+        requestedRuleId.isNotEmpty &&
+        !ruleIds.contains(requestedRuleId)) {
+      _requestedWorldRuleUnavailable = true;
+      _selectedRuleId = null;
+    }
+    if (!_requestedFactUnavailable &&
+        (_selectedFactId == null || !factIds.contains(_selectedFactId))) {
       _selectedFactId =
           readModel.facts.isEmpty ? null : readModel.facts.first.fact.id;
       _loadedFactId = null;
       _pendingFactDeleteId = null;
     }
-    final ruleIds = readModel.worldRules.map((entry) => entry.rule.id).toSet();
-    if (_selectedRuleId == null || !ruleIds.contains(_selectedRuleId)) {
+    if (!_requestedWorldRuleUnavailable &&
+        (_selectedRuleId == null || !ruleIds.contains(_selectedRuleId))) {
       _selectedRuleId = readModel.worldRules.isEmpty
           ? null
           : readModel.worldRules.first.rule.id;

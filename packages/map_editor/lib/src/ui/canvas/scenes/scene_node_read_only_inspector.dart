@@ -97,8 +97,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.linkedAssetContracts,
     this.cinematicsLibrary,
     this.onUpdateYarnDialoguePayload,
+    this.onOpenDialogue,
     this.onUpdateBattlePayload,
     this.onUpdateCinematicPayload,
+    this.onOpenCinematic,
     this.consequenceFactOptions = const [],
     this.consequenceEventOptions = const [],
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
@@ -115,8 +117,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
+  final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -152,8 +156,10 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   linkedAssetContracts: linkedAssetContracts,
                   cinematicsLibrary: cinematicsLibrary,
                   onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
+                  onOpenDialogue: onOpenDialogue,
                   onUpdateBattlePayload: onUpdateBattlePayload,
                   onUpdateCinematicPayload: onUpdateCinematicPayload,
+                  onOpenCinematic: onOpenCinematic,
                   consequenceFactOptions: consequenceFactOptions,
                   consequenceEventOptions: consequenceEventOptions,
                   consequenceCatalogs: consequenceCatalogs,
@@ -255,8 +261,10 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.onUpdateYarnDialoguePayload,
+    required this.onOpenDialogue,
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
+    required this.onOpenCinematic,
     required this.consequenceFactOptions,
     required this.consequenceEventOptions,
     required this.consequenceCatalogs,
@@ -271,8 +279,10 @@ class _NodeInspectorBody extends StatelessWidget {
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
+  final ValueChanged<String>? onOpenDialogue;
   final SceneBattlePayloadDraftUpdater? onUpdateBattlePayload;
   final SceneCinematicPayloadDraftUpdater? onUpdateCinematicPayload;
+  final ValueChanged<String>? onOpenCinematic;
   final List<SceneConsequenceFactPickerOption> consequenceFactOptions;
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
@@ -321,6 +331,7 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneYarnDialoguePayload,
               dialogues: linkedAssetContracts?.dialogues ?? const [],
               onUpdatePayload: onUpdateYarnDialoguePayload,
+              onOpenDialogue: onOpenDialogue,
             ),
             const SizedBox(height: 10),
           ],
@@ -341,6 +352,7 @@ class _NodeInspectorBody extends StatelessWidget {
               payload: node.payload as SceneCinematicPayload,
               library: cinematicsLibrary!,
               onUpdatePayload: onUpdateCinematicPayload,
+              onOpenCinematic: onOpenCinematic,
             ),
             const SizedBox(height: 10),
           ],
@@ -657,12 +669,14 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
     required this.payload,
     required this.dialogues,
     required this.onUpdatePayload,
+    required this.onOpenDialogue,
   });
 
   final SceneNode node;
   final SceneYarnDialoguePayload payload;
   final List<DialoguePublicContract> dialogues;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdatePayload;
+  final ValueChanged<String>? onOpenDialogue;
 
   @override
   Widget build(BuildContext context) {
@@ -708,6 +722,17 @@ class _YarnDialoguePayloadAuthoringPanel extends StatelessWidget {
           size: PokeMapButtonSize.small,
           leading: const Icon(CupertinoIcons.text_bubble),
           child: const Text('Changer le dialogue'),
+        ),
+        const SizedBox(height: 6),
+        PokeMapButton(
+          key: const ValueKey('scene-payload-open-dialogue-action'),
+          onPressed: currentContract == null || onOpenDialogue == null
+              ? null
+              : () => onOpenDialogue!(payload.dialogueId),
+          variant: PokeMapButtonVariant.ghost,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.arrow_up_right_square),
+          child: const Text('Ouvrir le dialogue'),
         ),
         const SizedBox(height: 8),
         const _InspectorNote(
@@ -861,12 +886,14 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
     required this.payload,
     required this.library,
     required this.onUpdatePayload,
+    required this.onOpenCinematic,
   });
 
   final SceneNode node;
   final SceneCinematicPayload payload;
   final CinematicsLibraryReadModel library;
   final SceneCinematicPayloadDraftUpdater? onUpdatePayload;
+  final ValueChanged<String>? onOpenCinematic;
 
   @override
   Widget build(BuildContext context) {
@@ -947,6 +974,17 @@ class _CinematicPayloadAuthoringPanel extends StatelessWidget {
                 ? 'Changer vers une cinématique canonique'
                 : 'Changer la cinématique',
           ),
+        ),
+        const SizedBox(height: 6),
+        PokeMapButton(
+          key: const ValueKey('scene-payload-open-cinematic-action'),
+          onPressed: currentEntry == null || onOpenCinematic == null
+              ? null
+              : () => onOpenCinematic!(payload.cinematicId),
+          variant: PokeMapButtonVariant.ghost,
+          size: PokeMapButtonSize.small,
+          leading: const Icon(CupertinoIcons.arrow_up_right_square),
+          child: const Text('Ouvrir la cinématique'),
         ),
         const SizedBox(height: 8),
         const _InspectorNote(

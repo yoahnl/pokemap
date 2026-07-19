@@ -28,6 +28,7 @@ class StorylinesStructureView extends StatelessWidget {
     super.key,
     required this.storyline,
     required this.selectedChapter,
+    required this.selectedStepId,
     required this.onChapterSelected,
     required this.onCreateChapter,
     required this.onEditChapter,
@@ -39,6 +40,7 @@ class StorylinesStructureView extends StatelessWidget {
 
   final StorylineAsset? storyline;
   final StorylineChapter? selectedChapter;
+  final String? selectedStepId;
   final ValueChanged<StorylineChapter?> onChapterSelected;
   final VoidCallback? onCreateChapter;
   final ValueChanged<StorylineChapter>? onEditChapter;
@@ -89,6 +91,7 @@ class StorylinesStructureView extends StatelessWidget {
                     storyline: storyline,
                     chapters: chapters,
                     selectedChapter: selectedChapter,
+                    selectedStepId: selectedStepId,
                     onChapterSelected: onChapterSelected,
                     onEditChapter: onEditChapter,
                     onCreateStep: onCreateStep,
@@ -262,6 +265,7 @@ class _ChapterAccordionList extends StatelessWidget {
     required this.storyline,
     required this.chapters,
     required this.selectedChapter,
+    required this.selectedStepId,
     required this.onChapterSelected,
     required this.onEditChapter,
     required this.onCreateStep,
@@ -272,6 +276,7 @@ class _ChapterAccordionList extends StatelessWidget {
   final StorylineAsset storyline;
   final List<StorylineChapter> chapters;
   final StorylineChapter? selectedChapter;
+  final String? selectedStepId;
   final ValueChanged<StorylineChapter?> onChapterSelected;
   final ValueChanged<StorylineChapter>? onEditChapter;
   final VoidCallback? onCreateStep;
@@ -330,6 +335,7 @@ class _ChapterAccordionList extends StatelessWidget {
                 storyline: storyline,
                 chapter: chapter,
                 expanded: chapter.id == selectedChapter?.id,
+                selectedStepId: selectedStepId,
               ),
           ],
         ),
@@ -342,6 +348,7 @@ class _ChapterAccordionList extends StatelessWidget {
     required StorylineAsset storyline,
     required StorylineChapter chapter,
     required bool expanded,
+    required String? selectedStepId,
   }) {
     final colors = context.pokeMapColors;
     return ExpansionPanel(
@@ -364,6 +371,7 @@ class _ChapterAccordionList extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
               child: _ExpandedChapterBody(
                 chapter: chapter,
+                selectedStepId: selectedStepId,
                 onCreateStep: onCreateStep,
                 onEditStep: onEditStep,
                 onReorderSteps: onReorderSteps,
@@ -515,12 +523,14 @@ class _ChapterHeaderMetrics extends StatelessWidget {
 class _ExpandedChapterBody extends StatelessWidget {
   const _ExpandedChapterBody({
     required this.chapter,
+    required this.selectedStepId,
     required this.onCreateStep,
     required this.onEditStep,
     required this.onReorderSteps,
   });
 
   final StorylineChapter chapter;
+  final String? selectedStepId;
   final VoidCallback? onCreateStep;
   final StorylineStepAction? onEditStep;
   final StorylineStepReorder? onReorderSteps;
@@ -587,6 +597,7 @@ class _ExpandedChapterBody extends StatelessWidget {
                   chapter: chapter,
                   step: step,
                   index: index,
+                  selected: step.id == selectedStepId,
                   onEditStep: onEditStep,
                 ),
               );
@@ -604,12 +615,14 @@ class _StructureStepRow extends StatelessWidget {
     required this.chapter,
     required this.step,
     required this.index,
+    required this.selected,
     required this.onEditStep,
   });
 
   final StorylineChapter chapter;
   final StorylineStep step;
   final int index;
+  final bool selected;
   final StorylineStepAction? onEditStep;
 
   @override
@@ -618,6 +631,7 @@ class _StructureStepRow extends StatelessWidget {
     final sceneLinkCount = step.sceneLinkIds.length;
     return PokeMapCard(
       key: ValueKey('storylines-step-row-${step.id}'),
+      selected: selected,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

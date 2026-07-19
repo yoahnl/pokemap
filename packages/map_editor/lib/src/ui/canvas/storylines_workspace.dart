@@ -7,6 +7,7 @@ import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
+import 'narrative_studio/narrative_studio_destination.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
 import 'storylines/storylines_graph_view.dart';
@@ -17,10 +18,14 @@ class StorylinesWorkspace extends ConsumerStatefulWidget {
     super.key,
     required this.projection,
     required this.selectedGlobalStoryId,
+    this.requestedSelection,
+    this.requestedSelectionNonce,
   });
 
   final NarrativeWorkspaceProjection projection;
   final String? selectedGlobalStoryId;
+  final NarrativeStudioAssetSelection? requestedSelection;
+  final int? requestedSelectionNonce;
 
   @override
   ConsumerState<StorylinesWorkspace> createState() =>
@@ -36,6 +41,9 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
   _StorylineContentTab _selectedTab = _StorylineContentTab.graph;
   String? _selectedStorylineId;
   String? _selectedChapterId;
+  String? _selectedStepId;
+  Object? _lastAppliedSelectionRequest;
+  bool _requestedSelectionUnavailable = false;
 
   @override
   void dispose() {
@@ -48,6 +56,23 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     final editorState = ref.watch(editorNotifierProvider);
     final project = editorState.project;
     final storylines = project?.storylines ?? const <StorylineAsset>[];
+    _applyRequestedSelection(storylines);
+    if (_requestedSelectionUnavailable) {
+      return NarrativeStudioWorkspacePage(
+        presentation: narrativeStudioRoutePresentationFor(
+          EditorWorkspaceMode.globalStory,
+        )!,
+        body: PokeMapPageSurface(
+          key: const ValueKey('storylines-requested-unavailable'),
+          child: PokeMapEmptyState(
+            title: 'Cible de storyline introuvable',
+            description:
+                'La cible ${widget.requestedSelection?.assetId} n’existe plus dans le projet.',
+            icon: const Icon(CupertinoIcons.exclamationmark_triangle),
+          ),
+        ),
+      );
+    }
     final selectedStoryline = _selectedStoryline(storylines);
     final selectedChapter = _selectedChapter(selectedStoryline);
     final legacyGlobalStory = widget.projection.globalStories.isEmpty
@@ -94,6 +119,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
               child: _StorylinesV1MainPanel(
                 selectedStoryline: selectedStoryline,
                 selectedChapter: selectedChapter,
+                selectedStepId: _selectedStepId,
                 storylines: storylines,
                 selectedTab: _selectedTab,
                 legacyGlobalStory: legacyGlobalStory,
@@ -194,6 +220,101 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     return storyline.chapters.first;
   }
 
+  void _applyRequestedSelection(List<StorylineAsset> storylines) {
+    final request = (
+      widget.requestedSelection,
+      widget.requestedSelectionNonce,
+    );
+    final selection = widget.requestedSelection;
+    if (selection == null) {
+      _requestedSelectionUnavailable = false;
+      _lastAppliedSelectionRequest = request;
+      return;
+    }
+
+    StorylineAsset? selectedStoryline;
+    StorylineChapter? selectedChapter;
+    StorylineStep? selectedStep;
+    switch (selection.kind) {
+      case NarrativeStudioAssetKind.storyline:
+        selectedStoryline = _findStoryline(storylines, selection.assetId);
+      case NarrativeStudioAssetKind.chapter:
+        final expectedStorylineId = selection.parentId;
+        for (final storyline in storylines) {
+          if (expectedStorylineId != null &&
+              storyline.id != expectedStorylineId) {
+            continue;
+          }
+          final chapter = _findChapter(storyline, selection.assetId);
+          if (chapter != null) {
+            selectedStoryline = storyline;
+            selectedChapter = chapter;
+            break;
+          }
+        }
+      case NarrativeStudioAssetKind.step:
+        final expectedStorylineId = selection.rootId;
+        final expectedChapterId = selection.parentId;
+        for (final storyline in storylines) {
+          if (expectedStorylineId != null &&
+              storyline.id != expectedStorylineId) {
+            continue;
+          }
+          for (final chapter in storyline.chapters) {
+            if (expectedChapterId != null && chapter.id != expectedChapterId) {
+              continue;
+            }
+            final step = _findStep(chapter, selection.assetId);
+            if (step != null) {
+              selectedStoryline = storyline;
+              selectedChapter = chapter;
+              selectedStep = step;
+              break;
+            }
+          }
+          if (selectedStep != null) break;
+        }
+      case NarrativeStudioAssetKind.scene ||
+            NarrativeStudioAssetKind.event ||
+            NarrativeStudioAssetKind.cinematic ||
+            NarrativeStudioAssetKind.dialogue ||
+            NarrativeStudioAssetKind.fact ||
+            NarrativeStudioAssetKind.worldRule ||
+            NarrativeStudioAssetKind.map ||
+            NarrativeStudioAssetKind.diagnostic:
+        _requestedSelectionUnavailable = true;
+        _selectedStorylineId = null;
+        _selectedChapterId = null;
+        _selectedStepId = null;
+        _lastAppliedSelectionRequest = request;
+        return;
+    }
+    if (selectedStoryline == null) {
+      _requestedSelectionUnavailable = true;
+      _selectedStorylineId = null;
+      _selectedChapterId = null;
+      _selectedStepId = null;
+      _lastAppliedSelectionRequest = request;
+      return;
+    }
+    _requestedSelectionUnavailable = false;
+    if (_lastAppliedSelectionRequest == request) return;
+    _lastAppliedSelectionRequest = request;
+
+    _selectedStorylineId = selectedStoryline.id;
+    if (selectedChapter == null) {
+      _selectedChapterId = selectedStoryline.chapters.isEmpty
+          ? null
+          : selectedStoryline.chapters.first.id;
+      _selectedStepId = null;
+      _selectedTab = _StorylineContentTab.graph;
+      return;
+    }
+    _selectedChapterId = selectedChapter.id;
+    _selectedStepId = selectedStep?.id;
+    _selectedTab = _StorylineContentTab.structure;
+  }
+
   void _selectStoryline(StorylineAsset storyline) {
     if (_selectedStorylineId == storyline.id) {
       return;
@@ -202,6 +323,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
       _selectedStorylineId = storyline.id;
       _selectedChapterId =
           storyline.chapters.isEmpty ? null : storyline.chapters.first.id;
+      _selectedStepId = null;
     });
   }
 
@@ -212,6 +334,7 @@ class _StorylinesWorkspaceState extends ConsumerState<StorylinesWorkspace> {
     }
     setState(() {
       _selectedChapterId = nextChapterId;
+      _selectedStepId = null;
     });
   }
 
@@ -997,6 +1120,33 @@ int _compareStepsByAuthorOrder(StorylineStep left, StorylineStep right) {
   return left.id.compareTo(right.id);
 }
 
+StorylineAsset? _findStoryline(
+  List<StorylineAsset> storylines,
+  String storylineId,
+) {
+  for (final storyline in storylines) {
+    if (storyline.id == storylineId) return storyline;
+  }
+  return null;
+}
+
+StorylineChapter? _findChapter(
+  StorylineAsset storyline,
+  String chapterId,
+) {
+  for (final chapter in storyline.chapters) {
+    if (chapter.id == chapterId) return chapter;
+  }
+  return null;
+}
+
+StorylineStep? _findStep(StorylineChapter chapter, String stepId) {
+  for (final step in chapter.steps) {
+    if (step.id == stepId) return step;
+  }
+  return null;
+}
+
 class _StorylinesV1SecondaryPanel extends StatelessWidget {
   const _StorylinesV1SecondaryPanel({
     required this.storylines,
@@ -1267,6 +1417,7 @@ class _StorylinesV1MainPanel extends StatelessWidget {
   const _StorylinesV1MainPanel({
     required this.selectedStoryline,
     required this.selectedChapter,
+    required this.selectedStepId,
     required this.storylines,
     required this.selectedTab,
     required this.legacyGlobalStory,
@@ -1284,6 +1435,7 @@ class _StorylinesV1MainPanel extends StatelessWidget {
 
   final StorylineAsset? selectedStoryline;
   final StorylineChapter? selectedChapter;
+  final String? selectedStepId;
   final List<StorylineAsset> storylines;
   final _StorylineContentTab selectedTab;
   final NarrativeScenarioSummary? legacyGlobalStory;
@@ -1330,6 +1482,7 @@ class _StorylinesV1MainPanel extends StatelessWidget {
               _StorylineContentTab.structure => StorylinesStructureView(
                   storyline: selectedStoryline,
                   selectedChapter: selectedChapter,
+                  selectedStepId: selectedStepId,
                   onChapterSelected: onChapterSelected,
                   onCreateChapter: onCreateChapter,
                   onEditChapter: onEditChapter,

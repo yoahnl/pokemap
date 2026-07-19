@@ -31,6 +31,7 @@ class SceneGraphReadOnlyView extends StatefulWidget {
     this.onSelectEdge,
     this.onUpdateNodeLayout,
     this.onCreateEdgeDraft,
+    this.focusNodeForNodeId,
     this.canDragNodes = true,
     this.expandToFill = false,
   });
@@ -42,6 +43,7 @@ class SceneGraphReadOnlyView extends StatefulWidget {
   final ValueChanged<String>? onSelectEdge;
   final SceneNodeLayoutChanged? onUpdateNodeLayout;
   final SceneVisualEdgeDraftCreator? onCreateEdgeDraft;
+  final FocusNode Function(String nodeId)? focusNodeForNodeId;
   final bool canDragNodes;
   final bool expandToFill;
 
@@ -181,6 +183,7 @@ class _SceneGraphReadOnlyViewState extends State<SceneGraphReadOnlyView> {
                   zoom: _zoom,
                   isSelected: node.id == selectedNodeId,
                   canDrag: widget.canDragNodes && _visualConnection == null,
+                  focusNode: widget.focusNodeForNodeId?.call(node.id),
                   onSelect: onSelectNode == null
                       ? null
                       : () => onSelectNode!(node.id),
@@ -601,6 +604,7 @@ class _SceneGraphNodeCard extends StatelessWidget {
     required this.zoom,
     required this.isSelected,
     required this.canDrag,
+    required this.focusNode,
     required this.onSelect,
     required this.onDragDelta,
     required this.onDragEnd,
@@ -611,6 +615,7 @@ class _SceneGraphNodeCard extends StatelessWidget {
   final double zoom;
   final bool isSelected;
   final bool canDrag;
+  final FocusNode? focusNode;
   final VoidCallback? onSelect;
   final ValueChanged<Offset> onDragDelta;
   final VoidCallback onDragEnd;
@@ -624,97 +629,110 @@ class _SceneGraphNodeCard extends StatelessWidget {
       top: position.dy,
       width: _SceneGraphLayoutPlan.nodeWidth * zoom,
       height: _SceneGraphLayoutPlan.nodeHeight * zoom,
-      child: GestureDetector(
-        key: ValueKey('scene-graph-node-drag-target-${node.id}'),
-        behavior: HitTestBehavior.opaque,
-        onTap: onSelect,
-        onPanStart: canDrag ? (_) => onSelect?.call() : null,
-        onPanUpdate: canDrag ? (details) => onDragDelta(details.delta) : null,
-        onPanEnd: canDrag ? (_) => onDragEnd() : null,
-        onPanCancel: canDrag ? onDragEnd : null,
-        child: Stack(
-          children: [
-            if (isSelected)
-              Positioned.fill(
-                child: DecoratedBox(
-                  key: ValueKey('scene-graph-node-selected-${node.id}'),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: colors.focusRing, width: 2),
-                    borderRadius: BorderRadius.circular(9),
+      child: FocusableActionDetector(
+        key: ValueKey('scene-graph-node-focus-${node.id}'),
+        focusNode: focusNode,
+        actions: {
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              onSelect?.call();
+              return null;
+            },
+          ),
+        },
+        child: GestureDetector(
+          key: ValueKey('scene-graph-node-drag-target-${node.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: onSelect,
+          onPanStart: canDrag ? (_) => onSelect?.call() : null,
+          onPanUpdate: canDrag ? (details) => onDragDelta(details.delta) : null,
+          onPanEnd: canDrag ? (_) => onDragEnd() : null,
+          onPanCancel: canDrag ? onDragEnd : null,
+          child: Stack(
+            children: [
+              if (isSelected)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    key: ValueKey('scene-graph-node-selected-${node.id}'),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colors.focusRing, width: 2),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
                   ),
                 ),
-              ),
-            Positioned.fill(
-              child: FittedBox(
-                fit: BoxFit.fill,
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: _SceneGraphLayoutPlan.nodeWidth,
-                  height: _SceneGraphLayoutPlan.nodeHeight,
-                  child: Padding(
-                    padding:
-                        isSelected ? const EdgeInsets.all(3) : EdgeInsets.zero,
-                    child: PokeMapCard(
-                      key: ValueKey('scene-graph-node-${node.id}'),
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              PokeMapIconTile(
-                                icon: _iconForNode(node.kind),
-                                tone: tone,
-                                size: 24,
-                                iconSize: 13,
-                              ),
-                              const SizedBox(width: 7),
-                              Expanded(
-                                child: Text(
-                                  node.title ?? _nodeKindLabel(node.kind),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: colors.textPrimary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
+              Positioned.fill(
+                child: FittedBox(
+                  fit: BoxFit.fill,
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: _SceneGraphLayoutPlan.nodeWidth,
+                    height: _SceneGraphLayoutPlan.nodeHeight,
+                    child: Padding(
+                      padding: isSelected
+                          ? const EdgeInsets.all(3)
+                          : EdgeInsets.zero,
+                      child: PokeMapCard(
+                        key: ValueKey('scene-graph-node-${node.id}'),
+                        padding: const EdgeInsets.all(10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                PokeMapIconTile(
+                                  icon: _iconForNode(node.kind),
+                                  tone: tone,
+                                  size: 24,
+                                  iconSize: 13,
+                                ),
+                                const SizedBox(width: 7),
+                                Expanded(
+                                  child: Text(
+                                    node.title ?? _nodeKindLabel(node.kind),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: colors.textPrimary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            _nodeKindLabel(node.kind),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.textSecondary,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
+                              ],
                             ),
-                          ),
-                          if (node.description != null) ...[
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 6),
                             Text(
-                              node.description!,
-                              maxLines: 2,
+                              _nodeKindLabel(node.kind),
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: colors.textSecondary,
                                 fontSize: 10,
-                                height: 1.2,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
+                            if (node.description != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                node.description!,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: 10,
+                                  height: 1.2,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -28,6 +28,9 @@ class NarrativeStudioProductShell extends StatelessWidget {
     required this.onSelectDestination,
     required this.onOpenMaps,
     required this.workspace,
+    this.selectedLocation,
+    this.onSelectLocation,
+    this.onReturn,
     this.project,
     this.status,
     this.appMark,
@@ -36,6 +39,9 @@ class NarrativeStudioProductShell extends StatelessWidget {
   final NarrativeStudioDestination selectedDestination;
   final ValueChanged<NarrativeStudioDestination> onSelectDestination;
   final VoidCallback onOpenMaps;
+  final NarrativeStudioRouteLocation? selectedLocation;
+  final ValueChanged<NarrativeStudioRouteLocation>? onSelectLocation;
+  final VoidCallback? onReturn;
   final Widget workspace;
   final Widget? project;
   final Widget? status;
@@ -81,7 +87,10 @@ class NarrativeStudioProductShell extends StatelessWidget {
                                 child: NarrativeStudioProductNavigation(
                                   key: narrativeStudioProductShellNavigationKey,
                                   selectedDestination: selectedDestination,
+                                  selectedLocation: selectedLocation,
                                   onSelectDestination: onSelectDestination,
+                                  onSelectLocation: onSelectLocation,
+                                  onReturn: onReturn,
                                   onOpenMaps: onOpenMaps,
                                   status: status,
                                 ),

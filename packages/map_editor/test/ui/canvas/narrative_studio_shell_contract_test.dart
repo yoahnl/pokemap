@@ -134,11 +134,55 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('exposes Map Events as a typed child of Events', (tester) async {
+    final opened = <NarrativeStudioRouteLocation>[];
+    final selected = NarrativeStudioRouteLocation.events(
+      childRoute: NarrativeStudioChildRoute.mapEvents,
+    );
+
+    await _pumpShell(
+      tester,
+      selectedDestination: NarrativeStudioDestination.events,
+      selectedLocation: selected,
+      onSelectLocation: opened.add,
+    );
+
+    expect(
+      find.byKey(const ValueKey('narrative-studio-product-nav-events')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('narrative-studio-product-nav-event-builder')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('narrative-studio-product-nav-map-events')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('narrative-studio-product-nav-event-builder')),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('narrative-studio-product-nav-map-events')),
+    );
+    await tester.pump();
+
+    expect(opened, <NarrativeStudioRouteLocation>[
+      NarrativeStudioRouteLocation.events(),
+      NarrativeStudioRouteLocation.events(
+        childRoute: NarrativeStudioChildRoute.mapEvents,
+      ),
+    ]);
+  });
 }
 
 Future<void> _pumpShell(
   WidgetTester tester, {
   required NarrativeStudioDestination selectedDestination,
+  NarrativeStudioRouteLocation? selectedLocation,
+  ValueChanged<NarrativeStudioRouteLocation>? onSelectLocation,
   ValueChanged<NarrativeStudioDestination>? onSelectDestination,
   VoidCallback? onOpenMaps,
   Widget? project,
@@ -156,6 +200,8 @@ Future<void> _pumpShell(
       home: Scaffold(
         body: NarrativeStudioProductShell(
           selectedDestination: selectedDestination,
+          selectedLocation: selectedLocation,
+          onSelectLocation: onSelectLocation,
           onSelectDestination: onSelectDestination ?? (_) {},
           onOpenMaps: onOpenMaps ?? () {},
           project: project,

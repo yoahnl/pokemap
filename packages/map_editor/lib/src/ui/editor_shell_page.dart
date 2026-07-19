@@ -9,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'shared/pokemap_macos_ui_shim.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_route_presentation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_shell_policy.dart';
@@ -107,6 +108,14 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final activeMap =
         ref.watch(editorNotifierProvider.select((s) => s.activeMap));
     final workspaceMode = shell.workspaceMode;
+    final navigationState =
+        ref.watch(narrativeStudioNavigationControllerProvider);
+    final workspaceLocation = narrativeStudioRouteLocationFor(workspaceMode);
+    final selectedNarrativeLocation = workspaceLocation == null
+        ? navigationState.location
+        : navigationState.location.destination == workspaceLocation.destination
+            ? navigationState.location
+            : workspaceLocation;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final eventSystemMode =
         project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
@@ -151,6 +160,53 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         case NarrativeStudioDestination.validator:
           notifier.selectNarrativeValidatorWorkspace();
       }
+    }
+
+    void openNarrativeWorkspaceForLocation(
+      NarrativeStudioRouteLocation location,
+    ) {
+      switch (location.childRoute) {
+        case NarrativeStudioChildRoute.storylineStep:
+          notifier.selectStepWorkspace();
+        case NarrativeStudioChildRoute.cinematicLegacy:
+        case NarrativeStudioChildRoute.cinematicLibrary:
+        case NarrativeStudioChildRoute.cinematicBuilder:
+          notifier.selectCutsceneWorkspace();
+        default:
+          selectNarrativeDestination(location.destination);
+      }
+    }
+
+    void selectNarrativeLocation(NarrativeStudioRouteLocation location) {
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .replace(location);
+      openNarrativeWorkspaceForLocation(location);
+    }
+
+    void restoreNarrativeLocation() {
+      final expectation = ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .restoreReturn();
+      if (expectation == null) return;
+      openNarrativeWorkspaceForLocation(expectation.location);
+    }
+
+    final normalizedProjectIdentity = _narrativeProjectIdentity(
+      projectRootPath: projectRootPath,
+      project: project,
+      projectSessionRevision: notifier.projectSessionRevision,
+    );
+    if (navigationState.projectIdentity != normalizedProjectIdentity) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .resetForProject(
+              normalizedProjectIdentity,
+              initialLocation: workspaceLocation,
+            );
+      });
     }
 
     final isNarrativeWorkspace = switch (workspaceMode) {
@@ -230,6 +286,19 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           }
         });
       }
+      final location = narrativeStudioRouteLocationFor(next);
+      if (location != null) {
+        final navigation =
+            ref.read(narrativeStudioNavigationControllerProvider);
+        if (!_narrativeLocationMatchesWorkspace(
+          navigation.location,
+          next,
+        )) {
+          ref
+              .read(narrativeStudioNavigationControllerProvider.notifier)
+              .replace(location);
+        }
+      }
     });
 
     const double expandedWidth = 344.0;
@@ -293,9 +362,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                     children: [
                       NarrativeStudioProductShell(
                         selectedDestination:
-                            narrativeStudioRoutePresentationFor(workspaceMode)!
-                                .destination,
+                            selectedNarrativeLocation.destination,
+                        selectedLocation: selectedNarrativeLocation,
                         onSelectDestination: selectNarrativeDestination,
+                        onSelectLocation: selectNarrativeLocation,
+                        onReturn: navigationState.pendingReturn == null
+                            ? null
+                            : restoreNarrativeLocation,
                         onOpenMaps: notifier.selectMapWorkspace,
                         project: project == null
                             ? null
@@ -310,9 +383,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                         workspace: workspaceMode == EditorWorkspaceMode.events
                             ? NarrativeStudioWorkspacePage(
                                 presentation:
-                                    narrativeStudioRoutePresentationFor(
-                                  workspaceMode,
-                                )!,
+                                    narrativeStudioRoutePresentationForLocation(
+                                  selectedNarrativeLocation,
+                                ),
                                 actions: eventSystemMode ==
                                         EventSystemMode.legacyOnly
                                     ? const []
@@ -907,6 +980,50 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       ),
     );
   }
+}
+
+bool _narrativeLocationMatchesWorkspace(
+  NarrativeStudioRouteLocation location,
+  EditorWorkspaceMode workspaceMode,
+) {
+  return switch (workspaceMode) {
+    EditorWorkspaceMode.narrativeOverview =>
+      location.destination == NarrativeStudioDestination.overview,
+    EditorWorkspaceMode.globalStory =>
+      location.childRoute == NarrativeStudioChildRoute.storylineLibrary,
+    EditorWorkspaceMode.step =>
+      location.childRoute == NarrativeStudioChildRoute.storylineStep,
+    EditorWorkspaceMode.scenes =>
+      location.destination == NarrativeStudioDestination.scenes,
+    EditorWorkspaceMode.events =>
+      location.destination == NarrativeStudioDestination.events,
+    EditorWorkspaceMode.cutscene =>
+      location.destination == NarrativeStudioDestination.cinematics,
+    EditorWorkspaceMode.dialogue =>
+      location.destination == NarrativeStudioDestination.dialogues,
+    EditorWorkspaceMode.facts =>
+      location.destination == NarrativeStudioDestination.facts,
+    EditorWorkspaceMode.worldRules =>
+      location.destination == NarrativeStudioDestination.worldRules,
+    EditorWorkspaceMode.narrativeValidator =>
+      location.destination == NarrativeStudioDestination.validator,
+    _ => false,
+  };
+}
+
+String? _narrativeProjectIdentity({
+  required String? projectRootPath,
+  required ProjectManifest? project,
+  required int projectSessionRevision,
+}) {
+  final normalizedRoot = projectRootPath?.trim();
+  if (normalizedRoot != null && normalizedRoot.isNotEmpty) {
+    return 'disk:$normalizedRoot\u001esession:$projectSessionRevision';
+  }
+  if (project == null) return null;
+  final mapIds = project.maps.map((entry) => entry.id).join('\u001f');
+  return 'memory:${project.name.trim()}\u001e$mapIds'
+      '\u001esession:$projectSessionRevision';
 }
 
 class _NarrativeStudioProjectCard extends StatelessWidget {

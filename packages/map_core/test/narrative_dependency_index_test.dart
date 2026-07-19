@@ -83,6 +83,63 @@ void main() {
       expect(intent.context, 'chapter.intro');
     });
 
+    test('qualified navigation intent preserves the complete target key', () {
+      const key = NarrativeDependencyKey.mapSource(
+        mapId: 'map.port',
+        sourceKind: 'entity',
+        sourceId: 'npc.lysa',
+      );
+      final intent = NarrativeDependencyNavigationIntent.fromKey(
+        key,
+        context: 'maps[map.port].entities[0]',
+      );
+
+      expect(intent.kind, NarrativeDependencyTargetKind.sourceMap);
+      expect(intent.assetId, 'npc.lysa');
+      expect(intent.scope, 'map');
+      expect(intent.parentId, 'map.port');
+      expect(intent.mapId, 'map.port');
+      expect(intent.sourceKind, 'entity');
+      expect(intent.context, 'maps[map.port].entities[0]');
+      expect(
+        intent,
+        NarrativeDependencyNavigationIntent.fromKey(
+          key,
+          context: 'maps[map.port].entities[0]',
+        ),
+      );
+    });
+
+    test('indexed Chapter and Step intents preserve their authoring hierarchy',
+        () {
+      final index = buildNarrativeDependencyIndex(
+        project: _project(storylines: <StorylineAsset>[_storyline()]),
+      );
+      final chapter = index
+          .definitionsFor(
+            const NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.chapter,
+              'chapter.intro',
+            ),
+          )
+          .single
+          .navigationIntent;
+      final step = index
+          .definitionsFor(
+            const NarrativeDependencyKey(
+              NarrativeDependencyTargetKind.step,
+              'step.intro',
+            ),
+          )
+          .single
+          .navigationIntent;
+
+      expect(chapter?.parentId, 'story.main');
+      expect(chapter?.rootId, isNull);
+      expect(step?.parentId, 'chapter.intro');
+      expect(step?.rootId, 'story.main');
+    });
+
     test('fully orders equal-prefix entries independently of input order', () {
       const fact = NarrativeDependencyKey(
         NarrativeDependencyTargetKind.fact,

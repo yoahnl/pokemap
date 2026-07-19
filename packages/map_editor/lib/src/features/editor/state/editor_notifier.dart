@@ -100,7 +100,10 @@ class EditorNotifier extends _$EditorNotifier {
   Object? _narrativeEventSourceMapWriteLeaseToken;
   Object? _narrativeAuthoringLeaseToken;
   Object _projectSessionIdentity = Object();
+  int _projectSessionRevision = 0;
   _NarrativeAuthoringSaveInterlock? _narrativeAuthoringSaveInterlock;
+
+  int get projectSessionRevision => _projectSessionRevision;
 
   EditorWorkspaceController get _editorWorkspaceController =>
       ref.read(editorWorkspaceControllerProvider);
@@ -291,7 +294,7 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Projet "$name" créé avec succès',
       );
-      _projectSessionIdentity = Object();
+      _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
       await _rememberLastOpenedProjectManifest(
         p.join(directory, 'project.json'),
@@ -344,7 +347,7 @@ class EditorNotifier extends _$EditorNotifier {
         ),
         statusMessage: 'Projet « ${manifest.name} » chargé',
       );
-      _projectSessionIdentity = Object();
+      _renewProjectSessionIdentity();
       _narrativeAuthoringSaveInterlock = null;
       didAdoptProject = true;
       _refreshMapDiskMutationLeaseBaseline(effectiveLeaseToken);
@@ -519,6 +522,15 @@ class EditorNotifier extends _$EditorNotifier {
             errorMessage: null,
             statusMessage: statusMessage,
           );
+  }
+
+  void reportNarrativeNavigationFailure(String message) {
+    state = state.copyWith(errorMessage: message);
+  }
+
+  void _renewProjectSessionIdentity() {
+    _projectSessionIdentity = Object();
+    _projectSessionRevision += 1;
   }
 
   /// Executes one validated Narrative Studio mutation through the shared

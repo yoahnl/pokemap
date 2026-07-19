@@ -231,9 +231,17 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
     this.onResolveBackdropTilesetPath,
     this.onOpenLegacyCutsceneStudio,
     this.startExpanded = false,
+    this.requestedEntryId,
+    this.requestedEntryNonce,
+    this.openRequestedEntryInBuilder = false,
+    this.onBuilderEntryChanged,
   });
 
   final bool startExpanded;
+  final String? requestedEntryId;
+  final int? requestedEntryNonce;
+  final bool openRequestedEntryInBuilder;
+  final ValueChanged<String?>? onBuilderEntryChanged;
 
   final ProjectManifest project;
   final CreateCinematicShellCallback onCreateCinematicShell;
@@ -289,6 +297,7 @@ class _CinematicsLibraryWorkspaceState
   String? _loadedEditorId;
   String? _pendingDeleteId;
   String? _feedback;
+  bool _requestedEntryUnavailable = false;
   String? _loadingStageMapSourceCatalogMapId;
   CinematicStageMapSourceCatalog? _stageMapSourceCatalog;
   MapData? _stageMapSnapshot;
@@ -301,6 +310,34 @@ class _CinematicsLibraryWorkspaceState
   int _stageMapSourceCatalogGeneration = 0;
   Map<String, CinematicResolvedTilesetAsset> _resolvedActorTilesets = const {};
   final Set<String> _loadingActorTilesetIds = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _applyRequestedEntry();
+  }
+
+  @override
+  void didUpdateWidget(covariant CinematicsLibraryWorkspace oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final previousRequested = oldWidget.requestedEntryId?.trim();
+    final requested = widget.requestedEntryId?.trim();
+    final previousRequestId =
+        previousRequested == null || previousRequested.isEmpty
+            ? null
+            : previousRequested;
+    final requestId = requested == null || requested.isEmpty ? null : requested;
+    final typedRequestChanged = previousRequestId != requestId ||
+        (requestId != null &&
+            (oldWidget.requestedEntryNonce != widget.requestedEntryNonce ||
+                oldWidget.openRequestedEntryInBuilder !=
+                    widget.openRequestedEntryInBuilder));
+    final requestedEntryMayHaveChanged =
+        requestId != null && oldWidget.project != widget.project;
+    if (typedRequestChanged || requestedEntryMayHaveChanged) {
+      _applyRequestedEntry();
+    }
+  }
 
   @override
   void dispose() {
@@ -316,6 +353,9 @@ class _CinematicsLibraryWorkspaceState
   @override
   Widget build(BuildContext context) {
     final readModel = buildCinematicsLibraryReadModel(widget.project);
+    if (_requestedEntryUnavailable) {
+      return _buildRequestedEntryUnavailable();
+    }
     _ensureSelection(readModel);
     final selectedEntry = _selectedEntryId == null
         ? null
@@ -459,6 +499,27 @@ class _CinematicsLibraryWorkspaceState
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRequestedEntryUnavailable() {
+    final requested = widget.requestedEntryId?.trim();
+    return Material(
+      type: MaterialType.transparency,
+      child: NarrativeStudioWorkspacePage(
+        presentation: narrativeStudioRoutePresentationFor(
+          EditorWorkspaceMode.cutscene,
+        )!,
+        body: PokeMapPageSurface(
+          key: const ValueKey('cinematics-library-requested-unavailable'),
+          child: PokeMapEmptyState(
+            title: 'Cinématique introuvable',
+            description:
+                'La cible $requested n’existe plus dans le projet. Revenez à la bibliothèque pour choisir une autre cinématique.',
+            icon: const Icon(CupertinoIcons.exclamationmark_triangle),
           ),
         ),
       ),
@@ -843,6 +904,7 @@ class _CinematicsLibraryWorkspaceState
       _resolvedActorTilesets = const {};
       _loadingActorTilesetIds.clear();
     });
+    widget.onBuilderEntryChanged?.call(null);
   }
 
   Widget _buildFilterBar(BuildContext context) {
@@ -1020,6 +1082,7 @@ class _CinematicsLibraryWorkspaceState
                       _pendingDeleteId = null;
                       _feedback = null;
                     });
+                    widget.onBuilderEntryChanged?.call(entry.id);
                   },
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
@@ -1157,6 +1220,34 @@ class _CinematicsLibraryWorkspaceState
             : null;
     _selectedEntryId = fallback?.id;
     _loadedEditorId = null;
+  }
+
+  void _applyRequestedEntry() {
+    final requested = widget.requestedEntryId?.trim();
+    if (requested == null || requested.isEmpty) {
+      _requestedEntryUnavailable = false;
+      _builderEntryId = null;
+      return;
+    }
+    final entry = buildCinematicsLibraryReadModel(widget.project).entryById(
+      requested,
+    );
+    if (entry == null) {
+      _requestedEntryUnavailable = true;
+      _selectedEntryId = null;
+      _loadedEditorId = null;
+      _builderEntryId = null;
+      return;
+    }
+    _requestedEntryUnavailable = false;
+    _selectedEntryId = requested;
+    _loadedEditorId = null;
+    if (widget.openRequestedEntryInBuilder &&
+        entry.kind == CinematicsLibraryEntryKind.canonical) {
+      _builderEntryId = requested;
+    } else {
+      _builderEntryId = null;
+    }
   }
 
   void _syncMetadataEditor(CinematicsLibraryEntry? entry) {

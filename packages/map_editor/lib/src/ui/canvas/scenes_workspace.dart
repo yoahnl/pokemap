@@ -100,6 +100,12 @@ typedef SceneActionConsequenceUpdater = Future<bool> Function({
   required SceneConsequence consequence,
 });
 
+typedef SceneLinkedAssetOpener = void Function({
+  required String sceneId,
+  required String nodeId,
+  required String assetId,
+});
+
 const _scenesInlineInspectorMinWidth = 1240.0;
 
 class ScenesWorkspace extends StatefulWidget {
@@ -113,7 +119,12 @@ class ScenesWorkspace extends StatefulWidget {
     this.consequenceEventOptions = const [],
     this.consequenceCatalogs = const SceneConsequenceCatalogs.unavailable(),
     this.requestedSceneId,
+    this.requestedNodeId,
     this.requestedSceneFocusNonce,
+    this.strictRequestedSceneFocus = false,
+    this.requestedFocusAnchorId,
+    this.requestedRestorationRevision,
+    this.onRestorationApplied,
     required this.onCreateSceneDraft,
     required this.onAddNodeDraft,
     required this.onAddLinkedAssetNodeDraft,
@@ -127,6 +138,8 @@ class ScenesWorkspace extends StatefulWidget {
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
     required this.onUpdateActionConsequence,
+    this.onOpenDialogue,
+    this.onOpenCinematic,
   });
 
   final List<NarrativeSceneSummary> scenes;
@@ -137,7 +150,12 @@ class ScenesWorkspace extends StatefulWidget {
   final List<SceneConsequenceEventPickerOption> consequenceEventOptions;
   final SceneConsequenceCatalogs consequenceCatalogs;
   final String? requestedSceneId;
+  final String? requestedNodeId;
   final int? requestedSceneFocusNonce;
+  final bool strictRequestedSceneFocus;
+  final String? requestedFocusAnchorId;
+  final int? requestedRestorationRevision;
+  final ValueChanged<int>? onRestorationApplied;
   final SceneDraftCreator onCreateSceneDraft;
   final SceneNodeDraftCreator onAddNodeDraft;
   final SceneLinkedAssetNodeDraftCreator onAddLinkedAssetNodeDraft;
@@ -151,6 +169,8 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
   final SceneActionConsequenceUpdater onUpdateActionConsequence;
+  final SceneLinkedAssetOpener? onOpenDialogue;
+  final SceneLinkedAssetOpener? onOpenCinematic;
 
   @override
   State<ScenesWorkspace> createState() => _ScenesWorkspaceState();
@@ -161,12 +181,15 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     debugLabel: 'Scenes inspector launcher',
   );
   final ValueNotifier<int> _inspectorRevision = ValueNotifier<int>(0);
+  final Map<String, FocusNode> _graphNodeFocusNodes = <String, FocusNode>{};
   bool _inspectorSheetOpen = false;
   bool _inspectorRefreshScheduled = false;
   String? _selectedSceneId;
   String? _selectedNodeId;
   String? _selectedEdgeId;
   _PendingSceneConnection? _pendingConnection;
+  String? _requestedRouteFailure;
+  int? _restorationRevisionInFlight;
 
   @override
   void initState() {
@@ -179,9 +202,10 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   void didUpdateWidget(covariant ScenesWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     _syncSelection();
-    if (oldWidget.requestedSceneFocusNonce != requestedSceneFocusNonce ||
-        oldWidget.requestedSceneId != requestedSceneId) {
+    if (_requestedSceneFocusChanged(oldWidget)) {
       _applyRequestedSceneFocus();
+    } else {
+      _revalidateRequestedSceneFocus();
     }
   }
 
@@ -189,6 +213,9 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   void dispose() {
     _inspectorLauncherFocusNode.dispose();
     _inspectorRevision.dispose();
+    for (final focusNode in _graphNodeFocusNodes.values) {
+      focusNode.dispose();
+    }
     super.dispose();
   }
 
@@ -196,18 +223,190 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
 
   int? get requestedSceneFocusNonce => widget.requestedSceneFocusNonce;
 
-  void _applyRequestedSceneFocus() {
+  bool _requestedSceneFocusChanged(ScenesWorkspace oldWidget) =>
+      oldWidget.requestedSceneId != widget.requestedSceneId ||
+      oldWidget.requestedNodeId != widget.requestedNodeId ||
+      oldWidget.requestedSceneFocusNonce != widget.requestedSceneFocusNonce ||
+      oldWidget.strictRequestedSceneFocus != widget.strictRequestedSceneFocus;
+
+  void _revalidateRequestedSceneFocus() {
     final requested = requestedSceneId;
-    if (requested == null ||
-        !widget.scenes.any((scene) => scene.id == requested) ||
-        requested == _selectedSceneId) {
+    if (requested == null) {
+      _requestedRouteFailure = null;
       return;
     }
     final scene = _sceneById(requested);
+    if (scene == null) {
+      if (!widget.strictRequestedSceneFocus) {
+        _requestedRouteFailure = null;
+        return;
+      }
+      _selectedSceneId = null;
+      _selectedNodeId = null;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+      _requestedRouteFailure =
+          'La scène demandée « $requested » n’existe plus dans le projet.';
+      return;
+    }
+    final requestedNodeId = widget.requestedNodeId;
+    if (requestedNodeId != null &&
+        !scene.graph.nodes.any((node) => node.id == requestedNodeId)) {
+      if (!widget.strictRequestedSceneFocus) {
+        _requestedRouteFailure = null;
+        return;
+      }
+      _selectedSceneId = null;
+      _selectedNodeId = null;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+      _requestedRouteFailure = 'Le nœud demandé « $requestedNodeId » '
+          'n’existe plus dans la scène « $requested ».';
+      return;
+    }
+    if (_requestedRouteFailure != null) {
+      _applyRequestedSceneFocus();
+    }
+  }
+
+  void _applyRequestedSceneFocus() {
+    final requested = requestedSceneId;
+    if (requested == null) {
+      _requestedRouteFailure = null;
+      return;
+    }
+    final scene = _sceneById(requested);
+    if (scene == null) {
+      if (!widget.strictRequestedSceneFocus) {
+        _requestedRouteFailure = null;
+        return;
+      }
+      _selectedSceneId = null;
+      _selectedNodeId = null;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+      _requestedRouteFailure =
+          'La scène demandée « $requested » n’existe plus dans le projet.';
+      return;
+    }
     _selectedSceneId = requested;
-    _selectedNodeId = _preferredNodeId(scene);
+    final requestedNodeId = widget.requestedNodeId;
+    if (requestedNodeId != null &&
+        !scene.graph.nodes.any((node) => node.id == requestedNodeId)) {
+      if (!widget.strictRequestedSceneFocus) {
+        _requestedRouteFailure = null;
+        return;
+      }
+      _selectedNodeId = null;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+      _requestedRouteFailure = 'Le nœud demandé « $requestedNodeId » '
+          'n’existe plus dans la scène « $requested ».';
+      return;
+    }
+    _selectedNodeId = requestedNodeId ?? _preferredNodeId(scene);
     _selectedEdgeId = null;
     _pendingConnection = null;
+    _requestedRouteFailure = null;
+  }
+
+  String _graphNodeFocusKey(String sceneId, String nodeId) =>
+      '$sceneId\u001f$nodeId';
+
+  FocusNode _graphNodeFocusNodeFor(String sceneId, String nodeId) {
+    final key = _graphNodeFocusKey(sceneId, nodeId);
+    return _graphNodeFocusNodes.putIfAbsent(
+      key,
+      () => FocusNode(debugLabel: 'Scene graph node $sceneId / $nodeId'),
+    );
+  }
+
+  void _scheduleRequestedRestoration() {
+    final revision = widget.requestedRestorationRevision;
+    final onApplied = widget.onRestorationApplied;
+    if (revision == null ||
+        onApplied == null ||
+        _requestedRouteFailure != null ||
+        _selectedSceneId != widget.requestedSceneId ||
+        _selectedNodeId != widget.requestedNodeId ||
+        _restorationRevisionInFlight == revision) {
+      return;
+    }
+    _restorationRevisionInFlight = revision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreRequestedScene(revision, attempt: 0);
+    });
+  }
+
+  void _restoreRequestedScene(int revision, {required int attempt}) {
+    if (!mounted || widget.requestedRestorationRevision != revision) {
+      if (_restorationRevisionInFlight == revision) {
+        _restorationRevisionInFlight = null;
+      }
+      return;
+    }
+    final sceneId = widget.requestedSceneId;
+    final nodeId = widget.requestedNodeId;
+    if (_requestedRouteFailure != null ||
+        sceneId == null ||
+        nodeId == null ||
+        _selectedSceneId != sceneId ||
+        _selectedNodeId != nodeId) {
+      _failRequestedRestoration(
+        revision,
+        'La scène et le nœud exacts ne peuvent pas être restaurés.',
+      );
+      return;
+    }
+
+    final focusAnchor = widget.requestedFocusAnchorId;
+    if (focusAnchor != null) {
+      if (focusAnchor != nodeId) {
+        _failRequestedRestoration(
+          revision,
+          'Le point de focus « $focusAnchor » ne correspond pas au nœud '
+          'demandé « $nodeId ».',
+        );
+        return;
+      }
+      final focusNode =
+          _graphNodeFocusNodes[_graphNodeFocusKey(sceneId, nodeId)];
+      if (focusNode?.context == null) {
+        _retryRequestedRestoration(revision, attempt: attempt);
+        return;
+      }
+      if (!focusNode!.hasFocus) {
+        focusNode.requestFocus();
+        _retryRequestedRestoration(revision, attempt: attempt);
+        return;
+      }
+    }
+
+    _restorationRevisionInFlight = null;
+    widget.onRestorationApplied!(revision);
+  }
+
+  void _retryRequestedRestoration(int revision, {required int attempt}) {
+    if (attempt >= 12) {
+      _failRequestedRestoration(
+        revision,
+        'Le nœud demandé n’a pas pu être rematérialisé pour restaurer le '
+        'focus.',
+      );
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _restoreRequestedScene(revision, attempt: attempt + 1);
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  void _failRequestedRestoration(int revision, String message) {
+    if (_restorationRevisionInFlight == revision) {
+      _restorationRevisionInFlight = null;
+    }
+    if (!mounted || _requestedRouteFailure == message) return;
+    setState(() => _requestedRouteFailure = message);
   }
 
   void _syncSelection() {
@@ -255,6 +454,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
   Widget build(BuildContext context) {
     final selectedScene = _selectedScene;
     _scheduleInspectorSheetRefresh();
+    _scheduleRequestedRestoration();
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -287,65 +487,102 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
           body: PokeMapPageSurface(
             key: const ValueKey('scenes-workspace-shell'),
             padding: const EdgeInsets.all(8),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  key: const ValueKey('scenes-tree-column'),
-                  width: treeWidth,
-                  child: _SceneTreePanel(
-                    scenes: widget.scenes,
-                    selectedSceneId: selectedScene?.id,
-                    onSelectScene: (sceneId) {
-                      setState(() {
-                        _selectedSceneId = sceneId;
-                        _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
-                        _selectedEdgeId = null;
-                        _pendingConnection = null;
-                      });
-                    },
+            child: _requestedRouteFailure == null
+                ? _buildWorkspaceRow(
+                    compact: compact,
+                    treeWidth: treeWidth,
+                    selectedScene: selectedScene,
+                  )
+                : Column(
+                    children: [
+                      PokeMapDiagnosticCallout(
+                        key: const ValueKey('scenes-route-restoration-failure'),
+                        severity: PokeMapDiagnosticSeverity.error,
+                        title: 'Retour vers la Scene impossible',
+                        message: _requestedRouteFailure!,
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: _buildWorkspaceRow(
+                          compact: compact,
+                          treeWidth: treeWidth,
+                          selectedScene: selectedScene,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: SizedBox.expand(
-                    key: const ValueKey('scenes-graph-column'),
-                    child: _SceneReadOnlySummary(
-                      scene: selectedScene,
-                      selectedNodeId: _selectedNodeId,
-                      selectedEdgeId: _selectedEdgeId,
-                      pendingConnection: _pendingConnection,
-                      onSelectNode: _handleGraphNodeTap,
-                      onSelectEdge: _handleGraphEdgeTap,
-                      onAddNodeDraft: _addNodeDraft,
-                      onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
-                      onAddConsequenceActionNodeDraft:
-                          _addConsequenceActionNodeDraft,
-                      linkedAssetContracts: widget.linkedAssetContracts,
-                      cinematicsLibrary: widget.cinematicsLibrary,
-                      consequenceFactOptions: widget.consequenceFactOptions,
-                      consequenceEventOptions: widget.consequenceEventOptions,
-                      consequenceCatalogs: widget.consequenceCatalogs,
-                      onAddEdgeDraft: _addEdgeDraft,
-                      onStartConnection: _startConnection,
-                      onCancelConnection: _cancelConnection,
-                      onUpdateNodeLayout: _updateNodeLayout,
-                    ),
-                  ),
-                ),
-                if (!compact) ...[
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    key: const ValueKey('scenes-inspector-column'),
-                    width: 320,
-                    child: _buildInspectorPane(selectedScene),
-                  ),
-                ],
-              ],
-            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildWorkspaceRow({
+    required bool compact,
+    required double treeWidth,
+    required NarrativeSceneSummary? selectedScene,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          key: const ValueKey('scenes-tree-column'),
+          width: treeWidth,
+          child: _SceneTreePanel(
+            scenes: widget.scenes,
+            selectedSceneId: selectedScene?.id,
+            onSelectScene: (sceneId) {
+              setState(() {
+                _selectedSceneId = sceneId;
+                _selectedNodeId = _preferredNodeId(_sceneById(sceneId));
+                _selectedEdgeId = null;
+                _pendingConnection = null;
+                _requestedRouteFailure = null;
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: SizedBox.expand(
+            key: const ValueKey('scenes-graph-column'),
+            child: _SceneReadOnlySummary(
+              scene: selectedScene,
+              selectedNodeId: _selectedNodeId,
+              selectedEdgeId: _selectedEdgeId,
+              pendingConnection: _pendingConnection,
+              focusNodeForNodeId: selectedScene == null
+                  ? null
+                  : (nodeId) => _graphNodeFocusNodeFor(
+                        selectedScene.id,
+                        nodeId,
+                      ),
+              onSelectNode: _handleGraphNodeTap,
+              onSelectEdge: _handleGraphEdgeTap,
+              onAddNodeDraft: _addNodeDraft,
+              onAddLinkedAssetNodeDraft: _addLinkedAssetNodeDraft,
+              onAddConsequenceActionNodeDraft: _addConsequenceActionNodeDraft,
+              linkedAssetContracts: widget.linkedAssetContracts,
+              cinematicsLibrary: widget.cinematicsLibrary,
+              consequenceFactOptions: widget.consequenceFactOptions,
+              consequenceEventOptions: widget.consequenceEventOptions,
+              consequenceCatalogs: widget.consequenceCatalogs,
+              onAddEdgeDraft: _addEdgeDraft,
+              onStartConnection: _startConnection,
+              onCancelConnection: _cancelConnection,
+              onUpdateNodeLayout: _updateNodeLayout,
+            ),
+          ),
+        ),
+        if (!compact) ...[
+          const SizedBox(width: 10),
+          SizedBox(
+            key: const ValueKey('scenes-inspector-column'),
+            width: 320,
+            child: _buildInspectorPane(selectedScene),
+          ),
+        ],
+      ],
     );
   }
 
@@ -370,8 +607,28 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     linkedAssetContracts: widget.linkedAssetContracts,
                     cinematicsLibrary: widget.cinematicsLibrary,
                     onUpdateYarnDialoguePayload: _updateYarnDialoguePayload,
+                    onOpenDialogue: (dialogueId) {
+                      final sceneId = selectedScene.id;
+                      final nodeId = _selectedNodeId;
+                      if (nodeId == null) return;
+                      widget.onOpenDialogue?.call(
+                        sceneId: sceneId,
+                        nodeId: nodeId,
+                        assetId: dialogueId,
+                      );
+                    },
                     onUpdateBattlePayload: _updateBattlePayload,
                     onUpdateCinematicPayload: _updateCinematicPayload,
+                    onOpenCinematic: (cinematicId) {
+                      final sceneId = selectedScene.id;
+                      final nodeId = _selectedNodeId;
+                      if (nodeId == null) return;
+                      widget.onOpenCinematic?.call(
+                        sceneId: sceneId,
+                        nodeId: nodeId,
+                        assetId: cinematicId,
+                      );
+                    },
                     consequenceFactOptions: widget.consequenceFactOptions,
                     consequenceEventOptions: widget.consequenceEventOptions,
                     consequenceCatalogs: widget.consequenceCatalogs,
@@ -1159,6 +1416,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
     required this.selectedNodeId,
     required this.selectedEdgeId,
     required this.pendingConnection,
+    required this.focusNodeForNodeId,
     required this.onSelectNode,
     required this.onSelectEdge,
     required this.onAddNodeDraft,
@@ -1179,6 +1437,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
   final String? selectedNodeId;
   final String? selectedEdgeId;
   final _PendingSceneConnection? pendingConnection;
+  final FocusNode Function(String nodeId)? focusNodeForNodeId;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
@@ -1208,6 +1467,7 @@ class _SceneReadOnlySummary extends StatelessWidget {
               selectedNodeId: selectedNodeId,
               selectedEdgeId: selectedEdgeId,
               pendingConnection: pendingConnection,
+              focusNodeForNodeId: focusNodeForNodeId,
               onSelectNode: onSelectNode,
               onSelectEdge: onSelectEdge,
               onAddNodeDraft: onAddNodeDraft,
@@ -1248,6 +1508,7 @@ class _SelectedSceneSummary extends StatelessWidget {
     required this.selectedNodeId,
     required this.selectedEdgeId,
     required this.pendingConnection,
+    required this.focusNodeForNodeId,
     required this.onSelectNode,
     required this.onSelectEdge,
     required this.onAddNodeDraft,
@@ -1268,6 +1529,7 @@ class _SelectedSceneSummary extends StatelessWidget {
   final String? selectedNodeId;
   final String? selectedEdgeId;
   final _PendingSceneConnection? pendingConnection;
+  final FocusNode Function(String nodeId)? focusNodeForNodeId;
   final ValueChanged<String> onSelectNode;
   final ValueChanged<String> onSelectEdge;
   final ValueChanged<SceneNodeKind> onAddNodeDraft;
@@ -1340,6 +1602,7 @@ class _SelectedSceneSummary extends StatelessWidget {
               scene: scene,
               selectedNodeId: selectedNodeId,
               selectedEdgeId: selectedEdgeId,
+              focusNodeForNodeId: focusNodeForNodeId,
               onSelectNode: onSelectNode,
               onSelectEdge: onSelectEdge,
               canDragNodes: pendingConnection == null,

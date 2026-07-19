@@ -7,6 +7,10 @@ const narrativeStudioProductNavigationMapsKey =
     ValueKey<String>('narrative-studio-product-nav-maps');
 const narrativeStudioProductNavigationStatusKey =
     ValueKey<String>('narrative-studio-product-navigation-status');
+const narrativeStudioEventBuilderNavigationKey =
+    ValueKey<String>('narrative-studio-product-nav-event-builder');
+const narrativeStudioMapEventsNavigationKey =
+    ValueKey<String>('narrative-studio-product-nav-map-events');
 
 /// Provider-free project navigation shared by Narrative Studio workspaces.
 class NarrativeStudioProductNavigation extends StatelessWidget {
@@ -15,12 +19,18 @@ class NarrativeStudioProductNavigation extends StatelessWidget {
     required this.selectedDestination,
     required this.onSelectDestination,
     required this.onOpenMaps,
+    this.selectedLocation,
+    this.onSelectLocation,
+    this.onReturn,
     this.status,
   });
 
   final NarrativeStudioDestination selectedDestination;
   final ValueChanged<NarrativeStudioDestination> onSelectDestination;
   final VoidCallback onOpenMaps;
+  final NarrativeStudioRouteLocation? selectedLocation;
+  final ValueChanged<NarrativeStudioRouteLocation>? onSelectLocation;
+  final VoidCallback? onReturn;
 
   /// Real project status supplied by the host. No placeholder is rendered when
   /// it is absent.
@@ -35,6 +45,18 @@ class NarrativeStudioProductNavigation extends StatelessWidget {
         policy: OrderedTraversalPolicy(),
         child: Column(
           children: [
+            if (onReturn != null) ...[
+              _NarrativeStudioNavigationItem(
+                key: const ValueKey<String>(
+                  'narrative-studio-product-nav-return',
+                ),
+                icon: CupertinoIcons.arrow_left,
+                label: 'Retour',
+                selected: false,
+                onTap: onReturn!,
+              ),
+              const SizedBox(height: 8),
+            ],
             for (final item in _items.take(2)) ...[
               _NarrativeStudioNavigationItem(
                 key: ValueKey<String>(
@@ -43,7 +65,7 @@ class NarrativeStudioProductNavigation extends StatelessWidget {
                 icon: item.icon,
                 label: item.label,
                 selected: item.destination == selectedDestination,
-                onTap: () => onSelectDestination(item.destination),
+                onTap: () => _selectDestination(item.destination),
               ),
               const SizedBox(height: 4),
             ],
@@ -63,9 +85,41 @@ class NarrativeStudioProductNavigation extends StatelessWidget {
                 icon: item.icon,
                 label: item.label,
                 selected: item.destination == selectedDestination,
-                onTap: () => onSelectDestination(item.destination),
+                onTap: () => _selectDestination(item.destination),
               ),
               const SizedBox(height: 4),
+              if (item.destination == NarrativeStudioDestination.events &&
+                  selectedDestination == NarrativeStudioDestination.events)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, bottom: 4),
+                  child: Column(
+                    children: [
+                      _NarrativeStudioNavigationItem(
+                        key: narrativeStudioEventBuilderNavigationKey,
+                        icon: CupertinoIcons.bolt_horizontal,
+                        label: 'Event Builder',
+                        selected: selectedLocation?.childRoute !=
+                            NarrativeStudioChildRoute.mapEvents,
+                        onTap: () => _selectLocation(
+                          NarrativeStudioRouteLocation.events(),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      _NarrativeStudioNavigationItem(
+                        key: narrativeStudioMapEventsNavigationKey,
+                        icon: CupertinoIcons.map_pin_ellipse,
+                        label: 'Events par map',
+                        selected: selectedLocation?.childRoute ==
+                            NarrativeStudioChildRoute.mapEvents,
+                        onTap: () => _selectLocation(
+                          NarrativeStudioRouteLocation.events(
+                            childRoute: NarrativeStudioChildRoute.mapEvents,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
             if (status != null) ...[
               const Spacer(),
@@ -80,7 +134,48 @@ class NarrativeStudioProductNavigation extends StatelessWidget {
       ),
     );
   }
+
+  void _selectDestination(NarrativeStudioDestination destination) {
+    final callback = onSelectLocation;
+    if (callback == null) {
+      onSelectDestination(destination);
+      return;
+    }
+    callback(_defaultLocationFor(destination));
+  }
+
+  void _selectLocation(NarrativeStudioRouteLocation location) {
+    final callback = onSelectLocation;
+    if (callback == null) {
+      onSelectDestination(location.destination);
+      return;
+    }
+    callback(location);
+  }
 }
+
+NarrativeStudioRouteLocation _defaultLocationFor(
+  NarrativeStudioDestination destination,
+) =>
+    switch (destination) {
+      NarrativeStudioDestination.overview =>
+        NarrativeStudioRouteLocation.overview(),
+      NarrativeStudioDestination.storylines =>
+        NarrativeStudioRouteLocation.storylines(),
+      NarrativeStudioDestination.scenes =>
+        NarrativeStudioRouteLocation.scenes(),
+      NarrativeStudioDestination.events =>
+        NarrativeStudioRouteLocation.events(),
+      NarrativeStudioDestination.cinematics =>
+        NarrativeStudioRouteLocation.cinematics(),
+      NarrativeStudioDestination.dialogues =>
+        NarrativeStudioRouteLocation.dialogues(),
+      NarrativeStudioDestination.facts => NarrativeStudioRouteLocation.facts(),
+      NarrativeStudioDestination.worldRules =>
+        NarrativeStudioRouteLocation.worldRules(),
+      NarrativeStudioDestination.validator =>
+        NarrativeStudioRouteLocation.validator(),
+    };
 
 class _NarrativeStudioNavigationItem extends StatelessWidget {
   const _NarrativeStudioNavigationItem({

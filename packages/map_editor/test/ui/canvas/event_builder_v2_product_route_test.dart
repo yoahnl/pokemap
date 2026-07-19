@@ -15,6 +15,8 @@ import 'package:map_editor/src/ui/canvas/events/event_builder_workspace.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_product_route.dart';
 import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_workspace.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
 import 'package:map_editor/src/ui/canvas/narrative_workspace_canvas.dart';
@@ -650,6 +652,21 @@ void main() {
       expect(bridge.focusRequest?.focusTarget.mapId, 'map_port');
       expect(bridge.focusRequest?.focusTarget.ownerId, 'npc_rival');
       expect(bridge.focusRequest?.cameraApplied, isTrue);
+      final navigationAway =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(
+        navigationAway.pendingReturn?.location.destination,
+        NarrativeStudioDestination.events,
+      );
+      expect(
+        navigationAway.pendingReturn?.location.selection?.assetId,
+        productRoutePortEventId,
+      );
+      expect(
+        navigationAway.pendingReturn?.focusAnchorId,
+        'v2:$productRoutePortEventId',
+      );
+      expect(navigationAway.pendingReturn?.scrollOffset, isNonNegative);
 
       await tester.tap(
         find.byKey(const ValueKey('narrative-event-map-return')),
@@ -664,6 +681,122 @@ void main() {
         productRoutePortEventId,
       );
       expect(find.text('Rencontre rival au port'), findsWidgets);
+      final navigationReturned =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(
+        navigationReturned.location.selection?.assetId,
+        productRoutePortEventId,
+      );
+      expect(navigationReturned.pendingReturn, isNull);
+      expect(navigationReturned.restorationRequest, isNull);
+      final returnedItem = find.byKey(
+        const ValueKey(
+          'event-builder-v2-event-v2:$productRoutePortEventId',
+        ),
+      );
+      final focusable = tester.widget<FocusableActionDetector>(
+        find.descendant(
+          of: returnedItem,
+          matching: find.byType(FocusableActionDetector),
+        ),
+      );
+      expect(focusable.focusNode?.hasFocus, isTrue);
+    });
+
+    testWidgets(
+        'restores a lazy Event row with its non-zero scroll offset and focus',
+        (tester) async {
+      final fixture = await createEventBuilderV2ProductRouteFixture(
+        tester,
+        mode: EventSystemMode.dualRead,
+      );
+      final longReadModel = _withLazyEventGroups(fixture.readModel);
+      final container = await pumpEventBuilderV2ProductRoute(
+        tester,
+        fixture: fixture,
+        readModelLoader: (_) => Future.value(longReadModel),
+      );
+      const listKey = ValueKey('event-builder-v2-event-list-scroll');
+      const eventKey = ValueKey(
+        'event-builder-v2-event-v2:$productRoutePortEventId',
+      );
+      final listFinder = find.byKey(listKey);
+      final scrollableFinder = find.descendant(
+        of: listFinder,
+        matching: find.byType(Scrollable),
+      );
+      final eventFinder = find.byKey(eventKey);
+
+      expect(eventFinder, findsNothing);
+      await tester.scrollUntilVisible(
+        eventFinder,
+        360,
+        scrollable: scrollableFinder,
+      );
+      await tester.pump();
+      final offsetBeforeMap =
+          tester.widget<ListView>(listFinder).controller!.offset;
+      expect(offsetBeforeMap, greaterThan(0));
+
+      await tester.tap(eventFinder);
+      await pumpEventBuilderV2ProductRouteFrames(
+        tester,
+        container: container,
+      );
+      await tester.tap(find.text('Voir sur la carte').first);
+      await pumpEventBuilderV2ProductRouteFrames(
+        tester,
+        container: container,
+      );
+      await waitForEventBuilderV2BridgeIdle(tester, container);
+
+      final navigationAway =
+          container.read(narrativeStudioNavigationControllerProvider);
+      expect(navigationAway.pendingReturn?.scrollOffset, offsetBeforeMap);
+      expect(
+        navigationAway.pendingReturn?.focusAnchorId,
+        'v2:$productRoutePortEventId',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('narrative-event-map-return')),
+      );
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNotNull,
+      );
+      await _waitForWidget(tester, eventFinder);
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNotNull,
+        reason: 'La restauration ne doit être consommée qu’après le focus.',
+      );
+      await pumpEventBuilderV2ProductRouteFrames(
+        tester,
+        container: container,
+        count: 6,
+      );
+
+      final restoredList = tester.widget<ListView>(listFinder);
+      expect(restoredList.controller!.offset, offsetBeforeMap);
+      expect(eventFinder, findsOneWidget);
+      final focusable = tester.widget<FocusableActionDetector>(
+        find.descendant(
+          of: eventFinder,
+          matching: find.byType(FocusableActionDetector),
+        ),
+      );
+      expect(focusable.focusNode?.hasFocus, isTrue);
+      expect(
+        container
+            .read(narrativeStudioNavigationControllerProvider)
+            .restorationRequest,
+        isNull,
+      );
     });
 
     testWidgets(
@@ -1056,6 +1189,50 @@ void main() {
       );
     });
   });
+}
+
+NarrativeEventBuilderProjectReadModel _withLazyEventGroups(
+  NarrativeEventBuilderProjectReadModel source,
+) {
+  final template = source.events.singleWhere(
+    (event) => event.eventId == productRouteForestEventId,
+  );
+  return NarrativeEventBuilderProjectReadModel(
+    groups: [
+      for (var index = 0; index < 40; index++)
+        NarrativeEventProjectGroup(
+          stableKey: 'map:lazy_$index',
+          label: 'Map de test ${index.toString().padLeft(2, '0')}',
+          kind: NarrativeEventProjectGroupKind.map,
+          events: [
+            NarrativeEventProjectSummary(
+              stableKey: 'v2:lazy_event_$index',
+              eventId: 'lazy_event_$index',
+              title: 'Événement de remplissage $index',
+              origin: template.origin,
+              readOnly: template.readOnly,
+              enabled: template.enabled,
+              group: NarrativeEventProjectGroupKind.map,
+              groupKey: 'map:lazy_$index',
+              groupLabel: 'Map de test ${index.toString().padLeft(2, '0')}',
+              status: template.status,
+              severity: template.severity,
+              source: template.source,
+              scene: template.scene,
+              conditions: template.conditions,
+              lifecycle: template.lifecycle,
+              migration: template.migration,
+              projection: template.projection,
+              compatibilityOrigins: template.compatibilityOrigins,
+              diagnostics: template.diagnostics,
+              debug: template.debug,
+            ),
+          ],
+        ),
+      ...source.groups,
+    ],
+    diagnostics: source.diagnostics,
+  );
 }
 
 NarrativeEventValidationSnapshot _validationWithDiagnostics(

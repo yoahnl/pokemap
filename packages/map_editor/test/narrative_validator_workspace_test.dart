@@ -39,6 +39,45 @@ void main() {
     expect(find.text('Réparer automatiquement'), findsNothing);
   });
 
+  testWidgets(
+      'materializes and focuses an offscreen restored diagnostic before acknowledging it',
+      (tester) async {
+    final diagnostics = List<NarrativeProjectDiagnostic>.generate(
+      40,
+      (index) => NarrativeProjectDiagnostic(
+        code: 'diagnostic$index',
+        severity: NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.scene,
+        message: 'Diagnostic $index',
+        path: 'scenes.scene_$index',
+        destination: NarrativeProjectDiagnosticDestination.scene,
+        sceneId: 'scene_$index',
+      ),
+    );
+    final report = NarrativeProjectValidationReport(
+      diagnostics: diagnostics,
+      mapEventViews: const [],
+    );
+    final target = diagnostics.last;
+    int? appliedRevision;
+
+    await _pump(
+      tester,
+      report: report,
+      requestedDiagnosticKey: target.stableKey,
+      requestedDiagnosticNonce: 7,
+      requestedRestorationRevision: 42,
+      onRestorationApplied: (revision) => appliedRevision = revision,
+    );
+
+    final restored = find.byKey(
+      ValueKey('narrative-validator-diagnostic-${target.stableKey}'),
+    );
+    expect(restored, findsOneWidget);
+    expect(tester.widget<Focus>(restored).focusNode?.hasFocus, isTrue);
+    expect(appliedRevision, 42);
+  });
+
   testWidgets('filters diagnostics by their owning map', (tester) async {
     await _pump(tester, report: _report());
 
@@ -114,6 +153,10 @@ Future<void> _pump(
   ValueChanged<NarrativeProjectDiagnostic>? onOpenDiagnostic,
   ValueChanged<String>? onOpenEvent,
   ValueChanged<String>? onOpenMap,
+  String? requestedDiagnosticKey,
+  int? requestedDiagnosticNonce,
+  int? requestedRestorationRevision,
+  ValueChanged<int>? onRestorationApplied,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1280, 820));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -126,6 +169,10 @@ Future<void> _pump(
           onOpenDiagnostic: onOpenDiagnostic,
           onOpenEvent: onOpenEvent,
           onOpenMap: onOpenMap,
+          requestedDiagnosticKey: requestedDiagnosticKey,
+          requestedDiagnosticNonce: requestedDiagnosticNonce,
+          requestedRestorationRevision: requestedRestorationRevision,
+          onRestorationApplied: onRestorationApplied,
         ),
       ),
     ),

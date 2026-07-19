@@ -49,6 +49,8 @@ class EventBuilderV2Workspace extends StatefulWidget {
     this.onManageEvaluationOrder,
     this.validationItems = const [],
     this.onValidationAction,
+    this.eventListScrollController,
+    this.eventFocusNodeForStableKey,
   });
 
   final NarrativeEventBuilderV2State state;
@@ -69,6 +71,8 @@ class EventBuilderV2Workspace extends StatefulWidget {
   final VoidCallback? onManageEvaluationOrder;
   final List<NarrativeEventValidationItem> validationItems;
   final ValueChanged<NarrativeEventValidationItem>? onValidationAction;
+  final ScrollController? eventListScrollController;
+  final FocusNode Function(String stableKey)? eventFocusNodeForStableKey;
 
   @override
   State<EventBuilderV2Workspace> createState() =>
@@ -167,6 +171,8 @@ class _EventBuilderV2WorkspaceState extends State<EventBuilderV2Workspace> {
               onSelectEvent: widget.onSelectEvent,
               onCreateEvent:
                   widget.state.isReadOnly ? null : widget.onCreateEvent,
+              scrollController: widget.eventListScrollController,
+              focusNodeForStableKey: widget.eventFocusNodeForStableKey,
             ),
           );
 
