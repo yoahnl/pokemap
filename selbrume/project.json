@@ -39282,7 +39282,8 @@
             "title": "Victoire",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.guardian_1.victory"
+              "sceneOutcomeId": "lighthouse.guardian_1.victory",
+              "outcomePolicy": "progression"
             }
           },
           {
@@ -39291,7 +39292,8 @@
             "title": "Défaite",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.guardian_1.defeat"
+              "sceneOutcomeId": "lighthouse.guardian_1.defeat",
+              "outcomePolicy": "retryable"
             }
           }
         ],
@@ -39461,7 +39463,8 @@
             "title": "Victoire",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.guardian_2.victory"
+              "sceneOutcomeId": "lighthouse.guardian_2.victory",
+              "outcomePolicy": "progression"
             }
           },
           {
@@ -39470,7 +39473,8 @@
             "title": "Défaite",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.guardian_2.defeat"
+              "sceneOutcomeId": "lighthouse.guardian_2.defeat",
+              "outcomePolicy": "retryable"
             }
           }
         ],
@@ -39680,7 +39684,8 @@
             "title": "Victoire",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.pokemon.appeased"
+              "sceneOutcomeId": "lighthouse.pokemon.appeased",
+              "outcomePolicy": "progression"
             }
           },
           {
@@ -39689,7 +39694,8 @@
             "title": "Défaite",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "lighthouse.pokemon.defeat"
+              "sceneOutcomeId": "lighthouse.pokemon.defeat",
+              "outcomePolicy": "retryable"
             }
           }
         ],
@@ -39862,7 +39868,8 @@
             "title": "Fin",
             "payload": {
               "kind": "end",
-              "sceneOutcomeId": "mist_resolved"
+              "sceneOutcomeId": "mist_resolved",
+              "outcomePolicy": "progression"
             }
           }
         ],

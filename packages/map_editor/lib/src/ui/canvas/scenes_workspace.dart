@@ -82,6 +82,13 @@ typedef SceneConditionSourceUpdater = Future<bool> Function({
   required SceneConditionSource source,
 });
 
+typedef SceneEndPayloadUpdater = Future<bool> Function({
+  required String sceneId,
+  required String nodeId,
+  String? sceneOutcomeId,
+  required SceneOutcomePolicy? outcomePolicy,
+});
+
 typedef SceneYarnDialoguePayloadUpdater = Future<bool> Function({
   required String sceneId,
   required String nodeId,
@@ -167,6 +174,7 @@ class ScenesWorkspace extends StatefulWidget {
     this.onDuplicateNodeDraft,
     required this.onUpdateNodeLayout,
     required this.onUpdateConditionSource,
+    this.onUpdateEndPayload,
     required this.onUpdateYarnDialoguePayload,
     required this.onUpdateBattlePayload,
     required this.onUpdateCinematicPayload,
@@ -206,6 +214,7 @@ class ScenesWorkspace extends StatefulWidget {
   final SceneNodeDraftDuplicator? onDuplicateNodeDraft;
   final SceneNodeLayoutUpdater onUpdateNodeLayout;
   final SceneConditionSourceUpdater onUpdateConditionSource;
+  final SceneEndPayloadUpdater? onUpdateEndPayload;
   final SceneYarnDialoguePayloadUpdater onUpdateYarnDialoguePayload;
   final SceneBattlePayloadUpdater onUpdateBattlePayload;
   final SceneCinematicPayloadUpdater onUpdateCinematicPayload;
@@ -782,6 +791,7 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
                     onRemoveNodeDraft: _removeSelectedNodeDraft,
                     conditionSourceOptions: widget.conditionSourceOptions,
                     onUpdateConditionSource: _updateConditionSource,
+                    onUpdateEndPayload: _updateEndPayload,
                     linkedAssetContracts: widget.linkedAssetContracts,
                     cinematicsLibrary: widget.cinematicsLibrary,
                     onUpdateYarnDialoguePayload: _updateYarnDialoguePayload,
@@ -1145,6 +1155,30 @@ class _ScenesWorkspaceState extends State<ScenesWorkspace> {
     if (!mounted || !updated) {
       return false;
     }
+    setState(() {
+      _selectedSceneId = selected.id;
+      _selectedNodeId = nodeId;
+      _selectedEdgeId = null;
+      _pendingConnection = null;
+    });
+    return true;
+  }
+
+  Future<bool> _updateEndPayload({
+    required String nodeId,
+    String? sceneOutcomeId,
+    required SceneOutcomePolicy? outcomePolicy,
+  }) async {
+    final selected = _selectedScene;
+    final updater = widget.onUpdateEndPayload;
+    if (selected == null || updater == null) return false;
+    final updated = await updater(
+      sceneId: selected.id,
+      nodeId: nodeId,
+      sceneOutcomeId: sceneOutcomeId,
+      outcomePolicy: outcomePolicy,
+    );
+    if (!mounted || !updated) return false;
     setState(() {
       _selectedSceneId = selected.id;
       _selectedNodeId = nodeId;

@@ -152,6 +152,58 @@ void main() {
       );
     });
 
+    test('updates an End outcome policy without mutating scene structure', () {
+      final scene = _scene(
+        'scene_authoring',
+        metadata: const {'owner': 'test'},
+        declaredOutcomes: [SceneOutcome(id: 'defeat', label: 'Défaite')],
+      );
+
+      final result = updateSceneEndPayload(
+        scene,
+        nodeId: 'node_end',
+        sceneOutcomeId: ' defeat ',
+        outcomePolicy: SceneOutcomePolicy.retryable,
+      );
+
+      expect(result.updatedPayload.sceneOutcomeId, 'defeat');
+      expect(
+        result.updatedPayload.outcomePolicy,
+        SceneOutcomePolicy.retryable,
+      );
+      expect(result.updatedPayload.notes, isNull);
+      expect(result.updatedScene.graph.edges, scene.graph.edges);
+      expect(result.updatedScene.layout, scene.layout);
+      expect(result.updatedScene.metadata, scene.metadata);
+      expect(
+        (scene.graph.nodes.last.payload as SceneEndPayload).outcomePolicy,
+        isNull,
+      );
+    });
+
+    test('rejects End policy updates targeting a missing or non-End node', () {
+      final scene = _scene('scene_authoring');
+
+      expect(
+        () => updateSceneEndPayload(
+          scene,
+          nodeId: 'node_missing',
+          sceneOutcomeId: null,
+          outcomePolicy: SceneOutcomePolicy.progression,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => updateSceneEndPayload(
+          scene,
+          nodeId: 'node_start',
+          sceneOutcomeId: null,
+          outcomePolicy: SceneOutcomePolicy.progression,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects unsupported node kinds in V0 without fake refs', () {
       final scene = _scene('scene_authoring');
 

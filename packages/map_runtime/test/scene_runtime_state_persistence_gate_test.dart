@@ -22,6 +22,48 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Scene runtime state persistence gate', () {
+    test('runtime plan preserves the explicit retryable End policy', () {
+      final scene = SceneAsset(
+        id: 'scene_retry_policy',
+        name: 'Retry policy projection',
+        declaredOutcomes: [
+          SceneOutcome(id: 'defeat', label: 'Défaite'),
+        ],
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'end',
+              kind: SceneNodeKind.end,
+              payload: SceneEndPayload(
+                sceneOutcomeId: 'defeat',
+                outcomePolicy: SceneOutcomePolicy.retryable,
+              ),
+            ),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_end',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      );
+
+      final endIntent = buildSceneRuntimePlan(scene)
+          .plan!
+          .nodes
+          .singleWhere((node) => node.id == 'end')
+          .intent;
+
+      expect(endIntent.sceneOutcomeId, 'defeat');
+      expect(endIntent.outcomePolicy, SceneOutcomePolicy.retryable);
+    });
+
     test('Scene-written setFact and markEventConsumed survive save and reload',
         () async {
       final result = await _runWriteSceneSaveAndReload();
@@ -169,6 +211,14 @@ void main() {
             applyConsequence: (_) => 'completed',
           ),
         );
+        expect(
+          await saveGame.execute(const GameState(saveId: 'save_before_scene')),
+          isTrue,
+        );
+        final initialSave = File(await repository.exposedSaveFilePath());
+        expect(await initialSave.exists(), isTrue);
+        await initialSave.delete();
+
         final execution = gate.runWithActivity(
           NarrativeRuntimeActivity.sceneSuspended,
           () => executor.execute(_awaitableCheckpointPlan()),

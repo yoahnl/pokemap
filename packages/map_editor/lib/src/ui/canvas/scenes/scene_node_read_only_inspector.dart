@@ -12,6 +12,12 @@ typedef SceneConditionSourceDraftUpdater = Future<bool> Function({
   required SceneConditionSource source,
 });
 
+typedef SceneEndPayloadDraftUpdater = Future<bool> Function({
+  required String nodeId,
+  String? sceneOutcomeId,
+  required SceneOutcomePolicy? outcomePolicy,
+});
+
 typedef SceneYarnDialoguePayloadDraftUpdater = Future<bool> Function({
   required String nodeId,
   required String dialogueId,
@@ -102,6 +108,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
     this.onRemoveNodeDraft,
     this.conditionSourceOptions = const [],
     this.onUpdateConditionSource,
+    this.onUpdateEndPayload,
     this.linkedAssetContracts,
     this.cinematicsLibrary,
     this.onUpdateYarnDialoguePayload,
@@ -122,6 +129,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
+  final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
@@ -144,7 +152,11 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
       header: _InspectorHeader(
         title: edge == null ? 'Détails du nœud' : 'Détails du lien',
         chipLabel: edge == null && node != null
-            ? _nodeInspectorModeLabel(node, linkedAssetContracts)
+            ? _nodeInspectorModeLabel(
+                node,
+                linkedAssetContracts,
+                endEditable: onUpdateEndPayload != null,
+              )
             : 'Lecture seule',
       ),
       child: edge != null
@@ -161,6 +173,7 @@ class SceneNodeReadOnlyInspector extends StatelessWidget {
                   onRemoveNodeDraft: onRemoveNodeDraft,
                   conditionSourceOptions: conditionSourceOptions,
                   onUpdateConditionSource: onUpdateConditionSource,
+                  onUpdateEndPayload: onUpdateEndPayload,
                   linkedAssetContracts: linkedAssetContracts,
                   cinematicsLibrary: cinematicsLibrary,
                   onUpdateYarnDialoguePayload: onUpdateYarnDialoguePayload,
@@ -266,6 +279,7 @@ class _NodeInspectorBody extends StatelessWidget {
     required this.onRemoveNodeDraft,
     required this.conditionSourceOptions,
     required this.onUpdateConditionSource,
+    required this.onUpdateEndPayload,
     required this.linkedAssetContracts,
     required this.cinematicsLibrary,
     required this.onUpdateYarnDialoguePayload,
@@ -284,6 +298,7 @@ class _NodeInspectorBody extends StatelessWidget {
   final ValueChanged<String>? onRemoveNodeDraft;
   final List<SceneConditionSourcePickerOption> conditionSourceOptions;
   final SceneConditionSourceDraftUpdater? onUpdateConditionSource;
+  final SceneEndPayloadDraftUpdater? onUpdateEndPayload;
   final LinkedAssetContractsSnapshot? linkedAssetContracts;
   final CinematicsLibraryReadModel? cinematicsLibrary;
   final SceneYarnDialoguePayloadDraftUpdater? onUpdateYarnDialoguePayload;
@@ -329,6 +344,14 @@ class _NodeInspectorBody extends StatelessWidget {
               node: node,
               options: conditionSourceOptions,
               onUpdateConditionSource: onUpdateConditionSource,
+            ),
+            const SizedBox(height: 10),
+          ],
+          if (node.payload is SceneEndPayload) ...[
+            _EndOutcomePolicyAuthoringPanel(
+              node: node,
+              payload: node.payload as SceneEndPayload,
+              onUpdatePayload: onUpdateEndPayload,
             ),
             const SizedBox(height: 10),
           ],
@@ -667,6 +690,63 @@ class _InspectorRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _EndOutcomePolicyAuthoringPanel extends StatelessWidget {
+  const _EndOutcomePolicyAuthoringPanel({
+    required this.node,
+    required this.payload,
+    required this.onUpdatePayload,
+  });
+
+  final SceneNode node;
+  final SceneEndPayload payload;
+  final SceneEndPayloadDraftUpdater? onUpdatePayload;
+
+  @override
+  Widget build(BuildContext context) {
+    return _InspectorSection(
+      title: 'Politique de fin',
+      children: [
+        PokeMapDropdownField<String>(
+          key: const ValueKey('scene-end-outcome-policy-picker'),
+          label: 'Intention narrative',
+          value: payload.outcomePolicy?.name ?? 'unset',
+          items: const [
+            PokeMapDropdownItem(value: 'unset', label: 'À définir'),
+            PokeMapDropdownItem(value: 'progression', label: 'Progression'),
+            PokeMapDropdownItem(value: 'retryable', label: 'Réessayable'),
+            PokeMapDropdownItem(
+              value: 'terminalFailureAccepted',
+              label: 'Échec terminal accepté',
+            ),
+          ],
+          enabled: onUpdatePayload != null,
+          onChanged: (value) {
+            final updater = onUpdatePayload;
+            if (updater == null) return;
+            updater(
+              nodeId: node.id,
+              sceneOutcomeId: payload.sceneOutcomeId,
+              outcomePolicy: switch (value) {
+                'progression' => SceneOutcomePolicy.progression,
+                'retryable' => SceneOutcomePolicy.retryable,
+                'terminalFailureAccepted' =>
+                  SceneOutcomePolicy.terminalFailureAccepted,
+                _ => null,
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 8),
+        const _InspectorNote(
+          label: 'Cette annotation alimente le Validator. En son absence, '
+              'la terminalité reste indéterminée et aucun label technique '
+              'n’est interprété.',
+        ),
+      ],
     );
   }
 }
@@ -2773,11 +2853,22 @@ List<Widget> _payloadRows(SceneNodePayload payload) {
         _InspectorRow(label: 'Notes', value: notes ?? 'Aucune note.'),
         const _InspectorRow(label: 'Sortie attendue', value: 'completed'),
       ],
-    SceneEndPayload(:final sceneOutcomeId, :final notes) => [
+    SceneEndPayload(
+      :final sceneOutcomeId,
+      :final outcomePolicy,
+      :final notes,
+    ) =>
+      [
         const _InspectorRow(label: 'Type', value: 'Fin'),
         _InspectorRow(
           label: 'Scene outcome',
           value: sceneOutcomeId ?? 'Aucun outcome.',
+        ),
+        _InspectorRow(
+          label: 'Politique',
+          value: outcomePolicy == null
+              ? 'Indéterminée'
+              : _sceneOutcomePolicyLabel(outcomePolicy),
         ),
         _InspectorRow(label: 'Notes', value: notes ?? 'Aucune note.'),
       ],
@@ -3041,9 +3132,8 @@ String? _defaultValueForKind(SceneConditionSourceKind kind) {
 }
 
 String _nodeInspectorModeLabel(
-  SceneNode node,
-  LinkedAssetContractsSnapshot? linkedAssetContracts,
-) {
+    SceneNode node, LinkedAssetContractsSnapshot? linkedAssetContracts,
+    {required bool endEditable}) {
   return switch (node.kind) {
     SceneNodeKind.condition => 'Authoring V0',
     SceneNodeKind.yarnDialogue =>
@@ -3054,14 +3144,20 @@ String _nodeInspectorModeLabel(
         ? 'Éditable'
         : 'Lecture seule',
     SceneNodeKind.action => 'Éditable',
+    SceneNodeKind.end => endEditable ? 'Éditable' : 'Lecture seule',
     SceneNodeKind.start ||
-    SceneNodeKind.end ||
     SceneNodeKind.cinematic ||
     SceneNodeKind.branchByOutcome ||
     SceneNodeKind.merge =>
       'Lecture seule',
   };
 }
+
+String _sceneOutcomePolicyLabel(SceneOutcomePolicy policy) => switch (policy) {
+      SceneOutcomePolicy.progression => 'Progression',
+      SceneOutcomePolicy.retryable => 'Réessayable',
+      SceneOutcomePolicy.terminalFailureAccepted => 'Échec terminal accepté',
+    };
 
 Color _linkedAssetDiagnosticColor(
   BuildContext context,

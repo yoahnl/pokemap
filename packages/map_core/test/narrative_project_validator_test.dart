@@ -967,6 +967,97 @@ void main() {
       );
       expect(report.isPlayable, isTrue);
     });
+
+    test('reports a one-shot Event that owns an explicitly retryable ending',
+        () {
+      final fixture = _fixture();
+      final retryableScene = _withEndPolicy(
+        fixture.project.scenes.single,
+        sceneOutcomeId: 'the_player_may_continue',
+        policy: SceneOutcomePolicy.retryable,
+      );
+
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(scenes: [retryableScene]),
+        maps: [fixture.map],
+      );
+
+      final diagnostic =
+          report.byCode('oneShotRetryableOutcomeSoftlock').single;
+      expect(diagnostic.eventId, _eventA);
+      expect(diagnostic.sceneId, retryableScene.id);
+      expect(diagnostic.severity, NarrativeProjectDiagnosticSeverity.error);
+    });
+
+    test('accepts a narratively reachable reusable source for retry', () {
+      final fixture = _fixture();
+      final retryableScene = _withEndPolicy(
+        fixture.project.scenes.single,
+        sceneOutcomeId: 'try_again',
+        policy: SceneOutcomePolicy.retryable,
+      );
+      final reusableRetry = _record(
+        id: _eventB,
+        entityId: 'npc_guide',
+        reusePolicy: NarrativeEventReusePolicy.reusable,
+      );
+
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(
+          scenes: [retryableScene],
+          eventRegistry: NarrativeEventRegistry(
+            schemaVersion: 1,
+            mode: EventSystemMode.v2Only,
+            records: [
+              ...fixture.project.eventRegistry!.records,
+              reusableRetry,
+            ],
+            legacyClaims: const [],
+          ),
+        ),
+        maps: [fixture.map],
+      );
+
+      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
+    });
+
+    test('accepts an explicitly terminal failure without a retry source', () {
+      final fixture = _fixture();
+      final terminalScene = _withEndPolicy(
+        fixture.project.scenes.single,
+        sceneOutcomeId: 'permanent_failure',
+        policy: SceneOutcomePolicy.terminalFailureAccepted,
+      );
+
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(scenes: [terminalScene]),
+        maps: [fixture.map],
+      );
+
+      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
+      expect(report.byCode('sceneOutcomePolicyIndeterminate'), isEmpty);
+    });
+
+    test('keeps an unannotated outcome indeterminate without label heuristics',
+        () {
+      final fixture = _fixture();
+      final unannotated = _withEndPolicy(
+        fixture.project.scenes.single,
+        sceneOutcomeId: 'defeat_retry_softlock',
+        policy: null,
+      );
+
+      final report = validateNarrativeProject(
+        fixture.project.copyWith(scenes: [unannotated]),
+        maps: [fixture.map],
+      );
+
+      final diagnostic =
+          report.byCode('sceneOutcomePolicyIndeterminate').single;
+      expect(diagnostic.sceneId, unannotated.id);
+      expect(diagnostic.severity, NarrativeProjectDiagnosticSeverity.warning);
+      expect(report.byCode('oneShotRetryableOutcomeSoftlock'), isEmpty);
+    });
   });
 }
 
@@ -1073,6 +1164,7 @@ NarrativeEventRecord _record({
   required String entityId,
   String sceneId = 'scene_intro',
   List<NarrativeEventCondition> conditions = const [],
+  NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -1081,11 +1173,51 @@ NarrativeEventRecord _record({
       source: NarrativeEventSourceRef.entityInteract('map_port', entityId),
       conditions: conditions,
       sceneId: sceneId,
-      reusePolicy: NarrativeEventReusePolicy.oneShot,
+      reusePolicy: reusePolicy,
       priority: 0,
       order: id == _eventA ? 0 : 1,
     ),
     enabled: true,
+  );
+}
+
+SceneAsset _withEndPolicy(
+  SceneAsset scene, {
+  required String? sceneOutcomeId,
+  required SceneOutcomePolicy? policy,
+}) {
+  return SceneAsset(
+    id: scene.id,
+    name: scene.name,
+    description: scene.description,
+    storylineId: scene.storylineId,
+    chapterId: scene.chapterId,
+    tags: scene.tags,
+    graph: SceneGraph(
+      startNodeId: scene.graph.startNodeId,
+      nodes: [
+        for (final node in scene.graph.nodes)
+          if (node.kind == SceneNodeKind.end)
+            SceneNode(
+              id: node.id,
+              kind: node.kind,
+              title: node.title,
+              description: node.description,
+              payload: SceneEndPayload(
+                sceneOutcomeId: sceneOutcomeId,
+                outcomePolicy: policy,
+              ),
+            )
+          else
+            node,
+      ],
+      edges: scene.graph.edges,
+    ),
+    layout: scene.layout,
+    declaredOutcomes: sceneOutcomeId == null
+        ? scene.declaredOutcomes
+        : [SceneOutcome(id: sceneOutcomeId, label: sceneOutcomeId)],
+    metadata: scene.metadata,
   );
 }
 

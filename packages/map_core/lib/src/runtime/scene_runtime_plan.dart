@@ -107,6 +107,7 @@ final class SceneRuntimePlanIntent {
   SceneRuntimePlanIntent._({
     required this.kind,
     this.sceneOutcomeId,
+    this.outcomePolicy,
     this.conditionSource,
     this.branchSourceNodeId,
     this.branchFallbackPolicy,
@@ -131,10 +132,14 @@ final class SceneRuntimePlanIntent {
     return SceneRuntimePlanIntent._(kind: SceneRuntimePlanIntentKind.start);
   }
 
-  factory SceneRuntimePlanIntent.end({String? sceneOutcomeId}) {
+  factory SceneRuntimePlanIntent.end({
+    String? sceneOutcomeId,
+    SceneOutcomePolicy? outcomePolicy,
+  }) {
     return SceneRuntimePlanIntent._(
       kind: SceneRuntimePlanIntentKind.end,
       sceneOutcomeId: sceneOutcomeId,
+      outcomePolicy: outcomePolicy,
     );
   }
 
@@ -223,6 +228,7 @@ final class SceneRuntimePlanIntent {
 
   final SceneRuntimePlanIntentKind kind;
   final String? sceneOutcomeId;
+  final SceneOutcomePolicy? outcomePolicy;
   final SceneConditionSource? conditionSource;
   final String? branchSourceNodeId;
   final SceneBranchOutcomeFallbackPolicy? branchFallbackPolicy;
@@ -276,6 +282,7 @@ final class SceneRuntimePlanIntent {
       other is SceneRuntimePlanIntent &&
           other.kind == kind &&
           other.sceneOutcomeId == sceneOutcomeId &&
+          other.outcomePolicy == outcomePolicy &&
           other.conditionSource == conditionSource &&
           other.branchSourceNodeId == branchSourceNodeId &&
           other.branchFallbackPolicy == branchFallbackPolicy &&
@@ -299,6 +306,7 @@ final class SceneRuntimePlanIntent {
   int get hashCode => Object.hash(
         kind,
         sceneOutcomeId,
+        outcomePolicy,
         conditionSource,
         branchSourceNodeId,
         branchFallbackPolicy,

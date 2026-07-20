@@ -37,6 +37,17 @@ enum SceneBranchOutcomeFallbackPolicy {
   errorRoute,
 }
 
+/// Explicit product intent carried by a Scene terminal node.
+///
+/// The value is intentionally nullable on [SceneEndPayload]: historical
+/// projects did not record terminality, and consumers must report that state
+/// as indeterminate instead of guessing from human-readable identifiers.
+enum SceneOutcomePolicy {
+  progression,
+  retryable,
+  terminalFailureAccepted,
+}
+
 enum SceneConditionSourceKind {
   fact,
   factLikeStoryFlag,
@@ -756,13 +767,24 @@ final class SceneStartPayload extends SceneNodePayload {
 
 @immutable
 final class SceneEndPayload extends SceneNodePayload {
-  SceneEndPayload({this.sceneOutcomeId, this.notes}) {
+  SceneEndPayload({
+    this.sceneOutcomeId,
+    this.outcomePolicy,
+    this.notes,
+  }) {
     _requireOptionalNotBlank(sceneOutcomeId, 'SceneEndPayload.sceneOutcomeId');
   }
 
   factory SceneEndPayload.fromJson(Map<String, dynamic> json) {
     return SceneEndPayload(
       sceneOutcomeId: _readOptionalString(json, 'sceneOutcomeId'),
+      outcomePolicy: json['outcomePolicy'] == null
+          ? null
+          : _readEnum(
+              SceneOutcomePolicy.values,
+              json['outcomePolicy'],
+              'SceneEndPayload.outcomePolicy',
+            ),
       notes: _readOptionalString(json, 'notes'),
     );
   }
@@ -771,12 +793,14 @@ final class SceneEndPayload extends SceneNodePayload {
   SceneNodeKind get kind => SceneNodeKind.end;
 
   final String? sceneOutcomeId;
+  final SceneOutcomePolicy? outcomePolicy;
   final String? notes;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _enumToJson(kind),
         'sceneOutcomeId': sceneOutcomeId,
+        'outcomePolicy': outcomePolicy?.name,
         'notes': notes,
       });
 
@@ -785,10 +809,11 @@ final class SceneEndPayload extends SceneNodePayload {
       identical(this, other) ||
       other is SceneEndPayload &&
           other.sceneOutcomeId == sceneOutcomeId &&
+          other.outcomePolicy == outcomePolicy &&
           other.notes == notes;
 
   @override
-  int get hashCode => Object.hash(sceneOutcomeId, notes);
+  int get hashCode => Object.hash(sceneOutcomeId, outcomePolicy, notes);
 }
 
 @immutable

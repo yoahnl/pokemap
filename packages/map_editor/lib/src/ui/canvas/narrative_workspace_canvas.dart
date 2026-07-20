@@ -1410,6 +1410,35 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return false;
             }
           },
+          onUpdateEndPayload: ({
+            required String sceneId,
+            required String nodeId,
+            String? sceneOutcomeId,
+            required SceneOutcomePolicy? outcomePolicy,
+          }) async {
+            final project = editor.project;
+            if (project == null) return false;
+            final sceneIndex =
+                project.scenes.indexWhere((scene) => scene.id == sceneId);
+            if (sceneIndex < 0) return false;
+            try {
+              final result = updateSceneEndPayload(
+                project.scenes[sceneIndex],
+                nodeId: nodeId,
+                sceneOutcomeId: sceneOutcomeId,
+                outcomePolicy: outcomePolicy,
+              );
+              final scenes = project.scenes.toList(growable: true);
+              scenes[sceneIndex] = result.updatedScene;
+              editorNotifier.applyInMemoryProjectManifest(
+                project.copyWith(scenes: scenes),
+                statusMessage: 'Scene outcome policy updated',
+              );
+              return true;
+            } on ArgumentError {
+              return false;
+            }
+          },
           onUpdateBattlePayload: ({
             required String sceneId,
             required String nodeId,

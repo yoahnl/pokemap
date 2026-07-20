@@ -155,6 +155,7 @@ SceneRuntimePlanIntent _runtimeIntentForNode(
     SceneNodeKind.start => SceneRuntimePlanIntent.start(),
     SceneNodeKind.end => SceneRuntimePlanIntent.end(
         sceneOutcomeId: (node.payload as SceneEndPayload).sceneOutcomeId,
+        outcomePolicy: (node.payload as SceneEndPayload).outcomePolicy,
       ),
     SceneNodeKind.condition => SceneRuntimePlanIntent.evaluateCondition(
         source: (node.payload as SceneConditionPayload).conditionSource!,

@@ -268,6 +268,11 @@ NarrativeProjectValidationReport validateNarrativeProject(
     maps: maps,
   );
   _appendSymbolicReachabilityDiagnostics(symbolicReachability, diagnostics);
+  _appendSceneOutcomePolicyDiagnostics(
+    project,
+    symbolicReachability,
+    diagnostics,
+  );
   _appendSolvabilityDiagnostics(
     project,
     maps,
@@ -290,6 +295,96 @@ NarrativeProjectValidationReport validateNarrativeProject(
     mapEventViews: mapViews,
     symbolicReachability: symbolicReachability,
   );
+}
+
+/// Adds terminality evidence without interpreting human-authored text.
+///
+/// NSC-55 deliberately proves only narrative retry availability. Physical
+/// access to the retry source is a separate map_gameplay dimension and is
+/// correlated later by NSC-57.
+void _appendSceneOutcomePolicyDiagnostics(
+  ProjectManifest project,
+  NarrativeSymbolicReachabilityReport symbolicReachability,
+  List<NarrativeProjectDiagnostic> target,
+) {
+  final scenesById = {for (final scene in project.scenes) scene.id: scene};
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final payload = node.payload;
+      if (payload is! SceneEndPayload || payload.outcomePolicy != null) {
+        continue;
+      }
+      target.add(
+        NarrativeProjectDiagnostic(
+          code: 'sceneOutcomePolicyIndeterminate',
+          severity: NarrativeProjectDiagnosticSeverity.warning,
+          domain: NarrativeProjectDiagnosticDomain.scene,
+          message: 'La fin « ${node.title ?? node.id} » ne déclare pas si elle '
+              'fait progresser, autorise un nouvel essai ou accepte un échec '
+              'terminal. Le Validator ne peut pas l’inférer depuis son label.',
+          path: 'scenes.${scene.id}.nodes.${node.id}.outcomePolicy',
+          destination: NarrativeProjectDiagnosticDestination.scene,
+          suggestedFixLabel: 'Choisir une politique de fin explicite.',
+          sceneId: scene.id,
+        ),
+      );
+    }
+  }
+
+  final definitions = <NarrativeEventDefinition>[
+    for (final record
+        in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+      if (record.enabledOrNull == true && record.definitionOrNull != null)
+        record.definitionOrNull!,
+  ];
+  final reachableEventIds = <String>{
+    for (final state in <NarrativeSymbolicState>[
+      ...symbolicReachability.exploredStates,
+      ...symbolicReachability.terminalStates,
+    ])
+      ...state.executedEventIds,
+  };
+
+  for (final definition in definitions) {
+    if (definition.reusePolicy != NarrativeEventReusePolicy.oneShot) continue;
+    final scene = scenesById[definition.sceneId];
+    if (scene == null ||
+        !scene.graph.nodes.any(
+          (node) =>
+              node.payload is SceneEndPayload &&
+              (node.payload as SceneEndPayload).outcomePolicy ==
+                  SceneOutcomePolicy.retryable,
+        )) {
+      continue;
+    }
+    final hasReachableRetrySource = definitions.any(
+      (candidate) =>
+          candidate.id != definition.id &&
+          candidate.sceneId == definition.sceneId &&
+          candidate.reusePolicy == NarrativeEventReusePolicy.reusable &&
+          reachableEventIds.contains(candidate.id),
+    );
+    if (hasReachableRetrySource) continue;
+
+    target.add(
+      NarrativeProjectDiagnostic(
+        code: 'oneShotRetryableOutcomeSoftlock',
+        severity: NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.event,
+        message:
+            'L’Event one-shot « ${definition.name} » peut atteindre une fin '
+            'réessayable, mais aucune source réutilisable narrativement '
+            'atteignable ne relance sa Scene.',
+        path: 'narrativeEvents.${definition.id}.reusePolicy',
+        destination: NarrativeProjectDiagnosticDestination.event,
+        suggestedFixLabel:
+            'Rendre une source de retry réutilisable ou accepter explicitement '
+            'un échec terminal.',
+        eventId: definition.id,
+        sceneId: definition.sceneId,
+      ),
+    );
+  }
 }
 
 void _appendSymbolicReachabilityDiagnostics(

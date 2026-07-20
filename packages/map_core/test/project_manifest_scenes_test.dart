@@ -57,6 +57,45 @@ void main() {
       expect(decoded.toJson()['scenes'], isA<List<dynamic>>());
     });
 
+    test('round-trips explicit End policy and preserves absent legacy policy',
+        () {
+      final annotated = _scene(
+        endPayload: SceneEndPayload(
+          sceneOutcomeId: 'defeat',
+          outcomePolicy: SceneOutcomePolicy.retryable,
+        ),
+      );
+      final annotatedJson = jsonDecode(
+        jsonEncode(annotated.toJson()),
+      ) as Map<String, dynamic>;
+      final decodedAnnotated = SceneAsset.fromJson(annotatedJson);
+      final decodedPayload =
+          decodedAnnotated.graph.nodes.last.payload as SceneEndPayload;
+
+      expect(decodedPayload.sceneOutcomeId, 'defeat');
+      expect(decodedPayload.outcomePolicy, SceneOutcomePolicy.retryable);
+      final encodedEndNode = ((annotatedJson['graph']
+              as Map<String, dynamic>)['nodes'] as List<dynamic>)
+          .last as Map<String, dynamic>;
+      expect(
+        encodedEndNode['payload'],
+        containsPair('outcomePolicy', 'retryable'),
+      );
+
+      final legacyJson = _scene().toJson();
+      final legacyPayload = SceneAsset.fromJson(legacyJson)
+          .graph
+          .nodes
+          .last
+          .payload as SceneEndPayload;
+      expect(legacyPayload.outcomePolicy, isNull);
+      final legacyEndNode = ((legacyJson['graph']
+              as Map<String, dynamic>)['nodes'] as List<dynamic>)
+          .last as Map<String, dynamic>;
+      final legacyEndPayload = legacyEndNode['payload'] as Map<String, dynamic>;
+      expect(legacyEndPayload.containsKey('outcomePolicy'), isFalse);
+    });
+
     test('keeps scenarios and storylines independent from scenes', () {
       final scenario = const ScenarioAsset(
         id: 'legacy_scenario',
@@ -131,7 +170,7 @@ Map<String, dynamic> _minimalProjectJson() {
   };
 }
 
-SceneAsset _scene() {
+SceneAsset _scene({SceneEndPayload? endPayload}) {
   return SceneAsset(
     id: 'scene_intro',
     name: 'Intro scene',
@@ -139,7 +178,11 @@ SceneAsset _scene() {
       startNodeId: 'node_start',
       nodes: [
         SceneNode(id: 'node_start', kind: SceneNodeKind.start),
-        SceneNode(id: 'node_end', kind: SceneNodeKind.end),
+        SceneNode(
+          id: 'node_end',
+          kind: SceneNodeKind.end,
+          payload: endPayload,
+        ),
       ],
       edges: [
         SceneEdge(

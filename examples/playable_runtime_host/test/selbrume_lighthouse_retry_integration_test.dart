@@ -66,6 +66,7 @@ void main() {
       test(
         '${testCase.label} supports defeat, reload, retry, victory, and reload',
         () async {
+          _expectExplicitRetryContract(snapshot, testCase);
           var state = GameState(
             saveId: 'selbrume_retry_${testCase.eventId}',
             currentMapId: testCase.mapId,
@@ -207,6 +208,44 @@ void main() {
       );
     }
   });
+}
+
+void _expectExplicitRetryContract(
+  NarrativeEventRuntimeSnapshot snapshot,
+  _LighthouseRetryCase testCase,
+) {
+  final definition = snapshot.project.eventRegistry!.records
+      .singleWhere((record) => record.definitionOrNull?.id == testCase.eventId)
+      .definitionOrNull!;
+  expect(definition.reusePolicy, NarrativeEventReusePolicy.reusable);
+
+  final scene = snapshot.project.scenes
+      .singleWhere((candidate) => candidate.id == definition.sceneId);
+  final endPayloads = scene.graph.nodes
+      .where((node) => node.kind == SceneNodeKind.end)
+      .map((node) => node.payload as SceneEndPayload)
+      .toList(growable: false);
+  expect(
+    endPayloads.where(
+      (payload) => payload.outcomePolicy == SceneOutcomePolicy.retryable,
+    ),
+    hasLength(1),
+  );
+  expect(
+    endPayloads.where(
+      (payload) => payload.outcomePolicy == SceneOutcomePolicy.progression,
+    ),
+    isNotEmpty,
+  );
+  expect(endPayloads.any((payload) => payload.outcomePolicy == null), isFalse);
+
+  final runtimePlan = buildSceneRuntimePlan(scene).plan!;
+  for (final payload in endPayloads) {
+    final runtimeEnd = runtimePlan.nodes.singleWhere(
+      (node) => node.intent.sceneOutcomeId == payload.sceneOutcomeId,
+    );
+    expect(runtimeEnd.intent.outcomePolicy, payload.outcomePolicy);
+  }
 }
 
 void _expectHandled(

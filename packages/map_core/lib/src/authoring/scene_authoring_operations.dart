@@ -371,6 +371,18 @@ final class SceneYarnDialoguePayloadUpdateResult {
   final SceneYarnDialoguePayload updatedPayload;
 }
 
+final class SceneEndPayloadUpdateResult {
+  const SceneEndPayloadUpdateResult({
+    required this.updatedScene,
+    required this.updatedNode,
+    required this.updatedPayload,
+  });
+
+  final SceneAsset updatedScene;
+  final SceneNode updatedNode;
+  final SceneEndPayload updatedPayload;
+}
+
 final class SceneBattlePayloadUpdateResult {
   const SceneBattlePayloadUpdateResult({
     required this.updatedScene,
@@ -775,6 +787,47 @@ SceneYarnDialoguePayloadUpdateResult updateSceneYarnDialoguePayload(
   );
 
   return SceneYarnDialoguePayloadUpdateResult(
+    updatedScene: updatedScene,
+    updatedNode: updatedNode,
+    updatedPayload: updatedPayload,
+  );
+}
+
+/// Updates only the authored terminal intent of an End node.
+///
+/// Keeping this mutation in map_core prevents the Scene workspace from
+/// becoming a second owner of terminality and preserves the original graph,
+/// layout, notes and metadata verbatim.
+SceneEndPayloadUpdateResult updateSceneEndPayload(
+  SceneAsset scene, {
+  required String nodeId,
+  String? sceneOutcomeId,
+  required SceneOutcomePolicy? outcomePolicy,
+}) {
+  final node = _findNodeOrThrow(scene, nodeId, 'nodeId');
+  if (node.kind != SceneNodeKind.end || node.payload is! SceneEndPayload) {
+    throw ArgumentError.value(
+      nodeId,
+      'nodeId',
+      'Scene outcome policy can only update End nodes.',
+    );
+  }
+  final currentPayload = node.payload as SceneEndPayload;
+  final updatedPayload = SceneEndPayload(
+    sceneOutcomeId: _trimOptional(sceneOutcomeId),
+    outcomePolicy: outcomePolicy,
+    notes: currentPayload.notes,
+  );
+  final updatedNode = SceneNode(
+    id: node.id,
+    kind: node.kind,
+    title: node.title,
+    description: node.description,
+    payload: updatedPayload,
+  );
+  final updatedScene = _sceneWithUpdatedNode(scene, updatedNode);
+
+  return SceneEndPayloadUpdateResult(
     updatedScene: updatedScene,
     updatedNode: updatedNode,
     updatedPayload: updatedPayload,
