@@ -264,7 +264,7 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
                 PokeMapIconButton(
                   key: const ValueKey('narrative-command-palette-open'),
                   onPressed: onOpenCommandPalette,
-                  tooltip: 'Recherche globale (⌘K)',
+                  tooltip: l10n.commandPaletteTooltip,
                   variant: PokeMapIconButtonVariant.soft,
                   icon: const Icon(CupertinoIcons.search),
                 ),

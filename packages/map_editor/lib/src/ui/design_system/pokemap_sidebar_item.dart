@@ -108,6 +108,7 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
       button: true,
       selected: isActive,
       enabled: !isDisabled,
+      onTap: isDisabled ? null : widget.onTap,
       child: FocusableActionDetector(
         focusNode: widget.focusNode,
         actions: {

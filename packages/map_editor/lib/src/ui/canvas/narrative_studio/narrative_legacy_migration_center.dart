@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
@@ -57,11 +58,12 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final l10n = context.pokeMapL10n;
     return Semantics(
       key: narrativeLegacyMigrationCenterKey,
       container: true,
       namesRoute: true,
-      label: 'Centre de migration legacy Narrative Studio',
+      label: l10n.migrationCenterSemantics,
       explicitChildNodes: true,
       child: PokeMapPanel(
         expandChild: true,
@@ -79,7 +81,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Migration Narrative Studio',
+                      l10n.migrationCenterTitle,
                       style: TextStyle(
                         color: colors.textPrimary,
                         fontSize: 17,
@@ -88,7 +90,10 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      'Dry-run schema ${scan.schemaVersion} • projet minimum ${scan.minimumProjectVersion}',
+                      l10n.migrationCenterDryRunSummary(
+                        scan.schemaVersion,
+                        scan.minimumProjectVersion,
+                      ),
                       style: TextStyle(
                         color: colors.textSecondary,
                         fontSize: 11,
@@ -101,7 +106,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
               PokeMapIconButton(
                 key: const ValueKey('migration-center-close'),
                 icon: const Icon(CupertinoIcons.xmark),
-                tooltip: 'Fermer',
+                tooltip: l10n.migrationCenterClose,
                 onPressed: onClose,
               ),
             ],
@@ -119,14 +124,14 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                 onPressed: onRefreshDryRun,
                 variant: PokeMapButtonVariant.secondary,
                 leading: const Icon(CupertinoIcons.refresh),
-                child: const Text('Relancer le dry-run'),
+                child: Text(l10n.migrationCenterRefresh),
               ),
               PokeMapButton(
                 key: const ValueKey('migration-center-backup'),
                 onPressed: scan.backupRequired ? onCreateBackup : null,
                 variant: PokeMapButtonVariant.primary,
                 leading: const Icon(CupertinoIcons.archivebox),
-                child: const Text('Créer le backup'),
+                child: Text(l10n.migrationCenterCreateBackup),
               ),
             ],
           ),
@@ -141,7 +146,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                 runSpacing: 10,
                 children: [
                   PokeMapStatusTile(
-                    label: 'legacy restant',
+                    label: l10n.migrationCenterLegacyRemaining,
                     value: '${scan.legacyRemainingCount}',
                     icon: CupertinoIcons.archivebox,
                     tone: scan.legacyRemainingCount == 0
@@ -149,7 +154,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                         : PokeMapTone.warning,
                   ),
                   PokeMapStatusTile(
-                    label: 'blocages',
+                    label: l10n.migrationCenterBlockers,
                     value: '${scan.blockerCount}',
                     icon: CupertinoIcons.exclamationmark_triangle,
                     tone: scan.blockerCount == 0
@@ -157,7 +162,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                         : PokeMapTone.danger,
                   ),
                   PokeMapStatusTile(
-                    label: 'risques de perte',
+                    label: l10n.migrationCenterLossRisks,
                     value: '${scan.lossRiskCount}',
                     icon: CupertinoIcons.shield,
                     tone: scan.lossRiskCount == 0
@@ -170,11 +175,11 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
               PokeMapDiagnosticCallout(
                 severity: PokeMapDiagnosticSeverity.info,
                 title: scan.canRetireLegacyReaders
-                    ? 'Readers legacy retirables'
-                    : 'Compatibilité legacy conservée en lecture seule',
+                    ? l10n.migrationCenterReadersRetirable
+                    : l10n.migrationCenterCompatibilityReadOnly,
                 message: scan.canRetireLegacyReaders
-                    ? 'Chaque domaine possède désormais une source canonique.'
-                    : 'Les anciens studios restent visibles pour vérification et rollback. Ils ne doivent plus être une source d’authoring concurrente.',
+                    ? l10n.migrationCenterCanonicalMessage
+                    : l10n.migrationCenterReadOnlyMessage,
               ),
               const SizedBox(height: 14),
               for (final domain in scan.domains) ...[
@@ -187,7 +192,7 @@ class NarrativeLegacyMigrationCenter extends StatelessWidget {
                 const SizedBox(height: 10),
               ],
               Text(
-                'Rollback : le backup précède toute écriture. Une interruption conserve les domaines déjà attestés et permet soit la reprise, soit le retour exact au snapshot initial.',
+                l10n.migrationCenterRollbackHint,
                 style: TextStyle(
                   color: colors.textSecondary,
                   fontSize: 11,
@@ -210,10 +215,11 @@ class _MigrationDomainCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.pokeMapL10n;
     final label = switch (scan.domain) {
-      NarrativeLegacyDomain.storyline => 'Storylines / GlobalStory',
-      NarrativeLegacyDomain.event => 'Events / MapEvent',
-      NarrativeLegacyDomain.cinematic => 'Cinematics / Cutscene Studio',
+      NarrativeLegacyDomain.storyline => l10n.migrationCenterStorylineDomain,
+      NarrativeLegacyDomain.event => l10n.migrationCenterEventDomain,
+      NarrativeLegacyDomain.cinematic => l10n.migrationCenterCinematicDomain,
     };
     final icon = switch (scan.domain) {
       NarrativeLegacyDomain.storyline => CupertinoIcons.book,
@@ -228,8 +234,10 @@ class _MigrationDomainCard extends StatelessWidget {
     return PokeMapModuleCard(
       key: ValueKey('migration-domain-${scan.domain.name}'),
       title: label,
-      description:
-          '${scan.remainingCount} restant(s) • ${scan.readyCount} prêt(s)',
+      description: l10n.migrationCenterDomainSummary(
+        scan.remainingCount,
+        scan.readyCount,
+      ),
       icon: icon,
       tone: tone,
       count: '${scan.remainingCount}',
@@ -237,8 +245,10 @@ class _MigrationDomainCard extends StatelessWidget {
         children: [
           Expanded(
             child: PokeMapStatusLabel(
-              label:
-                  '${scan.blockerCount} blocage(s) • ${scan.dependencyCount} dépendance(s)',
+              label: l10n.migrationCenterBlockerDependencySummary(
+                scan.blockerCount,
+                scan.dependencyCount,
+              ),
               tone: tone,
             ),
           ),
@@ -247,7 +257,7 @@ class _MigrationDomainCard extends StatelessWidget {
             onPressed: onOpen,
             variant: PokeMapButtonVariant.ghost,
             size: PokeMapButtonSize.small,
-            child: const Text('Examiner'),
+            child: Text(l10n.migrationCenterExamine),
           ),
         ],
       ),

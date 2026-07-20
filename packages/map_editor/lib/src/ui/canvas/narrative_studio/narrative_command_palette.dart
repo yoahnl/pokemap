@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 
@@ -47,10 +48,11 @@ Future<void> showNarrativeCommandPalette({
   required ValueChanged<NarrativeGlobalSearchEntry> onOpenEntry,
 }) {
   final colors = context.pokeMapColors;
+  final l10n = context.pokeMapL10n;
   return showGeneralDialog<void>(
     context: context,
     barrierDismissible: true,
-    barrierLabel: 'Fermer la palette de commandes',
+    barrierLabel: l10n.commandPaletteBarrier,
     barrierColor: colors.chromeBackground.withValues(alpha: 0.8),
     transitionDuration: const Duration(milliseconds: 120),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
@@ -158,6 +160,7 @@ class _NarrativeCommandPaletteState extends State<NarrativeCommandPalette> {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final l10n = context.pokeMapL10n;
     final items = _items();
     return SafeArea(
       child: CallbackShortcuts(
@@ -178,7 +181,7 @@ class _NarrativeCommandPaletteState extends State<NarrativeCommandPalette> {
                 container: true,
                 scopesRoute: true,
                 namesRoute: true,
-                label: 'Recherche globale Narrative Studio',
+                label: l10n.commandPaletteSemantics,
                 explicitChildNodes: true,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(
@@ -201,7 +204,7 @@ class _NarrativeCommandPaletteState extends State<NarrativeCommandPalette> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Aller à…',
+                              l10n.commandPaletteTitle,
                               style: TextStyle(
                                 color: colors.textPrimary,
                                 fontSize: 16,
@@ -221,19 +224,18 @@ class _NarrativeCommandPaletteState extends State<NarrativeCommandPalette> {
                           controller: _queryController,
                           focusNode: _searchFocus,
                           autofocus: true,
-                          hintText: 'Rechercher un asset, ID ou diagnostic…',
-                          semanticLabel: 'Recherche globale',
+                          hintText: l10n.commandPaletteSearchHint,
+                          semanticLabel: l10n.commandPaletteSearchSemantics,
                           onChanged: _setQuery,
                           onSubmitted: (_) => _activateSelected(),
                         ),
                         const SizedBox(height: 12),
                         Expanded(
                           child: items.isEmpty
-                              ? const PokeMapEmptyState(
-                                  title: 'Aucun résultat',
-                                  description:
-                                      'Essayez un label, un ID, un tag ou une map.',
-                                  icon: Icon(CupertinoIcons.search),
+                              ? PokeMapEmptyState(
+                                  title: l10n.commandPaletteNoResults,
+                                  description: l10n.commandPaletteNoResultsHint,
+                                  icon: const Icon(CupertinoIcons.search),
                                 )
                               : ListView.separated(
                                   itemCount: items.length,
@@ -303,8 +305,8 @@ class _PaletteItemTile extends StatelessWidget {
     final label = action?.label ?? entry!.label;
     final detail = action == null ? entry!.technicalId : action.description;
     final badge = action == null
-        ? _kindLabel(entry!.kind)
-        : _actionKindLabel(action.kind);
+        ? _kindLabel(context, entry!.kind)
+        : _actionKindLabel(context, action.kind);
     final enabled = action?.enabled ?? true;
     return Semantics(
       button: true,
@@ -390,26 +392,47 @@ IconData _iconFor(_PaletteItem item) {
   };
 }
 
-String _kindLabel(NarrativeGlobalSearchKind kind) => switch (kind) {
-      NarrativeGlobalSearchKind.map => 'Map',
-      NarrativeGlobalSearchKind.storyline => 'Storyline',
-      NarrativeGlobalSearchKind.chapter => 'Chapitre',
-      NarrativeGlobalSearchKind.step => 'Étape',
-      NarrativeGlobalSearchKind.scene => 'Scène',
-      NarrativeGlobalSearchKind.event => 'Événement',
-      NarrativeGlobalSearchKind.cinematic => 'Cinématique',
-      NarrativeGlobalSearchKind.dialogue => 'Dialogue',
-      NarrativeGlobalSearchKind.fact => 'Fact',
-      NarrativeGlobalSearchKind.worldRule => 'World Rule',
-      NarrativeGlobalSearchKind.media => 'Média',
-      NarrativeGlobalSearchKind.diagnostic => 'Diagnostic',
+String _kindLabel(BuildContext context, NarrativeGlobalSearchKind kind) =>
+    switch (kind) {
+      NarrativeGlobalSearchKind.map =>
+        context.pokeMapL10n.commandPaletteKindMap,
+      NarrativeGlobalSearchKind.storyline =>
+        context.pokeMapL10n.commandPaletteKindStoryline,
+      NarrativeGlobalSearchKind.chapter =>
+        context.pokeMapL10n.commandPaletteKindChapter,
+      NarrativeGlobalSearchKind.step =>
+        context.pokeMapL10n.commandPaletteKindStep,
+      NarrativeGlobalSearchKind.scene =>
+        context.pokeMapL10n.commandPaletteKindScene,
+      NarrativeGlobalSearchKind.event =>
+        context.pokeMapL10n.commandPaletteKindEvent,
+      NarrativeGlobalSearchKind.cinematic =>
+        context.pokeMapL10n.commandPaletteKindCinematic,
+      NarrativeGlobalSearchKind.dialogue =>
+        context.pokeMapL10n.commandPaletteKindDialogue,
+      NarrativeGlobalSearchKind.fact =>
+        context.pokeMapL10n.commandPaletteKindFact,
+      NarrativeGlobalSearchKind.worldRule =>
+        context.pokeMapL10n.commandPaletteKindWorldRule,
+      NarrativeGlobalSearchKind.media =>
+        context.pokeMapL10n.commandPaletteKindMedia,
+      NarrativeGlobalSearchKind.diagnostic =>
+        context.pokeMapL10n.commandPaletteKindDiagnostic,
     };
 
-String _actionKindLabel(NarrativeCommandPaletteActionKind kind) =>
+String _actionKindLabel(
+  BuildContext context,
+  NarrativeCommandPaletteActionKind kind,
+) =>
     switch (kind) {
-      NarrativeCommandPaletteActionKind.navigation => 'Navigation',
-      NarrativeCommandPaletteActionKind.create => 'Créer',
-      NarrativeCommandPaletteActionKind.validate => 'Valider',
-      NarrativeCommandPaletteActionKind.preview => 'Aperçu',
-      NarrativeCommandPaletteActionKind.save => 'Enregistrer',
+      NarrativeCommandPaletteActionKind.navigation =>
+        context.pokeMapL10n.commandPaletteActionNavigation,
+      NarrativeCommandPaletteActionKind.create =>
+        context.pokeMapL10n.commandPaletteActionCreate,
+      NarrativeCommandPaletteActionKind.validate =>
+        context.pokeMapL10n.commandPaletteActionValidate,
+      NarrativeCommandPaletteActionKind.preview =>
+        context.pokeMapL10n.commandPaletteActionPreview,
+      NarrativeCommandPaletteActionKind.save =>
+        context.pokeMapL10n.commandPaletteActionSave,
     };

@@ -2,7 +2,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_legacy_migration_center.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart';
@@ -211,6 +213,51 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('full migration error state fits at 800x650 and 200 percent',
+      (tester) async {
+    await _pumpResponsiveShell(
+      tester,
+      width: 800,
+      height: 650,
+      textScale: 2,
+      workspace: NarrativeLegacyMigrationCenter(
+        scan: NarrativeLegacyMigrationScan(
+          schemaVersion: 1,
+          minimumProjectVersion: 'v1',
+          domains: const [
+            NarrativeLegacyMigrationDomainScan(
+              domain: NarrativeLegacyDomain.storyline,
+              remainingCount: 1,
+              readyCount: 1,
+              blockerCount: 0,
+              lossRiskCount: 0,
+              dependencyCount: 2,
+            ),
+            NarrativeLegacyMigrationDomainScan(
+              domain: NarrativeLegacyDomain.event,
+              remainingCount: 9,
+              readyCount: 0,
+              blockerCount: 3,
+              lossRiskCount: 2,
+              dependencyCount: 14,
+            ),
+            NarrativeLegacyMigrationDomainScan(
+              domain: NarrativeLegacyDomain.cinematic,
+              remainingCount: 4,
+              readyCount: 1,
+              blockerCount: 3,
+              lossRiskCount: 3,
+              dependencyCount: 8,
+            ),
+          ],
+        ),
+      ),
+    );
+
+    expect(find.byKey(narrativeLegacyMigrationCenterKey), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('reduced motion removes sidebar transition', (tester) async {
     final focusNode = FocusNode();
     addTearDown(focusNode.dispose);
@@ -367,6 +414,7 @@ Future<void> _pumpResponsiveShell(
   ValueChanged<NarrativeStudioRouteLocation>? onSelectLocation,
   VoidCallback? onOpenMaps,
   List<Widget>? actions,
+  Widget? workspace,
 }) async {
   tester.view.devicePixelRatio = devicePixelRatio;
   tester.view.physicalSize = Size(
@@ -410,30 +458,31 @@ Future<void> _pumpResponsiveShell(
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          workspace: NarrativeStudioWorkspacePage(
-            presentation: const NarrativeStudioRoutePresentation(
-              destination: NarrativeStudioDestination.events,
-              label: 'Event Builder',
-              breadcrumbLabels: ['Événements'],
-            ),
-            actions: actions ??
-                [
-                  PokeMapIconButton(
-                    key: const ValueKey('narrative-studio-icon-action'),
-                    onPressed: () {},
-                    tooltip: 'Plus d’options',
-                    icon: const Icon(CupertinoIcons.ellipsis),
-                  ),
-                  const PokeMapButton(
-                    key: ValueKey('narrative-studio-disabled-action'),
-                    onPressed: null,
-                    size: PokeMapButtonSize.compact,
-                    variant: PokeMapButtonVariant.secondary,
-                    child: Text('Action indisponible'),
-                  ),
-                ],
-            body: const Center(child: Text('Event workspace')),
-          ),
+          workspace: workspace ??
+              NarrativeStudioWorkspacePage(
+                presentation: const NarrativeStudioRoutePresentation(
+                  destination: NarrativeStudioDestination.events,
+                  label: 'Event Builder',
+                  breadcrumbLabels: ['Événements'],
+                ),
+                actions: actions ??
+                    [
+                      PokeMapIconButton(
+                        key: const ValueKey('narrative-studio-icon-action'),
+                        onPressed: () {},
+                        tooltip: 'Plus d’options',
+                        icon: const Icon(CupertinoIcons.ellipsis),
+                      ),
+                      const PokeMapButton(
+                        key: ValueKey('narrative-studio-disabled-action'),
+                        onPressed: null,
+                        size: PokeMapButtonSize.compact,
+                        variant: PokeMapButtonVariant.secondary,
+                        child: Text('Action indisponible'),
+                      ),
+                    ],
+                body: const Center(child: Text('Event workspace')),
+              ),
         ),
       ),
     ),

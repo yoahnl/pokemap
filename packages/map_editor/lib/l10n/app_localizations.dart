@@ -385,6 +385,301 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'{count, plural, =0{Aucune cinématique} =1{1 cinématique} other{{count} cinématiques}}'**
   String narrativeCinematicCount(int count);
+
+  /// Accessible migration center route label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Centre de migration legacy Narrative Studio'**
+  String get migrationCenterSemantics;
+
+  /// Legacy migration center title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Migration Narrative Studio'**
+  String get migrationCenterTitle;
+
+  /// Migration schema and minimum project version.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dry-run schema {schemaVersion} • projet minimum {minimumVersion}'**
+  String migrationCenterDryRunSummary(int schemaVersion, String minimumVersion);
+
+  /// Close migration center tooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get migrationCenterClose;
+
+  /// Refresh migration dry-run action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Relancer le dry-run'**
+  String get migrationCenterRefresh;
+
+  /// Create migration backup action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer le backup'**
+  String get migrationCenterCreateBackup;
+
+  /// Remaining legacy metric label.
+  ///
+  /// In fr, this message translates to:
+  /// **'legacy restant'**
+  String get migrationCenterLegacyRemaining;
+
+  /// Migration blockers metric label.
+  ///
+  /// In fr, this message translates to:
+  /// **'blocages'**
+  String get migrationCenterBlockers;
+
+  /// Migration loss risks metric label.
+  ///
+  /// In fr, this message translates to:
+  /// **'risques de perte'**
+  String get migrationCenterLossRisks;
+
+  /// Legacy readers can be retired status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Readers legacy retirables'**
+  String get migrationCenterReadersRetirable;
+
+  /// Legacy readers remain read-only status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Compatibilité legacy conservée en lecture seule'**
+  String get migrationCenterCompatibilityReadOnly;
+
+  /// All migration domains canonical message.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chaque domaine possède désormais une source canonique.'**
+  String get migrationCenterCanonicalMessage;
+
+  /// Read-only legacy authoring warning.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les anciens studios restent visibles pour vérification et rollback. Ils ne doivent plus être une source d’authoring concurrente.'**
+  String get migrationCenterReadOnlyMessage;
+
+  /// Storyline migration domain label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Storylines / GlobalStory'**
+  String get migrationCenterStorylineDomain;
+
+  /// Event migration domain label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Events / MapEvent'**
+  String get migrationCenterEventDomain;
+
+  /// Cinematic migration domain label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cinematics / Cutscene Studio'**
+  String get migrationCenterCinematicDomain;
+
+  /// Migration domain remaining and ready counts.
+  ///
+  /// In fr, this message translates to:
+  /// **'{remaining} restant(s) • {ready} prêt(s)'**
+  String migrationCenterDomainSummary(int remaining, int ready);
+
+  /// Canonical migration domain status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Canonique'**
+  String get migrationCenterCanonical;
+
+  /// Visible legacy migration domain status.
+  ///
+  /// In fr, this message translates to:
+  /// **'Legacy visible'**
+  String get migrationCenterLegacyVisible;
+
+  /// Migration domain blockers and dependencies.
+  ///
+  /// In fr, this message translates to:
+  /// **'{blockers} blocage(s) • {dependencies} dépendance(s)'**
+  String migrationCenterBlockerDependencySummary(
+      int blockers, int dependencies);
+
+  /// Open migration domain action.
+  ///
+  /// In fr, this message translates to:
+  /// **'Examiner'**
+  String get migrationCenterExamine;
+
+  /// Migration recovery and rollback guidance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rollback : le backup précède toute écriture. Une interruption conserve les domaines déjà attestés et permet soit la reprise, soit le retour exact au snapshot initial.'**
+  String get migrationCenterRollbackHint;
+
+  /// Command palette modal barrier label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer la palette de commandes'**
+  String get commandPaletteBarrier;
+
+  /// Accessible global search route label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche globale Narrative Studio'**
+  String get commandPaletteSemantics;
+
+  /// Command palette title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aller à…'**
+  String get commandPaletteTitle;
+
+  /// Command palette search hint.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rechercher un asset, ID ou diagnostic…'**
+  String get commandPaletteSearchHint;
+
+  /// Accessible command palette search field label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche globale'**
+  String get commandPaletteSearchSemantics;
+
+  /// Command palette empty state title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucun résultat'**
+  String get commandPaletteNoResults;
+
+  /// Command palette empty state guidance.
+  ///
+  /// In fr, this message translates to:
+  /// **'Essayez un label, un ID, un tag ou une map.'**
+  String get commandPaletteNoResultsHint;
+
+  /// Accessible Scene graph input port label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Port d’entrée du nœud {nodeId}'**
+  String sceneGraphInputPortSemantics(String nodeId);
+
+  /// Accessible Scene graph output port label.
+  ///
+  /// In fr, this message translates to:
+  /// **'Port de sortie {portLabel} du nœud {nodeId}'**
+  String sceneGraphOutputPortSemantics(String portLabel, String nodeId);
+
+  /// No description provided for @commandPaletteKindMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Map'**
+  String get commandPaletteKindMap;
+
+  /// No description provided for @commandPaletteKindStoryline.
+  ///
+  /// In fr, this message translates to:
+  /// **'Storyline'**
+  String get commandPaletteKindStoryline;
+
+  /// No description provided for @commandPaletteKindChapter.
+  ///
+  /// In fr, this message translates to:
+  /// **'Chapitre'**
+  String get commandPaletteKindChapter;
+
+  /// No description provided for @commandPaletteKindStep.
+  ///
+  /// In fr, this message translates to:
+  /// **'Étape'**
+  String get commandPaletteKindStep;
+
+  /// No description provided for @commandPaletteKindScene.
+  ///
+  /// In fr, this message translates to:
+  /// **'Scène'**
+  String get commandPaletteKindScene;
+
+  /// No description provided for @commandPaletteKindEvent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Événement'**
+  String get commandPaletteKindEvent;
+
+  /// No description provided for @commandPaletteKindCinematic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cinématique'**
+  String get commandPaletteKindCinematic;
+
+  /// No description provided for @commandPaletteKindDialogue.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogue'**
+  String get commandPaletteKindDialogue;
+
+  /// No description provided for @commandPaletteKindFact.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fact'**
+  String get commandPaletteKindFact;
+
+  /// No description provided for @commandPaletteKindWorldRule.
+  ///
+  /// In fr, this message translates to:
+  /// **'World Rule'**
+  String get commandPaletteKindWorldRule;
+
+  /// No description provided for @commandPaletteKindMedia.
+  ///
+  /// In fr, this message translates to:
+  /// **'Média'**
+  String get commandPaletteKindMedia;
+
+  /// No description provided for @commandPaletteKindDiagnostic.
+  ///
+  /// In fr, this message translates to:
+  /// **'Diagnostic'**
+  String get commandPaletteKindDiagnostic;
+
+  /// No description provided for @commandPaletteActionNavigation.
+  ///
+  /// In fr, this message translates to:
+  /// **'Navigation'**
+  String get commandPaletteActionNavigation;
+
+  /// No description provided for @commandPaletteActionCreate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Créer'**
+  String get commandPaletteActionCreate;
+
+  /// No description provided for @commandPaletteActionValidate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Valider'**
+  String get commandPaletteActionValidate;
+
+  /// No description provided for @commandPaletteActionPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu'**
+  String get commandPaletteActionPreview;
+
+  /// No description provided for @commandPaletteActionSave.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get commandPaletteActionSave;
+
+  /// No description provided for @commandPaletteTooltip.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recherche globale (⌘K)'**
+  String get commandPaletteTooltip;
 }
 
 class _AppLocalizationsDelegate

@@ -346,14 +346,16 @@ class PokeMapStatusLabel extends StatelessWidget {
           children: [
             Icon(icon, size: 7, color: toneColors.icon),
             const SizedBox(width: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: toneColors.text,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: toneColors.text,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../features/narrative/application/narrative_workspace_projection.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
@@ -835,33 +836,41 @@ class _SceneGraphInputPortHandle extends StatelessWidget {
       top: placement.center.dy - (_SceneGraphPortMetrics.hitSize / 2),
       width: _SceneGraphPortMetrics.hitSize,
       height: _SceneGraphPortMetrics.hitSize,
-      child: Center(
-        child: DecoratedBox(
-          key: ValueKey(
-            isHovered
-                ? 'scene-graph-input-port-hover-${placement.nodeId}'
-                : isCompatible
-                    ? 'scene-graph-input-port-compatible-${placement.nodeId}'
-                    : 'scene-graph-input-port-neutral-${placement.nodeId}',
-          ),
-          decoration: BoxDecoration(
-            color: fillColor,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: borderColor,
-              width: isHovered ? 2.4 : 1.5,
-            ),
-            boxShadow: [
-              if (isCompatible || isHovered)
-                BoxShadow(
-                  color: borderColor.withValues(alpha: 0.28),
-                  blurRadius: 10,
-                  spreadRadius: 1,
+      child: Semantics(
+        container: true,
+        label: context.pokeMapL10n.sceneGraphInputPortSemantics(
+          placement.nodeId,
+        ),
+        child: ExcludeSemantics(
+          child: Center(
+            child: DecoratedBox(
+              key: ValueKey(
+                isHovered
+                    ? 'scene-graph-input-port-hover-${placement.nodeId}'
+                    : isCompatible
+                        ? 'scene-graph-input-port-compatible-${placement.nodeId}'
+                        : 'scene-graph-input-port-neutral-${placement.nodeId}',
+              ),
+              decoration: BoxDecoration(
+                color: fillColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: borderColor,
+                  width: isHovered ? 2.4 : 1.5,
                 ),
-            ],
-          ),
-          child: const SizedBox.square(
-            dimension: _SceneGraphPortMetrics.visualSize,
+                boxShadow: [
+                  if (isCompatible || isHovered)
+                    BoxShadow(
+                      color: borderColor.withValues(alpha: 0.28),
+                      blurRadius: 10,
+                      spreadRadius: 1,
+                    ),
+                ],
+              ),
+              child: const SizedBox.square(
+                dimension: _SceneGraphPortMetrics.visualSize,
+              ),
+            ),
           ),
         ),
       ),
@@ -898,52 +907,62 @@ class _SceneGraphOutputPortHandle extends StatelessWidget {
       top: placement.center.dy - (_SceneGraphPortMetrics.hitSize / 2),
       width: _SceneGraphPortMetrics.hitSize + 72,
       height: _SceneGraphPortMetrics.hitSize,
-      child: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: isDisabled ? null : (_) => onStart(),
-        onPointerMove: isDisabled ? null : (event) => onUpdate(event.position),
-        onPointerUp: isDisabled ? null : (_) => onEnd(),
-        onPointerCancel: isDisabled ? null : (_) => onEnd(),
-        child: MouseRegion(
-          cursor:
-              isDisabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
-          child: Row(
-            children: [
-              SizedBox(
-                width: _SceneGraphPortMetrics.hitSize,
-                height: _SceneGraphPortMetrics.hitSize,
-                child: Center(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: isDisabled
-                          ? colors.backgroundShell.withValues(alpha: 0.85)
-                          : effectiveToneColor.withValues(alpha: 0.22),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: effectiveToneColor,
-                        width: isDisabled ? 1.2 : 1.8,
+      child: Semantics(
+        button: true,
+        enabled: !isDisabled,
+        label: context.pokeMapL10n.sceneGraphOutputPortSemantics(
+          placement.port.label,
+          placement.nodeId,
+        ),
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: isDisabled ? null : (_) => onStart(),
+          onPointerMove:
+              isDisabled ? null : (event) => onUpdate(event.position),
+          onPointerUp: isDisabled ? null : (_) => onEnd(),
+          onPointerCancel: isDisabled ? null : (_) => onEnd(),
+          child: MouseRegion(
+            cursor: isDisabled
+                ? SystemMouseCursors.basic
+                : SystemMouseCursors.click,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: _SceneGraphPortMetrics.hitSize,
+                  height: _SceneGraphPortMetrics.hitSize,
+                  child: Center(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: isDisabled
+                            ? colors.backgroundShell.withValues(alpha: 0.85)
+                            : effectiveToneColor.withValues(alpha: 0.22),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: effectiveToneColor,
+                          width: isDisabled ? 1.2 : 1.8,
+                        ),
+                      ),
+                      child: const SizedBox.square(
+                        dimension: _SceneGraphPortMetrics.visualSize,
                       ),
                     ),
-                    child: const SizedBox.square(
-                      dimension: _SceneGraphPortMetrics.visualSize,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    placement.port.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: effectiveToneColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Flexible(
-                child: Text(
-                  placement.port.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: effectiveToneColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

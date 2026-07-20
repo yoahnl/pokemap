@@ -58,6 +58,55 @@ const _shellKeys = <String>{
   'narrativeCompareExternal',
   'narrativeNoCinematics',
   'narrativeCinematicCount',
+  'migrationCenterSemantics',
+  'migrationCenterTitle',
+  'migrationCenterDryRunSummary',
+  'migrationCenterClose',
+  'migrationCenterRefresh',
+  'migrationCenterCreateBackup',
+  'migrationCenterLegacyRemaining',
+  'migrationCenterBlockers',
+  'migrationCenterLossRisks',
+  'migrationCenterReadersRetirable',
+  'migrationCenterCompatibilityReadOnly',
+  'migrationCenterCanonicalMessage',
+  'migrationCenterReadOnlyMessage',
+  'migrationCenterStorylineDomain',
+  'migrationCenterEventDomain',
+  'migrationCenterCinematicDomain',
+  'migrationCenterDomainSummary',
+  'migrationCenterCanonical',
+  'migrationCenterLegacyVisible',
+  'migrationCenterBlockerDependencySummary',
+  'migrationCenterExamine',
+  'migrationCenterRollbackHint',
+  'commandPaletteBarrier',
+  'commandPaletteSemantics',
+  'commandPaletteTitle',
+  'commandPaletteSearchHint',
+  'commandPaletteSearchSemantics',
+  'commandPaletteNoResults',
+  'commandPaletteNoResultsHint',
+  'sceneGraphInputPortSemantics',
+  'sceneGraphOutputPortSemantics',
+  'commandPaletteKindMap',
+  'commandPaletteKindStoryline',
+  'commandPaletteKindChapter',
+  'commandPaletteKindStep',
+  'commandPaletteKindScene',
+  'commandPaletteKindEvent',
+  'commandPaletteKindCinematic',
+  'commandPaletteKindDialogue',
+  'commandPaletteKindFact',
+  'commandPaletteKindWorldRule',
+  'commandPaletteKindMedia',
+  'commandPaletteKindDiagnostic',
+  'commandPaletteActionNavigation',
+  'commandPaletteActionCreate',
+  'commandPaletteActionValidate',
+  'commandPaletteActionPreview',
+  'commandPaletteActionSave',
+  'commandPaletteTooltip',
 };
 
 void main() {
@@ -104,11 +153,35 @@ void main() {
     expect(find.text('Aperçu'), findsOneWidget);
   });
 
+  testWidgets('migration and command palette strings resolve in FR and EN',
+      (tester) async {
+    await _pumpLocalizedShell(tester, const Locale('fr'));
+    var french =
+        tester.element(find.byType(NarrativeStudioProductShell)).pokeMapL10n;
+    expect(french.migrationCenterTitle, 'Migration Narrative Studio');
+    expect(french.commandPaletteTitle, 'Aller à…');
+    expect(
+      french.sceneGraphOutputPortSemantics('Victoire', 'combat'),
+      contains('Victoire'),
+    );
+
+    await _pumpLocalizedShell(tester, const Locale('en'));
+    final english =
+        tester.element(find.byType(NarrativeStudioProductShell)).pokeMapL10n;
+    expect(english.migrationCenterTitle, 'Narrative Studio migration');
+    expect(english.commandPaletteTitle, 'Go to…');
+    expect(
+      english.migrationCenterDomainSummary(2, 1),
+      '2 remaining • 1 ready',
+    );
+  });
+
   test('shared shell source contains no product UI string literal', () {
     const paths = <String>[
       'lib/src/ui/canvas/narrative_studio/narrative_studio_product_shell.dart',
       'lib/src/ui/canvas/narrative_studio/narrative_studio_product_navigation.dart',
       'lib/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart',
+      'lib/src/ui/canvas/narrative_studio/narrative_legacy_migration_center.dart',
     ];
     final patterns = <RegExp>[
       RegExp(r'''Text\(\s*['"]'''),
