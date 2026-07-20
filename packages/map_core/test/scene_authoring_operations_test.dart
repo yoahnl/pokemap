@@ -556,6 +556,29 @@ void main() {
       ]);
     });
 
+    test('adds an interactive command action through the canonical payload',
+        () {
+      final scene = _scene('scene_authoring');
+      final payload = SceneActionPayload.interactive(
+        SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+      );
+
+      final result = addSceneCommandActionNodeDraft(
+        scene,
+        payload: payload,
+        title: 'Boutique du port',
+      );
+
+      expect(result.createdNode.kind, SceneNodeKind.action);
+      expect(result.createdNode.title, 'Boutique du port');
+      expect(result.createdPayload, payload);
+      expect(
+        result.createdPayload.interactiveCommand,
+        SceneInteractiveCommand.openShop(shopId: 'shop.port'),
+      );
+      expect(scene.graph.nodes, hasLength(2));
+    });
+
     test('adds a markEventConsumed consequence action node with stable ids',
         () {
       final scene = addSceneConsequenceActionNodeDraft(

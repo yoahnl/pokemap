@@ -57,6 +57,17 @@ void main() {
     }
   });
 
+  test('consumed Event command requests both map and Event identities', () {
+    final descriptor = NarrativeCommandCatalog.canonical().byId(
+      NarrativeCommandIds.markEventConsumed,
+    )!;
+
+    expect(
+      descriptor.parameters.map((parameter) => parameter.id),
+      ['mapId', 'eventId'],
+    );
+  });
+
   test('interactive diagnostics block an unknown destination map', () {
     const project = ProjectManifest(
       name: 'Commands',

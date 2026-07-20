@@ -29,6 +29,7 @@ import 'narrative_studio/narrative_studio_destination.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'narrative_studio/narrative_studio_route_presentation.dart';
 import 'narrative_studio/narrative_studio_workspace_page.dart';
+import 'scenes/scene_action_builder.dart';
 import 'scenes/scene_node_read_only_inspector.dart';
 import 'scenes_workspace.dart';
 import 'step_studio_workspace.dart';
@@ -858,6 +859,13 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
                   activeMap: editor.activeMap,
                 ),
           consequenceCatalogs: sceneConsequenceCatalogs,
+          actionPickerOptions: editor.project == null
+              ? const {}
+              : _buildSceneActionPickerOptions(
+                  editor.project!,
+                  sceneConsequenceCatalogs,
+                  activeMap: editor.activeMap,
+                ),
           sceneConsumerPaths: editor.project == null
               ? const <String, List<String>>{}
               : _buildSceneConsumerPaths(
@@ -1013,18 +1021,42 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
               return null;
             }
             try {
-              final result = payload is SceneCinematicPayload
-                  ? addSceneCinematicNodeDraft(
-                      project.scenes[sceneIndex],
-                      project: project,
-                      cinematicId: payload.cinematicId,
-                      title: title,
-                    )
-                  : addSceneLinkedAssetNodeDraft(
+              final result = switch (payload) {
+                SceneActionPayload() => () {
+                    final created = addSceneCommandActionNodeDraft(
                       project.scenes[sceneIndex],
                       payload: payload,
                       title: title,
                     );
+                    return (
+                      updatedScene: created.updatedScene,
+                      createdNode: created.createdNode,
+                    );
+                  }(),
+                SceneCinematicPayload() => () {
+                    final created = addSceneCinematicNodeDraft(
+                      project.scenes[sceneIndex],
+                      project: project,
+                      cinematicId: payload.cinematicId,
+                      title: title,
+                    );
+                    return (
+                      updatedScene: created.updatedScene,
+                      createdNode: created.createdNode,
+                    );
+                  }(),
+                _ => () {
+                    final created = addSceneLinkedAssetNodeDraft(
+                      project.scenes[sceneIndex],
+                      payload: payload,
+                      title: title,
+                    );
+                    return (
+                      updatedScene: created.updatedScene,
+                      createdNode: created.createdNode,
+                    );
+                  }(),
+              };
               final scenes = project.scenes.toList(growable: true);
               scenes[sceneIndex] = result.updatedScene;
               editorNotifier.applyInMemoryProjectManifest(
@@ -3179,6 +3211,60 @@ Map<String, List<String>> _buildSceneConsumerPaths(
             in index.usagesFor(NarrativeDependencyKey.scene(scene.id)))
           if (usage.owner != NarrativeDependencyKey.scene(scene.id)) usage.path,
       ],
+  };
+}
+
+Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
+    _buildSceneActionPickerOptions(
+  ProjectManifest project,
+  SceneConsequenceCatalogs catalogs, {
+  MapData? activeMap,
+}) {
+  final eventOptions = _buildSceneConsequenceEventOptions(
+    project,
+    activeMap: activeMap,
+  );
+  List<SceneActionPickerOption> fromCatalog(
+    SceneConsequenceCatalogSection section,
+  ) =>
+      [
+        for (final option in section.options)
+          SceneActionPickerOption(id: option.id, label: option.label),
+      ];
+
+  return <NarrativeCommandParameterKind, List<SceneActionPickerOption>>{
+    NarrativeCommandParameterKind.fact: [
+      for (final fact in project.facts)
+        SceneActionPickerOption(id: fact.id, label: fact.label),
+    ],
+    NarrativeCommandParameterKind.event: [
+      for (final event in eventOptions)
+        SceneActionPickerOption(
+          id: event.eventId,
+          label: '${event.mapLabel} · ${event.eventLabel}',
+        ),
+    ],
+    NarrativeCommandParameterKind.storyStep: fromCatalog(catalogs.storySteps),
+    NarrativeCommandParameterKind.item: fromCatalog(catalogs.items),
+    NarrativeCommandParameterKind.species: fromCatalog(catalogs.species),
+    NarrativeCommandParameterKind.starter:
+        fromCatalog(catalogs.configuredStarters),
+    NarrativeCommandParameterKind.map: [
+      for (final map in project.maps)
+        SceneActionPickerOption(id: map.id, label: map.name),
+    ],
+    NarrativeCommandParameterKind.trainer: [
+      for (final trainer in project.trainers)
+        SceneActionPickerOption(id: trainer.id, label: trainer.name),
+    ],
+    NarrativeCommandParameterKind.dialogue: [
+      for (final dialogue in project.dialogues)
+        SceneActionPickerOption(id: dialogue.id, label: dialogue.name),
+    ],
+    NarrativeCommandParameterKind.cinematic: [
+      for (final cinematic in project.cinematics)
+        SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
+    ],
   };
 }
 

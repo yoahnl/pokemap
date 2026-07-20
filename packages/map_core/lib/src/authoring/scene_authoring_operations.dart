@@ -894,16 +894,54 @@ SceneActionNodeDraftCreationResult addSceneConsequenceActionNodeDraft(
 }) {
   _validateSceneConsequenceForAuthoring(consequence);
 
+  return _addSceneActionPayloadNodeDraft(
+    scene,
+    payload: SceneActionPayload.consequence(consequence),
+    title: _trimOptional(title) ?? _defaultConsequenceActionTitle(consequence),
+    afterNodeId: afterNodeId,
+  );
+}
+
+/// Adds an awaitable command action without degrading it to a legacy string.
+///
+/// Persistent effects deliberately use [addSceneConsequenceActionNodeDraft];
+/// keeping these entry points separate prevents a second wire for state writes.
+SceneActionNodeDraftCreationResult addSceneCommandActionNodeDraft(
+  SceneAsset scene, {
+  required SceneActionPayload payload,
+  String? title,
+  String? afterNodeId,
+}) {
+  if (payload.interactiveCommand == null || payload.consequence != null) {
+    throw ArgumentError.value(
+      payload,
+      'payload',
+      'Command Action authoring requires one interactive Scene command.',
+    );
+  }
+  return _addSceneActionPayloadNodeDraft(
+    scene,
+    payload: payload,
+    title: _trimOptional(title) ?? 'Commande interactive',
+    afterNodeId: afterNodeId,
+  );
+}
+
+SceneActionNodeDraftCreationResult _addSceneActionPayloadNodeDraft(
+  SceneAsset scene, {
+  required SceneActionPayload payload,
+  required String title,
+  String? afterNodeId,
+}) {
   final nodeId = _uniqueNodeId(
     'node_action',
     scene.graph.nodes.map((node) => node.id),
   );
-  final createdPayload = SceneActionPayload.consequence(consequence);
   final createdNode = SceneNode(
     id: nodeId,
     kind: SceneNodeKind.action,
-    title: _trimOptional(title) ?? _defaultConsequenceActionTitle(consequence),
-    payload: createdPayload,
+    title: title,
+    payload: payload,
   );
   final createdLayout = _layoutForNewNode(
     scene,
@@ -934,7 +972,7 @@ SceneActionNodeDraftCreationResult addSceneConsequenceActionNodeDraft(
   return SceneActionNodeDraftCreationResult(
     updatedScene: updatedScene,
     createdNode: createdNode,
-    createdPayload: createdPayload,
+    createdPayload: payload,
   );
 }
 

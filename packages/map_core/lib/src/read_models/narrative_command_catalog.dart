@@ -97,6 +97,7 @@ final class NarrativeCommandCatalog {
         'Marquer un Event consommé',
         'FG-081',
         [
+          _parameter('mapId', 'Map', NarrativeCommandParameterKind.map),
           _parameter('eventId', 'Event', NarrativeCommandParameterKind.event),
         ],
       ),

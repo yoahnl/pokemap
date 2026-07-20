@@ -39,6 +39,8 @@ class EventBuilderV2Workspace extends StatefulWidget {
     required this.onFilterChanged,
     required this.onSelectEvent,
     required this.onCreateEvent,
+    this.onCreateTemplate,
+    this.hasPendingTemplate = false,
     required this.onOpenLibrary,
     this.onChangeSource,
     this.onSeeOnMap,
@@ -61,6 +63,8 @@ class EventBuilderV2Workspace extends StatefulWidget {
   final ValueChanged<NarrativeEventBuilderV2Filter> onFilterChanged;
   final ValueChanged<NarrativeEventProjectSummary> onSelectEvent;
   final VoidCallback? onCreateEvent;
+  final VoidCallback? onCreateTemplate;
+  final bool hasPendingTemplate;
   final VoidCallback? onOpenLibrary;
   final VoidCallback? onChangeSource;
   final VoidCallback? onSeeOnMap;
@@ -255,6 +259,8 @@ class _EventBuilderV2WorkspaceState extends State<EventBuilderV2Workspace> {
                 child: EventBuilderV2ElementLibrary(
                   hasLinkedScene: selected?.scene.sceneId != null,
                   onOpenScene: widget.onOpenScene,
+                  onCreateTemplate: widget.onCreateTemplate,
+                  hasPendingTemplate: widget.hasPendingTemplate,
                 ),
               ),
               const SizedBox(width: 8),

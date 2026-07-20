@@ -1,0 +1,202 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
+
+void main() {
+  group('NarrativeTemplateCatalog', () {
+    test('exposes every MVP pattern and keeps unsupported mechanics honest',
+        () {
+      final catalog = NarrativeTemplateCatalog.canonical();
+
+      expect(catalog.templates, hasLength(10));
+      expect(
+        catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
+        isFalse,
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.badgeReward).isPublishable,
+        isFalse,
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.itemBall).isPublishable,
+        isTrue,
+      );
+    });
+
+    test('item ball preview creates one Event pointing to one Scene action',
+        () {
+      final before = _emptyProject();
+      final preview = previewNarrativeTemplate(
+        project: before,
+        request: _itemBallRequest(),
+      );
+
+      expect(preview.canApply, isTrue);
+      expect(preview.diagnostics, isEmpty);
+      expect(preview.event!.sceneId, _sceneId);
+      expect(preview.after!.eventRegistry!.records, hasLength(1));
+      expect(preview.after!.scenes, hasLength(1));
+
+      final actionPayloads = preview.scene!.graph.nodes
+          .map((node) => node.payload)
+          .whereType<SceneActionPayload>()
+          .toList();
+      expect(actionPayloads, hasLength(1));
+      expect(
+        actionPayloads.single.consequence,
+        SceneConsequence.giveItem(itemId: 'potion', quantity: 2),
+      );
+
+      final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
+      expect(reloaded.toJson(), preview.after!.toJson());
+    });
+
+    test('conditional NPC requires its Fact parameters before construction',
+        () {
+      final preview = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: NarrativeTemplateRequest(
+          kind: NarrativeTemplateKind.conditionalNpc,
+          eventId: _eventId,
+          sceneId: _sceneId,
+          name: 'PNJ conditionnel',
+          source: NarrativeEventSourceRef.entityInteract('map_port', 'npc_a'),
+          physicalSource: const NarrativeTemplatePhysicalSource(
+            kind: NarrativeTemplatePhysicalSourceKind.entity,
+            mapId: 'map_port',
+            sourceId: 'npc_a',
+            exists: true,
+          ),
+          parameters: const {'dialogueId': 'dialogue.a'},
+        ),
+      );
+
+      expect(preview.canApply, isFalse);
+      expect(preview.diagnostics.join(' '), contains('Fact'));
+      expect(preview.after, isNull);
+    });
+
+    test('refuses ID collisions and a missing physical Map Editor source', () {
+      final collision = previewNarrativeTemplate(
+        project: _emptyProject().copyWith(
+          scenes: [
+            SceneAsset(
+              id: _sceneId,
+              name: 'Existing',
+              graph: SceneGraph(
+                startNodeId: 'existing.start',
+                nodes: [
+                  SceneNode(id: 'existing.start', kind: SceneNodeKind.start),
+                ],
+                edges: const [],
+              ),
+            ),
+          ],
+        ),
+        request: _itemBallRequest(),
+      );
+      final missingSource = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: _itemBallRequest(sourceExists: false),
+      );
+
+      expect(collision.canApply, isFalse);
+      expect(collision.diagnostics.join(' '), contains(_sceneId));
+      expect(missingSource.canApply, isFalse);
+      expect(missingSource.requiresMapEditor, isTrue);
+      expect(missingSource.diagnostics.join(' '), contains('Map Editor'));
+    });
+
+    test('refuses a physical source that does not match the Event source', () {
+      final preview = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: _itemBallRequest(physicalSourceId: 'object_other'),
+      );
+
+      expect(preview.canApply, isFalse);
+      expect(preview.requiresMapEditor, isTrue);
+      expect(preview.diagnostics.join(' '), contains('ne correspond pas'));
+    });
+
+    test('rejects an empty label and a non-boolean conditional value', () {
+      final emptyName = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: NarrativeTemplateRequest(
+          kind: NarrativeTemplateKind.itemBall,
+          eventId: _eventId,
+          sceneId: _sceneId,
+          name: '   ',
+          source: NarrativeEventSourceRef.entityInteract(
+            'map_port',
+            'object_potion',
+          ),
+          physicalSource: const NarrativeTemplatePhysicalSource(
+            kind: NarrativeTemplatePhysicalSourceKind.object,
+            mapId: 'map_port',
+            sourceId: 'object_potion',
+            exists: true,
+          ),
+          parameters: const {'itemId': 'potion', 'quantity': '2'},
+        ),
+      );
+      final invalidBoolean = previewNarrativeTemplate(
+        project: _emptyProject(),
+        request: NarrativeTemplateRequest(
+          kind: NarrativeTemplateKind.conditionalNpc,
+          eventId: _eventId,
+          sceneId: _sceneId,
+          name: 'PNJ',
+          source: NarrativeEventSourceRef.entityInteract('map_port', 'npc_a'),
+          physicalSource: const NarrativeTemplatePhysicalSource(
+            kind: NarrativeTemplatePhysicalSourceKind.entity,
+            mapId: 'map_port',
+            sourceId: 'npc_a',
+            exists: true,
+          ),
+          parameters: const {
+            'dialogueId': 'dialogue.a',
+            'factId': 'fact.a',
+            'expectedValue': 'peut-être',
+          },
+        ),
+      );
+
+      expect(emptyName.canApply, isFalse);
+      expect(emptyName.diagnostics.join(' '), contains('nom'));
+      expect(invalidBoolean.canApply, isFalse);
+      expect(invalidBoolean.diagnostics.join(' '), contains('vrai ou faux'));
+    });
+  });
+}
+
+const _eventId = 'evt_00000000-0000-7000-8000-000000000001';
+const _sceneId = 'scene.item.ball';
+
+ProjectManifest _emptyProject() => const ProjectManifest(
+      name: 'Template test',
+      maps: [],
+      tilesets: [],
+    );
+
+NarrativeTemplateRequest _itemBallRequest({
+  bool sourceExists = true,
+  String physicalSourceId = 'object_potion',
+}) {
+  return NarrativeTemplateRequest(
+    kind: NarrativeTemplateKind.itemBall,
+    eventId: _eventId,
+    sceneId: _sceneId,
+    name: 'Potion au sol',
+    source: NarrativeEventSourceRef.entityInteract(
+      'map_port',
+      'object_potion',
+    ),
+    physicalSource: NarrativeTemplatePhysicalSource(
+      kind: NarrativeTemplatePhysicalSourceKind.object,
+      mapId: 'map_port',
+      sourceId: physicalSourceId,
+      exists: sourceExists,
+    ),
+    parameters: const {'itemId': 'potion', 'quantity': '2'},
+  );
+}

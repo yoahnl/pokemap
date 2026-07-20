@@ -7,6 +7,7 @@ import '../../../application/models/narrative_event_map_bridge_models.dart';
 import '../../../application/models/narrative_event_authoring_session.dart';
 import '../../../application/models/narrative_event_migration_persistence_models.dart';
 import '../../../application/services/narrative_event_validation_coordinator.dart';
+import '../../../application/services/narrative_template_catalog.dart';
 import '../../../application/use_cases/narrative_event_migration_preview_use_case.dart';
 import '../../../application/use_cases/narrative_event_v2_mode_activation_use_case.dart';
 import '../../../application/use_cases/narrative_event_builder_v2_use_case.dart';
@@ -18,13 +19,30 @@ import '../../../features/narrative/state/narrative_event_builder_v2_state.dart'
 import '../../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../../features/narrative/state/narrative_event_validation_state.dart';
 import '../../../features/narrative/state/narrative_scene_focus_provider.dart';
+import '../../../features/narrative/state/scene_consequence_catalog_providers.dart';
+import '../../../infrastructure/repositories/narrative_template_transaction_file_gateway.dart';
 import '../../design_system/design_system.dart';
 import '../narrative_studio/narrative_studio_destination.dart';
 import '../narrative_studio/narrative_studio_navigation.dart';
+import '../scenes/scene_action_builder.dart';
 import 'event_builder_v2_authoring_sheets.dart';
 import 'event_builder_v2_element_library.dart';
 import 'event_builder_v2_migration_sheet.dart';
+import 'event_builder_v2_template_sheet.dart';
 import 'event_builder_v2_workspace.dart';
+
+final _eventBuilderV2TemplateDraftProvider =
+    StateProvider<_PendingEventBuilderV2TemplateDraft?>((ref) => null);
+
+class _PendingEventBuilderV2TemplateDraft {
+  const _PendingEventBuilderV2TemplateDraft({
+    required this.projectPath,
+    required this.draft,
+  });
+
+  final String projectPath;
+  final EventBuilderV2TemplateDraft draft;
+}
 
 /// Production composition boundary for Event Builder V2.
 ///
@@ -66,6 +84,7 @@ class _EventBuilderV2ProductRouteState
   bool _migrationBusy = false;
   String? _migrationMessage;
   bool _globalDiagnosticsExpanded = false;
+  NarrativeTemplatePreview? _lastTemplatePreview;
   final ScrollController _eventListScrollController = ScrollController();
   final Map<String, FocusNode> _eventFocusNodes = <String, FocusNode>{};
   int? _eventRestorationRevisionInFlight;
@@ -244,6 +263,12 @@ class _EventBuilderV2ProductRouteState
     required EventSystemMode mode,
     required NarrativeEventValidationSnapshot? validationSnapshot,
   }) {
+    final pendingTemplate = ref.watch(_eventBuilderV2TemplateDraftProvider);
+    final currentProjectPath = _projectFilePath();
+    final pendingTemplateDraft =
+        pendingTemplate?.projectPath == currentProjectPath
+            ? pendingTemplate?.draft
+            : null;
     final bridge = ref.watch(narrativeEventMapBridgeControllerProvider);
     final state = NarrativeEventBuilderV2State(
       readModel: readModel,
@@ -294,6 +319,9 @@ class _EventBuilderV2ProductRouteState
       onSelectEvent: _selectEvent,
       onCreateEvent:
           state.isReadOnly || _isAuthoring ? null : _openCreationSheet,
+      onCreateTemplate:
+          state.isReadOnly || _isAuthoring ? null : _openTemplateSheet,
+      hasPendingTemplate: pendingTemplateDraft != null,
       onOpenLibrary: () => _openLibrary(context, selected),
       onChangeSource: canMutateSelected && !_isAuthoring
           ? () => selected!.source.source == null &&
@@ -336,6 +364,18 @@ class _EventBuilderV2ProductRouteState
     );
     final navigationFailure = bridge.lastNavigationResult;
     final notices = <Widget>[];
+    if (_lastTemplatePreview != null && !_isAuthoring) {
+      notices.add(
+        PokeMapDiagnosticCallout(
+          key: const ValueKey('event-builder-v2-template-undo'),
+          severity: PokeMapDiagnosticSeverity.info,
+          title: 'Gabarit créé',
+          message: 'L’Event et sa Scene ont été enregistrés ensemble.',
+          actionLabel: 'Annuler la création',
+          onAction: _undoLastTemplate,
+        ),
+      );
+    }
     final globalDiagnostics = validationSnapshot?.state.global ??
         const <NarrativeEventValidationItem>[];
     if (globalDiagnostics.isNotEmpty) {
@@ -1080,6 +1120,158 @@ class _EventBuilderV2ProductRouteState
     }
   }
 
+  Future<void> _openTemplateSheet() async {
+    final projectPath = _projectFilePath();
+    final editor = ref.read(editorNotifierProvider);
+    if (projectPath == null || editor.project == null) return;
+    if (editor.isDirty || editor.isProjectDirty || editor.isSaving) {
+      setState(() {
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.blocked;
+        _authoringMessage =
+            'Enregistrez les changements en cours avant de créer un gabarit.';
+      });
+      return;
+    }
+    setState(() {
+      _isAuthoring = true;
+      _authoringMessage = null;
+      _authoringStatus = null;
+    });
+    try {
+      final session = await NarrativeEventAuthoringSession.prepare(projectPath);
+      final baseCatalogs = await ref.read(
+        sceneConsequenceCatalogsProvider(editor.projectRootPath).future,
+      );
+      final catalogs = baseCatalogs
+          .withConfiguredStarters(session.manifest.newGame.starterOptions)
+          .withProjectStorySteps(session.manifest);
+      final eventId = NarrativeEventIdGenerator().generate(
+        existingRecords: session.manifest.eventRegistry?.records ??
+            const <NarrativeEventRecord>[],
+      );
+      final sceneId = 'scene.template.${eventId.substring(4)}';
+      final pendingTemplate = ref.read(_eventBuilderV2TemplateDraftProvider);
+      final pendingTemplateDraft = pendingTemplate?.projectPath == projectPath
+          ? pendingTemplate?.draft
+          : null;
+      if (!mounted) return;
+      setState(() => _isAuthoring = false);
+      await showPokeMapDesktopSideSheet<void>(
+        context: context,
+        title: 'Gabarit narratif',
+        semanticLabel: 'Créer un Event et sa Scene depuis un gabarit',
+        barrierLabel: 'Annuler le gabarit narratif',
+        width: 520,
+        builder: (_) => EventBuilderV2TemplateSheet(
+          project: session.manifest,
+          eventId: eventId,
+          sceneId: sceneId,
+          spatialSources:
+              session.context.catalog.spatialSources.selectableOptions,
+          physicalSourceKinds: _templatePhysicalSourceKinds(session.maps),
+          actionPickerOptions: _templateActionPickerOptions(
+            project: session.manifest,
+            maps: session.maps,
+            catalogs: catalogs,
+          ),
+          onApply: _applyTemplate,
+          initialDraft: pendingTemplateDraft,
+          onOpenMapEditor: (draft) {
+            ref.read(_eventBuilderV2TemplateDraftProvider.notifier).state =
+                _PendingEventBuilderV2TemplateDraft(
+              projectPath: projectPath,
+              draft: draft,
+            );
+            ref.read(editorNotifierProvider.notifier).selectMapWorkspace();
+          },
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isAuthoring = false;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.failed;
+        _authoringMessage =
+            'Le catalogue des gabarits ne peut pas être préparé : $error';
+      });
+    }
+  }
+
+  Future<String?> _applyTemplate(NarrativeTemplatePreview preview) async {
+    final projectPath = _projectFilePath();
+    if (projectPath == null) return 'Le projet enregistré est indisponible.';
+    setState(() {
+      _isAuthoring = true;
+      _authoringMessage = null;
+      _authoringStatus = null;
+    });
+    try {
+      final gateway = NarrativeTemplateTransactionFileGateway(
+        projectPath: projectPath,
+      );
+      final coordinator = NarrativeTemplateTransactionCoordinator(gateway);
+      await coordinator.recover();
+      await coordinator.apply(
+        transactionId: 'template-${DateTime.now().microsecondsSinceEpoch}',
+        preview: preview,
+      );
+      await ref.read(editorNotifierProvider.notifier).loadProject(
+            projectPath,
+            rememberAsRecent: false,
+          );
+      if (!mounted) return null;
+      setState(() {
+        _isAuthoring = false;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.committed;
+        _authoringMessage =
+            'Le gabarit a créé un Event et une Scene sans modifier la map.';
+        _pendingSelectionEventId = preview.event?.id;
+        _lastTemplatePreview = preview;
+      });
+      ref.read(_eventBuilderV2TemplateDraftProvider.notifier).state = null;
+      return null;
+    } on Object catch (error) {
+      if (!mounted) return error.toString();
+      setState(() {
+        _isAuthoring = false;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.failed;
+        _authoringMessage = 'La transaction du gabarit a échoué : $error';
+      });
+      return _authoringMessage;
+    }
+  }
+
+  Future<void> _undoLastTemplate() async {
+    final preview = _lastTemplatePreview;
+    final projectPath = _projectFilePath();
+    if (preview == null || projectPath == null) return;
+    setState(() => _isAuthoring = true);
+    try {
+      final coordinator = NarrativeTemplateTransactionCoordinator(
+        NarrativeTemplateTransactionFileGateway(projectPath: projectPath),
+      );
+      await coordinator.undo(preview);
+      await ref.read(editorNotifierProvider.notifier).loadProject(
+            projectPath,
+            rememberAsRecent: false,
+          );
+      if (!mounted) return;
+      setState(() {
+        _isAuthoring = false;
+        _lastTemplatePreview = null;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.committed;
+        _authoringMessage = 'La création Event + Scene a été annulée.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isAuthoring = false;
+        _authoringStatus = NarrativeEventBuilderV2WriteStatus.failed;
+        _authoringMessage = 'L’annulation a été refusée : $error';
+      });
+    }
+  }
+
   Future<void> _openCreationSheet() async {
     final snapshot = await _loadAuthoringSnapshot();
     if (!mounted || snapshot == null) return;
@@ -1395,10 +1587,107 @@ class _EventBuilderV2ProductRouteState
         child: EventBuilderV2ElementLibrary(
           hasLinkedScene: selected?.scene.sceneId != null,
           onOpenScene: null,
+          onCreateTemplate: _isAuthoring ? null : _openTemplateSheet,
+          hasPendingTemplate:
+              ref.read(_eventBuilderV2TemplateDraftProvider) != null,
         ),
       ),
     );
   }
+}
+
+Map<NarrativeCommandParameterKind, List<SceneActionPickerOption>>
+    _templateActionPickerOptions({
+  required ProjectManifest project,
+  required List<MapData> maps,
+  required SceneConsequenceCatalogs catalogs,
+}) {
+  List<SceneActionPickerOption> section(
+    SceneConsequenceCatalogSection value,
+  ) =>
+      [
+        for (final option in value.options)
+          SceneActionPickerOption(id: option.id, label: option.label),
+      ];
+  final shops = <String>{};
+  for (final scene in project.scenes) {
+    for (final node in scene.graph.nodes) {
+      final command = node.payload is SceneActionPayload
+          ? (node.payload as SceneActionPayload).interactiveCommand
+          : null;
+      if (command is SceneOpenShopInteractiveCommand) shops.add(command.shopId);
+    }
+  }
+  return <NarrativeCommandParameterKind, List<SceneActionPickerOption>>{
+    NarrativeCommandParameterKind.fact: [
+      for (final fact in project.facts)
+        SceneActionPickerOption(id: fact.id, label: fact.label),
+    ],
+    NarrativeCommandParameterKind.event: [
+      for (final record
+          in project.eventRegistry?.records ?? const <NarrativeEventRecord>[])
+        SceneActionPickerOption(
+          id: record.id,
+          label: record.when(
+            draft: (draft) => draft.name,
+            configured: (definition, _) => definition.name,
+          ),
+        ),
+    ],
+    NarrativeCommandParameterKind.storyStep: section(catalogs.storySteps),
+    NarrativeCommandParameterKind.item: section(catalogs.items),
+    NarrativeCommandParameterKind.species: section(catalogs.species),
+    NarrativeCommandParameterKind.starter: section(catalogs.configuredStarters),
+    NarrativeCommandParameterKind.map: [
+      for (final map in project.maps)
+        SceneActionPickerOption(id: map.id, label: map.name),
+    ],
+    NarrativeCommandParameterKind.warp: [
+      for (final map in maps)
+        for (final warp in map.warps)
+          SceneActionPickerOption(
+            id: warp.id,
+            label: '${map.name} → ${warp.targetMapId}',
+          ),
+    ],
+    NarrativeCommandParameterKind.shop: [
+      for (final shopId in shops)
+        SceneActionPickerOption(id: shopId, label: shopId),
+    ],
+    NarrativeCommandParameterKind.trainer: [
+      for (final trainer in project.trainers)
+        SceneActionPickerOption(id: trainer.id, label: trainer.name),
+    ],
+    NarrativeCommandParameterKind.dialogue: [
+      for (final dialogue in project.dialogues)
+        SceneActionPickerOption(id: dialogue.id, label: dialogue.name),
+    ],
+    NarrativeCommandParameterKind.cinematic: [
+      for (final cinematic in project.cinematics)
+        SceneActionPickerOption(id: cinematic.id, label: cinematic.title),
+    ],
+  };
+}
+
+Map<String, NarrativeTemplatePhysicalSourceKind> _templatePhysicalSourceKinds(
+  List<MapData> maps,
+) {
+  final result = <String, NarrativeTemplatePhysicalSourceKind>{};
+  for (final map in maps) {
+    for (final entity in map.entities) {
+      if (entity.kind == MapEntityKind.spawn) continue;
+      result['entity:${map.id}:${entity.id}'] = entity.kind == MapEntityKind.npc
+          ? NarrativeTemplatePhysicalSourceKind.entity
+          : NarrativeTemplatePhysicalSourceKind.object;
+    }
+    for (final trigger in map.triggers) {
+      result['trigger:${map.id}:${trigger.id}'] =
+          trigger.type == TriggerType.warp
+              ? NarrativeTemplatePhysicalSourceKind.warp
+              : NarrativeTemplatePhysicalSourceKind.zone;
+    }
+  }
+  return Map<String, NarrativeTemplatePhysicalSourceKind>.unmodifiable(result);
 }
 
 class _GlobalDiagnosticsPanel extends StatelessWidget {

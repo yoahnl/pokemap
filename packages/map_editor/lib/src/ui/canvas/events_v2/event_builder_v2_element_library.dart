@@ -7,10 +7,14 @@ class EventBuilderV2ElementLibrary extends StatelessWidget {
     super.key,
     required this.hasLinkedScene,
     this.onOpenScene,
+    this.onCreateTemplate,
+    this.hasPendingTemplate = false,
   });
 
   final bool hasLinkedScene;
   final VoidCallback? onOpenScene;
+  final VoidCallback? onCreateTemplate;
+  final bool hasPendingTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +164,23 @@ class EventBuilderV2ElementLibrary extends StatelessWidget {
             ],
             keyPrefix: 'event-builder-v2-library-scene-world',
           ),
-          const SizedBox(height: 9),
+          if (onCreateTemplate != null || hasPendingTemplate) ...[
+            const SizedBox(height: 9),
+            PokeMapButton(
+              key: const ValueKey('event-builder-v2-template-entry'),
+              onPressed: onCreateTemplate,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.sparkles),
+              child: Text(
+                hasPendingTemplate
+                    ? 'Reprendre le gabarit'
+                    : 'Créer un gabarit',
+              ),
+            ),
+            const SizedBox(height: 6),
+          ] else
+            const SizedBox(height: 9),
           if (hasLinkedScene && onOpenScene != null)
             PokeMapButton(
               onPressed: onOpenScene,
