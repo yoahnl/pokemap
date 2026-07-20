@@ -460,6 +460,7 @@ String _kindLabel(NarrativeDependencyTargetKind kind) {
     NarrativeDependencyTargetKind.scene => 'Scène',
     NarrativeDependencyTargetKind.dialogue => 'Dialogue',
     NarrativeDependencyTargetKind.cinematic => 'Cinématique',
+    NarrativeDependencyTargetKind.media => 'Média cinematic',
     NarrativeDependencyTargetKind.storyline => 'Storyline',
     NarrativeDependencyTargetKind.chapter => 'Chapitre',
     NarrativeDependencyTargetKind.step => 'Étape',

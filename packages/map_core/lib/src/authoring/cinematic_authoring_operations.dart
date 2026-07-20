@@ -756,6 +756,7 @@ enum CinematicTimelineActorPathMode {
 const cinematicTimelineDraftMetadataKindKey = 'authoring.kind';
 const cinematicTimelineDraftMetadataKindValue = 'draft';
 const cinematicTimelineBasicBlockMetadataKindValue = 'basicBlock';
+const cinematicTimelineCommandMetadataKindValue = 'command';
 const cinematicTimelineDraftMetadataSourceKey = 'authoring.source';
 const cinematicTimelineDraftMetadataSourceValue = 'cinematic-builder-v0';
 const cinematicTimelineAuthoringBlockMetadataKey = 'authoring.block';
@@ -773,6 +774,13 @@ const cinematicTimelineActorEmoteBlockMetadataValue = 'actorEmote';
 const cinematicTimelineActorMovementModeMetadataKey = 'actor.movementMode';
 const cinematicTimelineActorPathModeMetadataKey = 'actor.pathMode';
 const cinematicTimelineActorEmoteEmoteIdMetadataKey = 'actor.emoteId';
+const cinematicTimelineCommandVolumeMetadataKey = 'media.volume';
+const cinematicTimelineCommandFadeMsMetadataKey = 'media.fadeMs';
+const cinematicTimelineCommandLoopMetadataKey = 'media.loop';
+const cinematicTimelineCommandIntensityMetadataKey = 'fx.intensity';
+const cinematicTimelineCommandRuntimeStatusMetadataKey =
+    'authoring.runtimeStatus';
+const cinematicTimelineCommandRuntimeDraftStatus = 'draftUntilNsc67';
 
 const cinematicTimelineDefaultWaitDurationMs = 1000;
 const cinematicTimelineDefaultFadeDurationMs = 1000;
@@ -2249,7 +2257,27 @@ bool isCinematicTimelineAuthoringStep(CinematicTimelineStep step) {
       isCinematicTimelineBasicBlockStep(step) ||
       isCinematicTimelineActorFacingStep(step) ||
       isCinematicTimelineActorMoveStep(step) ||
-      isCinematicTimelineActorEmoteStep(step);
+      isCinematicTimelineActorEmoteStep(step) ||
+      isCinematicTimelineCommandStep(step);
+}
+
+bool isCinematicTimelineCommandStep(CinematicTimelineStep step) {
+  if (step.metadata[cinematicTimelineDraftMetadataSourceKey] !=
+          cinematicTimelineDraftMetadataSourceValue ||
+      step.metadata[cinematicTimelineDraftMetadataKindKey] !=
+          cinematicTimelineCommandMetadataKindValue) {
+    return false;
+  }
+  return switch (step.kind) {
+    CinematicTimelineStepKind.dialogueLine ||
+    CinematicTimelineStepKind.shake ||
+    CinematicTimelineStepKind.sound ||
+    CinematicTimelineStepKind.music ||
+    CinematicTimelineStepKind.fx ||
+    CinematicTimelineStepKind.marker =>
+      true,
+    _ => false,
+  };
 }
 
 bool isCinematicTimelineBasicBlockStep(CinematicTimelineStep step) {

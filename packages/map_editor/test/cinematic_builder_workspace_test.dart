@@ -18488,6 +18488,75 @@ void main() {
       expect(screenshotFile.existsSync(), isTrue);
     },
   );
+
+  testWidgets('NSC-66 creates a guided dialogue command and reloads it',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1920, 1080));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final initial = ProjectManifest(
+      name: 'Command builder',
+      maps: const [],
+      tilesets: const [],
+      dialogues: const [
+        ProjectDialogueEntry(
+          id: 'dialogue.port',
+          name: 'Rencontre au port',
+          relativePath: 'dialogues/port.yarn',
+        ),
+      ],
+      cinematicMediaAssets: [
+        CinematicMediaAsset(
+          id: 'sound.bell',
+          label: 'Cloche du port',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'audio/bell.ogg',
+        ),
+      ],
+      cinematics: [
+        CinematicAsset(
+          id: 'cine.commands',
+          title: 'Commandes',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'step.wait',
+                kind: CinematicTimelineStepKind.wait,
+                durationMs: 500,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    var changed = initial;
+    await _pumpBuilderHarness(
+      tester,
+      initial,
+      'cine.commands',
+      onProjectChanged: (project) => changed = project,
+      surfaceSize: const Size(1920, 1080),
+    );
+
+    final dialogueCard = find.byKey(
+      const ValueKey('cinematic-builder-command-dialogueLine'),
+    );
+    await tester.ensureVisible(dialogueCard);
+    await tester.tap(dialogueCard);
+    await tester.pumpAndSettle();
+
+    final authored = changed.cinematics.single.timeline.steps.last;
+    expect(authored.kind, CinematicTimelineStepKind.dialogueLine);
+    expect(authored.assetRef, 'dialogue.port');
+    expect(isCinematicTimelineCommandStep(authored), isTrue);
+
+    final reloaded = ProjectManifest.fromJson(changed.toJson());
+    final persisted = reloaded.cinematics.single.timeline.steps.last;
+    expect(persisted.toJson(), authored.toJson());
+    expect(find.byKey(const ValueKey('cinematic-command-dialogue-picker')),
+        findsOneWidget);
+    expect(find.text('dialogue.port'), findsNothing);
+    expect(find.text('dialogues/port.yarn'), findsNothing);
+  });
 }
 
 Future<void> _pumpBuilder(
@@ -18799,6 +18868,8 @@ class _BuilderHarnessState extends State<_BuilderHarness> {
               stageMaps: _project.maps,
               groups: _project.groups,
               characters: _project.characters,
+              dialogues: _project.dialogues,
+              cinematicMediaAssets: _project.cinematicMediaAssets,
               stageMapSourceCatalog: widget.stageMapSourceCatalog ??
                   (widget.provideStageMapSourceCatalog
                       ? _stageMapSourceCatalog()

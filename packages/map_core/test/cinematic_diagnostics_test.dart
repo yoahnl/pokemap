@@ -18,6 +18,93 @@ void main() {
       expect(diagnostic.cinematicId, 'cinematic_empty');
     });
 
+    test('validates command references, parameters and publication state', () {
+      var cinematic = CinematicAsset(
+        id: 'cinematic_commands',
+        title: 'Commandes',
+        timeline: CinematicTimeline(),
+      );
+      cinematic = addCinematicTimelineCommandStep(
+        cinematic,
+        kind: CinematicTimelineStepKind.dialogueLine,
+        dialogueId: 'dialogue.missing',
+      ).cinematic;
+      cinematic = addCinematicTimelineCommandStep(
+        cinematic,
+        kind: CinematicTimelineStepKind.sound,
+        mediaAsset: CinematicMediaAsset(
+          id: 'media.wrong_kind',
+          label: 'Mauvais média',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'audio/sound.ogg',
+        ),
+      ).cinematic;
+
+      final sound = cinematic.timeline.steps.last;
+      cinematic = cinematic.copyWith(
+        timeline: CinematicTimeline(
+          steps: [
+            cinematic.timeline.steps.first,
+            CinematicTimelineStep(
+              id: sound.id,
+              kind: sound.kind,
+              label: sound.label,
+              durationMs: sound.durationMs,
+              actorId: sound.actorId,
+              targetId: sound.targetId,
+              dialogueText: sound.dialogueText,
+              assetRef: sound.assetRef,
+              metadata: {
+                ...sound.metadata,
+                cinematicTimelineCommandVolumeMetadataKey: '1.5',
+                cinematicTimelineCommandFadeMsMetadataKey: '-1',
+              },
+            ),
+          ],
+        ),
+      );
+      final report = diagnoseCinematicsAgainstProject(
+        ProjectManifest(
+          name: 'Command diagnostics',
+          maps: const [],
+          tilesets: const [],
+          cinematicMediaAssets: [
+            CinematicMediaAsset(
+              id: 'media.wrong_kind',
+              label: 'Mauvais média',
+              kind: CinematicMediaAssetKind.music,
+              relativePath: 'audio/music.ogg',
+            ),
+          ],
+          cinematics: [cinematic],
+        ),
+      );
+
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicCommandMissingReference),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(
+          CinematicDiagnosticCode.cinematicCommandMediaTypeMismatch,
+        ),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicCommandInvalidVolume),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicCommandInvalidFade),
+        hasLength(1),
+      );
+      expect(
+        report.byCode(CinematicDiagnosticCode.cinematicCommandRuntimePending),
+        hasLength(2),
+      );
+      expect(cinematicCommandPublicationBlockers(cinematic), hasLength(2));
+    });
+
     test('reports duplicate step ids and invalid durations', () {
       final report = diagnoseCinematicAsset(
         CinematicAsset(

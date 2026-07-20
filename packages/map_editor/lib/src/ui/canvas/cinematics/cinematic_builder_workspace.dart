@@ -30,6 +30,7 @@ import 'cinematic_timeline_zoom_controller.dart';
 import 'cinematic_timeline_zoom_state.dart';
 import 'builder/cinematic_builder_controller.dart';
 import 'builder/cinematic_inspector_panel.dart';
+import 'builder/cinematic_media_picker.dart';
 import 'builder/cinematic_palette_panel.dart';
 import 'builder/cinematic_stage_panel.dart';
 import 'builder/cinematic_timeline_panel.dart';
@@ -261,6 +262,22 @@ typedef _AddActorMoveCallback = Future<void> Function();
 
 typedef _AddActorEmoteCallback = Future<void> Function();
 
+typedef _AddCommandCallback = Future<void> Function(
+  CinematicTimelineStepKind kind,
+);
+
+typedef _UpdateCommandCallback = Future<void> Function(
+  CinematicTimelineStep step, {
+  String? actorId,
+  String? dialogueId,
+  CinematicMediaAsset? mediaAsset,
+  int? durationMs,
+  double? volume,
+  int? fadeMs,
+  bool? loop,
+  double? intensity,
+});
+
 typedef _RemoveAuthoringStepCallback = Future<void> Function(
     CinematicTimelineStep step);
 
@@ -292,6 +309,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.stageMaps,
     required this.groups,
     required this.characters,
+    this.dialogues = const [],
+    this.cinematicMediaAssets = const [],
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
@@ -334,6 +353,8 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final List<ProjectMapEntry> stageMaps;
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> cinematicMediaAssets;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
@@ -688,6 +709,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             onAddActorFacing: _addActorFacing,
                             onAddActorMove: _addActorMove,
                             onAddActorEmote: _addActorEmote,
+                            dialogues: widget.dialogues,
+                            mediaAssets: widget.cinematicMediaAssets,
+                            onAddCommand: _addCommand,
                           ),
                         ),
                       ),
@@ -934,6 +958,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             stageMaps: widget.stageMaps,
                             groups: widget.groups,
                             characters: widget.characters,
+                            dialogues: widget.dialogues,
+                            mediaAssets: widget.cinematicMediaAssets,
                             stageMapSourceCatalog: widget.stageMapSourceCatalog,
                             selectedStep: selectedStep,
                             selectedStepIndex: selectedStepIndex,
@@ -956,6 +982,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                             onUpdateActorFacing: _updateActorFacing,
                             onUpdateActorMove: _updateActorMove,
                             onUpdateActorEmote: _updateActorEmote,
+                            onUpdateCommand: _updateCommand,
                             onRemoveAuthoringStep: _removeAuthoringStep,
                             onAddRequiredActor: _addRequiredActor,
                             onUpdateMovementTarget: _updateMovementTarget,
@@ -1717,6 +1744,74 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     setState(() => _builderController.selectedStepId = createdStepId);
   }
 
+  Future<void> _addCommand(CinematicTimelineStepKind kind) async {
+    final expectedMediaKind = switch (kind) {
+      CinematicTimelineStepKind.sound => CinematicMediaAssetKind.sound,
+      CinematicTimelineStepKind.music => CinematicMediaAssetKind.music,
+      CinematicTimelineStepKind.fx => CinematicMediaAssetKind.cinematicFx,
+      _ => null,
+    };
+    CinematicMediaAsset? media;
+    if (expectedMediaKind != null) {
+      for (final candidate in widget.cinematicMediaAssets) {
+        if (candidate.kind == expectedMediaKind) {
+          media = candidate;
+          break;
+        }
+      }
+      if (media == null) return;
+    }
+    final dialogue = widget.dialogues.isEmpty ? null : widget.dialogues.first;
+    if (kind == CinematicTimelineStepKind.dialogueLine && dialogue == null) {
+      return;
+    }
+    final result = addCinematicTimelineCommandStep(
+      widget.asset,
+      kind: kind,
+      afterStepId: _builderController.selectedStepId,
+      label: kind == CinematicTimelineStepKind.marker ? 'Repère' : null,
+      actorId: kind == CinematicTimelineStepKind.dialogueLine &&
+              widget.asset.requiredActors.isNotEmpty
+          ? widget.asset.requiredActors.first.actorId
+          : null,
+      dialogueId: dialogue?.id,
+      mediaAsset: media,
+    );
+    await _updateCinematic(result.cinematic);
+    if (!mounted) return;
+    setState(() {
+      _builderController.selectedStepId = result.step.id;
+      _timelineEditingController.select(result.step.id);
+    });
+  }
+
+  Future<void> _updateCommand(
+    CinematicTimelineStep step, {
+    String? actorId,
+    String? dialogueId,
+    CinematicMediaAsset? mediaAsset,
+    int? durationMs,
+    double? volume,
+    int? fadeMs,
+    bool? loop,
+    double? intensity,
+  }) async {
+    if (!isCinematicTimelineCommandStep(step)) return;
+    final result = updateCinematicTimelineCommandStep(
+      widget.asset,
+      stepId: step.id,
+      actorId: actorId,
+      dialogueId: dialogueId,
+      mediaAsset: mediaAsset,
+      durationMs: durationMs,
+      volume: volume,
+      fadeMs: fadeMs,
+      loop: loop,
+      intensity: intensity,
+    );
+    await _updateCinematic(result.cinematic);
+  }
+
   Future<void> _updateActorFacing(
     CinematicTimelineStep step, {
     String? actorId,
@@ -1823,6 +1918,15 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         stepId: step.id,
         durationMs: durationMs,
       );
+    } else if (isCinematicTimelineCommandStep(step) &&
+        step.kind != CinematicTimelineStepKind.marker) {
+      final result = updateCinematicTimelineCommandStep(
+        widget.asset,
+        stepId: step.id,
+        durationMs: durationMs,
+      );
+      await _updateCinematic(result.cinematic);
+      updated = true;
     }
     if (!mounted || !updated) {
       return false;
@@ -1861,6 +1965,9 @@ class _BlockPalette extends StatelessWidget {
     required this.onAddActorFacing,
     required this.onAddActorMove,
     required this.onAddActorEmote,
+    required this.dialogues,
+    required this.mediaAssets,
+    required this.onAddCommand,
   });
 
   final CinematicsLibraryEntry entry;
@@ -1873,6 +1980,9 @@ class _BlockPalette extends StatelessWidget {
   final _AddActorFacingCallback onAddActorFacing;
   final _AddActorMoveCallback onAddActorMove;
   final _AddActorEmoteCallback onAddActorEmote;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> mediaAssets;
+  final _AddCommandCallback onAddCommand;
 
   @override
   Widget build(BuildContext context) {
@@ -1942,31 +2052,29 @@ class _BlockPalette extends StatelessWidget {
                     asset: asset,
                     onAddActorEmote: onAddActorEmote,
                   ),
-                  _TestHidden(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 12),
-                        Text(
-                          'BLOCS VERROUILLÉS',
-                          style: TextStyle(
-                            color: colors.textMuted,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        for (final block in _lockedPaletteBlocks) ...[
-                          _PaletteBlockTile(
-                            block: block,
-                            onAddBasicBlock: onAddBasicBlock,
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      ],
+                  const SizedBox(height: 12),
+                  Text(
+                    'DIALOGUE & MÉDIA',
+                    style: TextStyle(
+                      color: colors.textMuted,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  for (final command in _commandPaletteBlocks) ...[
+                    _CommandPaletteTile(
+                      command: command,
+                      enabled: _commandIsAvailable(
+                        command.kind,
+                        dialogues: dialogues,
+                        mediaAssets: mediaAssets,
+                      ),
+                      onAddCommand: onAddCommand,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                 ],
               ),
             ),
@@ -2681,6 +2789,52 @@ class _PaletteBlockTile extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CommandPaletteTile extends StatelessWidget {
+  const _CommandPaletteTile({
+    required this.command,
+    required this.enabled,
+    required this.onAddCommand,
+  });
+
+  final _CommandPaletteBlock command;
+  final bool enabled;
+  final _AddCommandCallback onAddCommand;
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: enabled ? 1 : 0.55,
+      child: PokeMapCard(
+        key: ValueKey('cinematic-builder-command-${command.kind.name}'),
+        onTap: enabled ? () => onAddCommand(command.kind) : null,
+        child: Row(
+          children: [
+            PokeMapIconTile(
+              icon: command.icon,
+              tone: PokeMapTone.cinematic,
+              size: 30,
+              iconSize: 14,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StrongText(command.label),
+                  const SizedBox(height: 2),
+                  _MutedText(
+                    enabled ? command.description : command.emptyDescription,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -5880,6 +6034,8 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.stageMaps,
     required this.groups,
     required this.characters,
+    required this.dialogues,
+    required this.mediaAssets,
     required this.stageMapSourceCatalog,
     required this.selectedStep,
     required this.selectedStepIndex,
@@ -5898,6 +6054,7 @@ class _InspectorPlaceholder extends StatefulWidget {
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
     required this.onUpdateActorEmote,
+    required this.onUpdateCommand,
     required this.onRemoveAuthoringStep,
     required this.onAddMovementTarget,
     required this.onAddRequiredActor,
@@ -5923,6 +6080,8 @@ class _InspectorPlaceholder extends StatefulWidget {
   final List<ProjectMapEntry> stageMaps;
   final List<ProjectMapGroup> groups;
   final List<ProjectCharacterEntry> characters;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> mediaAssets;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicTimelineStep? selectedStep;
   final int? selectedStepIndex;
@@ -5941,6 +6100,7 @@ class _InspectorPlaceholder extends StatefulWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _UpdateActorEmoteCallback onUpdateActorEmote;
+  final _UpdateCommandCallback onUpdateCommand;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _AddMovementTargetCallback onAddMovementTarget;
   final _AddRequiredActorCallback onAddRequiredActor;
@@ -6042,6 +6202,8 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                     else if (selected != null && selectedIndex != null)
                       _SelectedStepInspector(
                         asset: widget.asset,
+                        dialogues: widget.dialogues,
+                        mediaAssets: widget.mediaAssets,
                         step: selected,
                         index: selectedIndex,
                         onRemoveDraftStep: widget.onRemoveDraftStep,
@@ -6049,6 +6211,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                         onUpdateActorFacing: widget.onUpdateActorFacing,
                         onUpdateActorMove: widget.onUpdateActorMove,
                         onUpdateActorEmote: widget.onUpdateActorEmote,
+                        onUpdateCommand: widget.onUpdateCommand,
                         onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                         onToggleActorMovePathMode:
                             widget.onToggleActorMovePathMode,
@@ -6127,6 +6290,8 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                   else if (selected != null && selectedIndex != null)
                     _SelectedStepInspector(
                       asset: widget.asset,
+                      dialogues: widget.dialogues,
+                      mediaAssets: widget.mediaAssets,
                       step: selected,
                       index: selectedIndex,
                       onRemoveDraftStep: widget.onRemoveDraftStep,
@@ -6134,6 +6299,7 @@ class _InspectorPlaceholderState extends State<_InspectorPlaceholder> {
                       onUpdateActorFacing: widget.onUpdateActorFacing,
                       onUpdateActorMove: widget.onUpdateActorMove,
                       onUpdateActorEmote: widget.onUpdateActorEmote,
+                      onUpdateCommand: widget.onUpdateCommand,
                       onRemoveAuthoringStep: widget.onRemoveAuthoringStep,
                       onToggleActorMovePathMode:
                           widget.onToggleActorMovePathMode,
@@ -10509,6 +10675,8 @@ class _StageChoice extends StatelessWidget {
 class _SelectedStepInspector extends StatelessWidget {
   const _SelectedStepInspector({
     required this.asset,
+    required this.dialogues,
+    required this.mediaAssets,
     required this.step,
     required this.index,
     required this.onRemoveDraftStep,
@@ -10516,6 +10684,7 @@ class _SelectedStepInspector extends StatelessWidget {
     required this.onUpdateActorFacing,
     required this.onUpdateActorMove,
     required this.onUpdateActorEmote,
+    required this.onUpdateCommand,
     required this.onRemoveAuthoringStep,
     required this.onToggleActorMovePathMode,
     required this.onAddManualPathWaypoint,
@@ -10525,6 +10694,8 @@ class _SelectedStepInspector extends StatelessWidget {
   });
 
   final CinematicAsset asset;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> mediaAssets;
   final CinematicTimelineStep step;
   final int index;
   final ValueChanged<CinematicTimelineStep> onRemoveDraftStep;
@@ -10532,6 +10703,7 @@ class _SelectedStepInspector extends StatelessWidget {
   final _UpdateActorFacingCallback onUpdateActorFacing;
   final _UpdateActorMoveCallback onUpdateActorMove;
   final _UpdateActorEmoteCallback onUpdateActorEmote;
+  final _UpdateCommandCallback onUpdateCommand;
   final _RemoveAuthoringStepCallback onRemoveAuthoringStep;
   final _ToggleActorMovePathModeCallback onToggleActorMovePathMode;
   final _AddManualPathWaypointCallback onAddManualPathWaypoint;
@@ -10547,6 +10719,7 @@ class _SelectedStepInspector extends StatelessWidget {
     final isActorFacing = isCinematicTimelineActorFacingStep(step);
     final isActorMove = isCinematicTimelineActorMoveStep(step);
     final isActorEmote = isCinematicTimelineActorEmoteStep(step);
+    final isCommand = isCinematicTimelineCommandStep(step);
     final isAuthoringOwned = isCinematicTimelineAuthoringStep(step);
     final durationNonEditableReason =
         isDraft ? null : _durationNonEditableReason(step);
@@ -10588,6 +10761,16 @@ class _SelectedStepInspector extends StatelessWidget {
             asset: asset,
             step: step,
             onUpdateActorEmote: onUpdateActorEmote,
+          ),
+          const SizedBox(height: 8),
+        ],
+        if (isCommand) ...[
+          _CommandControls(
+            asset: asset,
+            step: step,
+            dialogues: dialogues,
+            mediaAssets: mediaAssets,
+            onUpdateCommand: onUpdateCommand,
           ),
           const SizedBox(height: 8),
         ],
@@ -10636,6 +10819,158 @@ class _SelectedStepInspector extends StatelessWidget {
     );
   }
 }
+
+class _CommandControls extends StatelessWidget {
+  const _CommandControls({
+    required this.asset,
+    required this.step,
+    required this.dialogues,
+    required this.mediaAssets,
+    required this.onUpdateCommand,
+  });
+
+  final CinematicAsset asset;
+  final CinematicTimelineStep step;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> mediaAssets;
+  final _UpdateCommandCallback onUpdateCommand;
+
+  @override
+  Widget build(BuildContext context) {
+    final volume = (double.tryParse(
+                step.metadata[cinematicTimelineCommandVolumeMetadataKey] ??
+                    '') ??
+            1)
+        .clamp(0, 1);
+    final intensity = (double.tryParse(
+                step.metadata[cinematicTimelineCommandIntensityMetadataKey] ??
+                    '') ??
+            0.5)
+        .clamp(0, 1);
+    final fadeMs = int.tryParse(
+          step.metadata[cinematicTimelineCommandFadeMsMetadataKey] ?? '',
+        ) ??
+        0;
+    final loop =
+        step.metadata[cinematicTimelineCommandLoopMetadataKey] == 'true';
+    final mediaKind = switch (step.kind) {
+      CinematicTimelineStepKind.sound => CinematicMediaAssetKind.sound,
+      CinematicTimelineStepKind.music => CinematicMediaAssetKind.music,
+      CinematicTimelineStepKind.fx => CinematicMediaAssetKind.cinematicFx,
+      _ => null,
+    };
+    return PokeMapCard(
+      key: const ValueKey('cinematic-builder-command-controls'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StrongText(_commandInspectorTitle(step.kind)),
+          const SizedBox(height: 8),
+          if (step.kind == CinematicTimelineStepKind.dialogueLine) ...[
+            if (dialogues.isNotEmpty)
+              PokeMapDropdownField<String>(
+                key: const ValueKey('cinematic-command-dialogue-picker'),
+                label: 'Dialogue',
+                value: dialogues.any((entry) => entry.id == step.assetRef)
+                    ? step.assetRef!
+                    : dialogues.first.id,
+                items: [
+                  for (final dialogue in dialogues)
+                    PokeMapDropdownItem(
+                      value: dialogue.id,
+                      label: dialogue.name,
+                    ),
+                ],
+                onChanged: (id) => onUpdateCommand(step, dialogueId: id),
+              )
+            else
+              const _MutedText('Aucun dialogue disponible.'),
+            if (asset.requiredActors.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              PokeMapDropdownField<String>(
+                key: const ValueKey('cinematic-command-speaker-picker'),
+                label: 'Intervenant',
+                value: asset.requiredActors.any(
+                  (actor) => actor.actorId == step.actorId,
+                )
+                    ? step.actorId!
+                    : asset.requiredActors.first.actorId,
+                items: [
+                  for (final actor in asset.requiredActors)
+                    PokeMapDropdownItem(
+                      value: actor.actorId,
+                      label: actor.label ?? actor.actorId,
+                    ),
+                ],
+                onChanged: (id) => onUpdateCommand(step, actorId: id),
+              ),
+            ],
+          ],
+          if (mediaKind != null) ...[
+            CinematicMediaPicker(
+              label: 'Média',
+              expectedKind: mediaKind,
+              assets: mediaAssets,
+              value: step.assetRef,
+              onChanged: (media) => onUpdateCommand(step, mediaAsset: media),
+            ),
+            const SizedBox(height: 8),
+            PokeMapGuidedSlider(
+              label: 'Volume',
+              value: (volume * 100).round(),
+              onChanged: (value) => onUpdateCommand(step, volume: value / 100),
+            ),
+            const SizedBox(height: 8),
+            PokeMapDropdownField<int>(
+              label: 'Fondu',
+              value: _fadePresetsMs.contains(fadeMs) ? fadeMs : 0,
+              items: [
+                for (final value in _fadePresetsMs)
+                  PokeMapDropdownItem(
+                    value: value,
+                    label: value == 0 ? 'Aucun' : '$value ms',
+                  ),
+              ],
+              onChanged: (value) => onUpdateCommand(step, fadeMs: value),
+            ),
+            const SizedBox(height: 8),
+            PokeMapToggleTile(
+              label: 'Boucle',
+              value: loop,
+              onChanged: (value) => onUpdateCommand(step, loop: value),
+            ),
+          ],
+          if (step.kind == CinematicTimelineStepKind.shake ||
+              step.kind == CinematicTimelineStepKind.fx) ...[
+            if (mediaKind != null) const SizedBox(height: 8),
+            PokeMapGuidedSlider(
+              label: 'Intensité',
+              value: (intensity * 100).round(),
+              onChanged: (value) =>
+                  onUpdateCommand(step, intensity: value / 100),
+            ),
+          ],
+          if (step.kind == CinematicTimelineStepKind.marker)
+            const _MutedText(
+              'Repère éditorial : visible dans la timeline, jamais exécuté par le runtime.',
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+const _fadePresetsMs = [0, 250, 500, 1000];
+
+String _commandInspectorTitle(CinematicTimelineStepKind kind) => switch (kind) {
+      CinematicTimelineStepKind.dialogueLine => 'Dialogue',
+      CinematicTimelineStepKind.shake => 'Tremblement',
+      CinematicTimelineStepKind.sound => 'Son',
+      CinematicTimelineStepKind.music => 'Musique',
+      CinematicTimelineStepKind.fx => 'Effet visuel',
+      CinematicTimelineStepKind.marker => 'Marqueur',
+      _ => kind.name,
+    };
 
 class _SelectedStepTechnicalDetailsAccordion extends StatelessWidget {
   const _SelectedStepTechnicalDetailsAccordion({
@@ -12402,23 +12737,85 @@ const _paletteBlocks = [
   ),
 ];
 
-const _lockedPaletteBlocks = [
-  _PaletteBlock(
+final class _CommandPaletteBlock {
+  const _CommandPaletteBlock({
+    required this.label,
+    required this.icon,
+    required this.description,
+    required this.emptyDescription,
+    required this.kind,
+  });
+
+  final String label;
+  final IconData icon;
+  final String description;
+  final String emptyDescription;
+  final CinematicTimelineStepKind kind;
+}
+
+const _commandPaletteBlocks = [
+  _CommandPaletteBlock(
     label: 'Dialogue',
     icon: CupertinoIcons.text_bubble,
-    description: 'Non authorable dans ce lot.',
+    description: 'Jouer un dialogue de la bibliothèque',
+    emptyDescription: 'Créez d’abord un dialogue',
+    kind: CinematicTimelineStepKind.dialogueLine,
   ),
-  _PaletteBlock(
-    label: 'FX',
-    icon: CupertinoIcons.sparkles,
-    description: 'Non authorable dans ce lot.',
+  _CommandPaletteBlock(
+    label: 'Tremblement',
+    icon: CupertinoIcons.waveform_path,
+    description: 'Secouer la caméra',
+    emptyDescription: 'Secouer la caméra',
+    kind: CinematicTimelineStepKind.shake,
   ),
-  _PaletteBlock(
+  _CommandPaletteBlock(
     label: 'Son',
     icon: CupertinoIcons.speaker_2,
-    description: 'Non authorable dans ce lot.',
+    description: 'Jouer un effet sonore',
+    emptyDescription: 'Ajoutez un son à la bibliothèque',
+    kind: CinematicTimelineStepKind.sound,
+  ),
+  _CommandPaletteBlock(
+    label: 'Musique',
+    icon: CupertinoIcons.music_note_2,
+    description: 'Lancer une ambiance musicale',
+    emptyDescription: 'Ajoutez une musique à la bibliothèque',
+    kind: CinematicTimelineStepKind.music,
+  ),
+  _CommandPaletteBlock(
+    label: 'FX',
+    icon: CupertinoIcons.sparkles,
+    description: 'Déclencher un effet visuel',
+    emptyDescription: 'Ajoutez un FX à la bibliothèque',
+    kind: CinematicTimelineStepKind.fx,
+  ),
+  _CommandPaletteBlock(
+    label: 'Marqueur',
+    icon: CupertinoIcons.flag,
+    description: 'Ajouter un repère éditorial',
+    emptyDescription: 'Ajouter un repère éditorial',
+    kind: CinematicTimelineStepKind.marker,
   ),
 ];
+
+bool _commandIsAvailable(
+  CinematicTimelineStepKind kind, {
+  required List<ProjectDialogueEntry> dialogues,
+  required List<CinematicMediaAsset> mediaAssets,
+}) =>
+    switch (kind) {
+      CinematicTimelineStepKind.dialogueLine => dialogues.isNotEmpty,
+      CinematicTimelineStepKind.sound => mediaAssets.any(
+          (asset) => asset.kind == CinematicMediaAssetKind.sound,
+        ),
+      CinematicTimelineStepKind.music => mediaAssets.any(
+          (asset) => asset.kind == CinematicMediaAssetKind.music,
+        ),
+      CinematicTimelineStepKind.fx => mediaAssets.any(
+          (asset) => asset.kind == CinematicMediaAssetKind.cinematicFx,
+        ),
+      _ => true,
+    };
 
 const _durationPresetsMs = [100, 250, 500, 1000, 1500, 2000, 3000];
 

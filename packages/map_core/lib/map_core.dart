@@ -201,6 +201,7 @@ export 'src/authoring/storyline_progression_operations.dart';
 export 'src/authoring/world_rule_authoring_operations.dart';
 export 'src/authoring/narrative_validator_authoring_adapter.dart';
 export 'src/authoring/cinematic_authoring_operations.dart';
+export 'src/authoring/cinematic_command_authoring_operations.dart';
 export 'src/authoring/cinematic_timeline_editing_operations.dart';
 export 'src/authoring/narrative_asset_mutation.dart';
 export 'src/authoring/narrative_reference_rewrite.dart';

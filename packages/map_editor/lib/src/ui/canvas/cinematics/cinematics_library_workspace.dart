@@ -448,6 +448,8 @@ class _CinematicsLibraryWorkspaceState
         stageMaps: widget.project.maps,
         groups: widget.project.groups,
         characters: widget.project.characters,
+        dialogues: widget.project.dialogues,
+        cinematicMediaAssets: widget.project.cinematicMediaAssets,
         stageMapSourceCatalog: _stageMapSourceCatalog,
         backdropPreviewModel: backdropPreviewModel,
         backdropTileRenderPlan: backdropTileRenderPlan,

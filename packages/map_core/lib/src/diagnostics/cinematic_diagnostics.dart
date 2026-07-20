@@ -1,6 +1,8 @@
 import '../authoring/cinematic_authoring_operations.dart';
+import '../authoring/cinematic_command_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_emote_catalog.dart';
+import '../models/cinematic_media_asset.dart';
 import '../models/enums.dart';
 import '../models/project_manifest.dart';
 
@@ -94,6 +96,12 @@ enum CinematicDiagnosticCode {
   manualPathDuplicateId,
   manualPathEmptyId,
   manualPathEmptyLabel,
+  cinematicCommandMissingReference,
+  cinematicCommandMediaTypeMismatch,
+  cinematicCommandInvalidVolume,
+  cinematicCommandInvalidFade,
+  cinematicCommandInvalidIntensity,
+  cinematicCommandRuntimePending,
 }
 
 enum CinematicDiagnosticTarget {
@@ -257,6 +265,10 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
   final charactersById = {
     for (final character in project.characters) character.id: character,
   };
+  final dialogueIds = project.dialogues.map((dialogue) => dialogue.id).toSet();
+  final mediaById = {
+    for (final media in project.cinematicMediaAssets) media.id: media,
+  };
 
   for (final cinematic in project.cinematics) {
     final storylineId = cinematic.storylineId;
@@ -327,9 +339,159 @@ CinematicDiagnosticsReport diagnoseCinematicsAgainstProject(
       charactersById: charactersById,
       diagnostics: diagnostics,
     );
+    _diagnoseCinematicCommandsAgainstProject(
+      cinematic,
+      dialogueIds: dialogueIds,
+      mediaById: mediaById,
+      diagnostics: diagnostics,
+    );
   }
 
   return CinematicDiagnosticsReport(diagnostics: diagnostics);
+}
+
+void _diagnoseCinematicCommandsAgainstProject(
+  CinematicAsset cinematic, {
+  required Set<String> dialogueIds,
+  required Map<String, CinematicMediaAsset> mediaById,
+  required List<CinematicDiagnostic> diagnostics,
+}) {
+  for (final step in cinematic.timeline.steps) {
+    if (!isCinematicTimelineCommandStep(step)) continue;
+    final referenceId = step.assetRef?.trim();
+    if (step.kind == CinematicTimelineStepKind.dialogueLine) {
+      if (referenceId == null ||
+          referenceId.isEmpty ||
+          !dialogueIds.contains(referenceId)) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.cinematicCommandMissingReference,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Le dialogue choisi pour cette commande est introuvable.',
+            cinematicId: cinematic.id,
+            stepId: step.id,
+            referenceId: referenceId,
+            target: CinematicDiagnosticTarget.reference,
+            suggestedFixLabel: 'Choisir un dialogue existant.',
+          ),
+        );
+      }
+    }
+
+    final expectedMediaKind = switch (step.kind) {
+      CinematicTimelineStepKind.sound => CinematicMediaAssetKind.sound,
+      CinematicTimelineStepKind.music => CinematicMediaAssetKind.music,
+      CinematicTimelineStepKind.fx => CinematicMediaAssetKind.cinematicFx,
+      _ => null,
+    };
+    if (expectedMediaKind != null) {
+      final media = referenceId == null ? null : mediaById[referenceId];
+      if (media == null) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.cinematicCommandMissingReference,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Le média choisi pour cette commande est introuvable.',
+            cinematicId: cinematic.id,
+            stepId: step.id,
+            referenceId: referenceId,
+            target: CinematicDiagnosticTarget.reference,
+            suggestedFixLabel: 'Choisir un média existant.',
+          ),
+        );
+      } else if (media.kind != expectedMediaKind) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.cinematicCommandMediaTypeMismatch,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'Le type du média ne correspond pas à la commande.',
+            cinematicId: cinematic.id,
+            stepId: step.id,
+            referenceId: referenceId,
+            target: CinematicDiagnosticTarget.reference,
+            suggestedFixLabel: 'Choisir un média du bon type.',
+          ),
+        );
+      }
+      _diagnoseCommandNumber(
+        cinematic,
+        step,
+        diagnostics,
+        key: cinematicTimelineCommandVolumeMetadataKey,
+        code: CinematicDiagnosticCode.cinematicCommandInvalidVolume,
+        min: 0,
+        max: 1,
+        message: 'Le volume doit être compris entre 0 et 1.',
+      );
+      final fade = int.tryParse(
+        step.metadata[cinematicTimelineCommandFadeMsMetadataKey] ?? '',
+      );
+      if (fade == null || fade < 0) {
+        diagnostics.add(
+          CinematicDiagnostic(
+            code: CinematicDiagnosticCode.cinematicCommandInvalidFade,
+            severity: CinematicDiagnosticSeverity.error,
+            message: 'La durée du fondu doit être positive ou nulle.',
+            cinematicId: cinematic.id,
+            stepId: step.id,
+            target: CinematicDiagnosticTarget.step,
+            suggestedFixLabel: 'Choisir un fondu valide.',
+          ),
+        );
+      }
+    }
+    if (step.kind == CinematicTimelineStepKind.shake ||
+        step.kind == CinematicTimelineStepKind.fx) {
+      _diagnoseCommandNumber(
+        cinematic,
+        step,
+        diagnostics,
+        key: cinematicTimelineCommandIntensityMetadataKey,
+        code: CinematicDiagnosticCode.cinematicCommandInvalidIntensity,
+        min: 0,
+        max: 1,
+        message: 'L’intensité doit être comprise entre 0 et 1.',
+      );
+    }
+  }
+  for (final step in cinematicCommandPublicationBlockers(cinematic)) {
+    diagnostics.add(
+      CinematicDiagnostic(
+        code: CinematicDiagnosticCode.cinematicCommandRuntimePending,
+        severity: CinematicDiagnosticSeverity.warning,
+        message: 'Cette commande reste en brouillon jusqu’au support runtime.',
+        cinematicId: cinematic.id,
+        stepId: step.id,
+        target: CinematicDiagnosticTarget.step,
+        suggestedFixLabel: 'Prévisualiser avec un runtime compatible.',
+      ),
+    );
+  }
+}
+
+void _diagnoseCommandNumber(
+  CinematicAsset cinematic,
+  CinematicTimelineStep step,
+  List<CinematicDiagnostic> diagnostics, {
+  required String key,
+  required CinematicDiagnosticCode code,
+  required double min,
+  required double max,
+  required String message,
+}) {
+  final value = double.tryParse(step.metadata[key] ?? '');
+  if (value != null && value.isFinite && value >= min && value <= max) return;
+  diagnostics.add(
+    CinematicDiagnostic(
+      code: code,
+      severity: CinematicDiagnosticSeverity.error,
+      message: message,
+      cinematicId: cinematic.id,
+      stepId: step.id,
+      target: CinematicDiagnosticTarget.step,
+      suggestedFixLabel: 'Corriger la valeur dans l’inspecteur.',
+    ),
+  );
 }
 
 void _diagnoseCinematicShape(

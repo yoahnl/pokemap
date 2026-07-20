@@ -1636,6 +1636,27 @@ final class _NarrativeDependencyIndexBuilder {
           criticality: NarrativeDependencyCriticality.runtimeBlocking,
         );
       }
+      for (var index = 0; index < cinematic.timeline.steps.length; index++) {
+        final step = cinematic.timeline.steps[index];
+        final referenceId = step.assetRef?.trim();
+        if (referenceId == null || referenceId.isEmpty) continue;
+        final targetKind = switch (step.kind) {
+          CinematicTimelineStepKind.dialogueLine =>
+            NarrativeDependencyTargetKind.dialogue,
+          CinematicTimelineStepKind.sound ||
+          CinematicTimelineStepKind.music ||
+          CinematicTimelineStepKind.fx =>
+            NarrativeDependencyTargetKind.media,
+          _ => null,
+        };
+        if (targetKind == null) continue;
+        _usage(
+          target: NarrativeDependencyKey(targetKind, referenceId),
+          owner: owner,
+          path: 'cinematics[${cinematic.id}].timeline.steps[$index].assetRef',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      }
       if (mapId != null) {
         for (var index = 0; index < cinematic.requiredActors.length; index++) {
           final entityId = cinematic.requiredActors[index].entityId;

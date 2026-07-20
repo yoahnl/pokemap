@@ -1771,7 +1771,20 @@ void main() {
             ),
           ],
         ),
-        timeline: CinematicTimeline(),
+        timeline: CinematicTimeline(
+          steps: <CinematicTimelineStep>[
+            CinematicTimelineStep(
+              id: 'dialogue.command',
+              kind: CinematicTimelineStepKind.dialogueLine,
+              assetRef: 'dialogue.rival',
+            ),
+            CinematicTimelineStep(
+              id: 'sound.command',
+              kind: CinematicTimelineStepKind.sound,
+              assetRef: 'media.bell',
+            ),
+          ],
+        ),
         legacyBridge: CinematicLegacyBridge(
           sourceKind: CinematicLegacyBridgeSourceKind.scenarioAsset,
           scenarioId: 'scenario.legacy',
@@ -1798,6 +1811,15 @@ void main() {
         storylines: <StorylineAsset>[_storyline()],
         cinematics: <CinematicAsset>[cinematic],
         worldRules: <WorldRuleDefinition>[_worldRule()],
+      ).copyWith(
+        cinematicMediaAssets: [
+          CinematicMediaAsset(
+            id: 'media.bell',
+            label: 'Cloche',
+            kind: CinematicMediaAssetKind.sound,
+            relativePath: 'audio/bell.ogg',
+          ),
+        ],
       );
 
       final index = buildNarrativeDependencyIndex(
@@ -1834,6 +1856,14 @@ void main() {
             mapId: 'map.port',
             sourceKind: 'event',
             sourceId: 'event.arrival',
+          ),
+          const NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.dialogue,
+            'dialogue.rival',
+          ),
+          const NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.media,
+            'media.bell',
           ),
         ]),
       );

@@ -3,6 +3,101 @@ import 'package:test/test.dart';
 
 void main() {
   group('Cinematic authoring operations', () {
+    group('advanced command authoring', () {
+      test('creates updates removes and round-trips all authorable commands',
+          () {
+        var cinematic = _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [CinematicActorRef(actorId: 'lysa', label: 'Lysa')],
+          timeline: CinematicTimeline(),
+        );
+        final sound = CinematicMediaAsset(
+          id: 'wave',
+          label: 'Wave',
+          kind: CinematicMediaAssetKind.sound,
+          relativePath: 'audio/wave.ogg',
+        );
+        final music = CinematicMediaAsset(
+          id: 'port',
+          label: 'Port',
+          kind: CinematicMediaAssetKind.music,
+          relativePath: 'audio/port.ogg',
+        );
+        final fx = CinematicMediaAsset(
+          id: 'fog',
+          label: 'Fog',
+          kind: CinematicMediaAssetKind.cinematicFx,
+          relativePath: 'fx/fog.json',
+        );
+        final specs = <CinematicTimelineStepKind, Map<String, Object?>>{
+          CinematicTimelineStepKind.dialogueLine: {
+            'dialogueId': 'dialogue_port',
+            'actorId': 'lysa',
+          },
+          CinematicTimelineStepKind.shake: const {},
+          CinematicTimelineStepKind.sound: {'mediaAsset': sound},
+          CinematicTimelineStepKind.music: {'mediaAsset': music},
+          CinematicTimelineStepKind.fx: {'mediaAsset': fx},
+          CinematicTimelineStepKind.marker: {'label': 'Plan suivant'},
+        };
+        for (final entry in specs.entries) {
+          final spec = entry.value;
+          cinematic = addCinematicTimelineCommandStep(
+            cinematic,
+            kind: entry.key,
+            dialogueId: spec['dialogueId'] as String?,
+            actorId: spec['actorId'] as String?,
+            mediaAsset: spec['mediaAsset'] as CinematicMediaAsset?,
+            label: spec['label'] as String?,
+          ).cinematic;
+        }
+
+        expect(cinematic.timeline.steps, hasLength(6));
+        expect(
+          cinematic.timeline.steps.every(isCinematicTimelineAuthoringStep),
+          isTrue,
+        );
+        final soundStep = cinematic.timeline.steps
+            .firstWhere((step) => step.kind == CinematicTimelineStepKind.sound);
+        final updated = updateCinematicTimelineCommandStep(
+          cinematic,
+          stepId: soundStep.id,
+          volume: 0.4,
+          fadeMs: 250,
+          loop: true,
+        );
+        expect(
+          updated.step.metadata[cinematicTimelineCommandVolumeMetadataKey],
+          '0.4',
+        );
+        final decoded = CinematicAsset.fromJson(updated.cinematic.toJson());
+        expect(decoded, updated.cinematic);
+        final removed = removeCinematicTimelineCommandStep(
+          decoded,
+          stepId: soundStep.id,
+        );
+        expect(removed.cinematic.timeline.steps, hasLength(5));
+      });
+
+      test('rejects an incompatible media kind without partial mutation', () {
+        final cinematic = _cinematic(id: 'cinematic_intro');
+        expect(
+          () => addCinematicTimelineCommandStep(
+            cinematic,
+            kind: CinematicTimelineStepKind.music,
+            mediaAsset: CinematicMediaAsset(
+              id: 'wave',
+              label: 'Wave',
+              kind: CinematicMediaAssetKind.sound,
+              relativePath: 'audio/wave.ogg',
+            ),
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+        expect(cinematic.timeline.steps, hasLength(1));
+      });
+    });
+
     group('blocking presets', () {
       test('previews an NPC entrance without mutating the asset', () {
         final cinematic = _cinematic(

@@ -316,6 +316,10 @@ NarrativeStudioNavigationResolution resolveNarrativeDependencyNavigationIntent(
           selection: selection(NarrativeStudioAssetKind.cinematic),
         ),
       ),
+    NarrativeDependencyTargetKind.media =>
+      NarrativeStudioNavigationResolution.internal(
+        NarrativeStudioRouteLocation.cinematics(),
+      ),
     NarrativeDependencyTargetKind.storyline =>
       NarrativeStudioNavigationResolution.internal(
         NarrativeStudioRouteLocation.storylines(
