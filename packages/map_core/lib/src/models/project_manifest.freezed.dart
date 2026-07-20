@@ -62,6 +62,12 @@ mixin _$ProjectManifest {
       fromJson: _cinematicsFromJson,
       toJson: _cinematicsToJson)
   List<CinematicAsset> get cinematics => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'cinematicMediaAssets',
+      fromJson: _cinematicMediaAssetsFromJson,
+      toJson: _cinematicMediaAssetsToJson)
+  List<CinematicMediaAsset> get cinematicMediaAssets =>
+      throw _privateConstructorUsedError;
   @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
   List<NarrativeFactDefinition> get facts => throw _privateConstructorUsedError;
   @JsonKey(
@@ -157,11 +163,13 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
-      @JsonKey(
-          name: 'cinematics',
-          fromJson: _cinematicsFromJson,
-          toJson: _cinematicsToJson)
+      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
       List<CinematicAsset> cinematics,
+      @JsonKey(
+          name: 'cinematicMediaAssets',
+          fromJson: _cinematicMediaAssetsFromJson,
+          toJson: _cinematicMediaAssetsToJson)
+      List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
       @JsonKey(
@@ -243,6 +251,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? scripts = null,
     Object? scenarios = null,
     Object? cinematics = null,
+    Object? cinematicMediaAssets = null,
     Object? facts = null,
     Object? worldRules = null,
     Object? narrativeDiagnosticSuppressions = null,
@@ -341,6 +350,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.cinematics
           : cinematics // ignore: cast_nullable_to_non_nullable
               as List<CinematicAsset>,
+      cinematicMediaAssets: null == cinematicMediaAssets
+          ? _value.cinematicMediaAssets
+          : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
+              as List<CinematicMediaAsset>,
       facts: null == facts
           ? _value.facts
           : facts // ignore: cast_nullable_to_non_nullable
@@ -465,11 +478,13 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
-      @JsonKey(
-          name: 'cinematics',
-          fromJson: _cinematicsFromJson,
-          toJson: _cinematicsToJson)
+      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
       List<CinematicAsset> cinematics,
+      @JsonKey(
+          name: 'cinematicMediaAssets',
+          fromJson: _cinematicMediaAssetsFromJson,
+          toJson: _cinematicMediaAssetsToJson)
+      List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
       @JsonKey(
@@ -551,6 +566,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? scripts = null,
     Object? scenarios = null,
     Object? cinematics = null,
+    Object? cinematicMediaAssets = null,
     Object? facts = null,
     Object? worldRules = null,
     Object? narrativeDiagnosticSuppressions = null,
@@ -649,6 +665,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._cinematics
           : cinematics // ignore: cast_nullable_to_non_nullable
               as List<CinematicAsset>,
+      cinematicMediaAssets: null == cinematicMediaAssets
+          ? _value._cinematicMediaAssets
+          : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
+              as List<CinematicMediaAsset>,
       facts: null == facts
           ? _value._facts
           : facts // ignore: cast_nullable_to_non_nullable
@@ -745,12 +765,14 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ScenarioAsset> scenarios = const [],
       @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
       final List<CinematicAsset> cinematics = const [],
+      @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)
+      final List<CinematicMediaAsset> cinematicMediaAssets = const [],
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       final List<NarrativeFactDefinition> facts = const [],
       @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       final List<WorldRuleDefinition> worldRules = const [],
-      final List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions =
-          const [],
+      final List<NarrativeDiagnosticSuppression>
+          narrativeDiagnosticSuppressions = const [],
       @JsonKey(includeIfNull: false) this.eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes = const [],
@@ -773,11 +795,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.borderCatalog = const ProjectBorderCatalog.empty(),
       @ProjectShadowCatalogJsonConverter()
       this.shadowCatalog = const ProjectShadowCatalog.empty(),
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
+      @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)
       this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()})
       : _maps = maps,
         _groups = groups,
@@ -797,6 +815,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _scripts = scripts,
         _scenarios = scenarios,
         _cinematics = cinematics,
+        _cinematicMediaAssets = cinematicMediaAssets,
         _facts = facts,
         _worldRules = worldRules,
         _narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,
@@ -987,6 +1006,19 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_cinematics);
   }
 
+  final List<CinematicMediaAsset> _cinematicMediaAssets;
+  @override
+  @JsonKey(
+      name: 'cinematicMediaAssets',
+      fromJson: _cinematicMediaAssetsFromJson,
+      toJson: _cinematicMediaAssetsToJson)
+  List<CinematicMediaAsset> get cinematicMediaAssets {
+    if (_cinematicMediaAssets is EqualUnmodifiableListView)
+      return _cinematicMediaAssets;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cinematicMediaAssets);
+  }
+
   final List<NarrativeFactDefinition> _facts;
   @override
   @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
@@ -1106,7 +1138,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1147,6 +1179,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._scenarios, _scenarios) &&
             const DeepCollectionEquality()
                 .equals(other._cinematics, _cinematics) &&
+            const DeepCollectionEquality()
+                .equals(other._cinematicMediaAssets, _cinematicMediaAssets) &&
             const DeepCollectionEquality().equals(other._facts, _facts) &&
             const DeepCollectionEquality()
                 .equals(other._worldRules, _worldRules) &&
@@ -1203,6 +1237,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_scripts),
         const DeepCollectionEquality().hash(_scenarios),
         const DeepCollectionEquality().hash(_cinematics),
+        const DeepCollectionEquality().hash(_cinematicMediaAssets),
         const DeepCollectionEquality().hash(_facts),
         const DeepCollectionEquality().hash(_worldRules),
         const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),
@@ -1240,83 +1275,78 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
 abstract class _ProjectManifest implements ProjectManifest {
   const factory _ProjectManifest(
-          {required final String name,
-          final ProjectVersion version,
-          required final List<ProjectMapEntry> maps,
-          final List<ProjectMapGroup> groups,
-          final List<ProjectTilesetFolder> tilesetFolders,
-          required final List<ProjectTilesetEntry> tilesets,
-          final List<ProjectElementCategory> elementCategories,
-          final List<ProjectElementEntry> elements,
-          final List<ProjectPresetCategory> terrainCategories,
-          final List<ProjectPresetCategory> pathCategories,
-          final List<ProjectTerrainPreset> terrainPresets,
-          final List<ProjectPathPreset> pathPresets,
-          @JsonKey(
-              name: 'pathPatternPresets',
-              fromJson: decodeProjectPathPatternPresets,
-              toJson: encodeProjectPathPatternPresets)
-          final List<ProjectPathPatternPreset> pathPatternPresets,
-          @JsonKey(
-              name: 'environmentPresets',
-              fromJson: decodeEnvironmentPresets,
-              toJson: encodeEnvironmentPresets)
-          final List<EnvironmentPreset> environmentPresets,
-          final List<ProjectEncounterTable> encounterTables,
-          final List<ProjectDialogueFolder> dialogueFolders,
-          final List<ProjectDialogueEntry> dialogues,
-          final List<ProjectScriptEntry> scripts,
-          final List<ScenarioAsset> scenarios,
-          @JsonKey(
-              name: 'cinematics',
-              fromJson: _cinematicsFromJson,
-              toJson: _cinematicsToJson)
-          final List<CinematicAsset> cinematics,
-          @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-          final List<NarrativeFactDefinition> facts,
-          @JsonKey(
-              name: 'worldRules',
-              fromJson: _worldRulesFromJson,
-              toJson: _worldRulesToJson)
-          final List<WorldRuleDefinition> worldRules,
-          final List<NarrativeDiagnosticSuppression>
-              narrativeDiagnosticSuppressions,
-          @JsonKey(includeIfNull: false)
-          final NarrativeEventRegistry? eventRegistry,
-          @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-          final List<SceneAsset> scenes,
-          @JsonKey(
-              name: 'storylines',
-              fromJson: _storylinesFromJson,
-              toJson: _storylinesToJson)
-          final List<StorylineAsset> storylines,
-          final List<ProjectTrainerEntry> trainers,
-          final List<ProjectCharacterEntry> characters,
-          final ProjectSettings settings,
-          final ProjectPokemonConfig pokemon,
-          final ProjectNewGameConfig newGame,
-          final Map<String, dynamic> globalProperties,
-          @JsonKey(
-              name: 'surfaceCatalog',
-              fromJson: _projectSurfaceCatalogFromJson,
-              toJson: _projectSurfaceCatalogToJson)
-          final ProjectSurfaceCatalog surfaceCatalog,
-          @JsonKey(
-              name: 'borderCatalog',
-              readValue: _readProjectBorderCatalog,
-              fromJson: _projectBorderCatalogFromJson,
-              toJson: _projectBorderCatalogToJson,
-              includeIfNull: false)
-          final ProjectBorderCatalog borderCatalog,
-          @ProjectShadowCatalogJsonConverter()
-          final ProjectShadowCatalog shadowCatalog,
-          @JsonKey(
-              name: 'projectedBuildingShadowCatalog',
-              fromJson: _projectedBuildingShadowCatalogFromJson,
-              toJson: _projectedBuildingShadowCatalogToJson,
-              includeIfNull: false)
-          final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog}) =
-      _$ProjectManifestImpl;
+      {required final String name,
+      final ProjectVersion version,
+      required final List<ProjectMapEntry> maps,
+      final List<ProjectMapGroup> groups,
+      final List<ProjectTilesetFolder> tilesetFolders,
+      required final List<ProjectTilesetEntry> tilesets,
+      final List<ProjectElementCategory> elementCategories,
+      final List<ProjectElementEntry> elements,
+      final List<ProjectPresetCategory> terrainCategories,
+      final List<ProjectPresetCategory> pathCategories,
+      final List<ProjectTerrainPreset> terrainPresets,
+      final List<ProjectPathPreset> pathPresets,
+      @JsonKey(
+          name: 'pathPatternPresets',
+          fromJson: decodeProjectPathPatternPresets,
+          toJson: encodeProjectPathPatternPresets)
+      final List<ProjectPathPatternPreset> pathPatternPresets,
+      @JsonKey(
+          name: 'environmentPresets',
+          fromJson: decodeEnvironmentPresets,
+          toJson: encodeEnvironmentPresets)
+      final List<EnvironmentPreset> environmentPresets,
+      final List<ProjectEncounterTable> encounterTables,
+      final List<ProjectDialogueFolder> dialogueFolders,
+      final List<ProjectDialogueEntry> dialogues,
+      final List<ProjectScriptEntry> scripts,
+      final List<ScenarioAsset> scenarios,
+      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
+      final List<CinematicAsset> cinematics,
+      @JsonKey(
+          name: 'cinematicMediaAssets',
+          fromJson: _cinematicMediaAssetsFromJson,
+          toJson: _cinematicMediaAssetsToJson)
+      final List<CinematicMediaAsset> cinematicMediaAssets,
+      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
+      final List<NarrativeFactDefinition> facts,
+      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
+      final List<WorldRuleDefinition> worldRules,
+      final List<NarrativeDiagnosticSuppression>
+          narrativeDiagnosticSuppressions,
+      @JsonKey(includeIfNull: false)
+      final NarrativeEventRegistry? eventRegistry,
+      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
+      final List<SceneAsset> scenes,
+      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
+      final List<StorylineAsset> storylines,
+      final List<ProjectTrainerEntry> trainers,
+      final List<ProjectCharacterEntry> characters,
+      final ProjectSettings settings,
+      final ProjectPokemonConfig pokemon,
+      final ProjectNewGameConfig newGame,
+      final Map<String, dynamic> globalProperties,
+      @JsonKey(
+          name: 'surfaceCatalog',
+          fromJson: _projectSurfaceCatalogFromJson,
+          toJson: _projectSurfaceCatalogToJson)
+      final ProjectSurfaceCatalog surfaceCatalog,
+      @JsonKey(
+          name: 'borderCatalog',
+          readValue: _readProjectBorderCatalog,
+          fromJson: _projectBorderCatalogFromJson,
+          toJson: _projectBorderCatalogToJson,
+          includeIfNull: false)
+      final ProjectBorderCatalog borderCatalog,
+      @ProjectShadowCatalogJsonConverter()
+      final ProjectShadowCatalog shadowCatalog,
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
+      final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
       _$ProjectManifestImpl.fromJson;
@@ -1373,6 +1403,12 @@ abstract class _ProjectManifest implements ProjectManifest {
       fromJson: _cinematicsFromJson,
       toJson: _cinematicsToJson)
   List<CinematicAsset> get cinematics;
+  @override
+  @JsonKey(
+      name: 'cinematicMediaAssets',
+      fromJson: _cinematicMediaAssetsFromJson,
+      toJson: _cinematicMediaAssetsToJson)
+  List<CinematicMediaAsset> get cinematicMediaAssets;
   @override
   @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
   List<NarrativeFactDefinition> get facts;

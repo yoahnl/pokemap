@@ -3,6 +3,29 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeDependencyIndex contract', () {
+    test('indexes project media and FX definitions', () {
+      final index = buildNarrativeDependencyIndex(
+        project: _project().copyWith(cinematicMediaAssets: [
+          CinematicMediaAsset(
+            id: 'fx_fog',
+            label: 'Brume',
+            kind: CinematicMediaAssetKind.cinematicFx,
+            relativePath: 'fx/fog.json',
+          ),
+        ]),
+      );
+
+      expect(
+        index.definitionsFor(
+          const NarrativeDependencyKey(
+            NarrativeDependencyTargetKind.media,
+            'fx_fog',
+          ),
+        ),
+        hasLength(1),
+      );
+    });
+
     test('indexes map and warp references from interactive Scene commands', () {
       final scene = SceneAsset(
         id: 'scene.warp',

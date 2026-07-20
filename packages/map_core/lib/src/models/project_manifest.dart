@@ -8,6 +8,7 @@ import 'enums.dart';
 import 'project_trainer.dart';
 import 'project_new_game_config.dart';
 import 'cinematic_asset.dart';
+import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
 import 'narrative_fact.dart';
@@ -172,6 +173,24 @@ List<Map<String, dynamic>> _cinematicsToJson(
 ) {
   return [for (final cinematic in cinematics) cinematic.toJson()];
 }
+
+List<CinematicMediaAsset> _cinematicMediaAssetsFromJson(Object? json) {
+  if (json == null) return const [];
+  if (json is! List) {
+    throw const ValidationException(
+      'cinematicMediaAssets must be a JSON list',
+    );
+  }
+  return [
+    for (final item in json)
+      CinematicMediaAsset.fromJson(_cinematicJsonObject(item)),
+  ];
+}
+
+List<Map<String, dynamic>> _cinematicMediaAssetsToJson(
+  List<CinematicMediaAsset> assets,
+) =>
+    [for (final asset in assets) asset.toJson()];
 
 Map<String, dynamic> _cinematicJsonObject(Object? json) {
   if (json is! Map) {
@@ -380,6 +399,13 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _cinematicsToJson,
     )
     List<CinematicAsset> cinematics,
+    @Default([])
+    @JsonKey(
+      name: 'cinematicMediaAssets',
+      fromJson: _cinematicMediaAssetsFromJson,
+      toJson: _cinematicMediaAssetsToJson,
+    )
+    List<CinematicMediaAsset> cinematicMediaAssets,
     @Default([])
     @JsonKey(
       name: 'facts',

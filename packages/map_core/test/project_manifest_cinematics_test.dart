@@ -11,6 +11,27 @@ void main() {
       expect(manifest.cinematics, isEmpty);
       expect(manifest.scenarios, isEmpty);
       expect(manifest.scenes, isEmpty);
+      expect(manifest.cinematicMediaAssets, isEmpty);
+    });
+
+    test('round-trips the project media catalog', () {
+      final manifest = ProjectManifest(
+        name: 'Project',
+        maps: const [],
+        tilesets: const [],
+        cinematicMediaAssets: [
+          CinematicMediaAsset(
+            id: 'music_port',
+            label: 'Port',
+            kind: CinematicMediaAssetKind.music,
+            relativePath: 'audio/music/port.ogg',
+          ),
+        ],
+      );
+
+      final decoded = ProjectManifest.fromJson(manifest.toJson());
+
+      expect(decoded.cinematicMediaAssets, manifest.cinematicMediaAssets);
     });
 
     test('decodes cinematics null and empty cinematics as empty list', () {

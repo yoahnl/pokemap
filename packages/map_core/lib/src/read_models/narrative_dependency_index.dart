@@ -25,6 +25,7 @@ enum NarrativeDependencyTargetKind {
   scene,
   dialogue,
   cinematic,
+  media,
   storyline,
   chapter,
   step,
@@ -536,6 +537,14 @@ final class _NarrativeDependencyIndexBuilder {
         cinematic.id,
         cinematic.title,
         path: 'cinematics[${cinematic.id}]',
+      );
+    }
+    for (final media in project.cinematicMediaAssets) {
+      _definition(
+        NarrativeDependencyTargetKind.media,
+        media.id,
+        media.label,
+        path: 'cinematicMediaAssets[${media.id}]',
       );
     }
     for (final storyline in project.storylines) {

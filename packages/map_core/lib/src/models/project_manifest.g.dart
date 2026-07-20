@@ -90,6 +90,9 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       cinematics: json['cinematics'] == null
           ? const []
           : _cinematicsFromJson(json['cinematics']),
+      cinematicMediaAssets: json['cinematicMediaAssets'] == null
+          ? const []
+          : _cinematicMediaAssetsFromJson(json['cinematicMediaAssets']),
       facts: json['facts'] == null ? const [] : _factsFromJson(json['facts']),
       worldRules: json['worldRules'] == null
           ? const []
@@ -178,6 +181,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'scripts': instance.scripts.map((e) => e.toJson()).toList(),
       'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
       'cinematics': _cinematicsToJson(instance.cinematics),
+      'cinematicMediaAssets':
+          _cinematicMediaAssetsToJson(instance.cinematicMediaAssets),
       'facts': _factsToJson(instance.facts),
       'worldRules': _worldRulesToJson(instance.worldRules),
       'narrativeDiagnosticSuppressions': instance
