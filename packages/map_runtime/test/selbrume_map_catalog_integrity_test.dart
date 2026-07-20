@@ -204,6 +204,7 @@ void main() {
     expect(
       map.layers.map((layer) => layer.id),
       <String>[
+        'l_border_bordures',
         'l_tile_for_t',
         'l_environment_for_t',
         'l_path_path',
@@ -212,12 +213,13 @@ void main() {
         'l_tile_maison',
       ],
     );
-    expect(map.layers[0], isA<TileLayer>());
-    expect(map.layers[1], isA<EnvironmentLayer>());
-    expect(map.layers[2], isA<PathLayer>());
-    expect(map.layers[3], isA<TerrainLayer>());
-    expect(map.layers[4], isA<PathLayer>());
-    expect(map.layers[5], isA<TileLayer>());
+    expect(map.layers[0], isA<BorderLayer>());
+    expect(map.layers[1], isA<TileLayer>());
+    expect(map.layers[2], isA<EnvironmentLayer>());
+    expect(map.layers[3], isA<PathLayer>());
+    expect(map.layers[4], isA<TerrainLayer>());
+    expect(map.layers[5], isA<PathLayer>());
+    expect(map.layers[6], isA<TileLayer>());
     expect(
       map.layers.where((layer) => layer.id == 'l_tile_objectif'),
       isEmpty,

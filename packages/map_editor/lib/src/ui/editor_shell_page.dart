@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons, Material, MaterialType;
+import 'package:flutter/material.dart'
+    show Dialog, Icons, Material, MaterialType, showDialog;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -25,11 +26,13 @@ import 'package:map_editor/src/ui/shared/top_toolbar/dialogs/top_toolbar_dialogs
 import 'design_system/design_system.dart';
 import '../theme/theme.dart';
 
+import '../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
 import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
 import '../application/services/narrative_document_session.dart';
+import '../features/border_studio/state/border_studio_providers.dart';
 
 const double _kRightInspectorDefaultWidth = 336;
 const double _kRightInspectorMinWidth = 280;
@@ -74,6 +77,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
   /// When false, the left ResizablePane is collapsed to a narrow toggle strip.
   bool _leftSidebarVisible = true;
+  bool _isHandlingBorderExit = false;
 
   @override
   void initState() {
@@ -293,6 +297,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
+      EditorWorkspaceMode.borderStudio => false,
       _ => true,
     };
 
@@ -312,6 +317,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
     ref.listen(editorShellSnapshotProvider.select((s) => s.workspaceMode),
         (prev, next) {
+      if (prev == EditorWorkspaceMode.borderStudio &&
+          next != EditorWorkspaceMode.borderStudio) {
+        unawaited(_confirmBorderStudioExit());
+      }
       final wasNarrative = prev != null &&
           switch (prev) {
             EditorWorkspaceMode.narrativeOverview ||
@@ -418,7 +427,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                 if (_isTextInputFocused()) return null;
                 if (workspaceMode == EditorWorkspaceMode.map) {
                   if (!shell.canSaveMap) return null;
-                  notifier.saveActiveMap();
+                  requestActiveMapSaveWithBorderPreviewGuard(
+                    context: context,
+                    notifier: notifier,
+                  );
                   return null;
                 }
                 if (project == null) return null;
@@ -985,6 +997,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                   .environmentStudio =>
                                                               EditorChrome
                                                                   .islandWarmTint,
+                                                            EditorWorkspaceMode
+                                                                  .borderStudio =>
+                                                              EditorChrome
+                                                                  .islandCoolTint,
                                                           },
                                                           child: switch (
                                                               workspaceMode) {
@@ -1023,6 +1039,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .environmentStudio =>
+                                                              const _EmptyWorkspaceInspector(),
+                                                            EditorWorkspaceMode
+                                                                  .borderStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                 .globalStory ||
@@ -1068,6 +1087,94 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmBorderStudioExit() async {
+    if (_isHandlingBorderExit) return;
+    final draftState = ref.read(borderStudioDraftControllerProvider);
+    if (!draftState.isDirty) return;
+    _isHandlingBorderExit = true;
+    final choice = await showDialog<_BorderStudioExitChoice>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        final colors = dialogContext.pokeMapColors;
+        return Dialog(
+          backgroundColor: colors.cardSurface,
+          child: SizedBox(
+            width: 520,
+            child: PokeMapPanel(
+              header: const Padding(
+                padding: EdgeInsets.all(16),
+                child: PokeMapSectionHeader(
+                  title: 'Brouillon non enregistré',
+                  description:
+                      'Choisissez explicitement quoi faire avant de quitter Border Studio.',
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Aucun changement ne sera publié automatiquement.',
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 13,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    alignment: WrapAlignment.end,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      PokeMapButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(
+                          _BorderStudioExitChoice.stay,
+                        ),
+                        variant: PokeMapButtonVariant.secondary,
+                        child: const Text('Rester'),
+                      ),
+                      PokeMapButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(
+                          _BorderStudioExitChoice.discard,
+                        ),
+                        variant: PokeMapButtonVariant.danger,
+                        child: const Text('Abandonner les modifications'),
+                      ),
+                      PokeMapButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(
+                          _BorderStudioExitChoice.save,
+                        ),
+                        child: const Text('Enregistrer'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    if (!mounted) return;
+    final controller = ref.read(borderStudioDraftControllerProvider.notifier);
+    switch (choice) {
+      case _BorderStudioExitChoice.save:
+        final updated = controller.saveDraft();
+        ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+              updated,
+              statusMessage: 'Brouillon Border enregistré dans le projet.',
+            );
+      case _BorderStudioExitChoice.discard:
+        controller.reloadFromManifest(ref.read(editorProjectManifestProvider));
+      case _BorderStudioExitChoice.stay:
+      case null:
+        ref.read(editorNotifierProvider.notifier).selectBorderStudioWorkspace();
+    }
+    _isHandlingBorderExit = false;
   }
 }
 
@@ -1309,6 +1416,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
         colors.narrative,
       EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
+      EditorWorkspaceMode.borderStudio => colors.brandCyan,
     };
 
     final badgeVariant = switch (workspaceMode) {
@@ -1347,6 +1455,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeValidator => 'Validateur',
       EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
+      EditorWorkspaceMode.borderStudio => 'Bordures',
     };
 
     if (workspaceMode == EditorWorkspaceMode.map && activeMap != null) {
@@ -1459,7 +1568,10 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                       MacosPulldownMenuItem(
                         label: 'Sauvegarder la carte',
                         title: const Text('Sauvegarder la carte'),
-                        onTap: notifier.saveActiveMap,
+                        onTap: () => requestActiveMapSaveWithBorderPreviewGuard(
+                          context: context,
+                          notifier: notifier,
+                        ),
                       ),
                     ],
                   ),
@@ -1505,6 +1617,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 CupertinoIcons.checkmark_shield,
               EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
+              EditorWorkspaceMode.borderStudio =>
+                CupertinoIcons.square_on_square,
             },
             color: chipAccent,
             size: 20,
@@ -1519,9 +1633,11 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 title,
                 key: workspaceMode == EditorWorkspaceMode.environmentStudio
                     ? const Key('environment-studio-title')
-                    : (workspaceMode == EditorWorkspaceMode.trainer
-                        ? const Key('trainer-studio-title')
-                        : null),
+                    : (workspaceMode == EditorWorkspaceMode.borderStudio
+                        ? const Key('border-studio-title')
+                        : (workspaceMode == EditorWorkspaceMode.trainer
+                            ? const Key('trainer-studio-title')
+                            : null)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -1952,3 +2068,5 @@ class _CollapsedExpandButtonState extends State<_CollapsedExpandButton> {
     );
   }
 }
+
+enum _BorderStudioExitChoice { save, discard, stay }

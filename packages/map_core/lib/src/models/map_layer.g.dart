@@ -225,3 +225,31 @@ Map<String, dynamic> _$$EnvironmentLayerImplToJson(
       'properties': instance.properties,
       'runtimeType': instance.$type,
     };
+
+_$BorderLayerImpl _$$BorderLayerImplFromJson(Map<String, dynamic> json) =>
+    _$BorderLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      content: _readBorderLayerContent(json, 'content') == null
+          ? BorderLayerContent.emptyContent
+          : _borderLayerContentFromJson(
+              _readBorderLayerContent(json, 'content')),
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const <String, String>{},
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$BorderLayerImplToJson(_$BorderLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'content': _borderLayerContentToJson(instance.content),
+      'properties': instance.properties,
+      'runtimeType': instance.$type,
+    };

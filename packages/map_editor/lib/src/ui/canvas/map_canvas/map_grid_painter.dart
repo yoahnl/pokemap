@@ -5,16 +5,6 @@ enum _EditorMapTileRenderPass {
   foreground,
 }
 
-const _bottomToTopTileLayerOrder = 'bottom_to_top';
-
-bool _usesBottomToTopTileLayerOrder(MapData map) {
-  // L'opt-in est volontairement exact et limité à la map. Les projets
-  // existants ont été composés avec la traversée inverse historique de
-  // l'éditeur : une valeur inconnue ou mal formée doit donc conserver ce
-  // comportement legacy, sans modifier silencieusement leur empilement.
-  return map.properties['tileLayerOrder'] == _bottomToTopTileLayerOrder;
-}
-
 /// Rejoue côté éditeur la même séparation "fond / avant-plan" que la runtime.
 ///
 /// Pourquoi cette logique existe :
@@ -227,12 +217,15 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final int editorEntityAnimationMs;
+  final bool showGrid;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
   final EnvironmentMaskBrushCursorOverlay? environmentBrushCursorOverlay;
   final EnvironmentGeneratedPlacementAddPreview? environmentGeneratedAddPreview;
   final String? environmentGeneratedDeletePreviewId;
+  final BorderPreviewTransaction? borderPreview;
+  final EditorBorderDiagnosticOverlayPalette? borderDiagnosticOverlayPalette;
 
   MapGridPainter({
     required this.map,
@@ -266,10 +259,13 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.shadowLightPreviewPreset,
     this.editorEntityAnimationMs = 0,
+    this.showGrid = true,
     this.environmentMaskOverlay,
     this.environmentBrushCursorOverlay,
     this.environmentGeneratedAddPreview,
     this.environmentGeneratedDeletePreviewId,
+    this.borderPreview,
+    this.borderDiagnosticOverlayPalette,
   });
 
   @override
@@ -282,11 +278,12 @@ class MapGridPainter extends CustomPainter {
     final gridHeight = map.size.height * tileHeight;
 
     final visibleLayers = map.layers.where((layer) => layer.isVisible).toList();
-    final visibleTileLayers = visibleLayers.whereType<TileLayer>().toList();
-    final tileLayersInPaintOrder = (_usesBottomToTopTileLayerOrder(map)
-            ? visibleTileLayers
-            : visibleTileLayers.reversed)
-        .toList(growable: false);
+    final layerPaintOrder = buildEditorMapLayerPaintOrder(map);
+    final tileLayersInPaintOrder =
+        (map.properties['tileLayerOrder'] == 'bottom_to_top'
+                ? visibleLayers.whereType<TileLayer>()
+                : visibleLayers.whereType<TileLayer>().toList().reversed)
+            .toList(growable: false);
     final foregroundTileCellIndicesByLayerId =
         buildEditorForegroundTileCellIndicesByLayerId(
       map: map,
@@ -311,6 +308,9 @@ class MapGridPainter extends CustomPainter {
             lightPreviewPreset: shadowLightPreviewPreset,
           );
 
+    // Border is an additive visual pass. Existing Terrain, Path, Surface and
+    // Tile pixels must retain their historical composition when a Border
+    // layer is added, previewed or materialized.
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
       if (layer is TerrainLayer) {
@@ -320,9 +320,6 @@ class MapGridPainter extends CustomPainter {
 
     TileLayer? deferredPathGroundLayer;
     final deferredPathLayers = <PathLayer>[];
-    // Match the runtime's narrow opt-in: only the first background tile layer
-    // can act as an opaque ground below editable paths. This keeps every prop,
-    // shadow and later structure above the path in both previews and gameplay.
     if (tileLayersInPaintOrder.isNotEmpty) {
       final candidate = tileLayersInPaintOrder.first;
       final isForeground = _isExplicitForegroundTileLayerForEditor(
@@ -408,6 +405,25 @@ class MapGridPainter extends CustomPainter {
       paintVisibleSurfaceLayers();
     }
 
+    final borderCatalog = project?.borderCatalog;
+    if (borderCatalog != null) {
+      for (final entry in layerPaintOrder.authoredLayers) {
+        if (entry.kind != EditorMapAuthoredLayerPaintKind.border) continue;
+        const BorderPreviewPainter().paintLayer(
+          canvas,
+          map: map,
+          layer: entry.layer as BorderLayer,
+          catalog: borderCatalog,
+          frameImagesByKey: tilesetImagesById,
+          sourceTileWidth: sourceTileWidth,
+          sourceTileHeight: sourceTileHeight,
+          displayScale: sourceTileWidth <= 0 ? 1 : tileWidth / sourceTileWidth,
+          elapsedMs: editorEntityAnimationMs,
+          preview: borderPreview,
+        );
+      }
+    }
+
     paintEditorStaticShadowPreviewInstructions(
       canvas,
       projectedBuildingShadowPreviewInstructions,
@@ -426,32 +442,34 @@ class MapGridPainter extends CustomPainter {
       );
     }
 
-    for (var index = visibleLayers.length - 1; index >= 0; index--) {
-      final layer = visibleLayers[index];
-      if (layer is CollisionLayer) {
-        _paintCollisionLayer(canvas, layer,
-            isActive: layer.id == activeLayerId);
+    for (final layer in layerPaintOrder.collisionOverlayLayers) {
+      _paintCollisionLayer(
+        canvas,
+        layer,
+        isActive: layer.id == activeLayerId,
+      );
+    }
+
+    if (showGrid) {
+      final gridPaint = Paint()
+        ..color = PokeMapLegacyColors.white10
+        ..strokeWidth = 1.0 / zoom
+        ..style = PaintingStyle.stroke;
+
+      for (int x = 0; x <= map.size.width; x++) {
+        canvas.drawLine(
+          Offset(x * tileWidth, 0),
+          Offset(x * tileWidth, gridHeight),
+          gridPaint,
+        );
       }
-    }
-
-    final gridPaint = Paint()
-      ..color = PokeMapLegacyColors.white10
-      ..strokeWidth = 1.0 / zoom
-      ..style = PaintingStyle.stroke;
-
-    for (int x = 0; x <= map.size.width; x++) {
-      canvas.drawLine(
-        Offset(x * tileWidth, 0),
-        Offset(x * tileWidth, gridHeight),
-        gridPaint,
-      );
-    }
-    for (int y = 0; y <= map.size.height; y++) {
-      canvas.drawLine(
-        Offset(0, y * tileHeight),
-        Offset(gridWidth, y * tileHeight),
-        gridPaint,
-      );
+      for (int y = 0; y <= map.size.height; y++) {
+        canvas.drawLine(
+          Offset(0, y * tileHeight),
+          Offset(gridWidth, y * tileHeight),
+          gridPaint,
+        );
+      }
     }
 
     if (hoveredTile != null) {
@@ -512,6 +530,7 @@ class MapGridPainter extends CustomPainter {
     _paintEnvironmentGeneratedAddPreview(canvas);
     _paintEnvironmentMaskOverlay(canvas);
     _paintEnvironmentBrushCursorOverlay(canvas);
+    _paintBorderDiagnosticOverlay(canvas);
     _paintMapEvents(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
@@ -588,6 +607,23 @@ class MapGridPainter extends CustomPainter {
         ..color = color.withValues(alpha: 0.45)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5 / zoom,
+    );
+  }
+
+  void _paintBorderDiagnosticOverlay(Canvas canvas) {
+    final palette = borderDiagnosticOverlayPalette;
+    final diagnostics = editorBorderPreviewDiagnosticsForMap(
+      map: map,
+      preview: borderPreview,
+    );
+    if (palette == null || diagnostics.isEmpty) return;
+    paintEditorBorderDiagnosticOverlay(
+      canvas,
+      marks: buildEditorBorderDiagnosticOverlayMarks(diagnostics),
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      zoom: zoom,
+      palette: palette,
     );
   }
 
@@ -2764,10 +2800,14 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs ||
+        oldDelegate.showGrid != showGrid ||
         oldDelegate.environmentGeneratedAddPreview !=
             environmentGeneratedAddPreview ||
         oldDelegate.environmentGeneratedDeletePreviewId !=
             environmentGeneratedDeletePreviewId ||
+        !identical(oldDelegate.borderPreview, borderPreview) ||
+        oldDelegate.borderDiagnosticOverlayPalette !=
+            borderDiagnosticOverlayPalette ||
         oldDelegate.environmentBrushCursorOverlay !=
             environmentBrushCursorOverlay ||
         !_sameEnvironmentMaskOverlay(

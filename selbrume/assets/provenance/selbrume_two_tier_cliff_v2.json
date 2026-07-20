@@ -1,0 +1,1010 @@
+{
+  "schemaVersion": 1,
+  "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+  "license": "project-owned generated asset",
+  "status": "approved",
+  "collisionIntent": "visual_only_no_collision",
+  "sheetSha256": "a03924a707298ef86cb164f207b58794b9a9e23a7f5dcd62a79d3113ef999f63",
+  "atlasSha256": "649f5e221dbacf44cb3792852bc4c14a103931c0a5f1a751d36306da0fb5489d",
+  "chroma": "#FF00FF",
+  "chromaTolerance": 48,
+  "tileSize": {
+    "width": 32,
+    "height": 32
+  },
+  "atlasGrid": {
+    "columns": 6,
+    "rows": 4
+  },
+  "palette": [
+    "#A69C7B",
+    "#91886D",
+    "#7E7660",
+    "#6C6554",
+    "#5B5548",
+    "#4D483E",
+    "#3E3A33",
+    "#302D28"
+  ],
+  "assets": {
+    "tilesets/falaises_selbrume_deux_etages_v2.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_n_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_n_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_n_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_e_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_e_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_e_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_s_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_s_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_s_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_w_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_w_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/top_w_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_n_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_n_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_n_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_e_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_e_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_e_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_s_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_s_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_s_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_w_01.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_w_02.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "sources/border_studio/two_tier_cliff_v2/face_w_03.png": {
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/0ff86a5bdd0cd9a94999ab52f437751028c1a1752dedcc32cb898a029e243a4f/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_e_02.png (sha256:c1af65f053e7e4ec1a082751e212fbf7bb23e3f857e7067007d066f0a6be7c72)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/139fa0951b7e213f963e1e7f5b15b25289366e128efc3e17fc237c8552340bcd/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_03.png (sha256:b44fe8b1a35f86b391bb3d06bb0597940f9263abf14bf79cf6a6abdc679e0073)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/14e86e0b3eff9059cec714509a19f142ffb5d20f35625c14e43ec253476e7c79/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_s_02.png (sha256:ac44b3dad8861f9abba4b4c262089f94d75aedb2d495b2afc92d9fa1e831c392)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/1bbe0517c3db43d6f26f745dddf7d0c83d02355fceee5a6bd2e0ed146b9c3485/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_03.png (sha256:ff97077aeecce94d6b4457cd2e21948d08681570149b6706cd8421227c20ea37)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/1f16d313540b8fb8addbe6db5af2ec94a77d028e4dc6e34e4eea38aa698e2cc4/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_n_03.png (sha256:c3ed25c622a045ef7c166af6559649e7ff66d10036f2a2c7bc838b955cf73e06)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/210801ce45e50f54a65fbbabb4fa2c22c4a1e41ea4981ec741a74acc21d1cbc5/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_01.png (sha256:8aee1d95a1e7c4aa45f0883faacda8331e81fb142c56946f43675f3e47d72082)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/239d6553f88366056d73de04c325228707ca566cfbfb4d786e2712c0a7657a5f/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_02.png (sha256:7bdecba908006a7348c3a0026425b5801486da53bec5cfedd516d0bbf7f5b8f3)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/31436643a13e7149ae6b41e94261970b7ef3ca95ec33eb6247037a085484515d/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_01.png (sha256:608f4e53be31820b8b8bc6621b9736884ae3eed6549b9bf5df2ad6163a4a9582)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/3d3c6caf89d16392d4cb70dcf116798912451a60deb653346735c4a3306c1202/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_01.png (sha256:f4cbc849e5d86cf2b42ae96c765b654b40e4257a83e09254cefc5e47359ef499)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/3f63a51089f9f76a79c62c230086c1e1cf48f25d0a2f0cc7f6a6e2c36c75864b/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_w_01.png (sha256:b169ba6d9138c34d94301fc8e8912677768ae9ea13c217cdbc55e0cdb5f2917c)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/41527fb83983adf16039b6bba934c16a4b8bc32cf11db166d3cd20fa0487a259/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_e_01.png (sha256:566da70b8d3ea9e861d6f5fb4980f6ad6a79041d7527f48ac3675e5dce50a534)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/535c01f7161dcfb9c5044f7b88da308b7362faa6f986622d04d4b01b491323a9/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_n_01.png (sha256:bccd3741f9da2b9a8274abfe5f19ac2bf5a8d3644d0d4c030c1fd7f5cd4fdcdb)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/5a458c22f492eaabdfbb824574232e4b5484d54a267dacad21b163f4874754de/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_02.png (sha256:f553f9533b575407934fa1216c9902d9966b042a8a61d06784b94e9abe4b10b6)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/5c7e96fb2335903af078d5bdaa670f486b7782dcf26a243b31e3dc8933d1f29a/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_01.png (sha256:03b78cdae7eb7802dd7c401cc95d7bfed7a537ea1827c35be0bb86e01bcb7fdc)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/61828f489f712ed284136ff97d8aefc901a28284d5ea014700653a223afcd48b/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_02.png (sha256:52246add4c8eb0f5483661b5eb82f9ba6277f5bcd3ea7a1fdf149dd8fa1d4ef2)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/64359463f363a339321e90c9bcfed754bc98761dd5366a4d01c882740f1a3745/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_w_02.png (sha256:3231ac3be6341c92bf23c937264583da50b66c3299d455284fa8c8253fe1715b)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/820cc06de12b8553242883f1458fb9322ca2b3a20aba160ed660c9e127190137/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_n_02.png (sha256:bedacee950295b50818fdb39725ee5ef97a342a20a0aec8e47541e18b2f21f76)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/980f282e464f6720908fa289824aded845cd3162c23b49735e3da86ba4a8f272/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_03.png (sha256:c6ef0726715883a0425b82d1f8febf79f56fa9edbb171fea1eb850cbe9799456)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/9d5dc526a8b3d0c7b3990af18ca3ff3e199c9d70d0bdac6eb511a7561b85d4d8/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_02.png (sha256:7bcd31b8ed416148a92467dc5712aea602fe2f085028665bc6e5d6aef4f1f740)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/a05f194caa1354fdf2f8deea01501c25360e7995226c9485c0e2a1d4b2f8ebb7/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_s_01.png (sha256:cd6f8fbb26fd5897d6a5a7aa84e9102a0b628239392ba92b492ac5e1b43d3899)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/a25752647598c77ecf6b728e907347a6d12a3699902707df262c021fc9494f61/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_01.png (sha256:7e24b0053f48598ff952cb0561bda27bda8437406b897d4178a27f745ffa4f4f)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/a88e4dec21a2b68497abe67e7a1819a21db7f4beb19520bd59012ff5061dba6b/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_03.png (sha256:0ab162fd0395455b52239fffbd60a8ee63a03795324a0021b5078d1d0435a7f1)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/ace19d780c89c06d5e028974053d6a894d163ef2634facf816fa47cf110ee571/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_03.png (sha256:08cff0fadb2e194023048034476e29431c3d936b1b18c4b73e5d328a8a1686a3)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/bab085b64248de3a95b4b91dd5790708f1ed381f0c3880ccf14cc5a744f6ff45/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_e_03.png (sha256:37ef62e9062e09be938d9631b282fb7951b14d143ffdd79c7d4831f7e715df53)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/be09e3bac53ff902704ce6d6a81db8c5d3e2485b7b7ccdb28253509240aa4fef/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_02.png (sha256:900c6ef9c502a66507516e0ed83d26b383e8d7d6bcff634c0946970bb24895fc)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/c1229dcb1783d297bcb38dbfafa6c5f07cd30293de6e5f2c5555ed3c7e700938/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_02.png (sha256:200e8c104ff52a1c9c5ea329b7c90c095c263a87f64a0b7369d0bbe9f4b69589)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/c350a7c69d790e74baa315b555e5924574ac61c93cd098a6b41feae99d053f28/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_s_03.png (sha256:0549805be99a3efc2bc77259e63be040c9ea9fa70e8d7f3a6ef505bbdfe2b376)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/d870513db37db69d92a2072c915fb1d1b4e08e08f6af5bc08d8e853f90528d6f/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_03.png (sha256:c881762b0fdd41da19fbc6900a010e7749d743455aa86642909eebc86f603799)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/db5e4c2a03493d4d9f765a4835feaff52c6ef25ead2f1e303d3003608d9753aa/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_01.png (sha256:7e0d54792e1fd176987219039ac70a7c7c44d0921a7dbd10007172bf4a8c3381)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/e277d3e5e27b1b045b0ac629d6e83100316cc6c0f6309b7287394972b9ce2152/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_w_03.png (sha256:746f40cbbd2386128c08bd3c2bea4c12664a3ed9c446c605416d21453288b7a1)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/e2b8cb8258c9d12cd498c3c10cc542ae63b3546aeed943cf9c8b1ba82e714656/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_01.png (sha256:7f5692bb949e4d0dfdc91b3b4c3de9e201cf26ce686fbb817803390487e7c95a)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/ec5bc0e6e60c3d5a5728ea6a3f52e2a650a7197376d2a6ce0a04499d9b27530d/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_e_02.png (sha256:5909f00db1cd795b029d897fae64e56bedd80402127b506e9761121654a2927c)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/f13c8d94dfd55d6003d35f6e883aaf0d15c187dcd181c3657feb898b236d9761/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_03.png (sha256:ff27dee316275ae5311a794c96b375ea6c58d8193b49030f0c66d6de9e77c7f3)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/f5afa822f76b235c325c6a8db6a1521da6c3594cd5e3a708e938f1e923163750/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_n_02.png (sha256:f336d164c62fc4965bfd8066657d9d708f5aa6193bbd41ee399c7bc3ddad3329)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/f87e4d93d2411b9cab4c7e2898cb56545df71e8e4cfae28c0f32a8cdc3509ac3/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/face_s_01.png (sha256:766d54d2e8d5605e05362728de4026dc0a0be5f82d97566faf400d0d699f0a97)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    "borders/snapshots/fddb66e7040964ca3aff4a7e8925b30a3fdc386545fcc3277b177065478c1b42/frame_0000.png": {
+      "source": "Byte-identical immutable Border Studio publication snapshot derived from assets/sources/border_studio/two_tier_cliff_v2/top_w_03.png (sha256:9e880d66276db07d3fa7722df04ad3b785042aa5814870cde76a1d2d49f577a2)",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    }
+  },
+  "entries": [
+    {
+      "id": "selbrume-cliff-top-n-01",
+      "fileName": "top_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_n_01.png",
+      "sha256": "b87d1acc60ae7e1cbd52d6fa20533b56475206e80de761fbfb4c992bc9fd431e",
+      "role": "top",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 0,
+        "width": 12,
+        "height": 10
+      },
+      "lightOrMediumPermille": 598,
+      "darkPermille": 402,
+      "atlasCell": {
+        "column": 0,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-n-02",
+      "fileName": "top_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_n_02.png",
+      "sha256": "a3dc7ca313891e53df2534ad5a8c90a370921f60d2b367f8397c2506fa2076ae",
+      "role": "top",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 0,
+        "width": 14,
+        "height": 12
+      },
+      "lightOrMediumPermille": 601,
+      "darkPermille": 399,
+      "atlasCell": {
+        "column": 1,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-n-03",
+      "fileName": "top_n_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_n_03.png",
+      "sha256": "935ceef2db01cbf617e53da0cf090a298ec871313d86431fd226c364cd92d753",
+      "role": "top",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 0,
+        "width": 16,
+        "height": 14
+      },
+      "lightOrMediumPermille": 600,
+      "darkPermille": 400,
+      "atlasCell": {
+        "column": 2,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-e-01",
+      "fileName": "top_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_e_01.png",
+      "sha256": "63c60291ddfb3efbd37ba8d6e5fd59f7e6e50ec93d425583ccf80ebd9ce7e135",
+      "role": "top",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 22,
+        "y": 10,
+        "width": 10,
+        "height": 12
+      },
+      "lightOrMediumPermille": 604,
+      "darkPermille": 396,
+      "atlasCell": {
+        "column": 3,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-e-02",
+      "fileName": "top_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_e_02.png",
+      "sha256": "474f2458b5cadd72522a7a96ea9d810694d7360106daf71c6ca3825f8c7511e8",
+      "role": "top",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 20,
+        "y": 9,
+        "width": 12,
+        "height": 14
+      },
+      "lightOrMediumPermille": 601,
+      "darkPermille": 399,
+      "atlasCell": {
+        "column": 4,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-e-03",
+      "fileName": "top_e_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_e_03.png",
+      "sha256": "fa64cfb4b18f93ed3a773e0957b0f649baa9ee6f9bbea6c88f4df137036a2f3e",
+      "role": "top",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 18,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "lightOrMediumPermille": 602,
+      "darkPermille": 398,
+      "atlasCell": {
+        "column": 5,
+        "row": 0
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-s-01",
+      "fileName": "top_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_s_01.png",
+      "sha256": "fa7fd8d8d8b958b111bacb7e1f7292568fab5f92fb837b21a7da0b1df0016da1",
+      "role": "top",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 22,
+        "width": 12,
+        "height": 10
+      },
+      "lightOrMediumPermille": 604,
+      "darkPermille": 396,
+      "atlasCell": {
+        "column": 0,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-s-02",
+      "fileName": "top_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_s_02.png",
+      "sha256": "368ea44256fcd3162220164b5a88b1409dcc5b6c1d3a95cd32ef6ec0fa9de64c",
+      "role": "top",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 20,
+        "width": 14,
+        "height": 12
+      },
+      "lightOrMediumPermille": 600,
+      "darkPermille": 400,
+      "atlasCell": {
+        "column": 1,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-s-03",
+      "fileName": "top_s_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_s_03.png",
+      "sha256": "53096a63ae17dfa9750837ef080a85dc3b2a4bc2f129319a361655ea3c0a0d30",
+      "role": "top",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 18,
+        "width": 16,
+        "height": 14
+      },
+      "lightOrMediumPermille": 599,
+      "darkPermille": 401,
+      "atlasCell": {
+        "column": 2,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-w-01",
+      "fileName": "top_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_w_01.png",
+      "sha256": "c8bf65edfdf995e0c3c9e15ff74eb49a02a22b20231521bc7708e3ba68ae9163",
+      "role": "top",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 10,
+        "width": 10,
+        "height": 12
+      },
+      "lightOrMediumPermille": 600,
+      "darkPermille": 400,
+      "atlasCell": {
+        "column": 3,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-w-02",
+      "fileName": "top_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_w_02.png",
+      "sha256": "e6189d3bd08234b9cf8d44b7fd24dad59450c0480a567e5a5e251bb5203b04fc",
+      "role": "top",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 9,
+        "width": 12,
+        "height": 14
+      },
+      "lightOrMediumPermille": 597,
+      "darkPermille": 403,
+      "atlasCell": {
+        "column": 4,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-top-w-03",
+      "fileName": "top_w_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/top_w_03.png",
+      "sha256": "99c8ee8ee8f743e0cc5501e5f836fd7f83c872d0dfaf7b4d5ee7b72d9f941e6a",
+      "role": "top",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "lightOrMediumPermille": 598,
+      "darkPermille": 402,
+      "atlasCell": {
+        "column": 5,
+        "row": 1
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-n-01",
+      "fileName": "face_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_n_01.png",
+      "sha256": "61915899d30116342bdaa338b907ed62bdc4e7314e166b51084d11b49fcbaa02",
+      "role": "face",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 31
+      },
+      "opaqueBoundsPx": {
+        "x": 11,
+        "y": 0,
+        "width": 10,
+        "height": 27
+      },
+      "lightOrMediumPermille": 399,
+      "darkPermille": 601,
+      "atlasCell": {
+        "column": 0,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-n-02",
+      "fileName": "face_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_n_02.png",
+      "sha256": "14a8bd345d1b6083dfa4c8818df16b98e111a6daf3bf5dd9febf19bd3491bd6d",
+      "role": "face",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 31
+      },
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 0,
+        "width": 12,
+        "height": 27
+      },
+      "lightOrMediumPermille": 401,
+      "darkPermille": 599,
+      "atlasCell": {
+        "column": 1,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-n-03",
+      "fileName": "face_n_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_n_03.png",
+      "sha256": "1e6c69adad3985768da9cf386a7ff5533c0c9256ab58b2430e9d1caa4255cae4",
+      "role": "face",
+      "authoredOrientation": "north",
+      "anchorPx": {
+        "x": 16,
+        "y": 31
+      },
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 0,
+        "width": 14,
+        "height": 27
+      },
+      "lightOrMediumPermille": 401,
+      "darkPermille": 599,
+      "atlasCell": {
+        "column": 2,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-e-01",
+      "fileName": "face_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_e_01.png",
+      "sha256": "0834aa1d1202f400992303b5359c2ff52117922addebfeaa1a3dd9ca71a3cebd",
+      "role": "face",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 0,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 11,
+        "width": 27,
+        "height": 10
+      },
+      "lightOrMediumPermille": 398,
+      "darkPermille": 602,
+      "atlasCell": {
+        "column": 3,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-e-02",
+      "fileName": "face_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_e_02.png",
+      "sha256": "0f0dd0cefc956f8859e60d855d1a805a543c02900cf32b6bb53b5b0636152108",
+      "role": "face",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 0,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 10,
+        "width": 27,
+        "height": 12
+      },
+      "lightOrMediumPermille": 401,
+      "darkPermille": 599,
+      "atlasCell": {
+        "column": 4,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-e-03",
+      "fileName": "face_e_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_e_03.png",
+      "sha256": "470b46186e2b9c37fafd0eaaa65efc47542de5db8482e3676103acd5d6e47cec",
+      "role": "face",
+      "authoredOrientation": "east",
+      "anchorPx": {
+        "x": 0,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 9,
+        "width": 27,
+        "height": 14
+      },
+      "lightOrMediumPermille": 401,
+      "darkPermille": 599,
+      "atlasCell": {
+        "column": 5,
+        "row": 2
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-s-01",
+      "fileName": "face_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_s_01.png",
+      "sha256": "f2148f7e8675c76ff9702855e9233c512c79e26e6d87937092eb6ba232cf7dee",
+      "role": "face",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 0
+      },
+      "opaqueBoundsPx": {
+        "x": 11,
+        "y": 5,
+        "width": 10,
+        "height": 27
+      },
+      "lightOrMediumPermille": 398,
+      "darkPermille": 602,
+      "atlasCell": {
+        "column": 0,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-s-02",
+      "fileName": "face_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_s_02.png",
+      "sha256": "cc5cfbc5256ddb664f91ed95b07c693ce8f830759e2eb7c6a08a3a91b61ad4e7",
+      "role": "face",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 0
+      },
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 5,
+        "width": 12,
+        "height": 27
+      },
+      "lightOrMediumPermille": 399,
+      "darkPermille": 601,
+      "atlasCell": {
+        "column": 1,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-s-03",
+      "fileName": "face_s_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_s_03.png",
+      "sha256": "36d672e773277c13a572ec39857d0f8082eac5e0f37517b2b92cc557f210070d",
+      "role": "face",
+      "authoredOrientation": "south",
+      "anchorPx": {
+        "x": 16,
+        "y": 0
+      },
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 5,
+        "width": 14,
+        "height": 27
+      },
+      "lightOrMediumPermille": 401,
+      "darkPermille": 599,
+      "atlasCell": {
+        "column": 2,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-w-01",
+      "fileName": "face_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_w_01.png",
+      "sha256": "b86584931c9845dd78a42435eba0ae0196bf1e61742d955abc6ae81cfe995d5f",
+      "role": "face",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 31,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 11,
+        "width": 27,
+        "height": 10
+      },
+      "lightOrMediumPermille": 399,
+      "darkPermille": 601,
+      "atlasCell": {
+        "column": 3,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-w-02",
+      "fileName": "face_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_w_02.png",
+      "sha256": "8704ec9eb6d531bf45dfccaf4ed1741859c642d1582b7b5dcbcde809d2795938",
+      "role": "face",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 31,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 10,
+        "width": 27,
+        "height": 12
+      },
+      "lightOrMediumPermille": 399,
+      "darkPermille": 601,
+      "atlasCell": {
+        "column": 4,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    },
+    {
+      "id": "selbrume-cliff-face-w-03",
+      "fileName": "face_w_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v2/face_w_03.png",
+      "sha256": "2f153441919f498a8ff5a07c33352b60674bcc9609b9b888714a093ab69623f0",
+      "role": "face",
+      "authoredOrientation": "west",
+      "anchorPx": {
+        "x": 31,
+        "y": 16
+      },
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 9,
+        "width": 27,
+        "height": 14
+      },
+      "lightOrMediumPermille": 399,
+      "darkPermille": 601,
+      "atlasCell": {
+        "column": 5,
+        "row": 3
+      },
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen contact sheet refined for Selbrume",
+      "license": "project-owned generated asset",
+      "status": "approved"
+    }
+  ]
+}

@@ -212,6 +212,7 @@ void main() {
       expect(find.text('Catalogues Pokémon'), findsOneWidget);
       expect(find.text('Narrative Studio'), findsOneWidget);
       expect(find.text('World Maps'), findsOneWidget);
+      expect(find.text('Border Studio'), findsOneWidget);
       expect(find.text('Terrain Library'), findsOneWidget);
       expect(find.text('Path Library'), findsOneWidget);
       expect(find.text('Environment Studio'), findsAtLeastNWidgets(1));
@@ -220,7 +221,7 @@ void main() {
       final moduleCards = tester.widgetList<ProjectExplorerModuleCard>(
         find.byType(ProjectExplorerModuleCard),
       );
-      expect(moduleCards, hasLength(9));
+      expect(moduleCards, hasLength(10));
       expect(moduleCards.every((card) => !card.expanded), isTrue);
       expect(tester.takeException(), isNull);
     });

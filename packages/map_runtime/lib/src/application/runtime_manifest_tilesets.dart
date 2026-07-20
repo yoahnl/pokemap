@@ -43,6 +43,9 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
       environment: (id, name, isVisible, opacity, content, properties) {},
+      // Border snapshots are not runtime tilesets; their dedicated immutable
+      // snapshot cache collects and loads them separately.
+      border: (id, name, isVisible, opacity, content, properties) {},
     );
   }
   return ids;
@@ -123,6 +126,9 @@ void addTerrainAndPathPresetTilesetIds(
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
       environment: (id, name, isVisible, opacity, content, properties) {},
+      // Border snapshots are not terrain/path preset tileset references and
+      // remain owned by the dedicated immutable snapshot cache.
+      border: (id, name, isVisible, opacity, content, properties) {},
     );
   }
 }

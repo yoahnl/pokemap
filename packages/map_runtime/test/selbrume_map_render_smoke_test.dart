@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/border/border_runtime_asset_cache.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
@@ -64,6 +65,7 @@ void main() {
       MapLayersComponent(
         bundle: bundle,
         tileImagesByTilesetId: tileImages,
+        borderAssets: await _loadBorderAssetsForRender(bundle),
       ),
       worldWidth: (bundle.map.size.width * bundle.cellWidth).round(),
       worldHeight: (bundle.map.size.height * bundle.cellHeight).round(),
@@ -120,6 +122,7 @@ void main() {
       MapLayersComponent(
         bundle: bundle,
         tileImagesByTilesetId: tileImages,
+        borderAssets: await _loadBorderAssetsForRender(bundle),
       ),
       worldWidth: (bundle.map.size.width * bundle.cellWidth).round(),
       worldHeight: (bundle.map.size.height * bundle.cellHeight).round(),
@@ -824,6 +827,7 @@ void main() {
         final layer = MapLayersComponent(
           bundle: bundle,
           tileImagesByTilesetId: tileImages,
+          borderAssets: await _loadBorderAssetsForRender(bundle),
         );
         final image = await _renderOverview(
           layer,
@@ -962,6 +966,17 @@ Future<Map<String, RuntimeTilesetImage>> _loadTilesetsForRender(
     }
   }
   return loaded;
+}
+
+Future<BorderRuntimeAssetBundle?> _loadBorderAssetsForRender(
+  RuntimeMapBundle bundle,
+) async {
+  final preparation = bundle.borderRuntimePreparation;
+  if (preparation == null) return null;
+  return BorderRuntimeAssetCache().loadCollection(
+    projectRoot: bundle.projectRootDirectory,
+    collection: preparation.assetCollection,
+  );
 }
 
 Future<ui.Image> _renderOverview(

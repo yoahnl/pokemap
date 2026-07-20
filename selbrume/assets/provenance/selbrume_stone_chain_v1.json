@@ -1,0 +1,672 @@
+{
+  "schemaVersion": 1,
+  "atlasId": "ts_selbrume_cliff_stone_chain_v1",
+  "atlasRelativePath": "assets/tilesets/falaises_selbrume_pierres_chaine_v1.png",
+  "atlasSha256": "357d8a242d688102a0d1cc6f8d1aa54cc5e76f15a21b60cf3692003a21169119",
+  "tileSize": {
+    "width": 32,
+    "height": 32
+  },
+  "grid": {
+    "columns": 4,
+    "rows": 4
+  },
+  "anchor": {
+    "x": 16,
+    "y": 29
+  },
+  "collisionIntent": "visual_only_no_collision",
+  "licenseStatus": "unverified",
+  "generationDate": "2026-07-17",
+  "generationTool": "built-in imagegen plus deterministic local processing",
+  "generationPrompt": "Create a brand-new ORIGINAL pixel-art contact sheet of exactly 16 isolated individual coastal cliff stones, arranged in a precise 4 columns by 4 rows grid. These are source modules for a tile-map editor, not a finished cliff and not copied/cropped from either reference. Use the references only to understand the warm grey/taupe/charcoal Selbrume stone language and upper-left lighting. Every cell must contain exactly ONE compact stone or pebble with generous empty space around it; no connected wall segments, no piles spanning cells. Row 1: four medium squat primary stones. Row 2: one additional medium primary followed by three smaller secondary stones. Row 3: one secondary stone followed by three tiny filler pebbles. Row 4: two compact corner-anchor stones followed by two tapered cap stones. All 16 silhouettes must visibly differ. Strict crisp low-resolution pixel art, hard pixel edges, no antialiasing, no blur, no drop shadows, no outlines outside the sprite. Background must be a single uniform pure chroma magenta #FF00FF across all empty space. STONES ONLY: absolutely no green, grass, moss, plants, sand, dirt, soil, water, ocean, foam, waves, beach, wood, text, labels, grid lines, frame, or scenery. Keep highlights upper-left, darkest pixels lower-right. Square contact sheet, orthographic game-sprite view, coherent Pokemon-like coastal village pixel-art style, but entirely original.",
+  "rawContactSheetSha256": "685be70e81d3f566d29b89787f726fdb0792432a43362a5b457ec2cc8ea6fb73",
+  "chromaRemovedContactSheetSha256": "77642e18161ab56dde5431c7d0262f2eecf3ccc18776fbce402088c1102278d9",
+  "chromaKey": "#FF00FF",
+  "chromaRemoval": {
+    "helper": "remove_chroma_key.py",
+    "tolerance": 12,
+    "spillCleanup": true,
+    "partialAlphaPixels": 0
+  },
+  "correctiveGeneration": {
+    "generationDate": "2026-07-17",
+    "generationTool": "built-in imagegen plus deterministic local processing",
+    "generationPrompt": "Use case: stylized-concept\nAsset type: corrective pixel-art contact sheet for four isolated tile-map stone sprites\nInput images: Image 1 is a stone-language style reference only; Image 2 is a coastal-map scale and lighting reference only; Image 3 is the existing accepted stone-chain palette and pixel-density reference only. Do not copy, crop, trace, composite, or use any reference as an underlay.\nPrimary request: Create one brand-new ORIGINAL square contact sheet containing exactly FOUR isolated coastal stone sprites in a precise 2 columns by 2 rows arrangement. Top-left: corner stone variant 1, a low rounded compact chain rock, naturally wide and squat, never tall, vertical, cubic, pillar-like, or monolithic. Top-right: corner stone variant 2, a visibly different low rounded compact chain rock, naturally wide and squat, able to cover a bend without becoming a block. Bottom-left: cap stone variant 1, one tiny rounded compact terminal pebble, not pointed and not elongated. Bottom-right: cap stone variant 2, one visibly different tiny rounded compact terminal pebble, not pointed and not elongated.\nScene/backdrop: perfectly flat, perfectly uniform solid chroma-key magenta #FF00FF across every empty pixel; no grid lines, borders, labels, frames, gradients, texture, lighting variation, floor, or horizon.\nStyle/medium: crisp handcrafted low-resolution top-down three-quarter RPG pixel art; hard pixel edges; coherent with the existing Selbrume individual stones; entirely original.\nComposition/framing: exactly one fully isolated stone centered in each quadrant with generous magenta padding and no overlap between quadrants. The two corner stones must read as low horizontal rounded rocks with approximate width-to-height ratio 1.35–1.7. The two cap stones must read as very small compact rounded pebbles with approximate width-to-height ratio 1.1–1.5. No diagonal silhouette.\nLighting/mood: identical upper-left highlight and lower-right dark pixels across all four, matching the accepted stone-chain atlas.\nColor palette: warm grey, taupe, muted charcoal and restrained beige highlights matching Image 3; do not use magenta in the stones.\nConstraints: STONES ONLY; exactly four sprites; all four silhouettes unique; no antialiasing, blur, soft edges, cast shadow, contact shadow, detached fragments, or extra pebbles. Corners must be small low rounded chain rocks, never vertical or cubic. Caps must be compact rounded pebbles, never long diagonal slivers.\nAvoid: grass, green, moss, plants, sand, dirt, soil, water, ocean, foam, waves, beach, wood, scenery, text, symbols, watermark, grid, connected wall, rock pile spanning cells, cliff segment, tall column, cube, monolith, shard, spike, slash, long diagonal fragment.",
+    "rawContactSheetSha256": "f3fbf78b6d2dd512c5e6bc2ee0d906a792cae06eb7245bc01a17a181e28b1d35",
+    "chromaRemovedContactSheetSha256": "2ec72f056cf2bb9bc0c1f63be376716ea7763bae74a341e75f59d0721f6bfd7c",
+    "chromaKey": "#FF00FF",
+    "chromaRemoval": {
+      "helper": "remove_chroma_key.py",
+      "autoKey": "border",
+      "softMatte": true,
+      "transparentThreshold": 12,
+      "opaqueThreshold": 220,
+      "despill": true,
+      "partialAlphaPixelsBeforeNormalization": 4501,
+      "partialAlphaPixelsAfterNormalization": 0
+    },
+    "replacedEntries": [
+      "stone_chain_corner_01",
+      "stone_chain_corner_02",
+      "stone_chain_cap_01",
+      "stone_chain_cap_02"
+    ],
+    "targetOpaqueFootprintsPx": {
+      "stone_chain_corner_01": {
+        "width": 22,
+        "height": 16
+      },
+      "stone_chain_corner_02": {
+        "width": 20,
+        "height": 15
+      },
+      "stone_chain_cap_01": {
+        "width": 11,
+        "height": 8
+      },
+      "stone_chain_cap_02": {
+        "width": 9,
+        "height": 7
+      }
+    }
+  },
+  "replacementGeneration": {
+    "generationDate": "2026-07-17",
+    "generationTool": "built-in imagegen plus deterministic local processing",
+    "generationPrompt": "Create a brand-new ORIGINAL production\ncontact sheet for a tile-map editor. Use the supplied Selbrume objective map\nand current atlas only as references for palette, scale, pixel density and\nupper-left lighting; do not copy, crop, trace or composite any pixels. Exactly\n16 disconnected single coastal cliff stones in a strict 4 columns by 4 rows\narrangement, one isolated stone centered in each equal cell, on uniform pure\n#FF00FF. Reading order 1-5: compact primary stones, wider than or roughly as\nwide as tall, with a pale cap and short darker face, never tall pillars. 6-9:\nsmaller secondary face stones for a staggered lower row. 10-12: tiny compact\nfiller pebbles. 13-14: compact corner stones covering a bend without an L, T,\ncross or shelf silhouette. 15-16: tiny tapered endpoint stones. All silhouettes\nunique, crisp hard-edged low-resolution RPG pixel art in warm grey, taupe,\ncharcoal and beige. Stones only: no grass, moss, plants, sand, soil, water,\nfoam, beach, shadow patch, scenery, connected wall, rock pile, grid, labels,\ntext, frame, antialiasing, blur, glow or watermark.",
+    "rawContactSheetSha256": "a2da7f3b3ace55006033102d8f9cbf82d7b015a31381fbc82100512a4461c528",
+    "chromaKey": "#FF00FF",
+    "chromaRemoval": {
+      "method": "deterministic RGB threshold before palette quantization",
+      "binaryAlpha": true
+    },
+    "replacedEntries": [
+      "stone_chain_primary_01",
+      "stone_chain_primary_02",
+      "stone_chain_primary_03",
+      "stone_chain_primary_04",
+      "stone_chain_primary_05",
+      "stone_chain_secondary_01",
+      "stone_chain_secondary_02",
+      "stone_chain_secondary_03",
+      "stone_chain_secondary_04",
+      "stone_chain_filler_01",
+      "stone_chain_filler_02",
+      "stone_chain_filler_03",
+      "stone_chain_corner_01",
+      "stone_chain_corner_02",
+      "stone_chain_cap_01",
+      "stone_chain_cap_02"
+    ],
+    "targetOpaqueFootprintsPx": {
+      "stone_chain_primary_01": {
+        "width": 19,
+        "height": 14
+      },
+      "stone_chain_primary_02": {
+        "width": 18,
+        "height": 17
+      },
+      "stone_chain_primary_03": {
+        "width": 18,
+        "height": 17
+      },
+      "stone_chain_primary_04": {
+        "width": 19,
+        "height": 14
+      },
+      "stone_chain_primary_05": {
+        "width": 17,
+        "height": 17
+      },
+      "stone_chain_secondary_01": {
+        "width": 14,
+        "height": 14
+      },
+      "stone_chain_secondary_02": {
+        "width": 14,
+        "height": 14
+      },
+      "stone_chain_secondary_03": {
+        "width": 14,
+        "height": 13
+      },
+      "stone_chain_secondary_04": {
+        "width": 14,
+        "height": 10
+      },
+      "stone_chain_filler_01": {
+        "width": 6,
+        "height": 6
+      },
+      "stone_chain_filler_02": {
+        "width": 7,
+        "height": 6
+      },
+      "stone_chain_filler_03": {
+        "width": 6,
+        "height": 5
+      },
+      "stone_chain_corner_01": {
+        "width": 17,
+        "height": 15
+      },
+      "stone_chain_corner_02": {
+        "width": 17,
+        "height": 14
+      },
+      "stone_chain_cap_01": {
+        "width": 8,
+        "height": 8
+      },
+      "stone_chain_cap_02": {
+        "width": 7,
+        "height": 7
+      }
+    }
+  },
+  "normalization": {
+    "cellExtraction": "row-major 4x4 contact sheet",
+    "resampling": "nearest-neighbour",
+    "alpha": "binary",
+    "palette": [
+      "#302d28",
+      "#3e3a33",
+      "#4d483e",
+      "#5b5548",
+      "#6c6554",
+      "#7e7660",
+      "#91886d",
+      "#a69c7b"
+    ]
+  },
+  "referenceImages": [
+    "assets/tilesets/cliff.png",
+    "assets/tilesets/objectif.png"
+  ],
+  "referenceImagesUsedAsUnderlays": false,
+  "protectedReferencePixelsCopied": false,
+  "entries": [
+    {
+      "id": "stone_chain_primary_01",
+      "role": "primary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/primary_01.png",
+      "prompt": "Compact individual primary cliff-face stone variant 1; pale cap, short darker face and never a tall pillar. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "2f3c5366cc73cf01f57c61325110c1c0baab74a74bb97a5952a34878a7e24042",
+      "normalizedSha256": "2f3c5366cc73cf01f57c61325110c1c0baab74a74bb97a5952a34878a7e24042",
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 16,
+        "width": 19,
+        "height": 14
+      },
+      "opaqueFootprintPx": {
+        "width": 19,
+        "height": 14
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 0,
+        "row": 0,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_primary_02",
+      "role": "primary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/primary_02.png",
+      "prompt": "Compact individual primary cliff-face stone variant 2; pale cap, short darker face and never a tall pillar. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "4741272c269393eb62f7e5620d98ce02eac5aa4bef8a8213be524356e1dca109",
+      "normalizedSha256": "4741272c269393eb62f7e5620d98ce02eac5aa4bef8a8213be524356e1dca109",
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 13,
+        "width": 18,
+        "height": 17
+      },
+      "opaqueFootprintPx": {
+        "width": 18,
+        "height": 17
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 1,
+        "row": 0,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_primary_03",
+      "role": "primary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/primary_03.png",
+      "prompt": "Compact individual primary cliff-face stone variant 3; pale cap, short darker face and never a tall pillar. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "bdea3083425bf04ab2c1ddc791ccb90dc05ffb6d154b646daae8029a7590449f",
+      "normalizedSha256": "bdea3083425bf04ab2c1ddc791ccb90dc05ffb6d154b646daae8029a7590449f",
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 13,
+        "width": 18,
+        "height": 17
+      },
+      "opaqueFootprintPx": {
+        "width": 18,
+        "height": 17
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 2,
+        "row": 0,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_primary_04",
+      "role": "primary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/primary_04.png",
+      "prompt": "Compact individual primary cliff-face stone variant 4; pale cap, short darker face and never a tall pillar. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "fc95cdc584d1135e09f45503e194e106b9382afc2b1221c582c25231c49b22a6",
+      "normalizedSha256": "fc95cdc584d1135e09f45503e194e106b9382afc2b1221c582c25231c49b22a6",
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 16,
+        "width": 19,
+        "height": 14
+      },
+      "opaqueFootprintPx": {
+        "width": 19,
+        "height": 14
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 3,
+        "row": 0,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_primary_05",
+      "role": "primary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/primary_05.png",
+      "prompt": "Compact individual primary cliff-face stone variant 5; pale cap, short darker face and never a tall pillar. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "bf87e03db1d6659d59ce94db4e33444da03622fff21c19652f72def6e7044c2c",
+      "normalizedSha256": "bf87e03db1d6659d59ce94db4e33444da03622fff21c19652f72def6e7044c2c",
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 13,
+        "width": 17,
+        "height": 17
+      },
+      "opaqueFootprintPx": {
+        "width": 17,
+        "height": 17
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 0,
+        "row": 1,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_secondary_01",
+      "role": "secondary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/secondary_01.png",
+      "prompt": "Medium individual secondary cliff-face stone variant 1. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "9994db7ee24e3eb0d50f78129c023b04ba40b01c25963d480a4b21e52608f564",
+      "normalizedSha256": "9994db7ee24e3eb0d50f78129c023b04ba40b01c25963d480a4b21e52608f564",
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 16,
+        "width": 14,
+        "height": 14
+      },
+      "opaqueFootprintPx": {
+        "width": 14,
+        "height": 14
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 1,
+        "row": 1,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_secondary_02",
+      "role": "secondary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/secondary_02.png",
+      "prompt": "Medium individual secondary cliff-face stone variant 2. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "ab62cd6e5fe840ecee4810286e689345ef896f99a339ee3d3dd944cc4dcc2b77",
+      "normalizedSha256": "ab62cd6e5fe840ecee4810286e689345ef896f99a339ee3d3dd944cc4dcc2b77",
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 16,
+        "width": 14,
+        "height": 14
+      },
+      "opaqueFootprintPx": {
+        "width": 14,
+        "height": 14
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 2,
+        "row": 1,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_secondary_03",
+      "role": "secondary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/secondary_03.png",
+      "prompt": "Medium individual secondary cliff-face stone variant 3. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "a2d52328c737c86944a08ad926b4578eb63e001f2bc298920e2322a2346d9a32",
+      "normalizedSha256": "a2d52328c737c86944a08ad926b4578eb63e001f2bc298920e2322a2346d9a32",
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 17,
+        "width": 14,
+        "height": 13
+      },
+      "opaqueFootprintPx": {
+        "width": 14,
+        "height": 13
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 3,
+        "row": 1,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_secondary_04",
+      "role": "secondary",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/secondary_04.png",
+      "prompt": "Medium individual secondary cliff-face stone variant 4. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "53a51aa9a5afefdfe363da00cfe776ebe2cfcc39b0205fa3e052f764ab0d60eb",
+      "normalizedSha256": "53a51aa9a5afefdfe363da00cfe776ebe2cfcc39b0205fa3e052f764ab0d60eb",
+      "opaqueBoundsPx": {
+        "x": 10,
+        "y": 20,
+        "width": 14,
+        "height": 10
+      },
+      "opaqueFootprintPx": {
+        "width": 14,
+        "height": 10
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 0,
+        "row": 2,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_filler_01",
+      "role": "filler",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/filler_01.png",
+      "prompt": "Tiny isolated filler pebble variant 1. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "e7bc8c42f3757cf021bb19d1f9dadf948579199974bb5fd0d6a0a617f893a800",
+      "normalizedSha256": "e7bc8c42f3757cf021bb19d1f9dadf948579199974bb5fd0d6a0a617f893a800",
+      "opaqueBoundsPx": {
+        "x": 14,
+        "y": 24,
+        "width": 6,
+        "height": 6
+      },
+      "opaqueFootprintPx": {
+        "width": 6,
+        "height": 6
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 1,
+        "row": 2,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_filler_02",
+      "role": "filler",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/filler_02.png",
+      "prompt": "Tiny isolated filler pebble variant 2. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "cff0bd9da5c55139d0f4aafbcfc6b132ef0b3a53304c36a933af26d1381a578a",
+      "normalizedSha256": "cff0bd9da5c55139d0f4aafbcfc6b132ef0b3a53304c36a933af26d1381a578a",
+      "opaqueBoundsPx": {
+        "x": 13,
+        "y": 24,
+        "width": 7,
+        "height": 6
+      },
+      "opaqueFootprintPx": {
+        "width": 7,
+        "height": 6
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 2,
+        "row": 2,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_filler_03",
+      "role": "filler",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/filler_03.png",
+      "prompt": "Tiny isolated filler pebble variant 3. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "0e92cd0331c5f5ae7e8508927e23e823bb6f19bd3924d2e600279d90e6c15b26",
+      "normalizedSha256": "0e92cd0331c5f5ae7e8508927e23e823bb6f19bd3924d2e600279d90e6c15b26",
+      "opaqueBoundsPx": {
+        "x": 14,
+        "y": 25,
+        "width": 6,
+        "height": 5
+      },
+      "opaqueFootprintPx": {
+        "width": 6,
+        "height": 5
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 3,
+        "row": 2,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_corner_01",
+      "role": "corner",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/corner_01.png",
+      "prompt": "Compact individual cliff corner stone variant 1; slightly wider than tall and never a multi-stone block. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "c3a2242aa2ca870e199acc56af7b031b637bf2388ae7d79bf8d41a401f21896f",
+      "normalizedSha256": "c3a2242aa2ca870e199acc56af7b031b637bf2388ae7d79bf8d41a401f21896f",
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 15,
+        "width": 17,
+        "height": 15
+      },
+      "opaqueFootprintPx": {
+        "width": 17,
+        "height": 15
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 0,
+        "row": 3,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_corner_02",
+      "role": "corner",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/corner_02.png",
+      "prompt": "Compact individual cliff corner stone variant 2; slightly wider than tall and never a multi-stone block. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "460406aaf0cad860ab4f57206278cdf1cd607ca63cec1ed5e9eb6a32849404f6",
+      "normalizedSha256": "460406aaf0cad860ab4f57206278cdf1cd607ca63cec1ed5e9eb6a32849404f6",
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 16,
+        "width": 17,
+        "height": 14
+      },
+      "opaqueFootprintPx": {
+        "width": 17,
+        "height": 14
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 1,
+        "row": 3,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_cap_01",
+      "role": "cap",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/cap_01.png",
+      "prompt": "Very small rounded compact terminal pebble variant 1; never pointed, elongated or diagonal. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "de1b79ee167b02d1d851df75d09ac8d5cf666f867c80a50db963b36b51c67202",
+      "normalizedSha256": "de1b79ee167b02d1d851df75d09ac8d5cf666f867c80a50db963b36b51c67202",
+      "opaqueBoundsPx": {
+        "x": 13,
+        "y": 22,
+        "width": 8,
+        "height": 8
+      },
+      "opaqueFootprintPx": {
+        "width": 8,
+        "height": 8
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 2,
+        "row": 3,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    },
+    {
+      "id": "stone_chain_cap_02",
+      "role": "cap",
+      "sourceRelativePath": "assets/sources/border_studio/stone_chain_v1/cap_02.png",
+      "prompt": "Very small rounded compact terminal pebble variant 2; never pointed, elongated or diagonal. Original isolated Selbrume stone-only pixel-art sprite; upper-left light; warm grey, taupe and charcoal palette; transparent background; no grass, green, moss, sand, soil, water, foam, shadow, text or copied reference pixels.",
+      "sourceSha256": "5f484f25fa374f1806f4aca178791117f854f203ee286f92f03f2fe7de96e638",
+      "normalizedSha256": "5f484f25fa374f1806f4aca178791117f854f203ee286f92f03f2fe7de96e638",
+      "opaqueBoundsPx": {
+        "x": 13,
+        "y": 24,
+        "width": 7,
+        "height": 6
+      },
+      "opaqueFootprintPx": {
+        "width": 7,
+        "height": 6
+      },
+      "anchor": {
+        "x": 16,
+        "y": 29
+      },
+      "atlasCell": {
+        "column": 3,
+        "row": 3,
+        "widthCells": 1,
+        "heightCells": 1
+      },
+      "licenseStatus": "unverified",
+      "collisionIntent": "visual_only_no_collision"
+    }
+  ]
+}

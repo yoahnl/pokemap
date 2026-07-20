@@ -402,6 +402,16 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           child: _buildWorldIslandBody(context, worldChildren),
         ),
         ProjectExplorerModuleCard(
+          key: const ValueKey<String>('border-studio-module-card'),
+          title: 'Border Studio',
+          description: 'Blueprints de côtes, murets et clôtures',
+          icon: CupertinoIcons.square_on_square,
+          accentColor: colors.brandCyan,
+          count: project.borderCatalog.recordCount,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.borderStudio,
+          onTap: notifier.selectBorderStudioWorkspace,
+        ),
+        ProjectExplorerModuleCard(
           title: 'Terrain Library',
           description: 'Presets de terrain de base',
           icon: CupertinoIcons.map,

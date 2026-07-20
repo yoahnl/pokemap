@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import 'runtime_manifest_tilesets.dart';
 import 'runtime_map_bundle.dart';
+import '../border/border_runtime_readiness.dart';
 
 void _runtimeLoaderLog(String message) {
   debugPrint('[runtime_loader] $message');
@@ -160,10 +161,12 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   _runtimeLoaderLog(
     'bundle load ok mapId=${map.id} projectRoot=$projectRoot tilesets=${paths.length}',
   );
-  return RuntimeMapBundle(
-    manifest: manifest,
-    map: map,
-    projectRootDirectory: projectRoot,
-    tilesetAbsolutePathsById: paths,
+  return prepareBorderRuntimeBundle(
+    RuntimeMapBundle(
+      manifest: manifest,
+      map: map,
+      projectRootDirectory: projectRoot,
+      tilesetAbsolutePathsById: paths,
+    ),
   );
 }

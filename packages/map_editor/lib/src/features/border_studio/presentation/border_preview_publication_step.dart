@@ -1,0 +1,664 @@
+import 'dart:typed_data';
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../../theme/theme.dart';
+import '../../../ui/design_system/design_system.dart';
+import '../../border_map_editing/presentation/border_diagnostic_presentation.dart';
+import '../application/border_studio_draft.dart';
+import '../application/border_studio_publication_coordinator.dart';
+import 'border_canonical_gallery_canvas.dart';
+import 'border_studio_presentation.dart';
+
+class BorderPreviewPublicationStep extends StatelessWidget {
+  const BorderPreviewPublicationStep({
+    super.key,
+    required this.state,
+    required this.preview,
+    required this.isPreparing,
+    required this.isPublishing,
+    required this.onPreparePreview,
+    required this.onNewVariation,
+    required this.onAcknowledgeWarning,
+    required this.onSaveDraft,
+    required this.onPublish,
+    this.feedback,
+  });
+
+  final BorderStudioDraftState state;
+  final BorderStudioPublicationPreview? preview;
+  final bool isPreparing;
+  final bool isPublishing;
+  final VoidCallback onPreparePreview;
+  final VoidCallback onNewVariation;
+  final ValueChanged<String> onAcknowledgeWarning;
+  final VoidCallback onSaveDraft;
+  final VoidCallback onPublish;
+  final String? feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.pokeMapColors;
+    final definition = state.workingDraft?.blueprint.definition;
+    final unresolved = definition == null
+        ? const <String>[]
+        : unresolvedBorderRoleLabels(definition);
+    final publication = state.publicationAvailability;
+    final requiresInvertedGallery = definition != null &&
+        borderTemplateRequiresInvertedCanonicalGallery(definition.template);
+    final expectedCases = definition == null
+        ? 0
+        : borderCanonicalGalleryCasesForTemplate(definition.template).length;
+    final hasCompleteGallery = preview != null &&
+        preview!.canonicalGalleryCases.length == expectedCases &&
+        preview!.canonicalGalleryCases.every(
+          (sample) =>
+              sample.resolution.canApply &&
+              (!requiresInvertedGallery ||
+                  sample.invertedResolution?.canApply == true),
+        );
+    final canPublish = preview != null &&
+        hasCompleteGallery &&
+        preview!.canPublish &&
+        publication.isAllowed &&
+        unresolved.isEmpty &&
+        !isPreparing &&
+        !isPublishing;
+    final disabledReason = _disabledReason(
+      publication: publication,
+      unresolved: unresolved,
+      hasPreview: preview != null,
+      hasCompleteGallery: hasCompleteGallery,
+      expectedCases: expectedCases,
+    );
+    final previewFrames = preview == null
+        ? const <String, List<BorderCanonicalGalleryFrame>>{}
+        : _framesBySnapshotId(preview!);
+    final connectedLineTransformRoleLabels = <String>{
+      for (final diagnostic in state.diagnostics.diagnostics)
+        if (diagnostic.code ==
+            'border.publication.connected_line_transform_unavailable')
+          _connectedLineRoleLabel(diagnostic.parameters['role']),
+    };
+    final stoneChainErrorMessages =
+        definition?.template == BorderBlueprintTemplate.stoneChainLine
+            ? <String>{
+                for (final diagnostic in state.diagnostics.diagnostics)
+                  if (diagnostic.severity == BorderDiagnosticSeverity.error)
+                    _stoneChainErrorMessage(diagnostic),
+              }.toList(growable: false)
+            : const <String>[];
+
+    return BorderStudioStepScaffold(
+      title: '5. Aperçu et publication',
+      description:
+          'Générez les $expectedCases cas canoniques dans un bac à sable neutre, puis publiez exactement les pixels affichés.',
+      child: definition == null
+          ? const PokeMapEmptyState(
+              title: 'Créez un blueprint pour afficher sa galerie',
+              icon: Icon(CupertinoIcons.play_rectangle),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PokeMapPanel(
+                  key: const ValueKey<String>(
+                    'border-studio-neutral-sandbox',
+                  ),
+                  header: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: PokeMapSectionHeader(
+                      title: 'Bac à sable neutre',
+                      description: requiresInvertedGallery
+                          ? 'Chaque cas montre le côté principal et le côté inversé. Le cas d’angle couvre les virages à gauche et à droite.'
+                          : 'Chaque vignette ci-dessous provient du solveur réel et des snapshots immuables candidats.',
+                      trailing: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          PokeMapButton(
+                            key: const ValueKey<String>(
+                              'border-studio-prepare-preview',
+                            ),
+                            onPressed: isPreparing || isPublishing
+                                ? null
+                                : onPreparePreview,
+                            isLoading: isPreparing,
+                            variant: PokeMapButtonVariant.secondary,
+                            size: PokeMapButtonSize.small,
+                            leading: const Icon(CupertinoIcons.play),
+                            child: Text(
+                              preview == null
+                                  ? 'Générer l’aperçu'
+                                  : 'Régénérer',
+                            ),
+                          ),
+                          PokeMapButton(
+                            key: const ValueKey<String>(
+                              'border-studio-new-variation',
+                            ),
+                            onPressed: isPreparing || isPublishing
+                                ? null
+                                : onNewVariation,
+                            variant: PokeMapButtonVariant.secondary,
+                            size: PokeMapButtonSize.small,
+                            leading: const Icon(CupertinoIcons.shuffle),
+                            child: const Text('Nouvelle variation'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  child: preview == null
+                      ? PokeMapEmptyState(
+                          key: const ValueKey<String>(
+                            'border-studio-gallery-not-prepared',
+                          ),
+                          title: 'Aucun aperçu canonique préparé',
+                          description:
+                              'La publication reste bloquée tant que les $expectedCases cas réels ne sont pas générés.',
+                          icon: const Icon(CupertinoIcons.rectangle_grid_2x2),
+                        )
+                      : Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final sample in preview!.canonicalGalleryCases)
+                              SizedBox(
+                                key: ValueKey<String>(
+                                  'border-studio-gallery-case-${sample.galleryCase.name}',
+                                ),
+                                width: requiresInvertedGallery ? 544 : 272,
+                                child: PokeMapCard(
+                                  padding: const EdgeInsets.all(10),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      Text(
+                                        _galleryCaseLabel(sample.galleryCase),
+                                        style: TextStyle(
+                                          color: colors.textPrimary,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      if (requiresInvertedGallery &&
+                                          sample.galleryCase ==
+                                              BorderCanonicalGalleryCase
+                                                  .sharpCorner) ...[
+                                        const SizedBox(height: 6),
+                                        const Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: PokeMapBadge(
+                                            label: 'Virages gauche et droite',
+                                            variant: PokeMapBadgeVariant.info,
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 8),
+                                      if (requiresInvertedGallery)
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            _BorderGallerySidePreview(
+                                              label: 'Côté principal',
+                                              canvasKey: ValueKey<String>(
+                                                'border-studio-gallery-${sample.galleryCase.name}-primary',
+                                              ),
+                                              semanticsLabel:
+                                                  '${_galleryCaseLabel(sample.galleryCase)}, côté principal généré',
+                                              sample: sample,
+                                              resolution: sample.resolution,
+                                              tileSizePx: GridSize(
+                                                width: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileWidth,
+                                                height: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileHeight,
+                                              ),
+                                              catalog: preview!.candidate
+                                                  .nextManifest.borderCatalog,
+                                              framesBySnapshotId: previewFrames,
+                                            ),
+                                            _BorderGallerySidePreview(
+                                              label: 'Côté inversé',
+                                              canvasKey: ValueKey<String>(
+                                                'border-studio-gallery-${sample.galleryCase.name}-inverted',
+                                              ),
+                                              semanticsLabel:
+                                                  '${_galleryCaseLabel(sample.galleryCase)}, côté inversé généré',
+                                              sample: sample,
+                                              resolution:
+                                                  sample.invertedResolution,
+                                              tileSizePx: GridSize(
+                                                width: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileWidth,
+                                                height: preview!
+                                                    .candidate
+                                                    .nextManifest
+                                                    .settings
+                                                    .tileHeight,
+                                              ),
+                                              catalog: preview!.candidate
+                                                  .nextManifest.borderCatalog,
+                                              framesBySnapshotId: previewFrames,
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        BorderCanonicalGalleryCanvas(
+                                          semanticsLabel:
+                                              '${_galleryCaseLabel(sample.galleryCase)} généré',
+                                          mapSize: sample.mapSize,
+                                          geometry: sample.geometry,
+                                          tileSizePx: GridSize(
+                                            width: preview!
+                                                .candidate
+                                                .nextManifest
+                                                .settings
+                                                .tileWidth,
+                                            height: preview!
+                                                .candidate
+                                                .nextManifest
+                                                .settings
+                                                .tileHeight,
+                                          ),
+                                          materialization:
+                                              sample.resolution.materialization,
+                                          catalog: preview!.candidate
+                                              .nextManifest.borderCatalog,
+                                          framesBySnapshotId: previewFrames,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 12),
+                PokeMapCard(
+                  child: Row(
+                    children: [
+                      PokeMapStatusTile(
+                        label: 'Cas réels',
+                        value:
+                            '${preview?.canonicalGalleryCases.length ?? 0}/$expectedCases',
+                        tone: hasCompleteGallery
+                            ? PokeMapTone.success
+                            : PokeMapTone.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      PokeMapStatusTile(
+                        label: 'Erreurs',
+                        value: '${_diagnosticCount(
+                          state,
+                          BorderDiagnosticSeverity.error,
+                        )}',
+                        tone: _diagnosticCount(
+                                  state,
+                                  BorderDiagnosticSeverity.error,
+                                ) ==
+                                0
+                            ? PokeMapTone.success
+                            : PokeMapTone.danger,
+                      ),
+                      const SizedBox(width: 8),
+                      PokeMapStatusTile(
+                        label: 'Avertissements',
+                        value: '${_diagnosticCount(
+                          state,
+                          BorderDiagnosticSeverity.warning,
+                        )}',
+                        tone: state.warningCodes.isEmpty
+                            ? PokeMapTone.success
+                            : PokeMapTone.warning,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          unresolved.isEmpty
+                              ? 'Tous les rôles requis sont résolus.'
+                              : 'Rôles non résolus : ${unresolved.join(', ')}',
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (connectedLineTransformRoleLabels.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  for (final roleLabel in connectedLineTransformRoleLabels) ...[
+                    BorderStudioNotice(
+                      title: 'Transformation requise pour $roleLabel',
+                      description:
+                          'Supprimez puis réimportez l’asset de ce rôle pour '
+                          'autoriser les rotations et le miroir requis, puis '
+                          'régénérez l’aperçu.',
+                      tone: PokeMapTone.danger,
+                      icon: CupertinoIcons.exclamationmark_triangle,
+                    ),
+                    if (roleLabel != connectedLineTransformRoleLabels.last)
+                      const SizedBox(height: 8),
+                  ],
+                ],
+                if (stoneChainErrorMessages.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PokeMapPanel(
+                    key: const ValueKey<String>(
+                      'border-studio-stone-chain-errors',
+                    ),
+                    header: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: PokeMapSectionHeader(
+                        title: 'Corrections de la chaîne de pierres',
+                        description:
+                            'Corrigez ces erreurs puis régénérez la galerie.',
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final message in stoneChainErrorMessages) ...[
+                          BorderStudioNotice(
+                            title: 'Erreur du solveur',
+                            description: message,
+                            tone: PokeMapTone.danger,
+                            icon: CupertinoIcons.exclamationmark_triangle,
+                          ),
+                          if (message != stoneChainErrorMessages.last)
+                            const SizedBox(height: 8),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                if (state.warningCodes.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  PokeMapPanel(
+                    header: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: PokeMapSectionHeader(
+                        title: 'Validation visuelle requise',
+                        description:
+                            'Examinez la galerie avant d’accepter un avertissement.',
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final warningCode in state.warningCodes) ...[
+                          BorderStudioNotice(
+                            title: 'Avertissement du solveur',
+                            description: _warningLabel(warningCode),
+                            tone: PokeMapTone.warning,
+                            icon: CupertinoIcons.exclamationmark_triangle,
+                          ),
+                          const SizedBox(height: 6),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: PokeMapButton(
+                              key: ValueKey<String>(
+                                'border-studio-acknowledge-warning-$warningCode',
+                              ),
+                              onPressed: state.acknowledgedWarningCodes
+                                      .contains(warningCode)
+                                  ? null
+                                  : () => onAcknowledgeWarning(warningCode),
+                              variant: PokeMapButtonVariant.secondary,
+                              size: PokeMapButtonSize.small,
+                              leading: const Icon(CupertinoIcons.check_mark),
+                              child: Text(
+                                state.acknowledgedWarningCodes
+                                        .contains(warningCode)
+                                    ? 'Avertissement accepté'
+                                    : 'J’ai vérifié cet avertissement',
+                              ),
+                            ),
+                          ),
+                          if (warningCode != state.warningCodes.last)
+                            const SizedBox(height: 12),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
+                PokeMapPanel(
+                  header: const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: PokeMapSectionHeader(
+                      title: 'Actions finales',
+                      description:
+                          'Le brouillon et la révision publiée restent deux états distincts.',
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (!canPublish && disabledReason != null) ...[
+                        BorderStudioNotice(
+                          title: 'Publication indisponible',
+                          description: disabledReason,
+                          tone: PokeMapTone.warning,
+                          icon: CupertinoIcons.lock,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      if (feedback != null) ...[
+                        BorderStudioNotice(
+                          title: 'Border Studio',
+                          description: feedback!,
+                          tone: PokeMapTone.info,
+                          icon: CupertinoIcons.info,
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          PokeMapButton(
+                            key: const ValueKey<String>(
+                              'border-studio-save-draft',
+                            ),
+                            onPressed: isPreparing || isPublishing
+                                ? null
+                                : onSaveDraft,
+                            variant: PokeMapButtonVariant.secondary,
+                            leading: const Icon(CupertinoIcons.archivebox),
+                            child: const Text('Enregistrer le brouillon'),
+                          ),
+                          Tooltip(
+                            message: canPublish
+                                ? 'Publier la révision immuable affichée'
+                                : disabledReason ?? 'Publication indisponible',
+                            child: PokeMapButton(
+                              key: const ValueKey<String>(
+                                'border-studio-publish',
+                              ),
+                              onPressed: canPublish ? onPublish : null,
+                              isLoading: isPublishing,
+                              variant: PokeMapButtonVariant.primary,
+                              leading: const Icon(CupertinoIcons.cloud_upload),
+                              child: const Text('Publier'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  String? _disabledReason({
+    required BorderStudioPublicationAvailability publication,
+    required List<String> unresolved,
+    required bool hasPreview,
+    required bool hasCompleteGallery,
+    required int expectedCases,
+  }) {
+    if (unresolved.isNotEmpty) {
+      return 'Attribuez les rôles requis avant de publier : ${unresolved.join(', ')}.';
+    }
+    if (!hasPreview) {
+      return 'Générez l’aperçu canonique avant de publier.';
+    }
+    if (!hasCompleteGallery) {
+      return 'Les $expectedCases cas canoniques doivent être résolus sans erreur avant de publier.';
+    }
+    return publication.disabledReason;
+  }
+
+  Map<String, List<BorderCanonicalGalleryFrame>> _framesBySnapshotId(
+    BorderStudioPublicationPreview prepared,
+  ) {
+    final bytesByPath = <String, Uint8List>{
+      for (final file in prepared.candidate.files)
+        file.relativePath: file.bytes,
+    };
+    final result = <String, List<BorderCanonicalGalleryFrame>>{};
+    for (final snapshot
+        in prepared.candidate.nextManifest.borderCatalog.visualSnapshots) {
+      final frames = <BorderCanonicalGalleryFrame>[];
+      for (final metadata in snapshot.frames) {
+        final bytes = bytesByPath[metadata.relativeAssetPath];
+        if (bytes == null) {
+          frames.clear();
+          break;
+        }
+        frames.add((bytes: bytes, metadata: metadata));
+      }
+      if (frames.length == snapshot.frames.length && frames.isNotEmpty) {
+        result[snapshot.id] = List<BorderCanonicalGalleryFrame>.unmodifiable(
+          frames,
+        );
+      }
+    }
+    return result;
+  }
+
+  String _galleryCaseLabel(BorderCanonicalGalleryCase galleryCase) =>
+      switch (galleryCase) {
+        BorderCanonicalGalleryCase.longEdge => 'Longue portion',
+        BorderCanonicalGalleryCase.gentleCurve => 'Courbe douce',
+        BorderCanonicalGalleryCase.sharpConvexCorner => 'Angle convexe',
+        BorderCanonicalGalleryCase.sharpConcaveCorner => 'Angle concave',
+        BorderCanonicalGalleryCase.hole => 'Contour intérieur',
+        BorderCanonicalGalleryCase.smallIsland => 'Petit îlot',
+        BorderCanonicalGalleryCase.sharpCorner => 'Angle prononcé',
+        BorderCanonicalGalleryCase.endpoint => 'Extrémité',
+        BorderCanonicalGalleryCase.opening => 'Ouverture',
+        BorderCanonicalGalleryCase.sBend => 'Courbe en S',
+        BorderCanonicalGalleryCase.closedLoop => 'Boucle fermée',
+      };
+
+  String _warningLabel(String code) {
+    if (code == 'border.publication.stone_chain_primary_variety_low') {
+      return 'Ajoutez idéalement au moins trois variantes de Sommet plat pour rendre la falaise moins répétitive.';
+    }
+    if (code == 'border.publication.stone_chain_gap_not_zero') {
+      return 'L’espacement est supérieur à 0 px : vérifiez qu’aucune ouverture ne coupe les deux rangées.';
+    }
+    if (code == 'border.publication.stone_chain_interlock_too_low') {
+      return 'Augmentez l’imbrication des pierres pour mieux relier le sommet à la face.';
+    }
+    if (code.contains('repetition')) {
+      return 'Certaines séquences visuelles se répètent. Vérifiez que le résultat reste naturel sur tous les cas.';
+    }
+    return 'Le solveur a détecté un point non bloquant qui demande votre validation visuelle.';
+  }
+
+  String _stoneChainErrorMessage(BorderDiagnostic diagnostic) =>
+      switch (diagnostic.code) {
+        'border.publication.stone_chain_face_role_missing' =>
+          'Assignez au moins un asset au rôle Face de falaise.',
+        'border.publication.stone_chain_directional_coverage_missing' =>
+          'Renseignez l’orientation dessinée des assets pour couvrir Nord, Est, Sud et Ouest.',
+        'border.publication.stone_chain_mixed_orientation_modes' =>
+          'Choisissez un mode d’orientation cohérent pour tous les assets du sommet et de la face.',
+        _ => localizeEditorBorderDiagnostic(diagnostic),
+      };
+
+  String _connectedLineRoleLabel(Object? wireName) => switch (wireName) {
+        'lineCap' => 'Extrémité',
+        'lineStraight' => 'Segment droit',
+        'lineCorner' => 'Angle',
+        _ => 'raccord de ligne',
+      };
+
+  int _diagnosticCount(
+    BorderStudioDraftState state,
+    BorderDiagnosticSeverity severity,
+  ) =>
+      state.diagnostics.diagnostics
+          .where((diagnostic) => diagnostic.severity == severity)
+          .length;
+}
+
+class _BorderGallerySidePreview extends StatelessWidget {
+  const _BorderGallerySidePreview({
+    required this.label,
+    required this.canvasKey,
+    required this.semanticsLabel,
+    required this.sample,
+    required this.resolution,
+    required this.tileSizePx,
+    required this.catalog,
+    required this.framesBySnapshotId,
+  });
+
+  final String label;
+  final Key canvasKey;
+  final String semanticsLabel;
+  final BorderStudioCanonicalGalleryCasePreview sample;
+  final BorderResolutionResult? resolution;
+  final GridSize tileSizePx;
+  final ProjectBorderCatalog catalog;
+  final Map<String, List<BorderCanonicalGalleryFrame>> framesBySnapshotId;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 252,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PokeMapBadge(label: label),
+            ),
+            const SizedBox(height: 6),
+            BorderCanonicalGalleryCanvas(
+              key: canvasKey,
+              semanticsLabel: semanticsLabel,
+              mapSize: sample.mapSize,
+              geometry: sample.geometry,
+              tileSizePx: tileSizePx,
+              materialization: resolution?.materialization,
+              catalog: catalog,
+              framesBySnapshotId: framesBySnapshotId,
+            ),
+          ],
+        ),
+      );
+}

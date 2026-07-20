@@ -215,6 +215,92 @@ void main() {
         <String>['base-world', 'prop-base', 'prop-override'],
       );
     });
+
+    test('Border layers and snapshots leave every runtime collector unchanged',
+        () {
+      const baseMap = MapData(
+        id: 'border-runtime',
+        name: 'Border Runtime',
+        version: ProjectVersion.v2,
+        tilesetId: 'base-world',
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.tile(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'ground-tiles',
+            tiles: <int>[0, 0, 0, 0],
+          ),
+        ],
+      );
+      final withBorder = baseMap.copyWith(
+        layers: <MapLayer>[
+          ...baseMap.layers,
+          const MapLayer.border(id: 'border', name: 'Coast'),
+        ],
+      );
+      final manifest = ProjectManifest(
+        name: 'Border Runtime',
+        version: ProjectVersion.v2,
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'base-world',
+            name: 'Base world',
+            relativePath: 'tilesets/base.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'ground-tiles',
+            name: 'Ground',
+            relativePath: 'tilesets/ground.png',
+          ),
+        ],
+        borderCatalog: ProjectBorderCatalog(
+          visualSnapshots: <BorderVisualSnapshot>[
+            BorderVisualSnapshot(
+              id: 'border-snapshot-sha256:' '${'a' * 64}',
+              contentFingerprint: 'a' * 64,
+              frames: <BorderVisualFrameSnapshot>[
+                BorderVisualFrameSnapshot(
+                  relativeAssetPath:
+                      'assets/borders/snapshots/must-not-be-collected.png',
+                  sourceRectPx: BorderPixelRect(
+                    x: 0,
+                    y: 0,
+                    width: 16,
+                    height: 16,
+                  ),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        collectTilesetIdsReferencedOnMap(withBorder),
+        collectTilesetIdsReferencedOnMap(baseMap),
+      );
+
+      final basePresetIds = <String>{};
+      final borderPresetIds = <String>{};
+      addTerrainAndPathPresetTilesetIds(basePresetIds, baseMap, manifest);
+      addTerrainAndPathPresetTilesetIds(borderPresetIds, withBorder, manifest);
+      expect(borderPresetIds, basePresetIds);
+
+      final expectedAll = collectAllRuntimeTilesetIds(baseMap, manifest);
+      final actualAll = collectAllRuntimeTilesetIds(withBorder, manifest);
+      expect(actualAll, expectedAll);
+      expect(actualAll, <String>{'base-world', 'ground-tiles'});
+      expect(actualAll, isNot(contains('border-snapshot-sha256:${'a' * 64}')));
+      expect(
+        actualAll,
+        isNot(
+          contains('assets/borders/snapshots/must-not-be-collected.png'),
+        ),
+      );
+    });
   });
 }
 

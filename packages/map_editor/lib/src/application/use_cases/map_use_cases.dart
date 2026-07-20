@@ -123,10 +123,23 @@ class LoadMapUseCase {
 }
 
 class ResizeMapUseCase {
-  MapData execute(MapData map, int width, int height) {
-    final resized = resizeMapData(map, width: width, height: height);
-    MapValidator.validate(resized);
-    return resized;
+  MapResizeWithBorderDiagnosticsResult execute(
+    MapData map,
+    int width,
+    int height, {
+    required GridSize tileSizePx,
+  }) {
+    final result = resizeMapDataWithBorderDiagnostics(
+      map,
+      width: width,
+      height: height,
+      tileSizePx: tileSizePx,
+    );
+    final resized = result.map;
+    if (resized != null) {
+      MapValidator.validate(resized);
+    }
+    return result;
   }
 }
 

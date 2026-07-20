@@ -6,6 +6,37 @@ Inventaire établi le 2026-07-11 sur les 35 fichiers présents dans `selbrume/as
 
 Les rôles sont des classifications fonctionnelles internes et ne constituent pas une attribution. `objectif*` et `route_1*` restent strictement `reference-only` et ne peuvent pas devenir des underlays canoniques.
 
+## Kit Border Studio — falaise Selbrume à deux étages V2
+
+- Date : `2026-07-18`.
+- Statut : `approved` pour l'usage projet ; intention de collision
+  `visual_only_no_collision`.
+- Générateur : workflow built-in `imagegen`; le modèle exact n'est pas exposé
+  par l'outil et n'est donc pas inventé.
+- Références visuelles : `cliff.png` et le crop vertical de la côte de la carte
+  objectif, utilisés uniquement pour le langage de pierre, l'échelle, les deux
+  étages et la lumière haut-gauche. Aucun pixel de carte n'est utilisé comme
+  underlay.
+- Planche brute active : `raw-two-tier-sheet-v4.png`, SHA-256
+  `a03924a707298ef86cb164f207b58794b9a9e23a7f5dcd62a79d3113ef999f63`;
+  elle contient exactement 24 composants 4-connexes à la tolérance chroma 48.
+- Transformations déterministes : flood-fill du fond `#FF00FF`, tri 4×6 par
+  centroïdes, trim, quantification nearest-colour vers huit couleurs, alpha
+  binaire, normalisation de tons par rôle, mise aux bounds/anchors cardinaux,
+  padding 32×32 et assemblage atlas 6×4.
+- Sources finales : les 24 PNG sous
+  `assets/sources/border_studio/two_tier_cliff_v2/`; les hashes, bounds,
+  anchors, orientations et ratios de tons individuels sont dans
+  `assets/provenance/selbrume_two_tier_cliff_v2.json`.
+- Atlas final : `assets/tilesets/falaises_selbrume_deux_etages_v2.png`,
+  SHA-256
+  `93077ce9e26c7d867493f0baf0bd2e4ce90816f8760fdf8f6846279f8d5a3471`.
+- Manifeste de provenance : SHA-256
+  `3dc614d1736393ba3cedd34057a1bd014a3b8a0bfe88de7361578bd96bc0ddc1`.
+- Licence déclarée pour les sorties générées :
+  `project-owned generated asset`. Cette déclaration ne modifie pas le statut
+  non vérifié des 35 sources préexistantes inventoriées ci-dessous.
+
 ## Sources préexistantes — inventaire exhaustif (35)
 
 | relative path | role | author/generator | tool/model | date | source references | license status | transformations | sha256 |
@@ -62,6 +93,7 @@ Dix sorties déterministes existent désormais : `selbrume_boat.png`, `selbrume_
 | `selbrume/assets/tilesets/selbrume_lighthouse_interior.png` | lighthouse-interior and summit modular atlas | generated locally with built-in `imagegen`; exact generator model not reported by the tool | built-in `imagegen`; `remove_chroma_key.py`; PokeMap raster normalizer and atlas builder | 2026-07-12 | `selbrume_all_sprite.png`; `mountain_elements_paths.png`; exterior atlas used as an accepted style reference for selected calls; exact per-module prompts and raw hashes in `GENERATED_ASSET_PROMPTS.md` | license status: unverified because reference-source licenses and a redistribution proof are not documented; public beta publication remains blocked | 25 accepted module outputs plus two collision-alignment edits; green chroma removed with auto-key/soft matte/despill; every module normalized with proportional `contain-nearest`; east wall and vertical railing verified opaque at every intended cell center; summit horizontal parapet collision restricted to its visible lower rail and lantern collision to visible coarse cells; deterministic 32×32-cell RGBA atlas assembly; visual atlas inspection passed | `66110d66d7f0c0dfbba293e0d8a18e688e0cb2379c4b117f503c1ab67adbd0df` |
 | `selbrume/assets/tilesets/selbrume_cabin_interior.png` | cabin and player-house modular atlas | generated locally with built-in `imagegen`; exact generator model not reported by the tool | built-in `imagegen`; `remove_chroma_key.py`; PokeMap raster normalizer and atlas builder | 2026-07-12 | `selbrume_all_sprite.png`; exact per-module prompts and raw hashes in `GENERATED_ASSET_PROMPTS.md` | license status: unverified because the reference-source license and a redistribution proof are not documented; public beta publication remains blocked | 20 accepted modules plus two rejected wall attempts and three rejected floor-seam corrections before accepted floor v4; green chroma removed with auto-key/soft matte/despill; each module normalized with proportional `contain-nearest`; floor v4 uses an exact-square visible patch with no fully transparent edge row/column; deterministic 16×16-cell RGBA atlas assembly; all module rectangles and chroma-residual checks passed | `ea0fa6dfdec99f3b9b03925036790b94789ee218b5a2dbf42606e9ea45cc020b` |
 | `selbrume/assets/tilesets/selbrume_lighthouse_fx.png` | lighthouse and mist FX atlas | generated locally with built-in `imagegen`; exact generator model not reported by the tool | built-in `imagegen`; `remove_chroma_key.py`; PokeMap raster normalizer and atlas builder | 2026-07-12 | `water_edge_only.png`; `selbrume_open_sea_true_loop.png`; exact per-module prompts and raw hashes in `GENERATED_ASSET_PROMPTS.md` | license status: unverified because reference-source licenses and a redistribution proof are not documented; public beta publication remains blocked | 15 accepted built-in outputs/edits representing nine logical FX elements; green chroma removed with auto-key/soft matte/despill; modules normalized with proportional `contain-nearest` and center anchor; partial alpha preserved for fog, beam and halo; four-frame unstable-light and spark loops assembled at 160 ms and 120 ms per frame by the manifest; deterministic 16×16-cell RGBA atlas assembly; all dimensions and chroma-residual checks plus visual atlas inspection passed | `a7440a14d84d04449f24d20246315db875452056616676c641c25557eca9a9e2` |
+| `selbrume/assets/tilesets/falaises_selbrume_pierres_chaine_v1.png` | 16-stone Border Studio chain atlas | generated locally with built-in `imagegen`; exact generator model not reported by the tool | built-in `imagegen`; deterministic chroma threshold, nearest-neighbour palette quantization, PokeMap raster normalizer and atlas builder | 2026-07-17 | `cliff.png` and `objectif.png`, visual style/composition references only; exact prompts and all three generation passes are recorded in `GENERATED_ASSET_PROMPTS.md`; no reference crop or underlay | license status: unverified because reference-source licenses and a redistribution proof are not documented; public beta publication remains blocked | the first 4×4 sheet and corrective 2×2 sheet are retained as superseded provenance; a final original 4×4 replacement sheet rebuilt all 16 entries; deterministic RGB chroma threshold, binary alpha, nearest-neighbour normalization and eight-colour stone-only quantization; 16 unique 32×32 RGBA modules, bottom-center anchor `(16,29)`; deterministic 4×4 atlas assembly; collision intent `visual_only_no_collision` | `357d8a242d688102a0d1cc6f8d1aa54cc5e76f15a21b60cf3692003a21169119` |
 
 ## Composants normalisés acceptés — `ts_selbrume_port_props`
 
@@ -243,11 +275,46 @@ Chaque hash ci-dessous porte sur le PNG RGBA final normalisé utilisé par l'atl
 | `el_selbrume_fx_etincelle_f3` | 64×64 | `a9c6edb9dc502d2b5d734362bbf424632db0fec1e4288531739339a2e2a7d278` |
 | `el_selbrume_fx_etincelle_f4` | 64×64 | `48f1e54ce291cbf680c26e0a9c7b4104e21dde086ebc3306326fc6cbb62fe2d5` |
 
+## Composants normalisés acceptés — `ts_selbrume_cliff_stone_chain_v1`
+
+Les hashes source bruts et les bornes opaques complètes figurent dans
+`assets/provenance/selbrume_stone_chain_v1.json`.
+
+| module id | normalized size | normalized sha256 | opaque footprint |
+|---|---:|---|---:|
+| `stone_chain_primary_01` | 32×32 | `2f3c5366cc73cf01f57c61325110c1c0baab74a74bb97a5952a34878a7e24042` | 19×14 |
+| `stone_chain_primary_02` | 32×32 | `4741272c269393eb62f7e5620d98ce02eac5aa4bef8a8213be524356e1dca109` | 18×17 |
+| `stone_chain_primary_03` | 32×32 | `bdea3083425bf04ab2c1ddc791ccb90dc05ffb6d154b646daae8029a7590449f` | 18×17 |
+| `stone_chain_primary_04` | 32×32 | `fc95cdc584d1135e09f45503e194e106b9382afc2b1221c582c25231c49b22a6` | 19×14 |
+| `stone_chain_primary_05` | 32×32 | `bf87e03db1d6659d59ce94db4e33444da03622fff21c19652f72def6e7044c2c` | 17×17 |
+| `stone_chain_secondary_01` | 32×32 | `9994db7ee24e3eb0d50f78129c023b04ba40b01c25963d480a4b21e52608f564` | 14×14 |
+| `stone_chain_secondary_02` | 32×32 | `ab62cd6e5fe840ecee4810286e689345ef896f99a339ee3d3dd944cc4dcc2b77` | 14×14 |
+| `stone_chain_secondary_03` | 32×32 | `a2d52328c737c86944a08ad926b4578eb63e001f2bc298920e2322a2346d9a32` | 14×13 |
+| `stone_chain_secondary_04` | 32×32 | `53a51aa9a5afefdfe363da00cfe776ebe2cfcc39b0205fa3e052f764ab0d60eb` | 14×10 |
+| `stone_chain_filler_01` | 32×32 | `e7bc8c42f3757cf021bb19d1f9dadf948579199974bb5fd0d6a0a617f893a800` | 6×6 |
+| `stone_chain_filler_02` | 32×32 | `cff0bd9da5c55139d0f4aafbcfc6b132ef0b3a53304c36a933af26d1381a578a` | 7×6 |
+| `stone_chain_filler_03` | 32×32 | `0e92cd0331c5f5ae7e8508927e23e823bb6f19bd3924d2e600279d90e6c15b26` | 6×5 |
+| `stone_chain_corner_01` | 32×32 | `c3a2242aa2ca870e199acc56af7b031b637bf2388ae7d79bf8d41a401f21896f` | 17×15 |
+| `stone_chain_corner_02` | 32×32 | `460406aaf0cad860ab4f57206278cdf1cd607ca63cec1ed5e9eb6a32849404f6` | 17×14 |
+| `stone_chain_cap_01` | 32×32 | `de1b79ee167b02d1d851df75d09ac8d5cf666f867c80a50db963b36b51c67202` | 8×8 |
+| `stone_chain_cap_02` | 32×32 | `5f484f25fa374f1806f4aca178791117f854f203ee286f92f03f2fe7de96e638` | 7×6 |
+
+## Snapshots publiés — `ts_selbrume_cliff_two_tier_v2`
+
+Les 24 snapshots immuables de la révision publiée sont des copies
+byte-identiques des 24 sources V2. Le manifeste
+`assets/provenance/selbrume_two_tier_cliff_v2.json` enregistre pour chacun le
+chemin source, le chemin snapshot et le SHA-256 partagé. Le builder ne produit
+ces entrées dérivées que si le fichier snapshot existe réellement, suit la
+forme `borders/snapshots/<sha256>/frame_0000.png` et correspond en octets à une
+source V2 acceptée. Ces 24 paires sont les seuls nouveaux doublons autorisés par
+le gate post-publication.
+
 ## Procédure d'acceptation et de remplacement des états planifiés
 
 1. Générer chaque module, état ou frame dans un appel built-in `imagegen` séparé, avec le prompt final reconstruit exactement depuis `GENERATED_ASSET_PROMPTS.md`; aucun générateur tiers ou fallback CLI n'est implicite.
 2. Consigner après l'appel : date ISO-8601 réelle, outil et modèle réellement rapportés, références locales dans leur ordre, couleur chroma, chemin de sortie brute et SHA-256 de cette sortie.
 3. Retirer le chroma, inspecter l'alpha et les franges, puis normaliser proportionnellement sur grille 32 px. Consigner séparément les hashes source, détouré et normalisé; ne jamais recopier le hash d'une étape vers une autre.
-4. Assembler chaque atlas avec `ATLAS_LAYOUTS.json`; enregistrer la commande, les 138 hashes de composants acceptés et le SHA-256 de chaque atlas final.
+4. Assembler chaque atlas avec `ATLAS_LAYOUTS.json`; enregistrer la commande, les 154 hashes historiques et les 24 hashes V2 de composants acceptés, ainsi que le SHA-256 de chaque atlas final.
 5. Remplacer `not_generated` et `not_available` uniquement par des valeurs observées. Une sortie rejetée reste hors projet et sa raison est enregistrée dans le registre de prompts.
 6. Obtenir une preuve de licence ou permission de redistribution applicable au fichier final. Sans preuve, conserver `license status: unverified` et le blocage de publication publique, même si la QA technique est verte.

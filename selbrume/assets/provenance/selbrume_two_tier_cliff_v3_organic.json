@@ -1,0 +1,4356 @@
+{
+  "schemaVersion": 1,
+  "packVersion": 3,
+  "packId": "selbrume_two_tier_cliff_v3_organic",
+  "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+  "license": "project-owned generated asset",
+  "status": "candidate",
+  "collisionIntent": "visual_only_no_collision",
+  "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+  "usesToneRedistribution": false,
+  "chroma": "#FF00FF",
+  "chromaTolerance": 48,
+  "tileSize": {
+    "width": 32,
+    "height": 32
+  },
+  "sourceGrid": {
+    "columns": 6,
+    "rows": 4
+  },
+  "atlasGrid": {
+    "columns": 10,
+    "rows": 8
+  },
+  "rawSheets": {
+    "top": {
+      "relativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/raw/top_lip_stones_6x4.png",
+      "sha256": "38d239655373748a9ed6f01ace8a449b30e1014e7d7f449556a546601513a7da",
+      "selectedColumns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": {
+        "columns": 6,
+        "rows": 4
+      }
+    },
+    "face": {
+      "relativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/raw/individual_face_stones_7x4.png",
+      "sha256": "7c4e6516ca461c1c4153d95ef1f55162a5392ec2195a70cfc36dcdb293b4d386",
+      "selectedColumns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        6
+      ],
+      "grid": {
+        "columns": 7,
+        "rows": 4
+      }
+    },
+    "corner": {
+      "relativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/raw/individual_turn_stones_6x4.png",
+      "sha256": "137e62a2fb022a2b2a41a066a33412149e451fb31346c19f16d86eb1dab28ed1",
+      "selectedColumns": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "grid": {
+        "columns": 6,
+        "rows": 4
+      },
+      "role": "lineCorner"
+    }
+  },
+  "atlasSha256": "2274b7cbc36ae09e1ca11806c3f2509311d2a3e83d6f1dcefa0491b01de8abb5",
+  "palette": [
+    "#C8BB9F",
+    "#B6A98D",
+    "#AEA186",
+    "#A1957D",
+    "#8E8571",
+    "#7E7665",
+    "#6F695A",
+    "#625E52",
+    "#58554B",
+    "#4C4B45",
+    "#41413D",
+    "#383836",
+    "#25282B"
+  ],
+  "assets": {
+    "tilesets/falaises_selbrume_deux_etages_v3_organic.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/raw/top_lip_stones_6x4.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/raw/individual_face_stones_7x4.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/raw/individual_turn_stones_6x4.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_n_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_e_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_s_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/top_w_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_n_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_e_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_s_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/face_w_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_n_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_e_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_s_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_03.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_04.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_05.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/corner_w_06.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_n_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_n_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_e_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_e_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_s_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_s_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_w_01.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    "sources/border_studio/two_tier_cliff_v3_organic/cap_w_02.png": {
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    }
+  },
+  "entries": [
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-01",
+      "fileName": "top_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_01.png",
+      "sha256": "fd92a8149475d68077501539cee4780943781ab9829e46b63d9e5c0c9ee6f7e5",
+      "alphaMaskSha256": "5033aff67c767221a11cf6b208babc7512290db96eaa9f130fa03edf6ae59dde",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 6
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 0,
+        "width": 18,
+        "height": 14
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 5,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-02",
+      "fileName": "top_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_02.png",
+      "sha256": "a0595a32e01c2efd0ac3ea1a308ddf3e049c28bc196cae88cd81b494a2cda002",
+      "alphaMaskSha256": "f2136e7d84ddcd4d12dcf7f031a0a5f2d1e55df86ea2a2f2d51e651f4baeb222",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 7
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 0,
+        "width": 19,
+        "height": 15
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 15,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 4,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-03",
+      "fileName": "top_n_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_03.png",
+      "sha256": "c5dd62025028b31adb892c14b66f0861cda85e5c4fb9e21dd00fa7597d35e879",
+      "alphaMaskSha256": "27cee526a622fb679d1173286e81ea7043736c8ee1924bda59cf94f797faef22",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 6
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 0,
+        "width": 20,
+        "height": 14
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 16,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-04",
+      "fileName": "top_n_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_04.png",
+      "sha256": "812a9be68cf6cd74ea458f6126314c0a22611ae87180b39e558381d0a0413b2e",
+      "alphaMaskSha256": "2bfdbb1dfad46287dd0fae782b008a8a0e691172625a72c4e8886435804580a2",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 7
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 0,
+        "width": 21,
+        "height": 15
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 17,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-05",
+      "fileName": "top_n_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_05.png",
+      "sha256": "0c8770f1f189dd46d8c0a2087904da9062e9f4aa7d174f308c8eace4c1d61084",
+      "alphaMaskSha256": "a502f51adfbdbfd0e7ee9bc496920678edfaf94115316c169ed0f19a79735148",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 7
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 0,
+        "width": 22,
+        "height": 15
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 5,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-n-06",
+      "fileName": "top_n_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_n_06.png",
+      "sha256": "8d8c3d5c7e603dbcc7c3848de2507b8230b218cfcbbf6b47618f2680ef4b478b",
+      "alphaMaskSha256": "36cd27f1701a3f30af4d529d24a90974996858e38b882f2e8d24ebe00c1e8e62",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "north",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 8
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 0,
+        "width": 32,
+        "height": 16
+      },
+      "tangentSpanPx": 32,
+      "visibleTangentSpanPx": 24,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 7,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-01",
+      "fileName": "top_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_01.png",
+      "sha256": "c8723397e6158ad7bc454a3b0c14927dcc0b7953f25ece60fe8491c09ab60cd9",
+      "alphaMaskSha256": "5db7ccd6323961ab1f6b1852d1316cdc19e35d54c8737674d3a34be371c56111",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 1,
+      "anchorPx": {
+        "x": 25,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 18,
+        "y": 7,
+        "width": 14,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-02",
+      "fileName": "top_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_02.png",
+      "sha256": "26b0a246cc046ab1f90c9a7e4f0a9e35bdba07790b7e1b78cbc7b0357ead4e19",
+      "alphaMaskSha256": "1c30fa24dec45dd322486a06d172d32fd759caece082bdf8750c3c77aa6bea64",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 2,
+      "anchorPx": {
+        "x": 24,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 17,
+        "y": 6,
+        "width": 15,
+        "height": 19
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 15,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 4,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-03",
+      "fileName": "top_e_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_03.png",
+      "sha256": "24c66d6a0c344d8075deee380e3f5948551d9cfed851e345cee95676ad3542be",
+      "alphaMaskSha256": "f343e28ac0ba0607c74adb5547a362faa699197d006079e6b226f2fbc8311e49",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 3,
+      "anchorPx": {
+        "x": 25,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 18,
+        "y": 6,
+        "width": 14,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 16,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 5,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-04",
+      "fileName": "top_e_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_04.png",
+      "sha256": "daebe254d496e1d282e809c020da01af1589399057c895e50bc3cbdcf7d7aa2b",
+      "alphaMaskSha256": "87ad26d105f73e211173c5f429d19645dd33d76c1b8b49b4086a9c5783da8b93",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 4,
+      "anchorPx": {
+        "x": 24,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 17,
+        "y": 5,
+        "width": 15,
+        "height": 21
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 17,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 0
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-05",
+      "fileName": "top_e_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_05.png",
+      "sha256": "15be41bdf5f1f13045826db0f0676c88697cd3dbf0a8d33a3dfb765322073492",
+      "alphaMaskSha256": "b38fb9b2eef16340a26cf4097341743ae0f05b02880f4edf58a70a3410e249cc",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 5,
+      "anchorPx": {
+        "x": 24,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 17,
+        "y": 5,
+        "width": 15,
+        "height": 22
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-e-06",
+      "fileName": "top_e_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_e_06.png",
+      "sha256": "65952adf9a03d8b20df5784a8aecc7695184b6fd4a756a641caa28225a2a5f32",
+      "alphaMaskSha256": "6f7641c5e645fe2b11447b515d97edcacd528cfde205d6ff63b6a6d0634595ca",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "east",
+      "variant": 6,
+      "anchorPx": {
+        "x": 23,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 16,
+        "y": 0,
+        "width": 16,
+        "height": 32
+      },
+      "tangentSpanPx": 32,
+      "visibleTangentSpanPx": 24,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-01",
+      "fileName": "top_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_01.png",
+      "sha256": "2884d0d5827d6f14fe93a0f7b2af2b3462d740771066ee6b70dcf49980bf5c4b",
+      "alphaMaskSha256": "2356c9688b8aab010a01bdb2761cfbef792563155f60059121179b5b33cf35e8",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 25
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 18,
+        "width": 18,
+        "height": 14
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 5,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-02",
+      "fileName": "top_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_02.png",
+      "sha256": "e932a40dbe862781811280f9fc7eb2996dd663df72f0a19ea85acec5f95463b3",
+      "alphaMaskSha256": "d852a5a1bbc7908c16cbae57b6296e5d50d970f8a6ba9af43f3315e2dd79836e",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 24
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 17,
+        "width": 19,
+        "height": 15
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 15,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 5,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-03",
+      "fileName": "top_s_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_03.png",
+      "sha256": "3a063a5e5e26d59d3456c8870fe806cb7a1e4495c9df34afbcc685d17f2df5fb",
+      "alphaMaskSha256": "0b057399d5bd2070acbeb543fcd5e3331243c66e9d472761ea2a47ddc03c6c1c",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 25
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 18,
+        "width": 20,
+        "height": 14
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 16,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 3,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-04",
+      "fileName": "top_s_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_04.png",
+      "sha256": "fba26b8db2a9e406df7730893c99f481e3527d187e561634cb161a75ca9260b6",
+      "alphaMaskSha256": "eb04cf7d92d054f09674297a0b69eebd33a25eb7d58d97db88426df9712d28ed",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 24
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 17,
+        "width": 21,
+        "height": 15
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 17,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 3,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-05",
+      "fileName": "top_s_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_05.png",
+      "sha256": "730a2f397c8f966e58534c957bb669278ce5481ad895b3b510822c48bd996d45",
+      "alphaMaskSha256": "b65e91f2f481fe9abb35476bb00eb8ff90fbae112e906c7e1dd44cdf4e6a970d",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 24
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 17,
+        "width": 22,
+        "height": 15
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 3,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-s-06",
+      "fileName": "top_s_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_s_06.png",
+      "sha256": "3a5d39a69a6ec2b14c2b5655b03ed9f3461c58ec34fcf5f5489c6cac92251aed",
+      "alphaMaskSha256": "b0f0a10d7f1ce2692bb24756ea43b0fc3958c76f35faace1a10966d2afcbe688",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "south",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 23
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 16,
+        "width": 32,
+        "height": 16
+      },
+      "tangentSpanPx": 32,
+      "visibleTangentSpanPx": 24,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 7,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-01",
+      "fileName": "top_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_01.png",
+      "sha256": "7eb68bc32cb9ec01e8bcaeea95101e394fc4c2cb3adb701357c544864ecc2f08",
+      "alphaMaskSha256": "ea10a23f17b89739a1f6d8b139d4ab03e2fbb0d0518aa1054bdcf716bdd40c08",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 1,
+      "anchorPx": {
+        "x": 6,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 7,
+        "width": 14,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 7,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-02",
+      "fileName": "top_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_02.png",
+      "sha256": "9f8064522ffaffd015c3952967f42e801eba6b80daa398bf8237109d9afc12af",
+      "alphaMaskSha256": "a1102be7ae8e444d5094320dfd0faeace5951c6c0bb7fb24e3e130aed6474e2a",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 2,
+      "anchorPx": {
+        "x": 7,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 6,
+        "width": 15,
+        "height": 19
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 15,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 1
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-03",
+      "fileName": "top_w_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_03.png",
+      "sha256": "c8059c5026291b15e9ecbd95be83a01180d71b346cac39b1b5819725c6a2cb3b",
+      "alphaMaskSha256": "ac5eb5c8dcc3a07f8d7156302ce6e6b32a8b723ae3fb4e17dc26fe87ad8dc3eb",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 3,
+      "anchorPx": {
+        "x": 6,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 6,
+        "width": 14,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 16,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 8,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-04",
+      "fileName": "top_w_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_04.png",
+      "sha256": "6ead167bbe19463a65f8138fe178bd4241276cf31d421b72615d142632652883",
+      "alphaMaskSha256": "5aa8a5be31a916d0fc5d29b293ff6f12bb2d47f14e9df659e3a718d6544dcfe3",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 4,
+      "anchorPx": {
+        "x": 7,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 5,
+        "width": 15,
+        "height": 21
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 17,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 7,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-05",
+      "fileName": "top_w_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_05.png",
+      "sha256": "c3e3b45c7998241d7000a337f51695019a0c88924618a7fcbdba4093e1ff2210",
+      "alphaMaskSha256": "581381c17ad206b9e7e4b24c2ac36b0fcee0e6a402513625396db9f82006db23",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 5,
+      "anchorPx": {
+        "x": 7,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 5,
+        "width": 15,
+        "height": 22
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 6,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-top-w-06",
+      "fileName": "top_w_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/top_w_06.png",
+      "sha256": "89d1e21466b262f51b3c0980577264422843ff3c754136d2be7e22c9ac7015da",
+      "alphaMaskSha256": "14d078fb58b2c9fef504e78c81ada581ebfceafaf29a3bd196ee1b841ccd2dd1",
+      "role": "top",
+      "assetFamily": "top",
+      "authoredOrientation": "west",
+      "variant": 6,
+      "anchorPx": {
+        "x": 8,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 4,
+      "landwardSealDepthPx": 4,
+      "landwardSealStyle": "nearest_original_stone_shadow",
+      "landwardProtrusionPx": 3,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 0,
+        "width": 16,
+        "height": 32
+      },
+      "tangentSpanPx": 32,
+      "visibleTangentSpanPx": 24,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 9,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-01",
+      "fileName": "face_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_01.png",
+      "sha256": "cd80f191edd75e82a93ce12f24e253d9335378c6b59f60bff6924b6eee3810c4",
+      "alphaMaskSha256": "6c73ee4078e7182433121dd2af2d9733f5dc92101b6257caa697e050cce042e5",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 26
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 0,
+        "width": 18,
+        "height": 25
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 8,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-02",
+      "fileName": "face_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_02.png",
+      "sha256": "bf54c70b4c39c83de9148d3ca8479670c1d3f1f58162413f53600cdbed9795d6",
+      "alphaMaskSha256": "7814f7a12b2270d56a0f3e1d91ff9aaf65f053186d6898032f8e3a317364e604",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 27
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 0,
+        "width": 19,
+        "height": 26
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 19,
+      "normalSpanPx": 26,
+      "visibleNormalSpanPx": 26,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 4,
+      "tangentEndContactRunPx": 14,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-03",
+      "fileName": "face_n_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_03.png",
+      "sha256": "e651ff45271a040fdc2c6d81e085d1b22ba522b774dc45d50dd40c221e1fa3a1",
+      "alphaMaskSha256": "6f0c97339aa21c236db36c1a3817078107223c53c134cc284f1c263cbc31c9b1",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 26
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 0,
+        "width": 20,
+        "height": 25
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 11,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-04",
+      "fileName": "face_n_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_04.png",
+      "sha256": "d4cc29021947ee6022e6cc81079bc13aa57d6d5fb1d755fcc44d906e1e9f8e86",
+      "alphaMaskSha256": "07a5b2d80217165b9f59c2497d73e55ba0577196201ab1693c71fe29fcc5ecce",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 28
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 0,
+        "width": 20,
+        "height": 27
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 27,
+      "visibleNormalSpanPx": 27,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-05",
+      "fileName": "face_n_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_05.png",
+      "sha256": "e2dba39eca6f6e6bc13d41be702d5cc414eb86f1b3abef10dc86b48901972eda",
+      "alphaMaskSha256": "a001219e1525e7907025b3b76879f3c91b460370cb238bbcbd047f17fa865dd7",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 30
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 0,
+        "width": 21,
+        "height": 28
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 21,
+      "normalSpanPx": 28,
+      "visibleNormalSpanPx": 28,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 11,
+      "tangentEndContactRunPx": 8,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-n-06",
+      "fileName": "face_n_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_n_06.png",
+      "sha256": "0464fe4d6dfc25e11b0d7515f86956daf7b4b90873fe69d52d047bd97dfd9a32",
+      "alphaMaskSha256": "b30bb3aed6bd86a1082248ed363e8b714c3cce73821751960d43506eb165e0f3",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "north",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 31
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 0,
+        "width": 22,
+        "height": 29
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 22,
+      "normalSpanPx": 29,
+      "visibleNormalSpanPx": 29,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 8,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 6,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 2
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-01",
+      "fileName": "face_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_01.png",
+      "sha256": "27678ce5288589be28e62a0c53d675e5d72c9e505dbcbc3719f1150e21bf1024",
+      "alphaMaskSha256": "99124289319bc775c75d6d820ecf459ff2e3e9efc3b18ffbab02b9d79e8c9bf7",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 1,
+      "anchorPx": {
+        "x": 5,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 7,
+        "width": 25,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 9,
+      "tangentEndContactRunPx": 9,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-02",
+      "fileName": "face_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_02.png",
+      "sha256": "5f86fd52b604ab67c499ea7d37f49670b79e0d34d6de595e32adfac4832a1dbd",
+      "alphaMaskSha256": "de2f8eab1fdc7d58026ac7010d3765db05d5f57c04dc908e52d3198cb7cf8942",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 2,
+      "anchorPx": {
+        "x": 4,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 6,
+        "width": 26,
+        "height": 19
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 19,
+      "normalSpanPx": 26,
+      "visibleNormalSpanPx": 26,
+      "rearContactRunPx": 11,
+      "tangentStartContactRunPx": 4,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-03",
+      "fileName": "face_e_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_03.png",
+      "sha256": "25a0c6f987fe863c86ac2ec43b1652f0aa1f60bd37c565647cc68d59328ca7dd",
+      "alphaMaskSha256": "17746f27c8b7e1ac628f34f285c3ccdaeb5b6974348fd977feb84c1d2ca084a2",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 3,
+      "anchorPx": {
+        "x": 5,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 6,
+        "width": 25,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-04",
+      "fileName": "face_e_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_04.png",
+      "sha256": "1104caa0dc3843733b7fdc52c40cb6ed8c168465448975ce29414bb96fe5b36a",
+      "alphaMaskSha256": "ad9bb7dcfdd46bd22a013c95d1db085aa4e5723fd1db3839d457b7f6a1a7c50d",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 4,
+      "anchorPx": {
+        "x": 3,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 6,
+        "width": 27,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 27,
+      "visibleNormalSpanPx": 27,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-05",
+      "fileName": "face_e_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_05.png",
+      "sha256": "ec6ffe66cd9a200800eff16f39353f871a01a2edf563c26b02a57034b80f340f",
+      "alphaMaskSha256": "0f94a8bf5466cce51bd35edeaef3c889b845d7f428e5cc4e66b8c05b23c54a73",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 5,
+      "anchorPx": {
+        "x": 1,
+        "y": 16
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 4,
+        "y": 5,
+        "width": 28,
+        "height": 21
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 21,
+      "normalSpanPx": 28,
+      "visibleNormalSpanPx": 28,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 5,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-e-06",
+      "fileName": "face_e_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_e_06.png",
+      "sha256": "ca3941ae96a848c08e4a6ee911fa5060a91291e8c500305867303bb327310cf3",
+      "alphaMaskSha256": "bad73b034ae59ee3b9646c2cbacdfdb9fc51c69c9207bbfc2b0810ae6d14e403",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "east",
+      "variant": 6,
+      "anchorPx": {
+        "x": 0,
+        "y": 16
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 3,
+        "y": 5,
+        "width": 29,
+        "height": 22
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 22,
+      "normalSpanPx": 29,
+      "visibleNormalSpanPx": 29,
+      "rearContactRunPx": 13,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 6,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-01",
+      "fileName": "face_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_01.png",
+      "sha256": "d967724a6328959128b7afb7c7549b8e0a90c9b9d79f30701036c233c69f099e",
+      "alphaMaskSha256": "b7261cab80ac86e6b2f18510405a3432fbccd4ede64b22bdaf1cbccdfcb61730",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 5
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 7,
+        "width": 18,
+        "height": 25
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 9,
+      "tangentEndContactRunPx": 4,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-02",
+      "fileName": "face_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_02.png",
+      "sha256": "00e9ad104934c6156e7b03e5fd8289cd747c9b080eee4b4496a161722074b38c",
+      "alphaMaskSha256": "c691e85a82ea0f97939e354f8ef91f4980a606ce9c7c64d23efac32bca4443e8",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 4
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 6,
+        "width": 19,
+        "height": 26
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 19,
+      "normalSpanPx": 26,
+      "visibleNormalSpanPx": 26,
+      "rearContactRunPx": 11,
+      "tangentStartContactRunPx": 10,
+      "tangentEndContactRunPx": 7,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-03",
+      "fileName": "face_s_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_03.png",
+      "sha256": "0b1d6a8aa528bafff9daed2a55a953511a97cc809d3b04c9f7c3ac30c2f1b934",
+      "alphaMaskSha256": "ecd2ba8bd94250e34e7ab8d579caeef02f945156ca1c7ed8e99f03079def576f",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 5
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 7,
+        "width": 20,
+        "height": 25
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 7,
+      "tangentEndContactRunPx": 6,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-04",
+      "fileName": "face_s_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_04.png",
+      "sha256": "49ea48fc00bfa41bbfbf81168d8bc441f136513a57e6d9e9f1e65c7baf5b001d",
+      "alphaMaskSha256": "876b6a7d9d7f83c9ff89ea43474b7f3f91062a994eab0417b13b9875360b86d9",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 3
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 6,
+        "y": 5,
+        "width": 20,
+        "height": 27
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 27,
+      "visibleNormalSpanPx": 27,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 8,
+      "tangentEndContactRunPx": 9,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 3
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-05",
+      "fileName": "face_s_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_05.png",
+      "sha256": "78005e3b23f8b9deea6bfd03639f9769896b395debed3bab7768e23e528ab85c",
+      "alphaMaskSha256": "2e268da202ddcdc5179d2eed6e9e66141c8660e619004f8ca9ada041e11847a7",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 1
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 4,
+        "width": 21,
+        "height": 28
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 21,
+      "normalSpanPx": 28,
+      "visibleNormalSpanPx": 28,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 14,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-s-06",
+      "fileName": "face_s_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_s_06.png",
+      "sha256": "8bc60f68fa1f0c02b6c18c12367cc1202d4a7549bbc2ecc2ab1f2c11423fd4d7",
+      "alphaMaskSha256": "78d4ccaa76bb5909ffe5f72cdc6ca6b7bc0ecd967bf3e5f483f55fb54d40027e",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "south",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 0
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 5,
+        "y": 3,
+        "width": 22,
+        "height": 29
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 22,
+      "normalSpanPx": 29,
+      "visibleNormalSpanPx": 29,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 17,
+      "tangentEndContactRunPx": 4,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 6,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-01",
+      "fileName": "face_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_01.png",
+      "sha256": "85f8177facc5b51cb5d96dbbe4b11d39f0ce2aa2b8c29823b33642c85fda8464",
+      "alphaMaskSha256": "fcdb600c209c081ccb51939d3ef9dc6e7d61cb802ee0215c44b64da5b1c01d61",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 1,
+      "anchorPx": {
+        "x": 26,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 7,
+        "width": 25,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 18,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-02",
+      "fileName": "face_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_02.png",
+      "sha256": "b7072a683ce4d2a62012f8661f0ddc28eab73fa6750494c4b6bef4bd7f4864c3",
+      "alphaMaskSha256": "b85c9c0ba75ebb45895710223164859ce0fbacaefe1f274540de42065714cb3c",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 2,
+      "anchorPx": {
+        "x": 27,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 6,
+        "width": 26,
+        "height": 19
+      },
+      "tangentSpanPx": 19,
+      "visibleTangentSpanPx": 19,
+      "normalSpanPx": 26,
+      "visibleNormalSpanPx": 26,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 4,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-03",
+      "fileName": "face_w_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_03.png",
+      "sha256": "52acce67306a78373976ff749f48282358fa0d3eccf40c07e5805e4392bf4872",
+      "alphaMaskSha256": "2c20e43dc9ff83ee89986c3f8f51c7f39544fa2e642141ed391c413b4dbf8675",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 3,
+      "anchorPx": {
+        "x": 26,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 6,
+        "width": 25,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 25,
+      "visibleNormalSpanPx": 25,
+      "rearContactRunPx": 14,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 11,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-04",
+      "fileName": "face_w_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_04.png",
+      "sha256": "f4f703e9af37944b3b83bcdc99b9d0c9a2a04f37a32c6cd969dd8d2e56f4f0ba",
+      "alphaMaskSha256": "8ec2e631b6ec99fc7c5e20f443c943ac015ae2ff53f1d1c6ed7f73c20a6ae3c1",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 4,
+      "anchorPx": {
+        "x": 28,
+        "y": 16
+      },
+      "frontGapPx": 2,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 6,
+        "width": 27,
+        "height": 20
+      },
+      "tangentSpanPx": 20,
+      "visibleTangentSpanPx": 20,
+      "normalSpanPx": 27,
+      "visibleNormalSpanPx": 27,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 6,
+      "tangentEndContactRunPx": 17,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-05",
+      "fileName": "face_w_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_05.png",
+      "sha256": "a552a5d7ec784c4675bc02ae018b51b644d633d94f23e64eac8190af2e22a3cd",
+      "alphaMaskSha256": "b205b95e9144cbdfda55077f195ac2957fae857e3e1e25e4a90871838141ff8f",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 5,
+      "anchorPx": {
+        "x": 30,
+        "y": 16
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 5,
+        "width": 28,
+        "height": 21
+      },
+      "tangentSpanPx": 21,
+      "visibleTangentSpanPx": 21,
+      "normalSpanPx": 28,
+      "visibleNormalSpanPx": 28,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 9,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-face-w-06",
+      "fileName": "face_w_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/face_w_06.png",
+      "sha256": "7bbf5dcb638e21cc0ec6c4d26c28cfd2fc4486eb9b15ba9a6376fae6cdeb910f",
+      "alphaMaskSha256": "8ab45c4d4a3a7af41953ca0b5d4d0cae98f2f701072404e1635a8b6c91a84c02",
+      "role": "face",
+      "assetFamily": "face",
+      "authoredOrientation": "west",
+      "variant": 6,
+      "anchorPx": {
+        "x": 31,
+        "y": 16
+      },
+      "frontGapPx": 3,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 5,
+        "width": 29,
+        "height": 22
+      },
+      "tangentSpanPx": 22,
+      "visibleTangentSpanPx": 22,
+      "normalSpanPx": 29,
+      "visibleNormalSpanPx": 29,
+      "rearContactRunPx": 12,
+      "tangentStartContactRunPx": 5,
+      "tangentEndContactRunPx": 17,
+      "selectedSourceSheet": "face",
+      "selectedSourceCell": {
+        "column": 6,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-01",
+      "fileName": "corner_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_01.png",
+      "sha256": "52edad0f1ecc570a48353a9b12b7666a44e193743412f19514cd580ae4fadcbc",
+      "alphaMaskSha256": "9ba92f0c5eb495977fd890785dbbbdab41415120f5082a509ae1b463785c5b9b",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 8
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 0,
+        "width": 14,
+        "height": 12
+      },
+      "tangentSpanPx": 14,
+      "visibleTangentSpanPx": 10,
+      "normalSpanPx": 12,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-02",
+      "fileName": "corner_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_02.png",
+      "sha256": "f9f531da1de6facd49b4f13b944ccb0d8e8e43932a99e28858db60f53a89d99c",
+      "alphaMaskSha256": "80a9577a39081f09eaec072a0f693c8afbcc92ee9870d0d6e3a6632ec24e6794",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 0,
+        "width": 16,
+        "height": 14
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 4
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-03",
+      "fileName": "corner_n_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_03.png",
+      "sha256": "68d1c554b9a092ce735ab96805e0fca250b763640f0160eeeadd9dd2ff0ad46e",
+      "alphaMaskSha256": "f3eec6a8b979487b9c1d95b63adfb5d69bbff8c464fcef0888c37efa216f83a7",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 8
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 0,
+        "width": 15,
+        "height": 13
+      },
+      "tangentSpanPx": 15,
+      "visibleTangentSpanPx": 11,
+      "normalSpanPx": 13,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-04",
+      "fileName": "corner_n_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_04.png",
+      "sha256": "e460bdba38873e9ec0f2023315e10a3c32d414be2a42199ad7843e48294b20ec",
+      "alphaMaskSha256": "9867c6c76977bb495cf98d0b49690de1c007a86071804f8f24aede47cda2271e",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 0,
+        "width": 17,
+        "height": 15
+      },
+      "tangentSpanPx": 17,
+      "visibleTangentSpanPx": 13,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 15,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-05",
+      "fileName": "corner_n_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_05.png",
+      "sha256": "80285f4272bf624c9566367e81a2a406223a33acdd7224b45c875eb48caf1cb3",
+      "alphaMaskSha256": "a151ab8d75644e0688d41ba41b41b2eb478ba00a7c77a128de134c953ef4c73c",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 9
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 0,
+        "width": 16,
+        "height": 14
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-n-06",
+      "fileName": "corner_n_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_n_06.png",
+      "sha256": "f1d1d307e063d7a10723adf41b6f07e2a172c83a351a82f4d9463c486f544e2e",
+      "alphaMaskSha256": "fc8c2980aadeebb94d82510910885c5a2d2b6d480ff9b4df0ac52a3348bbae12",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "north",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 10
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 0,
+        "width": 18,
+        "height": 16
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 16,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-01",
+      "fileName": "corner_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_01.png",
+      "sha256": "6aa7c094d482911fb2d2a800d28adc0809bea4312528e6f86d7317f58b424ee6",
+      "alphaMaskSha256": "0726c538b5a766d1040f164508af61a1a2a1a68542c05b521dc1ebd0939c8add",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 1,
+      "anchorPx": {
+        "x": 23,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 20,
+        "y": 9,
+        "width": 12,
+        "height": 14
+      },
+      "tangentSpanPx": 14,
+      "visibleTangentSpanPx": 10,
+      "normalSpanPx": 12,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-02",
+      "fileName": "corner_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_02.png",
+      "sha256": "70c10ae694978c728fda85fc0034558734e4c8ad8886122636d6a4babc5c7283",
+      "alphaMaskSha256": "9c2500710a39751338b8f2e94bde55d789224b8ff7385e7bfe15102c2fedd48d",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 2,
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 18,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-03",
+      "fileName": "corner_e_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_03.png",
+      "sha256": "2f794f4b251647d9787570fb6c1d8e8e0329c360f7af9e7ef7538092429b4426",
+      "alphaMaskSha256": "9c6cae52310d5a1df9e023edf1cecfcf4923faedbc4c98dff21a21ca7d5b34ab",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 3,
+      "anchorPx": {
+        "x": 23,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 19,
+        "y": 8,
+        "width": 13,
+        "height": 15
+      },
+      "tangentSpanPx": 15,
+      "visibleTangentSpanPx": 11,
+      "normalSpanPx": 13,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-04",
+      "fileName": "corner_e_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_04.png",
+      "sha256": "cbc1bbed00e284e73935b905b67ca9cad352a5d3b832565842eb8218a922823e",
+      "alphaMaskSha256": "bcf85a9aa77806fdca1b9891077b21a20e102cf7b69149647b669b0424dc3aa2",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 4,
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 17,
+        "y": 7,
+        "width": 15,
+        "height": 17
+      },
+      "tangentSpanPx": 17,
+      "visibleTangentSpanPx": 13,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 15,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-05",
+      "fileName": "corner_e_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_05.png",
+      "sha256": "eb31164df8d687d7e6b6ea3ebe5c4c334bcec590309118e32ce6c30dfe0abc0a",
+      "alphaMaskSha256": "efbdfe19c36e864f940695da4618f8b67c12350a856d38bfacc00040ed4946e5",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 5,
+      "anchorPx": {
+        "x": 22,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 18,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-e-06",
+      "fileName": "corner_e_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_e_06.png",
+      "sha256": "f0eaeea0a798faf26134937e97520ee898199be0731079227a9008eb85a1d418",
+      "alphaMaskSha256": "eef23de672620a84057f95a09d9bbc8cda803f33bff446c230b2b9bfeaf8b80c",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "east",
+      "variant": 6,
+      "anchorPx": {
+        "x": 21,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 16,
+        "y": 7,
+        "width": 16,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 16,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 5
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-01",
+      "fileName": "corner_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_01.png",
+      "sha256": "a23178a91c4e02e131983de027d105b834ade482b3d1e3455b435085fb2887fd",
+      "alphaMaskSha256": "f1f7462aa1e2d8157c402e86e1aed6a82a9e0de93bc539511b6f720147117bc3",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 23
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 9,
+        "y": 20,
+        "width": 14,
+        "height": 12
+      },
+      "tangentSpanPx": 14,
+      "visibleTangentSpanPx": 10,
+      "normalSpanPx": 12,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-02",
+      "fileName": "corner_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_02.png",
+      "sha256": "c4d2ce5a78ffdb181f3e7271901c497aec2be82fdeccf0a92b265cf769e717ad",
+      "alphaMaskSha256": "ed3328f09bc9bfd6827f4711b398503fe6ea61477708c7e9f7b64f7dc9154beb",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 18,
+        "width": 16,
+        "height": 14
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-03",
+      "fileName": "corner_s_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_03.png",
+      "sha256": "ba274298b7f18d42b4505a8afc313b7a944456e5025b9a799a9c792d8d45bea9",
+      "alphaMaskSha256": "197bea7f99afbe9e96207bac10398a0090822aa223182302536c440d724436fd",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 3,
+      "anchorPx": {
+        "x": 16,
+        "y": 23
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 19,
+        "width": 15,
+        "height": 13
+      },
+      "tangentSpanPx": 15,
+      "visibleTangentSpanPx": 11,
+      "normalSpanPx": 13,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-04",
+      "fileName": "corner_s_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_04.png",
+      "sha256": "2f8754f85fcb7c7216fc79096cc573868732feb675fa1a862fe80e25948839a6",
+      "alphaMaskSha256": "58272bb267d20a455b1ac32c3c07c8cadd12e4101c444728441a8034200c7c56",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 4,
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 17,
+        "width": 17,
+        "height": 15
+      },
+      "tangentSpanPx": 17,
+      "visibleTangentSpanPx": 13,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 15,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-05",
+      "fileName": "corner_s_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_05.png",
+      "sha256": "6327a18cb0dcc75659af0aab029e6e7d0fc9d540971a186535907f26ceba31a7",
+      "alphaMaskSha256": "0cde7feedfe150ecbdf40bee86868b5277117e38604982a36168c9d98abe97ba",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 5,
+      "anchorPx": {
+        "x": 16,
+        "y": 22
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 18,
+        "width": 16,
+        "height": 14
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-s-06",
+      "fileName": "corner_s_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_s_06.png",
+      "sha256": "04231994dbcb452f7e369a95c59255295a4b4e8c7817475262c1bcd35439cd85",
+      "alphaMaskSha256": "7a61bf54bea3c42bbc8dce5d84bde02d24f769bc4074ecda7649ed404940000e",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "south",
+      "variant": 6,
+      "anchorPx": {
+        "x": 16,
+        "y": 21
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 16,
+        "width": 18,
+        "height": 16
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 16,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-01",
+      "fileName": "corner_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_01.png",
+      "sha256": "34eb3e93f819ac0df1c283b677489498440196afa0bd9e397da93870b0131299",
+      "alphaMaskSha256": "17dfb855c71793ae127fccbf09105ee4eb1db8f412f4e6245247e318ca28fa9c",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 1,
+      "anchorPx": {
+        "x": 8,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 9,
+        "width": 12,
+        "height": 14
+      },
+      "tangentSpanPx": 14,
+      "visibleTangentSpanPx": 10,
+      "normalSpanPx": 12,
+      "visibleNormalSpanPx": 12,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 0,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-02",
+      "fileName": "corner_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_02.png",
+      "sha256": "1b409e19ef7ea741e97a2b3b1f5dca5ce5a802d47ad0b2d8ec7fba7bc797ea10",
+      "alphaMaskSha256": "ef94d6943e39cd9f585b3053fa0c8689e9ce96bb184a8497d3bd3e82038863d1",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 2,
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-03",
+      "fileName": "corner_w_03.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_03.png",
+      "sha256": "783652acd8950adf0887af67649724dd101d92f3844669b2e5b452b32e0db0db",
+      "alphaMaskSha256": "d4f96994cfa68d56396c2819f7e76a3faca999af7e25922d6fa7ea3ffc9239d3",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 3,
+      "anchorPx": {
+        "x": 8,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 8,
+        "width": 13,
+        "height": 15
+      },
+      "tangentSpanPx": 15,
+      "visibleTangentSpanPx": 11,
+      "normalSpanPx": 13,
+      "visibleNormalSpanPx": 13,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 2,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-04",
+      "fileName": "corner_w_04.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_04.png",
+      "sha256": "cc6342be1c1548fa2cc5738eb6c86e86fa777f0e255943969b279216852235d0",
+      "alphaMaskSha256": "0f52f5c08ac8c4f8681fa4fe0b6356c9159500b9f6f7d0b901ca0994dcef3879",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 4,
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 7,
+        "width": 15,
+        "height": 17
+      },
+      "tangentSpanPx": 17,
+      "visibleTangentSpanPx": 13,
+      "normalSpanPx": 15,
+      "visibleNormalSpanPx": 15,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 6
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-05",
+      "fileName": "corner_w_05.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_05.png",
+      "sha256": "8643ac0f8cf1d4ead039eb8b8d70c2f36713cbee55d7d841ed7feab72fce5af9",
+      "alphaMaskSha256": "f53187e85d8df264ba21d957e34c386b214ea32be08ccbced2ac5ef876b05288",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 5,
+      "anchorPx": {
+        "x": 9,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 8,
+        "width": 14,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 14,
+      "visibleNormalSpanPx": 14,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 4,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 0,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-corner-w-06",
+      "fileName": "corner_w_06.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/corner_w_06.png",
+      "sha256": "81c4d26dd817830d7998af05b6c61c0f3203b9b72b93572a03766b5fd6467262",
+      "alphaMaskSha256": "7b92e4f257b669529c43bd33849e707817d186b2ba9dbcbc989c68d474e07410",
+      "role": "lineCorner",
+      "assetFamily": "corner",
+      "authoredOrientation": "west",
+      "variant": 6,
+      "anchorPx": {
+        "x": 10,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 7,
+        "width": 16,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 16,
+      "visibleNormalSpanPx": 16,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "corner",
+      "selectedSourceCell": {
+        "column": 5,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 1,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-n-01",
+      "fileName": "cap_n_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_n_01.png",
+      "sha256": "0f2424fc6f5df4ebaae130411a708fb98cfcdf41ea0e88d8eddaa491d43b80e1",
+      "alphaMaskSha256": "00a51ad35c29664d98271b5958242dd6ef38abf19ffae49ed953bfb3b80148b4",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "north",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 8
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 0,
+        "width": 16,
+        "height": 9
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 9,
+      "visibleNormalSpanPx": 9,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 2,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-n-02",
+      "fileName": "cap_n_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_n_02.png",
+      "sha256": "1dbc100bf19e82bfd1327541779fc6e64ab148e079e17a2227cdb570deafc33f",
+      "alphaMaskSha256": "c053829076d47384b3abb353388ad965bbbcdbc08e0aea51972149cf3a0077b3",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "north",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 10
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 0,
+        "width": 18,
+        "height": 11
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 11,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 0
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 3,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-e-01",
+      "fileName": "cap_e_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_e_01.png",
+      "sha256": "8c708f41951e4665795ede612482cc82cc7042cab1eb2ea8665e694e5da80b72",
+      "alphaMaskSha256": "a308d2324463ef14be1d0f3db074b73766d6e01a87d652d4464700bd2e7a3518",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "east",
+      "variant": 1,
+      "anchorPx": {
+        "x": 23,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 23,
+        "y": 8,
+        "width": 9,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 9,
+      "visibleNormalSpanPx": 9,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 4,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-e-02",
+      "fileName": "cap_e_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_e_02.png",
+      "sha256": "47ca15fc7e54a88e7a8ae298729645c8779cd8c9ff5e92fde66009da73b358b1",
+      "alphaMaskSha256": "a1f03d2e94aca7b759e40eff280895429938bfc09fe76796401509420d069513",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "east",
+      "variant": 2,
+      "anchorPx": {
+        "x": 21,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 21,
+        "y": 7,
+        "width": 11,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 11,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 1
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 5,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-s-01",
+      "fileName": "cap_s_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_s_01.png",
+      "sha256": "dd6b5dbaa4002f5e1b6b7f0683292233c2baf6fa2f4754cbd3e390c2ce876bfb",
+      "alphaMaskSha256": "b37724db043b1c1ed3c3911e3089df27beb5f86fd81fa60801eee2599c16b11d",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "south",
+      "variant": 1,
+      "anchorPx": {
+        "x": 16,
+        "y": 23
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 8,
+        "y": 23,
+        "width": 16,
+        "height": 9
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 9,
+      "visibleNormalSpanPx": 9,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 6,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-s-02",
+      "fileName": "cap_s_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_s_02.png",
+      "sha256": "2e4d720432f5be244359af34e4f1fe8a812f7cb6f35699a8e1c395dbfa25b394",
+      "alphaMaskSha256": "0fd0aaf1a94fc0da153ed79f628815af06dec432be834da84431c5eead7a265c",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "south",
+      "variant": 2,
+      "anchorPx": {
+        "x": 16,
+        "y": 21
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 7,
+        "y": 21,
+        "width": 18,
+        "height": 11
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 11,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 2
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 7,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-w-01",
+      "fileName": "cap_w_01.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_w_01.png",
+      "sha256": "19b9a672764dbe47aacb4515bf83d5497135d5935d12d5563f8856bfcbb6eab8",
+      "alphaMaskSha256": "061a367a502ecc9949e0ce85f791b571088ecebb7697f12278cb5585d97603da",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "west",
+      "variant": 1,
+      "anchorPx": {
+        "x": 8,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 8,
+        "width": 9,
+        "height": 16
+      },
+      "tangentSpanPx": 16,
+      "visibleTangentSpanPx": 12,
+      "normalSpanPx": 9,
+      "visibleNormalSpanPx": 9,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 1,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 8,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    },
+    {
+      "id": "selbrume-cliff-v3-organic-cap-w-02",
+      "fileName": "cap_w_02.png",
+      "sourceRelativePath": "assets/sources/border_studio/two_tier_cliff_v3_organic/cap_w_02.png",
+      "sha256": "33cfde029fc845aa3b547e1d3918009eb5827c1f12ea6f06c4b1b7c39328f85d",
+      "alphaMaskSha256": "33b70e611b44490e28b199c706731d71ee0b364580d95ca04e0c3503f95aafa2",
+      "role": "lineCap",
+      "assetFamily": "cap",
+      "authoredOrientation": "west",
+      "variant": 2,
+      "anchorPx": {
+        "x": 10,
+        "y": 16
+      },
+      "frontGapPx": 0,
+      "landwardOverlapPx": 0,
+      "landwardSealDepthPx": 0,
+      "landwardSealStyle": "none",
+      "landwardProtrusionPx": 0,
+      "opaqueBoundsPx": {
+        "x": 0,
+        "y": 7,
+        "width": 11,
+        "height": 18
+      },
+      "tangentSpanPx": 18,
+      "visibleTangentSpanPx": 14,
+      "normalSpanPx": 11,
+      "visibleNormalSpanPx": 11,
+      "rearContactRunPx": 10,
+      "tangentStartContactRunPx": 3,
+      "tangentEndContactRunPx": 3,
+      "selectedSourceSheet": "top",
+      "selectedSourceCell": {
+        "column": 3,
+        "row": 3
+      },
+      "sourceStoneCount": 1,
+      "atlasCell": {
+        "column": 9,
+        "row": 7
+      },
+      "normalizationPolicy": "nearest_palette_compact_visible_stone_v10_diverse",
+      "collisionIntent": "visual_only_no_collision",
+      "source": "OpenAI ImageGen stone contact sheets guided by Selbrume cliff.png",
+      "license": "project-owned generated asset",
+      "status": "candidate"
+    }
+  ]
+}

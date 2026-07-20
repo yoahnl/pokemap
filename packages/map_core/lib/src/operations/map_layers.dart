@@ -60,6 +60,10 @@ MapData addMapLayer(
         id: normalizedId,
         name: normalizedName,
       ),
+    MapLayerKind.border => MapLayer.border(
+        id: normalizedId,
+        name: normalizedName,
+      ),
   };
 
   var targetIndex = insertIndex ?? _resolveDefaultInsertIndex(map, kind);
@@ -68,7 +72,10 @@ MapData addMapLayer(
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
   updatedLayers.insert(targetIndex, newLayer);
-  return map.copyWith(layers: updatedLayers);
+  return map.copyWith(
+    version: kind == MapLayerKind.border ? ProjectVersion.v2 : map.version,
+    layers: updatedLayers,
+  );
 }
 
 int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) {
@@ -265,6 +272,11 @@ MapLayer _copyLayer(
       name: name ?? environmentLayer.name,
       isVisible: isVisible ?? environmentLayer.isVisible,
       opacity: opacity ?? environmentLayer.opacity,
+    ),
+    border: (borderLayer) => borderLayer.copyWith(
+      name: name ?? borderLayer.name,
+      isVisible: isVisible ?? borderLayer.isVisible,
+      opacity: opacity ?? borderLayer.opacity,
     ),
   );
 }

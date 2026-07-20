@@ -73,6 +73,12 @@ class ProjectValidator {
   }
 
   static void validate(ProjectManifest manifest) {
+    if (manifest.version == ProjectVersion.v1 &&
+        manifest.borderCatalog.isNotEmpty) {
+      throw const ValidationException(
+        'A non-empty Border catalog requires ProjectVersion.v2',
+      );
+    }
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);
     _validateEncounterTables(manifest.encounterTables);
@@ -1421,6 +1427,12 @@ class MapValidator {
         'Map $mapId has invalid size: ${map.size.width}x${map.size.height}',
       );
     }
+    if (map.version == ProjectVersion.v1 &&
+        map.layers.any((layer) => layer is BorderLayer)) {
+      throw const ValidationException(
+        'Border layers require ProjectVersion.v2',
+      );
+    }
 
     final expectedCellCount = map.size.width * map.size.height;
     for (final layer in map.layers) {
@@ -2300,6 +2312,15 @@ class MapValidator {
             throw ValidationException(
               'Environment layer $layerId area "${area.id}" mask size '
               '(${area.mask.width}x${area.mask.height}) must match map size (${mapWidth}x$mapHeight)',
+            );
+          }
+        }
+      },
+      border: (borderLayer) {
+        for (final key in borderLayer.properties.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+              'Border layer $layerId has an empty property key',
             );
           }
         }

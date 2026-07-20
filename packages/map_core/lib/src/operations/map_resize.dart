@@ -1,10 +1,52 @@
 import 'dart:math' as math;
 
 import '../exceptions/map_exceptions.dart';
+import '../models/border_diagnostics.dart';
+import '../models/border_layer.dart';
 import '../models/enums.dart';
 import '../models/environment.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/map_layer.dart';
+import 'border_resize.dart';
+
+/// Atomic map-level result for the Border-aware resize path.
+final class MapResizeWithBorderDiagnosticsResult {
+  factory MapResizeWithBorderDiagnosticsResult({
+    required MapData? map,
+    required BorderDiagnosticsReport diagnosticReport,
+    required bool canApply,
+  }) {
+    final hasErrors = diagnosticReport.hasErrors;
+    if ((map == null) != hasErrors) {
+      throw const ValidationException(
+        'MapResizeWithBorderDiagnosticsResult.map must be null exactly when '
+        'errors exist',
+      );
+    }
+    if (canApply != !hasErrors) {
+      throw const ValidationException(
+        'MapResizeWithBorderDiagnosticsResult.canApply must be true exactly '
+        'when no errors exist',
+      );
+    }
+    return MapResizeWithBorderDiagnosticsResult._(
+      map: map,
+      diagnosticReport: diagnosticReport,
+      canApply: canApply,
+    );
+  }
+
+  const MapResizeWithBorderDiagnosticsResult._({
+    required this.map,
+    required this.diagnosticReport,
+    required this.canApply,
+  });
+
+  final MapData? map;
+  final BorderDiagnosticsReport diagnosticReport;
+  final bool canApply;
+}
 
 MapData resizeMapData(
   MapData map, {
@@ -17,6 +59,94 @@ MapData resizeMapData(
 
   final oldSize = map.size;
   if (oldSize.width == width && oldSize.height == height) return map;
+
+  if (map.layers.any((layer) => layer is BorderLayer)) {
+    throw const ValidationException(
+      'Maps with Border layers must be resized with '
+      'resizeMapDataWithBorderDiagnostics',
+    );
+  }
+
+  return _resizeMapDataLegacyLayers(
+    map,
+    width: width,
+    height: height,
+  );
+}
+
+/// Resizes a complete map after atomically preflighting every Border layer.
+MapResizeWithBorderDiagnosticsResult resizeMapDataWithBorderDiagnostics(
+  MapData map, {
+  required int width,
+  required int height,
+  required GridSize tileSizePx,
+}) {
+  final oldSize = map.size;
+  final newSize = GridSize(width: width, height: height);
+  final borderLayers = map.layers.whereType<BorderLayer>().toList(
+        growable: false,
+      );
+  if (borderLayers.isEmpty) {
+    return MapResizeWithBorderDiagnosticsResult(
+      map: resizeMapData(map, width: width, height: height),
+      diagnosticReport: const BorderDiagnosticsReport.empty(),
+      canApply: true,
+    );
+  }
+
+  final resizedBorderContents = Map<BorderLayer, BorderLayerContent>.identity();
+  final diagnostics = <BorderDiagnostic>[];
+
+  for (final layer in borderLayers) {
+    final result = resizeBorderLayerContent(
+      content: layer.content,
+      oldMapSize: oldSize,
+      newMapSize: newSize,
+      tileSizePx: tileSizePx,
+      layerId: layer.id,
+    );
+    diagnostics.addAll(result.diagnosticReport.diagnostics);
+    final resizedContent = result.content;
+    if (resizedContent != null) {
+      resizedBorderContents[layer] = resizedContent;
+    }
+  }
+
+  final report = BorderDiagnosticsReport(diagnostics: diagnostics);
+  if (report.hasErrors) {
+    return MapResizeWithBorderDiagnosticsResult(
+      map: null,
+      diagnosticReport: report,
+      canApply: false,
+    );
+  }
+  if (oldSize == newSize) {
+    return MapResizeWithBorderDiagnosticsResult(
+      map: map,
+      diagnosticReport: report,
+      canApply: true,
+    );
+  }
+
+  return MapResizeWithBorderDiagnosticsResult(
+    map: _resizeMapDataLegacyLayers(
+      map,
+      width: width,
+      height: height,
+      resizedBorderContents: resizedBorderContents,
+    ),
+    diagnosticReport: report,
+    canApply: true,
+  );
+}
+
+MapData _resizeMapDataLegacyLayers(
+  MapData map, {
+  required int width,
+  required int height,
+  Map<BorderLayer, BorderLayerContent>? resizedBorderContents,
+}) {
+  final oldSize = map.size;
 
   final newLayers = map.layers
       .map(
@@ -90,6 +220,9 @@ MapData resizeMapData(
                   )
                   .toList(growable: false),
             ),
+          ),
+          border: (l) => l.copyWith(
+            content: resizedBorderContents?[l] ?? l.content,
           ),
         ),
       )

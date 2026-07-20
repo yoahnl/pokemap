@@ -1,12 +1,33 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../operations/border_layer_content_json_codec.dart';
 import '../operations/environment_layer_content_json_codec.dart';
+import 'border_layer.dart';
 import 'enums.dart';
 import 'environment.dart';
 import 'project_manifest.dart';
 
 part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
+
+const Object _explicitNullBorderLayerContent = Object();
+
+Object? _readBorderLayerContent(Map json, String key) {
+  if (!json.containsKey(key)) {
+    return null;
+  }
+  return json[key] ?? _explicitNullBorderLayerContent;
+}
+
+BorderLayerContent _borderLayerContentFromJson(Object? json) {
+  if (identical(json, _explicitNullBorderLayerContent)) {
+    throw const FormatException(r'$.content: expected an object');
+  }
+  return decodeBorderLayerContentJson(json, path: r'$.content');
+}
+
+Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
+    encodeBorderLayerContentJson(content, path: r'$.content');
 
 @freezed
 class SurfaceCellPlacement with _$SurfaceCellPlacement {
@@ -100,6 +121,23 @@ sealed class MapLayer with _$MapLayer {
     EnvironmentLayerContent content,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = EnvironmentLayer;
+
+  @FreezedUnionValue('border')
+  @JsonSerializable(explicitToJson: true)
+  const factory MapLayer.border({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @JsonKey(
+      readValue: _readBorderLayerContent,
+      fromJson: _borderLayerContentFromJson,
+      toJson: _borderLayerContentToJson,
+    )
+    @Default(BorderLayerContent.emptyContent)
+    BorderLayerContent content,
+    @Default(<String, String>{}) Map<String, String> properties,
+  }) = BorderLayer;
 
   factory MapLayer.fromJson(Map<String, dynamic> json) =>
       _$MapLayerFromJson(json);

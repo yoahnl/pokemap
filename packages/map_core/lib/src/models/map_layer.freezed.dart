@@ -219,6 +219,8 @@ MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
       return ObjectLayer.fromJson(json);
     case 'environment':
       return EnvironmentLayer.fromJson(json);
+    case 'border':
+      return BorderLayer.fromJson(json);
 
     default:
       throw CheckedFromJsonException(json, 'runtimeType', 'MapLayer',
@@ -276,6 +278,18 @@ mixin _$MapLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -321,6 +335,18 @@ mixin _$MapLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -366,6 +392,18 @@ mixin _$MapLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -378,6 +416,7 @@ mixin _$MapLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -389,6 +428,7 @@ mixin _$MapLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) =>
       throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -400,6 +440,7 @@ mixin _$MapLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) =>
       throw _privateConstructorUsedError;
@@ -649,6 +690,18 @@ class _$TileLayerImpl extends TileLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return tile(id, name, tilesetId, isVisible, opacity, tiles);
   }
@@ -697,6 +750,18 @@ class _$TileLayerImpl extends TileLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return tile?.call(id, name, tilesetId, isVisible, opacity, tiles);
   }
@@ -745,6 +810,18 @@ class _$TileLayerImpl extends TileLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (tile != null) {
@@ -763,6 +840,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return tile(this);
   }
@@ -777,6 +855,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return tile?.call(this);
   }
@@ -791,6 +870,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (tile != null) {
@@ -1016,6 +1096,18 @@ class _$CollisionLayerImpl extends CollisionLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return collision(id, name, isVisible, opacity, collisions);
   }
@@ -1064,6 +1156,18 @@ class _$CollisionLayerImpl extends CollisionLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return collision?.call(id, name, isVisible, opacity, collisions);
   }
@@ -1112,6 +1216,18 @@ class _$CollisionLayerImpl extends CollisionLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (collision != null) {
@@ -1130,6 +1246,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return collision(this);
   }
@@ -1144,6 +1261,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return collision?.call(this);
   }
@@ -1158,6 +1276,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (collision != null) {
@@ -1379,6 +1498,18 @@ class _$TerrainLayerImpl extends TerrainLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return terrain(id, name, isVisible, opacity, terrains);
   }
@@ -1427,6 +1558,18 @@ class _$TerrainLayerImpl extends TerrainLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return terrain?.call(id, name, isVisible, opacity, terrains);
   }
@@ -1475,6 +1618,18 @@ class _$TerrainLayerImpl extends TerrainLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (terrain != null) {
@@ -1493,6 +1648,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return terrain(this);
   }
@@ -1507,6 +1663,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return terrain?.call(this);
   }
@@ -1521,6 +1678,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (terrain != null) {
@@ -1815,6 +1973,18 @@ class _$PathLayerImpl extends PathLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return path(id, name, isVisible, opacity, presetId, cells, properties,
         animationMode, animationTriggers);
@@ -1864,6 +2034,18 @@ class _$PathLayerImpl extends PathLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return path?.call(id, name, isVisible, opacity, presetId, cells, properties,
         animationMode, animationTriggers);
@@ -1913,6 +2095,18 @@ class _$PathLayerImpl extends PathLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (path != null) {
@@ -1932,6 +2126,7 @@ class _$PathLayerImpl extends PathLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return path(this);
   }
@@ -1946,6 +2141,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return path?.call(this);
   }
@@ -1960,6 +2156,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (path != null) {
@@ -2217,6 +2414,18 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return surface(id, name, isVisible, opacity, placements, properties);
   }
@@ -2265,6 +2474,18 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return surface?.call(id, name, isVisible, opacity, placements, properties);
   }
@@ -2313,6 +2534,18 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (surface != null) {
@@ -2331,6 +2564,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return surface(this);
   }
@@ -2345,6 +2579,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return surface?.call(this);
   }
@@ -2359,6 +2594,7 @@ class _$SurfaceLayerImpl extends SurfaceLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (surface != null) {
@@ -2560,6 +2796,18 @@ class _$ObjectLayerImpl extends ObjectLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return object(id, name, isVisible, opacity);
   }
@@ -2608,6 +2856,18 @@ class _$ObjectLayerImpl extends ObjectLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return object?.call(id, name, isVisible, opacity);
   }
@@ -2656,6 +2916,18 @@ class _$ObjectLayerImpl extends ObjectLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (object != null) {
@@ -2674,6 +2946,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return object(this);
   }
@@ -2688,6 +2961,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return object?.call(this);
   }
@@ -2702,6 +2976,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (object != null) {
@@ -2943,6 +3218,18 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)
         environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
   }) {
     return environment(id, name, isVisible, opacity, content, properties);
   }
@@ -2991,6 +3278,18 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
   }) {
     return environment?.call(id, name, isVisible, opacity, content, properties);
   }
@@ -3039,6 +3338,18 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             EnvironmentLayerContent content,
             Map<String, String> properties)?
         environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
     required TResult orElse(),
   }) {
     if (environment != null) {
@@ -3057,6 +3368,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
     required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
   }) {
     return environment(this);
   }
@@ -3071,6 +3383,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
     TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
   }) {
     return environment?.call(this);
   }
@@ -3085,6 +3398,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
     TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
     required TResult orElse(),
   }) {
     if (environment != null) {
@@ -3136,5 +3450,441 @@ abstract class EnvironmentLayer extends MapLayer {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$EnvironmentLayerImplCopyWith<_$EnvironmentLayerImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$BorderLayerImplCopyWith<$Res>
+    implements $MapLayerCopyWith<$Res> {
+  factory _$$BorderLayerImplCopyWith(
+          _$BorderLayerImpl value, $Res Function(_$BorderLayerImpl) then) =
+      __$$BorderLayerImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      bool isVisible,
+      double opacity,
+      @JsonKey(
+          readValue: _readBorderLayerContent,
+          fromJson: _borderLayerContentFromJson,
+          toJson: _borderLayerContentToJson)
+      BorderLayerContent content,
+      Map<String, String> properties});
+}
+
+/// @nodoc
+class __$$BorderLayerImplCopyWithImpl<$Res>
+    extends _$MapLayerCopyWithImpl<$Res, _$BorderLayerImpl>
+    implements _$$BorderLayerImplCopyWith<$Res> {
+  __$$BorderLayerImplCopyWithImpl(
+      _$BorderLayerImpl _value, $Res Function(_$BorderLayerImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? content = null,
+    Object? properties = null,
+  }) {
+    return _then(_$BorderLayerImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      content: null == content
+          ? _value.content
+          : content // ignore: cast_nullable_to_non_nullable
+              as BorderLayerContent,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$BorderLayerImpl extends BorderLayer {
+  const _$BorderLayerImpl(
+      {required this.id,
+      required this.name,
+      this.isVisible = true,
+      this.opacity = 1.0,
+      @JsonKey(
+          readValue: _readBorderLayerContent,
+          fromJson: _borderLayerContentFromJson,
+          toJson: _borderLayerContentToJson)
+      this.content = BorderLayerContent.emptyContent,
+      final Map<String, String> properties = const <String, String>{},
+      final String? $type})
+      : _properties = properties,
+        $type = $type ?? 'border',
+        super._();
+
+  factory _$BorderLayerImpl.fromJson(Map<String, dynamic> json) =>
+      _$$BorderLayerImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final bool isVisible;
+  @override
+  @JsonKey()
+  final double opacity;
+  @override
+  @JsonKey(
+      readValue: _readBorderLayerContent,
+      fromJson: _borderLayerContentFromJson,
+      toJson: _borderLayerContentToJson)
+  final BorderLayerContent content;
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
+
+  @override
+  String toString() {
+    return 'MapLayer.border(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, content: $content, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BorderLayerImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.isVisible, isVisible) ||
+                other.isVisible == isVisible) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.content, content) || other.content == content) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
+      content, const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BorderLayerImplCopyWith<_$BorderLayerImpl> get copyWith =>
+      __$$BorderLayerImplCopyWithImpl<_$BorderLayerImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
+        tile,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<bool> collisions)
+        collision,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<TerrainType> terrains)
+        terrain,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)
+        path,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
+            String id, String name, bool isVisible, double opacity)
+        object,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)
+        environment,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)
+        border,
+  }) {
+    return border(id, name, isVisible, opacity, content, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult? Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)?
+        environment,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
+  }) {
+    return border?.call(id, name, isVisible, opacity, content, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                fromJson: decodeEnvironmentLayerContent,
+                toJson: encodeEnvironmentLayerContent)
+            EnvironmentLayerContent content,
+            Map<String, String> properties)?
+        environment,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            @JsonKey(
+                readValue: _readBorderLayerContent,
+                fromJson: _borderLayerContentFromJson,
+                toJson: _borderLayerContentToJson)
+            BorderLayerContent content,
+            Map<String, String> properties)?
+        border,
+    required TResult orElse(),
+  }) {
+    if (border != null) {
+      return border(id, name, isVisible, opacity, content, properties);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(TileLayer value) tile,
+    required TResult Function(CollisionLayer value) collision,
+    required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(ObjectLayer value) object,
+    required TResult Function(EnvironmentLayer value) environment,
+    required TResult Function(BorderLayer value) border,
+  }) {
+    return border(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(TileLayer value)? tile,
+    TResult? Function(CollisionLayer value)? collision,
+    TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(ObjectLayer value)? object,
+    TResult? Function(EnvironmentLayer value)? environment,
+    TResult? Function(BorderLayer value)? border,
+  }) {
+    return border?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(TileLayer value)? tile,
+    TResult Function(CollisionLayer value)? collision,
+    TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
+    TResult Function(ObjectLayer value)? object,
+    TResult Function(EnvironmentLayer value)? environment,
+    TResult Function(BorderLayer value)? border,
+    required TResult orElse(),
+  }) {
+    if (border != null) {
+      return border(this);
+    }
+    return orElse();
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$BorderLayerImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class BorderLayer extends MapLayer {
+  const factory BorderLayer(
+      {required final String id,
+      required final String name,
+      final bool isVisible,
+      final double opacity,
+      @JsonKey(
+          readValue: _readBorderLayerContent,
+          fromJson: _borderLayerContentFromJson,
+          toJson: _borderLayerContentToJson)
+      final BorderLayerContent content,
+      final Map<String, String> properties}) = _$BorderLayerImpl;
+  const BorderLayer._() : super._();
+
+  factory BorderLayer.fromJson(Map<String, dynamic> json) =
+      _$BorderLayerImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  bool get isVisible;
+  @override
+  double get opacity;
+  @JsonKey(
+      readValue: _readBorderLayerContent,
+      fromJson: _borderLayerContentFromJson,
+      toJson: _borderLayerContentToJson)
+  BorderLayerContent get content;
+  Map<String, String> get properties;
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BorderLayerImplCopyWith<_$BorderLayerImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

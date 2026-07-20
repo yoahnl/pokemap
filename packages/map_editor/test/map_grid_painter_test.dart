@@ -8,6 +8,48 @@ import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
+    test('can hide the editor grid for clean visual QA captures', () async {
+      const map = MapData(
+        id: 'grid-qa',
+        name: 'Grid QA',
+        size: GridSize(width: 2, height: 2),
+      );
+
+      Future<int> alphaAtGridLine({required bool showGrid}) async {
+        final recorder = ui.PictureRecorder();
+        final canvas = ui.Canvas(recorder);
+        MapGridPainter(
+          map: map,
+          zoom: 1,
+          offset: ui.Offset.zero,
+          tileWidth: 32,
+          tileHeight: 32,
+          tilesetImagesById: const <String, ui.Image?>{},
+          sourceTileWidth: 32,
+          sourceTileHeight: 32,
+          tilesPerRowById: const <String, int>{},
+          warps: const <MapWarp>[],
+          gameplayZones: const <MapGameplayZone>[],
+          connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+          pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+          terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+          showGrid: showGrid,
+        ).paint(canvas, const ui.Size(64, 64));
+        final picture = recorder.endRecording();
+        final image = await picture.toImage(64, 64);
+        final pixels =
+            await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final pixelOffset = ((16 * image.width) + 32) * 4;
+        final alpha = pixels!.getUint8(pixelOffset + 3);
+        picture.dispose();
+        image.dispose();
+        return alpha;
+      }
+
+      expect(await alphaAtGridLine(showGrid: true), greaterThan(0));
+      expect(await alphaAtGridLine(showGrid: false), 0);
+    });
+
     test(
         'marks only non-collision cells of multi-tile placed elements as foreground',
         () {
@@ -344,7 +386,8 @@ void main() {
       tilesetImage.dispose();
     });
 
-    test('paints static shadow preview below placed elements', () async {
+    test('map with Border keeps static shadow preview below placed elements',
+        () async {
       const map = MapData(
         id: 'market',
         name: 'Market',
@@ -382,6 +425,7 @@ void main() {
               0,
             ],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(
@@ -458,7 +502,8 @@ void main() {
       image.dispose();
     });
 
-    test('paints projected building shadow preview below placed elements',
+    test(
+        'map with Border keeps projected building shadow preview below placed elements',
         () async {
       const map = MapData(
         id: 'market',
@@ -507,6 +552,7 @@ void main() {
               0,
             ],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(
@@ -927,19 +973,15 @@ void main() {
       tilesetImage.dispose();
     });
 
-    test('paints an editable path above its opted-in ground layer', () async {
+    test(
+        'map with Border paints an editable path above its opted-in ground layer',
+        () async {
       const map = MapData(
         id: 'path_over_ground',
         name: 'Path over ground',
         size: GridSize(width: 3, height: 1),
         properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
         layers: <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Ground',
-            tilesetId: 'ground',
-            tiles: <int>[1, 1, 1],
-          ),
           PathLayer(
             id: 'pavement',
             name: 'Pavement',
@@ -950,11 +992,18 @@ void main() {
             },
           ),
           TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            tilesetId: 'ground',
+            tiles: <int>[1, 1, 1],
+          ),
+          TileLayer(
             id: 'structures',
             name: 'Structures',
             tilesetId: 'structures',
             tiles: <int>[0, 0, 1],
           ),
+          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(

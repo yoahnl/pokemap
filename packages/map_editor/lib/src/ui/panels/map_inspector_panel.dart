@@ -11,6 +11,7 @@ import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/border_map_editing/presentation/border_layer_inspector_panel.dart';
 import '../../features/surface_painter/surface_palette_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
@@ -33,6 +34,7 @@ import 'narrative_event_map_bridge_panel.dart';
 enum _InspectorSectionId {
   mapProperties,
   layers,
+  borders,
   tileLayerEnvironment,
   environmentLayer,
   tiles,
@@ -81,6 +83,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final hasPathLayers = activeMap.layers.any((layer) => layer is PathLayer);
     final hasSurfaceLayers =
         activeMap.layers.any((layer) => layer is SurfaceLayer);
+    final borderLayerCount = activeMap.layers.whereType<BorderLayer>().length;
     final hasSurfacePresets =
         state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
     final showTileLayerEnvironmentSection =
@@ -267,6 +270,31 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 ),
                 expandedHeight: 260,
                 child: const LayersPanel(embedded: true),
+              ),
+              InspectorSectionCard(
+                title: 'Bordures',
+                subtitle: activeLayer is BorderLayer
+                    ? 'Feature et blueprint du calque actif'
+                    : borderLayerCount == 0
+                        ? 'Créez un calque de bordures dédié'
+                        : 'Sélectionnez un calque de bordures',
+                icon: CupertinoIcons.waveform_path,
+                badgeText: '$borderLayerCount',
+                accentColor: context.pokeMapColors.mapAccent,
+                expanded: _isExpanded(
+                  _InspectorSectionId.borders,
+                  activeLayer is BorderLayer ||
+                      state.activeTool == EditorToolType.borderPaint ||
+                      state.activeTool == EditorToolType.borderErase,
+                ),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.borders,
+                  defaultExpanded: activeLayer is BorderLayer ||
+                      state.activeTool == EditorToolType.borderPaint ||
+                      state.activeTool == EditorToolType.borderErase,
+                ),
+                expandedHeight: 680,
+                child: const BorderLayerInspectorPanel(),
               ),
               if (tileLayerEnvironmentReadModel != null)
                 InspectorSectionCard(
@@ -696,6 +724,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       SurfaceLayer _ => 'Calque de surface',
       ObjectLayer _ => 'Calque d\'objets',
       EnvironmentLayer _ => 'Calque d\'environnement',
+      BorderLayer _ => 'Calque de bordure',
     };
   }
 
@@ -759,6 +788,7 @@ class _InspectorOverviewCard extends StatelessWidget {
             CollisionLayer _ => 'Calque de collision actif',
             ObjectLayer _ => 'Calque d\'objets actif',
             EnvironmentLayer _ => 'Calque d\'environnement actif',
+            BorderLayer _ => 'Calque de bordure actif',
           };
 
     return Container(

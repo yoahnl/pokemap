@@ -1,6 +1,7 @@
 // ignore_for_file: invalid_annotation_target
 
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'border_catalog.dart';
 import 'element_collision_profile.dart';
 import 'environment.dart';
 import 'enums.dart';
@@ -24,6 +25,7 @@ import 'world_rule.dart';
 
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
+import '../operations/project_border_catalog_json_codec.dart';
 import '../operations/project_element_shadow_config_json_codec.dart';
 import '../operations/project_building_shadow_preset_catalog_json_codec.dart';
 import '../operations/project_element_projected_building_shadow_config_json_codec.dart';
@@ -33,6 +35,32 @@ import '../operations/project_surface_catalog_json_codec.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
+
+const Object _explicitNullProjectBorderCatalog = Object();
+
+Object? _readProjectBorderCatalog(Map json, String key) {
+  if (!json.containsKey(key)) {
+    return null;
+  }
+  return json[key] ?? _explicitNullProjectBorderCatalog;
+}
+
+ProjectBorderCatalog _projectBorderCatalogFromJson(Object? json) {
+  if (identical(json, _explicitNullProjectBorderCatalog)) {
+    throw const FormatException(r'$.borderCatalog: expected an object');
+  }
+  return decodeProjectBorderCatalogJson(json, path: r'$.borderCatalog');
+}
+
+Map<String, Object?>? _projectBorderCatalogToJson(
+  ProjectBorderCatalog catalog,
+) {
+  if (catalog.isEmpty &&
+      catalog.formatVersion == ProjectBorderCatalog.formatVersionV1) {
+    return null;
+  }
+  return encodeProjectBorderCatalogJson(catalog, path: r'$.borderCatalog');
+}
 
 /// JSON → [ProjectSurfaceCatalog] pour [ProjectManifest.surfaceCatalog] (Lot 49).
 /// Clé absente ou `null` : catalogue vide. Non-map : [ValidationException].
@@ -393,6 +421,15 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _projectSurfaceCatalogToJson,
     )
     ProjectSurfaceCatalog surfaceCatalog,
+    @Default(ProjectBorderCatalog.empty())
+    @JsonKey(
+      name: 'borderCatalog',
+      readValue: _readProjectBorderCatalog,
+      fromJson: _projectBorderCatalogFromJson,
+      toJson: _projectBorderCatalogToJson,
+      includeIfNull: false,
+    )
+    ProjectBorderCatalog borderCatalog,
     @Default(ProjectShadowCatalog.empty())
     @ProjectShadowCatalogJsonConverter()
     ProjectShadowCatalog shadowCatalog,
@@ -406,8 +443,17 @@ class ProjectManifest with _$ProjectManifest {
     ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog,
   }) = _ProjectManifest;
 
-  factory ProjectManifest.fromJson(Map<String, dynamic> json) =>
-      _$ProjectManifestFromJson(json);
+  factory ProjectManifest.fromJson(Map<String, dynamic> json) {
+    final manifest = _$ProjectManifestFromJson(json);
+    if (manifest.version == ProjectVersion.v1 &&
+        manifest.borderCatalog.isNotEmpty) {
+      throw const FormatException(
+        r'$.borderCatalog: non-empty Border catalog requires '
+        'ProjectVersion.v2',
+      );
+    }
+    return manifest;
+  }
 }
 
 @freezed

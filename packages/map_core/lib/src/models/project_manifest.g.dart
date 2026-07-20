@@ -128,6 +128,10 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       surfaceCatalog: json['surfaceCatalog'] == null
           ? const ProjectSurfaceCatalog.empty()
           : _projectSurfaceCatalogFromJson(json['surfaceCatalog']),
+      borderCatalog: _readProjectBorderCatalog(json, 'borderCatalog') == null
+          ? const ProjectBorderCatalog.empty()
+          : _projectBorderCatalogFromJson(
+              _readProjectBorderCatalog(json, 'borderCatalog')),
       shadowCatalog: json['shadowCatalog'] == null
           ? const ProjectShadowCatalog.empty()
           : const ProjectShadowCatalogJsonConverter()
@@ -181,6 +185,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'newGame': instance.newGame.toJson(),
       'globalProperties': instance.globalProperties,
       'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
+      if (_projectBorderCatalogToJson(instance.borderCatalog) case final value?)
+        'borderCatalog': value,
       'shadowCatalog': const ProjectShadowCatalogJsonConverter()
           .toJson(instance.shadowCatalog),
       if (_projectedBuildingShadowCatalogToJson(
@@ -191,6 +197,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
+  ProjectVersion.v2: 'v2',
 };
 
 _$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(

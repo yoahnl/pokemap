@@ -230,6 +230,10 @@ abstract final class SelbrumeMapTestFixture {
     'ts_selbrume_lighthouse_interior',
     'ts_selbrume_cabin_interior',
     'ts_selbrume_lighthouse_fx',
+    'ts_selbrume_cliff_connected_v1',
+    'ts_selbrume_cliff_stone_chain_v1',
+    'ts_selbrume_cliff_two_tier_v2',
+    'ts_selbrume_cliff_two_tier_v3_organic',
   };
 
   static Directory findRepositoryRoot({Directory? from}) {

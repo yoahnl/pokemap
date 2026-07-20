@@ -41,8 +41,21 @@ class MapData with _$MapData {
     @Default([]) List<MapEventDefinition> events,
   }) = _MapData;
 
-  factory MapData.fromJson(Map<String, dynamic> json) =>
-      _$MapDataFromJson(json);
+  factory MapData.fromJson(Map<String, dynamic> json) {
+    final map = _$MapDataFromJson(json);
+    if (map.version == ProjectVersion.v1) {
+      final borderIndex =
+          map.layers.indexWhere((layer) => layer is BorderLayer);
+      if (borderIndex >= 0) {
+        throw FormatException(
+          r'$.layers['
+          '$borderIndex].runtimeType: Border layers require '
+          'ProjectVersion.v2',
+        );
+      }
+    }
+    return map;
+  }
 }
 
 // ---------------------------------------------------------------------------
