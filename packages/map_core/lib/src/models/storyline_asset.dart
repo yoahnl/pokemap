@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
+import 'narrative_value.dart';
 import 'script_conditions.dart';
 
 const Object _storylineCopyUnset = Object();
@@ -803,15 +804,40 @@ final class StorylineEffect {
     required this.type,
     required this.targetId,
     this.value,
+    this.factValue,
   }) {
     _requireNotBlank(targetId, 'StorylineEffect.targetId');
+    if (factValue != null && type != StorylineEffectType.emitFact) {
+      throw ArgumentError.value(
+        factValue,
+        'factValue',
+        'is only supported by emitFact effects',
+      );
+    }
   }
 
+  factory StorylineEffect.emitFactValue({
+    required String factId,
+    required NarrativeValue value,
+  }) =>
+      StorylineEffect(
+        type: StorylineEffectType.emitFact,
+        targetId: factId,
+        factValue: value,
+      );
+
   factory StorylineEffect.fromJson(Map<String, dynamic> json) {
+    final valueType = _readOptionalString(json, 'valueType');
     return StorylineEffect(
       type: _readEnum(StorylineEffectType.values, json['type'], 'type'),
       targetId: _readRequiredString(json, 'targetId'),
-      value: _readOptionalString(json, 'value'),
+      value: valueType == null ? _readOptionalString(json, 'value') : null,
+      factValue: valueType == null
+          ? null
+          : NarrativeValue.fromJson(
+              json['value'],
+              declaredKind: NarrativeValueKind.fromWireName(valueType),
+            ),
     );
   }
 
@@ -819,13 +845,25 @@ final class StorylineEffect {
     return _withoutNulls({
       'type': _enumToJson(type),
       'targetId': targetId,
-      'value': value,
+      'valueType': factValue?.kind.wireName,
+      'value': factValue?.toJson() ?? value,
     });
   }
 
   final StorylineEffectType type;
   final String targetId;
   final String? value;
+  final NarrativeValue? factValue;
+
+  NarrativeValue? get resolvedFactValue {
+    if (factValue != null) return factValue;
+    if (type != StorylineEffectType.emitFact || value == null) return null;
+    return switch (value!.trim().toLowerCase()) {
+      'true' => const NarrativeValue.boolean(true),
+      'false' => const NarrativeValue.boolean(false),
+      _ => NarrativeValue.string(value!),
+    };
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -833,10 +871,11 @@ final class StorylineEffect {
       other is StorylineEffect &&
           other.type == type &&
           other.targetId == targetId &&
-          other.value == value;
+          other.value == value &&
+          other.factValue == factValue;
 
   @override
-  int get hashCode => Object.hash(type, targetId, value);
+  int get hashCode => Object.hash(type, targetId, value, factValue);
 }
 
 @immutable

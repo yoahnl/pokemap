@@ -472,8 +472,8 @@ Set<String> _dependencyCycleIds(Iterable<NarrativeEventRecord> records) {
     if (definition == null) continue;
     graph[entry.key] = {
       for (final condition in definition.conditions)
-        ...condition.when(
-          fact: (_, __) => const <String>[],
+        ...condition.whenTyped(
+          fact: (_, __, ___) => const <String>[],
           narrativeEventConsumed: (eventId, _) => [eventId],
         ),
     };

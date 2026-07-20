@@ -32,7 +32,8 @@ class EventBuilderV2SimulationSheet extends StatefulWidget {
 class _EventBuilderV2SimulationSheetState
     extends State<EventBuilderV2SimulationSheet> {
   late final List<_SimulationSourceChoice> _sources;
-  late final Map<String, bool> _factValues;
+  late final Map<String, NarrativeValue> _factValues;
+  final Map<String, TextEditingController> _factControllers = {};
   late final Set<String> _consumedEventIds;
   int _sourceIndex = 0;
   bool _running = false;
@@ -53,9 +54,27 @@ class _EventBuilderV2SimulationSheetState
     if (currentIndex >= 0) _sourceIndex = currentIndex;
     _factValues = {
       for (final entry in widget.snapshot.facts)
-        entry.fact.id: entry.fact.defaultValue,
+        entry.fact.id: entry.fact.initialValue,
     };
+    for (final entry in widget.snapshot.facts) {
+      final value = entry.fact.initialValue;
+      if (value.kind != NarrativeValueKind.boolean) {
+        _factControllers[entry.fact.id] = TextEditingController(
+          text: value.kind == NarrativeValueKind.integer
+              ? '${value.intValue}'
+              : value.stringValue,
+        );
+      }
+    }
     _consumedEventIds = <String>{};
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _factControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _run() async {
@@ -68,7 +87,16 @@ class _EventBuilderV2SimulationSheetState
         NarrativeEventSimulationInput(
           targetEventId: widget.eventId,
           source: _sources.isEmpty ? null : _sources[_sourceIndex].source,
-          factValues: _factValues,
+          factValues: {
+            for (final entry in _factValues.entries)
+              if (entry.value.kind == NarrativeValueKind.boolean)
+                entry.key: entry.value.boolValue,
+          },
+          factNarrativeValues: {
+            for (final entry in _factValues.entries)
+              if (entry.value.kind != NarrativeValueKind.boolean)
+                entry.key: entry.value,
+          },
           consumedNarrativeEventIds: _consumedEventIds,
         ),
       );
@@ -130,13 +158,13 @@ class _EventBuilderV2SimulationSheetState
           )
         else
           for (final entry in widget.snapshot.facts) ...[
-            PokeMapToggleTile(
+            _SimulationFactInput(
               key: ValueKey(
                 'event-builder-v2-simulation-fact-${entry.fact.id}',
               ),
-              label: entry.fact.label,
-              description: 'État du Fact pendant ce test',
-              value: _factValues[entry.fact.id] ?? false,
+              fact: entry.fact,
+              value: _factValues[entry.fact.id]!,
+              controller: _factControllers[entry.fact.id],
               onChanged: (value) => setState(
                 () => _factValues[entry.fact.id] = value,
               ),
@@ -201,6 +229,52 @@ class _EventBuilderV2SimulationSheetState
       ],
     );
   }
+}
+
+class _SimulationFactInput extends StatelessWidget {
+  const _SimulationFactInput({
+    super.key,
+    required this.fact,
+    required this.value,
+    required this.controller,
+    required this.onChanged,
+  });
+
+  final NarrativeFactDefinition fact;
+  final NarrativeValue value;
+  final TextEditingController? controller;
+  final ValueChanged<NarrativeValue> onChanged;
+
+  @override
+  Widget build(BuildContext context) => switch (fact.valueKind) {
+        NarrativeValueKind.boolean => PokeMapToggleTile(
+            label: fact.label,
+            description: 'Valeur booléenne temporaire',
+            value: value.boolValue,
+            onChanged: (next) => onChanged(NarrativeValue.boolean(next)),
+          ),
+        NarrativeValueKind.integer => PokeMapTextField(
+            controller: controller,
+            label: fact.label,
+            hintText: 'Valeur entière temporaire',
+            keyboardType: TextInputType.number,
+            onChanged: (raw) {
+              final parsed = int.tryParse(raw.trim());
+              if (parsed == null) return;
+              try {
+                onChanged(NarrativeValue.integer(parsed));
+              } on ArgumentError {
+                // Keep the last valid exact JSON integer while editing.
+              }
+            },
+          ),
+        NarrativeValueKind.string => PokeMapTextField(
+            controller: controller,
+            label: fact.label,
+            hintText: 'Texte temporaire',
+            onChanged: (raw) => onChanged(NarrativeValue.string(raw)),
+          ),
+      };
 }
 
 class _SimulationResult extends StatelessWidget {
@@ -320,15 +394,34 @@ class _SimulationResult extends StatelessWidget {
     final target = condition.kind == NarrativeEventSimulationConditionKind.fact
         ? factLabels[condition.targetId] ?? condition.targetId
         : eventLabels[condition.targetId] ?? condition.targetId;
-    final actual = condition.actualValue == null
+    final actual = condition.actualNarrativeValue == null
         ? 'indisponible'
-        : condition.actualValue!
-            ? 'vrai'
-            : 'faux';
-    final expected = condition.expectedValue ? 'vrai' : 'faux';
-    return '$target : $actual, attendu $expected';
+        : _simulationValueLabel(condition.actualNarrativeValue!);
+    final expected = _simulationValueLabel(condition.expectedNarrativeValue);
+    if (condition.operator == NarrativeFactOperator.equals &&
+        condition.expectedNarrativeValue.kind == NarrativeValueKind.boolean) {
+      return '$target : $actual, attendu $expected';
+    }
+    return '$target : $actual, ${_simulationOperatorLabel(condition.operator)} '
+        '$expected';
   }
 }
+
+String _simulationValueLabel(NarrativeValue value) => switch (value.kind) {
+      NarrativeValueKind.boolean => value.boolValue ? 'vrai' : 'faux',
+      NarrativeValueKind.integer => '${value.intValue}',
+      NarrativeValueKind.string => '“${value.stringValue}”',
+    };
+
+String _simulationOperatorLabel(NarrativeFactOperator operator) =>
+    switch (operator) {
+      NarrativeFactOperator.equals => 'attendu =',
+      NarrativeFactOperator.notEquals => 'attendu ≠',
+      NarrativeFactOperator.greaterThan => 'attendu >',
+      NarrativeFactOperator.greaterThanOrEqual => 'attendu ≥',
+      NarrativeFactOperator.lessThan => 'attendu <',
+      NarrativeFactOperator.lessThanOrEqual => 'attendu ≤',
+    };
 
 List<_SimulationSourceChoice> _buildSources(
   NarrativeEventBuilderV2EditorSnapshot snapshot,

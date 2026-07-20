@@ -148,6 +148,36 @@ void main() {
       expect(cleared.after, project);
     });
 
+    test('does not coerce a typed Fact into a legacy boolean flag', () {
+      final project = _project().copyWith(
+        facts: [
+          ..._project().facts,
+          NarrativeFactDefinition(
+            id: 'fact_reputation',
+            label: 'Reputation',
+            initialValue: NarrativeValue.integer(0),
+          ),
+        ],
+      );
+
+      final result = connectStorylineProgressionEdge(
+        project,
+        StorylineProgressionConnectRequest.factCondition(
+          storylineId: 'story_main',
+          chapterId: 'chapter_intro',
+          stepId: 'step_intro',
+          slot: StorylineProgressionConditionSlot.entry,
+          factId: 'fact_reputation',
+          expectedValue: true,
+        ),
+      );
+
+      expect(
+          result.disposition, StorylineProgressionMutationDisposition.rejected);
+      expect(result.code, 'destinationNotFound');
+      expect(result.after, same(project));
+    });
+
     test('refuses replacing an occupied advanced condition', () {
       final project = _project(withAdvancedCondition: true);
 

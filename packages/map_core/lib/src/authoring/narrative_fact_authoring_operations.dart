@@ -1,5 +1,6 @@
 import '../models/map_data.dart';
 import '../models/narrative_fact.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../read_models/narrative_dependency_index.dart';
 
@@ -33,12 +34,29 @@ final class NarrativeFactRemovalResult {
   final NarrativeFactDefinition removedFact;
 }
 
+final class NarrativeFactTypeChangePreview {
+  NarrativeFactTypeChangePreview({
+    required this.factId,
+    required this.currentKind,
+    required this.nextKind,
+    required List<NarrativeDependencyUsage> usages,
+  }) : usages = List.unmodifiable(usages);
+
+  final String factId;
+  final NarrativeValueKind currentKind;
+  final NarrativeValueKind nextKind;
+  final List<NarrativeDependencyUsage> usages;
+
+  bool get canApply => usages.isEmpty;
+}
+
 NarrativeFactCreationResult addNarrativeFact(
   ProjectManifest manifest, {
   required String label,
   String description = '',
   String category = '',
   bool defaultValue = false,
+  NarrativeValue? initialValue,
   List<String> tags = const <String>[],
   String? legacyFlagName,
 }) {
@@ -52,6 +70,7 @@ NarrativeFactCreationResult addNarrativeFact(
     description: description,
     category: category,
     defaultValue: defaultValue,
+    initialValue: initialValue,
     tags: tags,
     legacyFlagName: legacyFlagName,
   );
@@ -68,10 +87,33 @@ NarrativeFactUpdateResult updateNarrativeFact(
   String description = '',
   String category = '',
   bool defaultValue = false,
+  NarrativeValue? initialValue,
   List<String> tags = const <String>[],
   String? legacyFlagName,
+  NarrativeFactTypeChangePreview? typeChangePreview,
 }) {
   final currentFact = _uniqueFact(manifest, factId);
+  final nextValue = initialValue ?? NarrativeValue.boolean(defaultValue);
+  if (currentFact.valueKind != nextValue.kind) {
+    final preview = typeChangePreview;
+    if (preview == null ||
+        preview.factId != factId ||
+        preview.currentKind != currentFact.valueKind ||
+        preview.nextKind != nextValue.kind) {
+      throw ArgumentError.value(
+        typeChangePreview,
+        'typeChangePreview',
+        'An exact dependency preview is required before changing Fact type.',
+      );
+    }
+    if (!preview.canApply) {
+      throw ArgumentError.value(
+        factId,
+        'factId',
+        'Cannot change Fact type while referenced at ${preview.usages.first.path}.',
+      );
+    }
+  }
   final index = manifest.facts.indexOf(currentFact);
   final updatedFact = NarrativeFactDefinition(
     id: factId,
@@ -79,6 +121,7 @@ NarrativeFactUpdateResult updateNarrativeFact(
     description: description,
     category: category,
     defaultValue: defaultValue,
+    initialValue: nextValue,
     tags: tags,
     legacyFlagName: legacyFlagName,
   );
@@ -106,12 +149,31 @@ NarrativeFactCreationResult duplicateNarrativeFact(
     label: label,
     description: source.description,
     category: source.category,
-    defaultValue: source.defaultValue,
+    initialValue: source.initialValue,
     tags: source.tags,
   );
   return NarrativeFactCreationResult(
     updatedProject: manifest.copyWith(facts: [...manifest.facts, duplicated]),
     createdFact: duplicated,
+  );
+}
+
+NarrativeFactTypeChangePreview previewNarrativeFactTypeChange(
+  ProjectManifest manifest, {
+  required String factId,
+  required NarrativeValueKind nextKind,
+  List<MapData> maps = const <MapData>[],
+}) {
+  final fact = _uniqueFact(manifest, factId);
+  final index = buildNarrativeDependencyIndex(project: manifest, maps: maps);
+  final usages = index.usagesFor(
+    NarrativeDependencyKey(NarrativeDependencyTargetKind.fact, factId),
+  );
+  return NarrativeFactTypeChangePreview(
+    factId: factId,
+    currentKind: fact.valueKind,
+    nextKind: nextKind,
+    usages: usages,
   );
 }
 

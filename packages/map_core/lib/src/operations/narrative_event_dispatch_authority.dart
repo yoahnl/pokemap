@@ -338,16 +338,17 @@ final class NarrativeEventDispatchAuthorityReady
       NarrativeEventCondition condition,
       int index,
     ) {
-      return condition.when(
-        fact: (factId, expectedValue) {
+      return condition.whenTyped(
+        fact: (factId, operator, expectedValue) {
           if (_projectCatalog.resolveFact(factId).status !=
               NarrativeEventProjectResolutionStatus.found) {
-            return NarrativeEventSimulationConditionTrace(
+            return NarrativeEventSimulationConditionTrace.typed(
               index: index,
               kind: NarrativeEventSimulationConditionKind.fact,
               targetId: factId,
-              expectedValue: expectedValue,
-              actualValue: null,
+              operator: operator,
+              expectedNarrativeValue: expectedValue,
+              actualNarrativeValue: null,
               passed: false,
               reason:
                   NarrativeEventSimulationReason.runtimeReferenceUnavailable,
@@ -359,15 +360,18 @@ final class NarrativeEventDispatchAuthorityReady
             storyFlags: gameState.storyFlags,
           );
           final actual = resolution is NarrativeFactRuntimeResolved
-              ? resolution.value
+              ? resolution.narrativeValue
               : null;
-          final passed = actual == expectedValue;
-          return NarrativeEventSimulationConditionTrace(
+          final passed = actual != null &&
+              actual.kind == expectedValue.kind &&
+              actual.matches(operator, expectedValue);
+          return NarrativeEventSimulationConditionTrace.typed(
             index: index,
             kind: NarrativeEventSimulationConditionKind.fact,
             targetId: factId,
-            expectedValue: expectedValue,
-            actualValue: actual,
+            operator: operator,
+            expectedNarrativeValue: expectedValue,
+            actualNarrativeValue: actual,
             passed: passed,
             reason: passed
                 ? null

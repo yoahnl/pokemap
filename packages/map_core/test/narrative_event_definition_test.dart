@@ -103,6 +103,39 @@ void main() {
       );
     });
 
+    test('round-trips typed Fact comparisons without changing bool wire', () {
+      final condition = NarrativeEventCondition.factValue(
+        'fact_tide',
+        operator: NarrativeFactOperator.greaterThanOrEqual,
+        expectedValue: NarrativeValue.integer(3),
+      );
+
+      expect(condition.toJson(), {
+        'kind': 'fact',
+        'factId': 'fact_tide',
+        'operator': 'greaterThanOrEqual',
+        'valueType': 'int',
+        'expectedValue': 3,
+      });
+      expect(NarrativeEventCondition.fromJson(condition.toJson()), condition);
+      expect(
+        () => NarrativeEventCondition.factValue(
+          'fact_name',
+          operator: NarrativeFactOperator.greaterThan,
+          expectedValue: const NarrativeValue.string('Brume'),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        NarrativeEventCondition.fact('fact_bool', false).toJson(),
+        {
+          'kind': 'fact',
+          'factId': 'fact_bool',
+          'expectedValue': false,
+        },
+      );
+    });
+
     test('rejects malformed conditions and future condition wire shapes', () {
       expect(
         () => NarrativeEventCondition.fromJson({

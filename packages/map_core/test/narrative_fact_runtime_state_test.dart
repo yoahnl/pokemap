@@ -5,6 +5,15 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeFactRuntimeState', () {
+    test('rejects integers outside the exact interoperable JSON range', () {
+      expect(
+        () => NarrativeFactRuntimeState.fromJson({
+          'schemaVersion': 2,
+          'valuesByFactId': {'fact_score': 9007199254740992},
+        }),
+        throwsFormatException,
+      );
+    });
     test('defaults to an empty immutable override map', () {
       const state = NarrativeFactRuntimeState.empty();
 
@@ -13,6 +22,38 @@ void main() {
         () => state.overridesByFactId['fact_test'] = true,
         throwsUnsupportedError,
       );
+    });
+
+    test('round-trips a versioned mixed typed state', () {
+      final state = NarrativeFactRuntimeState.typed(
+        valuesByFactId: {
+          'fact_bool': const NarrativeValue.boolean(false),
+          'fact_count': NarrativeValue.integer(12),
+          'fact_name': const NarrativeValue.string('Écume'),
+        },
+      );
+
+      final json = state.toJson();
+      expect(json['schemaVersion'], 2);
+      expect(json['valuesByFactId'], {
+        'fact_bool': false,
+        'fact_count': 12,
+        'fact_name': 'Écume',
+      });
+      expect(NarrativeFactRuntimeState.fromJson(json), state);
+      expect(state.valueFor('fact_count'), NarrativeValue.integer(12));
+    });
+
+    test('keeps the historical bool wire unchanged', () {
+      final state = NarrativeFactRuntimeState(
+        overridesByFactId: const {'fact_gate': false},
+      );
+
+      expect(state.toJson(), {
+        'overridesByFactId': {'fact_gate': false},
+      });
+      expect(state.valuesByFactId['fact_gate'],
+          const NarrativeValue.boolean(false));
     });
 
     test('defensively copies overrides and keeps explicit booleans', () {

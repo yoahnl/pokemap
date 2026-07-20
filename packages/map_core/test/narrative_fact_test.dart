@@ -52,6 +52,30 @@ void main() {
       expect(decoded, equals(fact));
       expect(decoded.toJson()['id'], 'fact_intro_complete');
       expect(decoded.toJson()['defaultValue'], isFalse);
+      expect(decoded.initialValue, const NarrativeValue.boolean(false));
+      expect(decoded.toJson().containsKey('valueType'), isFalse);
+    });
+
+    test('round-trips typed int and Unicode string definitions', () {
+      final facts = [
+        NarrativeFactDefinition(
+          id: 'fact_tide_level',
+          label: 'Niveau de marée',
+          initialValue: NarrativeValue.integer(3),
+        ),
+        NarrativeFactDefinition(
+          id: 'fact_harbor_name',
+          label: 'Nom du port',
+          initialValue: const NarrativeValue.string('Port des Brisants 🌊'),
+        ),
+      ];
+
+      for (final fact in facts) {
+        final decoded = NarrativeFactDefinition.fromJson(fact.toJson());
+        expect(decoded, fact);
+        expect(decoded.toJson()['valueType'], fact.initialValue.kind.wireName);
+        expect(decoded.toJson()['defaultValue'], fact.initialValue.toJson());
+      }
     });
   });
 }

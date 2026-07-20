@@ -74,6 +74,39 @@ void main() {
       expect(result.gameState.progression.storyFlags, ['legacy_gate']);
     });
 
+    test('writes typed values and rejects a mismatched type atomically', () {
+      final resolver = NarrativeFactRuntimeResolver.fromFacts([
+        NarrativeFactDefinition(
+          id: 'fact_tide',
+          label: 'Tide',
+          initialValue: NarrativeValue.integer(0),
+        ),
+      ]);
+      final writer = NarrativeFactRuntimeWriter(resolver);
+      const original = GameState(saveId: 'writer_typed');
+
+      final applied = writer.setFactValue(
+        gameState: original,
+        factId: 'fact_tide',
+        value: NarrativeValue.integer(4),
+      );
+      final rejected = writer.setFactValue(
+        gameState: applied.gameState,
+        factId: 'fact_tide',
+        value: const NarrativeValue.string('four'),
+      );
+
+      expect(applied.success, isTrue);
+      expect(
+        applied.gameState.narrativeFactRuntimeState.valueFor('fact_tide'),
+        NarrativeValue.integer(4),
+      );
+      expect(
+          rejected.errorCode, NarrativeFactRuntimeWriteErrorCode.typeMismatch);
+      expect(identical(rejected.gameState, applied.gameState), isTrue);
+      expect(applied.gameState.storyFlags.activeFlags, isEmpty);
+    });
+
     test('keeps explicit intent across default and alias changes', () {
       final firstResolver = NarrativeFactRuntimeResolver.fromFacts([
         NarrativeFactDefinition(

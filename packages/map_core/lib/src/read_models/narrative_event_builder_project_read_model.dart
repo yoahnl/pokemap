@@ -10,6 +10,7 @@ import '../models/map_data.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
@@ -1348,8 +1349,8 @@ final class _ProjectReadIndexes {
     var unresolved = 0;
     final details = <NarrativeEventConditionDetailSummary>[];
     for (final condition in conditions) {
-      condition.when<void>(
-        fact: (factId, expectedValue) {
+      condition.whenTyped<void>(
+        fact: (factId, operator, expectedValue) {
           final matches = _factsById[factId] ?? const [];
           final resolved = matches.length == 1;
           if (!resolved) unresolved++;
@@ -1360,9 +1361,11 @@ final class _ProjectReadIndexes {
             NarrativeEventConditionDetailSummary(
               kind: NarrativeEventConditionDetailKind.fact,
               targetLabel: label,
-              expectedValue: expectedValue,
+              expectedValue: expectedValue.kind == NarrativeValueKind.boolean
+                  ? expectedValue.boolValue
+                  : false,
               resolved: resolved,
-              humanLabel: '$label = ${expectedValue ? 'vrai' : 'faux'}',
+              humanLabel: '$label ${operator.name} ${expectedValue.toJson()}',
             ),
           );
         },

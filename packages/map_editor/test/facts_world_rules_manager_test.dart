@@ -368,7 +368,7 @@ Future<void> _pumpFactsWorldRulesWorkspace(
                   required label,
                   required description,
                   required category,
-                  required defaultValue,
+                  required initialValue,
                 }) async =>
                     false,
                 onRemoveFact: ({required factId}) async => false,

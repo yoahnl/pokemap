@@ -122,10 +122,13 @@ GameState createNewGameStateFromProject({
   );
   final normalizedParty =
       PlayerParty(members: config.initialParty).normalized();
-  final initialFacts = <String, bool>{...config.initialFacts};
+  final initialFacts = <String, NarrativeValue>{
+    ...config.resolvedInitialFactValues,
+  };
   final existingPartyFactId = config.existingPartyFactId?.trim();
   if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
-    initialFacts[existingPartyFactId] = normalizedParty.members.isNotEmpty;
+    initialFacts[existingPartyFactId] =
+        NarrativeValue.boolean(normalizedParty.members.isNotEmpty);
   }
 
   return normalizeLoadedGameState(
@@ -144,8 +147,8 @@ GameState createNewGameStateFromProject({
       progression: const PlayerProgression(),
       scriptVariables: const ScriptVariables(),
       storyFlags: const StoryFlags(),
-      narrativeFactRuntimeState: NarrativeFactRuntimeState(
-        overridesByFactId: initialFacts,
+      narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: initialFacts,
       ),
       consumedEventIds: const <String>{},
       metadata: const <String, String>{},

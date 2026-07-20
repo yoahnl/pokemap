@@ -2,6 +2,7 @@ import '../models/enums.dart';
 import '../models/game_state.dart';
 import '../models/map_data.dart';
 import '../models/narrative_fact_runtime_state.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -30,6 +31,7 @@ enum WorldRuleDiagnosticCode {
   worldRuleUsesRawTechnicalId,
   worldRuleLegacyPredicateLeak,
   worldRuleFactRuntimeCollision,
+  worldRuleFactTypeMismatch,
 }
 
 final class WorldRuleDiagnostic {
@@ -216,8 +218,21 @@ void _diagnoseSource(
         storyFlags: const StoryFlags(),
       );
       switch (resolution) {
-        case NarrativeFactRuntimeResolved():
-          break;
+        case NarrativeFactRuntimeResolved(:final fact):
+          if (rule.source.expectedFactValue != null &&
+              fact.valueKind != rule.source.expectedFactValue!.kind) {
+            diagnostics.add(
+              WorldRuleDiagnostic(
+                code: WorldRuleDiagnosticCode.worldRuleFactTypeMismatch,
+                severity: WorldRuleDiagnosticSeverity.error,
+                message:
+                    'La valeur comparée ne correspond pas au type du Fact.',
+                ruleId: rule.id,
+                sourceId: rule.source.sourceId,
+                suggestedFixLabel: 'Choisir une valeur du même type.',
+              ),
+            );
+          }
         case NarrativeFactRuntimeUnknownFact():
           diagnostics.add(
             WorldRuleDiagnostic(
@@ -541,7 +556,7 @@ void _diagnoseSourceProducibility(
   WorldRuleDefinition rule,
   List<WorldRuleDiagnostic> diagnostics, {
   required NarrativeFactRuntimeResolver factResolver,
-  required Map<String, Set<bool>> producibleFactValues,
+  required Map<String, Set<NarrativeValue>> producibleFactValues,
   required Set<String> producibleStoryStepIds,
 }) {
   if (rule.source.kind == WorldRuleSourceKind.storyStepCompletion) {
@@ -576,8 +591,12 @@ void _diagnoseSourceProducibility(
   if (resolution is! NarrativeFactRuntimeResolved) {
     return;
   }
-  final expected = rule.source.predicate == WorldRuleSourcePredicate.isTrue;
-  if (producibleFactValues[rule.source.sourceId]?.contains(expected) == true) {
+  final expected = rule.source.resolvedExpectedFactValue;
+  final operator = rule.source.resolvedFactOperator;
+  final producible = producibleFactValues[rule.source.sourceId] ?? const {};
+  if (producible.any(
+    (value) => value.kind == expected.kind && value.matches(operator, expected),
+  )) {
     return;
   }
   diagnostics.add(
@@ -594,12 +613,15 @@ void _diagnoseSourceProducibility(
   );
 }
 
-Map<String, Set<bool>> _producibleFactValues(ProjectManifest project) {
-  final values = <String, Set<bool>>{
-    for (final fact in project.facts) fact.id: <bool>{fact.defaultValue},
+Map<String, Set<NarrativeValue>> _producibleFactValues(
+  ProjectManifest project,
+) {
+  final values = <String, Set<NarrativeValue>>{
+    for (final fact in project.facts)
+      fact.id: <NarrativeValue>{fact.initialValue},
   };
-  for (final entry in project.newGame.initialFacts.entries) {
-    values.putIfAbsent(entry.key, () => <bool>{}).add(entry.value);
+  for (final entry in project.newGame.resolvedInitialFactValues.entries) {
+    values.putIfAbsent(entry.key, () => <NarrativeValue>{}).add(entry.value);
   }
   for (final scene in project.scenes) {
     for (final node in scene.graph.nodes) {
@@ -610,8 +632,8 @@ Map<String, Set<bool>> _producibleFactValues(ProjectManifest project) {
       final consequence = payload.consequence;
       if (consequence is SceneSetFactConsequence) {
         values
-            .putIfAbsent(consequence.factId, () => <bool>{})
-            .add(consequence.value);
+            .putIfAbsent(consequence.factId, () => <NarrativeValue>{})
+            .add(consequence.narrativeValue);
       }
     }
   }
@@ -628,7 +650,9 @@ Map<String, Set<bool>> _producibleFactValues(ProjectManifest project) {
       }
       for (final fact in project.facts) {
         if (fact.id == flagName || fact.legacyFlagName == flagName) {
-          values.putIfAbsent(fact.id, () => <bool>{}).add(producedValue);
+          values
+              .putIfAbsent(fact.id, () => <NarrativeValue>{})
+              .add(NarrativeValue.boolean(producedValue));
         }
       }
     }
@@ -640,13 +664,11 @@ Map<String, Set<bool>> _producibleFactValues(ProjectManifest project) {
           if (effect.type != StorylineEffectType.emitFact) {
             continue;
           }
-          final parsed = switch (effect.value?.trim().toLowerCase()) {
-            'true' => true,
-            'false' => false,
-            _ => null,
-          };
-          if (parsed != null) {
-            values.putIfAbsent(effect.targetId, () => <bool>{}).add(parsed);
+          final produced = effect.resolvedFactValue;
+          if (produced != null) {
+            values
+                .putIfAbsent(effect.targetId, () => <NarrativeValue>{})
+                .add(produced);
           }
         }
       }

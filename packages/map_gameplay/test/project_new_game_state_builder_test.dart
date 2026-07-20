@@ -71,6 +71,48 @@ void main() {
       expect(state.progression.caughtSpeciesIds, contains('eevee'));
     });
 
+    test('builds typed initial Fact values without bool coercion', () {
+      final project = _project(initialParty: const []).copyWith(
+        facts: [
+          ..._project(initialParty: const []).facts,
+          NarrativeFactDefinition(
+            id: 'fact_reputation',
+            label: 'Réputation',
+            initialValue: NarrativeValue.integer(0),
+          ),
+          NarrativeFactDefinition(
+            id: 'fact_codename',
+            label: 'Nom de code',
+            initialValue: const NarrativeValue.string(''),
+          ),
+        ],
+        newGame: ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          startSpawnId: 'spawn_authored',
+          initialFactValues: {
+            'fact_reputation': NarrativeValue.integer(6),
+            'fact_codename': const NarrativeValue.string('Selbrume 🌫️'),
+          },
+          existingPartyFactId: 'fact_existing_party',
+        ),
+      );
+
+      final state = createNewGameStateFromProject(
+        project: project,
+        startMap: _startMap(),
+      );
+
+      expect(
+        state.narrativeFactRuntimeState.valueFor('fact_reputation'),
+        NarrativeValue.integer(6),
+      );
+      expect(
+        state.narrativeFactRuntimeState.valueFor('fact_codename'),
+        const NarrativeValue.string('Selbrume 🌫️'),
+      );
+    });
+
     test('rejects a map or configured spawn outside the authored contract', () {
       expect(
         () => createNewGameStateFromProject(

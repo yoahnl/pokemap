@@ -447,8 +447,8 @@ List<String> _factIds(NarrativeEventRecord? record) {
   if (expression == null) return const [];
   final ids = <String>{};
   for (final condition in expression.leaves) {
-    condition.when(
-      fact: (factId, _) => ids.add(factId),
+    condition.whenTyped(
+      fact: (factId, _, __) => ids.add(factId),
       narrativeEventConsumed: (_, __) {},
     );
   }

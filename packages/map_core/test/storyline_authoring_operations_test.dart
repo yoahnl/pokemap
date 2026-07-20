@@ -2,6 +2,21 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('typed emitFact effect round-trips without raw JSON authoring', () {
+    final effect = StorylineEffect.emitFactValue(
+      factId: 'fact_reputation',
+      value: NarrativeValue.integer(9),
+    );
+
+    expect(effect.toJson(), {
+      'type': 'emitFact',
+      'targetId': 'fact_reputation',
+      'valueType': 'int',
+      'value': 9,
+    });
+    expect(StorylineEffect.fromJson(effect.toJson()), effect);
+  });
+
   group('Storyline lifecycle authoring operations', () {
     test('createStoryline supports every canonical storyline type', () {
       var project = _emptyProject();

@@ -60,6 +60,64 @@ void main() {
       expect(decoded.newGame.starterOptions.single.id, 'starter_bulbasaur');
     });
 
+    test('round-trips versioned typed initial Fact values', () {
+      final config = ProjectNewGameConfig(
+        enabled: true,
+        startMapId: 'map_start',
+        initialFactValues: {
+          'fact_intro_active': const NarrativeValue.boolean(false),
+          'fact_tide': NarrativeValue.integer(3),
+          'fact_harbor': const NarrativeValue.string('Brisants'),
+        },
+      );
+      final manifest = _manifest(
+        config,
+        additionalFacts: [
+          NarrativeFactDefinition(
+            id: 'fact_tide',
+            label: 'Tide',
+            initialValue: NarrativeValue.integer(0),
+          ),
+          NarrativeFactDefinition(
+            id: 'fact_harbor',
+            label: 'Harbor',
+            initialValue: const NarrativeValue.string(''),
+          ),
+        ],
+      );
+
+      final json = manifest.toJson();
+      final decoded = ProjectManifest.fromJson(json);
+
+      expect((json['newGame'] as Map)['factSchemaVersion'], 2);
+      expect(decoded.newGame, config);
+      expect(
+        decoded.newGame.resolvedInitialFactValues['fact_tide'],
+        NarrativeValue.integer(3),
+      );
+      expect(() => ProjectValidator.validate(decoded), returnsNormally);
+    });
+
+    test('validator constrains existingPartyFactId to a bool Fact', () {
+      final manifest = _manifest(
+        const ProjectNewGameConfig(
+          enabled: true,
+          startMapId: 'map_start',
+          existingPartyFactId: 'fact_existing_party',
+        ),
+        existingPartyFact: NarrativeFactDefinition(
+          id: 'fact_existing_party',
+          label: 'Existing party count',
+          initialValue: NarrativeValue.integer(0),
+        ),
+      );
+
+      expect(
+        () => ProjectValidator.validate(manifest),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('validator rejects references and structurally invalid values', () {
       final invalidConfigs = <ProjectNewGameConfig>[
         const ProjectNewGameConfig(enabled: true),
@@ -142,7 +200,11 @@ void main() {
   });
 }
 
-ProjectManifest _manifest(ProjectNewGameConfig newGame) {
+ProjectManifest _manifest(
+  ProjectNewGameConfig newGame, {
+  List<NarrativeFactDefinition> additionalFacts = const [],
+  NarrativeFactDefinition? existingPartyFact,
+}) {
   return ProjectManifest(
     name: 'new game config test',
     maps: const [
@@ -158,10 +220,12 @@ ProjectManifest _manifest(ProjectNewGameConfig newGame) {
         id: 'fact_intro_active',
         label: 'Introduction active',
       ),
-      NarrativeFactDefinition(
-        id: 'fact_existing_party',
-        label: 'Équipe existante',
-      ),
+      existingPartyFact ??
+          NarrativeFactDefinition(
+            id: 'fact_existing_party',
+            label: 'Équipe existante',
+          ),
+      ...additionalFacts,
     ],
     scenes: [
       SceneAsset(

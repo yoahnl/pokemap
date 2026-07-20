@@ -65,6 +65,26 @@ void main() {
       expect(decoded, equals(consequence));
     });
 
+    test('typed setFact round-trips int and keeps bool JSON unchanged', () {
+      final consequence = SceneConsequence.setFactValue(
+        factId: 'fact_reputation',
+        value: NarrativeValue.integer(12),
+      ) as SceneSetFactConsequence;
+
+      expect(consequence.narrativeValue, NarrativeValue.integer(12));
+      expect(consequence.toJson(), {
+        'kind': 'setFact',
+        'factId': 'fact_reputation',
+        'valueType': 'int',
+        'value': 12,
+      });
+      expect(SceneConsequence.fromJson(consequence.toJson()), consequence);
+      expect(
+        SceneConsequence.setFact(factId: 'fact_bool', value: false).toJson(),
+        {'kind': 'setFact', 'factId': 'fact_bool', 'value': false},
+      );
+    });
+
     test('markEventConsumed JSON round-trips', () {
       final consequence = SceneConsequence.markEventConsumed(
         mapId: 'map_test',

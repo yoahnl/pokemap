@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/game_state.dart';
 import '../models/narrative_fact.dart';
 import '../models/narrative_fact_runtime_state.dart';
+import '../models/narrative_value.dart';
 
 enum NarrativeFactRuntimeValueSource {
   explicitOverride,
@@ -40,16 +41,25 @@ sealed class NarrativeFactRuntimeResolution {
 @immutable
 final class NarrativeFactRuntimeResolved
     extends NarrativeFactRuntimeResolution {
-  const NarrativeFactRuntimeResolved({
+  NarrativeFactRuntimeResolved({
     required this.fact,
     required this.runtimeKey,
-    required this.value,
+    required bool value,
+    required this.source,
+  }) : narrativeValue = NarrativeValue.boolean(value);
+
+  const NarrativeFactRuntimeResolved.typed({
+    required this.fact,
+    required this.runtimeKey,
+    required this.narrativeValue,
     required this.source,
   });
 
   final NarrativeFactDefinition fact;
   final String runtimeKey;
-  final bool value;
+  final NarrativeValue narrativeValue;
+
+  bool get value => narrativeValue.boolValue;
   final NarrativeFactRuntimeValueSource source;
 }
 
@@ -200,15 +210,23 @@ final class NarrativeFactRuntimeResolver {
         runtimeKey: runtimeKey,
       );
     }
-    if (runtimeState.overridesByFactId.containsKey(fact.id)) {
-      return NarrativeFactRuntimeResolved(
+    if (runtimeState.hasOverride(fact.id)) {
+      return NarrativeFactRuntimeResolved.typed(
         fact: fact,
         runtimeKey: runtimeKey,
-        value: runtimeState.overridesByFactId[fact.id]!,
+        narrativeValue: runtimeState.valueFor(fact.id)!,
         source: NarrativeFactRuntimeValueSource.explicitOverride,
       );
     }
     if (storyFlags.activeFlags.contains(runtimeKey)) {
+      if (fact.valueKind != NarrativeValueKind.boolean) {
+        return NarrativeFactRuntimeResolved.typed(
+          fact: fact,
+          runtimeKey: runtimeKey,
+          narrativeValue: fact.initialValue,
+          source: NarrativeFactRuntimeValueSource.defaultValue,
+        );
+      }
       return NarrativeFactRuntimeResolved(
         fact: fact,
         runtimeKey: runtimeKey,
@@ -216,10 +234,10 @@ final class NarrativeFactRuntimeResolver {
         source: NarrativeFactRuntimeValueSource.legacyStoryFlag,
       );
     }
-    return NarrativeFactRuntimeResolved(
+    return NarrativeFactRuntimeResolved.typed(
       fact: fact,
       runtimeKey: runtimeKey,
-      value: fact.defaultValue,
+      narrativeValue: fact.initialValue,
       source: NarrativeFactRuntimeValueSource.defaultValue,
     );
   }
@@ -229,6 +247,7 @@ enum NarrativeFactRuntimeWriteErrorCode {
   unknownFact,
   ambiguousFact,
   invalidRuntimeKey,
+  typeMismatch,
 }
 
 sealed class NarrativeFactRuntimeWriteResult {
@@ -242,18 +261,27 @@ sealed class NarrativeFactRuntimeWriteResult {
 @immutable
 final class NarrativeFactRuntimeWriteApplied
     extends NarrativeFactRuntimeWriteResult {
-  const NarrativeFactRuntimeWriteApplied({
+  NarrativeFactRuntimeWriteApplied({
     required this.gameState,
     required this.fact,
     required this.runtimeKey,
-    required this.value,
+    required bool value,
+  }) : narrativeValue = NarrativeValue.boolean(value);
+
+  const NarrativeFactRuntimeWriteApplied.typed({
+    required this.gameState,
+    required this.fact,
+    required this.runtimeKey,
+    required this.narrativeValue,
   });
 
   @override
   final GameState gameState;
   final NarrativeFactDefinition fact;
   final String runtimeKey;
-  final bool value;
+  final NarrativeValue narrativeValue;
+
+  bool get value => narrativeValue.boolValue;
 
   @override
   bool get success => true;
@@ -292,18 +320,35 @@ final class NarrativeFactRuntimeWriter {
     required String factId,
     required bool value,
   }) {
+    return setFactValue(
+      gameState: gameState,
+      factId: factId,
+      value: NarrativeValue.boolean(value),
+    );
+  }
+
+  NarrativeFactRuntimeWriteResult setFactValue({
+    required GameState gameState,
+    required String factId,
+    required NarrativeValue value,
+  }) {
     final resolution = resolver.resolve(
       factId: factId,
       runtimeState: gameState.narrativeFactRuntimeState,
       storyFlags: gameState.storyFlags,
     );
     return switch (resolution) {
-      NarrativeFactRuntimeResolved() => _apply(
-          gameState,
-          resolution.fact,
-          resolution.runtimeKey,
-          value,
+      NarrativeFactRuntimeResolved()
+          when resolution.fact.valueKind != value.kind =>
+        NarrativeFactRuntimeWriteRejected(
+          gameState: gameState,
+          errorCode: NarrativeFactRuntimeWriteErrorCode.typeMismatch,
+          message: 'Fact "$factId" expects '
+              '${resolution.fact.valueKind.wireName}, got '
+              '${value.kind.wireName}.',
         ),
+      NarrativeFactRuntimeResolved() =>
+        _apply(gameState, resolution.fact, resolution.runtimeKey, value),
       NarrativeFactRuntimeUnknownFact() => NarrativeFactRuntimeWriteRejected(
           gameState: gameState,
           errorCode: NarrativeFactRuntimeWriteErrorCode.unknownFact,
@@ -327,39 +372,41 @@ final class NarrativeFactRuntimeWriter {
     GameState gameState,
     NarrativeFactDefinition fact,
     String runtimeKey,
-    bool value,
+    NarrativeValue value,
   ) {
-    final overrides = <String, bool>{
-      ...gameState.narrativeFactRuntimeState.overridesByFactId,
+    final overrides = <String, NarrativeValue>{
+      ...gameState.narrativeFactRuntimeState.valuesByFactId,
       fact.id: value,
     };
     final runtimeFlags = <String>{...gameState.storyFlags.activeFlags};
     final progressionFlags = <String>[
       ...gameState.progression.storyFlags,
     ];
-    if (value) {
-      runtimeFlags.add(runtimeKey);
-      if (!progressionFlags.contains(runtimeKey)) {
-        progressionFlags.add(runtimeKey);
+    if (value.kind == NarrativeValueKind.boolean) {
+      if (value.boolValue) {
+        runtimeFlags.add(runtimeKey);
+        if (!progressionFlags.contains(runtimeKey)) {
+          progressionFlags.add(runtimeKey);
+        }
+      } else {
+        runtimeFlags.remove(runtimeKey);
+        progressionFlags.removeWhere((flag) => flag == runtimeKey);
       }
-    } else {
-      runtimeFlags.remove(runtimeKey);
-      progressionFlags.removeWhere((flag) => flag == runtimeKey);
     }
     final nextState = gameState.copyWith(
-      narrativeFactRuntimeState: NarrativeFactRuntimeState(
-        overridesByFactId: overrides,
+      narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+        valuesByFactId: overrides,
       ),
       storyFlags: gameState.storyFlags.copyWith(activeFlags: runtimeFlags),
       progression: gameState.progression.copyWith(
         storyFlags: progressionFlags,
       ),
     );
-    return NarrativeFactRuntimeWriteApplied(
+    return NarrativeFactRuntimeWriteApplied.typed(
       gameState: nextState,
       fact: fact,
       runtimeKey: runtimeKey,
-      value: value,
+      narrativeValue: value,
     );
   }
 }

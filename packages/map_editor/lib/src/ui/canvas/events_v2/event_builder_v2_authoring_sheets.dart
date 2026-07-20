@@ -610,8 +610,17 @@ class _EventBuilderV2ConditionsSheetState
   String _kind = 'fact';
   String? _targetId;
   bool _expected = true;
+  final _factValueController = TextEditingController();
+  String? _loadedFactId;
+  NarrativeFactOperator _factOperator = NarrativeFactOperator.equals;
   bool _saving = false;
   String? _error;
+
+  @override
+  void dispose() {
+    _factValueController.dispose();
+    super.dispose();
+  }
 
   List<PokeMapDropdownItem<String>> get _targets => _kind == 'fact'
       ? [
@@ -633,11 +642,22 @@ class _EventBuilderV2ConditionsSheetState
   void _add() {
     final target = _targetId ?? _targets.firstOrNull?.value;
     if (target == null) return;
+    final selectedFact = _factById(target);
+    final factValue =
+        selectedFact == null ? null : _factInputValue(selectedFact.valueKind);
+    if (_kind == 'fact' && factValue == null) {
+      setState(() => _error = 'Saisissez une valeur compatible avec le Fact.');
+      return;
+    }
     setState(() {
       _clauses.add(
         NarrativeEventConditionExpression.leaf(
           _kind == 'fact'
-              ? NarrativeEventCondition.fact(target, _expected)
+              ? NarrativeEventCondition.factValue(
+                  target,
+                  operator: _factOperator,
+                  expectedValue: factValue!,
+                )
               : NarrativeEventCondition.narrativeEventConsumed(
                   target,
                   _expected,
@@ -651,9 +671,12 @@ class _EventBuilderV2ConditionsSheetState
     final clause = _clauses[index];
     final condition = _editableCondition(clause);
     if (condition == null) return;
-    final updated = condition.when(
-      fact: (factId, expected) =>
-          NarrativeEventCondition.fact(factId, !expected),
+    final updated = condition.whenTyped(
+      fact: (factId, operator, expected) => NarrativeEventCondition.factValue(
+        factId,
+        operator: _inverseFactOperator(operator),
+        expectedValue: expected,
+      ),
       narrativeEventConsumed: (eventId, expected) =>
           NarrativeEventCondition.narrativeEventConsumed(eventId, !expected),
     );
@@ -664,6 +687,39 @@ class _EventBuilderV2ConditionsSheetState
             )
           : NarrativeEventConditionExpression.leaf(updated);
     });
+  }
+
+  NarrativeFactDefinition? _factById(String factId) => widget.snapshot.facts
+      .where((entry) => entry.fact.id == factId)
+      .map((entry) => entry.fact)
+      .firstOrNull;
+
+  void _syncFactInput(NarrativeFactDefinition? fact) {
+    if (_loadedFactId == fact?.id) return;
+    _loadedFactId = fact?.id;
+    _factOperator = NarrativeFactOperator.equals;
+    _expected = fact?.valueKind == NarrativeValueKind.boolean
+        ? fact!.initialValue.boolValue
+        : true;
+    _factValueController.text = switch (fact?.initialValue) {
+      NarrativeValue(kind: NarrativeValueKind.integer) =>
+        '${fact!.initialValue.intValue}',
+      NarrativeValue(kind: NarrativeValueKind.string) =>
+        fact!.initialValue.stringValue,
+      _ => '',
+    };
+  }
+
+  NarrativeValue? _factInputValue(NarrativeValueKind kind) {
+    switch (kind) {
+      case NarrativeValueKind.boolean:
+        return NarrativeValue.boolean(_expected);
+      case NarrativeValueKind.integer:
+        final value = int.tryParse(_factValueController.text.trim());
+        return value == null ? null : NarrativeValue.integer(value);
+      case NarrativeValueKind.string:
+        return NarrativeValue.string(_factValueController.text);
+    }
   }
 
   void _toggleNegation(int index) {
@@ -698,6 +754,8 @@ class _EventBuilderV2ConditionsSheetState
     final targetValue = targets.any((item) => item.value == _targetId)
         ? _targetId!
         : (targets.firstOrNull?.value ?? 'none');
+    final selectedFact = _kind == 'fact' ? _factById(targetValue) : null;
+    _syncFactInput(selectedFact);
     return ListView(
       key: const ValueKey('event-builder-v2-conditions-sheet'),
       padding: const EdgeInsets.all(16),
@@ -826,6 +884,7 @@ class _EventBuilderV2ConditionsSheetState
           onChanged: (value) => setState(() {
             _kind = value;
             _targetId = null;
+            _loadedFactId = null;
           }),
         ),
         const SizedBox(height: 10),
@@ -841,23 +900,66 @@ class _EventBuilderV2ConditionsSheetState
                   ),
                 ]
               : targets,
-          onChanged: (value) => setState(() => _targetId = value),
+          onChanged: (value) => setState(() {
+            _targetId = value;
+            _loadedFactId = null;
+          }),
         ),
         const SizedBox(height: 10),
-        PokeMapDropdownField<bool>(
-          label: 'Valeur attendue',
-          value: _expected,
-          enabled: !_saving,
-          items: const [
-            PokeMapDropdownItem(value: true, label: 'Vrai'),
-            PokeMapDropdownItem(value: false, label: 'Faux'),
-          ],
-          onChanged: (value) => setState(() => _expected = value),
-        ),
+        if (selectedFact != null) ...[
+          PokeMapDropdownField<NarrativeFactOperator>(
+            key: const ValueKey('event-builder-v2-fact-operator'),
+            label: 'Opérateur',
+            value: _factOperator,
+            enabled: !_saving,
+            items: [
+              for (final operator in selectedFact.valueKind.compatibleOperators)
+                PokeMapDropdownItem(
+                  value: operator,
+                  label: _narrativeFactOperatorLabel(operator),
+                ),
+            ],
+            onChanged: (value) => setState(() => _factOperator = value),
+          ),
+          const SizedBox(height: 10),
+          if (selectedFact.valueKind == NarrativeValueKind.boolean)
+            PokeMapDropdownField<bool>(
+              key: const ValueKey('event-builder-v2-fact-bool-value'),
+              label: 'Valeur attendue',
+              value: _expected,
+              enabled: !_saving,
+              items: const [
+                PokeMapDropdownItem(value: true, label: 'Vrai'),
+                PokeMapDropdownItem(value: false, label: 'Faux'),
+              ],
+              onChanged: (value) => setState(() => _expected = value),
+            )
+          else
+            PokeMapTextField(
+              key: const ValueKey('event-builder-v2-fact-value'),
+              label: selectedFact.valueKind == NarrativeValueKind.integer
+                  ? 'Valeur entière attendue'
+                  : 'Texte attendu',
+              controller: _factValueController,
+              enabled: !_saving,
+              onChanged: (_) => setState(() {}),
+            ),
+        ] else
+          PokeMapDropdownField<bool>(
+            label: 'Valeur attendue',
+            value: _expected,
+            enabled: !_saving,
+            items: const [
+              PokeMapDropdownItem(value: true, label: 'Vrai'),
+              PokeMapDropdownItem(value: false, label: 'Faux'),
+            ],
+            onChanged: (value) => setState(() => _expected = value),
+          ),
         const SizedBox(height: 10),
         Align(
           alignment: Alignment.centerLeft,
           child: PokeMapButton(
+            key: const ValueKey('event-builder-v2-add-condition'),
             onPressed: !_saving && targets.isNotEmpty ? _add : null,
             variant: PokeMapButtonVariant.secondary,
             leading: const Icon(CupertinoIcons.add),
@@ -875,6 +977,7 @@ class _EventBuilderV2ConditionsSheetState
         Align(
           alignment: Alignment.centerRight,
           child: PokeMapButton(
+            key: const ValueKey('event-builder-v2-save-conditions'),
             onPressed: _saving ? null : _save,
             isLoading: _saving,
             child: const Text('Enregistrer les conditions'),
@@ -1173,6 +1276,36 @@ class _EventBuilderV2BehaviorSheetState
 String _recordName(NarrativeEventRecord record) =>
     record.draftOrNull?.name ?? record.definitionOrNull!.name;
 
+NarrativeFactOperator _inverseFactOperator(NarrativeFactOperator operator) =>
+    switch (operator) {
+      NarrativeFactOperator.equals => NarrativeFactOperator.notEquals,
+      NarrativeFactOperator.notEquals => NarrativeFactOperator.equals,
+      NarrativeFactOperator.greaterThan =>
+        NarrativeFactOperator.lessThanOrEqual,
+      NarrativeFactOperator.greaterThanOrEqual =>
+        NarrativeFactOperator.lessThan,
+      NarrativeFactOperator.lessThan =>
+        NarrativeFactOperator.greaterThanOrEqual,
+      NarrativeFactOperator.lessThanOrEqual =>
+        NarrativeFactOperator.greaterThan,
+    };
+
+String _narrativeFactOperatorLabel(NarrativeFactOperator operator) =>
+    switch (operator) {
+      NarrativeFactOperator.equals => 'est égal à',
+      NarrativeFactOperator.notEquals => 'est différent de',
+      NarrativeFactOperator.greaterThan => 'est supérieur à',
+      NarrativeFactOperator.greaterThanOrEqual => 'est supérieur ou égal à',
+      NarrativeFactOperator.lessThan => 'est inférieur à',
+      NarrativeFactOperator.lessThanOrEqual => 'est inférieur ou égal à',
+    };
+
+String _narrativeValueLabel(NarrativeValue value) => switch (value.kind) {
+      NarrativeValueKind.boolean => value.boolValue ? 'Vrai' : 'Faux',
+      NarrativeValueKind.integer => '${value.intValue}',
+      NarrativeValueKind.string => '“${value.stringValue}”',
+    };
+
 int _recordPriority(NarrativeEventRecord record) =>
     record.draftOrNull?.priority ?? record.definitionOrNull!.priority;
 
@@ -1194,14 +1327,15 @@ String _conditionLabel(
   NarrativeEventBuilderV2EditorSnapshot snapshot,
   NarrativeEventCondition condition,
 ) {
-  return condition.when(
-    fact: (factId, expected) {
+  return condition.whenTyped(
+    fact: (factId, operator, expected) {
       final label = snapshot.facts
               .where((entry) => entry.fact.id == factId)
               .map((entry) => entry.fact.label)
               .firstOrNull ??
           'Fact indisponible';
-      return '$label = ${expected ? 'Vrai' : 'Faux'}';
+      return '$label ${_narrativeFactOperatorLabel(operator)} '
+          '${_narrativeValueLabel(expected)}';
     },
     narrativeEventConsumed: (eventId, expected) {
       final label = snapshot.events

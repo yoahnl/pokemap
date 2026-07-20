@@ -417,6 +417,26 @@ void main() {
           normalized.narrativeFactRuntimeState, save.narrativeFactRuntimeState);
     });
 
+    test('typed Narrative Fact runtime values survive SaveData JSON', () {
+      final save = SaveData(
+        saveId: 'typed_facts',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+          valuesByFactId: {
+            'fact_reputation': NarrativeValue.integer(42),
+            'fact_codename': const NarrativeValue.string('Selbrume 🌫️'),
+          },
+        ),
+      );
+
+      final json = save.toJson();
+      final state = json['narrativeFactRuntimeState'] as Map<String, dynamic>;
+      expect(state['schemaVersion'], 2);
+      expect(
+        SaveData.fromJson(json).narrativeFactRuntimeState,
+        save.narrativeFactRuntimeState,
+      );
+    });
+
     test('round-trips stable Narrative Event delivery identity', () {
       final progress = NarrativeEventProgress(
         pendingNarrativeOutcomeDeliveries: [

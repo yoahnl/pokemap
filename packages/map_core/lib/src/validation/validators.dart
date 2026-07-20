@@ -4,6 +4,7 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
@@ -138,23 +139,37 @@ class ProjectValidator {
       throw ValidationException('Invalid newGame initial state: $error');
     }
 
-    final factIds = manifest.facts.map((fact) => fact.id).toSet();
-    for (final factId in config.initialFacts.keys) {
+    final factsById = {for (final fact in manifest.facts) fact.id: fact};
+    final factIds = factsById.keys.toSet();
+    for (final entry in config.resolvedInitialFactValues.entries) {
+      final factId = entry.key;
       final normalizedFactId = factId.trim();
       if (normalizedFactId.isEmpty || !factIds.contains(normalizedFactId)) {
         throw ValidationException(
           'newGame initialFacts references an unknown Fact: $factId',
         );
       }
+      if (factsById[normalizedFactId]!.valueKind != entry.value.kind) {
+        throw ValidationException(
+          'newGame initial Fact type does not match $factId',
+        );
+      }
     }
     final existingPartyFactId = config.existingPartyFactId?.trim();
-    if (existingPartyFactId != null &&
-        existingPartyFactId.isNotEmpty &&
-        !factIds.contains(existingPartyFactId)) {
-      throw ValidationException(
-        'newGame existingPartyFactId references an unknown Fact: '
-        '$existingPartyFactId',
-      );
+    if (existingPartyFactId != null && existingPartyFactId.isNotEmpty) {
+      final existingPartyFact = factsById[existingPartyFactId];
+      if (existingPartyFact == null) {
+        throw ValidationException(
+          'newGame existingPartyFactId references an unknown Fact: '
+          '$existingPartyFactId',
+        );
+      }
+      if (existingPartyFact.valueKind != NarrativeValueKind.boolean) {
+        throw ValidationException(
+          'newGame existingPartyFactId must reference a bool Fact: '
+          '$existingPartyFactId',
+        );
+      }
     }
     final starterSceneId = config.starterSelectionSceneId?.trim();
     if (starterSceneId != null &&

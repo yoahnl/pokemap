@@ -483,8 +483,8 @@ Set<String> _projectedDependencyCycleIds({
 List<String> _eventDependencies(List<NarrativeEventCondition> conditions) {
   return [
     for (final condition in conditions)
-      ...condition.when(
-        fact: (_, __) => const <String>[],
+      ...condition.whenTyped(
+        fact: (_, __, ___) => const <String>[],
         narrativeEventConsumed: (eventId, _) => [eventId],
       ),
   ];

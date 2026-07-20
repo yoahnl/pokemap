@@ -50,6 +50,58 @@ void main() {
     expect(overrideDecision, isA<NarrativeEventDispatchHandled>());
   });
 
+  test('evaluates typed integer and Unicode string Fact conditions', () {
+    final source = NarrativeEventSourceRef.mapEnter('map');
+    final authority = _prepare(
+      source,
+      [
+        _record(
+          _eventA,
+          source,
+          conditions: [
+            NarrativeEventCondition.factValue(
+              'fact_reputation',
+              operator: NarrativeFactOperator.greaterThanOrEqual,
+              expectedValue: NarrativeValue.integer(3),
+            ),
+            NarrativeEventCondition.factValue(
+              'fact_codename',
+              operator: NarrativeFactOperator.equals,
+              expectedValue: const NarrativeValue.string('Brume 🌫️'),
+            ),
+          ],
+        ),
+      ],
+      facts: [
+        NarrativeFactDefinition(
+          id: 'fact_reputation',
+          label: 'Réputation',
+          initialValue: NarrativeValue.integer(0),
+        ),
+        NarrativeFactDefinition(
+          id: 'fact_codename',
+          label: 'Nom de code',
+          initialValue: const NarrativeValue.string('inconnu'),
+        ),
+      ],
+    );
+
+    final decision = NarrativeEventDispatchPlanner().plan(
+      authority: authority,
+      gameState: GameState(
+        saveId: 'save',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+          valuesByFactId: {
+            'fact_reputation': NarrativeValue.integer(4),
+            'fact_codename': const NarrativeValue.string('Brume 🌫️'),
+          },
+        ),
+      ),
+    );
+
+    expect(decision, isA<NarrativeEventDispatchHandled>());
+  });
+
   test('reads consumed conditions only from narrative progress', () {
     final source = NarrativeEventSourceRef.mapEnter('map');
     final authority = _prepare(

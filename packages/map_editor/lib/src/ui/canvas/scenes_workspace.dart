@@ -2267,6 +2267,7 @@ class _SceneConsequencePickerDialogState
   SceneConsequenceCatalogOption? _selectedSpecies;
   SceneConsequenceCatalogOption? _selectedConfiguredStarter;
   bool _setFactValue = true;
+  final TextEditingController _setFactValueController = TextEditingController();
   final TextEditingController _quantityController =
       TextEditingController(text: '1');
   final TextEditingController _moneyAmountController =
@@ -2283,6 +2284,17 @@ class _SceneConsequencePickerDialogState
         ? _SceneConsequencePickerMode.setFact
         : _SceneConsequencePickerMode.markEventConsumed;
     _selectedFact = widget.facts.firstOrNull;
+    final initialFact = _selectedFact;
+    if (initialFact != null) {
+      _setFactValue = initialFact.valueKind == NarrativeValueKind.boolean
+          ? initialFact.initialValue.boolValue
+          : false;
+      _setFactValueController.text = switch (initialFact.valueKind) {
+        NarrativeValueKind.boolean => '',
+        NarrativeValueKind.integer => '${initialFact.initialValue.intValue}',
+        NarrativeValueKind.string => initialFact.initialValue.stringValue,
+      };
+    }
     _selectedEvent = widget.events.firstOrNull;
     _selectedStoryStep = widget.catalogs.storySteps.options.firstOrNull;
     _selectedItem = widget.catalogs.items.options.firstOrNull;
@@ -2293,6 +2305,7 @@ class _SceneConsequencePickerDialogState
 
   @override
   void dispose() {
+    _setFactValueController.dispose();
     _quantityController.dispose();
     _moneyAmountController.dispose();
     _pokemonLevelController.dispose();
@@ -2496,36 +2509,60 @@ class _SceneConsequencePickerDialogState
                 .join(' · '),
             if (fact.debugTechnicalLabel.isNotEmpty) fact.debugTechnicalLabel,
           ],
-          onTap: () => setState(() => _selectedFact = fact),
+          onTap: () => setState(() {
+            _selectedFact = fact;
+            _setFactValue = fact.valueKind == NarrativeValueKind.boolean
+                ? fact.initialValue.boolValue
+                : false;
+            _setFactValueController.text = switch (fact.valueKind) {
+              NarrativeValueKind.boolean => '',
+              NarrativeValueKind.integer => '${fact.initialValue.intValue}',
+              NarrativeValueKind.string => fact.initialValue.stringValue,
+            };
+          }),
         ),
       const SizedBox(height: 6),
-      Row(
-        children: [
-          Expanded(
-            child: PokeMapButton(
-              key: const ValueKey('scene-consequence-setfact-value-true'),
-              onPressed: () => setState(() => _setFactValue = true),
-              variant: _setFactValue
-                  ? PokeMapButtonVariant.primary
-                  : PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              child: const Text('true'),
+      if (_selectedFact?.valueKind == NarrativeValueKind.boolean)
+        Row(
+          children: [
+            Expanded(
+              child: PokeMapButton(
+                key: const ValueKey('scene-consequence-setfact-value-true'),
+                onPressed: () => setState(() => _setFactValue = true),
+                variant: _setFactValue
+                    ? PokeMapButtonVariant.primary
+                    : PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                child: const Text('true'),
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: PokeMapButton(
-              key: const ValueKey('scene-consequence-setfact-value-false'),
-              onPressed: () => setState(() => _setFactValue = false),
-              variant: !_setFactValue
-                  ? PokeMapButtonVariant.primary
-                  : PokeMapButtonVariant.secondary,
-              size: PokeMapButtonSize.small,
-              child: const Text('false'),
+            const SizedBox(width: 8),
+            Expanded(
+              child: PokeMapButton(
+                key: const ValueKey('scene-consequence-setfact-value-false'),
+                onPressed: () => setState(() => _setFactValue = false),
+                variant: !_setFactValue
+                    ? PokeMapButtonVariant.primary
+                    : PokeMapButtonVariant.secondary,
+                size: PokeMapButtonSize.small,
+                child: const Text('false'),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        )
+      else if (_selectedFact != null)
+        PokeMapTextField(
+          key: const ValueKey('scene-consequence-setfact-typed-value'),
+          label: _selectedFact!.valueKind == NarrativeValueKind.integer
+              ? 'Valeur entière'
+              : 'Texte',
+          controller: _setFactValueController,
+          onChanged: (_) => setState(() {}),
+          errorText: _selectedFact!.valueKind == NarrativeValueKind.integer &&
+                  int.tryParse(_setFactValueController.text.trim()) == null
+              ? 'Saisissez un nombre entier valide.'
+              : null,
+        ),
     ];
   }
 
@@ -2672,10 +2709,12 @@ class _SceneConsequencePickerDialogState
     return switch (_mode) {
       _SceneConsequencePickerMode.setFact => _selectedFact == null
           ? null
-          : SceneConsequence.setFact(
-              factId: _selectedFact!.factId,
-              value: _setFactValue,
-            ),
+          : _setFactNarrativeValue() == null
+              ? null
+              : SceneConsequence.setFactValue(
+                  factId: _selectedFact!.factId,
+                  value: _setFactNarrativeValue()!,
+                ),
       _SceneConsequencePickerMode.markEventConsumed => _selectedEvent == null
           ? null
           : SceneConsequence.markEventConsumed(
@@ -2725,6 +2764,21 @@ class _SceneConsequencePickerDialogState
             : SceneConsequence.giveConfiguredStarter(
                 starterOptionId: _selectedConfiguredStarter!.id,
               ),
+    };
+  }
+
+  NarrativeValue? _setFactNarrativeValue() {
+    final fact = _selectedFact;
+    if (fact == null) return null;
+    return switch (fact.valueKind) {
+      NarrativeValueKind.boolean => NarrativeValue.boolean(_setFactValue),
+      NarrativeValueKind.integer => switch (
+            int.tryParse(_setFactValueController.text.trim())) {
+          final value? => NarrativeValue.integer(value),
+          null => null,
+        },
+      NarrativeValueKind.string =>
+        NarrativeValue.string(_setFactValueController.text),
     };
   }
 }

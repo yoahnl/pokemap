@@ -27,6 +27,7 @@ export 'src/models/map_event_definition.dart';
 export 'src/models/cinematic_asset.dart';
 export 'src/models/cinematic_emote_catalog.dart';
 export 'src/models/narrative_fact.dart';
+export 'src/models/narrative_value.dart';
 export 'src/models/narrative_fact_runtime_state.dart';
 export 'src/models/narrative_event_source_ref.dart';
 export 'src/models/narrative_event_definition.dart';

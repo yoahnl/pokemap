@@ -102,6 +102,72 @@ void main() {
       expect(result.updatedProject.facts, [source, result.createdFact]);
     });
 
+    test('creates and duplicates typed Facts without bool coercion', () {
+      final created = addNarrativeFact(
+        _manifest(),
+        label: 'Réputation',
+        initialValue: NarrativeValue.integer(3),
+      );
+      final duplicated = duplicateNarrativeFact(
+        created.updatedProject,
+        factId: created.createdFact.id,
+      );
+
+      expect(created.createdFact.initialValue, NarrativeValue.integer(3));
+      expect(duplicated.createdFact.initialValue, NarrativeValue.integer(3));
+    });
+
+    test('requires an exact empty dependency preview before type change', () {
+      final fact = NarrativeFactDefinition(id: 'fact_gate', label: 'Gate');
+      final free = _manifest(facts: [fact]);
+      final freePreview = previewNarrativeFactTypeChange(
+        free,
+        factId: fact.id,
+        nextKind: NarrativeValueKind.integer,
+      );
+
+      expect(
+        () => updateNarrativeFact(
+          free,
+          factId: fact.id,
+          label: fact.label,
+          initialValue: NarrativeValue.integer(0),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        updateNarrativeFact(
+          free,
+          factId: fact.id,
+          label: fact.label,
+          initialValue: NarrativeValue.integer(0),
+          typeChangePreview: freePreview,
+        ).updatedFact.valueKind,
+        NarrativeValueKind.integer,
+      );
+
+      final used = _manifest(
+        facts: [fact],
+        newGame: ProjectNewGameConfig(existingPartyFactId: fact.id),
+      );
+      final usedPreview = previewNarrativeFactTypeChange(
+        used,
+        factId: fact.id,
+        nextKind: NarrativeValueKind.integer,
+      );
+      expect(usedPreview.canApply, isFalse);
+      expect(
+        () => updateNarrativeFact(
+          used,
+          factId: fact.id,
+          label: fact.label,
+          initialValue: NarrativeValue.integer(0),
+          typeChangePreview: usedPreview,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('removes an unreferenced fact and refuses referenced facts', () {
       final unreferenced = NarrativeFactDefinition(
         id: 'fact_unreferenced',

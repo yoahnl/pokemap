@@ -116,5 +116,31 @@ void main() {
       expect(decoded.toJson()['target'], isA<Map<String, dynamic>>());
       expect(decoded.toJson()['effect'], isA<Map<String, dynamic>>());
     });
+
+    test('round-trips typed Fact predicates and rejects invalid operators', () {
+      final source = WorldRuleSource.factValue(
+        factId: 'fact_reputation',
+        operator: NarrativeFactOperator.greaterThanOrEqual,
+        expectedValue: NarrativeValue.integer(5),
+      );
+
+      expect(source.toJson(), {
+        'kind': 'fact',
+        'sourceId': 'fact_reputation',
+        'predicate': 'isTrue',
+        'factOperator': 'greaterThanOrEqual',
+        'factValueType': 'int',
+        'expectedValue': 5,
+      });
+      expect(WorldRuleSource.fromJson(source.toJson()), source);
+      expect(
+        () => WorldRuleSource.factValue(
+          factId: 'fact_name',
+          operator: NarrativeFactOperator.lessThan,
+          expectedValue: const NarrativeValue.string('Brume'),
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }

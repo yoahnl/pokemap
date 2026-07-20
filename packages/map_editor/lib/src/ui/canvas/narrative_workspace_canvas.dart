@@ -1863,20 +1863,30 @@ Widget _buildFactsWorldRulesWorkspace({
       required String label,
       required String description,
       required String category,
-      required bool defaultValue,
+      required NarrativeValue initialValue,
     }) async {
       try {
         final latest = readLatestProject();
         if (latest == null) {
           return false;
         }
+        final current = latest.facts.firstWhere((fact) => fact.id == factId);
+        final preview = current.valueKind == initialValue.kind
+            ? null
+            : previewNarrativeFactTypeChange(
+                latest,
+                factId: factId,
+                nextKind: initialValue.kind,
+                maps: maps,
+              );
         final result = updateNarrativeFact(
           latest,
           factId: factId,
           label: label,
           description: description,
           category: category,
-          defaultValue: defaultValue,
+          initialValue: initialValue,
+          typeChangePreview: preview,
         );
         editorNotifier.applyInMemoryProjectManifest(
           result.updatedProject,
@@ -2024,6 +2034,8 @@ List<SceneConditionSourcePickerOption> _buildSceneConditionSourceOptions(
         sourceId: fact.id,
         label: fact.label,
         debugTechnicalLabel: fact.legacyFlagName ?? fact.id,
+        valueKind: fact.valueKind,
+        initialValue: fact.initialValue,
         description: fact.description,
         category: fact.category,
       ),
@@ -2113,6 +2125,8 @@ List<SceneConsequenceFactPickerOption> _buildSceneConsequenceFactOptions(
           description: fact.description,
           category: fact.category,
           debugTechnicalLabel: fact.legacyFlagName ?? fact.id,
+          valueKind: fact.valueKind,
+          initialValue: fact.initialValue,
         ),
   ];
   options.sort((a, b) {

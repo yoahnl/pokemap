@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import 'save_data.dart';
+import 'narrative_value.dart';
 
 @immutable
 final class ProjectStarterOption {
@@ -56,6 +57,7 @@ final class ProjectNewGameConfig {
     this.initialBag = const <BagEntry>[],
     this.initialParty = const <PlayerPokemon>[],
     this.initialFacts = const <String, bool>{},
+    this.initialFactValues = const <String, NarrativeValue>{},
     this.existingPartyFactId,
     this.starterSelectionSceneId,
     this.starterOptions = const <ProjectStarterOption>[],
@@ -74,7 +76,12 @@ final class ProjectNewGameConfig {
       initialParty: _readObjectList(json, 'initialParty')
           .map(PlayerPokemon.fromJson)
           .toList(growable: false),
-      initialFacts: _readBoolMap(json, 'initialFacts'),
+      initialFacts: json['factSchemaVersion'] == 2
+          ? const <String, bool>{}
+          : _readBoolMap(json, 'initialFacts'),
+      initialFactValues: json['factSchemaVersion'] == 2
+          ? _readNarrativeValueMap(json, 'initialFactValues')
+          : const <String, NarrativeValue>{},
       existingPartyFactId: _readString(json, 'existingPartyFactId'),
       starterSelectionSceneId: _readString(json, 'starterSelectionSceneId'),
       starterOptions: _readObjectList(json, 'starterOptions')
@@ -91,6 +98,14 @@ final class ProjectNewGameConfig {
   final List<BagEntry> initialBag;
   final List<PlayerPokemon> initialParty;
   final Map<String, bool> initialFacts;
+  final Map<String, NarrativeValue> initialFactValues;
+
+  Map<String, NarrativeValue> get resolvedInitialFactValues =>
+      Map.unmodifiable({
+        for (final entry in initialFacts.entries)
+          entry.key: NarrativeValue.boolean(entry.value),
+        ...initialFactValues,
+      });
   final String? existingPartyFactId;
   final String? starterSelectionSceneId;
   final List<ProjectStarterOption> starterOptions;
@@ -103,7 +118,15 @@ final class ProjectNewGameConfig {
         'startingMoney': startingMoney,
         'initialBag': initialBag.map((entry) => entry.toJson()).toList(),
         'initialParty': initialParty.map((member) => member.toJson()).toList(),
-        'initialFacts': Map<String, bool>.from(initialFacts),
+        if (initialFactValues.isEmpty)
+          'initialFacts': Map<String, bool>.from(initialFacts)
+        else ...{
+          'factSchemaVersion': 2,
+          'initialFactValues': {
+            for (final entry in resolvedInitialFactValues.entries)
+              entry.key: entry.value.toJson(),
+          },
+        },
         if (existingPartyFactId != null)
           'existingPartyFactId': existingPartyFactId,
         if (starterSelectionSceneId != null)
@@ -124,6 +147,7 @@ final class ProjectNewGameConfig {
           _listEquals(other.initialBag, initialBag) &&
           _listEquals(other.initialParty, initialParty) &&
           _mapEquals(other.initialFacts, initialFacts) &&
+          _mapEquals(other.initialFactValues, initialFactValues) &&
           other.existingPartyFactId == existingPartyFactId &&
           other.starterSelectionSceneId == starterSelectionSceneId &&
           _listEquals(other.starterOptions, starterOptions);
@@ -138,6 +162,7 @@ final class ProjectNewGameConfig {
         Object.hashAll(initialBag),
         Object.hashAll(initialParty),
         Object.hashAllUnordered(initialFacts.entries),
+        Object.hashAllUnordered(initialFactValues.entries),
         existingPartyFactId,
         starterSelectionSceneId,
         Object.hashAll(starterOptions),
@@ -231,6 +256,26 @@ Map<String, bool> _readBoolMap(Map<String, dynamic> json, String key) {
     decoded[entry.key as String] = entry.value as bool;
   }
   return decoded;
+}
+
+Map<String, NarrativeValue> _readNarrativeValueMap(
+  Map<String, dynamic> json,
+  String key,
+) {
+  final raw = json[key];
+  if (raw is! Map) {
+    throw FormatException('ProjectNewGameConfig.$key must be an object.');
+  }
+  final decoded = <String, NarrativeValue>{};
+  for (final entry in raw.entries) {
+    if (entry.key is! String) {
+      throw FormatException(
+        'ProjectNewGameConfig.$key keys must be strings.',
+      );
+    }
+    decoded[entry.key as String] = NarrativeValue.fromJson(entry.value);
+  }
+  return Map.unmodifiable(decoded);
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {

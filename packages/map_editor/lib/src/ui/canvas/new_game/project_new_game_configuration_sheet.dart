@@ -113,7 +113,7 @@ class _ProjectNewGameConfigurationFormState
   late String _existingPartyFactId;
   late String _starterSelectionSceneId;
   late List<BagEntry> _initialBag;
-  late Map<String, bool> _initialFacts;
+  late Map<String, NarrativeValue> _initialFacts;
   late List<ProjectStarterOption> _starterOptions;
   late final TextEditingController _playerNameController;
   late final TextEditingController _startingMoneyController;
@@ -134,7 +134,9 @@ class _ProjectNewGameConfigurationFormState
     _existingPartyFactId = config.existingPartyFactId ?? '';
     _starterSelectionSceneId = config.starterSelectionSceneId ?? '';
     _initialBag = config.initialBag.toList(growable: true);
-    _initialFacts = Map<String, bool>.from(config.initialFacts);
+    _initialFacts = Map<String, NarrativeValue>.from(
+      config.resolvedInitialFactValues,
+    );
     _starterOptions = config.starterOptions.toList(growable: true);
     _playerNameController = TextEditingController(text: config.playerName);
     _startingMoneyController = TextEditingController(
@@ -311,7 +313,8 @@ class _ProjectNewGameConfigurationFormState
                     label: 'Aucun Fact dédié',
                   ),
                   for (final fact in widget.project.facts)
-                    PokeMapDropdownItem(value: fact.id, label: fact.label),
+                    if (fact.valueKind == NarrativeValueKind.boolean)
+                      PokeMapDropdownItem(value: fact.id, label: fact.label),
                 ],
                 onChanged: (value) => setState(() {
                   _existingPartyFactId = value;
@@ -625,6 +628,12 @@ class _ProjectNewGameConfigurationFormState
         !widget.project.facts.any((fact) => fact.id == _existingPartyFactId)) {
       errors.add('Le Fact « équipe déjà présente » n’existe plus.');
     }
+    if (_existingPartyFactId.isNotEmpty &&
+        widget.project.facts
+            .where((fact) => fact.id == _existingPartyFactId)
+            .any((fact) => fact.valueKind != NarrativeValueKind.boolean)) {
+      errors.add('Le Fact « équipe déjà présente » doit être booléen.');
+    }
     if (_starterSelectionSceneId.isNotEmpty &&
         !widget.project.scenes
             .any((scene) => scene.id == _starterSelectionSceneId)) {
@@ -669,7 +678,17 @@ class _ProjectNewGameConfigurationFormState
       startingMoney: int.tryParse(_startingMoneyController.text.trim()) ?? -1,
       initialBag: List<BagEntry>.unmodifiable(_initialBag),
       initialParty: previous.initialParty,
-      initialFacts: Map<String, bool>.unmodifiable(_initialFacts),
+      initialFacts: _initialFacts.values
+              .every((value) => value.kind == NarrativeValueKind.boolean)
+          ? Map.unmodifiable({
+              for (final entry in _initialFacts.entries)
+                entry.key: entry.value.boolValue,
+            })
+          : const {},
+      initialFactValues: _initialFacts.values
+              .any((value) => value.kind != NarrativeValueKind.boolean)
+          ? Map<String, NarrativeValue>.unmodifiable(_initialFacts)
+          : const {},
       existingPartyFactId:
           _existingPartyFactId.isEmpty ? null : _existingPartyFactId.trim(),
       starterSelectionSceneId: _starterSelectionSceneId.isEmpty
@@ -726,7 +745,7 @@ class _ProjectNewGameConfigurationFormState
     final id = _selectedInitialFactId;
     final fact = widget.project.facts.where((entry) => entry.id == id).first;
     setState(() {
-      _initialFacts.putIfAbsent(id, () => fact.defaultValue);
+      _initialFacts.putIfAbsent(id, () => fact.initialValue);
       _selectedInitialFactId = '';
       _clearSaveStatus();
     });
@@ -785,7 +804,7 @@ class _ProjectNewGameConfigurationFormState
     });
   }
 
-  List<MapEntry<String, bool>> _stableFactEntries() {
+  List<MapEntry<String, NarrativeValue>> _stableFactEntries() {
     final entries = _initialFacts.entries.toList(growable: false);
     entries.sort((left, right) {
       return _factLabel(left.key)
@@ -886,7 +905,7 @@ class _BagEntryCard extends StatelessWidget {
   }
 }
 
-class _InitialFactCard extends StatelessWidget {
+class _InitialFactCard extends StatefulWidget {
   const _InitialFactCard({
     super.key,
     required this.label,
@@ -897,10 +916,33 @@ class _InitialFactCard extends StatelessWidget {
   });
 
   final String label;
-  final bool value;
+  final NarrativeValue value;
   final bool enabled;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<NarrativeValue> onChanged;
   final VoidCallback onRemove;
+
+  @override
+  State<_InitialFactCard> createState() => _InitialFactCardState();
+}
+
+class _InitialFactCardState extends State<_InitialFactCard> {
+  late final TextEditingController _controller = TextEditingController(
+    text: _textValue(widget.value),
+  );
+
+  @override
+  void didUpdateWidget(covariant _InitialFactCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value) {
+      _controller.text = _textValue(widget.value);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -908,33 +950,73 @@ class _InitialFactCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
         children: [
-          Expanded(child: Text(label)),
-          PokeMapButton(
-            onPressed: enabled ? () => onChanged(false) : null,
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            isSelected: !value,
-            child: const Text('Faux'),
-          ),
-          const SizedBox(width: 4),
-          PokeMapButton(
-            onPressed: enabled ? () => onChanged(true) : null,
-            size: PokeMapButtonSize.small,
-            variant: PokeMapButtonVariant.secondary,
-            isSelected: value,
-            child: const Text('Vrai'),
-          ),
+          Expanded(child: Text(widget.label)),
+          if (widget.value.kind == NarrativeValueKind.boolean) ...[
+            PokeMapButton(
+              onPressed: widget.enabled
+                  ? () => widget.onChanged(
+                        const NarrativeValue.boolean(false),
+                      )
+                  : null,
+              size: PokeMapButtonSize.small,
+              variant: PokeMapButtonVariant.secondary,
+              isSelected: !widget.value.boolValue,
+              child: const Text('Faux'),
+            ),
+            const SizedBox(width: 4),
+            PokeMapButton(
+              onPressed: widget.enabled
+                  ? () => widget.onChanged(
+                        const NarrativeValue.boolean(true),
+                      )
+                  : null,
+              size: PokeMapButtonSize.small,
+              variant: PokeMapButtonVariant.secondary,
+              isSelected: widget.value.boolValue,
+              child: const Text('Vrai'),
+            ),
+          ] else
+            SizedBox(
+              width: 220,
+              child: PokeMapTextField(
+                label: widget.value.kind == NarrativeValueKind.integer
+                    ? 'Valeur entière'
+                    : 'Texte',
+                controller: _controller,
+                enabled: widget.enabled,
+                onChanged: (text) {
+                  NarrativeValue? next;
+                  switch (widget.value.kind) {
+                    case NarrativeValueKind.integer:
+                      final value = int.tryParse(text.trim());
+                      next =
+                          value == null ? null : NarrativeValue.integer(value);
+                    case NarrativeValueKind.string:
+                      next = NarrativeValue.string(text);
+                    case NarrativeValueKind.boolean:
+                      next = null;
+                  }
+                  if (next != null) widget.onChanged(next);
+                },
+              ),
+            ),
           const SizedBox(width: 4),
           _SmallAction(
             label: 'Retirer',
-            enabled: enabled,
-            onPressed: onRemove,
+            enabled: widget.enabled,
+            onPressed: widget.onRemove,
           ),
         ],
       ),
     );
   }
 }
+
+String _textValue(NarrativeValue value) => switch (value.kind) {
+      NarrativeValueKind.boolean => '${value.boolValue}',
+      NarrativeValueKind.integer => '${value.intValue}',
+      NarrativeValueKind.string => value.stringValue,
+    };
 
 class _StarterOptionCard extends StatelessWidget {
   const _StarterOptionCard({

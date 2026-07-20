@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
+import 'narrative_value.dart';
+
 enum SceneConsequenceKind {
   setFact,
   markEventConsumed,
@@ -21,6 +23,13 @@ abstract base class SceneConsequence {
     String? label,
     String? notes,
   }) = SceneSetFactConsequence;
+
+  factory SceneConsequence.setFactValue({
+    required String factId,
+    required NarrativeValue value,
+    String? label,
+    String? notes,
+  }) = SceneSetFactConsequence.typed;
 
   factory SceneConsequence.markEventConsumed({
     required String mapId,
@@ -99,27 +108,51 @@ abstract base class SceneConsequence {
 final class SceneSetFactConsequence extends SceneConsequence {
   SceneSetFactConsequence({
     required String factId,
-    required this.value,
+    required bool value,
     String? label,
     String? notes,
   })  : factId = factId.trim(),
+        narrativeValue = NarrativeValue.boolean(value),
+        label = _trimOptional(label),
+        notes = _trimOptional(notes);
+
+  SceneSetFactConsequence.typed({
+    required String factId,
+    required NarrativeValue value,
+    String? label,
+    String? notes,
+  })  : factId = factId.trim(),
+        narrativeValue = value,
         label = _trimOptional(label),
         notes = _trimOptional(notes);
 
   factory SceneSetFactConsequence.fromJson(Map<String, dynamic> json) {
-    return SceneSetFactConsequence(
-      factId: _readRequiredString(json, 'factId'),
-      value: _readRequiredBool(json, 'value'),
-      label: _readOptionalString(json, 'label'),
-      notes: _readOptionalString(json, 'notes'),
-    );
+    final valueType = _readOptionalString(json, 'valueType');
+    return valueType == null
+        ? SceneSetFactConsequence(
+            factId: _readRequiredString(json, 'factId'),
+            value: _readRequiredBool(json, 'value'),
+            label: _readOptionalString(json, 'label'),
+            notes: _readOptionalString(json, 'notes'),
+          )
+        : SceneSetFactConsequence.typed(
+            factId: _readRequiredString(json, 'factId'),
+            value: NarrativeValue.fromJson(
+              json['value'],
+              declaredKind: NarrativeValueKind.fromWireName(valueType),
+            ),
+            label: _readOptionalString(json, 'label'),
+            notes: _readOptionalString(json, 'notes'),
+          );
   }
 
   @override
   SceneConsequenceKind get kind => SceneConsequenceKind.setFact;
 
   final String factId;
-  final bool value;
+  final NarrativeValue narrativeValue;
+
+  bool get value => narrativeValue.boolValue;
   final String? label;
   final String? notes;
 
@@ -127,7 +160,9 @@ final class SceneSetFactConsequence extends SceneConsequence {
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': _kindToJson(kind),
         'factId': factId,
-        'value': value,
+        if (narrativeValue.kind != NarrativeValueKind.boolean)
+          'valueType': narrativeValue.kind.wireName,
+        'value': narrativeValue.toJson(),
         'label': label,
         'notes': notes,
       });
@@ -137,12 +172,12 @@ final class SceneSetFactConsequence extends SceneConsequence {
       identical(this, other) ||
       other is SceneSetFactConsequence &&
           other.factId == factId &&
-          other.value == value &&
+          other.narrativeValue == narrativeValue &&
           other.label == label &&
           other.notes == notes;
 
   @override
-  int get hashCode => Object.hash(factId, value, label, notes);
+  int get hashCode => Object.hash(factId, narrativeValue, label, notes);
 }
 
 @immutable

@@ -16,8 +16,8 @@ NarrativeEventProjectCatalog f1ProjectCatalogForRegistry(
     if (definition != null) {
       sceneIds.add(definition.sceneId);
       for (final condition in definition.conditions) {
-        condition.when(
-          fact: (factId, _) => factIds.add(factId),
+        condition.whenTyped(
+          fact: (factId, _, __) => factIds.add(factId),
           narrativeEventConsumed: (_, __) {},
         );
       }

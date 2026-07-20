@@ -103,10 +103,10 @@ final class SceneConsequenceRuntimeWriter {
     SceneSetFactConsequence consequence,
     NarrativeFactRuntimeWriter factWriter,
   ) {
-    final result = factWriter.setFact(
+    final result = factWriter.setFactValue(
       gameState: gameState,
       factId: consequence.factId,
-      value: consequence.value,
+      value: consequence.narrativeValue,
     );
     if (result is NarrativeFactRuntimeWriteRejected) {
       return _SceneConsequenceRuntimeWriteStep.failed(
@@ -117,6 +117,8 @@ final class SceneConsequenceRuntimeWriter {
             SceneConsequenceRuntimeWriteErrorCode.ambiguousFact,
           NarrativeFactRuntimeWriteErrorCode.invalidRuntimeKey =>
             SceneConsequenceRuntimeWriteErrorCode.invalidFactRuntimeKey,
+          NarrativeFactRuntimeWriteErrorCode.typeMismatch =>
+            SceneConsequenceRuntimeWriteErrorCode.factTypeMismatch,
         },
         result.message,
       );

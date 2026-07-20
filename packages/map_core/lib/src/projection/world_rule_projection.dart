@@ -89,9 +89,15 @@ bool _factMatches(
   if (resolution is! NarrativeFactRuntimeResolved) {
     return false;
   }
+  final expected = source.resolvedExpectedFactValue;
+  if (resolution.narrativeValue.kind != expected.kind) return false;
   return switch (source.predicate) {
-    WorldRuleSourcePredicate.isTrue => resolution.value,
-    WorldRuleSourcePredicate.isFalse => !resolution.value,
+    WorldRuleSourcePredicate.isTrue ||
+    WorldRuleSourcePredicate.isFalse =>
+      resolution.narrativeValue.matches(
+        source.resolvedFactOperator,
+        expected,
+      ),
     WorldRuleSourcePredicate.completed ||
     WorldRuleSourcePredicate.notCompleted ||
     WorldRuleSourcePredicate.consumed ||

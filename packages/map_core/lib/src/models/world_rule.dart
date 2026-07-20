@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
+import 'narrative_value.dart';
+
 enum WorldRuleSourceKind {
   fact,
   storyStepCompletion,
@@ -38,17 +40,69 @@ final class WorldRuleSource {
     required this.predicate,
     this.label,
     this.debugTechnicalLabel,
+    this.factOperator,
+    this.expectedFactValue,
   });
 
-  factory WorldRuleSource.fromJson(Map<String, dynamic> json) {
+  factory WorldRuleSource.factValue({
+    required String factId,
+    required NarrativeFactOperator operator,
+    required NarrativeValue expectedValue,
+    String? label,
+    String? debugTechnicalLabel,
+  }) {
+    if (!expectedValue.kind.compatibleOperators.contains(operator)) {
+      throw ArgumentError.value(
+        operator,
+        'operator',
+        'is incompatible with ${expectedValue.kind.wireName}',
+      );
+    }
     return WorldRuleSource(
-      kind: _readEnum(WorldRuleSourceKind.values, json['kind'], 'kind'),
-      sourceId: _readOptionalString(json, 'sourceId') ?? '',
-      predicate: _readEnum(
-        WorldRuleSourcePredicate.values,
-        json['predicate'],
-        'predicate',
-      ),
+      kind: WorldRuleSourceKind.fact,
+      sourceId: factId,
+      predicate: WorldRuleSourcePredicate.isTrue,
+      label: label,
+      debugTechnicalLabel: debugTechnicalLabel,
+      factOperator: operator,
+      expectedFactValue: expectedValue,
+    );
+  }
+
+  factory WorldRuleSource.fromJson(Map<String, dynamic> json) {
+    final factValueType = _readOptionalString(json, 'factValueType');
+    final kind = _readEnum(WorldRuleSourceKind.values, json['kind'], 'kind');
+    final sourceId = _readOptionalString(json, 'sourceId') ?? '';
+    final predicate = _readEnum(
+      WorldRuleSourcePredicate.values,
+      json['predicate'],
+      'predicate',
+    );
+    if (factValueType != null) {
+      if (kind != WorldRuleSourceKind.fact) {
+        throw const FormatException(
+          'Typed World Rule value requires a Fact source.',
+        );
+      }
+      return WorldRuleSource.factValue(
+        factId: sourceId,
+        operator: _readEnum(
+          NarrativeFactOperator.values,
+          json['factOperator'],
+          'factOperator',
+        ),
+        expectedValue: NarrativeValue.fromJson(
+          json['expectedValue'],
+          declaredKind: NarrativeValueKind.fromWireName(factValueType),
+        ),
+        label: _readOptionalString(json, 'label'),
+        debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+      );
+    }
+    return WorldRuleSource(
+      kind: kind,
+      sourceId: sourceId,
+      predicate: predicate,
       label: _readOptionalString(json, 'label'),
       debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
     );
@@ -59,6 +113,15 @@ final class WorldRuleSource {
   final WorldRuleSourcePredicate predicate;
   final String? label;
   final String? debugTechnicalLabel;
+  final NarrativeFactOperator? factOperator;
+  final NarrativeValue? expectedFactValue;
+
+  NarrativeFactOperator get resolvedFactOperator =>
+      factOperator ?? NarrativeFactOperator.equals;
+
+  NarrativeValue get resolvedExpectedFactValue =>
+      expectedFactValue ??
+      NarrativeValue.boolean(predicate == WorldRuleSourcePredicate.isTrue);
 
   Map<String, dynamic> toJson() => _withoutNulls({
         'kind': kind.name,
@@ -66,6 +129,9 @@ final class WorldRuleSource {
         'predicate': predicate.name,
         'label': label,
         'debugTechnicalLabel': debugTechnicalLabel,
+        'factOperator': factOperator?.name,
+        'factValueType': expectedFactValue?.kind.wireName,
+        'expectedValue': expectedFactValue?.toJson(),
       });
 
   @override
@@ -76,11 +142,20 @@ final class WorldRuleSource {
           other.sourceId == sourceId &&
           other.predicate == predicate &&
           other.label == label &&
-          other.debugTechnicalLabel == debugTechnicalLabel;
+          other.debugTechnicalLabel == debugTechnicalLabel &&
+          other.factOperator == factOperator &&
+          other.expectedFactValue == expectedFactValue;
 
   @override
-  int get hashCode =>
-      Object.hash(kind, sourceId, predicate, label, debugTechnicalLabel);
+  int get hashCode => Object.hash(
+        kind,
+        sourceId,
+        predicate,
+        label,
+        debugTechnicalLabel,
+        factOperator,
+        expectedFactValue,
+      );
 }
 
 @immutable

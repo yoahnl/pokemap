@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
+import 'narrative_value.dart';
+
 @immutable
 final class NarrativeFactDefinition {
   NarrativeFactDefinition({
@@ -7,15 +9,26 @@ final class NarrativeFactDefinition {
     required String label,
     String description = '',
     String category = '',
-    this.defaultValue = false,
+    bool defaultValue = false,
+    NarrativeValue? initialValue,
     List<String> tags = const <String>[],
     String? legacyFlagName,
   })  : id = _requireTrimmed(id, 'NarrativeFactDefinition.id'),
         label = _requireTrimmed(label, 'NarrativeFactDefinition.label'),
         description = description.trim(),
         category = category.trim(),
+        initialValue = initialValue ?? NarrativeValue.boolean(defaultValue),
         tags = _stableTags(tags),
-        legacyFlagName = _trimOptional(legacyFlagName);
+        legacyFlagName = _trimOptional(legacyFlagName) {
+    if (this.initialValue.kind != NarrativeValueKind.boolean &&
+        this.legacyFlagName != null) {
+      throw ArgumentError.value(
+        legacyFlagName,
+        'legacyFlagName',
+        'is only compatible with bool Facts',
+      );
+    }
+  }
 
   factory NarrativeFactDefinition.fromJson(Map<String, dynamic> json) {
     return NarrativeFactDefinition(
@@ -23,7 +36,7 @@ final class NarrativeFactDefinition {
       label: _readRequiredString(json, 'label'),
       description: _readOptionalString(json, 'description') ?? '',
       category: _readOptionalString(json, 'category') ?? '',
-      defaultValue: _readBool(json, 'defaultValue'),
+      initialValue: _readNarrativeDefaultValue(json),
       tags: _readStringList(json, 'tags'),
       legacyFlagName: _readOptionalString(json, 'legacyFlagName'),
     );
@@ -33,7 +46,12 @@ final class NarrativeFactDefinition {
   final String label;
   final String description;
   final String category;
-  final bool defaultValue;
+  final NarrativeValue initialValue;
+
+  NarrativeValueKind get valueKind => initialValue.kind;
+
+  /// Compatibility view for historical bool-only callers.
+  bool get defaultValue => initialValue.boolValue;
   final List<String> tags;
   final String? legacyFlagName;
 
@@ -42,7 +60,9 @@ final class NarrativeFactDefinition {
         'label': label,
         'description': description,
         'category': category,
-        'defaultValue': defaultValue,
+        if (valueKind != NarrativeValueKind.boolean)
+          'valueType': valueKind.wireName,
+        'defaultValue': initialValue.toJson(),
         'tags': tags,
         'legacyFlagName': legacyFlagName,
       });
@@ -55,7 +75,7 @@ final class NarrativeFactDefinition {
           other.label == label &&
           other.description == description &&
           other.category == category &&
-          other.defaultValue == defaultValue &&
+          other.initialValue == initialValue &&
           _listEquals(other.tags, tags) &&
           other.legacyFlagName == legacyFlagName;
 
@@ -65,7 +85,7 @@ final class NarrativeFactDefinition {
         label,
         description,
         category,
-        defaultValue,
+        initialValue,
         Object.hashAll(tags),
         legacyFlagName,
       );
@@ -116,15 +136,28 @@ String? _readOptionalString(Map<String, dynamic> json, String key) {
   return value;
 }
 
-bool _readBool(Map<String, dynamic> json, String key) {
-  final value = json[key];
-  if (value == null) {
-    return false;
+NarrativeValue _readNarrativeDefaultValue(Map<String, dynamic> json) {
+  final rawKind = json['valueType'];
+  if (rawKind != null && rawKind is! String) {
+    throw ArgumentError.value(rawKind, 'valueType', 'must be a string');
   }
-  if (value is! bool) {
-    throw ArgumentError.value(value, key, 'must be a boolean');
+  final kind = rawKind == null
+      ? NarrativeValueKind.boolean
+      : NarrativeValueKind.fromWireName(rawKind as String);
+  final value = json.containsKey('defaultValue')
+      ? json['defaultValue']
+      : kind == NarrativeValueKind.boolean
+          ? false
+          : throw ArgumentError.value(
+              null,
+              'defaultValue',
+              'is required for typed Facts',
+            );
+  try {
+    return NarrativeValue.fromJson(value, declaredKind: kind);
+  } on FormatException catch (error) {
+    throw ArgumentError.value(value, 'defaultValue', error.message);
   }
-  return value;
 }
 
 List<String> _readStringList(Map<String, dynamic> json, String key) {

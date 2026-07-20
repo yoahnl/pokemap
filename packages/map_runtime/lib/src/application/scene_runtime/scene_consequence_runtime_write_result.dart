@@ -9,6 +9,7 @@ enum SceneConsequenceRuntimeWriteErrorCode {
   unknownFact,
   ambiguousFact,
   invalidFactRuntimeKey,
+  factTypeMismatch,
   unknownMap,
   unknownEvent,
   unknownStoryStep,

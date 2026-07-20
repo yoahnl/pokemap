@@ -80,6 +80,47 @@ void main() {
       );
     });
 
+    test('supports typed Scene integer and Unicode string comparisons', () {
+      final facts = [
+        NarrativeFactDefinition(
+          id: 'fact_reputation',
+          label: 'Réputation',
+          initialValue: NarrativeValue.integer(4),
+        ),
+        NarrativeFactDefinition(
+          id: 'fact_codename',
+          label: 'Nom de code',
+          initialValue: const NarrativeValue.string('Selbrume 🌫️'),
+        ),
+      ];
+      final resolver = NarrativeFactRuntimeResolver.fromFacts(facts);
+
+      expect(
+        evaluateCanonicalNarrativeFactSceneCondition(
+          source: SceneConditionSource.factValue(
+            factId: 'fact_reputation',
+            operator: NarrativeFactOperator.greaterThan,
+            expectedValue: NarrativeValue.integer(3),
+          ),
+          gameState: const GameState(saveId: 'typed_scene'),
+          resolver: resolver,
+        ),
+        isTrue,
+      );
+      expect(
+        evaluateCanonicalNarrativeFactSceneCondition(
+          source: SceneConditionSource.factValue(
+            factId: 'fact_codename',
+            operator: NarrativeFactOperator.equals,
+            expectedValue: const NarrativeValue.string('Selbrume 🌫️'),
+          ),
+          gameState: const GameState(saveId: 'typed_scene'),
+          resolver: resolver,
+        ),
+        isTrue,
+      );
+    });
+
     test('fails closed for unknown and ambiguous canonical Facts', () {
       const state = GameState(saveId: 'scene_invalid');
       final unknown = NarrativeFactRuntimeResolver.fromFacts(const []);

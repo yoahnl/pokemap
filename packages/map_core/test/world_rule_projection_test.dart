@@ -119,6 +119,46 @@ void main() {
       );
     });
 
+    test('projects typed integer Fact rules', () {
+      final project = _manifest(
+        facts: [
+          NarrativeFactDefinition(
+            id: 'fact_reputation',
+            label: 'Réputation',
+            initialValue: NarrativeValue.integer(7),
+          ),
+        ],
+        worldRules: [
+          WorldRuleDefinition(
+            id: 'world_rule_reputation',
+            label: 'Réputation suffisante',
+            source: WorldRuleSource.factValue(
+              factId: 'fact_reputation',
+              operator: NarrativeFactOperator.greaterThanOrEqual,
+              expectedValue: NarrativeValue.integer(5),
+            ),
+            target: const WorldRuleTarget(
+              kind: WorldRuleTargetKind.mapEntity,
+              mapId: 'map_test',
+              entityId: 'npc_test',
+            ),
+            effect: const WorldRuleEffect(
+              kind: WorldRuleEffectKind.entityVisible,
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        projectWorldRuleEffects(
+          project,
+          const GameState(saveId: 'typed_rule'),
+          maps: [_mapWithNpc()],
+        ).map((effect) => effect.ruleId),
+        ['world_rule_reputation'],
+      );
+    });
+
     test('skips invalid rules with diagnostic errors', () {
       final project = _manifest(
         facts: [

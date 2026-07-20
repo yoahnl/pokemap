@@ -10,6 +10,7 @@ import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_source_ref.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scenario_asset.dart';
 import '../models/scene_asset.dart';
@@ -827,9 +828,13 @@ void _appendSolvabilityDiagnostics(
       final definition = record.definitionOrNull;
       if (definition == null || record.enabledOrNull != true) continue;
       for (final condition in definition.conditions) {
-        condition.when(
-          fact: (factId, expectedValue) {
-            if (expectedValue) requiredFacts.add(factId);
+        condition.whenTyped(
+          fact: (factId, operator, expectedValue) {
+            if (operator == NarrativeFactOperator.equals &&
+                expectedValue.kind == NarrativeValueKind.boolean &&
+                expectedValue.boolValue) {
+              requiredFacts.add(factId);
+            }
           },
           narrativeEventConsumed: (_, __) {},
         );
@@ -966,9 +971,10 @@ void _appendSolvabilityDiagnostics(
   final mapsById = {for (final map in maps) map.id: map};
   final possibleFactValues = <String, Set<bool>>{
     for (final fact in project.facts)
-      fact.id: <bool>{
-        project.newGame.initialFacts[fact.id] ?? fact.defaultValue,
-      },
+      if (fact.valueKind == NarrativeValueKind.boolean)
+        fact.id: <bool>{
+          project.newGame.initialFacts[fact.id] ?? fact.initialValue.boolValue,
+        },
   };
   for (final entry in project.newGame.initialFacts.entries) {
     possibleFactValues.putIfAbsent(entry.key, () => <bool>{entry.value});
@@ -1372,9 +1378,11 @@ bool _eventConditionsStaticallyReachable(
   required Set<String> reachableEventIds,
 }) {
   return conditions.every(
-    (condition) => condition.when(
-      fact: (factId, expectedValue) =>
-          possibleFactValues[factId]?.contains(expectedValue) == true,
+    (condition) => condition.whenTyped(
+      fact: (factId, operator, expectedValue) =>
+          expectedValue.kind != NarrativeValueKind.boolean ||
+          operator != NarrativeFactOperator.equals ||
+          possibleFactValues[factId]?.contains(expectedValue.boolValue) == true,
       narrativeEventConsumed: (eventId, expectedValue) =>
           expectedValue ? reachableEventIds.contains(eventId) : true,
     ),

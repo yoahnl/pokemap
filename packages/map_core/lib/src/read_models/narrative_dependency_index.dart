@@ -621,7 +621,7 @@ final class _NarrativeDependencyIndexBuilder {
         criticality: criticality,
       );
     }
-    final factIds = config.initialFacts.keys.toList()..sort();
+    final factIds = config.resolvedInitialFactValues.keys.toList()..sort();
     for (final factId in factIds) {
       if (factId.trim().isEmpty) continue;
       _usage(
@@ -630,7 +630,9 @@ final class _NarrativeDependencyIndexBuilder {
           factId,
         ),
         owner: _newGameOwner,
-        path: 'newGame.initialFacts[$factId]',
+        path: config.initialFactValues.containsKey(factId)
+            ? 'newGame.initialFactValues[$factId]'
+            : 'newGame.initialFacts[$factId]',
         criticality: criticality,
       );
     }

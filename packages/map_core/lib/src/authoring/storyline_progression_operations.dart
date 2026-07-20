@@ -1,4 +1,5 @@
 import '../models/project_manifest.dart';
+import '../models/narrative_value.dart';
 import '../models/script_conditions.dart';
 import '../models/storyline_asset.dart';
 import '../read_models/storyline_progression_projection.dart';
@@ -335,11 +336,15 @@ StorylineProgressionMutationResult _connectFactCondition(
   ProjectManifest project,
   StorylineProgressionConnectRequest request,
 ) {
-  if (!project.facts.any((fact) => fact.id == request.factId)) {
+  if (!project.facts.any(
+    (fact) =>
+        fact.id == request.factId &&
+        fact.valueKind == NarrativeValueKind.boolean,
+  )) {
     return _rejected(
       project,
       code: 'destinationNotFound',
-      message: 'Le Fact de destination est introuvable.',
+      message: 'Le Fact booléen de destination est introuvable.',
     );
   }
   final storyline = _storyline(project, request.storylineId!);

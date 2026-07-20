@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
+import 'narrative_value.dart';
 import 'scene_consequence.dart';
 import 'scene_interactive_command.dart';
 
@@ -72,6 +73,8 @@ final class SceneConditionSource {
     this.value,
     this.label,
     this.debugTechnicalLabel,
+    this.factOperator,
+    this.expectedFactValue,
   }) {
     _requireNotBlank(sourceId, 'SceneConditionSource.sourceId');
     _requireOptionalNotBlank(field, 'SceneConditionSource.field');
@@ -81,7 +84,40 @@ final class SceneConditionSource {
       debugTechnicalLabel,
       'SceneConditionSource.debugTechnicalLabel',
     );
+    if (factOperator != null || expectedFactValue != null) {
+      if (sourceKind != SceneConditionSourceKind.fact ||
+          factOperator == null ||
+          expectedFactValue == null) {
+        throw ArgumentError(
+          'Typed Fact comparison requires a Fact source, operator and value.',
+        );
+      }
+      if (!expectedFactValue!.kind.compatibleOperators.contains(factOperator)) {
+        throw ArgumentError.value(
+          factOperator,
+          'factOperator',
+          'is incompatible with ${expectedFactValue!.kind.wireName}',
+        );
+      }
+    }
   }
+
+  factory SceneConditionSource.factValue({
+    required String factId,
+    required NarrativeFactOperator operator,
+    required NarrativeValue expectedValue,
+    String? label,
+    String? debugTechnicalLabel,
+  }) =>
+      SceneConditionSource(
+        sourceKind: SceneConditionSourceKind.fact,
+        sourceId: factId,
+        operator: SceneConditionOperator.equals,
+        label: label,
+        debugTechnicalLabel: debugTechnicalLabel,
+        factOperator: operator,
+        expectedFactValue: expectedValue,
+      );
 
   factory SceneConditionSource.fromJson(Map<String, dynamic> json) {
     return SceneConditionSource(
@@ -100,6 +136,21 @@ final class SceneConditionSource {
       value: _readOptionalString(json, 'value'),
       label: _readOptionalString(json, 'label'),
       debugTechnicalLabel: _readOptionalString(json, 'debugTechnicalLabel'),
+      factOperator: json['factOperator'] == null
+          ? null
+          : _readEnum(
+              NarrativeFactOperator.values,
+              json['factOperator'],
+              'conditionSource.factOperator',
+            ),
+      expectedFactValue: json['factValueType'] == null
+          ? null
+          : NarrativeValue.fromJson(
+              json['factValue'],
+              declaredKind: NarrativeValueKind.fromWireName(
+                _readRequiredString(json, 'factValueType'),
+              ),
+            ),
     );
   }
 
@@ -111,6 +162,9 @@ final class SceneConditionSource {
         'value': value,
         'label': label,
         'debugTechnicalLabel': debugTechnicalLabel,
+        'factOperator': factOperator?.name,
+        'factValueType': expectedFactValue?.kind.wireName,
+        'factValue': expectedFactValue?.toJson(),
       });
 
   final SceneConditionSourceKind sourceKind;
@@ -120,6 +174,31 @@ final class SceneConditionSource {
   final String? value;
   final String? label;
   final String? debugTechnicalLabel;
+  final NarrativeFactOperator? factOperator;
+  final NarrativeValue? expectedFactValue;
+
+  NarrativeFactOperator get resolvedFactOperator => switch (operator) {
+        SceneConditionOperator.isTrue ||
+        SceneConditionOperator.equals =>
+          factOperator ?? NarrativeFactOperator.equals,
+        SceneConditionOperator.isFalse => NarrativeFactOperator.equals,
+      };
+
+  NarrativeValue get resolvedExpectedFactValue =>
+      expectedFactValue ??
+      NarrativeValue.boolean(
+        switch (operator) {
+          SceneConditionOperator.isTrue => true,
+          SceneConditionOperator.isFalse => false,
+          SceneConditionOperator.equals => switch (value) {
+              'true' => true,
+              'false' => false,
+              _ => throw UnsupportedError(
+                  'Canonical Fact equality value "$value" is not supported.',
+                ),
+            },
+        },
+      );
 
   @override
   bool operator ==(Object other) =>
@@ -131,7 +210,9 @@ final class SceneConditionSource {
           other.operator == operator &&
           other.value == value &&
           other.label == label &&
-          other.debugTechnicalLabel == debugTechnicalLabel;
+          other.debugTechnicalLabel == debugTechnicalLabel &&
+          other.factOperator == factOperator &&
+          other.expectedFactValue == expectedFactValue;
 
   @override
   int get hashCode => Object.hash(
@@ -142,6 +223,8 @@ final class SceneConditionSource {
         value,
         label,
         debugTechnicalLabel,
+        factOperator,
+        expectedFactValue,
       );
 }
 

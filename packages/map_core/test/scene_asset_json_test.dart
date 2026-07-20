@@ -147,6 +147,32 @@ void main() {
       expect(conditionSource['sourceId'], 'fact_harbor_fog_seen');
       expect(decoded, equals(payload));
     });
+
+    test('round-trips typed Fact comparison and rejects invalid operator', () {
+      final source = SceneConditionSource.factValue(
+        factId: 'fact_reputation',
+        operator: NarrativeFactOperator.greaterThan,
+        expectedValue: NarrativeValue.integer(10),
+      );
+
+      expect(source.toJson(), {
+        'sourceKind': 'fact',
+        'sourceId': 'fact_reputation',
+        'operator': 'equals',
+        'factOperator': 'greaterThan',
+        'factValueType': 'int',
+        'factValue': 10,
+      });
+      expect(SceneConditionSource.fromJson(source.toJson()), source);
+      expect(
+        () => SceneConditionSource.factValue(
+          factId: 'fact_name',
+          operator: NarrativeFactOperator.greaterThan,
+          expectedValue: const NarrativeValue.string('Selbrume'),
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('SceneAsset JSON defaults and invalid shapes', () {

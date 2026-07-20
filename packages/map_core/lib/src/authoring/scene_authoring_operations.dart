@@ -1458,6 +1458,33 @@ SceneNodeDraftRemovalResult removeSceneNodeDraft(
 void _validateConditionSourceForV0(SceneConditionSource source) {
   switch (source.sourceKind) {
     case SceneConditionSourceKind.fact:
+      if (source.expectedFactValue != null) {
+        if (!source.expectedFactValue!.kind.compatibleOperators
+            .contains(source.factOperator)) {
+          throw ArgumentError.value(
+            source.factOperator,
+            'source.factOperator',
+            'is incompatible with the authored Fact value.',
+          );
+        }
+        return;
+      }
+      if (source.operator != SceneConditionOperator.isTrue &&
+          source.operator != SceneConditionOperator.isFalse) {
+        throw ArgumentError.value(
+          source.operator,
+          'source.operator',
+          'Fact supports isTrue/isFalse or a typed comparison.',
+        );
+      }
+      if (_trimOptional(source.value) != null) {
+        throw ArgumentError.value(
+          source.value,
+          'source.value',
+          'A boolean Fact must not carry a legacy comparison value.',
+        );
+      }
+      return;
     case SceneConditionSourceKind.factLikeStoryFlag:
     case SceneConditionSourceKind.consumedEvent:
       if (source.operator != SceneConditionOperator.isTrue &&
@@ -1895,6 +1922,7 @@ ProjectManifest _replaceSceneConsumers(
     initialBag: newGame.initialBag,
     initialParty: newGame.initialParty,
     initialFacts: newGame.initialFacts,
+    initialFactValues: newGame.initialFactValues,
     existingPartyFactId: newGame.existingPartyFactId,
     starterSelectionSceneId: newGame.starterSelectionSceneId == sourceSceneId
         ? replacementSceneId

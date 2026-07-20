@@ -42,6 +42,8 @@ final class SceneConditionSourcePickerOption {
     required this.debugTechnicalLabel,
     this.description = '',
     this.category = '',
+    this.valueKind = NarrativeValueKind.boolean,
+    this.initialValue = const NarrativeValue.boolean(false),
   });
 
   final SceneConditionSourceKind sourceKind;
@@ -50,6 +52,8 @@ final class SceneConditionSourcePickerOption {
   final String debugTechnicalLabel;
   final String description;
   final String category;
+  final NarrativeValueKind valueKind;
+  final NarrativeValue initialValue;
 }
 
 final class SceneConsequenceFactPickerOption {
@@ -59,6 +63,8 @@ final class SceneConsequenceFactPickerOption {
     this.description = '',
     this.category = '',
     this.debugTechnicalLabel = '',
+    this.valueKind = NarrativeValueKind.boolean,
+    this.initialValue = const NarrativeValue.boolean(false),
   });
 
   final String factId;
@@ -66,6 +72,8 @@ final class SceneConsequenceFactPickerOption {
   final String description;
   final String category;
   final String debugTechnicalLabel;
+  final NarrativeValueKind valueKind;
+  final NarrativeValue initialValue;
 }
 
 final class SceneConsequenceEventPickerOption {
@@ -1095,7 +1103,10 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
             ? consequence.factId
             : '${fact.label} · ${fact.factId}',
       ),
-      _InspectorRow(label: 'Valeur', value: consequence.value.toString()),
+      _InspectorRow(
+        label: 'Valeur',
+        value: _sceneNarrativeValueLabel(consequence.narrativeValue),
+      ),
       const SizedBox(height: 4),
       Wrap(
         spacing: 6,
@@ -1111,24 +1122,27 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
             leading: const Icon(CupertinoIcons.check_mark_circled),
             child: const Text('Changer le Fact'),
           ),
-          PokeMapButton(
-            key: const ValueKey('scene-consequence-value-true'),
-            onPressed: onUpdatePayload == null || consequence.value
-                ? null
-                : () => _updateSetFactValue(consequence, true),
-            variant: PokeMapButtonVariant.ghost,
-            size: PokeMapButtonSize.small,
-            child: const Text('true'),
-          ),
-          PokeMapButton(
-            key: const ValueKey('scene-consequence-value-false'),
-            onPressed: onUpdatePayload == null || !consequence.value
-                ? null
-                : () => _updateSetFactValue(consequence, false),
-            variant: PokeMapButtonVariant.ghost,
-            size: PokeMapButtonSize.small,
-            child: const Text('false'),
-          ),
+          if (consequence.narrativeValue.kind ==
+              NarrativeValueKind.boolean) ...[
+            PokeMapButton(
+              key: const ValueKey('scene-consequence-value-true'),
+              onPressed: onUpdatePayload == null || consequence.value
+                  ? null
+                  : () => _updateSetFactValue(consequence, true),
+              variant: PokeMapButtonVariant.ghost,
+              size: PokeMapButtonSize.small,
+              child: const Text('true'),
+            ),
+            PokeMapButton(
+              key: const ValueKey('scene-consequence-value-false'),
+              onPressed: onUpdatePayload == null || !consequence.value
+                  ? null
+                  : () => _updateSetFactValue(consequence, false),
+              variant: PokeMapButtonVariant.ghost,
+              size: PokeMapButtonSize.small,
+              child: const Text('false'),
+            ),
+          ],
         ],
       ),
     ];
@@ -1431,9 +1445,11 @@ class _ActionConsequenceAuthoringPanel extends StatelessWidget {
     }
     await updater(
       nodeId: node.id,
-      consequence: SceneConsequence.setFact(
+      consequence: SceneConsequence.setFactValue(
         factId: option.factId,
-        value: consequence.value,
+        value: option.valueKind == consequence.narrativeValue.kind
+            ? consequence.narrativeValue
+            : option.initialValue,
       ),
     );
   }
@@ -2190,6 +2206,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
   String? _sourceId;
   late SceneConditionOperator _operator;
   String? _value;
+  NarrativeFactOperator _factOperator = NarrativeFactOperator.equals;
+  bool _factExpectedBool = true;
+  final TextEditingController _factValueController = TextEditingController();
   bool _saving = false;
 
   @override
@@ -2206,6 +2225,12 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     }
   }
 
+  @override
+  void dispose() {
+    _factValueController.dispose();
+    super.dispose();
+  }
+
   void _initializeFromPayload() {
     final payload = widget.node.payload;
     final source =
@@ -2219,6 +2244,18 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       _sourceKind = source.sourceKind;
       _operator = source.operator;
       _value = source.value ?? _defaultValueForKind(_sourceKind);
+      if (source.sourceKind == SceneConditionSourceKind.fact) {
+        _factOperator = source.resolvedFactOperator;
+        final expected = source.resolvedExpectedFactValue;
+        _factExpectedBool = expected.kind == NarrativeValueKind.boolean
+            ? expected.boolValue
+            : true;
+        _factValueController.text = switch (expected.kind) {
+          NarrativeValueKind.boolean => '',
+          NarrativeValueKind.integer => '${expected.intValue}',
+          NarrativeValueKind.string => expected.stringValue,
+        };
+      }
       if (_optionsForKind(_sourceKind)
           .any((option) => option.sourceId == source.sourceId)) {
         _sourceId = source.sourceId;
@@ -2226,6 +2263,9 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     }
 
     _sourceId ??= _optionsForKind(_sourceKind).firstOrNull?.sourceId;
+    if (source == null && _sourceKind == SceneConditionSourceKind.fact) {
+      _resetFactInput(_selectedOption);
+    }
   }
 
   @override
@@ -2304,6 +2344,10 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
               label: 'Opérateur',
               children: _operatorButtons(),
             ),
+            if (_sourceKind == SceneConditionSourceKind.fact) ...[
+              const SizedBox(height: 8),
+              _factValueEditor(),
+            ],
             const SizedBox(height: 10),
             PokeMapButton(
               key: const ValueKey('scene-condition-save-action'),
@@ -2338,12 +2382,24 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
           ),
           label: option.label,
           selected: option.sourceId == _sourceId,
-          onPressed: () => setState(() => _sourceId = option.sourceId),
+          onPressed: () => _selectSourceOption(option),
         ),
     ];
   }
 
   List<Widget> _operatorButtons() {
+    if (_sourceKind == SceneConditionSourceKind.fact) {
+      final kind = _selectedOption?.valueKind ?? NarrativeValueKind.boolean;
+      return [
+        for (final operator in kind.compatibleOperators)
+          _conditionButton(
+            key: ValueKey('scene-condition-fact-operator-${operator.name}'),
+            label: _sceneFactOperatorLabel(operator),
+            selected: _factOperator == operator,
+            onPressed: () => setState(() => _factOperator = operator),
+          ),
+      ];
+    }
     if (_sourceKind == SceneConditionSourceKind.storyStepCompletion) {
       return [
         _conditionButton(
@@ -2388,6 +2444,42 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     ];
   }
 
+  Widget _factValueEditor() {
+    final option = _selectedOption;
+    if (option == null) return const SizedBox.shrink();
+    if (option.valueKind == NarrativeValueKind.boolean) {
+      return _ConditionButtonRow(
+        label: 'Valeur',
+        children: [
+          _conditionButton(
+            key: const ValueKey('scene-condition-fact-value-true'),
+            label: 'Vrai',
+            selected: _factExpectedBool,
+            onPressed: () => setState(() => _factExpectedBool = true),
+          ),
+          _conditionButton(
+            key: const ValueKey('scene-condition-fact-value-false'),
+            label: 'Faux',
+            selected: !_factExpectedBool,
+            onPressed: () => setState(() => _factExpectedBool = false),
+          ),
+        ],
+      );
+    }
+    return PokeMapTextField(
+      key: const ValueKey('scene-condition-fact-value-field'),
+      label: option.valueKind == NarrativeValueKind.integer
+          ? 'Valeur entière attendue'
+          : 'Texte attendu',
+      controller: _factValueController,
+      errorText: option.valueKind == NarrativeValueKind.integer &&
+              int.tryParse(_factValueController.text.trim()) == null
+          ? 'Saisissez un nombre entier valide.'
+          : null,
+      onChanged: (_) => setState(() {}),
+    );
+  }
+
   Widget _conditionButton({
     required Key key,
     required String label,
@@ -2414,7 +2506,46 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       _operator = _defaultOperatorForKind(kind);
       _value = _defaultValueForKind(kind);
       _sourceId = _optionsForKind(kind).firstOrNull?.sourceId;
+      if (kind == SceneConditionSourceKind.fact) {
+        _resetFactInput(_selectedOption);
+      }
     });
+  }
+
+  void _selectSourceOption(SceneConditionSourcePickerOption option) {
+    setState(() {
+      _sourceId = option.sourceId;
+      if (_sourceKind == SceneConditionSourceKind.fact) {
+        _resetFactInput(option);
+      }
+    });
+  }
+
+  void _resetFactInput(SceneConditionSourcePickerOption? option) {
+    if (option == null) return;
+    _factOperator = NarrativeFactOperator.equals;
+    _factExpectedBool = option.valueKind == NarrativeValueKind.boolean
+        ? option.initialValue.boolValue
+        : true;
+    _factValueController.text = switch (option.valueKind) {
+      NarrativeValueKind.boolean => '',
+      NarrativeValueKind.integer => '${option.initialValue.intValue}',
+      NarrativeValueKind.string => option.initialValue.stringValue,
+    };
+  }
+
+  NarrativeValue? _authoredFactValue() {
+    final option = _selectedOption;
+    if (option == null) return null;
+    switch (option.valueKind) {
+      case NarrativeValueKind.boolean:
+        return NarrativeValue.boolean(_factExpectedBool);
+      case NarrativeValueKind.integer:
+        final value = int.tryParse(_factValueController.text.trim());
+        return value == null ? null : NarrativeValue.integer(value);
+      case NarrativeValueKind.string:
+        return NarrativeValue.string(_factValueController.text);
+    }
   }
 
   Future<void> _save() async {
@@ -2426,16 +2557,24 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
     setState(() => _saving = true);
     final saved = await updater(
       nodeId: widget.node.id,
-      source: SceneConditionSource(
-        sourceKind: _sourceKind,
-        sourceId: option.sourceId,
-        operator: _operator,
-        value: _sourceKind == SceneConditionSourceKind.storyStepCompletion
-            ? _value
-            : null,
-        label: option.label,
-        debugTechnicalLabel: option.debugTechnicalLabel,
-      ),
+      source: _sourceKind == SceneConditionSourceKind.fact
+          ? SceneConditionSource.factValue(
+              factId: option.sourceId,
+              operator: _factOperator,
+              expectedValue: _authoredFactValue()!,
+              label: option.label,
+              debugTechnicalLabel: option.debugTechnicalLabel,
+            )
+          : SceneConditionSource(
+              sourceKind: _sourceKind,
+              sourceId: option.sourceId,
+              operator: _operator,
+              value: _sourceKind == SceneConditionSourceKind.storyStepCompletion
+                  ? _value
+                  : null,
+              label: option.label,
+              debugTechnicalLabel: option.debugTechnicalLabel,
+            ),
     );
     if (!mounted) {
       return;
@@ -2450,6 +2589,8 @@ class _ConditionAuthoringPanelState extends State<_ConditionAuthoringPanel> {
       !_saving &&
       widget.onUpdateConditionSource != null &&
       _selectedOption != null &&
+      (_sourceKind != SceneConditionSourceKind.fact ||
+          _authoredFactValue() != null) &&
       (_sourceKind != SceneConditionSourceKind.storyStepCompletion ||
           _value != null);
 
@@ -2781,7 +2922,10 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     return [
       const _InspectorRow(label: 'consequence', value: 'setFact'),
       _InspectorRow(label: 'factId', value: consequence.factId),
-      _InspectorRow(label: 'value', value: consequence.value.toString()),
+      _InspectorRow(
+        label: 'value',
+        value: _sceneNarrativeValueLabel(consequence.narrativeValue),
+      ),
     ];
   }
   if (consequence is SceneMarkEventConsumedConsequence) {
@@ -2840,6 +2984,22 @@ List<Widget> _sceneConsequenceRows(SceneConsequence? consequence) {
     _InspectorRow(label: 'consequence', value: 'Conséquence non reconnue.'),
   ];
 }
+
+String _sceneNarrativeValueLabel(NarrativeValue value) => switch (value.kind) {
+      NarrativeValueKind.boolean => value.boolValue ? 'true' : 'false',
+      NarrativeValueKind.integer => '${value.intValue}',
+      NarrativeValueKind.string => '“${value.stringValue}”',
+    };
+
+String _sceneFactOperatorLabel(NarrativeFactOperator operator) =>
+    switch (operator) {
+      NarrativeFactOperator.equals => 'Est égal à',
+      NarrativeFactOperator.notEquals => 'Est différent de',
+      NarrativeFactOperator.greaterThan => 'Est supérieur à',
+      NarrativeFactOperator.greaterThanOrEqual => 'Est supérieur ou égal à',
+      NarrativeFactOperator.lessThan => 'Est inférieur à',
+      NarrativeFactOperator.lessThanOrEqual => 'Est inférieur ou égal à',
+    };
 
 SceneConditionOperator _defaultOperatorForKind(SceneConditionSourceKind kind) {
   return switch (kind) {

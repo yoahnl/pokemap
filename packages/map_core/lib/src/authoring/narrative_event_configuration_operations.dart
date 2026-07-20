@@ -86,8 +86,8 @@ NarrativeEventSimulationReport simulateNarrativeEventDispatch({
 
   final gameState = GameState(
     saveId: 'event-builder-simulation',
-    narrativeFactRuntimeState: NarrativeFactRuntimeState(
-      overridesByFactId: input.factValues,
+    narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+      valuesByFactId: input.resolvedFactValues,
     ),
     narrativeEventProgress: NarrativeEventProgress(
       consumedNarrativeEventIds: input.consumedNarrativeEventIds,

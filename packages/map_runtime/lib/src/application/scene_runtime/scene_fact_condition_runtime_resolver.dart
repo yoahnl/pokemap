@@ -23,16 +23,12 @@ bool evaluateCanonicalNarrativeFactSceneCondition({
       '${resolution.runtimeType}.',
     );
   }
-  return switch (source.operator) {
-    SceneConditionOperator.isTrue => resolution.value,
-    SceneConditionOperator.isFalse => !resolution.value,
-    SceneConditionOperator.equals => switch (source.value) {
-        'true' => resolution.value,
-        'false' => !resolution.value,
-        _ => throw UnsupportedError(
-            'Canonical Fact equality value "${source.value}" is not '
-            'supported.',
-          ),
-      },
-  };
+  final expected = source.resolvedExpectedFactValue;
+  if (resolution.narrativeValue.kind != expected.kind) {
+    return false;
+  }
+  return resolution.narrativeValue.matches(
+    source.resolvedFactOperator,
+    expected,
+  );
 }

@@ -4,6 +4,7 @@ import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
 import '../models/narrative_fact.dart';
 import '../models/narrative_fact_runtime_state.dart';
+import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
@@ -81,17 +82,27 @@ final class FactManagerEntry {
     required this.fact,
     required List<FactManagerUsage> usages,
     required this.hasRuntimeOverride,
-    required this.runtimeOverrideValue,
+    required this.runtimeNarrativeValue,
   }) : usages = List<FactManagerUsage>.unmodifiable(usages);
 
   final NarrativeFactDefinition fact;
   final List<FactManagerUsage> usages;
   final bool hasRuntimeOverride;
-  final bool? runtimeOverrideValue;
+  final NarrativeValue? runtimeNarrativeValue;
+
+  bool? get runtimeOverrideValue =>
+      runtimeNarrativeValue?.kind == NarrativeValueKind.boolean
+          ? runtimeNarrativeValue!.boolValue
+          : null;
 
   bool get isUsed => usages.isNotEmpty;
 
   bool get initialValue => fact.defaultValue;
+
+  NarrativeValue get initialNarrativeValue => fact.initialValue;
+
+  NarrativeValue get effectiveNarrativeValue =>
+      runtimeNarrativeValue ?? initialNarrativeValue;
 
   bool get effectiveValue => runtimeOverrideValue ?? initialValue;
 
@@ -250,9 +261,8 @@ FactsWorldRulesManagerReadModel buildFactsWorldRulesManagerReadModel(
         FactManagerEntry(
           fact: fact,
           usages: usagesByFactId[fact.id] ?? const <FactManagerUsage>[],
-          hasRuntimeOverride:
-              runtimeState?.overridesByFactId.containsKey(fact.id) ?? false,
-          runtimeOverrideValue: runtimeState?.overridesByFactId[fact.id],
+          hasRuntimeOverride: runtimeState?.hasOverride(fact.id) ?? false,
+          runtimeNarrativeValue: runtimeState?.valueFor(fact.id),
         ),
     ],
     worldRules: [
@@ -279,7 +289,7 @@ bool _isFactWriterUsage(FactManagerUsage usage) {
     FactManagerUsageKind.storylineEffect =>
       true,
     FactManagerUsageKind.newGame =>
-      (usage.dependencyPath ?? usage.details).contains('.initialFacts['),
+      (usage.dependencyPath ?? usage.details).contains('.initialFact'),
     FactManagerUsageKind.sceneCondition ||
     FactManagerUsageKind.worldRuleSource ||
     FactManagerUsageKind.eventV2 ||

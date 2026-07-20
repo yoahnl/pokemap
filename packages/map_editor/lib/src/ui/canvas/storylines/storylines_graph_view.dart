@@ -1400,7 +1400,12 @@ class _StorylineGraphConnectionSheetState
     _otherStorylines = widget.project.storylines
         .where((storyline) => storyline.id != widget.storyline.id)
         .toList(growable: false);
-    _facts = widget.project.facts;
+    // Storyline step conditions still use the explicit legacy flag contract.
+    // Typed Fact comparisons belong to the canonical Event/Scene/Rule models;
+    // exposing int/string here would silently turn them into boolean flags.
+    _facts = widget.project.facts
+        .where((fact) => fact.valueKind == NarrativeValueKind.boolean)
+        .toList(growable: false);
     _outcomeKey = _outcomes.firstOrNull?.key;
     _targetStepId = _steps.firstOrNull?.step.id;
     _targetStorylineId = _otherStorylines.firstOrNull?.id;

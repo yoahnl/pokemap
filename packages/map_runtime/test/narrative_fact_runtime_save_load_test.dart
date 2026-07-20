@@ -72,6 +72,34 @@ void main() {
       expect(loaded.storyFlags.activeFlags, {'legacy_flag'});
     });
 
+    test('preserves typed int and Unicode string values on disk', () async {
+      final original = GameState(
+        saveId: 'typed_fact_runtime',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState.typed(
+          valuesByFactId: {
+            'fact_reputation': NarrativeValue.integer(42),
+            'fact_codename': const NarrativeValue.string('Selbrume 🌫️'),
+          },
+        ),
+      );
+
+      await repository.save(original);
+      final loaded = await repository.load();
+
+      expect(
+        loaded!.narrativeFactRuntimeState,
+        original.narrativeFactRuntimeState,
+      );
+      final json = jsonDecode(
+        await File(await repository.filePath()).readAsString(),
+      ) as Map<String, dynamic>;
+      expect(
+        (json['narrativeFactRuntimeState']
+            as Map<String, dynamic>)['schemaVersion'],
+        2,
+      );
+    });
+
     test('keeps explicit false after canonical write save and reload',
         () async {
       final resolver = NarrativeFactRuntimeResolver.fromFacts([

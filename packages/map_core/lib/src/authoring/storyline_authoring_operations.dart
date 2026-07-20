@@ -1211,6 +1211,7 @@ StorylineSceneLink _duplicateStructureSceneLink(
                   type: effect.type,
                   targetId: remappedStepIds[effect.targetId]!,
                   value: effect.value,
+                  factValue: effect.factValue,
                 )
               else
                 effect,
@@ -1366,6 +1367,7 @@ StorylineAsset _duplicateStorylineAsset(
       type: effect.type,
       targetId: targetId,
       value: effect.value,
+      factValue: effect.factValue,
     );
   }
 

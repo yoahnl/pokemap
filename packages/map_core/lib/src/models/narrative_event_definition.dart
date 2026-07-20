@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import 'narrative_event_source_ref.dart';
 import 'narrative_event_wire.dart';
+import 'narrative_value.dart';
 
 final RegExp narrativeEventIdPattern = RegExp(
   r'^evt_[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
@@ -12,6 +13,8 @@ const Set<String> _conditionWireFields = {
   'factId',
   'eventId',
   'expectedValue',
+  'operator',
+  'valueType',
 };
 
 const Set<String> _definitionWireFields = {
@@ -265,6 +268,12 @@ sealed class NarrativeEventCondition {
     bool expectedValue,
   ) = _FactNarrativeEventCondition;
 
+  factory NarrativeEventCondition.factValue(
+    String factId, {
+    required NarrativeFactOperator operator,
+    required NarrativeValue expectedValue,
+  }) = _FactNarrativeEventCondition.typed;
+
   factory NarrativeEventCondition.narrativeEventConsumed(
     String eventId,
     bool expectedValue,
@@ -279,24 +288,64 @@ sealed class NarrativeEventCondition {
     );
     switch (kind) {
       case 'fact':
+        final isTyped = object.containsKey('valueType') ||
+            object.containsKey('operator') ||
+            object['expectedValue'] is! bool;
         NarrativeEventWire.expectExactFields(
           object,
-          const {'kind', 'factId', 'expectedValue'},
+          isTyped
+              ? const {
+                  'kind',
+                  'factId',
+                  'operator',
+                  'valueType',
+                  'expectedValue',
+                }
+              : const {'kind', 'factId', 'expectedValue'},
           path: 'condition',
           knownFields: _conditionWireFields,
         );
-        return NarrativeEventCondition.fact(
-          NarrativeEventWire.requiredIdentity(
-            object,
-            'factId',
-            path: 'condition',
-          ),
-          NarrativeEventWire.requiredBool(
-            object,
-            'expectedValue',
-            path: 'condition',
-          ),
+        final factId = NarrativeEventWire.requiredIdentity(
+          object,
+          'factId',
+          path: 'condition',
         );
+        if (!isTyped) {
+          return NarrativeEventCondition.fact(
+            factId,
+            NarrativeEventWire.requiredBool(
+              object,
+              'expectedValue',
+              path: 'condition',
+            ),
+          );
+        }
+        final operatorName = NarrativeEventWire.requiredString(
+          object,
+          'operator',
+          path: 'condition',
+        );
+        final valueType = NarrativeEventWire.requiredString(
+          object,
+          'valueType',
+          path: 'condition',
+        );
+        try {
+          return NarrativeEventCondition.factValue(
+            factId,
+            operator: NarrativeFactOperator.values.byName(operatorName),
+            expectedValue: NarrativeValue.fromJson(
+              object['expectedValue'],
+              declaredKind: NarrativeValueKind.fromWireName(valueType),
+            ),
+          );
+        } on Object catch (error) {
+          return NarrativeEventWire.invalid(
+            'Invalid typed Fact condition: $error',
+            path: 'condition',
+            source: object,
+          );
+        }
       case 'narrativeEventConsumed':
         NarrativeEventWire.expectExactFields(
           object,
@@ -330,8 +379,22 @@ sealed class NarrativeEventCondition {
 
   bool get expectedValue;
 
+  NarrativeValue get expectedNarrativeValue;
+
+  NarrativeFactOperator get comparisonOperator;
+
   T when<T>({
     required T Function(String factId, bool expectedValue) fact,
+    required T Function(String eventId, bool expectedValue)
+        narrativeEventConsumed,
+  });
+
+  T whenTyped<T>({
+    required T Function(
+      String factId,
+      NarrativeFactOperator operator,
+      NarrativeValue expectedValue,
+    ) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
   });
@@ -340,14 +403,40 @@ sealed class NarrativeEventCondition {
 }
 
 final class _FactNarrativeEventCondition extends NarrativeEventCondition {
-  _FactNarrativeEventCondition(String factId, this.expectedValue)
+  _FactNarrativeEventCondition(String factId, bool expectedValue)
       : factId = _validateIdentityArgument(factId, 'factId'),
+        expectedNarrativeValue = NarrativeValue.boolean(expectedValue),
+        comparisonOperator = NarrativeFactOperator.equals,
         super._();
+
+  _FactNarrativeEventCondition.typed(
+    String factId, {
+    required NarrativeFactOperator operator,
+    required NarrativeValue expectedValue,
+  })  : factId = _validateIdentityArgument(factId, 'factId'),
+        comparisonOperator = operator,
+        expectedNarrativeValue = expectedValue,
+        super._() {
+    if (!expectedNarrativeValue.kind.compatibleOperators
+        .contains(comparisonOperator)) {
+      throw ArgumentError.value(
+        comparisonOperator,
+        'operator',
+        'is incompatible with ${expectedNarrativeValue.kind.wireName}',
+      );
+    }
+  }
 
   final String factId;
 
   @override
-  final bool expectedValue;
+  bool get expectedValue => expectedNarrativeValue.boolValue;
+
+  @override
+  final NarrativeValue expectedNarrativeValue;
+
+  @override
+  final NarrativeFactOperator comparisonOperator;
 
   @override
   T when<T>({
@@ -358,10 +447,27 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
       fact(factId, expectedValue);
 
   @override
+  T whenTyped<T>({
+    required T Function(
+      String factId,
+      NarrativeFactOperator operator,
+      NarrativeValue expectedValue,
+    ) fact,
+    required T Function(String eventId, bool expectedValue)
+        narrativeEventConsumed,
+  }) =>
+      fact(factId, comparisonOperator, expectedNarrativeValue);
+
+  @override
   Map<String, Object?> toJson() => {
         'kind': 'fact',
         'factId': factId,
-        'expectedValue': expectedValue,
+        if (expectedNarrativeValue.kind != NarrativeValueKind.boolean ||
+            comparisonOperator != NarrativeFactOperator.equals) ...{
+          'operator': comparisonOperator.name,
+          'valueType': expectedNarrativeValue.kind.wireName,
+        },
+        'expectedValue': expectedNarrativeValue.toJson(),
       };
 
   @override
@@ -369,10 +475,16 @@ final class _FactNarrativeEventCondition extends NarrativeEventCondition {
       identical(this, other) ||
       other is _FactNarrativeEventCondition &&
           other.factId == factId &&
-          other.expectedValue == expectedValue;
+          other.expectedNarrativeValue == expectedNarrativeValue &&
+          other.comparisonOperator == comparisonOperator;
 
   @override
-  int get hashCode => Object.hash('fact', factId, expectedValue);
+  int get hashCode => Object.hash(
+        'fact',
+        factId,
+        comparisonOperator,
+        expectedNarrativeValue,
+      );
 }
 
 final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
@@ -386,8 +498,27 @@ final class _ConsumedNarrativeEventCondition extends NarrativeEventCondition {
   final bool expectedValue;
 
   @override
+  NarrativeValue get expectedNarrativeValue =>
+      NarrativeValue.boolean(expectedValue);
+
+  @override
+  NarrativeFactOperator get comparisonOperator => NarrativeFactOperator.equals;
+
+  @override
   T when<T>({
     required T Function(String factId, bool expectedValue) fact,
+    required T Function(String eventId, bool expectedValue)
+        narrativeEventConsumed,
+  }) =>
+      narrativeEventConsumed(eventId, expectedValue);
+
+  @override
+  T whenTyped<T>({
+    required T Function(
+      String factId,
+      NarrativeFactOperator operator,
+      NarrativeValue expectedValue,
+    ) fact,
     required T Function(String eventId, bool expectedValue)
         narrativeEventConsumed,
   }) =>

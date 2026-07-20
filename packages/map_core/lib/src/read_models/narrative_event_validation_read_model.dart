@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../models/narrative_event_definition.dart';
 import '../models/narrative_event_registry.dart';
 import '../models/narrative_event_source_ref.dart';
+import '../models/narrative_value.dart';
 
 enum NarrativeEventValidationSeverity { info, warning, error }
 
@@ -43,16 +44,25 @@ final class NarrativeEventSimulationInput {
     required String targetEventId,
     this.source,
     Map<String, bool> factValues = const {},
+    Map<String, NarrativeValue> factNarrativeValues = const {},
     Set<String> consumedNarrativeEventIds = const {},
     Set<String> inFlightNarrativeEventIds = const {},
   })  : targetEventId = _identity(targetEventId, 'targetEventId'),
         factValues = Map.unmodifiable(factValues),
+        factNarrativeValues = Map.unmodifiable(factNarrativeValues),
         consumedNarrativeEventIds = Set.unmodifiable(consumedNarrativeEventIds),
         inFlightNarrativeEventIds = Set.unmodifiable(inFlightNarrativeEventIds);
 
   final String targetEventId;
   final NarrativeEventSourceRef? source;
   final Map<String, bool> factValues;
+  final Map<String, NarrativeValue> factNarrativeValues;
+
+  Map<String, NarrativeValue> get resolvedFactValues => Map.unmodifiable({
+        for (final entry in factValues.entries)
+          entry.key: NarrativeValue.boolean(entry.value),
+        ...factNarrativeValues,
+      });
   final Set<String> consumedNarrativeEventIds;
   final Set<String> inFlightNarrativeEventIds;
 }
@@ -63,8 +73,23 @@ final class NarrativeEventSimulationConditionTrace {
     required this.index,
     required this.kind,
     required String targetId,
-    required this.expectedValue,
-    required this.actualValue,
+    required bool expectedValue,
+    required bool? actualValue,
+    required this.passed,
+    required this.reason,
+  })  : targetId = _identity(targetId, 'targetId'),
+        expectedNarrativeValue = NarrativeValue.boolean(expectedValue),
+        actualNarrativeValue =
+            actualValue == null ? null : NarrativeValue.boolean(actualValue),
+        operator = NarrativeFactOperator.equals;
+
+  NarrativeEventSimulationConditionTrace.typed({
+    required this.index,
+    required this.kind,
+    required String targetId,
+    required this.operator,
+    required this.expectedNarrativeValue,
+    required this.actualNarrativeValue,
     required this.passed,
     required this.reason,
   }) : targetId = _identity(targetId, 'targetId');
@@ -72,8 +97,12 @@ final class NarrativeEventSimulationConditionTrace {
   final int index;
   final NarrativeEventSimulationConditionKind kind;
   final String targetId;
-  final bool expectedValue;
-  final bool? actualValue;
+  final NarrativeFactOperator operator;
+  final NarrativeValue expectedNarrativeValue;
+  final NarrativeValue? actualNarrativeValue;
+
+  bool get expectedValue => expectedNarrativeValue.boolValue;
+  bool? get actualValue => actualNarrativeValue?.boolValue;
   final bool passed;
   final NarrativeEventSimulationReason? reason;
 }

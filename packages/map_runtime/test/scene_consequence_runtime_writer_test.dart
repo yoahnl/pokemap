@@ -139,6 +139,44 @@ void main() {
       );
     });
 
+    test('setFactValue writes typed values and rejects type mismatch', () {
+      final writer = SceneConsequenceRuntimeWriter(
+        project: _project(
+          facts: [
+            NarrativeFactDefinition(
+              id: 'fact_reputation',
+              label: 'Réputation',
+              initialValue: NarrativeValue.integer(0),
+            ),
+          ],
+        ),
+      );
+
+      final applied = writer.applyOne(
+        const GameState(saveId: 'typed_write'),
+        SceneConsequence.setFactValue(
+          factId: 'fact_reputation',
+          value: NarrativeValue.integer(7),
+        ),
+      );
+      final rejected = writer.applyOne(
+        const GameState(saveId: 'typed_write'),
+        SceneConsequence.setFactValue(
+          factId: 'fact_reputation',
+          value: const NarrativeValue.string('sept'),
+        ),
+      );
+
+      expect(
+        applied.gameState.narrativeFactRuntimeState.valueFor('fact_reputation'),
+        NarrativeValue.integer(7),
+      );
+      expect(
+        rejected.errorCode,
+        SceneConsequenceRuntimeWriteErrorCode.factTypeMismatch,
+      );
+    });
+
     test('setFact unknown Fact fails without mutating the original state', () {
       const state = GameState(saveId: 'save_test');
       final writer = SceneConsequenceRuntimeWriter(project: _project());

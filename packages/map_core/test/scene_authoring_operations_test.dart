@@ -1599,6 +1599,25 @@ void main() {
           equals(SceneConditionPayload()));
     });
 
+    test('updates a condition node with a typed Fact comparison', () {
+      final scene = _edgeAuthoringScene();
+      final source = SceneConditionSource.factValue(
+        factId: 'fact_reputation',
+        operator: NarrativeFactOperator.greaterThanOrEqual,
+        expectedValue: NarrativeValue.integer(4),
+        label: 'Réputation suffisante',
+      );
+
+      final result = updateSceneConditionSource(
+        scene,
+        nodeId: 'node_condition',
+        source: source,
+      );
+
+      expect(result.updatedPayload.conditionSource, source);
+      expect(result.updatedPayload.conditionLabel, 'Réputation suffisante');
+    });
+
     test('rejects invalid condition source updates', () {
       final scene = _edgeAuthoringScene();
 

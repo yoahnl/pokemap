@@ -72,6 +72,41 @@ void main() {
       expect(trueResult.source, NarrativeFactRuntimeValueSource.defaultValue);
     });
 
+    test('resolves typed overrides and typed defaults without legacy flags',
+        () {
+      final resolver = NarrativeFactRuntimeResolver.fromFacts([
+        NarrativeFactDefinition(
+          id: 'fact_tide',
+          label: 'Tide',
+          initialValue: NarrativeValue.integer(2),
+        ),
+        NarrativeFactDefinition(
+          id: 'fact_name',
+          label: 'Name',
+          initialValue: const NarrativeValue.string('Selbrume'),
+        ),
+      ]);
+      final state = NarrativeFactRuntimeState.typed(
+        valuesByFactId: {'fact_tide': NarrativeValue.integer(5)},
+      );
+
+      final tide = resolver.resolve(
+        factId: 'fact_tide',
+        runtimeState: state,
+        storyFlags: const StoryFlags(activeFlags: {'fact_tide'}),
+      ) as NarrativeFactRuntimeResolved;
+      final name = resolver.resolve(
+        factId: 'fact_name',
+        runtimeState: state,
+        storyFlags: const StoryFlags(),
+      ) as NarrativeFactRuntimeResolved;
+
+      expect(tide.narrativeValue, NarrativeValue.integer(5));
+      expect(tide.source, NarrativeFactRuntimeValueSource.explicitOverride);
+      expect(name.narrativeValue, const NarrativeValue.string('Selbrume'));
+      expect(name.source, NarrativeFactRuntimeValueSource.defaultValue);
+    });
+
     test('does not use the raw Fact ID when an alias exists', () {
       final resolver = NarrativeFactRuntimeResolver.fromFacts([
         NarrativeFactDefinition(
