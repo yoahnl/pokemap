@@ -11,6 +11,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_display_preview_overlay.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_backdrop_preview_framing.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_builder_workspace.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/builder/cinematic_inspector_panel.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/builder/cinematic_palette_panel.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/builder/cinematic_stage_panel.dart';
+import 'package:map_editor/src/ui/canvas/cinematics/builder/cinematic_timeline_panel.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_emote_preview_overlay.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_layer_render_plan.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_render_pass.dart';
@@ -49,6 +53,14 @@ void main() {
         'cinematic-builder-inspector-placeholder',
       ]) {
         expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+      }
+      for (final key in const <Key>[
+        CinematicPalettePanel.surfaceKey,
+        CinematicStagePanel.surfaceKey,
+        CinematicTimelinePanel.surfaceKey,
+        CinematicInspectorPanel.surfaceKey,
+      ]) {
+        expect(find.byKey(key), findsOneWidget);
       }
       expect(find.text('Ajouter au déroulé'), findsOneWidget);
       expect(find.text('Timeline cinématique'), findsOneWidget);

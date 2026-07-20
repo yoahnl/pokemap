@@ -5,6 +5,18 @@ import 'package:map_editor/src/theme/theme.dart';
 
 void main() {
   group('PokeMapTheme and PokeMapColorTokens Tests', () {
+    test('provides semantic transparency and scrim tokens', () {
+      const light = PokeMapColorTokens.light;
+      const dark = PokeMapColorTokens.dark;
+
+      expect(light.transparent.toARGB32(), 0x00000000);
+      expect(dark.transparent.toARGB32(), 0x00000000);
+      expect(light.scrimSoft.toARGB32(), 0x33000000);
+      expect(dark.scrimSoft.toARGB32(), 0x33000000);
+      expect(light.scrimSubtle.toARGB32(), 0x0A000000);
+      expect(dark.scrimSubtle.toARGB32(), 0x0A000000);
+    });
+
     test(
         'PokeMapTheme.light() creates a ThemeData brightness light with tokens',
         () {

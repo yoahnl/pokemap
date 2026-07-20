@@ -16,6 +16,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     required this.borderSubtle,
     required this.borderStrong,
     required this.divider,
+    required this.transparent,
+    required this.scrimSoft,
+    required this.scrimSubtle,
 
     // Structural Surfaces
     required this.chromeBackground,
@@ -124,6 +127,15 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
 
   /// Generic thin divider line color.
   final Color divider;
+
+  /// Fully transparent paint for render-neutral controls and dividers.
+  final Color transparent;
+
+  /// Standard 20% black scrim used over stage content.
+  final Color scrimSoft;
+
+  /// Very light black scrim used for subtle timeline affordances.
+  final Color scrimSubtle;
 
   // ==========================================
   // Properties - Structural Surfaces
@@ -349,6 +361,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     borderSubtle: Color(0xFFE2E8F3),
     borderStrong: Color(0xFFC7D3E6),
     divider: Color(0xFFEDF1F7),
+    transparent: Color(0x00000000),
+    scrimSoft: Color(0x33000000),
+    scrimSubtle: Color(0x0A000000),
 
     // Structural Surfaces
     chromeBackground: Color(0xFFF1F5FB),
@@ -437,6 +452,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     borderSubtle: Color(0xFF1A2638),
     borderStrong: Color(0xFF273850),
     divider: Color(0xFF152031),
+    transparent: Color(0x00000000),
+    scrimSoft: Color(0x33000000),
+    scrimSubtle: Color(0x0A000000),
 
     // Structural Surfaces
     chromeBackground: Color(0xFF00040C),
@@ -528,6 +546,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
     Color? borderSubtle,
     Color? borderStrong,
     Color? divider,
+    Color? transparent,
+    Color? scrimSoft,
+    Color? scrimSubtle,
     Color? chromeBackground,
     Color? topBarBackground,
     Color? sidebarSurface,
@@ -601,6 +622,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       borderSubtle: borderSubtle ?? this.borderSubtle,
       borderStrong: borderStrong ?? this.borderStrong,
       divider: divider ?? this.divider,
+      transparent: transparent ?? this.transparent,
+      scrimSoft: scrimSoft ?? this.scrimSoft,
+      scrimSubtle: scrimSubtle ?? this.scrimSubtle,
       chromeBackground: chromeBackground ?? this.chromeBackground,
       topBarBackground: topBarBackground ?? this.topBarBackground,
       sidebarSurface: sidebarSurface ?? this.sidebarSurface,
@@ -684,6 +708,9 @@ class PokeMapColorTokens extends ThemeExtension<PokeMapColorTokens> {
       borderSubtle: Color.lerp(borderSubtle, other.borderSubtle, t)!,
       borderStrong: Color.lerp(borderStrong, other.borderStrong, t)!,
       divider: Color.lerp(divider, other.divider, t)!,
+      transparent: Color.lerp(transparent, other.transparent, t)!,
+      scrimSoft: Color.lerp(scrimSoft, other.scrimSoft, t)!,
+      scrimSubtle: Color.lerp(scrimSubtle, other.scrimSubtle, t)!,
       chromeBackground:
           Color.lerp(chromeBackground, other.chromeBackground, t)!,
       topBarBackground:

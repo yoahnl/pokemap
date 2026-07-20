@@ -28,6 +28,11 @@ import 'cinematic_playback_preview_fallback_summary.dart';
 import 'cinematic_stage_preview_readiness.dart';
 import 'cinematic_timeline_zoom_controller.dart';
 import 'cinematic_timeline_zoom_state.dart';
+import 'builder/cinematic_builder_controller.dart';
+import 'builder/cinematic_inspector_panel.dart';
+import 'builder/cinematic_palette_panel.dart';
+import 'builder/cinematic_stage_panel.dart';
+import 'builder/cinematic_timeline_panel.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
   required String cinematicId,
@@ -376,13 +381,9 @@ class CinematicBuilderWorkspace extends StatefulWidget {
 
 class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     with SingleTickerProviderStateMixin {
-  String? _selectedStepId;
-  int? _timelineProbeTimeMs;
-  _TimelineProbeSnapHint? _timelineProbeSnapHint;
+  late final CinematicBuilderController _builderController;
   CinematicBackdropPreviewFramingState _backdropFramingState =
       const CinematicBackdropPreviewFramingState();
-  String? _selectedStagePointId;
-  bool _addStagePointMode = false;
   late final AnimationController _playbackController;
   late String _playbackTimelineSignature;
   bool _isPlaybackPlaying = false;
@@ -391,6 +392,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   @override
   void initState() {
     super.initState();
+    _builderController = CinematicBuilderController(asset: widget.asset);
     _playbackTimelineSignature = _playbackSignature(widget.asset);
     _playbackController = AnimationController(vsync: this)
       ..addListener(() {
@@ -409,15 +411,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   void didUpdateWidget(CinematicBuilderWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
     final sameCinematic = oldWidget.asset.id == widget.asset.id;
-    if (!sameCinematic || !_hasStep(widget.asset, _selectedStepId)) {
-      _selectedStepId = null;
-    }
+    _builderController.synchronize(widget.asset);
     if (!sameCinematic) {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
       _backdropFramingState = const CinematicBackdropPreviewFramingState();
-      _selectedStagePointId = null;
-      _addStagePointMode = false;
     }
     final nextPlaybackSignature = _playbackSignature(widget.asset);
     if (_playbackTimelineSignature != nextPlaybackSignature) {
@@ -429,6 +425,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   @override
   void dispose() {
     _playbackController.dispose();
+    _builderController.dispose();
     super.dispose();
   }
 
@@ -564,7 +561,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
 
   @override
   Widget build(BuildContext context) {
-    final selectedStep = _selectedStep(widget.asset, _selectedStepId);
+    final selectedStep =
+        _selectedStep(widget.asset, _builderController.selectedStepId);
     final selectedStepIndex = selectedStep == null
         ? null
         : widget.asset.timeline.steps.indexOf(selectedStep);
@@ -657,9 +655,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
             onKeyEvent: (node, event) {
               if (event is KeyDownEvent &&
                   event.logicalKey == LogicalKeyboardKey.escape &&
-                  _addStagePointMode) {
+                  _builderController.addStagePointMode) {
                 setState(() {
-                  _addStagePointMode = false;
+                  _builderController.addStagePointMode = false;
                 });
                 return KeyEventResult.handled;
               }
@@ -674,17 +672,19 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                     children: [
                       SizedBox(
                         width: 250,
-                        child: _BlockPalette(
-                          entry: widget.entry,
-                          asset: widget.asset,
-                          onAddBasicBlock: _addBasicBlock,
-                          onAddRequiredActor: _addRequiredActor,
-                          onAddMovementTarget: _addMovementTarget,
-                          onUpdateMovementTarget: _updateMovementTarget,
-                          onRemoveMovementTarget: _removeMovementTarget,
-                          onAddActorFacing: _addActorFacing,
-                          onAddActorMove: _addActorMove,
-                          onAddActorEmote: _addActorEmote,
+                        child: CinematicPalettePanel(
+                          child: _BlockPalette(
+                            entry: widget.entry,
+                            asset: widget.asset,
+                            onAddBasicBlock: _addBasicBlock,
+                            onAddRequiredActor: _addRequiredActor,
+                            onAddMovementTarget: _addMovementTarget,
+                            onUpdateMovementTarget: _updateMovementTarget,
+                            onRemoveMovementTarget: _removeMovementTarget,
+                            onAddActorFacing: _addActorFacing,
+                            onAddActorMove: _addActorMove,
+                            onAddActorEmote: _addActorEmote,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -706,162 +706,184 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                               children: [
                                 SizedBox(
                                   height: previewHeight,
-                                  child: _PreviewSandbox(
-                                    entry: widget.entry,
-                                    asset: widget.asset,
-                                    backdropPreviewModel:
-                                        widget.backdropPreviewModel,
-                                    backdropTileRenderPlan:
-                                        widget.backdropTileRenderPlan,
-                                    backdropLayerRenderPlan:
-                                        widget.backdropLayerRenderPlan,
-                                    actorDisplayPreviewModel:
-                                        widget.actorDisplayPreviewModel,
-                                    actorPlaybackPreviewModel:
-                                        playbackActorOverlayModel,
-                                    actorSpritePreviewPlan:
-                                        previewActorSpritePreviewPlan,
-                                    playbackFrame: playbackFrame,
-                                    fadeState: playbackFrame.fadeState,
-                                    cameraPose: playbackFrame.cameraPose,
-                                    playbackPreviewStatus:
-                                        playbackPreviewStatus,
-                                    backdropFramingState: _backdropFramingState,
-                                    stagePoints: widget
-                                            .asset.stageContext?.stagePoints ??
-                                        const [],
-                                    selectedStagePointId: _selectedStagePointId,
-                                    addStagePointMode: _addStagePointMode,
-                                    onSelectStagePointId: (id) {
-                                      setState(() {
-                                        _selectedStagePointId = id;
-                                      });
-                                    },
-                                    onUpdateStagePoint: _updateStagePoint,
-                                    onAddStagePointAtTile: _addStagePointAtTile,
-                                    onAddStagePointModeChanged: (val) {
-                                      setState(() {
-                                        _addStagePointMode = val;
-                                      });
-                                    },
-                                    onBackdropFramingModeChanged: (mode) {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          mode: mode,
-                                          panTiles: Offset.zero,
-                                        );
-                                      });
-                                    },
-                                    onBackdropFramingZoomChanged: (zoom) {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          zoom: zoom,
-                                        );
-                                      });
-                                    },
-                                    onBackdropFramingPanChanged: (panTiles) {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          panTiles: panTiles,
-                                        );
-                                      });
-                                    },
-                                    onBackdropFramingResetView: () {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          zoom:
-                                              CinematicBackdropPreviewFramingState
-                                                  .minZoom,
-                                          panTiles: Offset.zero,
-                                        );
-                                      });
-                                    },
-                                    onBackdropFramingDetailsChanged:
-                                        (showDetails) {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          showDetails: showDetails,
-                                        );
-                                      });
-                                    },
-                                    onBackdropFramingGridChanged: (showGrid) {
-                                      setState(() {
-                                        _backdropFramingState =
-                                            _backdropFramingState.copyWith(
-                                          showGrid: showGrid,
-                                        );
-                                      });
-                                    },
-                                    selectedStep: selectedStep,
-                                    selectedStepIndex: selectedStepIndex,
-                                    timelineProbeTimeMs: _timelineProbeTimeMs,
-                                    readiness: readiness,
+                                  child: CinematicStagePanel(
+                                    child: _PreviewSandbox(
+                                      entry: widget.entry,
+                                      asset: widget.asset,
+                                      backdropPreviewModel:
+                                          widget.backdropPreviewModel,
+                                      backdropTileRenderPlan:
+                                          widget.backdropTileRenderPlan,
+                                      backdropLayerRenderPlan:
+                                          widget.backdropLayerRenderPlan,
+                                      actorDisplayPreviewModel:
+                                          widget.actorDisplayPreviewModel,
+                                      actorPlaybackPreviewModel:
+                                          playbackActorOverlayModel,
+                                      actorSpritePreviewPlan:
+                                          previewActorSpritePreviewPlan,
+                                      playbackFrame: playbackFrame,
+                                      fadeState: playbackFrame.fadeState,
+                                      cameraPose: playbackFrame.cameraPose,
+                                      playbackPreviewStatus:
+                                          playbackPreviewStatus,
+                                      backdropFramingState:
+                                          _backdropFramingState,
+                                      stagePoints: widget.asset.stageContext
+                                              ?.stagePoints ??
+                                          const [],
+                                      selectedStagePointId: _builderController
+                                          .selectedStagePointId,
+                                      addStagePointMode:
+                                          _builderController.addStagePointMode,
+                                      onSelectStagePointId: (id) {
+                                        setState(() {
+                                          _builderController
+                                              .selectedStagePointId = id;
+                                        });
+                                      },
+                                      onUpdateStagePoint: _updateStagePoint,
+                                      onAddStagePointAtTile:
+                                          _addStagePointAtTile,
+                                      onAddStagePointModeChanged: (val) {
+                                        setState(() {
+                                          _builderController.addStagePointMode =
+                                              val;
+                                        });
+                                      },
+                                      onBackdropFramingModeChanged: (mode) {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            mode: mode,
+                                            panTiles: Offset.zero,
+                                          );
+                                        });
+                                      },
+                                      onBackdropFramingZoomChanged: (zoom) {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            zoom: zoom,
+                                          );
+                                        });
+                                      },
+                                      onBackdropFramingPanChanged: (panTiles) {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            panTiles: panTiles,
+                                          );
+                                        });
+                                      },
+                                      onBackdropFramingResetView: () {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            zoom:
+                                                CinematicBackdropPreviewFramingState
+                                                    .minZoom,
+                                            panTiles: Offset.zero,
+                                          );
+                                        });
+                                      },
+                                      onBackdropFramingDetailsChanged:
+                                          (showDetails) {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            showDetails: showDetails,
+                                          );
+                                        });
+                                      },
+                                      onBackdropFramingGridChanged: (showGrid) {
+                                        setState(() {
+                                          _backdropFramingState =
+                                              _backdropFramingState.copyWith(
+                                            showGrid: showGrid,
+                                          );
+                                        });
+                                      },
+                                      selectedStep: selectedStep,
+                                      selectedStepIndex: selectedStepIndex,
+                                      timelineProbeTimeMs: _builderController
+                                          .timelineProbeTimeMs,
+                                      readiness: readiness,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(height: _builderTimelineGap),
                                 SizedBox(
                                   height: timelineHeight,
-                                  child: _TimelinePlaceholder(
-                                    entry: widget.entry,
-                                    asset: widget.asset,
-                                    selectedStepId: _selectedStepId,
-                                    timelineProbeTimeMs: _timelineProbeTimeMs,
-                                    timelineProbeSnapHint:
-                                        _timelineProbeSnapHint,
-                                    playbackPlan: playbackPlan,
-                                    playbackFrame: playbackFrame,
-                                    playbackTimeMs: playbackTimeMs,
-                                    isPlaybackPlaying: _isPlaybackPlaying,
-                                    onStepSelected: (step) {
-                                      if (_isPlaybackPlaying) {
-                                        _pausePlaybackWithoutSetState();
-                                      }
-                                      setState(() {
-                                        _selectedStepId = step.id;
-                                        _timelineProbeTimeMs = null;
-                                        _timelineProbeSnapHint = null;
-                                      });
-                                    },
-                                    onTimelineProbeChanged: (probe) {
-                                      setState(() {
-                                        _timelineProbeTimeMs = probe.timeMs;
-                                        _timelineProbeSnapHint = probe.snapHint;
-                                      });
-                                    },
-                                    onTimelineProbeCleared: () {
-                                      setState(() {
-                                        _timelineProbeTimeMs = null;
-                                        _timelineProbeSnapHint = null;
-                                      });
-                                    },
-                                    onPlaybackSeekRequested: (position) =>
-                                        _seekPlayback(playbackPlan, position),
-                                    onPlaybackScrubStart: (position) =>
-                                        _beginPlaybackScrub(
-                                      playbackPlan,
-                                      position,
+                                  child: CinematicTimelinePanel(
+                                    child: _TimelinePlaceholder(
+                                      entry: widget.entry,
+                                      asset: widget.asset,
+                                      selectedStepId:
+                                          _builderController.selectedStepId,
+                                      timelineProbeTimeMs: _builderController
+                                          .timelineProbeTimeMs,
+                                      timelineProbeSnapHint: _builderController
+                                          .timelineProbeSnapHint,
+                                      playbackPlan: playbackPlan,
+                                      playbackFrame: playbackFrame,
+                                      playbackTimeMs: playbackTimeMs,
+                                      isPlaybackPlaying: _isPlaybackPlaying,
+                                      onStepSelected: (step) {
+                                        if (_isPlaybackPlaying) {
+                                          _pausePlaybackWithoutSetState();
+                                        }
+                                        setState(() {
+                                          _builderController.selectedStepId =
+                                              step.id;
+                                          _builderController
+                                              .timelineProbeTimeMs = null;
+                                          _builderController
+                                              .timelineProbeSnapHint = null;
+                                        });
+                                      },
+                                      onTimelineProbeChanged: (probe) {
+                                        setState(() {
+                                          _builderController
+                                                  .timelineProbeTimeMs =
+                                              probe.timeMs;
+                                          _builderController
+                                                  .timelineProbeSnapHint =
+                                              probe.snapHint;
+                                        });
+                                      },
+                                      onTimelineProbeCleared: () {
+                                        setState(() {
+                                          _builderController
+                                              .timelineProbeTimeMs = null;
+                                          _builderController
+                                              .timelineProbeSnapHint = null;
+                                        });
+                                      },
+                                      onPlaybackSeekRequested: (position) =>
+                                          _seekPlayback(playbackPlan, position),
+                                      onPlaybackScrubStart: (position) =>
+                                          _beginPlaybackScrub(
+                                        playbackPlan,
+                                        position,
+                                      ),
+                                      onPlaybackScrubUpdate: (position) =>
+                                          _updatePlaybackScrub(
+                                        playbackPlan,
+                                        position,
+                                      ),
+                                      onPlaybackScrubEnd: () =>
+                                          _endPlaybackScrub(playbackPlan),
+                                      onPlaybackScrubCancel: () =>
+                                          _cancelPlaybackScrub(playbackPlan),
+                                      onStepDurationResized:
+                                          _resizeTimelineStepDuration,
+                                      onAddDraftStep: _addDraftStep,
+                                      onPlaybackPlayPause: () =>
+                                          _togglePlayback(playbackPlan),
+                                      onPlaybackStop: _stopPlayback,
+                                      onPlaybackReset: _resetPlayback,
                                     ),
-                                    onPlaybackScrubUpdate: (position) =>
-                                        _updatePlaybackScrub(
-                                      playbackPlan,
-                                      position,
-                                    ),
-                                    onPlaybackScrubEnd: () =>
-                                        _endPlaybackScrub(playbackPlan),
-                                    onPlaybackScrubCancel: () =>
-                                        _cancelPlaybackScrub(playbackPlan),
-                                    onStepDurationResized:
-                                        _resizeTimelineStepDuration,
-                                    onAddDraftStep: _addDraftStep,
-                                    onPlaybackPlayPause: () =>
-                                        _togglePlayback(playbackPlan),
-                                    onPlaybackStop: _stopPlayback,
-                                    onPlaybackReset: _resetPlayback,
                                   ),
                                 ),
                               ],
@@ -872,57 +894,62 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                       const SizedBox(width: 12),
                       SizedBox(
                         width: 300,
-                        child: _InspectorPlaceholder(
-                          entry: widget.entry,
-                          asset: widget.asset,
-                          stageMaps: widget.stageMaps,
-                          groups: widget.groups,
-                          characters: widget.characters,
-                          stageMapSourceCatalog: widget.stageMapSourceCatalog,
-                          selectedStep: selectedStep,
-                          selectedStepIndex: selectedStepIndex,
-                          startExpanded: widget.startExpanded,
-                          onUpdateStageMap: _updateStageMap,
-                          onUpdateStageContext: _updateStageContext,
-                          onRenameRequiredActor: _renameRequiredActor,
-                          onRemoveRequiredActor: _removeRequiredActor,
-                          onUpsertActorBinding: _upsertActorBinding,
-                          onUpsertActorAppearanceBinding:
-                              _upsertActorAppearanceBinding,
-                          onRemoveActorAppearanceBinding:
-                              _removeActorAppearanceBinding,
-                          onUpsertActorInitialPlacement:
-                              _upsertActorInitialPlacement,
-                          onUpsertMovementTargetBinding:
-                              _upsertMovementTargetBinding,
-                          onRemoveDraftStep: _removeDraftStep,
-                          onUpdateBasicBlock: _updateBasicBlock,
-                          onUpdateActorFacing: _updateActorFacing,
-                          onUpdateActorMove: _updateActorMove,
-                          onUpdateActorEmote: _updateActorEmote,
-                          onRemoveAuthoringStep: _removeAuthoringStep,
-                          onAddRequiredActor: _addRequiredActor,
-                          onUpdateMovementTarget: _updateMovementTarget,
-                          onRemoveMovementTarget: _removeMovementTarget,
-                          onAddMovementTarget: _addMovementTarget,
-                          onToggleActorMovePathMode: _toggleActorMovePathMode,
-                          onAddManualPathWaypoint: _addManualPathWaypoint,
-                          onRemoveManualPathWaypoint: _removeManualPathWaypoint,
-                          onReorderManualPathWaypoint:
-                              _reorderManualPathWaypoint,
-                          actorSpritePreviewPlan: widget.actorSpritePreviewPlan,
-                          tilesets: widget.tilesets,
-                          selectedStagePointId: _selectedStagePointId,
-                          onSelectStagePointId: (id) {
-                            setState(() {
-                              _selectedStagePointId = id;
-                            });
-                          },
-                          onUpdateStagePoint: _updateStagePoint,
-                          onRemoveStagePoint: _removeStagePoint,
-                          mapWidth: widget.backdropPreviewModel?.mapWidth,
-                          mapHeight: widget.backdropPreviewModel?.mapHeight,
-                          readiness: readiness,
+                        child: CinematicInspectorPanel(
+                          child: _InspectorPlaceholder(
+                            entry: widget.entry,
+                            asset: widget.asset,
+                            stageMaps: widget.stageMaps,
+                            groups: widget.groups,
+                            characters: widget.characters,
+                            stageMapSourceCatalog: widget.stageMapSourceCatalog,
+                            selectedStep: selectedStep,
+                            selectedStepIndex: selectedStepIndex,
+                            startExpanded: widget.startExpanded,
+                            onUpdateStageMap: _updateStageMap,
+                            onUpdateStageContext: _updateStageContext,
+                            onRenameRequiredActor: _renameRequiredActor,
+                            onRemoveRequiredActor: _removeRequiredActor,
+                            onUpsertActorBinding: _upsertActorBinding,
+                            onUpsertActorAppearanceBinding:
+                                _upsertActorAppearanceBinding,
+                            onRemoveActorAppearanceBinding:
+                                _removeActorAppearanceBinding,
+                            onUpsertActorInitialPlacement:
+                                _upsertActorInitialPlacement,
+                            onUpsertMovementTargetBinding:
+                                _upsertMovementTargetBinding,
+                            onRemoveDraftStep: _removeDraftStep,
+                            onUpdateBasicBlock: _updateBasicBlock,
+                            onUpdateActorFacing: _updateActorFacing,
+                            onUpdateActorMove: _updateActorMove,
+                            onUpdateActorEmote: _updateActorEmote,
+                            onRemoveAuthoringStep: _removeAuthoringStep,
+                            onAddRequiredActor: _addRequiredActor,
+                            onUpdateMovementTarget: _updateMovementTarget,
+                            onRemoveMovementTarget: _removeMovementTarget,
+                            onAddMovementTarget: _addMovementTarget,
+                            onToggleActorMovePathMode: _toggleActorMovePathMode,
+                            onAddManualPathWaypoint: _addManualPathWaypoint,
+                            onRemoveManualPathWaypoint:
+                                _removeManualPathWaypoint,
+                            onReorderManualPathWaypoint:
+                                _reorderManualPathWaypoint,
+                            actorSpritePreviewPlan:
+                                widget.actorSpritePreviewPlan,
+                            tilesets: widget.tilesets,
+                            selectedStagePointId:
+                                _builderController.selectedStagePointId,
+                            onSelectStagePointId: (id) {
+                              setState(() {
+                                _builderController.selectedStagePointId = id;
+                              });
+                            },
+                            onUpdateStagePoint: _updateStagePoint,
+                            onRemoveStagePoint: _removeStagePoint,
+                            mapWidth: widget.backdropPreviewModel?.mapWidth,
+                            mapHeight: widget.backdropPreviewModel?.mapHeight,
+                            readiness: readiness,
+                          ),
                         ),
                       ),
                     ],
@@ -953,12 +980,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   Future<void> _addDraftStep() async {
     final createdStepId = await widget.onAddDraftStep(
       cinematicId: widget.asset.id,
-      afterStepId: _selectedStepId,
+      afterStepId: _builderController.selectedStepId,
     );
     if (!mounted || createdStepId == null) {
       return;
     }
-    setState(() => _selectedStepId = createdStepId);
+    setState(() => _builderController.selectedStepId = createdStepId);
   }
 
   Future<void> _removeDraftStep(CinematicTimelineStep step) async {
@@ -972,19 +999,19 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     if (!mounted || !removed) {
       return;
     }
-    setState(() => _selectedStepId = null);
+    setState(() => _builderController.selectedStepId = null);
   }
 
   Future<void> _addBasicBlock(CinematicTimelineBasicBlockKind blockKind) async {
     final createdStepId = await widget.onAddBasicBlockStep(
       cinematicId: widget.asset.id,
       blockKind: blockKind,
-      afterStepId: _selectedStepId,
+      afterStepId: _builderController.selectedStepId,
     );
     if (!mounted || createdStepId == null) {
       return;
     }
-    setState(() => _selectedStepId = createdStepId);
+    setState(() => _builderController.selectedStepId = createdStepId);
   }
 
   Future<void> _updateBasicBlock(
@@ -1009,8 +1036,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
+      _builderController.timelineProbeTimeMs = null;
+      _builderController.timelineProbeSnapHint = null;
     });
   }
 
@@ -1250,8 +1277,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     _addStagePoint(newPoint);
 
     setState(() {
-      _selectedStagePointId = id;
-      _addStagePointMode = false;
+      _builderController.selectedStagePointId = id;
+      _builderController.addStagePointMode = false;
     });
   }
 
@@ -1370,9 +1397,9 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       final updatedContext =
           result.cinematic.stageContext ?? CinematicStageContext();
       await _updateStageContext(updatedContext);
-      if (_selectedStagePointId == id) {
+      if (_builderController.selectedStagePointId == id) {
         setState(() {
-          _selectedStagePointId = null;
+          _builderController.selectedStagePointId = null;
         });
       }
     } catch (e) {
@@ -1450,12 +1477,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       cinematicId: widget.asset.id,
       actorId: actor.actorId,
       direction: CinematicTimelineActorFacingDirection.down,
-      afterStepId: _selectedStepId,
+      afterStepId: _builderController.selectedStepId,
     );
     if (!mounted || createdStepId == null) {
       return;
     }
-    setState(() => _selectedStepId = createdStepId);
+    setState(() => _builderController.selectedStepId = createdStepId);
   }
 
   Future<void> _addActorMove() async {
@@ -1517,12 +1544,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       targetId: target.targetId,
       durationMs: cinematicTimelineDefaultActorMoveDurationMs,
       movementMode: CinematicTimelineActorMovementMode.walk,
-      afterStepId: _selectedStepId,
+      afterStepId: _builderController.selectedStepId,
     );
     if (!mounted || createdStepId == null) {
       return;
     }
-    setState(() => _selectedStepId = createdStepId);
+    setState(() => _builderController.selectedStepId = createdStepId);
   }
 
   Future<void> _addActorEmote() async {
@@ -1537,12 +1564,12 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       actorId: actor.actorId,
       emoteId: cinematicDefaultActorEmoteId,
       durationMs: cinematicTimelineDefaultActorEmoteDurationMs,
-      afterStepId: _selectedStepId,
+      afterStepId: _builderController.selectedStepId,
     );
     if (!mounted || createdStepId == null) {
       return;
     }
-    setState(() => _selectedStepId = createdStepId);
+    setState(() => _builderController.selectedStepId = createdStepId);
   }
 
   Future<void> _updateActorFacing(
@@ -1565,8 +1592,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
+      _builderController.timelineProbeTimeMs = null;
+      _builderController.timelineProbeSnapHint = null;
     });
   }
 
@@ -1592,8 +1619,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
+      _builderController.timelineProbeTimeMs = null;
+      _builderController.timelineProbeSnapHint = null;
     });
   }
 
@@ -1617,8 +1644,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return;
     }
     setState(() {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
+      _builderController.timelineProbeTimeMs = null;
+      _builderController.timelineProbeSnapHint = null;
     });
   }
 
@@ -1656,8 +1683,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       return false;
     }
     setState(() {
-      _timelineProbeTimeMs = null;
-      _timelineProbeSnapHint = null;
+      _builderController.timelineProbeTimeMs = null;
+      _builderController.timelineProbeSnapHint = null;
     });
     return true;
   }
@@ -1673,7 +1700,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     if (!mounted || !removed) {
       return;
     }
-    setState(() => _selectedStepId = null);
+    setState(() => _builderController.selectedStepId = null);
   }
 }
 
@@ -2760,13 +2787,11 @@ const _timelineBarMinWidth = 72.0;
 const _timelinePixelsPerMsFloor = 0.32;
 const _timelineProbeSnapThresholdPx = 8.0;
 
-enum _TimelineProbeSnapHint { timelineStart, timelineEnd, blockStart, blockEnd }
-
 class _TimelineProbeSnapResult {
   const _TimelineProbeSnapResult({required this.timeMs, this.snapHint});
 
   final int timeMs;
-  final _TimelineProbeSnapHint? snapHint;
+  final CinematicTimelineProbeSnapHint? snapHint;
 }
 
 class _TimelineProbeSnapTarget {
@@ -2778,7 +2803,7 @@ class _TimelineProbeSnapTarget {
   });
 
   final int timeMs;
-  final _TimelineProbeSnapHint snapHint;
+  final CinematicTimelineProbeSnapHint snapHint;
   final int stepIndex;
   final int stableOrder;
 }
@@ -3190,7 +3215,7 @@ class _TimelinePlaceholder extends StatefulWidget {
   final CinematicAsset asset;
   final String? selectedStepId;
   final int? timelineProbeTimeMs;
-  final _TimelineProbeSnapHint? timelineProbeSnapHint;
+  final CinematicTimelineProbeSnapHint? timelineProbeSnapHint;
   final CinematicPreviewPlaybackPlan playbackPlan;
   final CinematicPreviewPlaybackFrame playbackFrame;
   final int playbackTimeMs;
@@ -5617,7 +5642,7 @@ class _SelectedStagePointInspectorState
           ),
           const SizedBox(height: 10),
           Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            data: Theme.of(context).copyWith(dividerColor: colors.transparent),
             child: ExpansionTile(
               title: Text(
                 'Détails techniques',
@@ -6289,7 +6314,7 @@ class _StageContextEditor extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            data: Theme.of(context).copyWith(dividerColor: colors.transparent),
             child: ExpansionTile(
               title: Text(
                 'État de la scène',
@@ -6621,11 +6646,11 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
         color: widget.colors.surfaceRaised,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: widget.colors.borderStrong),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x33000000),
+            color: widget.colors.scrimSoft,
             blurRadius: 16,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -6662,7 +6687,7 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
         onTap: () => widget.onMapSelected(null),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          color: isSelected ? colors.surfaceSelected : Colors.transparent,
+          color: isSelected ? colors.surfaceSelected : colors.transparent,
           child: Row(
             children: [
               Icon(
@@ -6786,7 +6811,7 @@ class _MapTreeDropdownPopupState extends State<_MapTreeDropdownPopup> {
                 top: 6,
                 bottom: 6,
               ),
-              color: isSelected ? colors.surfaceSelected : Colors.transparent,
+              color: isSelected ? colors.surfaceSelected : colors.transparent,
               child: Row(
                 children: [
                   Icon(
@@ -6996,7 +7021,7 @@ class _StageBackdropSection extends StatelessWidget {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.transparent,
                 child: _BackdropDropdownPopup(
                   selectedMode: stageContext.backdropMode,
                   colors: colors,
@@ -7044,11 +7069,11 @@ class _BackdropDropdownPopup extends StatelessWidget {
         color: colors.surfaceRaised,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: colors.borderStrong),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x33000000),
+            color: colors.scrimSoft,
             blurRadius: 16,
-            offset: Offset(0, 6),
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -7075,7 +7100,7 @@ class _BackdropDropdownPopup extends StatelessWidget {
         onTap: () => onModeSelected(mode),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          color: isSelected ? colors.surfaceSelected : Colors.transparent,
+          color: isSelected ? colors.surfaceSelected : colors.transparent,
           child: Row(
             children: [
               Icon(
@@ -7453,11 +7478,11 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
           color: _isExpanded ? colors.brandPrimaryBorder : colors.borderSubtle,
           width: _isExpanded ? 1.5 : 1.0,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A000000),
+            color: colors.scrimSubtle,
             blurRadius: 8,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -8699,7 +8724,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.transparent,
                 child: _MapEntityDropdownPopup(
                   keyPrefix:
                       'cinematic-builder-actor-binding-${widget.actor.actorId}-mapEntity',
@@ -8786,7 +8811,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.transparent,
                 child: _TargetDropdownPopup(
                   keyPrefix:
                       'cinematic-builder-initial-placement-${widget.actor.actorId}',
@@ -8874,7 +8899,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.transparent,
                 child: _StagePointDropdownPopup(
                   keyPrefix:
                       'cinematic-builder-initial-placement-${widget.actor.actorId}',
@@ -8962,7 +8987,7 @@ class _StageActorBindingRowState extends State<_StageActorBindingRow> {
               left: left,
               top: top,
               child: Material(
-                color: Colors.transparent,
+                color: colors.transparent,
                 child: _CharacterDropdownPopup(
                   actorId: widget.actor.actorId,
                   characters: characters,
@@ -10484,7 +10509,7 @@ class _SelectedStepTechnicalDetailsAccordion extends StatelessWidget {
 
     return Theme(
       data: Theme.of(context).copyWith(
-        dividerColor: PokeMapLegacyColors.transparent,
+        dividerColor: colors.transparent,
       ),
       child: ExpansionTile(
         key: const ValueKey(
@@ -12479,7 +12504,7 @@ List<_TimelineProbeSnapTarget> _timelineProbeSnapTargets(
   targets.add(
     _TimelineProbeSnapTarget(
       timeMs: 0,
-      snapHint: _TimelineProbeSnapHint.timelineStart,
+      snapHint: CinematicTimelineProbeSnapHint.timelineStart,
       stepIndex: -1,
       stableOrder: stableOrder++,
     ),
@@ -12487,7 +12512,7 @@ List<_TimelineProbeSnapTarget> _timelineProbeSnapTargets(
   targets.add(
     _TimelineProbeSnapTarget(
       timeMs: timeLayout.totalDurationMs,
-      snapHint: _TimelineProbeSnapHint.timelineEnd,
+      snapHint: CinematicTimelineProbeSnapHint.timelineEnd,
       stepIndex: -1,
       stableOrder: stableOrder++,
     ),
@@ -12496,7 +12521,7 @@ List<_TimelineProbeSnapTarget> _timelineProbeSnapTargets(
     targets.add(
       _TimelineProbeSnapTarget(
         timeMs: block.startMs,
-        snapHint: _TimelineProbeSnapHint.blockStart,
+        snapHint: CinematicTimelineProbeSnapHint.blockStart,
         stepIndex: block.stepIndex,
         stableOrder: stableOrder++,
       ),
@@ -12504,7 +12529,7 @@ List<_TimelineProbeSnapTarget> _timelineProbeSnapTargets(
     targets.add(
       _TimelineProbeSnapTarget(
         timeMs: block.endMs,
-        snapHint: _TimelineProbeSnapHint.blockEnd,
+        snapHint: CinematicTimelineProbeSnapHint.blockEnd,
         stepIndex: block.stepIndex,
         stableOrder: stableOrder++,
       ),
@@ -12553,16 +12578,17 @@ int _compareTimelineProbeSnapTargetIdentity(
   return a.stableOrder.compareTo(b.stableOrder);
 }
 
-int _timelineProbeSnapHintPriority(_TimelineProbeSnapHint hint) {
+int _timelineProbeSnapHintPriority(CinematicTimelineProbeSnapHint hint) {
   return switch (hint) {
-    _TimelineProbeSnapHint.timelineStart => 0,
-    _TimelineProbeSnapHint.blockStart => 1,
-    _TimelineProbeSnapHint.timelineEnd => 2,
-    _TimelineProbeSnapHint.blockEnd => 3,
+    CinematicTimelineProbeSnapHint.timelineStart => 0,
+    CinematicTimelineProbeSnapHint.blockStart => 1,
+    CinematicTimelineProbeSnapHint.timelineEnd => 2,
+    CinematicTimelineProbeSnapHint.blockEnd => 3,
   };
 }
 
-String _timelineProbeBadgeLabel(int timeMs, _TimelineProbeSnapHint? snapHint) {
+String _timelineProbeBadgeLabel(
+    int timeMs, CinematicTimelineProbeSnapHint? snapHint) {
   final baseLabel = 'Marqueur : ${_shortTimeLabel(timeMs)}';
   if (snapHint == null) {
     return baseLabel;
@@ -12570,12 +12596,12 @@ String _timelineProbeBadgeLabel(int timeMs, _TimelineProbeSnapHint? snapHint) {
   return '$baseLabel · ${_timelineProbeSnapHintLabel(snapHint)}';
 }
 
-String _timelineProbeSnapHintLabel(_TimelineProbeSnapHint hint) {
+String _timelineProbeSnapHintLabel(CinematicTimelineProbeSnapHint hint) {
   return switch (hint) {
-    _TimelineProbeSnapHint.timelineStart => 'début timeline',
-    _TimelineProbeSnapHint.timelineEnd => 'fin timeline',
-    _TimelineProbeSnapHint.blockStart => 'début bloc',
-    _TimelineProbeSnapHint.blockEnd => 'fin bloc',
+    CinematicTimelineProbeSnapHint.timelineStart => 'début timeline',
+    CinematicTimelineProbeSnapHint.timelineEnd => 'fin timeline',
+    CinematicTimelineProbeSnapHint.blockStart => 'début bloc',
+    CinematicTimelineProbeSnapHint.blockEnd => 'fin bloc',
   };
 }
 
@@ -12700,13 +12726,6 @@ String _blockDurationBadgeLabel(CinematicTimelineTimeBlock block) {
     return '${block.visualDurationMs} ms visuel';
   }
   return '${block.visualDurationMs} ms';
-}
-
-bool _hasStep(CinematicAsset asset, String? stepId) {
-  if (stepId == null) {
-    return true;
-  }
-  return asset.timeline.steps.any((step) => step.id == stepId);
 }
 
 CinematicTimelineStep? _selectedStep(CinematicAsset asset, String? stepId) {
