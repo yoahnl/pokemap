@@ -8,6 +8,7 @@
 // Données : [DialogueEditorDocument] (pas le Yarn brut comme vérité UX).
 // -----------------------------------------------------------------------------
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -19,6 +20,7 @@ import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
 import '../../features/dialogue/application/dialogue_editor_model.dart';
+import '../../features/dialogue/application/dialogue_document_session.dart';
 import '../../features/dialogue/application/dialogue_editor_validation.dart';
 import '../../features/dialogue/application/dialogue_preview_runner.dart';
 import '../../features/dialogue/application/dialogue_yarn_codec.dart';
@@ -125,6 +127,15 @@ class _DialogueStudioWorkspaceState
   final TextEditingController _instructionController = TextEditingController();
 
   DialoguePreviewSession? _preview;
+  DialogueDocumentSession? _documentSession;
+  String? _documentSessionError;
+  bool _autosaveEnabled = false;
+  // Compatibility state consumed by the independently staged dialog part.
+  bool _savingDocument = false;
+  String? _documentError;
+  String? _baselineYarn;
+  Future<void> _documentMutationQueue = Future<void>.value();
+  int _documentOperationSequence = 0;
 
   bool _aiBusy = false;
 
@@ -141,6 +152,7 @@ class _DialogueStudioWorkspaceState
 
   @override
   void dispose() {
+    _documentSession?.dispose();
     _searchController.dispose();
     _instructionController.dispose();
     super.dispose();
@@ -155,6 +167,7 @@ class _DialogueStudioWorkspaceState
     EditorNotifier notifier,
     EditorState editor,
   ) async {
+    if (_loading) return;
     final id = editor.selectedProjectDialogueId;
     final root = editor.projectRootPath;
     final project = editor.project;
@@ -182,14 +195,38 @@ class _DialogueStudioWorkspaceState
     setState(() => _loading = true);
     try {
       final abs = p.join(root, entry.relativePath);
-      final text = await File(abs).readAsString();
-      var doc = parseYarnToDocument(text);
+      final sourceFile = File(abs);
+      final text = await sourceFile.readAsString();
+      _documentSession?.dispose();
+      final session = DialogueDocumentSession(
+        dialogueId: id,
+        initialYarn: text,
+        load: sourceFile.readAsString,
+        persist: (yarn) async {
+          await notifier.saveProjectDialogueYarnBody(
+            dialogueId: id,
+            yarnBody: yarn,
+          );
+          final error = ref.read(editorNotifierProvider).errorMessage;
+          if (error != null) throw FileSystemException(error, abs);
+        },
+        autosaveEnabled: _autosaveEnabled,
+      );
+      await session.initialize();
+      var doc = session.document;
       if (doc.nodes.isEmpty) {
         doc = emptyDialogueDocument(startTitle: entry.name);
+        await session.apply(
+          operationId: 'initialize-empty-dialogue',
+          label: 'Initialiser le dialogue vide',
+          document: doc,
+        );
       }
       if (!mounted) return;
       setState(() {
         _doc = doc;
+        _documentSession = session;
+        _documentSessionError = session.state.message;
         _loadedDialogueId = id;
         _selection = null;
         _preview = null;
@@ -199,6 +236,9 @@ class _DialogueStudioWorkspaceState
       if (!mounted) return;
       setState(() {
         _doc = emptyDialogueDocument(startTitle: entry!.name);
+        _documentSession?.dispose();
+        _documentSession = null;
+        _documentSessionError = 'Lecture impossible : $e';
         _loadedDialogueId = id;
         _loading = false;
       });
@@ -220,7 +260,7 @@ class _DialogueStudioWorkspaceState
       },
     );
 
-    if (_loadedDialogueId != editor.selectedProjectDialogueId) {
+    if (!_loading && _loadedDialogueId != editor.selectedProjectDialogueId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _loadFromDisk(notifier, editor);
       });
@@ -479,11 +519,13 @@ class _DialogueStudioWorkspaceState
                     targetFolderId: _sidebarTargetFolderId,
                     filter: matchEntry,
                     onDialogueTap: (dialogueId, parentFolderId) {
-                      notifier.selectProjectDialogue(dialogueId);
-                      setState(() {
-                        final p = parentFolderId?.trim() ?? '';
-                        _sidebarTargetFolderId = p.isEmpty ? null : p;
-                      });
+                      unawaited(
+                        _selectDialogueSafely(
+                          notifier,
+                          dialogueId,
+                          parentFolderId,
+                        ),
+                      );
                     },
                     onFolderTargetTap: (folderId) {
                       setState(() => _sidebarTargetFolderId = folderId);
@@ -514,11 +556,13 @@ class _DialogueStudioWorkspaceState
                         selected: editor.selectedProjectDialogueId == d.id,
                         depth: 0,
                         onTap: () {
-                          notifier.selectProjectDialogue(d.id);
-                          setState(() {
-                            final p = d.folderId?.trim() ?? '';
-                            _sidebarTargetFolderId = p.isEmpty ? null : p;
-                          });
+                          unawaited(
+                            _selectDialogueSafely(
+                              notifier,
+                              d.id,
+                              d.folderId,
+                            ),
+                          );
                         },
                         onMenuButton: (btnCtx) => _openStudioDialogueEntryMenu(
                           context,
@@ -537,6 +581,31 @@ class _DialogueStudioWorkspaceState
         ],
       ),
     );
+  }
+
+  Future<void> _selectDialogueSafely(
+    EditorNotifier notifier,
+    String dialogueId,
+    String? parentFolderId,
+  ) async {
+    final session = _documentSession;
+    if (session != null && session.state.blocksNavigation) {
+      final saved = await session.save(operationId: 'navigate-save-dialogue');
+      if (!saved) {
+        if (!mounted) return;
+        setState(() {
+          _documentSessionError = session.state.message ??
+              'Navigation bloquée : sauvegardez ou corrigez le dialogue.';
+        });
+        return;
+      }
+    }
+    notifier.selectProjectDialogue(dialogueId);
+    if (!mounted) return;
+    setState(() {
+      final folderId = parentFolderId?.trim() ?? '';
+      _sidebarTargetFolderId = folderId.isEmpty ? null : folderId;
+    });
   }
 
   Widget _selectionInfoCard(
@@ -705,67 +774,76 @@ class _DialogueStudioWorkspaceState
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                _tabChip(context, 'Visuel', 0),
-                const SizedBox(width: 8),
-                _tabChip(context, 'Aperçu', 1),
-                const SizedBox(width: 8),
-                _tabChip(context, 'Yarn', 2),
-                const Spacer(),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: _aiBusy
-                      ? null
-                      : () => _runAiGeneration(notifier, append: false),
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.inspectorJoyBlue,
-                      borderRadius: BorderRadius.circular(8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _tabChip(context, 'Visuel', 0),
+                  const SizedBox(width: 8),
+                  _tabChip(context, 'Aperçu', 1),
+                  const SizedBox(width: 8),
+                  _tabChip(context, 'Yarn', 2),
+                  const SizedBox(width: 24),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _aiBusy
+                        ? null
+                        : () => _runAiGeneration(notifier, append: false),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: EditorChrome.inspectorJoyBlue,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: _aiBusy
+                          ? const CupertinoActivityIndicator(
+                              color: PokeMapLegacyColors.white)
+                          : const Text(
+                              'Générer avec IA',
+                              style: TextStyle(
+                                  color: PokeMapLegacyColors.white,
+                                  fontSize: 12),
+                            ),
                     ),
-                    child: _aiBusy
-                        ? const CupertinoActivityIndicator(
-                            color: PokeMapLegacyColors.white)
-                        : const Text(
-                            'Générer avec IA',
-                            style: TextStyle(
-                                color: PokeMapLegacyColors.white, fontSize: 12),
-                          ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  onPressed: _aiBusy
-                      ? null
-                      : () => _runAiGeneration(notifier, append: true),
-                  child: const Text('Continuer avec IA',
-                      style: TextStyle(fontSize: 12)),
-                ),
-                const SizedBox(width: 6),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => _save(notifier, id),
-                  child: Container(
+                  const SizedBox(width: 6),
+                  CupertinoButton(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: EditorChrome.accentJade,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text(
-                      'Sauvegarder',
-                      style: TextStyle(
-                        color: PokeMapLegacyColors.white,
-                        fontSize: 12,
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    onPressed: _aiBusy
+                        ? null
+                        : () => _runAiGeneration(notifier, append: true),
+                    child: const Text('Continuer avec IA',
+                        style: TextStyle(fontSize: 12)),
+                  ),
+                  const SizedBox(width: 6),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _savingDocument
+                        ? null
+                        : () => unawaited(
+                              _saveDialogueDocument(notifier, id),
+                            ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: EditorChrome.accentJade,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Sauvegarder',
+                        style: TextStyle(
+                          color: PokeMapLegacyColors.white,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           Padding(
@@ -812,6 +890,15 @@ class _DialogueStudioWorkspaceState
                       fontSize: 11,
                       color: EditorChrome.inspectorJoyCoral,
                     ),
+                  ),
+                ],
+                if (_documentSessionError != null ||
+                    _documentError != null) ...[
+                  const SizedBox(height: 8),
+                  PokeMapDiagnosticCallout(
+                    severity: PokeMapDiagnosticSeverity.warning,
+                    title: 'Session du dialogue',
+                    message: _documentSessionError ?? _documentError!,
                   ),
                 ],
               ],
@@ -875,6 +962,46 @@ class _DialogueStudioWorkspaceState
     );
   }
 
+  Future<void> _saveDialogueDocument(
+    EditorNotifier notifier,
+    String dialogueId,
+  ) async {
+    final session = _documentSession;
+    final document = _doc;
+    if (session == null || document == null) return;
+    final entry = _selectedDialogueEntry(ref.read(editorNotifierProvider));
+    final blocking = validateDialogueDocument(
+      document,
+      declaredOutcomeIds:
+          entry?.declaredOutcomes.map((outcome) => outcome.id) ?? const [],
+    ).where(
+      (issue) => issue.severity == DialogueValidationSeverity.error,
+    );
+    if (blocking.isNotEmpty) {
+      setState(() {
+        _documentSessionError =
+            'Sauvegarde refusée : ${blocking.first.message}';
+      });
+      return;
+    }
+    setState(() {
+      _savingDocument = true;
+      _documentSessionError = null;
+    });
+    await _documentMutationQueue;
+    final saved = await session.save(
+      operationId: 'save-dialogue-$dialogueId',
+    );
+    if (!mounted) return;
+    setState(() {
+      _savingDocument = false;
+      _baselineYarn = saved ? session.state.document : _baselineYarn;
+      _documentSessionError = saved
+          ? null
+          : session.state.message ?? 'Le dialogue n’a pas pu être sauvegardé.';
+    });
+  }
+
   Widget _buildVisualCanvas(BuildContext context, String dialogueId) {
     final doc = _doc!;
     return Container(
@@ -888,25 +1015,75 @@ class _DialogueStudioWorkspaceState
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
-            child: Row(
-              children: [
-                Text(
-                  'Canvas de conversation',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 12,
-                    color: PokeMapLegacyColors.secondaryLabel(context),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Canvas de conversation',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                      color: PokeMapLegacyColors.secondaryLabel(context),
+                    ),
                   ),
-                ),
-                const Spacer(),
-                Text(
-                  'Flux vertical • branches visibles pour les choix',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: PokeMapLegacyColors.tertiaryLabel(context),
+                  const SizedBox(width: 24),
+                  PokeMapButton(
+                    key: const ValueKey<String>('dialogue-undo'),
+                    onPressed: _documentSession?.state.canUndo == true
+                        ? () => unawaited(_undoDialogue())
+                        : null,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading:
+                        const Icon(CupertinoIcons.arrow_uturn_left, size: 13),
+                    child: const Text('Annuler'),
                   ),
-                ),
-              ],
+                  PokeMapButton(
+                    key: const ValueKey<String>('dialogue-redo'),
+                    onPressed: _documentSession?.state.canRedo == true
+                        ? () => unawaited(_redoDialogue())
+                        : null,
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading:
+                        const Icon(CupertinoIcons.arrow_uturn_right, size: 13),
+                    child: const Text('Rétablir'),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>('dialogue-add-node'),
+                    onPressed: _createDialogueNode,
+                    variant: PokeMapButtonVariant.secondary,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.add_circled, size: 13),
+                    child: const Text('Nœud'),
+                  ),
+                  PokeMapButton(
+                    key: const ValueKey<String>('dialogue-autosave'),
+                    onPressed: () {
+                      final enabled = !_autosaveEnabled;
+                      _documentSession?.setAutosaveEnabled(enabled);
+                      setState(() => _autosaveEnabled = enabled);
+                    },
+                    variant: _autosaveEnabled
+                        ? PokeMapButtonVariant.primary
+                        : PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    leading: const Icon(CupertinoIcons.cloud_upload, size: 13),
+                    child:
+                        Text(_autosaveEnabled ? 'Autosave actif' : 'Autosave'),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Flux vertical • branches visibles pour les choix',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: PokeMapLegacyColors.tertiaryLabel(context),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Container(
@@ -921,7 +1098,11 @@ class _DialogueStudioWorkspaceState
                 final node = doc.nodes[i];
                 return _NodeCanvasCard(
                   node: node,
+                  isEntry: node.id == doc.effectiveEntryNodeId,
                   selection: _selection,
+                  onSelectEntry: () => _selectEntryNode(node.id),
+                  onDuplicate: () => _duplicateDialogueNode(node.id),
+                  onDeleteNode: () => _deleteDialogueNode(node.id),
                   onSelectStep: (sel) => setState(() => _selection = sel),
                   onDeleteStep: (sel) => setState(() => _deleteStep(sel)),
                 );
@@ -1090,6 +1271,29 @@ class _DialogueStudioWorkspaceState
                               ),
                             ),
                         ],
+                      ),
+                    ),
+                  DialoguePreviewTrace(
+                    :final kind,
+                    :final source,
+                    :final message,
+                    :final state,
+                  ) =>
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: PokeMapDiagnosticCallout(
+                        severity: kind == DialoguePreviewTraceKind.unsupported
+                            ? PokeMapDiagnosticSeverity.error
+                            : PokeMapDiagnosticSeverity.info,
+                        title: switch (kind) {
+                          DialoguePreviewTraceKind.condition => 'Condition',
+                          DialoguePreviewTraceKind.command => 'Commande',
+                          DialoguePreviewTraceKind.outcome => 'Résultat',
+                          DialoguePreviewTraceKind.unsupported =>
+                            'Commande non supportée',
+                        },
+                        message: '$message\n$source'
+                            '${state.isEmpty ? '' : '\nÉtat : $state'}',
                       ),
                     ),
                   DialoguePreviewEnded() => DialoguePreviewEndedView(event: ev),
@@ -1519,6 +1723,87 @@ class _DialogueStudioWorkspaceState
 
   // --- Mutations document ---------------------------------------------------
 
+  void _recordDocumentEdit(String label) {
+    final document = _doc;
+    final session = _documentSession;
+    if (document == null || session == null) return;
+    final snapshot = emitDocumentToYarn(document);
+    final operationId = 'dialogue-edit-${++_documentOperationSequence}';
+    _preview = null;
+    _documentMutationQueue = _documentMutationQueue.then((_) async {
+      final accepted = await session.apply(
+        operationId: operationId,
+        label: label,
+        document: parseYarnToDocument(snapshot),
+      );
+      if (!accepted && mounted) {
+        setState(() {
+          _documentSessionError = session.state.message ??
+              'La modification du dialogue a été refusée.';
+        });
+      } else if (mounted) {
+        setState(() => _documentSessionError = session.state.message);
+      }
+    });
+    setState(() {});
+  }
+
+  Future<void> _undoDialogue() async {
+    final session = _documentSession;
+    if (session == null) return;
+    await _documentMutationQueue;
+    if (!await session.undo() || !mounted) return;
+    setState(() {
+      _doc = session.document;
+      _selection = null;
+      _preview = null;
+      _documentSessionError = session.state.message;
+    });
+  }
+
+  Future<void> _redoDialogue() async {
+    final session = _documentSession;
+    if (session == null) return;
+    await _documentMutationQueue;
+    if (!await session.redo() || !mounted) return;
+    setState(() {
+      _doc = session.document;
+      _selection = null;
+      _preview = null;
+      _documentSessionError = session.state.message;
+    });
+  }
+
+  void _createDialogueNode() {
+    final document = _doc;
+    if (document == null) return;
+    _doc = document.createNode(title: 'Nouveau nœud');
+    _recordDocumentEdit('Créer un nœud');
+  }
+
+  void _selectEntryNode(String nodeId) {
+    final document = _doc;
+    if (document == null) return;
+    _doc = document.selectEntryNode(nodeId);
+    _selection = null;
+    _recordDocumentEdit('Définir le nœud de départ');
+  }
+
+  void _duplicateDialogueNode(String nodeId) {
+    final document = _doc;
+    if (document == null) return;
+    _doc = document.duplicateNode(nodeId);
+    _recordDocumentEdit('Dupliquer un nœud');
+  }
+
+  void _deleteDialogueNode(String nodeId) {
+    final document = _doc;
+    if (document == null || document.nodes.length <= 1) return;
+    _doc = document.deleteNode(nodeId);
+    _selection = null;
+    _recordDocumentEdit('Supprimer un nœud');
+  }
+
   DialogueEditorStep? _findStep(
       DialogueEditorDocument doc, _StepSelection sel) {
     final node = doc.nodeById(sel.nodeId);
@@ -1560,6 +1845,7 @@ class _DialogueStudioWorkspaceState
     setState(() {
       if (_selection?.stepId == sel.stepId) _selection = null;
     });
+    _recordDocumentEdit('Supprimer un bloc');
   }
 
   void _appendNewStep(DialogueEditorStep step) {
@@ -1592,6 +1878,7 @@ class _DialogueStudioWorkspaceState
           branchId: _selection?.branchId,
           stepId: step.id,
         ));
+    _recordDocumentEdit('Ajouter un bloc');
   }
 
   void _replaceStep(_StepSelection sel, DialogueEditorStep next) {
@@ -1599,7 +1886,7 @@ class _DialogueStudioWorkspaceState
     final i = list.indexWhere((s) => s.id == sel.stepId);
     if (i < 0) return;
     list[i] = next;
-    setState(() {});
+    _recordDocumentEdit('Modifier un bloc');
   }
 
   void _patchLine(_StepSelection sel, {String? speaker, required String body}) {
@@ -1643,7 +1930,7 @@ class _DialogueStudioWorkspaceState
       for (final b in s.branches) {
         if (b.id == branchId) {
           b.label = label;
-          setState(() {});
+          _recordDocumentEdit('Renommer une option');
           return;
         }
       }
@@ -1663,7 +1950,7 @@ class _DialogueStudioWorkspaceState
         if (branch.id != branchId) continue;
         final normalized = outcomeId.trim();
         branch.outcomeId = normalized.isEmpty ? null : normalized;
-        setState(() {});
+        _recordDocumentEdit('Associer un résultat');
         return;
       }
     }
@@ -1683,7 +1970,7 @@ class _DialogueStudioWorkspaceState
           ],
         ),
       );
-      setState(() {});
+      _recordDocumentEdit('Ajouter une option');
       return;
     }
   }

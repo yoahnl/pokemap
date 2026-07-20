@@ -341,6 +341,70 @@ void main() {
     expect(find.text('Résultat · accepted'), findsOneWidget);
   });
 
+  testWidgets('visual dialogue canvas exposes safe node lifecycle controls', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: tempProjectRoot.path,
+      project: sampleProject,
+      workspaceMode: EditorWorkspaceMode.dialogue,
+    );
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MacosTheme(
+          data: MacosThemeData.light(),
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SizedBox(
+                width: 1400,
+                height: 820,
+                child: DialogueStudioWorkspace(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.runAsync(() async {
+      notifier.selectProjectDialogue('dlg_hi');
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    });
+    await tester.pump();
+    await _pumpUntil(
+      tester,
+      () =>
+          find.byKey(const ValueKey('dialogue-add-node')).evaluate().isNotEmpty,
+      maxFrames: 80,
+    );
+
+    expect(find.byKey(const ValueKey('dialogue-add-node')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dialogue-autosave')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dialogue-add-node')));
+    await _pumpUntil(
+      tester,
+      () => find.text('Nœud : Nouveau nœud').evaluate().isNotEmpty,
+    );
+
+    expect(find.text('Nœud : Nouveau nœud'), findsOneWidget);
+    expect(find.text('Départ'), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey<String>('dialogue-undo'),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('ProjectExplorerPanel has no embedded project dialogues card', (
     tester,
   ) async {

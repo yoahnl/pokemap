@@ -4,13 +4,21 @@ part of 'package:map_editor/src/ui/canvas/dialogue_studio_workspace.dart';
 class _NodeCanvasCard extends StatelessWidget {
   const _NodeCanvasCard({
     required this.node,
+    required this.isEntry,
     required this.selection,
+    required this.onSelectEntry,
+    required this.onDuplicate,
+    required this.onDeleteNode,
     required this.onSelectStep,
     required this.onDeleteStep,
   });
 
   final DialogueEditorNode node;
+  final bool isEntry;
   final _StepSelection? selection;
+  final VoidCallback onSelectEntry;
+  final VoidCallback onDuplicate;
+  final VoidCallback onDeleteNode;
   final void Function(_StepSelection sel) onSelectStep;
   final void Function(_StepSelection sel) onDeleteStep;
 
@@ -34,10 +42,45 @@ class _NodeCanvasCard extends StatelessWidget {
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(11)),
               ),
-              child: Text(
-                'Nœud : ${node.title}',
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Nœud : ${node.title}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  if (isEntry)
+                    const PokeMapBadge(
+                      label: 'Départ',
+                      variant: PokeMapBadgeVariant.success,
+                    )
+                  else
+                    PokeMapButton(
+                      key: ValueKey<String>('dialogue-entry-${node.id}'),
+                      onPressed: onSelectEntry,
+                      variant: PokeMapButtonVariant.ghost,
+                      size: PokeMapButtonSize.small,
+                      child: const Text('Définir comme départ'),
+                    ),
+                  PokeMapIconButton(
+                    key: ValueKey<String>('dialogue-duplicate-${node.id}'),
+                    onPressed: onDuplicate,
+                    icon: const Icon(CupertinoIcons.doc_on_doc, size: 14),
+                    tooltip: 'Dupliquer le nœud',
+                    size: 28,
+                  ),
+                  PokeMapIconButton(
+                    key: ValueKey<String>('dialogue-delete-${node.id}'),
+                    onPressed: onDeleteNode,
+                    icon: const Icon(CupertinoIcons.trash, size: 14),
+                    tooltip: 'Supprimer le nœud',
+                    size: 28,
+                  ),
+                ],
               ),
             ),
             Padding(

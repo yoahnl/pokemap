@@ -60,5 +60,89 @@ Lysa: Très bien.
         'confident',
       );
     });
+
+    test('evaluates true and false conditions from controlled initial state',
+        () {
+      const yarn = r'''
+title: Start
+---
+<<if $has_pass>>
+Guide: Passage autorisé.
+<<else>>
+Guide: Passage refusé.
+<<endif>>
+===
+''';
+
+      final allowed = DialoguePreviewSession(
+        parseYarnToDocument(yarn),
+        initialState: const {'has_pass': true},
+      );
+      final refused = DialoguePreviewSession(
+        parseYarnToDocument(yarn),
+        initialState: const {'has_pass': false},
+      );
+
+      expect(
+        allowed.transcript.whereType<DialoguePreviewLine>().single.displayText,
+        'Guide: Passage autorisé.',
+      );
+      expect(
+        refused.transcript.whereType<DialoguePreviewLine>().single.displayText,
+        'Guide: Passage refusé.',
+      );
+      expect(
+        allowed.transcript.whereType<DialoguePreviewTrace>().first.kind,
+        DialoguePreviewTraceKind.condition,
+      );
+    });
+
+    test('applies supported set commands and traces resulting state', () {
+      const yarn = r'''
+title: Start
+---
+<<set $coins to 200>>
+<<if $coins == 200>>
+Guide: Bourse prête.
+<<endif>>
+===
+''';
+
+      final session = DialoguePreviewSession(parseYarnToDocument(yarn));
+
+      expect(session.state['coins'], 200);
+      expect(
+        session.transcript.whereType<DialoguePreviewLine>().single.displayText,
+        'Guide: Bourse prête.',
+      );
+      expect(
+        session.transcript
+            .whereType<DialoguePreviewTrace>()
+            .where((trace) => trace.kind == DialoguePreviewTraceKind.command),
+        hasLength(1),
+      );
+    });
+
+    test('halts honestly on an unsupported command', () {
+      const yarn = '''
+title: Start
+---
+<<open_shop selbrume_market>>
+Guide: Cette ligne ne doit pas être atteinte.
+===
+''';
+
+      final session = DialoguePreviewSession(parseYarnToDocument(yarn));
+
+      expect(session.transcript.whereType<DialoguePreviewLine>(), isEmpty);
+      expect(
+        session.transcript.whereType<DialoguePreviewTrace>().single.kind,
+        DialoguePreviewTraceKind.unsupported,
+      );
+      expect(
+        session.transcript.whereType<DialoguePreviewEnded>().single.reason,
+        contains('non supportée'),
+      );
+    });
   });
 }
