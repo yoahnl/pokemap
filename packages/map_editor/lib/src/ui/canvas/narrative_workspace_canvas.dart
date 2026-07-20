@@ -1708,6 +1708,7 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
         ),
       EditorWorkspaceMode.cutscene => _CinematicsWorkspaceBody(
           editorNotifier: editorNotifier,
+          projectRootPath: editor.projectRootPath,
           project: editor.project,
           activeMap: editor.activeMap,
           projection: projection,
@@ -2456,6 +2457,7 @@ class _StepWorkspaceBody extends StatelessWidget {
 class _CinematicsWorkspaceBody extends StatefulWidget {
   const _CinematicsWorkspaceBody({
     required this.editorNotifier,
+    required this.projectRootPath,
     required this.project,
     required this.activeMap,
     required this.projection,
@@ -2470,6 +2472,7 @@ class _CinematicsWorkspaceBody extends StatefulWidget {
   });
 
   final EditorNotifier editorNotifier;
+  final String? projectRootPath;
   final ProjectManifest? project;
   final MapData? activeMap;
   final NarrativeWorkspaceProjection projection;
@@ -2558,6 +2561,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
 
     return CinematicsLibraryWorkspace(
       project: project,
+      projectRootPath: widget.projectRootPath,
       requestedEntryId: widget.requestedCinematicId,
       requestedEntryNonce: widget.requestedCinematicNonce,
       openRequestedEntryInBuilder: true,

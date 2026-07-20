@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/scene_runtime/cinematic_runtime_playback_controller.dart';
+import '../../application/scene_runtime/cinematic_media_playback_port.dart';
 import '../../application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart';
 
 /// Minimal visual handle used by the production Flame cinematic sink.
@@ -22,8 +24,8 @@ abstract interface class FlameCinematicRuntimeActorHandle {
 
 /// Host boundary implemented by [PlayableMapGame]'s Flame scene.
 ///
-/// All methods are synchronous because playback is driven by the game update
-/// loop. No timer or wall-clock future participates in cinematic completion.
+/// Visual methods are update-driven. Referenced Dialogue assets are awaitable
+/// because their completion depends on the player's choices.
 abstract interface class FlameCinematicRuntimeHost {
   bool get isReady;
 
@@ -51,6 +53,10 @@ abstract interface class FlameCinematicRuntimeHost {
 
   void showCinematicDialogueLine(String? text);
 
+  Future<void> playCinematicDialogueAsset(String dialogueId);
+
+  void cancelCinematicDialogueAsset();
+
   void setCinematicFadeOpacity(double? opacity);
 
   void showCinematicActorEmote(
@@ -61,15 +67,28 @@ abstract interface class FlameCinematicRuntimeHost {
 
 /// Concrete deterministic visual sink for the CinematicAsset V1 subset.
 final class FlameCinematicRuntimePlaybackSink
-    implements CinematicRuntimePlaybackSink {
-  FlameCinematicRuntimePlaybackSink({required this.host});
+    implements
+        CinematicRuntimePlaybackSink,
+        CinematicRuntimeStepCompletionPolicy,
+        CinematicRuntimeAsyncRestorationSink {
+  FlameCinematicRuntimePlaybackSink({
+    required this.host,
+    this.mediaPlaybackPort,
+    this.dialogues = const [],
+    this.mediaAssets = const [],
+  });
 
   final FlameCinematicRuntimeHost host;
+  final CinematicRuntimeMediaPlaybackPort? mediaPlaybackPort;
+  final List<ProjectDialogueEntry> dialogues;
+  final List<CinematicMediaAsset> mediaAssets;
 
   _CinematicRuntimeVisualSnapshot? _snapshot;
   Map<String, FlameCinematicRuntimeActorHandle> _actors = const {};
   _FlameCinematicStepState? _stepState;
   bool _dialogueLineSignalled = false;
+  Future<CinematicMediaPlaybackCheckpoint>? _mediaCheckpointFuture;
+  Future<void>? _pendingMediaOperation;
 
   bool get isAwaitingDialogueLineAdvance =>
       _stepState is _DialogueLineStepState && !_dialogueLineSignalled;
@@ -89,14 +108,29 @@ final class FlameCinematicRuntimePlaybackSink
         message: 'The Flame cinematic runtime is not ready.',
       );
     }
-    final authoredMapId = asset.mapId;
-    if (authoredMapId != null && authoredMapId != host.activeMapId) {
+    final shared = preflightCinematicPlayback(
+      cinematic: asset,
+      dialogues: dialogues,
+      mediaAssets: mediaAssets,
+      availableMapIds: [host.activeMapId],
+      activeMapId: host.activeMapId,
+      mode: CinematicPlaybackPreflightMode.runtime,
+    );
+    if (!shared.isReady) {
+      final issue = shared.issues.first;
       return CinematicRuntimeSinkPreflightResult.rejected(
-        message: 'Cinematic "${asset.id}" targets map "$authoredMapId" but '
-            'the active map is "${host.activeMapId}".',
+        errorCode: _runtimeErrorCodeFor(issue.kind),
+        message: issue.message,
       );
     }
-
+    if (asset.timeline.steps.any(
+          (step) => cinematicExpectedMediaKind(step.kind) != null,
+        ) &&
+        mediaPlaybackPort == null) {
+      return const CinematicRuntimeSinkPreflightResult.rejected(
+        message: 'The cinematic media playback adapter is unavailable.',
+      );
+    }
     for (final binding in asset.stageContext?.actorBindings ?? const []) {
       if (_resolveActor(binding) == null) {
         return CinematicRuntimeSinkPreflightResult.rejected(
@@ -154,9 +188,24 @@ final class FlameCinematicRuntimePlaybackSink
         host.showCinematicActorEmote(actor, emoteId);
         _stepState = _ActorEmoteStepState(actor);
       case CinematicTimelineStepKind.dialogueLine:
-        host.showCinematicDialogueLine(step.dialogueText);
-        _dialogueLineSignalled = false;
-        _stepState = const _DialogueLineStepState();
+        final dialogueId = step.assetRef;
+        if (dialogueId == null) {
+          host.showCinematicDialogueLine(step.dialogueText);
+          _dialogueLineSignalled = false;
+          _stepState = const _DialogueLineStepState();
+        } else {
+          final state = _AsyncDialogueStepState();
+          _stepState = state;
+          host.playCinematicDialogueAsset(dialogueId).then(
+            (_) {
+              state.completed = true;
+            },
+            onError: (Object error, StackTrace stackTrace) {
+              state.error = error;
+              state.stackTrace = stackTrace;
+            },
+          );
+        }
       case CinematicTimelineStepKind.fade:
         final fadeOut = step.metadata[cinematicTimelineFadeModeMetadataKey] ==
             CinematicTimelineFadeMode.fadeOut.name;
@@ -167,8 +216,9 @@ final class FlameCinematicRuntimePlaybackSink
       case CinematicTimelineStepKind.sound:
       case CinematicTimelineStepKind.music:
       case CinematicTimelineStepKind.fx:
+        _beginMediaStep(step);
       case CinematicTimelineStepKind.marker:
-        throw StateError('Unsupported cinematic kind "${step.kind.name}".');
+        throw StateError('Editorial marker reached the runtime sink.');
     }
   }
 
@@ -197,6 +247,12 @@ final class FlameCinematicRuntimePlaybackSink
       case _ActorEmoteStepState():
       case _DialogueLineStepState():
         break;
+      case _AsyncStepState():
+        final error = state.error;
+        if (error != null) {
+          Error.throwWithStackTrace(
+              error, state.stackTrace ?? StackTrace.current);
+        }
     }
   }
 
@@ -205,12 +261,19 @@ final class FlameCinematicRuntimePlaybackSink
     final state = _stepState;
     if (state is _ImmediateStepState) return true;
     if (state is _DialogueLineStepState) return _dialogueLineSignalled;
+    if (state is _AsyncStepState) {
+      return state.completed;
+    }
     if ((state is _CameraStepState || state is _ActorMoveStepState) &&
         context.step.durationMs == null) {
       return true;
     }
     return false;
   }
+
+  @override
+  bool requiresSinkCompletion(CinematicRuntimeStepContext context) =>
+      _stepState is _AsyncStepState;
 
   @override
   void endStep(CinematicRuntimeStepContext context) {
@@ -229,6 +292,11 @@ final class FlameCinematicRuntimePlaybackSink
         host.showCinematicActorEmote(null, null);
       case _DialogueLineStepState():
         host.showCinematicDialogueLine(null);
+      case _AsyncDialogueStepState():
+        break;
+      case _AsyncMediaStepState():
+        final command = cinematicMediaEndCommandForStep(context.step);
+        if (command != null) _queueMediaCommand(command);
       case _PassiveStepState():
       case _ImmediateStepState():
         break;
@@ -239,6 +307,59 @@ final class FlameCinematicRuntimePlaybackSink
 
   @override
   void restore(CinematicRuntimeTermination termination) {
+    _restoreVisualState();
+    final checkpointFuture = _mediaCheckpointFuture;
+    final pendingOperation = _pendingMediaOperation;
+    final port = mediaPlaybackPort;
+    _mediaCheckpointFuture = null;
+    _pendingMediaOperation = null;
+    if (checkpointFuture != null && port != null) {
+      unawaited(() async {
+        try {
+          await pendingOperation;
+        } catch (_) {
+          // Restoration still has priority over the original command failure.
+        }
+        await port.restore(await checkpointFuture);
+      }());
+    }
+  }
+
+  @override
+  Future<void> restoreAsync(CinematicRuntimeTermination termination) async {
+    final checkpointFuture = _mediaCheckpointFuture;
+    final pendingOperation = _pendingMediaOperation;
+    final port = mediaPlaybackPort;
+    Object? firstError;
+    StackTrace? firstStackTrace;
+    try {
+      _restoreVisualState();
+    } catch (error, stackTrace) {
+      firstError = error;
+      firstStackTrace = stackTrace;
+    }
+    if (checkpointFuture != null && port != null) {
+      try {
+        await pendingOperation;
+      } catch (_) {
+        // The command error is already reported by the active step. Continue
+        // with rollback so no loop or FX survives it.
+      }
+      try {
+        await port.restore(await checkpointFuture);
+      } catch (error, stackTrace) {
+        firstError ??= error;
+        firstStackTrace ??= stackTrace;
+      }
+    }
+    _mediaCheckpointFuture = null;
+    _pendingMediaOperation = null;
+    if (firstError != null) {
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
+    }
+  }
+
+  void _restoreVisualState() {
     final snapshot = _snapshot;
     Object? firstError;
     StackTrace? firstStackTrace;
@@ -253,6 +374,7 @@ final class FlameCinematicRuntimePlaybackSink
     }
 
     attempt(() => host.showCinematicDialogueLine(null));
+    attempt(host.cancelCinematicDialogueAsset);
     attempt(() => host.showCinematicActorEmote(null, null));
     attempt(() => host.setCinematicFadeOpacity(null));
     if (snapshot != null) {
@@ -365,7 +487,7 @@ final class FlameCinematicRuntimePlaybackSink
       case CinematicTimelineStepKind.music:
       case CinematicTimelineStepKind.fx:
       case CinematicTimelineStepKind.marker:
-        return invalid('uses an unsupported V1 kind.');
+        return null;
     }
   }
 
@@ -391,7 +513,48 @@ final class FlameCinematicRuntimePlaybackSink
       cameraVisibleGameSize: host.cameraVisibleGameSize?.clone(),
       actors: Map<String, _ActorVisualSnapshot>.unmodifiable(actorSnapshots),
     );
+    final port = mediaPlaybackPort;
+    _mediaCheckpointFuture = port?.captureCheckpoint();
     host.setCinematicInputLocked(true);
+  }
+
+  void _beginMediaStep(CinematicTimelineStep step) {
+    final command = cinematicMediaCommandForStep(
+      step,
+      mediaAssets: mediaAssets,
+    );
+    if (command == null) {
+      throw StateError('Cinematic media step "${step.id}" is unsupported.');
+    }
+    final state = _AsyncMediaStepState();
+    _stepState = state;
+    _queueMediaCommand(command).then(
+      (_) {
+        state.completed = true;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        state.error = error;
+        state.stackTrace = stackTrace;
+      },
+    );
+  }
+
+  Future<void> _queueMediaCommand(CinematicMediaPlaybackCommand command) {
+    final port = mediaPlaybackPort;
+    final checkpoint = _mediaCheckpointFuture;
+    if (port == null || checkpoint == null) {
+      return Future<void>.error(
+        StateError('Cinematic media playback is not initialized.'),
+      );
+    }
+    final previous = _pendingMediaOperation;
+    final operation = () async {
+      if (previous != null) await previous;
+      await checkpoint;
+      await port.execute(command);
+    }();
+    _pendingMediaOperation = operation;
+    return operation;
   }
 
   void _beginCameraStep(CinematicRuntimeStepContext context) {
@@ -623,6 +786,25 @@ Vector2 _lerp(Vector2 from, Vector2 to, double progress) {
   );
 }
 
+SceneCinematicRuntimeAwaitableErrorCode _runtimeErrorCodeFor(
+  CinematicPlaybackPreflightIssueKind kind,
+) =>
+    switch (kind) {
+      CinematicPlaybackPreflightIssueKind.invalidActorReference =>
+        SceneCinematicRuntimeAwaitableErrorCode.invalidActorReference,
+      CinematicPlaybackPreflightIssueKind.unsupportedActorBinding =>
+        SceneCinematicRuntimeAwaitableErrorCode.unsupportedActorBinding,
+      CinematicPlaybackPreflightIssueKind.invalidMapReference =>
+        SceneCinematicRuntimeAwaitableErrorCode.preflightRejected,
+      CinematicPlaybackPreflightIssueKind.invalidTargetReference =>
+        SceneCinematicRuntimeAwaitableErrorCode.invalidTargetReference,
+      CinematicPlaybackPreflightIssueKind.invalidStep ||
+      CinematicPlaybackPreflightIssueKind.missingDialogue ||
+      CinematicPlaybackPreflightIssueKind.missingMedia ||
+      CinematicPlaybackPreflightIssueKind.mediaTypeMismatch =>
+        SceneCinematicRuntimeAwaitableErrorCode.invalidStep,
+    };
+
 final class _CinematicRuntimeVisualSnapshot {
   const _CinematicRuntimeVisualSnapshot({
     required this.cameraPosition,
@@ -694,6 +876,18 @@ final class _ActorEmoteStepState extends _FlameCinematicStepState {
 final class _DialogueLineStepState extends _FlameCinematicStepState {
   const _DialogueLineStepState();
 }
+
+sealed class _AsyncStepState extends _FlameCinematicStepState {
+  _AsyncStepState();
+
+  bool completed = false;
+  Object? error;
+  StackTrace? stackTrace;
+}
+
+final class _AsyncDialogueStepState extends _AsyncStepState {}
+
+final class _AsyncMediaStepState extends _AsyncStepState {}
 
 final class _FadeStepState extends _FlameCinematicStepState {
   const _FadeStepState({required this.fadeOut});

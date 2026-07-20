@@ -152,26 +152,24 @@ void main() {
       expect(sink.events, isEmpty);
     });
 
-    test('preflight rejects unsupported step kinds before sink mutation',
-        () async {
+    test('editorial markers are never emitted to the runtime sink', () async {
       final sink = _RecordingSink();
       final controller = CinematicRuntimePlaybackController(sink: sink);
 
-      final result = await controller.play(
+      final completion = controller.play(
         _asset(
           steps: <CinematicTimelineStep>[
             _step(CinematicTimelineStepKind.wait, durationMs: 10),
-            _step(CinematicTimelineStepKind.sound),
+            _step(CinematicTimelineStepKind.marker),
           ],
         ),
       );
+      controller.update(const Duration(milliseconds: 10));
+      final result = await completion;
 
-      expect(
-        result.errorCode,
-        SceneCinematicRuntimeAwaitableErrorCode.unsupportedStepKind,
-      );
-      expect(sink.preflightCalls, 0);
-      expect(sink.events, isEmpty);
+      expect(result.success, isTrue);
+      expect(sink.preflightCalls, 1);
+      expect(sink.events, isNot(contains(contains('marker'))));
     });
 
     test('preflight rejects unsupported movement targets before sink mutation',

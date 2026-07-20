@@ -1,0 +1,97 @@
+{
+  "name": "Selbrume Cinematic Media Contract",
+  "maps": [],
+  "tilesets": [],
+  "dialogues": [
+    {
+      "id": "dialogue.port",
+      "name": "Rencontre au port",
+      "relativePath": "dialogues/port.yarn"
+    }
+  ],
+  "cinematicMediaAssets": [
+    {
+      "id": "sound.bell",
+      "label": "Cloche du port",
+      "kind": "sound",
+      "relativePath": "audio/bell.ogg",
+      "channel": "effects"
+    },
+    {
+      "id": "music.mist",
+      "label": "Brume matinale",
+      "kind": "music",
+      "relativePath": "audio/mist.ogg",
+      "loopByDefault": true,
+      "channel": "music"
+    },
+    {
+      "id": "fx.fog",
+      "label": "Brume montante",
+      "kind": "cinematicFx",
+      "relativePath": "fx/fog.json",
+      "channel": "atmosphere"
+    }
+  ],
+  "cinematics": [
+    {
+      "id": "cine.selbrume.port",
+      "title": "Arrivée à Selbrume",
+      "timeline": {
+        "steps": [
+          {
+            "id": "dialogue",
+            "kind": "dialogueLine",
+            "durationMs": 1000,
+            "assetRef": "dialogue.port"
+          },
+          {
+            "id": "shake",
+            "kind": "shake",
+            "durationMs": 500,
+            "metadata": {
+              "fx.intensity": "0.7"
+            }
+          },
+          {
+            "id": "sound",
+            "kind": "sound",
+            "assetRef": "sound.bell",
+            "metadata": {
+              "media.volume": "0.8",
+              "media.fadeMs": "0",
+              "media.loop": "false"
+            }
+          },
+          {
+            "id": "music",
+            "kind": "music",
+            "assetRef": "music.mist",
+            "metadata": {
+              "media.volume": "0.6",
+              "media.fadeMs": "500",
+              "media.loop": "true"
+            }
+          },
+          {
+            "id": "fx",
+            "kind": "fx",
+            "durationMs": 800,
+            "assetRef": "fx.fog",
+            "metadata": {
+              "media.volume": "1.0",
+              "media.fadeMs": "0",
+              "media.loop": "false",
+              "fx.intensity": "0.5"
+            }
+          },
+          {
+            "id": "marker",
+            "kind": "marker",
+            "label": "Fin du tableau"
+          }
+        ]
+      }
+    }
+  ]
+}

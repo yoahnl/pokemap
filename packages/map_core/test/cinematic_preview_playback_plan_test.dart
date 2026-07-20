@@ -995,6 +995,119 @@ void main() {
       );
     });
 
+    test('NSC-67 schedules every advanced cue and never executes marker', () {
+      final plan = buildCinematicPreviewPlaybackPlan(
+        cinematic: CinematicAsset(
+          id: 'cinematic_media',
+          title: 'Media cinematic',
+          timeline: CinematicTimeline(
+            steps: [
+              CinematicTimelineStep(
+                id: 'dialogue',
+                kind: CinematicTimelineStepKind.dialogueLine,
+                assetRef: 'dialogue.port',
+                durationMs: 500,
+              ),
+              CinematicTimelineStep(
+                id: 'shake',
+                kind: CinematicTimelineStepKind.shake,
+                durationMs: 100,
+                metadata: const {
+                  cinematicTimelineCommandIntensityMetadataKey: '0.75',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'sound',
+                kind: CinematicTimelineStepKind.sound,
+                assetRef: 'sound.bell',
+                metadata: const {
+                  cinematicTimelineCommandVolumeMetadataKey: '0.8',
+                  cinematicTimelineCommandFadeMsMetadataKey: '250',
+                  cinematicTimelineCommandLoopMetadataKey: 'false',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'music',
+                kind: CinematicTimelineStepKind.music,
+                assetRef: 'music.mist',
+                metadata: const {
+                  cinematicTimelineCommandVolumeMetadataKey: '0.6',
+                  cinematicTimelineCommandFadeMsMetadataKey: '500',
+                  cinematicTimelineCommandLoopMetadataKey: 'true',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'fx',
+                kind: CinematicTimelineStepKind.fx,
+                assetRef: 'fx.fog',
+                durationMs: 200,
+                metadata: const {
+                  cinematicTimelineCommandVolumeMetadataKey: '1.0',
+                  cinematicTimelineCommandFadeMsMetadataKey: '0',
+                  cinematicTimelineCommandLoopMetadataKey: 'false',
+                  cinematicTimelineCommandIntensityMetadataKey: '0.4',
+                },
+              ),
+              CinematicTimelineStep(
+                id: 'marker',
+                kind: CinematicTimelineStepKind.marker,
+              ),
+            ],
+          ),
+        ),
+        dialogues: const [
+          ProjectDialogueEntry(
+            id: 'dialogue.port',
+            name: 'Port',
+            relativePath: 'dialogues/port.yarn',
+          ),
+        ],
+        mediaAssets: [
+          CinematicMediaAsset(
+            id: 'sound.bell',
+            label: 'Bell',
+            kind: CinematicMediaAssetKind.sound,
+            relativePath: 'audio/bell.ogg',
+          ),
+          CinematicMediaAsset(
+            id: 'music.mist',
+            label: 'Mist',
+            kind: CinematicMediaAssetKind.music,
+            relativePath: 'audio/mist.ogg',
+            channel: 'ambience',
+          ),
+          CinematicMediaAsset(
+            id: 'fx.fog',
+            label: 'Fog',
+            kind: CinematicMediaAssetKind.cinematicFx,
+            relativePath: 'fx/fog.json',
+          ),
+        ],
+      );
+
+      expect(
+        plan.playbackCues.map((cue) => cue.kind),
+        CinematicPlaybackCueKind.values,
+      );
+      expect(plan.playbackCues.map((cue) => cue.stepId),
+          isNot(contains('marker')));
+      expect(plan.executableDurationMs, 1400);
+      expect(plan.totalDurationMs, 1700);
+      expect(plan.capabilities.hasUnsupportedSteps, isFalse);
+      expect(plan.capabilities.supportsDialogue, isTrue);
+      expect(plan.capabilities.supportsShake, isTrue);
+      expect(plan.capabilities.supportsSound, isTrue);
+      expect(plan.capabilities.supportsMusic, isTrue);
+      expect(plan.capabilities.supportsFx, isTrue);
+      expect(plan.capabilities.supportsEditorialMarkers, isTrue);
+      expect(plan.frameAt(650).activeCues.single.stepId, 'sound');
+      expect(plan.playbackCues[2].volume, 0.8);
+      expect(plan.playbackCues[2].fadeMs, 250);
+      expect(plan.playbackCues[3].channel, 'ambience');
+      expect(plan.playbackCues[3].loop, isTrue);
+      expect(plan.playbackCues[4].intensity, 0.4);
+    });
+
     test('V1-127 actorEmote exposes active emote playback state', () {
       final plan = buildCinematicPreviewPlaybackPlan(
         cinematic: CinematicAsset(
@@ -1212,6 +1325,27 @@ void main() {
       expect(cameraFrame.cameraPose.isActive, isTrue);
       expect(plan.capabilities.hasUnsupportedSteps, isFalse);
     });
+  });
+
+  test('an unavailable authored map blocks the preview plan', () {
+    final plan = buildCinematicPreviewPlaybackPlan(
+      cinematic: CinematicAsset(
+        id: 'cinematic_unknown_map',
+        title: 'Unknown map',
+        mapId: 'map.missing',
+        timeline: CinematicTimeline(),
+      ),
+      availableMapIds: const ['map.port'],
+    );
+
+    expect(plan.capabilities.hasUnsupportedSteps, isTrue);
+    expect(
+      plan.diagnostics.map((diagnostic) => diagnostic.code),
+      contains(
+        CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackMapUnavailable,
+      ),
+    );
   });
 }
 

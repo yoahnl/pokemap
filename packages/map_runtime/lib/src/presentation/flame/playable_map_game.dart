@@ -100,6 +100,8 @@ import 'runtime_input_event.dart';
 import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
+import 'flame_cinematic_fx_playback_adapter.dart';
+import 'flame_cinematic_media_playback_adapter.dart';
 import 'flame_cinematic_runtime_playback_sink.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
@@ -253,8 +255,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       projectRootDirectory: _bundle.projectRootDirectory,
     );
     _cinematicRuntimeHost = _PlayableMapCinematicRuntimeHost(this);
+    final cinematicFxPlayback = FlameCinematicFxPlaybackAdapter(
+      host: _cinematicRuntimeHost,
+    );
+    final cinematicMediaPlayback = FlameCinematicMediaPlaybackAdapter(
+      mediaAssets: _bundle.manifest.cinematicMediaAssets,
+      resolvePath: (asset) => p.normalize(
+        p.join(_bundle.projectRootDirectory, asset.relativePath),
+      ),
+      fx: cinematicFxPlayback,
+    );
     _cinematicRuntimeSink = FlameCinematicRuntimePlaybackSink(
       host: _cinematicRuntimeHost,
+      mediaPlaybackPort: cinematicMediaPlayback,
+      dialogues: _bundle.manifest.dialogues,
+      mediaAssets: _bundle.manifest.cinematicMediaAssets,
     );
     _cinematicRuntimeController = CinematicRuntimePlaybackController(
       sink: _cinematicRuntimeSink,
@@ -11372,7 +11387,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 }
 
 final class _PlayableMapCinematicRuntimeHost
-    implements FlameCinematicRuntimeHost {
+    implements FlameCinematicRuntimeHost, FlameCinematicFxHost {
   _PlayableMapCinematicRuntimeHost(this._game);
 
   final PlayableMapGame _game;
@@ -11380,6 +11395,7 @@ final class _PlayableMapCinematicRuntimeHost
   RectangleComponent? _fadeOverlay;
   Paint? _fadePaint;
   TextComponent? _emoteOverlay;
+  final Map<String, RectangleComponent> _fxOverlays = {};
 
   String? get dialogueLine => _dialogueLineOverlay?.text;
 
@@ -11499,6 +11515,40 @@ final class _PlayableMapCinematicRuntimeHost
   }
 
   @override
+  Future<void> playCinematicDialogueAsset(String dialogueId) async {
+    final result = await _game._startSceneDialogue(
+      SceneDialogueRuntimeDialogueRequest(
+        requestId: 'cinematic:$dialogueId',
+        createdAtEpochMs: DateTime.now().millisecondsSinceEpoch,
+        dialogueId: dialogueId,
+      ),
+    );
+    if (!result.success) {
+      throw StateError(
+        result.message ?? 'Cinematic dialogue "$dialogueId" failed.',
+      );
+    }
+  }
+
+  @override
+  void cancelCinematicDialogueAsset() {
+    _game._completePendingSceneDialogue(
+      const SceneDialogueRuntimeAwaitableResult.failed(
+        errorCode: SceneDialogueRuntimeAwaitableErrorCode.cancelled,
+        message: 'Cinematic dialogue was cancelled.',
+      ),
+    );
+    _game._dialogueOverlay?.removeFromParent();
+    _game._dialogueOverlay = null;
+    if (_game._flowPhase == _RuntimeFlowPhase.dialogue) {
+      _game._flowPhase = _RuntimeFlowPhase.overworld;
+    }
+    _game._clearBlockingInteractionWithoutUnlock(
+      reason: 'cinematicDialogueCancelled',
+    );
+  }
+
+  @override
   void setCinematicFadeOpacity(double? opacity) {
     if (opacity == null) {
       _fadeOverlay?.removeFromParent();
@@ -11548,9 +11598,42 @@ final class _PlayableMapCinematicRuntimeHost
     _emoteOverlay = component;
   }
 
+  @override
+  void showCinematicFx(String assetId, {required double intensity}) {
+    hideCinematicFx(assetId);
+    final component = RectangleComponent(
+      size: _game.camera.viewport.size.clone(),
+      paint: Paint()
+        ..color = Color.fromRGBO(
+          210,
+          230,
+          235,
+          (0.08 + intensity.clamp(0.0, 1.0) * 0.18).clamp(0.0, 1.0),
+        ),
+    )..priority = 110;
+    _game.camera.viewport.add(component);
+    _fxOverlays[assetId] = component;
+  }
+
+  @override
+  void hideCinematicFx(String assetId) {
+    _fxOverlays.remove(assetId)?.removeFromParent();
+  }
+
+  @override
+  void clearCinematicFx() {
+    for (final overlay in _fxOverlays.values) {
+      overlay.removeFromParent();
+    }
+    _fxOverlays.clear();
+  }
+
   void onViewportResize(Vector2 size) {
     _dialogueLineOverlay?.position = Vector2(size.x / 2, size.y - 24);
     _fadeOverlay?.size = size.clone();
+    for (final overlay in _fxOverlays.values) {
+      overlay.size = size.clone();
+    }
   }
 }
 

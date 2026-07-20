@@ -239,6 +239,16 @@ final class _FakeHost implements FlameCinematicRuntimeHost {
   }
 
   @override
+  Future<void> playCinematicDialogueAsset(String dialogueId) async {
+    events.add('dialogueAsset:$dialogueId');
+  }
+
+  @override
+  void cancelCinematicDialogueAsset() {
+    events.add('dialogueAsset:cancel');
+  }
+
+  @override
   void setCinematicFadeOpacity(double? opacity) {
     fadeOpacity = opacity;
     events.add('fade:${opacity ?? '-'}');

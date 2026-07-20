@@ -5,6 +5,9 @@ import 'package:meta/meta.dart' show immutable;
 import '../authoring/cinematic_authoring_operations.dart';
 import '../models/cinematic_asset.dart';
 import '../models/cinematic_emote_catalog.dart';
+import '../models/cinematic_media_asset.dart';
+import '../models/project_manifest.dart';
+import '../runtime/cinematic_playback_preflight.dart';
 import 'cinematic_actor_display_preview_model.dart';
 import 'cinematic_timeline_time_layout_read_model.dart';
 
@@ -43,6 +46,9 @@ enum CinematicPreviewPlaybackDiagnosticCode {
   cinematicPreviewPlaybackEmoteActorUnknown,
   cinematicPreviewPlaybackEmoteMissing,
   cinematicPreviewPlaybackEmoteUnknown,
+  cinematicPreviewPlaybackDialogueMissing,
+  cinematicPreviewPlaybackMediaMissing,
+  cinematicPreviewPlaybackMediaTypeMismatch,
 }
 
 enum CinematicActorPlaybackPoseSource {
@@ -121,6 +127,12 @@ final class CinematicPreviewPlaybackCapabilities {
     required this.supportsWait,
     required this.supportsFade,
     required this.supportsCamera,
+    required this.supportsDialogue,
+    required this.supportsShake,
+    required this.supportsSound,
+    required this.supportsMusic,
+    required this.supportsFx,
+    required this.supportsEditorialMarkers,
     required this.hasUnsupportedSteps,
   });
 
@@ -130,6 +142,12 @@ final class CinematicPreviewPlaybackCapabilities {
   final bool supportsWait;
   final bool supportsFade;
   final bool supportsCamera;
+  final bool supportsDialogue;
+  final bool supportsShake;
+  final bool supportsSound;
+  final bool supportsMusic;
+  final bool supportsFx;
+  final bool supportsEditorialMarkers;
   final bool hasUnsupportedSteps;
 
   @override
@@ -142,6 +160,12 @@ final class CinematicPreviewPlaybackCapabilities {
           other.supportsWait == supportsWait &&
           other.supportsFade == supportsFade &&
           other.supportsCamera == supportsCamera &&
+          other.supportsDialogue == supportsDialogue &&
+          other.supportsShake == supportsShake &&
+          other.supportsSound == supportsSound &&
+          other.supportsMusic == supportsMusic &&
+          other.supportsFx == supportsFx &&
+          other.supportsEditorialMarkers == supportsEditorialMarkers &&
           other.hasUnsupportedSteps == hasUnsupportedSteps;
 
   @override
@@ -152,7 +176,105 @@ final class CinematicPreviewPlaybackCapabilities {
         supportsWait,
         supportsFade,
         supportsCamera,
+        supportsDialogue,
+        supportsShake,
+        supportsSound,
+        supportsMusic,
+        supportsFx,
+        supportsEditorialMarkers,
         hasUnsupportedSteps,
+      );
+}
+
+enum CinematicPlaybackCueKind { dialogue, shake, sound, music, fx }
+
+@immutable
+final class CinematicPlaybackCue {
+  const CinematicPlaybackCue({
+    required this.stepId,
+    required this.stepIndex,
+    required this.kind,
+    required this.startMs,
+    required this.endMs,
+    this.referenceId,
+    this.referenceLabel,
+    this.dialogueText,
+    this.actorId,
+    this.channel,
+    this.volume = 1,
+    this.fadeMs = 0,
+    this.loop = false,
+    this.intensity = 0.5,
+  });
+
+  final String stepId;
+  final int stepIndex;
+  final CinematicPlaybackCueKind kind;
+  final int startMs;
+  final int endMs;
+  final String? referenceId;
+  final String? referenceLabel;
+  final String? dialogueText;
+  final String? actorId;
+  final String? channel;
+  final double volume;
+  final int fadeMs;
+  final bool loop;
+  final double intensity;
+
+  bool containsTime(int timeMs) => startMs <= timeMs && timeMs < endMs;
+
+  Map<String, dynamic> toJson() => {
+        'stepId': stepId,
+        'stepIndex': stepIndex,
+        'kind': kind.name,
+        'startMs': startMs,
+        'endMs': endMs,
+        if (referenceId != null) 'referenceId': referenceId,
+        if (referenceLabel != null) 'referenceLabel': referenceLabel,
+        if (dialogueText != null) 'dialogueText': dialogueText,
+        if (actorId != null) 'actorId': actorId,
+        if (channel != null) 'channel': channel,
+        'volume': volume,
+        'fadeMs': fadeMs,
+        'loop': loop,
+        'intensity': intensity,
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is CinematicPlaybackCue &&
+      other.stepId == stepId &&
+      other.stepIndex == stepIndex &&
+      other.kind == kind &&
+      other.startMs == startMs &&
+      other.endMs == endMs &&
+      other.referenceId == referenceId &&
+      other.referenceLabel == referenceLabel &&
+      other.dialogueText == dialogueText &&
+      other.actorId == actorId &&
+      other.channel == channel &&
+      other.volume == volume &&
+      other.fadeMs == fadeMs &&
+      other.loop == loop &&
+      other.intensity == intensity;
+
+  @override
+  int get hashCode => Object.hash(
+        stepId,
+        stepIndex,
+        kind,
+        startMs,
+        endMs,
+        referenceId,
+        referenceLabel,
+        dialogueText,
+        actorId,
+        channel,
+        volume,
+        fadeMs,
+        loop,
+        intensity,
       );
 }
 
@@ -624,6 +746,7 @@ final class CinematicPreviewPlaybackFrame {
     required List<String> activeStepIds,
     required List<CinematicActorPlaybackPose> actorPoses,
     List<CinematicActorEmotePlaybackState> activeEmotes = const [],
+    List<CinematicPlaybackCue> activeCues = const [],
     this.fadeState,
     CinematicCameraPlaybackPose? cameraPose,
     required List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics,
@@ -631,6 +754,7 @@ final class CinematicPreviewPlaybackFrame {
         actorPoses = List<CinematicActorPlaybackPose>.unmodifiable(actorPoses),
         activeEmotes =
             List<CinematicActorEmotePlaybackState>.unmodifiable(activeEmotes),
+        activeCues = List<CinematicPlaybackCue>.unmodifiable(activeCues),
         cameraPose = cameraPose ?? const CinematicCameraPlaybackPose.inactive(),
         visibleDiagnostics =
             List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(
@@ -642,6 +766,7 @@ final class CinematicPreviewPlaybackFrame {
   final List<String> activeStepIds;
   final List<CinematicActorPlaybackPose> actorPoses;
   final List<CinematicActorEmotePlaybackState> activeEmotes;
+  final List<CinematicPlaybackCue> activeCues;
   final CinematicFadePlaybackState? fadeState;
   final CinematicCameraPlaybackPose cameraPose;
   final List<CinematicPreviewPlaybackDiagnostic> visibleDiagnostics;
@@ -665,6 +790,7 @@ final class CinematicPreviewPlaybackFrame {
           _listEquals(other.activeStepIds, activeStepIds) &&
           _listEquals(other.actorPoses, actorPoses) &&
           _listEquals(other.activeEmotes, activeEmotes) &&
+          _listEquals(other.activeCues, activeCues) &&
           other.fadeState == fadeState &&
           other.cameraPose == cameraPose &&
           _listEquals(other.visibleDiagnostics, visibleDiagnostics);
@@ -676,6 +802,7 @@ final class CinematicPreviewPlaybackFrame {
         Object.hashAll(activeStepIds),
         Object.hashAll(actorPoses),
         Object.hashAll(activeEmotes),
+        Object.hashAll(activeCues),
         fadeState,
         cameraPose,
         Object.hashAll(visibleDiagnostics),
@@ -687,9 +814,11 @@ final class CinematicPreviewPlaybackPlan {
   CinematicPreviewPlaybackPlan._({
     required this.cinematicId,
     required this.totalDurationMs,
+    required this.executableDurationMs,
     required List<CinematicPreviewPlaybackTimelineItem> timelineItems,
     required List<CinematicPreviewActorTrack> actorTracks,
     required List<CinematicPreviewPlaybackDiagnostic> diagnostics,
+    required List<CinematicPlaybackCue> playbackCues,
     required this.capabilities,
     required Map<String, _ActorMovePlaybackPlan> movePlans,
     required Map<String, CinematicActorPreviewDirection> actorFaceDirections,
@@ -708,6 +837,7 @@ final class CinematicPreviewPlaybackPlan {
         ),
         diagnostics =
             List<CinematicPreviewPlaybackDiagnostic>.unmodifiable(diagnostics),
+        playbackCues = List<CinematicPlaybackCue>.unmodifiable(playbackCues),
         _movePlans = Map<String, _ActorMovePlaybackPlan>.unmodifiable(
           movePlans,
         ),
@@ -735,9 +865,11 @@ final class CinematicPreviewPlaybackPlan {
 
   final String cinematicId;
   final int totalDurationMs;
+  final int executableDurationMs;
   final List<CinematicPreviewPlaybackTimelineItem> timelineItems;
   final List<CinematicPreviewActorTrack> actorTracks;
   final List<CinematicPreviewPlaybackDiagnostic> diagnostics;
+  final List<CinematicPlaybackCue> playbackCues;
   final CinematicPreviewPlaybackCapabilities capabilities;
   final Map<String, _ActorMovePlaybackPlan> _movePlans;
   final Map<String, CinematicActorPreviewDirection> _actorFaceDirections;
@@ -757,10 +889,43 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   CinematicActorDisplayPreviewModel? actorDisplayPreviewModel,
   Map<String, CinematicPreviewPlaybackPoint> resolvedMovementTargets = const {},
   CinematicPreviewPlaybackStageBounds? stageBounds,
+  Iterable<ProjectDialogueEntry> dialogues = const [],
+  Iterable<CinematicMediaAsset> mediaAssets = const [],
+  Iterable<String>? availableMapIds,
 }) {
   final timeLayout = buildCinematicTimelineTimeLayoutReadModel(cinematic);
   final stageContext = cinematic.stageContext;
   final diagnostics = <CinematicPreviewPlaybackDiagnostic>[];
+  final dialogueList = dialogues.toList(growable: false);
+  final dialogueById = {
+    for (final dialogue in dialogueList) dialogue.id: dialogue,
+  };
+  final mediaList = mediaAssets.toList(growable: false);
+  final mediaById = {for (final media in mediaList) media.id: media};
+  final preflight = preflightCinematicPlayback(
+    cinematic: cinematic,
+    dialogues: dialogueList,
+    mediaAssets: mediaList,
+    availableMapIds: availableMapIds,
+  );
+  final mapIssues = preflight.issues
+      .where(
+        (issue) =>
+            issue.kind ==
+            CinematicPlaybackPreflightIssueKind.invalidMapReference,
+      )
+      .toList(growable: false);
+  for (final issue in mapIssues) {
+    diagnostics.add(
+      CinematicPreviewPlaybackDiagnostic(
+        code: CinematicPreviewPlaybackDiagnosticCode
+            .cinematicPreviewPlaybackMapUnavailable,
+        severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+        message: issue.message,
+        blocking: true,
+      ),
+    );
+  }
   final actorTracks = <CinematicPreviewActorTrack>[];
   final stagePointsById = <String, CinematicStagePoint>{
     for (final point
@@ -820,12 +985,31 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   final cameraModes = <String, CinematicTimelineCameraMode>{};
   final cameraFocusBindings = <String, CinematicTimelineCameraFocusBinding>{};
   final timelineItems = <CinematicPreviewPlaybackTimelineItem>[];
-  var hasUnsupportedSteps = false;
+  final playbackCues = <CinematicPlaybackCue>[];
+  var hasUnsupportedSteps = mapIssues.isNotEmpty;
 
   for (final block in timeLayout.blocks) {
     final step = cinematic.timeline.steps[block.stepIndex];
     final itemDiagnostics = <CinematicPreviewPlaybackDiagnostic>[];
     var supported = _stepSupportedForPlayback(step);
+    final advancedIssues = preflight.issues
+        .where((issue) => issue.stepId == step.id && _isAdvancedKind(step.kind))
+        .toList(growable: false);
+    if (advancedIssues.isNotEmpty) {
+      supported = false;
+      for (final issue in advancedIssues) {
+        itemDiagnostics.add(_advancedIssueDiagnostic(step, issue));
+      }
+      itemDiagnostics.add(
+        CinematicPreviewPlaybackDiagnostic(
+          code: CinematicPreviewPlaybackDiagnosticCode
+              .cinematicPreviewPlaybackUnsupportedStep,
+          severity: CinematicPreviewPlaybackDiagnosticSeverity.info,
+          message: 'Ce bloc n’est pas encore prévisualisé.',
+          stepId: step.id,
+        ),
+      );
+    }
     if (!supported) {
       hasUnsupportedSteps = true;
     }
@@ -916,17 +1100,23 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       case CinematicTimelineStepKind.music:
       case CinematicTimelineStepKind.shake:
       case CinematicTimelineStepKind.fx:
+        if (supported) {
+          playbackCues.add(
+            _cueForStep(
+              step,
+              stepIndex: block.stepIndex,
+              startMs: block.startMs,
+              endMs: block.endMs,
+              media: step.assetRef == null ? null : mediaById[step.assetRef],
+              dialogue:
+                  step.assetRef == null ? null : dialogueById[step.assetRef],
+            ),
+          );
+        } else {
+          hasUnsupportedSteps = true;
+        }
       case CinematicTimelineStepKind.marker:
-        itemDiagnostics.add(
-          CinematicPreviewPlaybackDiagnostic(
-            code: CinematicPreviewPlaybackDiagnosticCode
-                .cinematicPreviewPlaybackUnsupportedStep,
-            severity: CinematicPreviewPlaybackDiagnosticSeverity.info,
-            message: 'Ce bloc n’est pas encore prévisualisé.',
-            stepId: step.id,
-          ),
-        );
-        hasUnsupportedSteps = true;
+        break;
     }
 
     diagnostics.addAll(itemDiagnostics);
@@ -954,9 +1144,13 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
   return CinematicPreviewPlaybackPlan._(
     cinematicId: cinematic.id,
     totalDurationMs: timeLayout.totalDurationMs,
+    executableDurationMs: timelineItems
+        .where((item) => item.kind != CinematicTimelineStepKind.marker)
+        .fold(0, (sum, item) => sum + item.visualDurationMs),
     timelineItems: timelineItems,
     actorTracks: actorTracks,
     diagnostics: diagnostics,
+    playbackCues: playbackCues,
     capabilities: CinematicPreviewPlaybackCapabilities(
       supportsActorMoveDirect: true,
       supportsActorMoveManualPath: true,
@@ -964,6 +1158,12 @@ CinematicPreviewPlaybackPlan buildCinematicPreviewPlaybackPlan({
       supportsWait: true,
       supportsFade: true,
       supportsCamera: true,
+      supportsDialogue: true,
+      supportsShake: true,
+      supportsSound: true,
+      supportsMusic: true,
+      supportsFx: true,
+      supportsEditorialMarkers: true,
       hasUnsupportedSteps: hasUnsupportedSteps,
     ),
     movePlans: movePlans,
@@ -993,6 +1193,10 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
   CinematicFadePlaybackState? fadeState;
   var cameraPose = const CinematicCameraPlaybackPose.inactive();
   final activeEmotes = <CinematicActorEmotePlaybackState>[];
+  final activeCues = <CinematicPlaybackCue>[
+    for (final cue in plan.playbackCues)
+      if (cue.containsTime(clampedTimeMs)) cue,
+  ];
 
   for (final item in plan.timelineItems) {
     if (clampedTimeMs < item.startMs) {
@@ -1080,6 +1284,7 @@ CinematicPreviewPlaybackFrame evaluateCinematicPreviewPlaybackFrame(
     activeStepIds: activeStepIds,
     actorPoses: posesByActorId.values.toList(),
     activeEmotes: activeEmotes,
+    activeCues: activeCues,
     fadeState: fadeState,
     cameraPose: cameraPose,
     visibleDiagnostics: plan.diagnostics,
@@ -1870,8 +2075,89 @@ bool _stepSupportedForPlayback(CinematicTimelineStep step) {
     CinematicTimelineStepKind.shake ||
     CinematicTimelineStepKind.fx ||
     CinematicTimelineStepKind.marker =>
-      false,
+      true,
   };
+}
+
+bool _isAdvancedKind(CinematicTimelineStepKind kind) =>
+    kind == CinematicTimelineStepKind.dialogueLine ||
+    kind == CinematicTimelineStepKind.sound ||
+    kind == CinematicTimelineStepKind.music ||
+    kind == CinematicTimelineStepKind.shake ||
+    kind == CinematicTimelineStepKind.fx;
+
+CinematicPreviewPlaybackDiagnostic _advancedIssueDiagnostic(
+  CinematicTimelineStep step,
+  CinematicPlaybackPreflightIssue issue,
+) {
+  final code = switch (issue.kind) {
+    CinematicPlaybackPreflightIssueKind.missingDialogue =>
+      CinematicPreviewPlaybackDiagnosticCode
+          .cinematicPreviewPlaybackDialogueMissing,
+    CinematicPlaybackPreflightIssueKind.missingMedia =>
+      CinematicPreviewPlaybackDiagnosticCode
+          .cinematicPreviewPlaybackMediaMissing,
+    CinematicPlaybackPreflightIssueKind.mediaTypeMismatch =>
+      CinematicPreviewPlaybackDiagnosticCode
+          .cinematicPreviewPlaybackMediaTypeMismatch,
+    _ => CinematicPreviewPlaybackDiagnosticCode
+        .cinematicPreviewPlaybackUnsupportedStep,
+  };
+  return CinematicPreviewPlaybackDiagnostic(
+    code: code,
+    severity: CinematicPreviewPlaybackDiagnosticSeverity.error,
+    message: issue.message,
+    stepId: step.id,
+  );
+}
+
+CinematicPlaybackCue _cueForStep(
+  CinematicTimelineStep step, {
+  required int stepIndex,
+  required int startMs,
+  required int endMs,
+  required CinematicMediaAsset? media,
+  required ProjectDialogueEntry? dialogue,
+}) {
+  final cueKind = switch (step.kind) {
+    CinematicTimelineStepKind.dialogueLine => CinematicPlaybackCueKind.dialogue,
+    CinematicTimelineStepKind.shake => CinematicPlaybackCueKind.shake,
+    CinematicTimelineStepKind.sound => CinematicPlaybackCueKind.sound,
+    CinematicTimelineStepKind.music => CinematicPlaybackCueKind.music,
+    CinematicTimelineStepKind.fx => CinematicPlaybackCueKind.fx,
+    _ => throw StateError('Step ${step.id} is not a playback cue.'),
+  };
+  return CinematicPlaybackCue(
+    stepId: step.id,
+    stepIndex: stepIndex,
+    kind: cueKind,
+    startMs: startMs,
+    endMs: endMs,
+    referenceId: step.assetRef,
+    referenceLabel: media?.label ?? dialogue?.name,
+    dialogueText: step.dialogueText ?? dialogue?.name,
+    actorId: step.actorId,
+    channel: media?.channel ??
+        switch (cueKind) {
+          CinematicPlaybackCueKind.sound => 'sound',
+          CinematicPlaybackCueKind.music => 'music',
+          CinematicPlaybackCueKind.fx => 'fx',
+          _ => null,
+        },
+    volume: double.tryParse(
+          step.metadata[cinematicTimelineCommandVolumeMetadataKey] ?? '',
+        ) ??
+        1,
+    fadeMs: int.tryParse(
+          step.metadata[cinematicTimelineCommandFadeMsMetadataKey] ?? '',
+        ) ??
+        0,
+    loop: step.metadata[cinematicTimelineCommandLoopMetadataKey] == 'true',
+    intensity: double.tryParse(
+          step.metadata[cinematicTimelineCommandIntensityMetadataKey] ?? '',
+        ) ??
+        0.5,
+  );
 }
 
 CinematicTimelineCameraMode? _cameraModeOf(CinematicTimelineStep step) {

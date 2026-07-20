@@ -228,6 +228,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   const CinematicsLibraryWorkspace({
     super.key,
     required this.project,
+    this.projectRootPath,
     required this.onCreateCinematicShell,
     required this.onUpdateCinematicMetadata,
     required this.onDuplicateCinematic,
@@ -279,6 +280,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
   final ValueChanged<String?>? onBuilderEntryChanged;
 
   final ProjectManifest project;
+  final String? projectRootPath;
   final CreateCinematicShellCallback onCreateCinematicShell;
   final UpdateCinematicMetadataCallback onUpdateCinematicMetadata;
   final DuplicateCinematicCallback onDuplicateCinematic;
@@ -450,6 +452,7 @@ class _CinematicsLibraryWorkspaceState
         characters: widget.project.characters,
         dialogues: widget.project.dialogues,
         cinematicMediaAssets: widget.project.cinematicMediaAssets,
+        projectRootPath: widget.projectRootPath,
         stageMapSourceCatalog: _stageMapSourceCatalog,
         backdropPreviewModel: backdropPreviewModel,
         backdropTileRenderPlan: backdropTileRenderPlan,

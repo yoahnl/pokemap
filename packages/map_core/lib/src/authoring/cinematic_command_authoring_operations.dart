@@ -24,10 +24,19 @@ List<CinematicTimelineStep> cinematicCommandPublicationBlockers(
         (step) =>
             isCinematicTimelineCommandStep(step) &&
             step.kind != CinematicTimelineStepKind.marker &&
+            !_runtimeSupportedCommandKinds.contains(step.kind) &&
             step.metadata[cinematicTimelineCommandRuntimeStatusMetadataKey] ==
                 cinematicTimelineCommandRuntimeDraftStatus,
       ),
     );
+
+const _runtimeSupportedCommandKinds = {
+  CinematicTimelineStepKind.dialogueLine,
+  CinematicTimelineStepKind.shake,
+  CinematicTimelineStepKind.sound,
+  CinematicTimelineStepKind.music,
+  CinematicTimelineStepKind.fx,
+};
 
 CinematicCommandAuthoringResult addCinematicTimelineCommandStep(
   CinematicAsset cinematic, {
@@ -194,7 +203,7 @@ CinematicTimelineStep _buildCommandStep(
     cinematicTimelineAuthoringBlockMetadataKey: kind.name,
     if (kind != CinematicTimelineStepKind.marker)
       cinematicTimelineCommandRuntimeStatusMetadataKey:
-          cinematicTimelineCommandRuntimeDraftStatus,
+          cinematicTimelineCommandRuntimeSupportedStatus,
     if (expectedMediaKind != null) ...{
       cinematicTimelineCommandVolumeMetadataKey: '$volume',
       cinematicTimelineCommandFadeMsMetadataKey: '$fadeMs',

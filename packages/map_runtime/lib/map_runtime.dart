@@ -71,6 +71,14 @@ export 'src/presentation/flame/flame_cinematic_runtime_playback_sink.dart'
         FlameCinematicRuntimeActorHandle,
         FlameCinematicRuntimeHost,
         FlameCinematicRuntimePlaybackSink;
+export 'src/presentation/flame/flame_cinematic_media_playback_adapter.dart'
+    show
+        FlameCinematicAudioDriver,
+        FlameAudioCinematicRuntimeDriver,
+        FlameCinematicMediaPlaybackAdapter,
+        FlameCinematicMediaPathResolver;
+export 'src/presentation/flame/flame_cinematic_fx_playback_adapter.dart'
+    show FlameCinematicFxHost, FlameCinematicFxPlaybackAdapter;
 export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
     show
         BattleCommandOverlayMode,
@@ -138,9 +146,16 @@ export 'src/application/scene_runtime/cinematic_runtime_playback_controller.dart
     show
         CinematicRuntimePlaybackController,
         CinematicRuntimePlaybackSink,
+        CinematicRuntimeStepCompletionPolicy,
+        CinematicRuntimeAsyncRestorationSink,
         CinematicRuntimeSinkPreflightResult,
         CinematicRuntimeStepContext,
         CinematicRuntimeTermination;
+export 'src/application/scene_runtime/cinematic_media_playback_port.dart'
+    show
+        CinematicRuntimeMediaPlaybackPort,
+        cinematicMediaCommandForStep,
+        cinematicMediaEndCommandForStep;
 export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.dart'
     show
         SceneCinematicRuntimeAwaitableErrorCode,

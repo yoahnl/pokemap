@@ -100,9 +100,9 @@ void main() {
       );
       expect(
         report.byCode(CinematicDiagnosticCode.cinematicCommandRuntimePending),
-        hasLength(2),
+        isEmpty,
       );
-      expect(cinematicCommandPublicationBlockers(cinematic), hasLength(2));
+      expect(cinematicCommandPublicationBlockers(cinematic), isEmpty);
     });
 
     test('reports duplicate step ids and invalid durations', () {

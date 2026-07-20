@@ -781,6 +781,7 @@ const cinematicTimelineCommandIntensityMetadataKey = 'fx.intensity';
 const cinematicTimelineCommandRuntimeStatusMetadataKey =
     'authoring.runtimeStatus';
 const cinematicTimelineCommandRuntimeDraftStatus = 'draftUntilNsc67';
+const cinematicTimelineCommandRuntimeSupportedStatus = 'supported';
 
 const cinematicTimelineDefaultWaitDurationMs = 1000;
 const cinematicTimelineDefaultFadeDurationMs = 1000;

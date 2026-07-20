@@ -61,6 +61,14 @@ abstract interface class CinematicRuntimePlaybackSink {
   void restore(CinematicRuntimeTermination termination);
 }
 
+abstract interface class CinematicRuntimeStepCompletionPolicy {
+  bool requiresSinkCompletion(CinematicRuntimeStepContext context);
+}
+
+abstract interface class CinematicRuntimeAsyncRestorationSink {
+  Future<void> restoreAsync(CinematicRuntimeTermination termination);
+}
+
 /// Sequential, wall-clock-free playback state machine for CinematicAsset V1.
 ///
 /// The controller owns ordering and duration accounting only. A Flame adapter
@@ -163,7 +171,17 @@ final class CinematicRuntimePlaybackController
         final visuallyComplete = sink.isStepVisuallyComplete(context);
         final durationComplete =
             duration != null && session.stepElapsed >= duration;
-        if (!visuallyComplete && !durationComplete) return;
+        final requiresSinkCompletion =
+            sink is CinematicRuntimeStepCompletionPolicy &&
+                (sink as CinematicRuntimeStepCompletionPolicy)
+                    .requiresSinkCompletion(context);
+        if (requiresSinkCompletion) {
+          if (!visuallyComplete || (duration != null && !durationComplete)) {
+            return;
+          }
+        } else if (!visuallyComplete && !durationComplete) {
+          return;
+        }
         sink.endStep(context);
       } catch (error) {
         _terminate(
@@ -258,6 +276,29 @@ final class CinematicRuntimePlaybackController
     final session = _session;
     if (session == null) return;
     _session = null;
+    if (sink is CinematicRuntimeAsyncRestorationSink) {
+      Future.sync(
+        () => (sink as CinematicRuntimeAsyncRestorationSink)
+            .restoreAsync(termination),
+      ).then(
+        (_) {
+          if (!session.completer.isCompleted) {
+            session.completer.complete(result);
+          }
+        },
+        onError: (Object error) {
+          if (!session.completer.isCompleted) {
+            session.completer.complete(
+              SceneCinematicRuntimeAwaitableResult.failed(
+                errorCode: SceneCinematicRuntimeAwaitableErrorCode.sinkFailure,
+                message: 'Cinematic sink restoration failed: $error',
+              ),
+            );
+          }
+        },
+      );
+      return;
+    }
     var finalResult = result;
     try {
       sink.restore(termination);
@@ -276,7 +317,9 @@ final class CinematicRuntimePlaybackController
 
 final class _CinematicRuntimeSession {
   _CinematicRuntimeSession(this.asset)
-      : steps = asset.timeline.steps,
+      : steps = asset.timeline.steps
+            .where((step) => step.kind != CinematicTimelineStepKind.marker)
+            .toList(growable: false),
         completer = Completer<SceneCinematicRuntimeAwaitableResult>();
 
   final CinematicAsset asset;
@@ -296,6 +339,10 @@ const _supportedKinds = <CinematicTimelineStepKind>{
   CinematicTimelineStepKind.dialogueLine,
   CinematicTimelineStepKind.fade,
   CinematicTimelineStepKind.shake,
+  CinematicTimelineStepKind.sound,
+  CinematicTimelineStepKind.music,
+  CinematicTimelineStepKind.fx,
+  CinematicTimelineStepKind.marker,
 };
 
 SceneCinematicRuntimeAwaitableResult? _preflightAsset(CinematicAsset asset) {
@@ -422,10 +469,11 @@ SceneCinematicRuntimeAwaitableResult? _preflightAsset(CinematicAsset asset) {
       }
     }
     if (step.kind == CinematicTimelineStepKind.dialogueLine &&
-        (step.dialogueText == null || step.dialogueText!.isEmpty)) {
+        (step.dialogueText == null || step.dialogueText!.isEmpty) &&
+        (step.assetRef == null || step.assetRef!.isEmpty)) {
       return _failure(
         SceneCinematicRuntimeAwaitableErrorCode.invalidStep,
-        'Dialogue line step "${step.id}" requires dialogueText.',
+        'Dialogue line step "${step.id}" requires dialogueText or assetRef.',
       );
     }
     if (step.kind == CinematicTimelineStepKind.camera &&
@@ -466,7 +514,14 @@ bool _requiresActor(CinematicTimelineStepKind kind) {
 
 Duration? _positiveDurationOf(CinematicTimelineStep step) {
   final milliseconds = step.durationMs;
-  return milliseconds == null ? null : Duration(milliseconds: milliseconds);
+  if (milliseconds != null) return Duration(milliseconds: milliseconds);
+  if (step.kind == CinematicTimelineStepKind.sound ||
+      step.kind == CinematicTimelineStepKind.music) {
+    return const Duration(
+      milliseconds: cinematicTimelineFallbackVisualDurationMs,
+    );
+  }
+  return null;
 }
 
 SceneCinematicRuntimeAwaitableResult _failure(

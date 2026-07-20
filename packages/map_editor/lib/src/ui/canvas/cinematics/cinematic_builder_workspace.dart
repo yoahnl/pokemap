@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
@@ -34,6 +35,8 @@ import 'builder/cinematic_media_picker.dart';
 import 'builder/cinematic_palette_panel.dart';
 import 'builder/cinematic_stage_panel.dart';
 import 'builder/cinematic_timeline_panel.dart';
+import 'preview/cinematic_media_preview_controller.dart';
+import 'preview/flutter_cinematic_media_preview_adapter.dart';
 
 typedef AddCinematicDraftStepCallback = Future<String?> Function({
   required String cinematicId,
@@ -311,6 +314,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
     required this.characters,
     this.dialogues = const [],
     this.cinematicMediaAssets = const [],
+    this.projectRootPath,
     this.stageMapSourceCatalog,
     this.backdropPreviewModel,
     this.backdropTileRenderPlan,
@@ -355,6 +359,7 @@ class CinematicBuilderWorkspace extends StatefulWidget {
   final List<ProjectCharacterEntry> characters;
   final List<ProjectDialogueEntry> dialogues;
   final List<CinematicMediaAsset> cinematicMediaAssets;
+  final String? projectRootPath;
   final CinematicStageMapSourceCatalog? stageMapSourceCatalog;
   final CinematicMapBackdropPreviewModel? backdropPreviewModel;
   final CinematicMapBackdropTileRenderPlan? backdropTileRenderPlan;
@@ -411,12 +416,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
   late String _playbackTimelineSignature;
   bool _isPlaybackPlaying = false;
   bool _resumePlaybackAfterScrub = false;
+  CinematicMediaPreviewController? _mediaPreviewController;
+  int? _pendingMediaPreviewTimeMs;
+  bool _mediaPreviewSyncRunning = false;
 
   @override
   void initState() {
     super.initState();
     _builderController = CinematicBuilderController(asset: widget.asset);
     _timelineEditingController = CinematicTimelineEditingController();
+    _mediaPreviewController = _buildMediaPreviewController();
     _playbackTimelineSignature = _playbackSignature(widget.asset);
     _playbackController = AnimationController(vsync: this)
       ..addListener(() {
@@ -427,6 +436,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed && _isPlaybackPlaying) {
           setState(() => _isPlaybackPlaying = false);
+          unawaited(_mediaPreviewController?.cancel());
         }
       });
   }
@@ -440,14 +450,24 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       _backdropFramingState = const CinematicBackdropPreviewFramingState();
     }
     final nextPlaybackSignature = _playbackSignature(widget.asset);
+    if (oldWidget.projectRootPath != widget.projectRootPath ||
+        !_sameMediaCatalog(
+          oldWidget.cinematicMediaAssets,
+          widget.cinematicMediaAssets,
+        )) {
+      unawaited(_mediaPreviewController?.cancel());
+      _mediaPreviewController = _buildMediaPreviewController();
+    }
     if (_playbackTimelineSignature != nextPlaybackSignature) {
       _playbackTimelineSignature = nextPlaybackSignature;
       _stopPlaybackWithoutSetState(resetTime: true);
+      unawaited(_mediaPreviewController?.cancel());
     }
   }
 
   @override
   void dispose() {
+    unawaited(_mediaPreviewController?.cancel());
     _playbackController.dispose();
     _timelineEditingController.dispose();
     _builderController.dispose();
@@ -461,6 +481,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
     }
     _isPlaybackPlaying = false;
     _resumePlaybackAfterScrub = false;
+    _pendingMediaPreviewTimeMs = null;
   }
 
   void _pausePlaybackWithoutSetState() {
@@ -479,7 +500,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         );
   }
 
-  void _togglePlayback(CinematicPreviewPlaybackPlan plan) {
+  Future<void> _togglePlayback(CinematicPreviewPlaybackPlan plan) async {
     if (!_canPlayPreview(plan)) {
       return;
     }
@@ -488,6 +509,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       setState(() => _isPlaybackPlaying = false);
       return;
     }
+    final mediaController = _mediaPreviewController;
+    if (mediaController != null) {
+      try {
+        await mediaController.prepare(plan);
+        await mediaController.seek(_playbackTimeMs(plan));
+      } catch (_) {
+        if (mounted) setState(() => _isPlaybackPlaying = false);
+        return;
+      }
+    }
     _playbackController.duration = Duration(
       milliseconds: math.max(1, plan.totalDurationMs),
     );
@@ -495,6 +526,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         _playbackController.value >= 1 ? 0.0 : _playbackController.value;
     setState(() => _isPlaybackPlaying = true);
     _playbackController.forward(from: startValue);
+    _syncMediaPreviewTo(plan, _playbackTimeMs(plan));
   }
 
   void _setPlaybackTimeWithoutSetState(
@@ -527,6 +559,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
         _playbackController.forward(from: _playbackController.value);
       }
     });
+    _seekMediaPreviewTo(plan, position.timeMs);
   }
 
   void _beginPlaybackScrub(
@@ -542,6 +575,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       _isPlaybackPlaying = false;
       _setPlaybackTimeWithoutSetState(plan, position.timeMs);
     });
+    _seekMediaPreviewTo(plan, position.timeMs);
   }
 
   void _updatePlaybackScrub(
@@ -555,6 +589,7 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       _isPlaybackPlaying = false;
       _setPlaybackTimeWithoutSetState(plan, position.timeMs);
     });
+    _seekMediaPreviewTo(plan, position.timeMs);
   }
 
   void _endPlaybackScrub(CinematicPreviewPlaybackPlan plan) {
@@ -578,10 +613,72 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
 
   void _stopPlayback() {
     setState(() => _stopPlaybackWithoutSetState(resetTime: true));
+    unawaited(_mediaPreviewController?.cancel());
   }
 
   void _resetPlayback() {
     setState(() => _stopPlaybackWithoutSetState(resetTime: true));
+    unawaited(_mediaPreviewController?.cancel());
+  }
+
+  CinematicMediaPreviewController? _buildMediaPreviewController() {
+    final root = widget.projectRootPath?.trim();
+    if (root == null || root.isEmpty || widget.cinematicMediaAssets.isEmpty) {
+      return null;
+    }
+    return CinematicMediaPreviewController(
+      port: FlutterCinematicMediaPreviewAdapter(
+        mediaAssets: widget.cinematicMediaAssets,
+        resolvePath: (asset) => p.normalize(p.join(root, asset.relativePath)),
+      ),
+    );
+  }
+
+  void _seekMediaPreviewTo(
+    CinematicPreviewPlaybackPlan plan,
+    int timeMs,
+  ) {
+    final controller = _mediaPreviewController;
+    if (controller == null) return;
+    unawaited(() async {
+      try {
+        if (!controller.isPrepared) await controller.prepare(plan);
+        await controller.seek(timeMs);
+      } catch (_) {
+        await controller.cancel();
+      }
+    }());
+  }
+
+  void _syncMediaPreviewTo(
+    CinematicPreviewPlaybackPlan plan,
+    int timeMs,
+  ) {
+    final controller = _mediaPreviewController;
+    if (controller == null) return;
+    _pendingMediaPreviewTimeMs = timeMs;
+    if (_mediaPreviewSyncRunning) return;
+    _mediaPreviewSyncRunning = true;
+    unawaited(() async {
+      try {
+        if (!controller.isPrepared) await controller.prepare(plan);
+        while (true) {
+          final pending = _pendingMediaPreviewTimeMs;
+          if (pending == null) break;
+          _pendingMediaPreviewTimeMs = null;
+          await controller.advanceTo(pending);
+        }
+      } catch (_) {
+        await controller.cancel();
+        _pendingMediaPreviewTimeMs = null;
+        if (mounted) {
+          _playbackController.stop();
+          setState(() => _isPlaybackPlaying = false);
+        }
+      } finally {
+        _mediaPreviewSyncRunning = false;
+      }
+    }());
   }
 
   @override
@@ -604,8 +701,14 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
       cinematic: widget.asset,
       actorDisplayPreviewModel: widget.actorDisplayPreviewModel,
       stageBounds: _previewPlaybackStageBoundsFor(widget.backdropPreviewModel),
+      dialogues: widget.dialogues,
+      mediaAssets: widget.cinematicMediaAssets,
+      availableMapIds: widget.stageMaps.map((map) => map.id),
     );
     final playbackTimeMs = _playbackTimeMs(playbackPlan);
+    if (_isPlaybackPlaying) {
+      _syncMediaPreviewTo(playbackPlan, playbackTimeMs);
+    }
     final playbackFrame = playbackPlan.frameAt(playbackTimeMs);
     final isPlaybackOverlayActive = _isPlaybackPlaying || playbackTimeMs > 0;
     final cadenceHintsByActorId = _cadenceHintsForPlayback(
@@ -736,6 +839,8 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                   height: previewHeight,
                                   child: CinematicStagePanel(
                                     cinematic: widget.asset,
+                                    activeCues: playbackFrame.activeCues,
+                                    playbackTimeMs: playbackTimeMs,
                                     onApplyPreset: (preview) async {
                                       final updated =
                                           applyCinematicBlockingPresetToAsset(
@@ -5331,6 +5436,17 @@ String _playbackSignature(CinematicAsset asset) {
         ].join('#'),
       )
       .join('::');
+}
+
+bool _sameMediaCatalog(
+  List<CinematicMediaAsset> left,
+  List<CinematicMediaAsset> right,
+) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 class _TimelineTrackRow extends StatelessWidget {
