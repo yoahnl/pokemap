@@ -12,7 +12,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'Event V2 trigger anchors a trainer Scene that omits npcEntityId',
+    'Event V2 guardian returns to overworld and can retry after defeat',
     () async {
       final fixture = SelbrumeEventV2RuntimeFixture.locateCanonical();
       final source = await loadRuntimeMapBundle(
@@ -36,8 +36,8 @@ void main() {
                   natureId: 'hardy',
                   abilityId: 'blaze',
                   level: 100,
-                  knownMoveIds: <String>['ember'],
-                  currentHp: 999,
+                  knownMoveIds: <String>['ember', 'growl'],
+                  currentHp: 1,
                 ),
               ],
             ),
@@ -79,7 +79,46 @@ void main() {
       expect(battle.setup.trainerId, 'trainer_phare_gardien_1');
       expect(battle.state.enemy.speciesId, 'magnemite');
 
-      await _chooseFirstMoveUntilBattleEnds(game);
+      await _chooseMoveUntilBattleEnds(game, chooseStatusMove: true);
+      await _pumpUntil(
+        game,
+        () => game.debugFlowPhaseName == 'overworld',
+      );
+      expect(
+        game.gameStateSnapshot.narrativeFactRuntimeState
+            .overridesByFactId['fact_lighthouse_guardian_1_defeated'],
+        isNot(isTrue),
+      );
+      expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        isNot(contains(_guardianEventId)),
+      );
+      await _pumpUntil(
+        game,
+        () =>
+            !game.debugIsNarrativeSpatialDispatchInFlight &&
+            !game.debugIsNarrativeOutcomeWorkInFlight &&
+            !game.debugHasPendingSceneBattle,
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(game.debugIsMapActivationDispatchInFlight, isFalse);
+
+      // The runtime deliberately requires a fresh trigger entry. Leaving and
+      // re-entering proves that battle/Scene locks are released after defeat.
+      await _move(game, RuntimeInputControl.right);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 9, y: 32));
+      await _move(game, RuntimeInputControl.left);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 8, y: 32));
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugFlowPhaseName == 'battleTransition' ||
+            game.debugFlowPhaseName == 'battle',
+      );
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'battle');
+      await game.debugWaitForBattleOverlaySync();
+
+      await _chooseMoveUntilBattleEnds(game);
       await _pumpUntil(
         game,
         () =>
@@ -91,7 +130,9 @@ void main() {
 
       expect(
         game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
-        contains(_guardianEventId),
+        isNot(contains(_guardianEventId)),
+        reason: 'Victory closes this reusable trigger through its Fact, not '
+            'through one-shot consumption.',
       );
     },
   );
@@ -151,7 +192,10 @@ Future<void> _move(
   await _pumpUntil(game, () => !game.debugIsPlayerStepping);
 }
 
-Future<void> _chooseFirstMoveUntilBattleEnds(PlayableMapGame game) async {
+Future<void> _chooseMoveUntilBattleEnds(
+  PlayableMapGame game, {
+  bool chooseStatusMove = false,
+}) async {
   for (var turn = 0; turn < 20; turn++) {
     if (game.debugFlowPhaseName != 'battle') return;
     await _waitForBattleInputReady(game);
@@ -174,6 +218,19 @@ Future<void> _chooseFirstMoveUntilBattleEnds(PlayableMapGame game) async {
     _pressPrimary(game);
     await _microPump(game);
     expect(activeOverlay.currentMenuMode.name, 'fight');
+
+    final battle = game.debugBattleSessionSnapshot;
+    expect(battle, isNotNull);
+    final moveIndex = battle!.state.player.moves.indexWhere(
+      (move) => chooseStatusMove ? move.power == 0 : move.power > 0,
+    );
+    expect(moveIndex, greaterThanOrEqualTo(0));
+    if (moveIndex >= 2) {
+      await _pressBattleDirection(game, RuntimeInputControl.down);
+    }
+    if (moveIndex.isOdd) {
+      await _pressBattleDirection(game, RuntimeInputControl.right);
+    }
     _pressPrimary(game);
     await _waitForBattleInputReady(game);
   }
@@ -199,6 +256,17 @@ void _pressPrimary(PlayableMapGame game) {
   );
 }
 
+Future<void> _pressBattleDirection(
+  PlayableMapGame game,
+  RuntimeInputControl control,
+) async {
+  expect(
+    game.handleRuntimeInputEvent(RuntimeInputEvent.press(control)),
+    isTrue,
+  );
+  await _microPump(game);
+}
+
 Future<void> _microPump(PlayableMapGame game) async {
   game.update(0.016);
   await Future<void>.delayed(Duration.zero);
@@ -217,7 +285,14 @@ Future<void> _pumpUntil(
   fail(
     'Timed out in Event V2 trigger battle anchor integration '
     '(phase=${game.debugFlowPhaseName}, '
-    'notification=${game.debugNotificationText}).',
+    'notification=${game.debugNotificationText}, '
+    'spatial=${game.debugIsNarrativeSpatialDispatchInFlight}, '
+    'outcome=${game.debugIsNarrativeOutcomeWorkInFlight}, '
+    'sceneBattle=${game.debugHasPendingSceneBattle}, '
+    'pendingTrigger=${game.debugPendingNarrativeTriggerEntryCount}, '
+    'position=${game.debugPlayerGridPosition}, '
+    'party=${game.gameStateSnapshot.party.members.map((member) => member.currentHp).toList()}, '
+    'pendingOutcomes=${game.gameStateSnapshot.narrativeEventProgress.pendingNarrativeOutcomeDeliveries}).',
   );
 }
 

@@ -149,22 +149,21 @@ Guide: Merci.
       expect(emitted, contains('<<unknown data>>'));
     });
 
-    test('explicit entry node survives reload even after independent reorder',
-        () {
-      final document = DialogueEditorDocument(
-        entryNodeId: 'second',
-        nodes: [
-          DialogueEditorNode(id: 'first', title: 'First', steps: []),
-          DialogueEditorNode(id: 'second', title: 'Second', steps: []),
-        ],
+    test('manifest entry title selects entry without reordering Yarn nodes', () {
+      const yarn = 'title: First\n---\n===\n'
+          'title: Second\n---\n===\n';
+
+      final document = parseYarnToDocument(
+        yarn,
+        entryNodeTitle: 'Second',
       );
 
-      final emitted = emitDocumentToYarn(document);
-      final reloaded = parseYarnToDocument(emitted);
-
-      expect(emitted, startsWith('title: Second'));
-      expect(reloaded.nodes.first.title, 'Second');
-      expect(reloaded.effectiveEntryNodeId, reloaded.nodes.first.id);
+      expect(document.nodes.first.title, 'First');
+      expect(
+        document.nodeById(document.effectiveEntryNodeId!)!.title,
+        'Second',
+      );
+      expect(emitDocumentToYarn(document), yarn);
     });
   });
 }

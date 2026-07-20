@@ -64407,10 +64407,15 @@
               "kind": "fact",
               "factId": "fact_lighthouse_old_note_read",
               "expectedValue": true
+            },
+            {
+              "kind": "fact",
+              "factId": "fact_lighthouse_guardian_1_defeated",
+              "expectedValue": false
             }
           ],
           "sceneId": "scene_lighthouse_guardian_1",
-          "reusePolicy": "oneShot",
+          "reusePolicy": "reusable",
           "priority": 0,
           "order": 26
         },
@@ -64436,10 +64441,15 @@
               "kind": "fact",
               "factId": "fact_lighthouse_guardian_1_defeated",
               "expectedValue": true
+            },
+            {
+              "kind": "fact",
+              "factId": "fact_lighthouse_guardian_2_defeated",
+              "expectedValue": false
             }
           ],
           "sceneId": "scene_lighthouse_guardian_2",
-          "reusePolicy": "oneShot",
+          "reusePolicy": "reusable",
           "priority": 0,
           "order": 27
         },
@@ -64465,10 +64475,15 @@
               "kind": "fact",
               "factId": "fact_lighthouse_guardian_2_defeated",
               "expectedValue": true
+            },
+            {
+              "kind": "fact",
+              "factId": "fact_mist_source_resolved",
+              "expectedValue": false
             }
           ],
           "sceneId": "scene_final_pokemon",
-          "reusePolicy": "oneShot",
+          "reusePolicy": "reusable",
           "priority": 0,
           "order": 28
         },

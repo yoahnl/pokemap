@@ -2855,6 +2855,10 @@ void _seedEventRegistry(Map<String, dynamic> project) {
       order: 25,
       conditions: _factsTrue(<String>['fact_lighthouse_reached']),
     ),
+    // A defeat is a completed Scene outcome, so these battles must stay
+    // reusable until their terminal victory Fact closes the trigger. This
+    // keeps the retry policy in authored data instead of teaching the generic
+    // Event coordinator which battle outcomes should count as success.
     _event(
       _eventGuardian1,
       'Affronter le premier écho du phare',
@@ -2864,7 +2868,14 @@ void _seedEventRegistry(Map<String, dynamic> project) {
       ),
       'scene_lighthouse_guardian_1',
       order: 26,
-      conditions: _factsTrue(<String>['fact_lighthouse_old_note_read']),
+      conditions: <NarrativeEventCondition>[
+        ..._factsTrue(<String>['fact_lighthouse_old_note_read']),
+        NarrativeEventCondition.fact(
+          'fact_lighthouse_guardian_1_defeated',
+          false,
+        ),
+      ],
+      reusePolicy: NarrativeEventReusePolicy.reusable,
     ),
     _event(
       _eventGuardian2,
@@ -2875,10 +2886,17 @@ void _seedEventRegistry(Map<String, dynamic> project) {
       ),
       'scene_lighthouse_guardian_2',
       order: 27,
-      conditions: _factsTrue(<String>[
-        'fact_lighthouse_old_note_read',
-        'fact_lighthouse_guardian_1_defeated',
-      ]),
+      conditions: <NarrativeEventCondition>[
+        ..._factsTrue(<String>[
+          'fact_lighthouse_old_note_read',
+          'fact_lighthouse_guardian_1_defeated',
+        ]),
+        NarrativeEventCondition.fact(
+          'fact_lighthouse_guardian_2_defeated',
+          false,
+        ),
+      ],
+      reusePolicy: NarrativeEventReusePolicy.reusable,
     ),
     _event(
       _eventBoss,
@@ -2887,10 +2905,14 @@ void _seedEventRegistry(Map<String, dynamic> project) {
           'map_sommet_phare', 'tr_sommet_confrontation'),
       'scene_final_pokemon',
       order: 28,
-      conditions: _factsTrue(<String>[
-        'fact_lighthouse_top_unlocked',
-        'fact_lighthouse_guardian_2_defeated',
-      ]),
+      conditions: <NarrativeEventCondition>[
+        ..._factsTrue(<String>[
+          'fact_lighthouse_top_unlocked',
+          'fact_lighthouse_guardian_2_defeated',
+        ]),
+        NarrativeEventCondition.fact('fact_mist_source_resolved', false),
+      ],
+      reusePolicy: NarrativeEventReusePolicy.reusable,
     ),
     _event(
       _eventMistDisperses,

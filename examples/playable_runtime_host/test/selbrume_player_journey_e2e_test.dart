@@ -50,12 +50,11 @@ const Set<String> _oneShotsThroughLighthouseGuardians = <String>{
   'evt_019abcde-5000-7000-8000-000000000029',
   'evt_019abcde-5000-7000-8000-000000000030',
   'evt_019abcde-5000-7000-8000-000000000025',
-  'evt_019abcde-5000-7000-8000-000000000026',
-  'evt_019abcde-5000-7000-8000-000000000027',
 };
 const Set<String> _oneShotsThroughBoss = <String>{
   ..._oneShotsThroughLighthouseGuardians,
-  'evt_019abcde-5000-7000-8000-000000000028',
+  // The two guardians and the boss are reusable until their victory Facts
+  // become true. Their IDs intentionally never enter the one-shot ledger.
   'evt_019abcde-5000-7000-8000-000000000036',
 };
 const Set<String> _oneShotsThroughEpilogue = <String>{
@@ -284,7 +283,7 @@ void main() {
         'after_lysa',
         expectedConsumedEventIds: _oneShotsThroughLysaVictory,
       );
-      await journey.expectConsumedTriggerDoesNotReplay('zone_port_entry');
+      await journey.expectInactiveTriggerDoesNotReplay('zone_port_entry');
 
       await journey.crossConnection(MapConnectionDirection.north);
       await journey.crossConnection(
@@ -444,7 +443,7 @@ void main() {
         ),
         isFalse,
       );
-      await journey.expectConsumedTriggerDoesNotReplay(
+      await journey.expectInactiveTriggerDoesNotReplay(
         'tr_sommet_confrontation',
       );
 
@@ -703,7 +702,7 @@ final class _SelbrumeJourney {
     return projection.isMapEntityVisible(entity);
   }
 
-  Future<void> expectConsumedTriggerDoesNotReplay(String triggerId) async {
+  Future<void> expectInactiveTriggerDoesNotReplay(String triggerId) async {
     final trigger = _currentMap.triggers.singleWhere(
       (entry) => entry.id == triggerId,
     );
@@ -718,13 +717,13 @@ final class _SelbrumeJourney {
       () =>
           !game.debugIsNarrativeSpatialDispatchInFlight &&
           !game.debugIsNarrativeOutcomeWorkInFlight,
-      label: 'consumed trigger $triggerId skip',
+      label: 'inactive trigger $triggerId skip',
       maxTicks: 1000,
     );
     expect(
       game.debugFlowPhaseName,
       'overworld',
-      reason: 'Consumed trigger $triggerId must not replay authored flow.',
+      reason: 'Inactive trigger $triggerId must not replay authored flow.',
     );
     expect(game.debugPendingBattleRequest, isNull);
     expect(

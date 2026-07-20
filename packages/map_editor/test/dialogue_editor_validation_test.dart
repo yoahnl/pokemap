@@ -108,9 +108,12 @@ void main() {
       expect(duplicated.nodes[2].steps.single.id, isNot('line'));
 
       final reordered = duplicated.moveNode(2, 1).selectEntryNode('second');
-      expect(reordered.nodes.first.id, 'second');
+      expect(reordered.nodes.first.id, 'start');
       expect(reordered.entryNodeId, 'second');
-      expect(reordered.nodes.first.steps.first, isA<DeStartStep>());
+      expect(
+        reordered.nodeById('second')!.steps.first,
+        isA<DeStartStep>(),
+      );
 
       final deleted = reordered.deleteNode('second');
       expect(deleted.nodes, hasLength(2));

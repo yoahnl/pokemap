@@ -13,7 +13,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
-    'canonical lighthouse boss uses the PlayableMapGame static battle pipeline',
+    'canonical static boss returns to overworld and can retry after defeat',
     () async {
       final fixture = SelbrumeEventV2RuntimeFixture.locateCanonical();
       final source = await loadRuntimeMapBundle(
@@ -37,8 +37,8 @@ void main() {
                   natureId: 'hardy',
                   abilityId: 'overgrow',
                   level: 100,
-                  knownMoveIds: <String>['tackle'],
-                  currentHp: 999,
+                  knownMoveIds: <String>['tackle', 'growl'],
+                  currentHp: 1,
                 ),
               ],
             ),
@@ -85,7 +85,47 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      await _chooseFirstMoveUntilBattleEnds(game);
+      await _chooseMoveUntilBattleEnds(game, chooseStatusMove: true);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'overworld');
+      expect(
+        game.gameStateSnapshot.narrativeFactRuntimeState
+            .overridesByFactId['fact_mist_source_resolved'],
+        isNot(isTrue),
+      );
+      expect(
+        game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
+        isNot(contains(_bossEventId)),
+      );
+      expect(
+        game.gameStateSnapshot.party.members.single.currentHp,
+        greaterThan(0),
+        reason: 'Defeat recovery must leave a playable party for the retry.',
+      );
+      await _pumpUntil(
+        game,
+        () =>
+            !game.debugIsNarrativeSpatialDispatchInFlight &&
+            !game.debugIsNarrativeOutcomeWorkInFlight &&
+            !game.debugHasPendingSceneBattle,
+      );
+      expect(game.debugIsGameplayInputLocked, isFalse);
+
+      await _move(game, RuntimeInputControl.down);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 12, y: 11));
+      await _move(game, RuntimeInputControl.up);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 12, y: 10));
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+      await _completeOpenDialogue(game);
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugFlowPhaseName == 'battleTransition' ||
+            game.debugFlowPhaseName == 'battle',
+      );
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'battle');
+      await game.debugWaitForBattleOverlaySync();
+
+      await _chooseMoveUntilBattleEnds(game);
       await _pumpUntil(
         game,
         () =>
@@ -97,7 +137,9 @@ void main() {
 
       expect(
         game.gameStateSnapshot.narrativeEventProgress.consumedNarrativeEventIds,
-        contains(_bossEventId),
+        isNot(contains(_bossEventId)),
+        reason: 'Victory closes this reusable trigger through the resolved '
+            'mist Fact, not through one-shot consumption.',
       );
       expect(
         game.gameStateSnapshot.storyFlags.activeFlags,
@@ -177,34 +219,84 @@ Future<void> _completeOpenDialogue(PlayableMapGame game) async {
   fail('The canonical boss Yarn stayed open after 20 explicit inputs.');
 }
 
-Future<void> _chooseFirstMoveUntilBattleEnds(PlayableMapGame game) async {
+Future<void> _chooseMoveUntilBattleEnds(
+  PlayableMapGame game, {
+  bool chooseStatusMove = false,
+}) async {
   for (var turn = 0; turn < 80; turn++) {
     if (game.debugFlowPhaseName != 'battle') return;
-    expect(
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      ),
-      isTrue,
-    );
-    await game.debugWaitForBattleOverlaySync();
+    await _waitForBattleInputReady(game);
     if (game.debugFlowPhaseName != 'battle') return;
-    expect(
-      game.handleRuntimeInputEvent(
-        const RuntimeInputEvent.press(RuntimeInputControl.primary),
-      ),
-      isTrue,
+    final overlay = game.debugBattleOverlayComponent;
+    expect(overlay, isNotNull);
+    final activeOverlay = overlay!;
+    if (activeOverlay.currentMenuMode.name == 'continueOnly') {
+      _pressPrimary(game);
+      await _waitForBattleInputReady(game);
+      continue;
+    }
+    for (var back = 0;
+        back < 3 && activeOverlay.currentMenuMode.name != 'root';
+        back++) {
+      expect(game.backFromBattleOverlay(), isTrue);
+      await _microPump(game);
+    }
+    expect(activeOverlay.currentMenuMode.name, 'root');
+    _pressPrimary(game);
+    await _microPump(game);
+    expect(activeOverlay.currentMenuMode.name, 'fight');
+
+    final battle = game.debugBattleSessionSnapshot;
+    expect(battle, isNotNull);
+    final moveIndex = battle!.state.player.moves.indexWhere(
+      (move) => chooseStatusMove ? move.power == 0 : move.power > 0,
     );
-    await game.debugWaitForBattleOverlaySync();
-    await _pumpUntil(
-      game,
-      () {
-        if (game.debugFlowPhaseName != 'battle') return true;
-        final overlay = game.debugBattleOverlayComponent;
-        return overlay != null && !overlay.isTurnPresentationActive;
-      },
-    );
+    expect(moveIndex, greaterThanOrEqualTo(0));
+    if (moveIndex >= 2) {
+      await _pressBattleDirection(game, RuntimeInputControl.down);
+    }
+    if (moveIndex.isOdd) {
+      await _pressBattleDirection(game, RuntimeInputControl.right);
+    }
+    _pressPrimary(game);
+    await _waitForBattleInputReady(game);
   }
   fail('The canonical static boss battle exceeded 80 real turns.');
+}
+
+Future<void> _waitForBattleInputReady(PlayableMapGame game) async {
+  await game.debugWaitForBattleOverlaySync();
+  await _pumpUntil(
+    game,
+    () =>
+        game.debugFlowPhaseName != 'battle' ||
+        !(game.debugBattleOverlayComponent?.isTurnPresentationActive ?? false),
+  );
+}
+
+void _pressPrimary(PlayableMapGame game) {
+  expect(
+    game.handleRuntimeInputEvent(
+      const RuntimeInputEvent.press(RuntimeInputControl.primary),
+    ),
+    isTrue,
+  );
+}
+
+Future<void> _pressBattleDirection(
+  PlayableMapGame game,
+  RuntimeInputControl control,
+) async {
+  expect(
+    game.handleRuntimeInputEvent(RuntimeInputEvent.press(control)),
+    isTrue,
+  );
+  await _microPump(game);
+}
+
+Future<void> _microPump(PlayableMapGame game) async {
+  game.update(0.016);
+  await Future<void>.delayed(Duration.zero);
 }
 
 Future<void> _pumpUntil(

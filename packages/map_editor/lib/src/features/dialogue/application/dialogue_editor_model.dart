@@ -315,15 +315,16 @@ class DialogueEditorDocument {
     );
   }
 
-  /// Selects and persists an entry by moving the node to the first Yarn block.
+  /// Selects the entry while preserving the author's visual node order.
+  ///
+  /// Persistence belongs to `ProjectDialogueEntry.defaultStartNode`; the Yarn
+  /// body itself therefore does not need to be reordered for this metadata.
   DialogueEditorDocument selectEntryNode(String nodeId) {
     final sourceIndex = nodes.indexWhere((node) => node.id == nodeId);
     if (sourceIndex < 0) {
       throw ArgumentError.value(nodeId, 'nodeId', 'Unknown dialogue node.');
     }
     final next = nodes.map(_cloneDialogueNode).toList();
-    final entry = next.removeAt(sourceIndex);
-    next.insert(0, entry);
     return _normalizeDialogueEntryMarkers(
       DialogueEditorDocument(
         nodes: next,

@@ -206,6 +206,27 @@ class ProjectContentController {
     );
   }
 
+  Future<EditorState> updateProjectDialogueDefaultStartNode({
+    required EditorState current,
+    required ProjectWorkspace? workspace,
+    required String dialogueId,
+    required String? defaultStartNode,
+  }) async {
+    return _runProjectMutation(
+      current: current,
+      workspace: workspace,
+      mutate: (ws, project) => _updateProjectDialogueUseCase.execute(
+        ws,
+        project,
+        dialogueId: dialogueId,
+        defaultStartNode: defaultStartNode,
+        clearDefaultStartNode: defaultStartNode == null,
+      ),
+      statusMessage: 'Dialogue entry node updated',
+      errorPrefix: 'Failed to update dialogue entry node',
+    );
+  }
+
   Future<EditorState> deleteProjectDialogue({
     required EditorState current,
     required ProjectWorkspace? workspace,

@@ -262,14 +262,20 @@ DialogueEditorStep _convertParsedStep(_PStep step) {
 /// Insertion du bloc « Début » sur le premier nœud pour coller au wireframe produit.
 void _ensureStartMarker(DialogueEditorDocument doc) {
   if (doc.nodes.isEmpty) return;
-  final first = doc.nodes.first;
-  if (first.steps.isEmpty || first.steps.first is! DeStartStep) {
-    first.steps.insert(0, DeStartStep(id: newDialogueEditorId()));
+  final entryId = doc.effectiveEntryNodeId;
+  for (final node in doc.nodes) {
+    node.steps.removeWhere((step) => step is DeStartStep);
+    if (node.id == entryId) {
+      node.steps.insert(0, DeStartStep(id: newDialogueEditorId()));
+    }
   }
 }
 
 /// Point d’entrée : chaîne `.yarn` → document éditable.
-DialogueEditorDocument parseYarnToDocument(String content) {
+DialogueEditorDocument parseYarnToDocument(
+  String content, {
+  String? entryNodeTitle,
+}) {
   final parsed = _parseYarnToParsedNodes(content);
   final nodes = <DialogueEditorNode>[];
   for (final p in parsed) {
@@ -282,9 +288,19 @@ DialogueEditorDocument parseYarnToDocument(String content) {
       ),
     );
   }
+  String? entryNodeId;
+  final requestedEntry = entryNodeTitle?.trim();
+  if (requestedEntry != null && requestedEntry.isNotEmpty) {
+    for (final node in nodes) {
+      if (node.title.trim() == requestedEntry) {
+        entryNodeId = node.id;
+        break;
+      }
+    }
+  }
   var doc = DialogueEditorDocument(
     nodes: nodes,
-    entryNodeId: nodes.isEmpty ? null : nodes.first.id,
+    entryNodeId: entryNodeId ?? (nodes.isEmpty ? null : nodes.first.id),
   );
   _ensureStartMarker(doc);
   final canonical = _emitCanonicalDocument(doc);
@@ -359,15 +375,7 @@ void _emitStep(StringBuffer sb, DialogueEditorStep step, String indent) {
 /// Sérialise le document vers le texte `.yarn` (un bloc `title` / `---` / `===` par nœud).
 String _emitCanonicalDocument(DialogueEditorDocument doc) {
   final sb = StringBuffer();
-  // The simplified Yarn wire has no document-level entry field. Emitting the
-  // selected entry first makes the choice survive a disk reload even if a
-  // caller reordered the in-memory list independently.
-  final entryId = doc.effectiveEntryNodeId;
-  final orderedNodes = <DialogueEditorNode>[
-    if (entryId != null) ...doc.nodes.where((node) => node.id == entryId),
-    ...doc.nodes.where((node) => node.id != entryId),
-  ];
-  for (final node in orderedNodes) {
+  for (final node in doc.nodes) {
     sb.writeln('title: ${node.title.trim()}');
     for (final header in node.headers) {
       final name = header.name.trim();

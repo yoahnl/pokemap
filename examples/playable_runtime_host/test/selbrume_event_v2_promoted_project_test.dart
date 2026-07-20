@@ -20,7 +20,7 @@ const _clueEventId = 'evt_019abcde-4000-7000-8000-000000000003';
 const _lysaTrainerId = 'trainer_lysa_port';
 const _lysaWorldRuleId = 'world_rule_lysa_port_resolved';
 const _canonicalSeededProjectManifestSha256 =
-    'sha256:b62423b77b97f2d10bfb9ee5be8cef006607bf5a4aa60e00b341608462c48e26';
+    'sha256:2e5ebbeb916f09261d874d3420dc0d32dde1febbf2bd6eb12492f08071d39166';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

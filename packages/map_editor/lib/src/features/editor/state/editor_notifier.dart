@@ -10270,6 +10270,26 @@ class EditorNotifier extends _$EditorNotifier {
     return false;
   }
 
+  Future<bool> updateProjectDialogueDefaultStartNode({
+    required String dialogueId,
+    required String? defaultStartNode,
+  }) async {
+    state = await _projectContentController.updateProjectDialogueDefaultStartNode(
+      current: state,
+      workspace: _projectWorkspace,
+      dialogueId: dialogueId,
+      defaultStartNode: defaultStartNode,
+    );
+    if (state.errorMessage != null) return false;
+    for (final dialogue in state.project?.dialogues ??
+        const <ProjectDialogueEntry>[]) {
+      if (dialogue.id == dialogueId) {
+        return dialogue.defaultStartNode == defaultStartNode;
+      }
+    }
+    return false;
+  }
+
   Future<void> deleteProjectDialogue(String dialogueId) async {
     state = await _projectContentController.deleteProjectDialogue(
       current: state,

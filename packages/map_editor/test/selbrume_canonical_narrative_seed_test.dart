@@ -499,6 +499,29 @@ void _expectCanonicalEventProgression(ProjectManifest manifest) {
     contains((factId: 'fact_cabin_quest_started', value: false)),
   );
 
+  // The lighthouse defeat branches complete normally. Their Events therefore
+  // stay reusable until a persisted victory Fact makes the source ineligible;
+  // otherwise a single loss would consume the only route to the epilogue.
+  const lighthouseRetryFacts = <String, String>{
+    'evt_019abcde-5000-7000-8000-000000000026':
+        'fact_lighthouse_guardian_1_defeated',
+    'evt_019abcde-5000-7000-8000-000000000027':
+        'fact_lighthouse_guardian_2_defeated',
+    'evt_019abcde-5000-7000-8000-000000000028': 'fact_mist_source_resolved',
+  };
+  for (final entry in lighthouseRetryFacts.entries) {
+    final encounter = definitions[entry.key]!;
+    expect(encounter.reusePolicy, NarrativeEventReusePolicy.reusable);
+    expect(
+      encounter.conditions.map((condition) => condition.when(
+            fact: (factId, value) => (factId: factId, value: value),
+            narrativeEventConsumed: (_, __) => null,
+          )),
+      contains((factId: entry.value, value: false)),
+      reason: '${entry.key} must close permanently after victory.',
+    );
+  }
+
   final mistDispersal =
       definitions['evt_019abcde-5000-7000-8000-000000000036']!;
   expect(mistDispersal.sceneId, 'scene_mist_disperses');
