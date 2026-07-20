@@ -370,6 +370,7 @@ void main() {
       for (final metric in model.metrics.all) {
         expect(metric.sourceLabel.trim(), isNotEmpty, reason: metric.id);
       }
+      expect(model.metrics.legacyRemaining.count, isNonNegative);
     });
 
     test('does not fabricate activity when the durable journal is empty', () {

@@ -76,6 +76,7 @@ void main() {
         'Quêtes annexes',
         'Dialogues',
         'Problèmes ouverts',
+        'Legacy restant',
       ]) {
         expect(find.text(label), findsWidgets);
       }
@@ -86,6 +87,7 @@ void main() {
         'quests',
         'dialogues',
         'open_issues',
+        'legacy_remaining',
       ]) {
         expect(
           find.byKey(ValueKey('narrative-overview-kpi-$metricId')),

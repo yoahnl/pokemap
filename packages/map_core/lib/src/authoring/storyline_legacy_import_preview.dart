@@ -183,6 +183,12 @@ StorylineLegacyGlobalStoryImportPreview buildLegacyGlobalStoryImportPreview(
 
   final existingStorylineIds =
       manifest.storylines.map((storyline) => storyline.id).toSet();
+  final importedSourceIds = <String>{
+    for (final storyline in manifest.storylines)
+      if (storyline.legacySource?.kind == _legacyGlobalStorySourceKind &&
+          storyline.legacySource?.metadata['imported'] == 'true')
+        storyline.legacySource!.sourceId,
+  };
   for (final scenario in globalStories) {
     candidates.add(
       _buildCandidate(
@@ -195,6 +201,9 @@ StorylineLegacyGlobalStoryImportPreview buildLegacyGlobalStoryImportPreview(
   return StorylineLegacyGlobalStoryImportPreview(
     candidates: candidates,
     issues: previewIssues,
+    alreadyImportedSourceCount: globalStories
+        .where((scenario) => importedSourceIds.contains(scenario.id))
+        .length,
   );
 }
 
@@ -203,6 +212,7 @@ class StorylineLegacyGlobalStoryImportPreview {
     List<StorylineLegacyGlobalStoryImportCandidate> candidates =
         const <StorylineLegacyGlobalStoryImportCandidate>[],
     List<StorylineValidationIssue> issues = const <StorylineValidationIssue>[],
+    this.alreadyImportedSourceCount = 0,
   })  : candidates =
             List<StorylineLegacyGlobalStoryImportCandidate>.unmodifiable(
           candidates,
@@ -211,6 +221,16 @@ class StorylineLegacyGlobalStoryImportPreview {
 
   final List<StorylineLegacyGlobalStoryImportCandidate> candidates;
   final List<StorylineValidationIssue> issues;
+  final int alreadyImportedSourceCount;
+
+  int get legacyRemainingCount =>
+      candidates.length - alreadyImportedSourceCount;
+
+  bool get backupRequired => legacyRemainingCount > 0;
+
+  String get readerRemovalCondition => legacyRemainingCount == 0
+      ? 'Toutes les GlobalStory legacy ont un reçu canonique.'
+      : 'Conserver le reader jusqu’à import sans perte de chaque GlobalStory.';
 
   bool get hasCandidates => candidates.isNotEmpty;
 

@@ -11,6 +11,7 @@ import 'package:map_editor/src/application/services/narrative_template_catalog.d
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_plan_loader.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
+import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_legacy_migration_center.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 const _referenceCinematicSurfaceSize = Size(1663, 926);
@@ -41,6 +42,12 @@ void main() {
       find.byKey(const ValueKey('cinematics-library-open-legacy-button')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(
+        const ValueKey('cinematics-library-open-migration-center'),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Nouvelle cinématique'), findsNothing);
     expect(
       find.byKey(const ValueKey('cinematics-library-create-title-field')),
@@ -68,6 +75,16 @@ void main() {
       ),
     );
     expect(editable.focusNode.hasFocus, isTrue);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey('cinematics-library-open-migration-center'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(narrativeLegacyMigrationCenterKey), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('migration-center-close')));
+    await tester.pumpAndSettle();
 
     await tester.tap(
       find.byKey(const ValueKey('cinematics-library-open-legacy-button')),

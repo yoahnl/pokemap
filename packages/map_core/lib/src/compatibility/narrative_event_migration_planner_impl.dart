@@ -125,6 +125,10 @@ final class NarrativeEventMigrationPlanner {
           plan.items.where((item) => item.choiceApplied).length,
       legacyRuntimeActive: mode != EventSystemMode.v2Only,
       retirement: retirement,
+      backupRequired: legacyMapEventCount != 0 ||
+          legacyScenarioSourceCount != 0 ||
+          legacyClaimCount != 0,
+      minimumProjectVersion: 'v1',
     );
   }
 

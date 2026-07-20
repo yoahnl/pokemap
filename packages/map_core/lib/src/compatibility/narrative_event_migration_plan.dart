@@ -131,6 +131,8 @@ final class NarrativeEventMigrationImpactPreview {
     required this.confirmedChoiceCount,
     required this.legacyRuntimeActive,
     required this.retirement,
+    required this.backupRequired,
+    required this.minimumProjectVersion,
   });
 
   final int claimCount;
@@ -141,6 +143,13 @@ final class NarrativeEventMigrationImpactPreview {
   final int confirmedChoiceCount;
   final bool legacyRuntimeActive;
   final NarrativeEventLegacyRetirementAssessment retirement;
+  final bool backupRequired;
+  final String minimumProjectVersion;
+
+  String get readerRemovalCondition => retirement.readyToRemoveLegacyPath
+      ? 'Le reader Event legacy peut être retiré.'
+      : 'Conserver le reader jusqu’au mode v2Only, sans source, claim ou '
+          'blocage de migration restant.';
 }
 
 @immutable

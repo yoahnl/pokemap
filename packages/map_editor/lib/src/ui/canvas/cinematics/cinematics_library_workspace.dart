@@ -10,6 +10,7 @@ import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
 import '../narrative_studio/narrative_studio_route_presentation.dart';
+import '../narrative_studio/narrative_legacy_migration_center.dart';
 import '../narrative_studio/narrative_studio_workspace_page.dart';
 import 'cinematic_actor_sprite_preview_plan.dart';
 import 'cinematic_actor_sprite_preview_resolver.dart';
@@ -505,6 +506,7 @@ class _CinematicsLibraryWorkspaceState
       _loadingBackdropTileRenderPlanMapId = null;
       _loadingStageMapSourceCatalogMapId = null;
     }
+    final migrationScan = buildNarrativeLegacyMigrationScan(widget.project);
 
     return Material(
       type: MaterialType.transparency,
@@ -514,12 +516,25 @@ class _CinematicsLibraryWorkspaceState
         )!,
         actions: [
           PokeMapButton(
+            key: const ValueKey('cinematics-library-open-migration-center'),
+            onPressed: () => showNarrativeLegacyMigrationCenter(
+              context: context,
+              scan: migrationScan,
+            ),
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.small,
+            leading: const Icon(CupertinoIcons.arrow_2_circlepath),
+            child: Text(
+              'Migration (${migrationScan.legacyRemainingCount})',
+            ),
+          ),
+          PokeMapButton(
             key: const ValueKey('cinematics-library-open-legacy-button'),
             onPressed: widget.onOpenLegacyCutsceneStudio,
             variant: PokeMapButtonVariant.secondary,
             size: PokeMapButtonSize.small,
             leading: const Icon(CupertinoIcons.archivebox),
-            child: const Text('Ouvrir l’ancien Cutscene Studio'),
+            child: const Text('Lire l’ancien Cutscene Studio'),
           ),
         ],
         body: PokeMapPageSurface(

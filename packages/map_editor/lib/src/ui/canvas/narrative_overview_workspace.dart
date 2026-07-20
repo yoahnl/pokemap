@@ -233,6 +233,7 @@ class _OverviewMainColumn extends StatelessWidget {
             readModel.metrics.quests,
             readModel.metrics.dialogues,
             readModel.metrics.openIssues,
+            readModel.metrics.legacyRemaining,
           ],
           onOpenStorylines: onOpenStorylines,
           onOpenScenes: onOpenScenes,
@@ -1290,6 +1291,7 @@ class _KpiCardsSection extends StatelessWidget {
       'cutscenes' => onOpenCutscenes,
       'dialogues' => onOpenDialogues,
       'open_issues' => onOpenValidator,
+      'legacy_remaining' => onOpenValidator,
       _ => null,
     };
   }
@@ -1488,6 +1490,7 @@ IconData _metricIcon(String metricId) {
     'quests' => CupertinoIcons.flag_fill,
     'dialogues' => CupertinoIcons.chat_bubble_2_fill,
     'open_issues' => CupertinoIcons.exclamationmark_triangle_fill,
+    'legacy_remaining' => CupertinoIcons.archivebox_fill,
     _ => CupertinoIcons.chart_bar_fill,
   };
 }

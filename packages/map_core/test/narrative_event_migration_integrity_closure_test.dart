@@ -62,6 +62,9 @@ void main() {
       );
       expect(impact.collisionCount, 1);
       expect(impact.retirement.migrationBlockerCount, greaterThan(0));
+      expect(impact.backupRequired, isTrue);
+      expect(impact.minimumProjectVersion, 'v1');
+      expect(impact.readerRemovalCondition, contains('Conserver'));
     });
 
     test('3. rejects confirmCandidate outside projection candidates', () {

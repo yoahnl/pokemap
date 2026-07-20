@@ -108,6 +108,7 @@ class NarrativeOverviewMetrics {
     required this.conditions,
     required this.worldRules,
     required this.facts,
+    required this.legacyRemaining,
   });
 
   final NarrativeMetricSummary chapters;
@@ -120,6 +121,7 @@ class NarrativeOverviewMetrics {
   final NarrativeMetricSummary conditions;
   final NarrativeMetricSummary worldRules;
   final NarrativeMetricSummary facts;
+  final NarrativeMetricSummary legacyRemaining;
 
   List<NarrativeMetricSummary> get all => <NarrativeMetricSummary>[
         chapters,
@@ -132,6 +134,7 @@ class NarrativeOverviewMetrics {
         conditions,
         worldRules,
         facts,
+        legacyRemaining,
       ];
 }
 
@@ -512,6 +515,15 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
               ? 'Validation narrative locale'
               : 'NarrativeProjectValidationReport.diagnostics',
         ).copyWithAvailability(NarrativeOverviewAvailability.available);
+  final legacyScan = buildNarrativeLegacyMigrationScan(project);
+  final legacyRemaining = _metricWithCount(
+    id: 'legacy_remaining',
+    label: 'Legacy restant',
+    count: legacyScan.legacyRemainingCount,
+    emptyStateMessage: 'Aucune source legacy Narrative restante.',
+    unavailableMessage: 'Inventaire legacy indisponible.',
+    sourceLabel: 'NarrativeLegacyMigrationScan schema 1',
+  );
 
   final metrics = NarrativeOverviewMetrics(
     chapters: chapters,
@@ -543,6 +555,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     conditions: conditions,
     worldRules: worldRules,
     facts: facts,
+    legacyRemaining: legacyRemaining,
   );
 
   final modules = _buildModules(

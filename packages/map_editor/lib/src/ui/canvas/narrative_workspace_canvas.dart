@@ -3640,6 +3640,7 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
                   ),
                 )
               : CutsceneStudioWorkspace(
+                  readOnly: true,
                   editorNotifier: editorNotifier,
                   project: project!,
                   activeMap: activeMap,

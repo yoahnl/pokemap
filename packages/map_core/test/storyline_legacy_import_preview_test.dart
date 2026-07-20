@@ -5,6 +5,16 @@ import 'package:test/test.dart';
 
 void main() {
   group('buildLegacyGlobalStoryImportPreview', () {
+    test('exposes remaining legacy count and reader retirement condition', () {
+      final preview = buildLegacyGlobalStoryImportPreview(
+        _manifest(scenarios: [_globalStory(id: 'story', name: 'Story')]),
+      );
+
+      expect(preview.legacyRemainingCount, 1);
+      expect(preview.backupRequired, isTrue);
+      expect(preview.readerRemovalCondition, contains('Conserver'));
+    });
+
     test('reports no legacy globalStory when manifest has none', () {
       final preview = buildLegacyGlobalStoryImportPreview(_manifest());
 

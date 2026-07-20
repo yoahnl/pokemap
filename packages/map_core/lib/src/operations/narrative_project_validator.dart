@@ -5,6 +5,7 @@ import '../diagnostics/event_scene_link_diagnostics.dart';
 import '../diagnostics/scene_diagnostics.dart';
 import '../diagnostics/storyline_scene_link_diagnostics.dart';
 import '../diagnostics/world_rule_diagnostics.dart';
+import '../compatibility/cinematic_legacy_migration_plan.dart';
 import '../models/enums.dart';
 import '../models/map_data.dart';
 import '../models/map_event_definition.dart';
@@ -439,6 +440,32 @@ void _appendLegacyNarrativeDiagnostics(
         mapId: diagnostic.mapId,
         sceneId: diagnostic.scenarioId,
         dialogueId: _legacyDialogueId(diagnostic),
+      ),
+    );
+  }
+  final migrationScan = buildNarrativeLegacyMigrationScan(
+    project,
+    legacyMapEventCount: maps.fold(
+      0,
+      (sum, map) => sum + map.events.length,
+    ),
+  );
+  if (migrationScan.legacyRemainingCount > 0) {
+    target.add(
+      NarrativeProjectDiagnostic(
+        code: 'narrativeLegacyRemaining',
+        severity:
+            migrationScan.blockerCount > 0 || migrationScan.lossRiskCount > 0
+                ? NarrativeProjectDiagnosticSeverity.warning
+                : NarrativeProjectDiagnosticSeverity.info,
+        domain: NarrativeProjectDiagnosticDomain.runtime,
+        message:
+            '${migrationScan.legacyRemainingCount} source(s) narrative legacy '
+            'restent visibles. Ouvrir le centre de migration avant de retirer '
+            'les readers de compatibilité.',
+        path: 'narrativeMigration.schema${migrationScan.schemaVersion}',
+        destination: NarrativeProjectDiagnosticDestination.overview,
+        suggestedFixLabel: 'Examiner le dry-run consolidé.',
       ),
     );
   }

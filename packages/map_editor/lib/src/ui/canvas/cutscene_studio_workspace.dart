@@ -41,6 +41,7 @@ class CutsceneStudioWorkspace extends StatefulWidget {
     required this.onSelectCutscene,
     required this.onSelectOutcome,
     this.onOpenDialogueStudio,
+    this.readOnly = false,
   });
 
   final EditorNotifier editorNotifier;
@@ -50,6 +51,7 @@ class CutsceneStudioWorkspace extends StatefulWidget {
   final NarrativeScenarioSummary? selectedCutscene;
   final ValueChanged<String> onSelectCutscene;
   final ValueChanged<String?> onSelectOutcome;
+  final bool readOnly;
 
   /// Point d’entrée produit : depuis un bloc « dialogue » cutscene → Dialogue Studio.
   final ValueChanged<String>? onOpenDialogueStudio;
@@ -459,7 +461,11 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
       _savedDocument != null &&
       _draftDocument != _savedDocument;
 
-  bool get _canEdit => !_busy && _draftDocument != null && _isStudioCompatible;
+  bool get _canEdit =>
+      !widget.readOnly &&
+      !_busy &&
+      _draftDocument != null &&
+      _isStudioCompatible;
 
   void _replaceDraft(CutsceneStudioDocument next) {
     setState(() {
@@ -706,12 +712,23 @@ class _CutsceneStudioWorkspaceState extends State<CutsceneStudioWorkspace> {
         flowSummaryBuilder: _flowSummaryLine,
         inspector: _buildWorkbenchInspector(context, draft),
         sourceStrip: _buildCompactSourceStrip(context, draft),
-        compatibilityBanner: !_isStudioCompatible
-            ? Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: _CompatibilityWarningCard(warnings: _compatWarnings),
+        compatibilityBanner: widget.readOnly
+            ? const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: _CompatibilityWarningCard(
+                  warnings: [
+                    'Lecture seule : cette source legacy reste accessible '
+                        'pour le dry-run, la comparaison et le rollback. '
+                        'Créez ou modifiez désormais la Cinematic canonique.',
+                  ],
+                ),
               )
-            : null,
+            : !_isStudioCompatible
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: _CompatibilityWarningCard(warnings: _compatWarnings),
+                  )
+                : null,
         runtimeHonestyBanner: _isStudioCompatible
             ? _runtimeHonestyBannerIfAny(context, draft)
             : null,
