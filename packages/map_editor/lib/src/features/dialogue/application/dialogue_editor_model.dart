@@ -108,6 +108,20 @@ class DialogueEditorNodeHeader {
   int get hashCode => Object.hash(name, value);
 }
 
+class DialogueEditorDocumentOutcome {
+  const DialogueEditorDocumentOutcome({
+    required this.id,
+    required this.label,
+    required this.nodeId,
+    required this.branchId,
+  });
+
+  final String id;
+  final String label;
+  final String nodeId;
+  final String branchId;
+}
+
 class DialogueEditorDocument {
   const DialogueEditorDocument({
     required this.nodes,
@@ -151,6 +165,39 @@ class DialogueEditorDocument {
       if (n.id == id) return n;
     }
     return null;
+  }
+
+  /// Extracts the public outcomes actually emitted by structured Yarn choices.
+  ///
+  /// The manifest remains the stable public registry; this projection lets the
+  /// editor compare the validated document with that registry before saving or
+  /// changing Scene ports.
+  List<DialogueEditorDocumentOutcome> documentOutcomes() {
+    final outcomes = <DialogueEditorDocumentOutcome>[];
+    void walk(String nodeId, List<DialogueEditorStep> steps) {
+      for (final step in steps) {
+        if (step is! DeChoiceStep) continue;
+        for (final branch in step.branches) {
+          final outcomeId = branch.outcomeId?.trim() ?? '';
+          if (outcomeId.isNotEmpty) {
+            outcomes.add(
+              DialogueEditorDocumentOutcome(
+                id: outcomeId,
+                label: branch.label.trim(),
+                nodeId: nodeId,
+                branchId: branch.id,
+              ),
+            );
+          }
+          walk(nodeId, branch.steps);
+        }
+      }
+    }
+
+    for (final node in nodes) {
+      walk(node.id, node.steps);
+    }
+    return List<DialogueEditorDocumentOutcome>.unmodifiable(outcomes);
   }
 
   /// Adds a new valid Yarn node without mutating the current document.

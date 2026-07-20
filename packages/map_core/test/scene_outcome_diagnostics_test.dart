@@ -54,6 +54,69 @@ void main() {
         isEmpty,
       );
     });
+
+    test('blocks a Scene port orphaned by a dialogue outcome removal', () {
+      final project = ProjectManifest(
+        name: 'Outcome diagnostic',
+        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
+        maps: const [],
+        tilesets: const [],
+        dialogues: const [
+          ProjectDialogueEntry(
+            id: 'dialogue_intro',
+            name: 'Introduction',
+            relativePath: 'dialogues/intro.yarn',
+            declaredOutcomes: [
+              DialogueDeclaredOutcome(id: 'refused', label: 'Refuser'),
+            ],
+          ),
+        ],
+      );
+      final scene = SceneAsset(
+        id: 'scene_dialogue',
+        name: 'Dialogue',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'dialogue',
+              kind: SceneNodeKind.yarnDialogue,
+              payload: SceneYarnDialoguePayload(
+                dialogueId: 'dialogue_intro',
+                expectedOutcomes: const ['accepted'],
+              ),
+            ),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start_dialogue',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'dialogue',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        ),
+      );
+
+      final report = diagnoseSceneAgainstProject(scene, project);
+
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.dialogueExpectedOutcomeUnknown)
+            .single
+            .outcomeId,
+        'accepted',
+      );
+      expect(
+        report
+            .byCode(SceneDiagnosticCode.dialogueExpectedOutcomeUnknown)
+            .single
+            .severity,
+        SceneDiagnosticSeverity.error,
+      );
+    });
   });
 }
 

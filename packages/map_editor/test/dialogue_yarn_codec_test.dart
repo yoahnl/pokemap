@@ -96,6 +96,15 @@ Guide: Merci.
         roundTripChoice.branches.map((branch) => branch.outcomeId),
         ['return_item', 'keep_item'],
       );
+      expect(
+        roundTrip
+            .documentOutcomes()
+            .map((outcome) => (outcome.id, outcome.label)),
+        [
+          ('return_item', "Rendre l'objet"),
+          ('keep_item', 'Le garder'),
+        ],
+      );
     });
 
     test('rich headers unicode and formatting round-trip byte for byte', () {

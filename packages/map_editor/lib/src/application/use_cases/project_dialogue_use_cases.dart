@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
+import '../services/dialogue_scene_dependency_guard.dart';
 import 'dialogue_disk_path_support.dart';
 import 'project_use_case_support.dart';
 
@@ -188,14 +189,39 @@ class UpdateProjectDialogueUseCase {
     String? description,
     List<String>? tags,
     List<DialogueDeclaredOutcome>? declaredOutcomes,
+    Map<String, DialogueDeclaredOutcome> outcomeReplacements =
+        const <String, DialogueDeclaredOutcome>{},
     String? defaultStartNode,
     bool clearDefaultStartNode = false,
   }) async {
-    final index = project.dialogues.indexWhere((d) => d.id == dialogueId);
+    var guardedProject = project;
+    if (declaredOutcomes != null) {
+      const guard = DialogueSceneDependencyGuard();
+      for (final replacement in outcomeReplacements.entries) {
+        guardedProject = guard
+            .previewOutcomeReplacement(
+              project: guardedProject,
+              dialogueId: dialogueId,
+              fromOutcomeId: replacement.key,
+              replacement: replacement.value,
+            )
+            .candidateProject;
+      }
+      final decision = guard.inspectOutcomeUpdate(
+        project: guardedProject,
+        dialogueId: dialogueId,
+        candidateOutcomes: declaredOutcomes,
+      );
+      if (!decision.isAllowed) {
+        throw EditorConflictException(decision.message!);
+      }
+    }
+    final index =
+        guardedProject.dialogues.indexWhere((d) => d.id == dialogueId);
     if (index < 0) {
       throw EditorNotFoundException('Dialogue not found: $dialogueId');
     }
-    final cur = project.dialogues[index];
+    final cur = guardedProject.dialogues[index];
     final newName = name != null ? name.trim() : cur.name;
     if (newName.isEmpty) {
       throw const EditorValidationException('Dialogue name cannot be empty');
@@ -219,9 +245,9 @@ class UpdateProjectDialogueUseCase {
       declaredOutcomes: declaredOutcomes ?? cur.declaredOutcomes,
       defaultStartNode: dns,
     );
-    final list = List<ProjectDialogueEntry>.from(project.dialogues);
+    final list = List<ProjectDialogueEntry>.from(guardedProject.dialogues);
     list[index] = next;
-    final updated = project.copyWith(dialogues: list);
+    final updated = guardedProject.copyWith(dialogues: list);
     ProjectValidator.validate(updated);
     await _repo.saveProject(updated, ws.projectManifestPath);
     return updated;
