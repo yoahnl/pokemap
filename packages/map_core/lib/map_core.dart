@@ -215,6 +215,7 @@ export 'src/read_models/mvp_release_gate.dart';
 export 'src/read_models/linked_asset_public_contracts.dart';
 export 'src/read_models/cinematics_library_read_model.dart';
 export 'src/read_models/cinematic_timeline_lane_read_model.dart';
+export 'src/read_models/cinematic_storyboard_read_model.dart';
 export 'src/read_models/cinematic_timeline_time_layout_read_model.dart';
 export 'src/read_models/cinematic_actor_display_preview_model.dart';
 export 'src/read_models/cinematic_preview_playback_plan.dart';

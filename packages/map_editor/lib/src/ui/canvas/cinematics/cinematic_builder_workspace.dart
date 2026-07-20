@@ -707,6 +707,16 @@ class _CinematicBuilderWorkspaceState extends State<CinematicBuilderWorkspace>
                                 SizedBox(
                                   height: previewHeight,
                                   child: CinematicStagePanel(
+                                    cinematic: widget.asset,
+                                    onApplyPreset: (preview) async {
+                                      final updated =
+                                          applyCinematicBlockingPresetToAsset(
+                                        widget.asset,
+                                        preview,
+                                      );
+                                      await _updateCinematic(updated);
+                                      return true;
+                                    },
                                     child: _PreviewSandbox(
                                       entry: widget.entry,
                                       asset: widget.asset,

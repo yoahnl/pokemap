@@ -169,6 +169,315 @@ enum CinematicTimelineBasicBlockKind {
   camera,
 }
 
+enum CinematicBlockingPresetKind {
+  npcEntrance,
+  dramaticArrival,
+  cameraPan,
+  fadeTransition,
+  movingCrowd,
+}
+
+enum CinematicBlockingPresetDiagnostic {
+  missingActor,
+  missingTarget,
+  missingStagePoint,
+  actorTargetCountMismatch,
+  stalePreview,
+}
+
+final class CinematicBlockingPresetDiff {
+  const CinematicBlockingPresetDiff({
+    required this.addedStepCount,
+    required this.insertAfterStepId,
+  });
+
+  final int addedStepCount;
+  final String? insertAfterStepId;
+}
+
+final class CinematicBlockingPresetPreview {
+  CinematicBlockingPresetPreview({
+    required this.kind,
+    required this.sourceCinematic,
+    required List<CinematicTimelineStep> proposedSteps,
+    required List<CinematicBlockingPresetDiagnostic> diagnostics,
+    required this.diff,
+  })  : proposedSteps = List.unmodifiable(proposedSteps),
+        diagnostics = List.unmodifiable(diagnostics);
+
+  final CinematicBlockingPresetKind kind;
+  final CinematicAsset sourceCinematic;
+  final List<CinematicTimelineStep> proposedSteps;
+  final List<CinematicBlockingPresetDiagnostic> diagnostics;
+  final CinematicBlockingPresetDiff diff;
+
+  bool get canApply => diagnostics.isEmpty;
+}
+
+final class CinematicBlockingPresetApplyResult {
+  const CinematicBlockingPresetApplyResult({
+    required this.updatedProject,
+    required this.undoProject,
+    required this.previousCinematic,
+    required this.cinematic,
+  });
+
+  final ProjectManifest updatedProject;
+  final ProjectManifest undoProject;
+  final CinematicAsset previousCinematic;
+  final CinematicAsset cinematic;
+}
+
+CinematicBlockingPresetPreview previewCinematicBlockingPreset(
+  CinematicAsset cinematic, {
+  required CinematicBlockingPresetKind kind,
+  List<String> actorIds = const [],
+  List<String> targetIds = const [],
+  List<String> stagePointIds = const [],
+  String? afterStepId,
+}) {
+  final knownActors = {
+    for (final actor in cinematic.requiredActors) actor.actorId,
+  };
+  final knownTargets = {
+    for (final target in cinematic.movementTargets) target.targetId,
+  };
+  final knownStagePoints = {
+    for (final point
+        in cinematic.stageContext?.stagePoints ?? const <CinematicStagePoint>[])
+      point.id,
+  };
+  final diagnostics = <CinematicBlockingPresetDiagnostic>{};
+  if (actorIds.any((id) => !knownActors.contains(id))) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingActor);
+  }
+  if (targetIds.any((id) => !knownTargets.contains(id))) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingTarget);
+  }
+  if (stagePointIds.any((id) => !knownStagePoints.contains(id))) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingStagePoint);
+  }
+  final requiresActor = kind == CinematicBlockingPresetKind.npcEntrance ||
+      kind == CinematicBlockingPresetKind.dramaticArrival ||
+      kind == CinematicBlockingPresetKind.movingCrowd;
+  final requiresTarget = kind == CinematicBlockingPresetKind.npcEntrance ||
+      kind == CinematicBlockingPresetKind.movingCrowd;
+  if (requiresActor && actorIds.isEmpty) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingActor);
+  }
+  if (requiresTarget && targetIds.isEmpty) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingTarget);
+  }
+  if (kind == CinematicBlockingPresetKind.cameraPan &&
+      stagePointIds.length < 2) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.missingStagePoint);
+  }
+  if (kind == CinematicBlockingPresetKind.movingCrowd &&
+      (actorIds.length < 2 || actorIds.length != targetIds.length)) {
+    diagnostics.add(CinematicBlockingPresetDiagnostic.actorTargetCountMismatch);
+  }
+  if (afterStepId != null &&
+      !cinematic.timeline.steps.any((step) => step.id == afterStepId)) {
+    throw ArgumentError.value(
+      afterStepId,
+      'afterStepId',
+      'Blocking preset insertion references an unknown timeline step.',
+    );
+  }
+
+  final ids = {for (final step in cinematic.timeline.steps) step.id};
+  String nextId(String suffix) {
+    final root = 'step_${kind.name}_$suffix';
+    var id = root;
+    var index = 2;
+    while (!ids.add(id)) {
+      id = '${root}_${index++}';
+    }
+    return id;
+  }
+
+  CinematicTimelineStep marker(String label) => CinematicTimelineStep(
+        id: nextId('marker'),
+        kind: CinematicTimelineStepKind.marker,
+        label: label,
+        metadata: const {
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+        },
+      );
+  CinematicTimelineStep fade(CinematicTimelineFadeMode mode) =>
+      CinematicTimelineStep(
+        id: nextId(mode.name),
+        kind: CinematicTimelineStepKind.fade,
+        label: mode == CinematicTimelineFadeMode.fadeIn
+            ? 'Fondu entrant'
+            : 'Fondu sortant',
+        durationMs: cinematicTimelineDefaultFadeDurationMs,
+        metadata: {
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineAuthoringBlockMetadataKey: 'fade',
+          cinematicTimelineFadeModeMetadataKey: mode.name,
+        },
+      );
+  CinematicTimelineStep move(String actorId, String targetId) =>
+      CinematicTimelineStep(
+        id: nextId('move'),
+        kind: CinematicTimelineStepKind.actorMove,
+        label: 'Entrée de $actorId',
+        actorId: actorId,
+        targetId: targetId,
+        durationMs: 1200,
+        metadata: const {
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineAuthoringBlockMetadataKey:
+              cinematicTimelineActorMoveBlockMetadataValue,
+          cinematicTimelineActorMovementModeMetadataKey: 'walk',
+          cinematicTimelineActorPathModeMetadataKey: 'direct',
+        },
+      );
+  CinematicTimelineStep cameraPoint(String pointId, String label) =>
+      CinematicTimelineStep(
+        id: nextId('camera'),
+        kind: CinematicTimelineStepKind.camera,
+        label: label,
+        durationMs: cinematicTimelineDefaultCameraDurationMs,
+        metadata: {
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+          cinematicTimelineCameraModeMetadataKey: 'focus',
+          cinematicTimelineCameraTargetKindMetadataKey: 'stagePoint',
+          cinematicTimelineCameraTargetStagePointIdMetadataKey: pointId,
+          cinematicTimelineCameraZoomPresetMetadataKey: 'medium',
+        },
+      );
+  CinematicTimelineStep cameraActor(String actorId) => CinematicTimelineStep(
+        id: nextId('camera'),
+        kind: CinematicTimelineStepKind.camera,
+        label: 'Révélation de $actorId',
+        durationMs: cinematicTimelineDefaultCameraDurationMs,
+        metadata: {
+          cinematicTimelineDraftMetadataKindKey:
+              cinematicTimelineBasicBlockMetadataKindValue,
+          cinematicTimelineDraftMetadataSourceKey:
+              cinematicTimelineDraftMetadataSourceValue,
+          cinematicTimelineAuthoringBlockMetadataKey: 'camera',
+          cinematicTimelineCameraModeMetadataKey: 'focus',
+          cinematicTimelineCameraTargetKindMetadataKey: 'actor',
+          cinematicTimelineCameraTargetActorIdMetadataKey: actorId,
+          cinematicTimelineCameraZoomPresetMetadataKey: 'close',
+        },
+      );
+
+  final proposed = switch (kind) {
+    CinematicBlockingPresetKind.npcEntrance =>
+      actorIds.isEmpty || targetIds.isEmpty
+          ? <CinematicTimelineStep>[]
+          : [marker('Entrée PNJ'), move(actorIds.first, targetIds.first)],
+    CinematicBlockingPresetKind.dramaticArrival => actorIds.isEmpty
+        ? <CinematicTimelineStep>[]
+        : [
+            fade(CinematicTimelineFadeMode.fadeOut),
+            marker('Arrivée dramatique'),
+            cameraActor(actorIds.first),
+            fade(CinematicTimelineFadeMode.fadeIn),
+          ],
+    CinematicBlockingPresetKind.cameraPan => stagePointIds.length < 2
+        ? <CinematicTimelineStep>[]
+        : [
+            marker('Pan caméra'),
+            cameraPoint(stagePointIds.first, 'Début du pan'),
+            cameraPoint(stagePointIds[1], 'Fin du pan'),
+          ],
+    CinematicBlockingPresetKind.fadeTransition => [
+        fade(CinematicTimelineFadeMode.fadeOut),
+        marker('Nouveau plan'),
+        fade(CinematicTimelineFadeMode.fadeIn),
+      ],
+    CinematicBlockingPresetKind.movingCrowd =>
+      actorIds.length != targetIds.length
+          ? <CinematicTimelineStep>[]
+          : [
+              marker('Foule en mouvement'),
+              for (var index = 0; index < actorIds.length; index++)
+                move(actorIds[index], targetIds[index]),
+            ],
+  };
+
+  return CinematicBlockingPresetPreview(
+    kind: kind,
+    sourceCinematic: cinematic,
+    proposedSteps: proposed,
+    diagnostics: diagnostics.toList(),
+    diff: CinematicBlockingPresetDiff(
+      addedStepCount: proposed.length,
+      insertAfterStepId: afterStepId,
+    ),
+  );
+}
+
+CinematicBlockingPresetApplyResult applyCinematicBlockingPreset(
+  ProjectManifest project, {
+  required String cinematicId,
+  required CinematicBlockingPresetPreview preview,
+}) {
+  final cinematic = _requireCinematic(project, cinematicId);
+  if (!preview.canApply) {
+    throw ArgumentError.value(
+      preview.diagnostics,
+      'preview',
+      'An incompatible blocking preset cannot be partially applied.',
+    );
+  }
+  if (preview.sourceCinematic != cinematic) {
+    throw StateError('The blocking preset preview is stale. Preview again.');
+  }
+  final updatedCinematic = applyCinematicBlockingPresetToAsset(
+    cinematic,
+    preview,
+  );
+  final result = updateCinematicAsset(project, updatedCinematic);
+  return CinematicBlockingPresetApplyResult(
+    updatedProject: result.updatedProject,
+    undoProject: project,
+    previousCinematic: cinematic,
+    cinematic: result.cinematic,
+  );
+}
+
+CinematicAsset applyCinematicBlockingPresetToAsset(
+  CinematicAsset cinematic,
+  CinematicBlockingPresetPreview preview,
+) {
+  if (!preview.canApply) {
+    throw ArgumentError.value(
+      preview.diagnostics,
+      'preview',
+      'An incompatible blocking preset cannot be partially applied.',
+    );
+  }
+  if (preview.sourceCinematic != cinematic) {
+    throw StateError('The blocking preset preview is stale. Preview again.');
+  }
+  final steps = cinematic.timeline.steps.toList();
+  final afterStepId = preview.diff.insertAfterStepId;
+  final insertionIndex = afterStepId == null
+      ? steps.length
+      : steps.indexWhere((step) => step.id == afterStepId) + 1;
+  steps.insertAll(insertionIndex, preview.proposedSteps);
+  return cinematic.copyWith(
+    timeline: CinematicTimeline(steps: steps),
+  );
+}
+
 CinematicAssetAuthoringResult duplicateCinematicAsset(
   ProjectManifest project, {
   required String cinematicId,

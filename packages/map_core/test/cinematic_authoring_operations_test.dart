@@ -3,6 +3,99 @@ import 'package:test/test.dart';
 
 void main() {
   group('Cinematic authoring operations', () {
+    group('blocking presets', () {
+      test('previews an NPC entrance without mutating the asset', () {
+        final cinematic = _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'lysa', label: 'Lysa'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(
+              targetId: 'quai',
+              label: 'Quai',
+            ),
+          ],
+        );
+        final before = cinematic.toJson();
+
+        final preview = previewCinematicBlockingPreset(
+          cinematic,
+          kind: CinematicBlockingPresetKind.npcEntrance,
+          actorIds: const ['lysa'],
+          targetIds: const ['quai'],
+        );
+
+        expect(cinematic.toJson(), before);
+        expect(preview.canApply, isTrue);
+        expect(preview.proposedSteps.map((step) => step.kind), [
+          CinematicTimelineStepKind.marker,
+          CinematicTimelineStepKind.actorMove,
+        ]);
+        expect(preview.diff.addedStepCount, 2);
+      });
+
+      test('refuses a partially incompatible crowd preset atomically', () {
+        final cinematic = _cinematic(
+          id: 'cinematic_intro',
+          requiredActors: [
+            CinematicActorRef(actorId: 'lysa'),
+            CinematicActorRef(actorId: 'marin'),
+          ],
+          movementTargets: [
+            CinematicMovementTargetRef(targetId: 'quai', label: 'Quai'),
+          ],
+        );
+        final project = _project(cinematics: [cinematic]);
+
+        final preview = previewCinematicBlockingPreset(
+          cinematic,
+          kind: CinematicBlockingPresetKind.movingCrowd,
+          actorIds: const ['lysa', 'deleted_actor'],
+          targetIds: const ['quai', 'deleted_point'],
+        );
+
+        expect(preview.canApply, isFalse);
+        expect(
+            preview.diagnostics,
+            containsAll([
+              CinematicBlockingPresetDiagnostic.missingActor,
+              CinematicBlockingPresetDiagnostic.missingTarget,
+            ]));
+        expect(
+          () => applyCinematicBlockingPreset(
+            project,
+            cinematicId: cinematic.id,
+            preview: preview,
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+        expect(project.cinematics.single, cinematic);
+      });
+
+      test('applies a preset in one project update and supports exact undo',
+          () {
+        final cinematic = _cinematic(id: 'cinematic_intro');
+        final project = _project(cinematics: [cinematic]);
+        final preview = previewCinematicBlockingPreset(
+          cinematic,
+          kind: CinematicBlockingPresetKind.fadeTransition,
+        );
+
+        final applied = applyCinematicBlockingPreset(
+          project,
+          cinematicId: cinematic.id,
+          preview: preview,
+        );
+
+        expect(applied.cinematic.timeline.steps.length,
+            cinematic.timeline.steps.length + 3);
+        expect(applied.previousCinematic, cinematic);
+        expect(applied.undoProject, project);
+        expect(applied.updatedProject.cinematics.single, applied.cinematic);
+      });
+    });
+
     test('addCinematicAsset adds an asset without mutating project', () {
       final project = _project();
       final cinematic = _cinematic(id: 'cinematic_intro');
