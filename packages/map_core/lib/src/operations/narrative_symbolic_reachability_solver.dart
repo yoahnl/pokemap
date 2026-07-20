@@ -477,6 +477,28 @@ NarrativeSymbolicReachabilityReport solveNarrativeSymbolicReachability(
       }
       progress = true;
       for (final definition in candidates) {
+        // A frontier may expose several sibling Events while the previous
+        // sibling consumes the final budget units. Never forward zero to the
+        // scene solver: preserve the current state as indeterminate instead.
+        if (remainingBudget < 1) {
+          issues.add(
+            NarrativeSymbolicIssue(
+              code: NarrativeSymbolicIssueCode.budgetExceeded,
+              verdict: NarrativeSymbolicVerdict.indeterminate,
+              message:
+                  'Le budget symbolique global de $explorationBudget états '
+                  'est dépassé avant l’Event ${definition.id}.',
+              sceneId: definition.sceneId,
+              eventId: definition.id,
+              provenance: state.provenance,
+            ),
+          );
+          _addUniqueState(
+            nextFrontier,
+            state.copyWith(indeterminate: true),
+          );
+          break;
+        }
         final scene = scenesById[definition.sceneId]!;
         var eventState = state.copyWith(
           executedEventIds: {...state.executedEventIds, definition.id},

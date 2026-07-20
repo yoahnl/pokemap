@@ -148,6 +148,61 @@ void main() {
       );
     });
 
+    test('project budget exhaustion between sibling Events never throws', () {
+      const map = MapData(
+        id: 'map_port',
+        name: 'Port',
+        size: GridSize(width: 8, height: 8),
+      );
+      final project = ProjectManifest(
+        name: 'Bounded siblings',
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_port',
+            name: 'Port',
+            relativePath: 'maps/port.json',
+          ),
+        ],
+        tilesets: const [],
+        scenes: [_linearScene('scene_a'), _linearScene('scene_b')],
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.v2Only,
+          records: [
+            for (var index = 0; index < 2; index++)
+              NarrativeEventRecord.configuredStructurallyUnchecked(
+                NarrativeEventDefinition(
+                  id: index == 0
+                      ? 'evt_019abcde-5500-7000-8000-000000000001'
+                      : 'evt_019abcde-5500-7000-8000-000000000002',
+                  name: 'Event $index',
+                  source: NarrativeEventSourceRef.mapEnter('map_port'),
+                  conditions: const [],
+                  sceneId: index == 0 ? 'scene_a' : 'scene_b',
+                  reusePolicy: NarrativeEventReusePolicy.oneShot,
+                  priority: 0,
+                  order: index,
+                ),
+                enabled: true,
+              ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      final report = solveNarrativeSymbolicReachability(
+        project,
+        maps: const [map],
+        explorationBudget: 2,
+      );
+
+      expect(report.verdict, NarrativeSymbolicVerdict.indeterminate);
+      expect(
+        report.issues.map((issue) => issue.code),
+        contains(NarrativeSymbolicIssueCode.budgetExceeded),
+      );
+    });
+
     test('unknown legacy command backend is indeterminate', () {
       final scene = SceneAsset(
         id: 'scene_unknown_command',
