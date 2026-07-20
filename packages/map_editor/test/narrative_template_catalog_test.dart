@@ -8,7 +8,11 @@ void main() {
         () {
       final catalog = NarrativeTemplateCatalog.canonical();
 
-      expect(catalog.templates, hasLength(10));
+      expect(catalog.schemaVersion, 1);
+      expect(catalog.eventSceneTemplates, hasLength(10));
+      expect(catalog.cinematicTemplates, hasLength(2));
+      expect(catalog.worldRuleTemplates, hasLength(2));
+      expect(catalog.templates, hasLength(14));
       expect(
         catalog.byKind(NarrativeTemplateKind.nurse).isPublishable,
         isFalse,
@@ -20,6 +24,16 @@ void main() {
       expect(
         catalog.byKind(NarrativeTemplateKind.itemBall).isPublishable,
         isTrue,
+      );
+      expect(
+        catalog.byKind(NarrativeTemplateKind.cinematicEstablishingShot).id,
+        'cinematic.establishingShot',
+      );
+      expect(
+        catalog
+            .byKind(NarrativeTemplateKind.worldRuleFactVisibility)
+            .parameterLabels,
+        containsPair('factId', 'Fact source'),
       );
     });
 
@@ -49,6 +63,24 @@ void main() {
 
       final reloaded = ProjectManifest.fromJson(preview.after!.toJson());
       expect(reloaded.toJson(), preview.after!.toJson());
+    });
+
+    test('every Cinematic template builds a valid non-empty timeline', () {
+      final catalog = NarrativeTemplateCatalog.canonical();
+
+      for (final template in catalog.cinematicTemplates) {
+        final timeline = buildNarrativeCinematicTemplateTimeline(
+          template.kind,
+        );
+        final mutation = NarrativeAssetMutation.createCinematic(
+          _emptyProject(),
+          title: template.label,
+          timeline: timeline,
+        );
+
+        expect(timeline.steps, isNotEmpty, reason: template.id);
+        expect(mutation, isA<NarrativeAssetCreated>(), reason: template.id);
+      }
     });
 
     test('conditional NPC requires its Fact parameters before construction',

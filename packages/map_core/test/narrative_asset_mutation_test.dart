@@ -39,6 +39,28 @@ void main() {
       expect((result as NarrativeAssetRejected).code, 'blankTitle');
     });
 
+    test('create accepts a validated template timeline', () {
+      final project = _project();
+      final timeline = CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'template.marker',
+            kind: CinematicTimelineStepKind.marker,
+            label: 'Ouverture',
+          ),
+        ],
+      );
+
+      final result = NarrativeAssetMutation.createCinematic(
+        project,
+        title: 'Ouverture',
+        timeline: timeline,
+      );
+
+      expect(result, isA<NarrativeAssetCreated>());
+      expect((result as NarrativeAssetCreated).asset.timeline, timeline);
+    });
+
     test('update keeps the id stable and returns NoChange for equality', () {
       final original = _cinematic(id: 'cinematic_intro', title: 'Intro');
       final project = _project(cinematics: [original]);

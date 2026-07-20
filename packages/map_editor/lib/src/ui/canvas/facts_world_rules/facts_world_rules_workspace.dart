@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../application/services/narrative_template_catalog.dart';
 import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
@@ -87,6 +88,7 @@ class FactsWorldRulesWorkspace extends StatefulWidget {
 }
 
 class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
+  final _templateCatalog = NarrativeTemplateCatalog.canonical();
   late FactsWorldRulesWorkspaceMode _mode = widget.initialMode;
 
   final _factSearchController = TextEditingController();
@@ -119,6 +121,7 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
   String? _sourceKey;
   String? _targetKey;
   String? _effectKey;
+  String _worldRuleTemplateId = 'worldRule.manual';
   String? _dialogueId;
   String? _ruleTypedSourceId;
   NarrativeFactOperator _ruleFactOperator = NarrativeFactOperator.equals;
@@ -730,7 +733,34 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         children: [
           const _PanelTitle(
             title: 'Nouvelle règle',
-            subtitle: 'Construire sans ID manuel.',
+            subtitle: 'Construire sans ID manuel ou partir d’un gabarit.',
+          ),
+          const SizedBox(height: 10),
+          PokeMapDropdownField<String>(
+            key: const ValueKey('world-rule-template-picker'),
+            label: 'Gabarit de règle',
+            value: _worldRuleTemplateId,
+            items: [
+              const PokeMapDropdownItem(
+                value: 'worldRule.manual',
+                label: 'Configuration libre',
+              ),
+              for (final template in _templateCatalog.worldRuleTemplates)
+                PokeMapDropdownItem(
+                  value: template.id,
+                  label: template.label,
+                ),
+            ],
+            onChanged: (id) {
+              final template = _templateCatalog.worldRuleTemplates
+                  .where((candidate) => candidate.id == id)
+                  .firstOrNull;
+              if (template == null) {
+                setState(() => _worldRuleTemplateId = id);
+              } else {
+                _applyWorldRuleTemplate(readModel, template);
+              }
+            },
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -1492,6 +1522,42 @@ class _FactsWorldRulesWorkspaceState extends State<FactsWorldRulesWorkspace> {
         _editSourceKey,
         _sourceOptionKey,
       );
+
+  void _applyWorldRuleTemplate(
+    FactsWorldRulesManagerReadModel readModel,
+    NarrativeTemplateDefinition template,
+  ) {
+    final kind = template.kind;
+    final source = readModel.sourceOptions
+        .where((option) => option.kind == WorldRuleSourceKind.fact)
+        .firstOrNull;
+    final targetKind = kind == NarrativeTemplateKind.worldRuleDialogueOverride
+        ? WorldRuleTargetKind.npcDialogue
+        : WorldRuleTargetKind.mapEntity;
+    final effectKind = kind == NarrativeTemplateKind.worldRuleDialogueOverride
+        ? WorldRuleEffectKind.npcDialogueOverride
+        : WorldRuleEffectKind.entityVisible;
+    final target = readModel.targetOptions
+        .where((option) => option.kind == targetKind)
+        .firstOrNull;
+    final effect = target == null
+        ? null
+        : _compatibleEffects(readModel, target)
+            .where((option) => option.effectKind == effectKind)
+            .firstOrNull;
+    setState(() {
+      _worldRuleTemplateId = template.id;
+      _sourceKey = source == null ? null : _sourceOptionKey(source);
+      _targetKey = target == null ? null : _targetOptionKey(target);
+      _effectKey = effect == null ? null : _effectOptionKey(effect);
+      if (effect?.requiresDialogue == true) {
+        _dialogueId = readModel.dialogueOptions.firstOrNull?.dialogueId;
+      }
+      _ruleFeedback = source == null || target == null || effect == null
+          ? 'Ce gabarit nécessite un Fact et une cible compatibles.'
+          : null;
+    });
+  }
 
   WorldRuleTargetPickerOption? _selectedTarget(
     FactsWorldRulesManagerReadModel readModel,

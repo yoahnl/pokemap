@@ -6,6 +6,7 @@ import '../../app/providers/core_providers.dart';
 import '../../application/services/narrative_activity_journal.dart';
 import '../../application/services/narrative_diagnostic_suppression_service.dart';
 import '../../application/services/narrative_project_snapshot_loader.dart';
+import '../../application/services/narrative_template_catalog.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../features/editor/state/editor_notifier.dart';
@@ -2627,7 +2628,10 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
     );
   }
 
-  Future<String?> _createCinematicShell({required String title}) async {
+  Future<String?> _createCinematicShell({
+    required String title,
+    NarrativeTemplateKind? templateKind,
+  }) async {
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {
       return null;
@@ -2637,6 +2641,9 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
       (project) => NarrativeAssetMutation.createCinematic(
         project,
         title: cleanTitle,
+        timeline: templateKind == null
+            ? null
+            : buildNarrativeCinematicTemplateTimeline(templateKind),
       ),
       operationId: _cinematicAuthoringOperationId('create'),
     );

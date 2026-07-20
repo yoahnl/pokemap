@@ -204,6 +204,7 @@ export 'src/authoring/cinematic_authoring_operations.dart';
 export 'src/authoring/cinematic_command_authoring_operations.dart';
 export 'src/authoring/cinematic_timeline_editing_operations.dart';
 export 'src/authoring/narrative_asset_mutation.dart';
+export 'src/authoring/narrative_asset_clone_plan.dart';
 export 'src/authoring/narrative_reference_rewrite.dart';
 export 'src/authoring/storyline_legacy_import_preview.dart';
 export 'src/read_models/narrative_reference_picker_read_models.dart';

@@ -15,7 +15,13 @@ enum NarrativeTemplateKind {
   nurse,
   starter,
   badgeReward,
+  cinematicEstablishingShot,
+  cinematicDialogueBeat,
+  worldRuleFactVisibility,
+  worldRuleDialogueOverride,
 }
+
+enum NarrativeTemplateTargetKind { eventScene, cinematic, worldRule }
 
 enum NarrativeTemplatePhysicalSourceKind { entity, object, zone, warp }
 
@@ -23,26 +29,55 @@ final class NarrativeTemplateDefinition {
   NarrativeTemplateDefinition({
     required this.kind,
     required this.label,
-    required this.command,
+    required NarrativeCommandDescriptor command,
     required this.physicalSourceKind,
     Map<String, String> additionalRequiredParameters = const <String, String>{},
-  }) : additionalRequiredParameters =
+  })  : id = 'eventScene.${kind.name}',
+        targetKind = NarrativeTemplateTargetKind.eventScene,
+        _command = command,
+        parameterLabels = Map<String, String>.unmodifiable(
+          additionalRequiredParameters,
+        ),
+        additionalRequiredParameters =
             Map<String, String>.unmodifiable(additionalRequiredParameters);
 
+  NarrativeTemplateDefinition.asset({
+    required this.kind,
+    required this.id,
+    required this.label,
+    required this.targetKind,
+    Map<String, String> parameterLabels = const <String, String>{},
+  })  : assert(targetKind != NarrativeTemplateTargetKind.eventScene),
+        _command = null,
+        physicalSourceKind = null,
+        parameterLabels = Map<String, String>.unmodifiable(parameterLabels),
+        additionalRequiredParameters = const <String, String>{};
+
   final NarrativeTemplateKind kind;
+  final String id;
   final String label;
-  final NarrativeCommandDescriptor command;
+  final NarrativeTemplateTargetKind targetKind;
+  final NarrativeCommandDescriptor? _command;
   final NarrativeTemplatePhysicalSourceKind? physicalSourceKind;
+  final Map<String, String> parameterLabels;
+
+  NarrativeCommandDescriptor get command {
+    final value = _command;
+    if (value == null) {
+      throw StateError('Template $id does not contain an Event command.');
+    }
+    return value;
+  }
 
   /// Template-only inputs which do not belong to the command payload itself.
   /// For example, a conditional NPC needs a Fact to guard its Event.
   final Map<String, String> additionalRequiredParameters;
 
-  bool get isPublishable => command.isPublishable;
+  bool get isPublishable => _command?.isPublishable ?? true;
 }
 
 final class NarrativeTemplateCatalog {
-  NarrativeTemplateCatalog._(this.templates);
+  NarrativeTemplateCatalog._(this.templates) : schemaVersion = 1;
 
   factory NarrativeTemplateCatalog.canonical({
     NarrativeCommandCatalog? commandCatalog,
@@ -122,14 +157,117 @@ final class NarrativeTemplateCatalog {
           command: command(NarrativeCommandIds.awardBadge),
           physicalSourceKind: null,
         ),
+        NarrativeTemplateDefinition.asset(
+          kind: NarrativeTemplateKind.cinematicEstablishingShot,
+          id: 'cinematic.establishingShot',
+          label: 'Plan d’établissement',
+          targetKind: NarrativeTemplateTargetKind.cinematic,
+          parameterLabels: const {
+            'mapId': 'Map de décor',
+            'durationMs': 'Durée du plan',
+          },
+        ),
+        NarrativeTemplateDefinition.asset(
+          kind: NarrativeTemplateKind.cinematicDialogueBeat,
+          id: 'cinematic.dialogueBeat',
+          label: 'Temps de dialogue',
+          targetKind: NarrativeTemplateTargetKind.cinematic,
+          parameterLabels: const {
+            'dialogueId': 'Dialogue',
+            'actorId': 'Acteur parlant',
+          },
+        ),
+        NarrativeTemplateDefinition.asset(
+          kind: NarrativeTemplateKind.worldRuleFactVisibility,
+          id: 'worldRule.factVisibility',
+          label: 'Visibilité pilotée par un Fact',
+          targetKind: NarrativeTemplateTargetKind.worldRule,
+          parameterLabels: const {
+            'factId': 'Fact source',
+            'mapId': 'Map cible',
+            'entityId': 'Entité cible',
+          },
+        ),
+        NarrativeTemplateDefinition.asset(
+          kind: NarrativeTemplateKind.worldRuleDialogueOverride,
+          id: 'worldRule.dialogueOverride',
+          label: 'Dialogue alternatif piloté par un Fact',
+          targetKind: NarrativeTemplateTargetKind.worldRule,
+          parameterLabels: const {
+            'factId': 'Fact source',
+            'mapId': 'Map cible',
+            'entityId': 'PNJ cible',
+            'dialogueId': 'Dialogue de remplacement',
+          },
+        ),
       ]),
     );
   }
 
+  final int schemaVersion;
   final List<NarrativeTemplateDefinition> templates;
+
+  List<NarrativeTemplateDefinition> get eventSceneTemplates =>
+      _forTarget(NarrativeTemplateTargetKind.eventScene);
+
+  List<NarrativeTemplateDefinition> get cinematicTemplates =>
+      _forTarget(NarrativeTemplateTargetKind.cinematic);
+
+  List<NarrativeTemplateDefinition> get worldRuleTemplates =>
+      _forTarget(NarrativeTemplateTargetKind.worldRule);
+
+  List<NarrativeTemplateDefinition> _forTarget(
+    NarrativeTemplateTargetKind target,
+  ) =>
+      List.unmodifiable(
+        templates.where((template) => template.targetKind == target),
+      );
 
   NarrativeTemplateDefinition byKind(NarrativeTemplateKind kind) =>
       templates.firstWhere((template) => template.kind == kind);
+}
+
+CinematicTimeline buildNarrativeCinematicTemplateTimeline(
+  NarrativeTemplateKind kind,
+) {
+  return switch (kind) {
+    NarrativeTemplateKind.cinematicEstablishingShot => CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'template.establishing.marker',
+            kind: CinematicTimelineStepKind.marker,
+            label: 'Plan d’établissement',
+          ),
+          CinematicTimelineStep(
+            id: 'template.establishing.camera',
+            kind: CinematicTimelineStepKind.camera,
+            label: 'Installer le décor',
+            durationMs: 1200,
+          ),
+        ],
+      ),
+    NarrativeTemplateKind.cinematicDialogueBeat => CinematicTimeline(
+        steps: [
+          CinematicTimelineStep(
+            id: 'template.dialogue.marker',
+            kind: CinematicTimelineStepKind.marker,
+            label: 'Temps de dialogue',
+          ),
+          CinematicTimelineStep(
+            id: 'template.dialogue.line',
+            kind: CinematicTimelineStepKind.dialogueLine,
+            label: 'Réplique à configurer',
+            dialogueText: 'Dialogue à configurer',
+            durationMs: 1000,
+          ),
+        ],
+      ),
+    _ => throw ArgumentError.value(
+        kind,
+        'kind',
+        'Only Cinematic templates can build a Cinematic timeline.',
+      ),
+  };
 }
 
 final class NarrativeTemplatePhysicalSource {
@@ -204,6 +342,21 @@ NarrativeTemplatePreview previewNarrativeTemplate({
   final template = catalog.byKind(request.kind);
   final diagnostics = <String>[];
   var requiresMapEditor = false;
+
+  if (template.targetKind != NarrativeTemplateTargetKind.eventScene) {
+    return NarrativeTemplatePreview(
+      request: request,
+      template: template,
+      before: project,
+      after: null,
+      event: null,
+      scene: null,
+      diagnostics: [
+        'Le gabarit ${template.label} doit être créé depuis son espace dédié.',
+      ],
+      requiresMapEditor: false,
+    );
+  }
 
   if (request.name.trim().isEmpty) {
     diagnostics.add('Le nom de la composition est obligatoire.');
@@ -381,6 +534,11 @@ NarrativeEventReusePolicy _reusePolicy(NarrativeTemplateKind kind) =>
       NarrativeTemplateKind.starter ||
       NarrativeTemplateKind.badgeReward =>
         NarrativeEventReusePolicy.oneShot,
+      NarrativeTemplateKind.cinematicEstablishingShot ||
+      NarrativeTemplateKind.cinematicDialogueBeat ||
+      NarrativeTemplateKind.worldRuleFactVisibility ||
+      NarrativeTemplateKind.worldRuleDialogueOverride =>
+        throw StateError('This template does not create an Event.'),
     };
 
 /// Converts a publishable command form into its one canonical Scene wire.

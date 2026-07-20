@@ -172,6 +172,7 @@ abstract final class NarrativeAssetMutation {
     ProjectManifest project, {
     required String title,
     String? description,
+    CinematicTimeline? timeline,
   }) {
     final cleanTitle = title.trim();
     if (cleanTitle.isEmpty) {
@@ -186,7 +187,7 @@ abstract final class NarrativeAssetMutation {
         id: _nextCinematicId(project, cleanTitle),
         title: cleanTitle,
         description: _trimOptional(description),
-        timeline: CinematicTimeline(),
+        timeline: timeline ?? CinematicTimeline(),
       );
       final after = project.copyWith(
         cinematics: [...project.cinematics, asset],

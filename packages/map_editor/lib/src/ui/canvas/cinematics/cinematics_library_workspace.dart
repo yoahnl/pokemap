@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:map_core/map_core.dart';
 
+import '../../../application/services/narrative_template_catalog.dart';
 import '../../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../design_system/design_system.dart';
 import '../../../theme/theme.dart';
@@ -21,6 +22,7 @@ import 'cinematic_stage_preview_readiness.dart';
 
 typedef CreateCinematicShellCallback = Future<String?> Function({
   required String title,
+  NarrativeTemplateKind? templateKind,
 });
 
 typedef UpdateCinematicMetadataCallback = Future<bool> Function({
@@ -328,6 +330,7 @@ class CinematicsLibraryWorkspace extends StatefulWidget {
 class _CinematicsLibraryWorkspaceState
     extends State<CinematicsLibraryWorkspace> {
   final _createTitleController = TextEditingController();
+  final _templateCatalog = NarrativeTemplateCatalog.canonical();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _notesController = TextEditingController();
@@ -340,6 +343,7 @@ class _CinematicsLibraryWorkspaceState
   CinematicsLibrarySort _sort = CinematicsLibrarySort.titleAscending;
   String _searchText = '';
   final Set<String> _bulkSelection = <String>{};
+  String _createTemplateId = 'cinematic.empty';
   String? _selectedEntryId;
   String? _builderEntryId;
   String? _loadedEditorId;
@@ -1108,6 +1112,20 @@ class _CinematicsLibraryWorkspaceState
           const SizedBox(height: 10),
           _CreateCinematicPanel(
             controller: _createTitleController,
+            templateId: _createTemplateId,
+            templates: _templateCatalog.cinematicTemplates,
+            onTemplateChanged: (value) {
+              setState(() {
+                _createTemplateId = value;
+                final selected = _templateCatalog.cinematicTemplates
+                    .where((template) => template.id == value)
+                    .firstOrNull;
+                if (selected != null &&
+                    _createTitleController.text.trim().isEmpty) {
+                  _createTitleController.text = selected.label;
+                }
+              });
+            },
             onCreate: _createCinematic,
           ),
           const SizedBox(height: 12),
@@ -1502,7 +1520,13 @@ class _CinematicsLibraryWorkspaceState
       setState(() => _feedback = 'Titre requis.');
       return;
     }
-    final createdId = await widget.onCreateCinematicShell(title: title);
+    final selectedTemplate = _templateCatalog.cinematicTemplates
+        .where((template) => template.id == _createTemplateId)
+        .firstOrNull;
+    final createdId = await widget.onCreateCinematicShell(
+      title: title,
+      templateKind: selectedTemplate?.kind,
+    );
     if (!mounted) {
       return;
     }
@@ -1727,10 +1751,16 @@ class _CompactMetricsStrip extends StatelessWidget {
 class _CreateCinematicPanel extends StatelessWidget {
   const _CreateCinematicPanel({
     required this.controller,
+    required this.templateId,
+    required this.templates,
+    required this.onTemplateChanged,
     required this.onCreate,
   });
 
   final TextEditingController controller;
+  final String templateId;
+  final List<NarrativeTemplateDefinition> templates;
+  final ValueChanged<String> onTemplateChanged;
   final VoidCallback onCreate;
 
   @override
@@ -1741,7 +1771,25 @@ class _CreateCinematicPanel extends StatelessWidget {
         children: [
           const _SectionTitle(
             title: 'Créer une cinématique',
-            subtitle: 'Shell metadata-only',
+            subtitle: 'Vide ou depuis un gabarit versionné',
+          ),
+          const SizedBox(height: 8),
+          PokeMapDropdownField<String>(
+            key: const ValueKey('cinematics-library-create-template'),
+            label: 'Gabarit',
+            value: templateId,
+            items: [
+              const PokeMapDropdownItem(
+                value: 'cinematic.empty',
+                label: 'Cinématique vide',
+              ),
+              for (final template in templates)
+                PokeMapDropdownItem(
+                  value: template.id,
+                  label: template.label,
+                ),
+            ],
+            onChanged: onTemplateChanged,
           ),
           const SizedBox(height: 8),
           CupertinoTextField(

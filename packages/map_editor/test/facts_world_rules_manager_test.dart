@@ -55,6 +55,10 @@ void main() {
       find.byKey(const ValueKey('world-rule-create-submit')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('world-rule-template-picker')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Facts manager edits bool facts in the shared route body',

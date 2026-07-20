@@ -138,7 +138,7 @@ class _EventBuilderV2TemplateSheetState
           label: 'Gabarit narratif',
           value: _kind,
           items: [
-            for (final template in _catalog.templates)
+            for (final template in _catalog.eventSceneTemplates)
               PokeMapDropdownItem(
                 value: template.kind,
                 label: template.isPublishable

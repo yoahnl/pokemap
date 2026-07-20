@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_template_catalog.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematic_map_backdrop_tile_plan_loader.dart';
 import 'package:map_editor/src/ui/canvas/cinematics/cinematics_library_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
@@ -47,6 +48,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey('cinematics-library-create-button')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('cinematics-library-create-template')),
       findsOneWidget,
     );
 
@@ -1398,7 +1403,10 @@ class _HarnessState extends State<_Harness> {
             child: CinematicsLibraryWorkspace(
               project: _project,
               startExpanded: true,
-              onCreateCinematicShell: ({required String title}) async {
+              onCreateCinematicShell: ({
+                required String title,
+                NarrativeTemplateKind? templateKind,
+              }) async {
                 final id = _nextCinematicId(title);
                 final result = addCinematicAsset(
                   _project,
