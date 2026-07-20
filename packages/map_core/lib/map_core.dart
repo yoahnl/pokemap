@@ -152,6 +152,7 @@ export 'src/diagnostics/storyline_scene_link_diagnostics.dart';
 export 'src/diagnostics/world_rule_diagnostics.dart';
 export 'src/operations/narrative_validator.dart';
 export 'src/operations/narrative_project_validator.dart';
+export 'src/operations/narrative_symbolic_reachability_solver.dart';
 export 'src/operations/narrative_event_record_operations.dart';
 export 'src/operations/narrative_event_id_generator.dart';
 export 'src/operations/narrative_event_canonical_json.dart';

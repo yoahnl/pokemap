@@ -211,6 +211,32 @@ void main() {
       expect(serialized, isNot(contains('maël')));
       expect(serialized, isNot(contains('mado')));
     });
+
+    test('maps symbolic indeterminate issues with provenance and no quick fix',
+        () {
+      final issue = NarrativeSymbolicIssue(
+        code: NarrativeSymbolicIssueCode.unsupportedCommand,
+        verdict: NarrativeSymbolicVerdict.indeterminate,
+        message: 'Backend non prouvé.',
+        sceneId: 'scene_port',
+        nodeId: 'node_command',
+        provenance: const [
+          NarrativeSymbolicProvenance(
+            sceneId: 'scene_port',
+            nodeId: 'node_command',
+            description: 'Transition completed → node_command.',
+          ),
+        ],
+      );
+
+      final view = buildNarrativeSymbolicAuthoringDiagnosticView(issue);
+
+      expect(view.verdict, NarrativeSymbolicVerdict.indeterminate);
+      expect(view.title, 'Commande non prouvée');
+      expect(view.path, 'scenes.scene_port.nodes.node_command');
+      expect(view.provenance, hasLength(1));
+      expect(view.hasAutomaticFix, isFalse);
+    });
   });
 }
 

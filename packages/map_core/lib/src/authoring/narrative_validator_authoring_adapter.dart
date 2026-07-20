@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart' show immutable;
 
 import '../operations/narrative_validator.dart';
+import '../operations/narrative_symbolic_reachability_solver.dart';
 
 enum NarrativeAuthoringDiagnosticCategory {
   scenarioStructure,
@@ -22,6 +23,49 @@ enum NarrativeAuthoringDiagnosticActionKind {
   fixPredicate,
   replaceUnsupportedNode,
   noAutomaticFix,
+}
+
+@immutable
+final class NarrativeSymbolicAuthoringDiagnosticView {
+  const NarrativeSymbolicAuthoringDiagnosticView({
+    required this.verdict,
+    required this.title,
+    required this.message,
+    required this.path,
+    required this.provenance,
+  });
+
+  final NarrativeSymbolicVerdict verdict;
+  final String title;
+  final String message;
+  final String path;
+  final List<NarrativeSymbolicProvenance> provenance;
+
+  bool get hasAutomaticFix => false;
+}
+
+NarrativeSymbolicAuthoringDiagnosticView
+    buildNarrativeSymbolicAuthoringDiagnosticView(
+  NarrativeSymbolicIssue issue,
+) {
+  return NarrativeSymbolicAuthoringDiagnosticView(
+    verdict: issue.verdict,
+    title: switch (issue.code) {
+      NarrativeSymbolicIssueCode.cycleDetected => 'Cycle sans sortie prouvée',
+      NarrativeSymbolicIssueCode.pathWithoutExit => 'Chemin sans fin',
+      NarrativeSymbolicIssueCode.budgetExceeded => 'Preuve incomplète',
+      NarrativeSymbolicIssueCode.unsupportedCondition =>
+        'Condition non prouvée',
+      NarrativeSymbolicIssueCode.unsupportedCommand => 'Commande non prouvée',
+      NarrativeSymbolicIssueCode.mutuallyExclusiveRequirements =>
+        'Conditions mutuellement exclusives',
+    },
+    message: issue.message,
+    path: issue.nodeId == null
+        ? 'scenes.${issue.sceneId}'
+        : 'scenes.${issue.sceneId}.nodes.${issue.nodeId}',
+    provenance: issue.provenance,
+  );
 }
 
 @immutable

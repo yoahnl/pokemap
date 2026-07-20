@@ -22,6 +22,7 @@ import '../read_models/narrative_event_validation_read_model.dart';
 import '../validation/beta_playability_validator.dart';
 import 'build_narrative_event_project_catalog.dart';
 import 'build_narrative_event_validation_report.dart';
+import 'narrative_symbolic_reachability_solver.dart';
 import 'narrative_validator.dart';
 
 /// Severity shared by every diagnostic displayed by Narrative Validator.
@@ -179,6 +180,7 @@ final class NarrativeProjectValidationReport {
   NarrativeProjectValidationReport({
     required List<NarrativeProjectDiagnostic> diagnostics,
     required List<NarrativeMapEventsView> mapEventViews,
+    this.symbolicReachability,
   })  : diagnostics =
             List<NarrativeProjectDiagnostic>.unmodifiable(diagnostics),
         mapEventViews =
@@ -186,6 +188,10 @@ final class NarrativeProjectValidationReport {
 
   final List<NarrativeProjectDiagnostic> diagnostics;
   final List<NarrativeMapEventsView> mapEventViews;
+  final NarrativeSymbolicReachabilityReport? symbolicReachability;
+
+  NarrativeSymbolicVerdict get narrativelySolvable =>
+      symbolicReachability?.verdict ?? NarrativeSymbolicVerdict.indeterminate;
 
   int get errorCount => diagnostics
       .where(
@@ -257,7 +263,17 @@ NarrativeProjectValidationReport validateNarrativeProject(
     knownMoveIds: normalizedKnownMoveIds,
     requirePokemonCatalogs: requirePokemonCatalogs,
   );
-  _appendSolvabilityDiagnostics(project, maps, diagnostics);
+  final symbolicReachability = solveNarrativeSymbolicReachability(
+    project,
+    maps: maps,
+  );
+  _appendSymbolicReachabilityDiagnostics(symbolicReachability, diagnostics);
+  _appendSolvabilityDiagnostics(
+    project,
+    maps,
+    diagnostics,
+    symbolicReachability: symbolicReachability,
+  );
 
   final normalized = <String, NarrativeProjectDiagnostic>{};
   for (final diagnostic in diagnostics) {
@@ -272,7 +288,42 @@ NarrativeProjectValidationReport validateNarrativeProject(
   return NarrativeProjectValidationReport(
     diagnostics: sorted,
     mapEventViews: mapViews,
+    symbolicReachability: symbolicReachability,
   );
+}
+
+void _appendSymbolicReachabilityDiagnostics(
+  NarrativeSymbolicReachabilityReport report,
+  List<NarrativeProjectDiagnostic> target,
+) {
+  for (final issue in report.issues) {
+    final indeterminate =
+        issue.verdict == NarrativeSymbolicVerdict.indeterminate;
+    target.add(
+      NarrativeProjectDiagnostic(
+        code: issue.code ==
+                NarrativeSymbolicIssueCode.mutuallyExclusiveRequirements
+            ? 'narrativeMutuallyExclusiveRequirements'
+            : indeterminate
+                ? 'narrativeSolvabilityIndeterminate'
+                : 'narrativeSolvabilityFailed',
+        severity: issue.optional
+            ? NarrativeProjectDiagnosticSeverity.warning
+            : NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.scene,
+        message: issue.message,
+        path: issue.nodeId == null
+            ? 'scenes.${issue.sceneId}'
+            : 'scenes.${issue.sceneId}.nodes.${issue.nodeId}',
+        destination: NarrativeProjectDiagnosticDestination.scene,
+        suggestedFixLabel: indeterminate
+            ? 'Remplacer la feature non prouvée ou augmenter le budget.'
+            : 'Inspecter le chemin symbolique et ses branches.',
+        sceneId: issue.sceneId.isEmpty ? null : issue.sceneId,
+        eventId: issue.eventId,
+      ),
+    );
+  }
 }
 
 void _appendLegacyNarrativeDiagnostics(
@@ -811,15 +862,22 @@ NarrativeProjectDiagnostic _sceneBattleDiagnostic({
   );
 }
 
-void _appendSolvabilityDiagnostics(
-  ProjectManifest project,
-  List<MapData> maps,
-  List<NarrativeProjectDiagnostic> target,
-) {
+void _appendSolvabilityDiagnostics(ProjectManifest project, List<MapData> maps,
+    List<NarrativeProjectDiagnostic> target,
+    {required NarrativeSymbolicReachabilityReport symbolicReachability}) {
   final reachability = _solveNarrativeReachability(project, maps);
-  final reachableSceneIds = reachability.sceneIds;
-  final producedFacts = reachability.trueFactIds;
-  final completedSteps = reachability.completedStepIds;
+  final reachableSceneIds = {
+    ...reachability.sceneIds,
+    ...symbolicReachability.reachableSceneIds,
+  };
+  final producedFacts = {
+    ...reachability.trueFactIds,
+    ...symbolicReachability.trueFactIds,
+  };
+  final completedSteps = {
+    ...reachability.completedStepIds,
+    ...symbolicReachability.completedStepIds,
+  };
   final registry = project.eventRegistry;
 
   final requiredFacts = <String>{};
