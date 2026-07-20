@@ -355,6 +355,37 @@ final class StorylineChapter {
   final String? authorNotes;
   final Map<String, String> metadata;
 
+  /// Rebuilds a Chapter while preserving its stable id by default.
+  StorylineChapter copyWith({
+    String? id,
+    String? title,
+    Object? description = _storylineCopyUnset,
+    int? order,
+    List<StorylineStep>? steps,
+    List<String>? directSceneLinkIds,
+    Object? status = _storylineCopyUnset,
+    Object? authorNotes = _storylineCopyUnset,
+    Map<String, String>? metadata,
+  }) {
+    return StorylineChapter(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: identical(description, _storylineCopyUnset)
+          ? this.description
+          : description as String?,
+      order: order ?? this.order,
+      steps: steps ?? this.steps,
+      directSceneLinkIds: directSceneLinkIds ?? this.directSceneLinkIds,
+      status: identical(status, _storylineCopyUnset)
+          ? this.status
+          : status as StorylineStatus?,
+      authorNotes: identical(authorNotes, _storylineCopyUnset)
+          ? this.authorNotes
+          : authorNotes as String?,
+      metadata: metadata ?? this.metadata,
+    );
+  }
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -459,6 +490,45 @@ final class StorylineStep {
   final StorylineStatus? status;
   final String? authorNotes;
   final Map<String, String> metadata;
+
+  /// Rebuilds a Step while allowing nullable authoring fields to be cleared.
+  StorylineStep copyWith({
+    String? id,
+    String? title,
+    Object? description = _storylineCopyUnset,
+    int? order,
+    Object? entryCondition = _storylineCopyUnset,
+    Object? completionCondition = _storylineCopyUnset,
+    List<String>? sceneLinkIds,
+    List<String>? expectedOutcomeIds,
+    Object? status = _storylineCopyUnset,
+    Object? authorNotes = _storylineCopyUnset,
+    Map<String, String>? metadata,
+  }) {
+    return StorylineStep(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: identical(description, _storylineCopyUnset)
+          ? this.description
+          : description as String?,
+      order: order ?? this.order,
+      entryCondition: identical(entryCondition, _storylineCopyUnset)
+          ? this.entryCondition
+          : entryCondition as ScriptCondition?,
+      completionCondition: identical(completionCondition, _storylineCopyUnset)
+          ? this.completionCondition
+          : completionCondition as ScriptCondition?,
+      sceneLinkIds: sceneLinkIds ?? this.sceneLinkIds,
+      expectedOutcomeIds: expectedOutcomeIds ?? this.expectedOutcomeIds,
+      status: identical(status, _storylineCopyUnset)
+          ? this.status
+          : status as StorylineStatus?,
+      authorNotes: identical(authorNotes, _storylineCopyUnset)
+          ? this.authorNotes
+          : authorNotes as String?,
+      metadata: metadata ?? this.metadata,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>

@@ -33,6 +33,49 @@ void main() {
     });
   });
 
+  group('Storyline structure copyWith', () {
+    test('chapter and step copyWith preserve ids and clear nullable fields',
+        () {
+      final step = StorylineStep(
+        id: 'step_intro',
+        title: 'Intro',
+        description: 'Old step',
+        order: 0,
+        authorNotes: 'Step note',
+      );
+      final chapter = StorylineChapter(
+        id: 'chapter_intro',
+        title: 'Intro',
+        description: 'Old chapter',
+        order: 0,
+        steps: [step],
+        authorNotes: 'Chapter note',
+      );
+
+      final updatedStep = step.copyWith(
+        title: 'Renamed step',
+        description: null,
+        authorNotes: null,
+        status: StorylineStatus.active,
+      );
+      final updatedChapter = chapter.copyWith(
+        title: 'Renamed chapter',
+        description: null,
+        authorNotes: null,
+        status: StorylineStatus.active,
+        steps: [updatedStep],
+      );
+
+      expect(updatedChapter.id, chapter.id);
+      expect(updatedChapter.description, isNull);
+      expect(updatedChapter.authorNotes, isNull);
+      expect(updatedChapter.status, StorylineStatus.active);
+      expect(updatedChapter.steps.single.title, 'Renamed step');
+      expect(updatedChapter.steps.single.description, isNull);
+      expect(updatedChapter.steps.single.authorNotes, isNull);
+    });
+  });
+
   group('StorylineAsset construction', () {
     test('accepts minimal main draft with default schema and empty structure',
         () {

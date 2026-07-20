@@ -23,6 +23,11 @@ typedef StorylineStepReorder = void Function(
   int newIndex,
 );
 
+typedef StorylineChapterMove = void Function(
+  StorylineChapter chapter,
+  int direction,
+);
+
 class StorylinesStructureView extends StatelessWidget {
   const StorylinesStructureView({
     super.key,
@@ -32,6 +37,8 @@ class StorylinesStructureView extends StatelessWidget {
     required this.onChapterSelected,
     required this.onCreateChapter,
     required this.onEditChapter,
+    required this.onDuplicateChapter,
+    required this.onMoveChapter,
     required this.onCreateStep,
     required this.onEditStep,
     required this.onReorderSteps,
@@ -44,6 +51,8 @@ class StorylinesStructureView extends StatelessWidget {
   final ValueChanged<StorylineChapter?> onChapterSelected;
   final VoidCallback? onCreateChapter;
   final ValueChanged<StorylineChapter>? onEditChapter;
+  final ValueChanged<StorylineChapter>? onDuplicateChapter;
+  final StorylineChapterMove? onMoveChapter;
   final VoidCallback? onCreateStep;
   final StorylineStepAction? onEditStep;
   final StorylineStepReorder? onReorderSteps;
@@ -94,6 +103,8 @@ class StorylinesStructureView extends StatelessWidget {
                     selectedStepId: selectedStepId,
                     onChapterSelected: onChapterSelected,
                     onEditChapter: onEditChapter,
+                    onDuplicateChapter: onDuplicateChapter,
+                    onMoveChapter: onMoveChapter,
                     onCreateStep: onCreateStep,
                     onEditStep: onEditStep,
                     onReorderSteps: onReorderSteps,
@@ -268,6 +279,8 @@ class _ChapterAccordionList extends StatelessWidget {
     required this.selectedStepId,
     required this.onChapterSelected,
     required this.onEditChapter,
+    required this.onDuplicateChapter,
+    required this.onMoveChapter,
     required this.onCreateStep,
     required this.onEditStep,
     required this.onReorderSteps,
@@ -279,6 +292,8 @@ class _ChapterAccordionList extends StatelessWidget {
   final String? selectedStepId;
   final ValueChanged<StorylineChapter?> onChapterSelected;
   final ValueChanged<StorylineChapter>? onEditChapter;
+  final ValueChanged<StorylineChapter>? onDuplicateChapter;
+  final StorylineChapterMove? onMoveChapter;
   final VoidCallback? onCreateStep;
   final StorylineStepAction? onEditStep;
   final StorylineStepReorder? onReorderSteps;
@@ -336,6 +351,7 @@ class _ChapterAccordionList extends StatelessWidget {
                 chapter: chapter,
                 expanded: chapter.id == selectedChapter?.id,
                 selectedStepId: selectedStepId,
+                chapterIndex: chapters.indexOf(chapter),
               ),
           ],
         ),
@@ -349,6 +365,7 @@ class _ChapterAccordionList extends StatelessWidget {
     required StorylineChapter chapter,
     required bool expanded,
     required String? selectedStepId,
+    required int chapterIndex,
   }) {
     final colors = context.pokeMapColors;
     return ExpansionPanel(
@@ -364,6 +381,16 @@ class _ChapterAccordionList extends StatelessWidget {
           onToggle: () => onChapterSelected(expanded ? null : chapter),
           onEditChapter:
               onEditChapter == null ? null : () => onEditChapter!(chapter),
+          onDuplicateChapter: onDuplicateChapter == null
+              ? null
+              : () => onDuplicateChapter!(chapter),
+          onMoveUp: chapterIndex == 0 || onMoveChapter == null
+              ? null
+              : () => onMoveChapter!(chapter, -1),
+          onMoveDown:
+              chapterIndex == chapters.length - 1 || onMoveChapter == null
+                  ? null
+                  : () => onMoveChapter!(chapter, 1),
         ),
       ),
       body: expanded
@@ -389,6 +416,9 @@ class _ChapterAccordionHeader extends StatelessWidget {
     required this.expanded,
     required this.onToggle,
     required this.onEditChapter,
+    required this.onDuplicateChapter,
+    required this.onMoveUp,
+    required this.onMoveDown,
   });
 
   final StorylineAsset storyline;
@@ -396,6 +426,9 @@ class _ChapterAccordionHeader extends StatelessWidget {
   final bool expanded;
   final VoidCallback onToggle;
   final VoidCallback? onEditChapter;
+  final VoidCallback? onDuplicateChapter;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   @override
   Widget build(BuildContext context) {
@@ -465,6 +498,36 @@ class _ChapterAccordionHeader extends StatelessWidget {
                     _attachedSideQuestCount(storyline, chapter),
               ),
               const SizedBox(width: 10),
+              PokeMapIconButton(
+                key: ValueKey(
+                  'storylines-move-chapter-up-${chapter.id}',
+                ),
+                onPressed: onMoveUp,
+                icon: const Icon(CupertinoIcons.arrow_up),
+                tooltip: 'Monter le chapitre',
+                variant: PokeMapIconButtonVariant.soft,
+              ),
+              const SizedBox(width: 4),
+              PokeMapIconButton(
+                key: ValueKey(
+                  'storylines-move-chapter-down-${chapter.id}',
+                ),
+                onPressed: onMoveDown,
+                icon: const Icon(CupertinoIcons.arrow_down),
+                tooltip: 'Descendre le chapitre',
+                variant: PokeMapIconButtonVariant.soft,
+              ),
+              const SizedBox(width: 4),
+              PokeMapIconButton(
+                key: ValueKey(
+                  'storylines-duplicate-chapter-action-${chapter.id}',
+                ),
+                onPressed: onDuplicateChapter,
+                icon: const Icon(CupertinoIcons.doc_on_doc),
+                tooltip: 'Dupliquer le chapitre',
+                variant: PokeMapIconButtonVariant.soft,
+              ),
+              const SizedBox(width: 4),
               PokeMapButton(
                 key: ValueKey('storylines-edit-chapter-action-${chapter.id}'),
                 onPressed: onEditChapter,
@@ -724,7 +787,7 @@ class _SceneLinkNotice extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Liaison de scène à venir : aucune scène placeholder ni sceneLink n’est créé depuis cette vue.',
+              'Les scènes, conditions, outcomes et métadonnées se configurent depuis l’édition de chaque étape.',
               style: TextStyle(
                 color: colors.textSecondary,
                 fontSize: 11.5,

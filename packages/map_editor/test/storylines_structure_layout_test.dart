@@ -155,7 +155,7 @@ void main() {
           findsOneWidget);
     });
 
-    testWidgets('chapter edit and delete mutate ProjectManifest.storylines',
+    testWidgets('chapter edit mutates and referenced delete stays protected',
         (tester) async {
       final seedFile = _selbrumeProjectFile();
       final seedBefore = seedFile.readAsStringSync();
@@ -179,6 +179,15 @@ void main() {
         ),
         'Chapitre ajusté depuis la vue Structure.',
       );
+      await tester.enterText(
+        find.byKey(const ValueKey('storylines-chapter-notes-field')),
+        'Validation auteur du chapitre.',
+      );
+      final activeStatus = find.byKey(
+        const ValueKey('storylines-chapter-status-active'),
+      );
+      await tester.ensureVisible(activeStatus);
+      await tester.tap(activeStatus);
       await tester.pump();
       await tester
           .tap(find.byKey(const ValueKey('storylines-edit-chapter-submit')));
@@ -190,6 +199,11 @@ void main() {
       expect(
         main.chapters.first.description,
         'Chapitre ajusté depuis la vue Structure.',
+      );
+      expect(main.chapters.first.status, StorylineStatus.active);
+      expect(
+        main.chapters.first.authorNotes,
+        'Validation auteur du chapitre.',
       );
 
       await tester.ensureVisible(
@@ -214,14 +228,17 @@ void main() {
 
       updatedProject = container.read(editorNotifierProvider).project!;
       main = _selbrumeMain(updatedProject);
-      expect(main.chapters.map((chapter) => chapter.id),
-          isNot(contains('chapter_4_epilogue')));
-      expect(main.chapters, hasLength(3));
+      expect(
+        main.chapters.map((chapter) => chapter.id),
+        contains('chapter_4_epilogue'),
+      );
+      expect(find.text('Modification impossible'), findsOneWidget);
+      expect(find.textContaining('Consommateurs'), findsOneWidget);
       expect(seedFile.readAsStringSync(), seedBefore);
     });
 
     testWidgets(
-        'step edit delete and drag reorder update only selected chapter',
+        'step edit drag reorder and referenced delete preserve integrity',
         (tester) async {
       final seedFile = _selbrumeProjectFile();
       final seedBefore = seedFile.readAsStringSync();
@@ -286,12 +303,112 @@ void main() {
 
       updatedProject = container.read(editorNotifierProvider).project!;
       main = _selbrumeMain(updatedProject);
-      expect(main.chapters.first.steps.map((step) => step.id),
-          isNot(contains('step_go_to_port')));
-      expect(main.chapters.first.steps, hasLength(3));
+      expect(
+        main.chapters.first.steps.map((step) => step.id),
+        contains('step_go_to_port'),
+      );
+      expect(find.text('Modification impossible'), findsOneWidget);
+      expect(find.textContaining('Consommateurs'), findsOneWidget);
       expect(main.chapters[1].steps.map((step) => step.id),
           contains('step_enter_marais'));
       expect(seedFile.readAsStringSync(), seedBefore);
+    });
+
+    testWidgets('duplicates and reorders Chapters through domain operations',
+        (tester) async {
+      final container = await _pumpStorylinesShell(
+        tester,
+        project: _loadSelbrumeProject(),
+      );
+      await _openStructureTab(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey(
+            'storylines-duplicate-chapter-action-chapter_1_port',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var main = _selbrumeMain(container.read(editorNotifierProvider).project!);
+      expect(main.chapters, hasLength(5));
+      final duplicate = main.chapters.last;
+      expect(duplicate.title, contains('(copie)'));
+      expect(duplicate.steps, hasLength(main.chapters.first.steps.length));
+      expect(
+        duplicate.steps.map((step) => step.id).toSet().intersection(
+              main.chapters.first.steps.map((step) => step.id).toSet(),
+            ),
+        isEmpty,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey('storylines-move-chapter-down-chapter_1_port'),
+        ),
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('storylines-move-chapter-down-chapter_1_port'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      main = _selbrumeMain(container.read(editorNotifierProvider).project!);
+      expect(main.chapters[1].id, 'chapter_1_port');
+      expect(main.chapters.map((chapter) => chapter.order), [0, 1, 2, 3, 4]);
+    });
+
+    testWidgets('duplicates and moves a Step between Chapters', (tester) async {
+      final container = await _pumpStorylinesShell(
+        tester,
+        project: _loadSelbrumeProject(),
+      );
+      await _openStructureTab(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('storylines-edit-step-action-step_intro_selbrume'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey('storylines-edit-step-duplicate-action'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      var main = _selbrumeMain(container.read(editorNotifierProvider).project!);
+      expect(main.chapters.first.steps, hasLength(5));
+      expect(main.chapters.first.steps.last.title, contains('(copie)'));
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey('storylines-edit-step-action-step_intro_selbrume'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final targetChapter = find.byKey(
+        const ValueKey('storylines-step-target-chapter-chapter_2_marais'),
+      );
+      await tester.ensureVisible(targetChapter);
+      await tester.tap(targetChapter);
+      await tester.tap(
+        find.byKey(const ValueKey('storylines-edit-step-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      main = _selbrumeMain(container.read(editorNotifierProvider).project!);
+      expect(
+        main.chapters.first.steps.map((step) => step.id),
+        isNot(contains('step_intro_selbrume')),
+      );
+      expect(
+        main.chapters[1].steps.last.id,
+        'step_intro_selbrume',
+      );
     });
 
     testWidgets('existing step creation flow remains wired in Structure',
