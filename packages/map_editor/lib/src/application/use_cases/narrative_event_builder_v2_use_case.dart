@@ -199,7 +199,11 @@ final class NarrativeEventBuilderV2UseCase {
       record: eventId == null
           ? null
           : _findRecord(session.context.registryOrNull, eventId),
-      spatialSources: catalog.spatialSources.selectableOptions,
+      // NSC-41 keeps broken and legacy physical owners visible to authoring.
+      // Mutations still accept only catalog-selectable identities; the UI uses
+      // each option's reference state instead of pretending missing sources do
+      // not exist.
+      spatialSources: catalog.spatialSources.options,
       outcomeSources: catalog.outcomeSources.selectableOptions,
       scenes: [
         for (final entry in catalog.scenes)

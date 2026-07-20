@@ -175,6 +175,156 @@ void main() {
       );
     });
 
+    test('groups real sources by map, presentation kind and reference state',
+        () {
+      final catalog = buildNarrativeSpatialEventSourceCatalog(
+        project: _project([
+          _mapEntry('map_forest', 'Forêt', sortOrder: 1),
+          _mapEntry('map_port', 'Port', sortOrder: 0),
+        ]),
+        maps: [
+          _map(
+            entities: [
+              _entity('npc_lysa', 'Lysa', MapEntityKind.npc, 1, 2),
+              _entity('item_key', 'Clé', MapEntityKind.item, 3, 2),
+              _entity('sign_quay', 'Panneau', MapEntityKind.sign, 4, 2),
+            ],
+            triggers: [
+              _trigger('zone_quay', 'Quai', TriggerType.event, 1, 5),
+            ],
+            placedElements: [
+              MapPlacedElement(
+                id: 'placed_switch',
+                layerId: 'objects',
+                elementId: 'switch',
+                pos: const GridPos(x: 3, y: 8),
+                behaviors: [
+                  MapPlacedElementBehavior(
+                    effect: const MapPlacedElementEffect(
+                      type: MapPlacedElementEffectType.showMessage,
+                      message: 'Bonjour',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          _map(id: 'map_forest', name: 'Forêt'),
+        ],
+      );
+
+      expect(
+        catalog.mapGroups.map((group) => group.mapId),
+        ['map_forest', 'map_port'],
+      );
+      final port = catalog.mapGroups.singleWhere(
+        (group) => group.mapId == 'map_port',
+      );
+      expect(port.mapEntrySources, hasLength(1));
+      expect(port.zoneSources, hasLength(1));
+      expect(port.npcSources.map((option) => option.ownerId), ['npc_lysa']);
+      expect(
+        port.objectSources.map((option) => option.ownerId),
+        ['item_key', 'sign_quay'],
+      );
+      expect(port.unavailableSources, hasLength(1));
+      expect(
+        port.unavailableSources.single.presentationKind,
+        NarrativeSpatialEventSourcePresentationKind.placedElement,
+      );
+      expect(
+        port.unavailableSources.single.referenceState,
+        NarrativeSpatialEventSourceReferenceState.notAttachable,
+      );
+      expect(
+        port.selectableSources.every(
+          (option) =>
+              option.referenceState ==
+              NarrativeSpatialEventSourceReferenceState.ready,
+        ),
+        isTrue,
+      );
+    });
+
+    test('filters only compatible concrete trigger and source kinds', () {
+      final catalog = buildNarrativeSpatialEventSourceCatalog(
+        project: _project([_mapEntry('map_port', 'Port')]),
+        maps: [
+          _map(
+            entities: [
+              _entity('npc_lysa', 'Lysa', MapEntityKind.npc, 1, 2),
+            ],
+            triggers: [
+              _trigger('zone_quay', 'Quai', TriggerType.event, 1, 5),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        catalog
+            .selectableOptionsCompatibleWith(
+              NarrativeEventSourceKind.entityInteract,
+            )
+            .map((option) => option.ownerId),
+        ['npc_lysa'],
+      );
+      expect(
+        catalog
+            .selectableOptionsCompatibleWith(
+              NarrativeEventSourceKind.triggerEnter,
+            )
+            .map((option) => option.ownerId),
+        ['zone_quay'],
+      );
+      expect(
+        catalog.selectableOptionsCompatibleWith(
+          NarrativeEventSourceKind.outcomeReceived,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('rebuild refreshes moved geometry without changing source identity',
+        () {
+      final project = _project([_mapEntry('map_port', 'Port')]);
+      final initial = buildNarrativeSpatialEventSourceCatalog(
+        project: project,
+        maps: [
+          _map(
+            entities: [
+              _entity('npc_lysa', 'Lysa', MapEntityKind.npc, 1, 2),
+            ],
+          ),
+        ],
+      );
+      final moved = buildNarrativeSpatialEventSourceCatalog(
+        project: project,
+        maps: [
+          _map(
+            entities: [
+              _entity('npc_lysa', 'Lysa', MapEntityKind.npc, 6, 7),
+            ],
+          ),
+        ],
+      );
+      final source = NarrativeEventSourceRef.entityInteract(
+        'map_port',
+        'npc_lysa',
+      );
+
+      expect(initial.resolve(source).option!.source, source);
+      expect(moved.resolve(source).option!.source, source);
+      expect(
+        initial.resolve(source).option!.geometry.bounds!.pos,
+        const GridPos(x: 1, y: 2),
+      );
+      expect(
+        moved.resolve(source).option!.geometry.bounds!.pos,
+        const GridPos(x: 6, y: 7),
+      );
+    });
+
     test('keeps missing and ambiguous owners visible but unselectable', () {
       final duplicateEntityMap = _map(
         entities: [
@@ -206,11 +356,15 @@ void main() {
       );
       expect(
         catalog.options
-            .firstWhere(
-              (option) => option.mapId == 'map_missing',
-            )
+            .firstWhere((option) => option.mapId == 'map_missing')
             .availability,
         NarrativeSpatialEventSourceAvailability.missing,
+      );
+      expect(
+        catalog.options
+            .firstWhere((option) => option.mapId == 'map_missing')
+            .referenceState,
+        NarrativeSpatialEventSourceReferenceState.needsMapRepair,
       );
       expect(
         catalog.diagnostics.map((diagnostic) => diagnostic.code),
@@ -261,6 +415,10 @@ void main() {
       expect(
         legacy.availability,
         NarrativeSpatialEventSourceAvailability.legacyCompatibility,
+      );
+      expect(
+        legacy.referenceState,
+        NarrativeSpatialEventSourceReferenceState.legacyCompatibility,
       );
       expect(legacy.source, isNull);
       expect(legacy.humanLabel, contains('Ancien événement'));

@@ -5337,6 +5337,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      String? eventRevalidationMessage;
       final current = _entityEditingService.findSelectedEntity(map, entityId);
       if (current != null) {
         final dependencyDecision =
@@ -5346,13 +5347,24 @@ class EditorNotifier extends _$EditorNotifier {
           current: current,
           next: current.copyWith(
             id: id ?? current.id,
+            name: name ?? current.name,
             kind: kind ?? current.kind,
+            pos: pos ?? current.pos,
+            size: size ?? current.size,
+            properties: properties ?? current.properties,
+            blocksMovement: blocksMovement ?? current.blocksMovement,
+            npc: npc ?? current.npc,
+            sign: sign ?? current.sign,
+            item: item ?? current.item,
+            spawn: spawn ?? current.spawn,
+            editorVisual: editorVisual ?? current.editorVisual,
           ),
         );
         if (!dependencyDecision.isAllowed) {
           state = state.copyWith(errorMessage: dependencyDecision.message);
           return;
         }
+        eventRevalidationMessage = dependencyDecision.revalidationMessage;
       }
       final result = _entityEditingService.updateEntity(
         map,
@@ -5381,6 +5393,9 @@ class EditorNotifier extends _$EditorNotifier {
       );
       if (kind != null && kind != state.selectedEntityKind) {
         state = state.copyWith(selectedEntityKind: kind);
+      }
+      if (eventRevalidationMessage != null) {
+        state = state.copyWith(statusMessage: eventRevalidationMessage);
       }
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update entity: $e');
@@ -5512,6 +5527,7 @@ class EditorNotifier extends _$EditorNotifier {
     final map = state.activeMap;
     if (map == null) return;
     try {
+      String? eventRevalidationMessage;
       final current = _triggerEditingService.findSelectedTrigger(
         map,
         triggerId,
@@ -5524,13 +5540,17 @@ class EditorNotifier extends _$EditorNotifier {
           current: current,
           next: current.copyWith(
             id: id ?? current.id,
+            name: name ?? current.name,
             type: type ?? current.type,
+            area: area ?? current.area,
+            properties: properties ?? current.properties,
           ),
         );
         if (!dependencyDecision.isAllowed) {
           state = state.copyWith(errorMessage: dependencyDecision.message);
           return;
         }
+        eventRevalidationMessage = dependencyDecision.revalidationMessage;
       }
       final result = _triggerEditingService.updateTrigger(
         map,
@@ -5549,6 +5569,9 @@ class EditorNotifier extends _$EditorNotifier {
         preferredSelectedTriggerId: result.selectedTriggerId,
         statusMessage: 'Trigger updated',
       );
+      if (eventRevalidationMessage != null) {
+        state = state.copyWith(statusMessage: eventRevalidationMessage);
+      }
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to update trigger: $e');
     }
@@ -10274,15 +10297,16 @@ class EditorNotifier extends _$EditorNotifier {
     required String dialogueId,
     required String? defaultStartNode,
   }) async {
-    state = await _projectContentController.updateProjectDialogueDefaultStartNode(
+    state =
+        await _projectContentController.updateProjectDialogueDefaultStartNode(
       current: state,
       workspace: _projectWorkspace,
       dialogueId: dialogueId,
       defaultStartNode: defaultStartNode,
     );
     if (state.errorMessage != null) return false;
-    for (final dialogue in state.project?.dialogues ??
-        const <ProjectDialogueEntry>[]) {
+    for (final dialogue
+        in state.project?.dialogues ?? const <ProjectDialogueEntry>[]) {
       if (dialogue.id == dialogueId) {
         return dialogue.defaultStartNode == defaultStartNode;
       }

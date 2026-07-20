@@ -12,6 +12,28 @@ enum NarrativeSpatialEventSourceOwnerKind {
   legacyMapEvent,
 }
 
+/// Closed UI-facing category derived from the physical map owner.
+///
+/// This is presentation metadata only: canonical dispatch still depends on
+/// [NarrativeEventSourceRef]. Keeping the two concepts separate prevents the
+/// Event Builder from inventing a new runtime source kind for map objects.
+enum NarrativeSpatialEventSourcePresentationKind {
+  mapEntry,
+  zone,
+  npc,
+  object,
+  placedElement,
+  legacy,
+}
+
+/// Honest reference state shown by authoring surfaces.
+enum NarrativeSpatialEventSourceReferenceState {
+  ready,
+  needsMapRepair,
+  notAttachable,
+  legacyCompatibility,
+}
+
 enum NarrativeSpatialEventSourceAvailability {
   selectable,
   visibleButUnavailable,
@@ -105,6 +127,7 @@ final class NarrativeSpatialEventSourceOption {
     required String debugTechnicalLabel,
     required this.geometry,
     required this.ownerKind,
+    NarrativeSpatialEventSourcePresentationKind? presentationKind,
     this.ownerId,
     List<LegacySourceRef> legacyProvenances = const [],
   })  : humanLabel = _identity(humanLabel, 'humanLabel'),
@@ -119,6 +142,8 @@ final class NarrativeSpatialEventSourceOption {
           debugTechnicalLabel,
           'debugTechnicalLabel',
         ),
+        presentationKind =
+            presentationKind ?? _defaultPresentationKindForOwner(ownerKind),
         legacyProvenances = _sortedProvenances(legacyProvenances) {
     if (availability == NarrativeSpatialEventSourceAvailability.selectable) {
       if (source == null || this.unavailableReason != null) {
@@ -162,6 +187,11 @@ final class NarrativeSpatialEventSourceOption {
         'Placed and legacy owners cannot claim a canonical spatial source.',
       );
     }
+    if (!_presentationMatchesOwner(ownerKind, this.presentationKind)) {
+      throw ArgumentError(
+        'The presentation category must match the physical source owner.',
+      );
+    }
   }
 
   final NarrativeEventSourceRef? source;
@@ -177,11 +207,28 @@ final class NarrativeSpatialEventSourceOption {
   final String debugTechnicalLabel;
   final NarrativeSpatialSourceGeometrySummary geometry;
   final NarrativeSpatialEventSourceOwnerKind ownerKind;
+  final NarrativeSpatialEventSourcePresentationKind presentationKind;
   final String? ownerId;
   final List<LegacySourceRef> legacyProvenances;
 
   bool get selectable =>
       availability == NarrativeSpatialEventSourceAvailability.selectable;
+
+  NarrativeSpatialEventSourceReferenceState get referenceState {
+    if (ownerKind == NarrativeSpatialEventSourceOwnerKind.placedElement) {
+      return NarrativeSpatialEventSourceReferenceState.notAttachable;
+    }
+    return switch (availability) {
+      NarrativeSpatialEventSourceAvailability.selectable =>
+        NarrativeSpatialEventSourceReferenceState.ready,
+      NarrativeSpatialEventSourceAvailability.legacyCompatibility =>
+        NarrativeSpatialEventSourceReferenceState.legacyCompatibility,
+      _ => NarrativeSpatialEventSourceReferenceState.needsMapRepair,
+    };
+  }
+
+  bool isCompatibleWith(NarrativeEventSourceKind sourceKind) =>
+      selectable && source?.kind == sourceKind;
 
   NarrativeSpatialEventSourceOption withLegacyProvenance(
     LegacySourceRef provenance,
@@ -200,6 +247,7 @@ final class NarrativeSpatialEventSourceOption {
       debugTechnicalLabel: debugTechnicalLabel,
       geometry: geometry,
       ownerKind: ownerKind,
+      presentationKind: presentationKind,
       ownerId: ownerId,
       legacyProvenances: [...legacyProvenances, provenance],
     );
@@ -219,6 +267,8 @@ final class NarrativeSpatialEventSourceOption {
         'debugTechnicalLabel': debugTechnicalLabel,
         'geometry': geometry.toDebugJson(),
         'ownerKind': ownerKind.name,
+        'presentationKind': presentationKind.name,
+        'referenceState': referenceState.name,
         if (ownerId != null) 'ownerId': ownerId,
         'legacyProvenances': [
           for (final provenance in legacyProvenances) provenance.toJson(),
@@ -254,6 +304,59 @@ final class NarrativeSpatialEventSourceOption {
       outcomeReceived: (_) => false,
     );
   }
+}
+
+/// Immutable per-map projection used by no-code source pickers.
+///
+/// It groups only catalog facts and never manufactures a source. Unavailable
+/// physical owners remain visible so users know they must repair them in Map
+/// Editor instead of trying to recreate them in Event Builder.
+@immutable
+final class NarrativeSpatialEventSourceMapGroup {
+  NarrativeSpatialEventSourceMapGroup({
+    required this.mapId,
+    required String mapLabel,
+    required List<NarrativeSpatialEventSourceOption> sources,
+  })  : mapLabel = _identity(mapLabel, 'mapLabel'),
+        sources = List.unmodifiable(sources) {
+    if (sources.any((option) => option.mapId != mapId)) {
+      throw ArgumentError('Every grouped source must belong to the map.');
+    }
+  }
+
+  final String mapId;
+  final String mapLabel;
+  final List<NarrativeSpatialEventSourceOption> sources;
+
+  List<NarrativeSpatialEventSourceOption> get mapEntrySources =>
+      _byPresentation(NarrativeSpatialEventSourcePresentationKind.mapEntry);
+
+  List<NarrativeSpatialEventSourceOption> get zoneSources =>
+      _byPresentation(NarrativeSpatialEventSourcePresentationKind.zone);
+
+  List<NarrativeSpatialEventSourceOption> get npcSources =>
+      _byPresentation(NarrativeSpatialEventSourcePresentationKind.npc);
+
+  List<NarrativeSpatialEventSourceOption> get objectSources =>
+      _byPresentation(NarrativeSpatialEventSourcePresentationKind.object);
+
+  List<NarrativeSpatialEventSourceOption> get placedElementSources =>
+      _byPresentation(
+        NarrativeSpatialEventSourcePresentationKind.placedElement,
+      );
+
+  List<NarrativeSpatialEventSourceOption> get selectableSources =>
+      List.unmodifiable(sources.where((option) => option.selectable));
+
+  List<NarrativeSpatialEventSourceOption> get unavailableSources =>
+      List.unmodifiable(sources.where((option) => !option.selectable));
+
+  List<NarrativeSpatialEventSourceOption> _byPresentation(
+    NarrativeSpatialEventSourcePresentationKind kind,
+  ) =>
+      List.unmodifiable(
+        sources.where((option) => option.presentationKind == kind),
+      );
 }
 
 @immutable
@@ -294,15 +397,24 @@ final class NarrativeSpatialEventSourceCatalog {
     required List<NarrativeSpatialEventSourceDiagnostic> diagnostics,
   })  : options = List.unmodifiable(options),
         diagnostics = List.unmodifiable(diagnostics),
-        _optionsBySource = _indexSpatialOptions(options);
+        _optionsBySource = _indexSpatialOptions(options),
+        mapGroups = _groupSpatialOptions(options);
 
   final List<NarrativeSpatialEventSourceOption> options;
   final List<NarrativeSpatialEventSourceDiagnostic> diagnostics;
+  final List<NarrativeSpatialEventSourceMapGroup> mapGroups;
   final Map<NarrativeEventSourceRef, List<NarrativeSpatialEventSourceOption>>
       _optionsBySource;
 
   List<NarrativeSpatialEventSourceOption> get selectableOptions =>
       List.unmodifiable(options.where((option) => option.selectable));
+
+  List<NarrativeSpatialEventSourceOption> selectableOptionsCompatibleWith(
+    NarrativeEventSourceKind sourceKind,
+  ) =>
+      List.unmodifiable(
+        options.where((option) => option.isCompatibleWith(sourceKind)),
+      );
 
   NarrativeSpatialEventSourceResolution resolve(
     NarrativeEventSourceRef source,
@@ -332,6 +444,62 @@ final class NarrativeSpatialEventSourceCatalog {
         ],
       };
 }
+
+List<NarrativeSpatialEventSourceMapGroup> _groupSpatialOptions(
+  List<NarrativeSpatialEventSourceOption> options,
+) {
+  final grouped = <String, List<NarrativeSpatialEventSourceOption>>{};
+  for (final option in options) {
+    grouped.putIfAbsent(option.mapId, () => []).add(option);
+  }
+  final result = <NarrativeSpatialEventSourceMapGroup>[
+    for (final entry in grouped.entries)
+      NarrativeSpatialEventSourceMapGroup(
+        mapId: entry.key,
+        mapLabel: entry.value.first.mapLabel,
+        sources: entry.value,
+      ),
+  ]..sort((left, right) {
+      final label = left.mapLabel.compareTo(right.mapLabel);
+      return label != 0 ? label : left.mapId.compareTo(right.mapId);
+    });
+  return List.unmodifiable(result);
+}
+
+NarrativeSpatialEventSourcePresentationKind _defaultPresentationKindForOwner(
+  NarrativeSpatialEventSourceOwnerKind ownerKind,
+) =>
+    switch (ownerKind) {
+      NarrativeSpatialEventSourceOwnerKind.map =>
+        NarrativeSpatialEventSourcePresentationKind.mapEntry,
+      NarrativeSpatialEventSourceOwnerKind.entity =>
+        NarrativeSpatialEventSourcePresentationKind.object,
+      NarrativeSpatialEventSourceOwnerKind.trigger =>
+        NarrativeSpatialEventSourcePresentationKind.zone,
+      NarrativeSpatialEventSourceOwnerKind.placedElement =>
+        NarrativeSpatialEventSourcePresentationKind.placedElement,
+      NarrativeSpatialEventSourceOwnerKind.legacyMapEvent =>
+        NarrativeSpatialEventSourcePresentationKind.legacy,
+    };
+
+bool _presentationMatchesOwner(
+  NarrativeSpatialEventSourceOwnerKind ownerKind,
+  NarrativeSpatialEventSourcePresentationKind presentationKind,
+) =>
+    switch (ownerKind) {
+      NarrativeSpatialEventSourceOwnerKind.map => presentationKind ==
+          NarrativeSpatialEventSourcePresentationKind.mapEntry,
+      NarrativeSpatialEventSourceOwnerKind.entity =>
+        presentationKind == NarrativeSpatialEventSourcePresentationKind.npc ||
+            presentationKind ==
+                NarrativeSpatialEventSourcePresentationKind.object,
+      NarrativeSpatialEventSourceOwnerKind.trigger =>
+        presentationKind == NarrativeSpatialEventSourcePresentationKind.zone,
+      NarrativeSpatialEventSourceOwnerKind.placedElement => presentationKind ==
+          NarrativeSpatialEventSourcePresentationKind.placedElement,
+      NarrativeSpatialEventSourceOwnerKind.legacyMapEvent =>
+        presentationKind == NarrativeSpatialEventSourcePresentationKind.legacy,
+    };
 
 Map<NarrativeEventSourceRef, List<NarrativeSpatialEventSourceOption>>
     _indexSpatialOptions(List<NarrativeSpatialEventSourceOption> options) {

@@ -5,13 +5,21 @@ final class NarrativeEventSourceDependencyDecision {
     required this.isAllowed,
     required List<String> linkedEventIds,
     required this.message,
+    required this.requiresEventRevalidation,
+    required this.revalidationMessage,
   }) : linkedEventIds = List.unmodifiable(linkedEventIds);
 
-  factory NarrativeEventSourceDependencyDecision.allowed() {
+  factory NarrativeEventSourceDependencyDecision.allowed({
+    List<String> linkedEventIds = const [],
+    bool requiresEventRevalidation = false,
+    String? revalidationMessage,
+  }) {
     return NarrativeEventSourceDependencyDecision._(
       isAllowed: true,
-      linkedEventIds: const [],
+      linkedEventIds: linkedEventIds,
       message: null,
+      requiresEventRevalidation: requiresEventRevalidation,
+      revalidationMessage: revalidationMessage,
     );
   }
 
@@ -24,12 +32,16 @@ final class NarrativeEventSourceDependencyDecision {
       linkedEventIds: linkedEventIds,
       message: 'Action bloquée ($operation) : source utilisée par '
           '${linkedEventIds.join(', ')}.',
+      requiresEventRevalidation: false,
+      revalidationMessage: null,
     );
   }
 
   final bool isAllowed;
   final List<String> linkedEventIds;
   final String? message;
+  final bool requiresEventRevalidation;
+  final String? revalidationMessage;
 }
 
 /// Protects physical identities referenced by every Event V2 record state.
@@ -77,11 +89,20 @@ final class NarrativeEventSourceDependencyGuard {
     required MapData candidate,
     required String operation,
   }) {
-    return _decision(
+    final blocked = _decision(
       registry: registry,
       matches: (source) =>
           _isResolvedByMap(source, current) &&
           !_isResolvedByMap(source, candidate),
+      operation: operation,
+    );
+    if (!blocked.isAllowed || current == candidate) return blocked;
+    return _revalidationDecision(
+      registry: registry,
+      matches: (source) =>
+          _mapId(source) == current.id &&
+          _isResolvedByMap(source, current) &&
+          _isResolvedByMap(source, candidate),
       operation: operation,
     );
   }
@@ -96,7 +117,15 @@ final class NarrativeEventSourceDependencyGuard {
     final becomesSpawn =
         current.kind != MapEntityKind.spawn && next.kind == MapEntityKind.spawn;
     if (!breaksIdentity && !becomesSpawn) {
-      return NarrativeEventSourceDependencyDecision.allowed();
+      if (current == next) {
+        return NarrativeEventSourceDependencyDecision.allowed();
+      }
+      return _revalidationDecision(
+        registry: registry,
+        matches: (source) =>
+            source == NarrativeEventSourceRef.entityInteract(mapId, current.id),
+        operation: 'modification physique de l’entité ${current.id}',
+      );
     }
     return _decision(
       registry: registry,
@@ -131,7 +160,15 @@ final class NarrativeEventSourceDependencyGuard {
     final leavesEventSourceKinds = _isEventSourceTrigger(current.type) &&
         !_isEventSourceTrigger(next.type);
     if (!breaksIdentity && !leavesEventSourceKinds) {
-      return NarrativeEventSourceDependencyDecision.allowed();
+      if (current == next) {
+        return NarrativeEventSourceDependencyDecision.allowed();
+      }
+      return _revalidationDecision(
+        registry: registry,
+        matches: (source) =>
+            source == NarrativeEventSourceRef.triggerEnter(mapId, current.id),
+        operation: 'modification physique de la zone ${current.id}',
+      );
     }
     return _decision(
       registry: registry,
@@ -162,14 +199,7 @@ NarrativeEventSourceDependencyDecision _decision({
   required bool Function(NarrativeEventSourceRef source) matches,
   required String operation,
 }) {
-  final eventIds = <String>[
-    for (final record in registry?.records ?? const <NarrativeEventRecord>[])
-      if (record.when(
-        draft: (draft) => draft.source != null && matches(draft.source!),
-        configured: (definition, _) => matches(definition.source),
-      ))
-        record.id,
-  ]..sort(compareNarrativeEventUtf16);
+  final eventIds = _linkedEventIds(registry: registry, matches: matches);
   if (eventIds.isEmpty) {
     return NarrativeEventSourceDependencyDecision.allowed();
   }
@@ -178,6 +208,36 @@ NarrativeEventSourceDependencyDecision _decision({
     operation: operation,
   );
 }
+
+NarrativeEventSourceDependencyDecision _revalidationDecision({
+  required NarrativeEventRegistry? registry,
+  required bool Function(NarrativeEventSourceRef source) matches,
+  required String operation,
+}) {
+  final eventIds = _linkedEventIds(registry: registry, matches: matches);
+  if (eventIds.isEmpty) {
+    return NarrativeEventSourceDependencyDecision.allowed();
+  }
+  return NarrativeEventSourceDependencyDecision.allowed(
+    linkedEventIds: eventIds,
+    requiresEventRevalidation: true,
+    revalidationMessage: 'Source modifiée ($operation) : enregistrez la map '
+        'pour revalider ${eventIds.join(', ')}.',
+  );
+}
+
+List<String> _linkedEventIds({
+  required NarrativeEventRegistry? registry,
+  required bool Function(NarrativeEventSourceRef source) matches,
+}) =>
+    <String>[
+      for (final record in registry?.records ?? const <NarrativeEventRecord>[])
+        if (record.when(
+          draft: (draft) => draft.source != null && matches(draft.source!),
+          configured: (definition, _) => matches(definition.source),
+        ))
+          record.id,
+    ]..sort(compareNarrativeEventUtf16);
 
 String? _mapId(NarrativeEventSourceRef source) {
   return source.when(

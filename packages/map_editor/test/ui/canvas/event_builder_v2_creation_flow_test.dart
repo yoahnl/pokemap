@@ -6,6 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
+import 'package:map_editor/src/application/use_cases/narrative_event_builder_v2_use_case.dart';
+import 'package:map_editor/src/theme/theme.dart';
+import 'package:map_editor/src/ui/canvas/events_v2/event_builder_v2_authoring_sheets.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 import '../../support/event_builder_v2_product_route_fixture.dart';
@@ -280,10 +283,16 @@ void main() {
         ),
         'Brouillon espace',
       );
-      for (var index = 0; index < 4; index++) {
+      final draftAction = find.byKey(
+        const ValueKey('event-builder-v2-save-draft'),
+      );
+      for (var index = 0;
+          index < 30 && !_hasPrimaryFocusWithin(draftAction);
+          index++) {
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pump();
       }
+      expect(_hasPrimaryFocusWithin(draftAction), isTrue);
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pump();
       expect(
@@ -304,7 +313,161 @@ void main() {
       expect(names.where((name) => name == 'Brouillon espace'), hasLength(1));
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+        'groups real map sources, exposes attachment state and preserves outcomes',
+        (tester) async {
+      NarrativeEventSourceRef? submitted;
+      final snapshot = NarrativeEventBuilderV2EditorSnapshot(
+        projectRevision: 'revision',
+        record: null,
+        spatialSources: [
+          NarrativeSpatialEventSourceOption(
+            source: NarrativeEventSourceRef.mapEnter('map_port'),
+            humanLabel: 'Entrée sur Port Selbrume',
+            humanDescription: 'Déclenchement à l’entrée de la map.',
+            mapId: 'map_port',
+            mapLabel: 'Port Selbrume',
+            sourceTypeLabel: 'Entrée de map',
+            availability: NarrativeSpatialEventSourceAvailability.selectable,
+            origin: NarrativeSpatialEventSourceOrigin.canonical,
+            debugTechnicalLabel: 'map:map_port',
+            geometry: const NarrativeSpatialSourceGeometrySummary.mapWide(),
+            ownerKind: NarrativeSpatialEventSourceOwnerKind.map,
+          ),
+          NarrativeSpatialEventSourceOption(
+            source: NarrativeEventSourceRef.entityInteract(
+              'map_port',
+              'npc_lysa',
+            ),
+            humanLabel: 'Lysa — PNJ',
+            humanDescription: 'Interaction avec Lysa, au Port Selbrume.',
+            mapId: 'map_port',
+            mapLabel: 'Port Selbrume',
+            sourceTypeLabel: 'PNJ',
+            availability: NarrativeSpatialEventSourceAvailability.selectable,
+            origin: NarrativeSpatialEventSourceOrigin.canonical,
+            debugTechnicalLabel: 'entity:map_port:npc_lysa',
+            geometry: const NarrativeSpatialSourceGeometrySummary.bounds(
+              MapRect(
+                pos: GridPos(x: 1, y: 1),
+                size: GridSize(width: 1, height: 1),
+              ),
+            ),
+            ownerKind: NarrativeSpatialEventSourceOwnerKind.entity,
+            presentationKind: NarrativeSpatialEventSourcePresentationKind.npc,
+            ownerId: 'npc_lysa',
+          ),
+          NarrativeSpatialEventSourceOption(
+            source: null,
+            humanLabel: 'Interrupteur — Élément placé',
+            humanDescription: 'Élément interactif visible au Port Selbrume.',
+            mapId: 'map_port',
+            mapLabel: 'Port Selbrume',
+            sourceTypeLabel: 'Élément placé',
+            availability:
+                NarrativeSpatialEventSourceAvailability.visibleButUnavailable,
+            unavailableReason: 'Cet élément ne possède pas de source Event V2.',
+            origin: NarrativeSpatialEventSourceOrigin.canonical,
+            debugTechnicalLabel: 'placed:map_port:switch',
+            geometry: const NarrativeSpatialSourceGeometrySummary.bounds(
+              MapRect(
+                pos: GridPos(x: 2, y: 1),
+                size: GridSize(width: 1, height: 1),
+              ),
+            ),
+            ownerKind: NarrativeSpatialEventSourceOwnerKind.placedElement,
+            ownerId: 'switch',
+          ),
+        ],
+        outcomeSources: [
+          NarrativeOutcomeEventSourceOption(
+            outcome: NarrativeOutcomeRef(
+              producerKind: NarrativeOutcomeProducerKind.scene,
+              producerId: 'scene_rival',
+              outcomeId: 'victory',
+            ),
+            producerLabel: 'Rencontre rival',
+            outcomeLabel: 'Victoire',
+            humanSourceSentence:
+                'Quand Rencontre rival produit le résultat Victoire.',
+            status: NarrativeOutcomeReachabilityStatus.reachable,
+            selectable: true,
+            origin: NarrativeOutcomeSourceOrigin.scene,
+            debugTechnicalLabel: 'scene_rival:victory',
+          ),
+        ],
+        scenes: const [],
+        facts: const [],
+        events: const [],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: PokeMapTheme.dark(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 520,
+              height: 900,
+              child: EventBuilderV2SourceSheet(
+                snapshot: snapshot,
+                currentSource: null,
+                onSubmit: (source) async {
+                  submitted = source;
+                  return 'garder la feuille ouverte';
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Port Selbrume'), findsOneWidget);
+      expect(find.text('Entrée de map'), findsWidgets);
+      expect(find.text('PNJ'), findsWidgets);
+      expect(find.text('Résultats globaux'), findsOneWidget);
+      expect(find.text('Visible · non rattachable'), findsOneWidget);
+      final unavailableChoice = find.byKey(
+        const ValueKey(
+          'event-builder-v2-source-choice-spatial_2',
+        ),
+      );
+      final unavailable = tester.widget<PokeMapCard>(
+        find.descendant(
+          of: unavailableChoice,
+          matching: find.byType(PokeMapCard),
+        ),
+      );
+      expect(unavailable.onTap, isNull);
+
+      await tester.ensureVisible(find.text('Lysa — PNJ'));
+      await tester.pump();
+      await tester.tap(find.text('Lysa — PNJ'));
+      await tester.pump();
+      await tester.tap(find.text('Enregistrer le déclencheur'));
+      await tester.pump();
+      expect(
+        submitted,
+        NarrativeEventSourceRef.entityInteract('map_port', 'npc_lysa'),
+      );
+      expect(tester.takeException(), isNull);
+    });
   });
+}
+
+bool _hasPrimaryFocusWithin(Finder finder) {
+  final target = finder.evaluate().singleOrNull;
+  final focusContext = FocusManager.instance.primaryFocus?.context;
+  if (target == null || focusContext is! Element) return false;
+  if (focusContext == target) return true;
+  var found = false;
+  focusContext.visitAncestorElements((ancestor) {
+    if (ancestor != target) return true;
+    found = true;
+    return false;
+  });
+  return found;
 }
 
 Future<NarrativeEventBuilderProjectReadModel> _reloadReadModel(

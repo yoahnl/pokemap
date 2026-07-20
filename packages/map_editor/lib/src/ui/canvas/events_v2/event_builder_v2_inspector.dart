@@ -140,6 +140,13 @@ class EventBuilderV2Inspector extends StatelessWidget {
                           icon: CupertinoIcons.map_fill,
                           tone: PokeMapTone.map,
                         ),
+                        const SizedBox(height: 5),
+                        const _InspectorField(
+                          label: 'Édition physique',
+                          value: 'PNJ, objet, zone et géométrie · Map Editor',
+                          icon: CupertinoIcons.map,
+                          tone: PokeMapTone.map,
+                        ),
                       ],
                       if (!selected.readOnly &&
                           (onChangeSource != null || onSeeOnMap != null)) ...[

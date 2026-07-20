@@ -92,17 +92,17 @@ void main() {
         properties: const {'mood': 'angry'},
       );
 
-      expect(
-        guard
-            .inspectEntityUpdate(
-              registry: registry,
-              mapId: 'map_a',
-              current: current,
-              next: edited,
-            )
-            .isAllowed,
-        isTrue,
+      final decision = guard.inspectEntityUpdate(
+        registry: registry,
+        mapId: 'map_a',
+        current: current,
+        next: edited,
       );
+
+      expect(decision.isAllowed, isTrue);
+      expect(decision.requiresEventRevalidation, isTrue);
+      expect(decision.linkedEventIds, [_entityEvent]);
+      expect(decision.revalidationMessage, contains(_entityEvent));
     });
 
     test('blocks linked trigger identity/delete and event to system transition',
@@ -171,17 +171,35 @@ void main() {
         properties: const {'front': 'north'},
       );
 
-      expect(
-        guard
-            .inspectTriggerUpdate(
-              registry: registry,
-              mapId: 'map_a',
-              current: current,
-              next: edited,
-            )
-            .isAllowed,
-        isTrue,
+      final decision = guard.inspectTriggerUpdate(
+        registry: registry,
+        mapId: 'map_a',
+        current: current,
+        next: edited,
       );
+
+      expect(decision.isAllowed, isTrue);
+      expect(decision.requiresEventRevalidation, isTrue);
+      expect(decision.linkedEventIds, [_triggerEvent]);
+    });
+
+    test('unchanged source does not request event revalidation', () {
+      const entity = MapEntity(
+        id: 'entity_a',
+        name: 'Rival',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 1),
+      );
+      final decision = guard.inspectEntityUpdate(
+        registry: registry,
+        mapId: 'map_a',
+        current: entity,
+        next: entity,
+      );
+
+      expect(decision.isAllowed, isTrue);
+      expect(decision.requiresEventRevalidation, isFalse);
+      expect(decision.linkedEventIds, isEmpty);
     });
 
     test('unlinked sources keep the existing behavior', () {
@@ -404,6 +422,8 @@ void main() {
           notifier.state.activeMap!.triggers.single.type, TriggerType.custom);
       expect(notifier.state.isDirty, isTrue);
       expect(notifier.state.errorMessage, isNull);
+      expect(notifier.state.statusMessage, contains('revalider'));
+      expect(notifier.state.statusMessage, contains(_triggerEvent));
     });
 
     test('blocks linked map rename/delete before repository operations',

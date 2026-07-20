@@ -15,12 +15,24 @@ final class EventBuilderV2SourceChoice {
     required this.label,
     required this.description,
     required this.source,
+    required this.selectable,
+    required this.groupLabel,
+    required this.typeLabel,
+    this.presentationKind,
+    this.referenceState,
+    this.unavailableReason,
   });
 
   final String id;
   final String label;
   final String description;
   final NarrativeEventSourceRef? source;
+  final bool selectable;
+  final String groupLabel;
+  final String typeLabel;
+  final NarrativeSpatialEventSourcePresentationKind? presentationKind;
+  final NarrativeSpatialEventSourceReferenceState? referenceState;
+  final String? unavailableReason;
 }
 
 List<EventBuilderV2SourceChoice> eventBuilderV2SourceChoices(
@@ -35,13 +47,22 @@ List<EventBuilderV2SourceChoice> eventBuilderV2SourceChoices(
         label: 'Décider plus tard',
         description: 'Conserver un brouillon sans déclencheur.',
         source: null,
+        selectable: true,
+        groupLabel: 'Brouillon',
+        typeLabel: 'À configurer',
       ),
     for (final option in snapshot.spatialSources)
       EventBuilderV2SourceChoice(
         id: 'spatial_${index++}',
-        label: '${option.sourceTypeLabel} · ${option.humanLabel}',
-        description: '${option.humanDescription} · ${option.mapLabel}',
+        label: option.humanLabel,
+        description: option.humanDescription,
         source: option.source,
+        selectable: option.selectable,
+        groupLabel: option.mapLabel,
+        typeLabel: option.sourceTypeLabel,
+        presentationKind: option.presentationKind,
+        referenceState: option.referenceState,
+        unavailableReason: option.unavailableReason,
       ),
     for (final option in snapshot.outcomeSources)
       EventBuilderV2SourceChoice(
@@ -51,6 +72,10 @@ List<EventBuilderV2SourceChoice> eventBuilderV2SourceChoices(
         source: option.outcome == null
             ? null
             : NarrativeEventSourceRef.outcomeReceived(option.outcome!),
+        selectable: option.selectable,
+        groupLabel: 'Résultats globaux',
+        typeLabel: 'Résultat de Scene',
+        unavailableReason: option.unavailableReason,
       ),
   ];
 }
@@ -102,6 +127,7 @@ class _EventBuilderV2CreationSheetState
   bool get _canPublish =>
       _hasName &&
       _selectedSource.source != null &&
+      _selectedSource.selectable &&
       _sceneId != 'later' &&
       _reusePolicy != 'later';
 
@@ -155,22 +181,27 @@ class _EventBuilderV2CreationSheetState
           onSubmitted: (_) => _submit(false),
         ),
         const SizedBox(height: 14),
-        PokeMapDropdownField<String>(
-          label: 'Déclencheur existant',
-          value: _sourceId,
-          enabled: !_saving,
-          items: [
-            for (final choice in _sources)
-              PokeMapDropdownItem(value: choice.id, label: choice.label),
-          ],
-          onChanged: (value) => setState(() => _sourceId = value),
-        ),
-        const SizedBox(height: 6),
-        PokeMapDiagnosticCallout(
+        const PokeMapDiagnosticCallout(
           severity: PokeMapDiagnosticSeverity.info,
-          title: source.label,
-          message: source.description,
+          title: 'Les éléments physiques appartiennent aux maps',
+          message: 'Choisissez ici un élément déjà placé. Pour créer ou '
+              'modifier un PNJ, un objet ou une zone, utilisez le Map Editor.',
         ),
+        const SizedBox(height: 8),
+        _EventBuilderV2SourcePicker(
+          choices: _sources,
+          selectedId: _sourceId,
+          enabled: !_saving,
+          onSelected: (value) => setState(() => _sourceId = value),
+        ),
+        if (!source.selectable && source.unavailableReason != null) ...[
+          const SizedBox(height: 8),
+          PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.warning,
+            title: 'Référence à réparer dans le Map Editor',
+            message: source.unavailableReason!,
+          ),
+        ],
         const SizedBox(height: 14),
         PokeMapDropdownField<String>(
           label: 'Scene à jouer',
@@ -278,6 +309,10 @@ class _EventBuilderV2SourceSheetState extends State<EventBuilderV2SourceSheet> {
             .where((choice) => choice.source == widget.currentSource)
             .map((choice) => choice.id)
             .firstOrNull ??
+        _sources
+            .where((choice) => choice.selectable && choice.source != null)
+            .map((choice) => choice.id)
+            .firstOrNull ??
         (_sources.isEmpty ? '' : _sources.first.id);
   }
 
@@ -285,7 +320,7 @@ class _EventBuilderV2SourceSheetState extends State<EventBuilderV2SourceSheet> {
     final selected =
         _sources.where((choice) => choice.id == _sourceId).firstOrNull;
     final source = selected?.source;
-    if (source == null) return;
+    if (source == null || selected?.selectable != true) return;
     setState(() {
       _saving = true;
       _error = null;
@@ -304,52 +339,162 @@ class _EventBuilderV2SourceSheetState extends State<EventBuilderV2SourceSheet> {
     if (_sources.isEmpty) {
       return const PokeMapEmptyState(
         title: 'Aucun déclencheur disponible',
-        description:
-            'Placez d’abord un PNJ ou une zone sur une map, ou créez un outcome.',
+        description: 'Placez d’abord un PNJ, un objet ou une zone dans le '
+            'Map Editor, ou créez un résultat de Scene.',
         icon: Icon(CupertinoIcons.bolt_slash),
       );
     }
     final selected = _sources.firstWhere((choice) => choice.id == _sourceId);
-    return ListView(
+    return Column(
       key: const ValueKey('event-builder-v2-source-sheet'),
-      padding: const EdgeInsets.all(16),
       children: [
-        PokeMapDropdownField<String>(
-          label: 'Déclencheur existant',
-          value: _sourceId,
-          enabled: !_saving,
-          items: [
-            for (final choice in _sources)
-              PokeMapDropdownItem(value: choice.id, label: choice.label),
-          ],
-          onChanged: (value) => setState(() => _sourceId = value),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: PokeMapDiagnosticCallout(
+            severity: PokeMapDiagnosticSeverity.info,
+            title: 'Sélection uniquement',
+            message: 'L’Event Builder référence les éléments existants. '
+                'La création, la position et la géométrie restent dans le '
+                'Map Editor.',
+          ),
         ),
-        const SizedBox(height: 8),
-        PokeMapDiagnosticCallout(
-          severity: PokeMapDiagnosticSeverity.info,
-          title: selected.label,
-          message: selected.description,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              _EventBuilderV2SourcePicker(
+                choices: _sources,
+                selectedId: _sourceId,
+                enabled: !_saving,
+                onSelected: (value) => setState(() => _sourceId = value),
+              ),
+            ],
+          ),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: 12),
-          PokeMapDiagnosticCallout(
-            severity: PokeMapDiagnosticSeverity.error,
-            message: _error!,
+        if (!selected.selectable && selected.unavailableReason != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.warning,
+              title: 'À réparer dans le Map Editor',
+              message: selected.unavailableReason!,
+            ),
           ),
         ],
-        const SizedBox(height: 16),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            onPressed: _saving ? null : _save,
-            isLoading: _saving,
-            child: const Text('Enregistrer le déclencheur'),
+        if (_error != null) ...[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: PokeMapDiagnosticCallout(
+              severity: PokeMapDiagnosticSeverity.error,
+              message: _error!,
+            ),
+          ),
+        ],
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: PokeMapButton(
+              onPressed: _saving || !selected.selectable ? null : _save,
+              isLoading: _saving,
+              child: const Text('Enregistrer le déclencheur'),
+            ),
           ),
         ),
       ],
     );
   }
 }
+
+/// Grouped, read-only projection of the canonical source catalog.
+///
+/// Cards with a broken reference deliberately have no tap handler. They stay
+/// visible to explain the project state, but cannot leak an incompatible
+/// trigger/source pair into an authoring command.
+class _EventBuilderV2SourcePicker extends StatelessWidget {
+  const _EventBuilderV2SourcePicker({
+    required this.choices,
+    required this.selectedId,
+    required this.enabled,
+    required this.onSelected,
+  });
+
+  final List<EventBuilderV2SourceChoice> choices;
+  final String selectedId;
+  final bool enabled;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapEventSourcePicker(
+      options: [
+        for (final choice in choices)
+          PokeMapEventSourcePickerOption(
+            id: choice.id,
+            label: choice.label,
+            description: choice.description,
+            groupLabel: choice.groupLabel,
+            groupDescription: _groupDescription(choice),
+            typeLabel: choice.typeLabel,
+            kind: _sourcePickerKind(choice),
+            state: _sourcePickerState(choice),
+          ),
+      ],
+      selectedId: selectedId,
+      enabled: enabled,
+      optionKeyPrefix: 'event-builder-v2-source-choice-',
+      onSelected: onSelected,
+    );
+  }
+}
+
+String _groupDescription(EventBuilderV2SourceChoice choice) {
+  if (choice.source?.kind == NarrativeEventSourceKind.outcomeReceived) {
+    return 'Déclencheurs non spatiaux produits par les Scenes.';
+  }
+  if (choice.source == null && choice.presentationKind == null) {
+    return 'Enregistrer maintenant, compléter plus tard.';
+  }
+  return 'Sources physiques existantes de cette map.';
+}
+
+PokeMapEventSourcePickerKind _sourcePickerKind(
+  EventBuilderV2SourceChoice choice,
+) =>
+    switch (choice.presentationKind) {
+      NarrativeSpatialEventSourcePresentationKind.mapEntry =>
+        PokeMapEventSourcePickerKind.mapEntry,
+      NarrativeSpatialEventSourcePresentationKind.zone =>
+        PokeMapEventSourcePickerKind.zone,
+      NarrativeSpatialEventSourcePresentationKind.npc =>
+        PokeMapEventSourcePickerKind.npc,
+      NarrativeSpatialEventSourcePresentationKind.object =>
+        PokeMapEventSourcePickerKind.object,
+      NarrativeSpatialEventSourcePresentationKind.placedElement =>
+        PokeMapEventSourcePickerKind.placedElement,
+      NarrativeSpatialEventSourcePresentationKind.legacy =>
+        PokeMapEventSourcePickerKind.legacy,
+      null => choice.source?.kind == NarrativeEventSourceKind.outcomeReceived
+          ? PokeMapEventSourcePickerKind.outcome
+          : PokeMapEventSourcePickerKind.draft,
+    };
+
+PokeMapEventSourcePickerState _sourcePickerState(
+  EventBuilderV2SourceChoice choice,
+) =>
+    switch (choice.referenceState) {
+      NarrativeSpatialEventSourceReferenceState.ready =>
+        PokeMapEventSourcePickerState.ready,
+      NarrativeSpatialEventSourceReferenceState.needsMapRepair =>
+        PokeMapEventSourcePickerState.needsMapRepair,
+      NarrativeSpatialEventSourceReferenceState.notAttachable =>
+        PokeMapEventSourcePickerState.notAttachable,
+      NarrativeSpatialEventSourceReferenceState.legacyCompatibility =>
+        PokeMapEventSourcePickerState.legacyCompatibility,
+      null => choice.source == null
+          ? PokeMapEventSourcePickerState.draft
+          : PokeMapEventSourcePickerState.ready,
+    };
 
 class EventBuilderV2SceneSheet extends StatefulWidget {
   const EventBuilderV2SceneSheet({
@@ -732,6 +877,7 @@ class _EventBuilderV2BehaviorSheetState
     NarrativeEventReusePolicy.reusable => 'reusable',
     null => 'later',
   };
+
   bool _saving = false;
   String? _error;
 

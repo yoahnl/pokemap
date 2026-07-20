@@ -304,6 +304,9 @@ NarrativeSpatialEventSourceOption _entityOption({
         ? NarrativeSpatialSourceGeometrySummary.bounds(_entityBounds(entity))
         : const NarrativeSpatialSourceGeometrySummary.unavailable(),
     ownerKind: NarrativeSpatialEventSourceOwnerKind.entity,
+    presentationKind: entity.kind == MapEntityKind.npc
+        ? NarrativeSpatialEventSourcePresentationKind.npc
+        : NarrativeSpatialEventSourcePresentationKind.object,
     ownerId: entity.id,
   );
 }
