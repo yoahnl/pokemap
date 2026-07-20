@@ -2,8 +2,8 @@ import 'package:flutter/cupertino.dart';
 
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
+import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
-import '../shared/cupertino_editor_widgets.dart';
 import 'narrative_overview_empty_states.dart';
 import 'narrative_overview_structure_inspector.dart';
 import 'new_game/project_new_game_configuration_sheet.dart';
@@ -243,18 +243,9 @@ class _ProjectSummaryStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return PokeMapCard(
       key: const ValueKey('narrative-overview-project-summary'),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.14),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.18),
-        ),
-      ),
+      borderRadius: 12,
       padding: const EdgeInsets.fromLTRB(11, 8, 11, 8),
       child: Wrap(
         spacing: 12,
@@ -264,7 +255,7 @@ class _ProjectSummaryStrip extends StatelessWidget {
           Text(
             'Projet',
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: 13.5,
               fontWeight: FontWeight.w900,
             ),
@@ -301,7 +292,7 @@ class _ProjectSummaryItem extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: EditorChrome.subtleLabel(context),
+        color: context.pokeMapColors.textMuted,
         fontSize: 11.5,
         fontWeight: FontWeight.w800,
       ),
@@ -407,19 +398,11 @@ class _ModuleCardState extends State<_ModuleCard> {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _availabilityAccent(context, widget.module.availability);
-    final content = Container(
+    final tone = _availabilityTone(widget.module.availability);
+    final accent = tone.resolve(context).icon;
+    final content = PokeMapCard(
       key: ValueKey('narrative-overview-module-${widget.module.id}'),
-      constraints: const BoxConstraints(minHeight: 156),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: accent.withValues(alpha: 0.1),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.3)),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
+      borderRadius: 14,
       padding: const EdgeInsets.all(12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,7 +410,12 @@ class _ModuleCardState extends State<_ModuleCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ModuleIcon(moduleId: widget.module.id, accent: accent),
+              PokeMapIconTile(
+                icon: _moduleIcon(widget.module.id),
+                tone: tone,
+                size: 34,
+                iconSize: 18,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -438,7 +426,7 @@ class _ModuleCardState extends State<_ModuleCard> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
+                        color: context.pokeMapColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w900,
                       ),
@@ -459,7 +447,7 @@ class _ModuleCardState extends State<_ModuleCard> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
+              color: context.pokeMapColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               height: 1.3,
@@ -485,7 +473,7 @@ class _ModuleCardState extends State<_ModuleCard> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: _moduleCardValue(widget.module).length > 12 ? 18 : 24,
               fontWeight: FontWeight.w900,
               letterSpacing: 0,
@@ -537,10 +525,10 @@ class _ModulePreviewLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: EditorChrome.chipFill(context),
+        color: context.pokeMapColors.controlSurface,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: EditorChrome.activeAccent(context).withValues(alpha: 0.24),
+          color: context.pokeMapColors.brandPrimaryBorder,
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -549,39 +537,10 @@ class _ModulePreviewLabel extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: EditorChrome.primaryLabel(context),
+          color: context.pokeMapColors.textPrimary,
           fontSize: 11,
           fontWeight: FontWeight.w800,
         ),
-      ),
-    );
-  }
-}
-
-class _ModuleIcon extends StatelessWidget {
-  const _ModuleIcon({
-    required this.moduleId,
-    required this.accent,
-  });
-
-  final String moduleId;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: accent.withValues(alpha: 0.26)),
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        _moduleIcon(moduleId),
-        color: accent,
-        size: 18,
       ),
     );
   }
@@ -612,7 +571,7 @@ class _ModuleSecondaryStat extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
               ),
@@ -645,8 +604,8 @@ class _ModuleDestinationPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = enabled
-        ? EditorChrome.accentPrimary
-        : EditorChrome.subtleLabel(context);
+        ? context.pokeMapColors.brandPrimary
+        : context.pokeMapColors.textMuted;
     return Container(
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.08),
@@ -663,12 +622,16 @@ class _ModuleDestinationPill extends StatelessWidget {
             size: 12,
           ),
           const SizedBox(width: 5),
-          Text(
-            enabled ? 'Studio relié' : 'Accès à venir',
-            style: TextStyle(
-              color: accent,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
+          Flexible(
+            child: Text(
+              enabled ? 'Studio relié' : 'Accès à venir',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: accent,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ],
@@ -692,26 +655,18 @@ class _MainStoryCard extends StatelessWidget {
     final canOpenStorylines = story.canEdit &&
         story.availability == NarrativeOverviewAvailability.available &&
         story.sourceStatus == NarrativeOverviewSourceStatus.explicit;
-    return Container(
+    return PokeMapCard(
       key: const ValueKey('narrative-overview-main-story-card'),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.18),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.32)),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
+      borderRadius: 14,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 CupertinoIcons.star_fill,
-                color: EditorChrome.accentPrimary,
+                color: context.pokeMapColors.brandPrimary,
                 size: 14,
               ),
               const SizedBox(width: 8),
@@ -719,7 +674,7 @@ class _MainStoryCard extends StatelessWidget {
                 child: Text(
                   'Histoire principale',
                   style: TextStyle(
-                    color: EditorChrome.primaryLabel(context),
+                    color: context.pokeMapColors.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                   ),
@@ -810,7 +765,7 @@ class _MainStoryContent extends StatelessWidget {
             Text(
               _mainStoryTitle(story),
               style: TextStyle(
-                color: EditorChrome.primaryLabel(context),
+                color: context.pokeMapColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.w900,
               ),
@@ -825,7 +780,7 @@ class _MainStoryContent extends StatelessWidget {
         Text(
           _mainStoryDescription(story),
           style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
+            color: context.pokeMapColors.textMuted,
             fontSize: 13,
             fontWeight: FontWeight.w600,
             height: 1.35,
@@ -891,7 +846,7 @@ class _MainStoryMetric extends StatelessWidget {
           Text(
             metric.label,
             style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
+              color: context.pokeMapColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -902,7 +857,7 @@ class _MainStoryMetric extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: _metricCardValue(metric).length > 12 ? 16 : 22,
               fontWeight: FontWeight.w900,
             ),
@@ -933,16 +888,16 @@ class _ChapterSummaryRow extends StatelessWidget {
             Text(
               'Chapitres',
               style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
             ),
             if (hasFallbackChapters) ...[
               const SizedBox(width: 8),
-              const _SourceStatusPill(
+              _SourceStatusPill(
                 label: 'Chapitres issus d’un fallback',
-                accent: EditorChrome.accentWarm,
+                accent: context.pokeMapColors.warning,
               ),
             ],
           ],
@@ -952,7 +907,7 @@ class _ChapterSummaryRow extends StatelessWidget {
           Text(
             'Aucun chapitre authoré.',
             style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
+              color: context.pokeMapColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -978,7 +933,7 @@ class _ChapterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _chapterStatusAccent(chapter.status);
+    final accent = _chapterStatusAccent(context, chapter.status);
     return Container(
       decoration: BoxDecoration(
         color: accent.withValues(alpha: 0.1),
@@ -995,7 +950,7 @@ class _ChapterChip extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
@@ -1027,46 +982,16 @@ class _MainStoryActionAffordance extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onTap != null;
-    final content = Container(
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: enabled ? 0.16 : 0.1),
-        borderRadius: BorderRadius.circular(10),
-        border:
-            Border.all(color: accent.withValues(alpha: enabled ? 0.34 : 0.2)),
+    return PokeMapButton(
+      onPressed: onTap,
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      leading: Icon(
+        enabled ? CupertinoIcons.arrow_right_circle : CupertinoIcons.pencil,
+        color: accent,
+        size: 13,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            enabled ? CupertinoIcons.arrow_right_circle : CupertinoIcons.pencil,
-            color: accent,
-            size: 13,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            enabled ? 'Ouvrir Storylines' : 'Modifier à venir',
-            style: TextStyle(
-              color: accent,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
-    );
-    if (enabled) {
-      return CupertinoButton(
-        padding: EdgeInsets.zero,
-        minimumSize: Size.zero,
-        onPressed: onTap,
-        child: content,
-      );
-    }
-    return Semantics(
-      button: true,
-      enabled: false,
-      child: content,
+      child: Text(enabled ? 'Ouvrir Storylines' : 'Modifier à venir'),
     );
   }
 }
@@ -1074,7 +999,7 @@ class _MainStoryActionAffordance extends StatelessWidget {
 class _DisabledChapterAffordance extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final accent = EditorChrome.subtleLabel(context);
+    final accent = context.pokeMapColors.textMuted;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -1197,110 +1122,22 @@ class _KpiCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _availabilityAccent(context, metric.availability);
+    final tone = _availabilityTone(metric.availability);
     final textScale =
-        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 1.5).toDouble();
-    final content = Container(
-      key: ValueKey('narrative-overview-kpi-${metric.id}'),
-      // The compact desktop grid remains fixed-width, but its rows must grow
-      // with accessible text so support labels never fall outside the card.
+        MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0).toDouble();
+    return SizedBox(
       height: 130 + ((textScale - 1) * 80),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: accent.withValues(alpha: 0.1),
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: accent.withValues(alpha: 0.34)),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _MetricIcon(metricId: metric.id, accent: accent),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  metric.label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: EditorChrome.primaryLabel(context),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (onTap != null) ...[
-                const SizedBox(width: 6),
-                Icon(
-                  CupertinoIcons.arrow_right_circle,
-                  color: accent,
-                  size: 13,
-                ),
-              ],
-            ],
-          ),
-          const Spacer(),
-          Text(
-            _metricCardValue(metric),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
-              fontSize: _metricCardValue(metric).length > 12 ? 15 : 21,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 5),
-          _AvailabilityPill(
-            label: _metricSupportLabel(metric),
-            accent: accent,
-          ),
-        ],
-      ),
-    );
-    if (onTap == null) {
-      return content;
-    }
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
-      minimumSize: Size.zero,
-      onPressed: onTap,
-      child: content,
-    );
-  }
-}
-
-class _MetricIcon extends StatelessWidget {
-  const _MetricIcon({
-    required this.metricId,
-    required this.accent,
-  });
-
-  final String metricId;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.16),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: accent.withValues(alpha: 0.26)),
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        _metricIcon(metricId),
-        size: 16,
-        color: accent,
+      child: PokeMapMetricCard(
+        key: ValueKey('narrative-overview-kpi-${metric.id}'),
+        title: metric.label,
+        value: _metricCardValue(metric),
+        subtitle: _metricSupportLabel(metric),
+        icon: _metricIcon(metric.id),
+        tone: tone,
+        onTap: onTap,
+        titleMaxLines: 2,
+        valueMaxLines: _metricCardValue(metric).length > 11 ? 2 : 1,
+        valueFontSize: _metricCardValue(metric).length > 11 ? 20 : 22,
       ),
     );
   }
@@ -1351,17 +1188,8 @@ class _OverviewSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inheritedFontFamily = DefaultTextStyle.of(context).style.fontFamily;
-    return Container(
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.16),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.28),
-        ),
-      ),
+    return PokeMapCard(
+      borderRadius: 14,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1369,7 +1197,7 @@ class _OverviewSection extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
@@ -1380,7 +1208,7 @@ class _OverviewSection extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 2),
               child: DefaultTextStyle(
                 style: TextStyle(
-                  color: EditorChrome.subtleLabel(context),
+                  color: context.pokeMapColors.textMuted,
                   fontFamily: inheritedFontFamily,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -1447,13 +1275,23 @@ Color _availabilityAccent(
   NarrativeOverviewAvailability availability,
 ) {
   return switch (availability) {
-    NarrativeOverviewAvailability.available => EditorChrome.accentJade,
-    NarrativeOverviewAvailability.empty => EditorChrome.accentPrimary,
-    NarrativeOverviewAvailability.unavailable => EditorChrome.accentCoral,
-    NarrativeOverviewAvailability.notEvaluated => EditorChrome.accentWarm,
-    NarrativeOverviewAvailability.outOfScope =>
-      EditorChrome.subtleLabel(context),
-    NarrativeOverviewAvailability.needsModel => EditorChrome.inspectorJoyPlum,
+    NarrativeOverviewAvailability.available => context.pokeMapColors.success,
+    NarrativeOverviewAvailability.empty => context.pokeMapColors.brandPrimary,
+    NarrativeOverviewAvailability.unavailable => context.pokeMapColors.error,
+    NarrativeOverviewAvailability.notEvaluated => context.pokeMapColors.warning,
+    NarrativeOverviewAvailability.outOfScope => context.pokeMapColors.textMuted,
+    NarrativeOverviewAvailability.needsModel => context.pokeMapColors.narrative,
+  };
+}
+
+PokeMapTone _availabilityTone(NarrativeOverviewAvailability availability) {
+  return switch (availability) {
+    NarrativeOverviewAvailability.available => PokeMapTone.success,
+    NarrativeOverviewAvailability.empty => PokeMapTone.brand,
+    NarrativeOverviewAvailability.unavailable => PokeMapTone.danger,
+    NarrativeOverviewAvailability.notEvaluated => PokeMapTone.warning,
+    NarrativeOverviewAvailability.outOfScope => PokeMapTone.neutral,
+    NarrativeOverviewAvailability.needsModel => PokeMapTone.narrative,
   };
 }
 
@@ -1517,12 +1355,13 @@ Color _sourceStatusAccent(
   NarrativeOverviewSourceStatus sourceStatus,
 ) {
   return switch (sourceStatus) {
-    NarrativeOverviewSourceStatus.explicit => EditorChrome.accentPrimary,
-    NarrativeOverviewSourceStatus.fallback => EditorChrome.accentWarm,
-    NarrativeOverviewSourceStatus.missing => EditorChrome.subtleLabel(context),
-    NarrativeOverviewSourceStatus.ambiguous => EditorChrome.accentCoral,
+    NarrativeOverviewSourceStatus.explicit =>
+      context.pokeMapColors.brandPrimary,
+    NarrativeOverviewSourceStatus.fallback => context.pokeMapColors.warning,
+    NarrativeOverviewSourceStatus.missing => context.pokeMapColors.textMuted,
+    NarrativeOverviewSourceStatus.ambiguous => context.pokeMapColors.error,
     NarrativeOverviewSourceStatus.notApplicable =>
-      EditorChrome.subtleLabel(context),
+      context.pokeMapColors.textMuted,
   };
 }
 
@@ -1535,12 +1374,17 @@ String _chapterStatusLabel(NarrativeChapterEditorialStatus status) {
   };
 }
 
-Color _chapterStatusAccent(NarrativeChapterEditorialStatus status) {
+Color _chapterStatusAccent(
+  BuildContext context,
+  NarrativeChapterEditorialStatus status,
+) {
   return switch (status) {
-    NarrativeChapterEditorialStatus.defined => EditorChrome.accentJade,
-    NarrativeChapterEditorialStatus.inProgress => EditorChrome.accentPrimary,
-    NarrativeChapterEditorialStatus.draft => EditorChrome.accentLilac,
-    NarrativeChapterEditorialStatus.notEvaluated => EditorChrome.accentWarm,
+    NarrativeChapterEditorialStatus.defined => context.pokeMapColors.success,
+    NarrativeChapterEditorialStatus.inProgress =>
+      context.pokeMapColors.brandPrimary,
+    NarrativeChapterEditorialStatus.draft => context.pokeMapColors.narrative,
+    NarrativeChapterEditorialStatus.notEvaluated =>
+      context.pokeMapColors.warning,
   };
 }
 

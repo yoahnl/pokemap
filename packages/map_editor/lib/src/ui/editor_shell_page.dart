@@ -6,6 +6,7 @@ import 'package:flutter/material.dart' show Icons, Material, MaterialType;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import '../../l10n/l10n.dart';
 import 'shared/pokemap_macos_ui_shim.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
@@ -403,7 +404,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                           leading: const Icon(
                                             CupertinoIcons.checkmark_shield,
                                           ),
-                                          child: const Text('Valider'),
+                                          child: Text(
+                                            context.pokeMapL10n.validate,
+                                          ),
                                         ),
                                       ],
                                 body: const EditorCanvasHost(),
@@ -1088,8 +1091,8 @@ class _NarrativeStudioSaveStatus extends StatelessWidget {
           Expanded(
             child: Text(
               isDirty
-                  ? 'Modifications non enregistrées'
-                  : 'Tous les changements enregistrés',
+                  ? context.pokeMapL10n.unsavedChanges
+                  : context.pokeMapL10n.allChangesSaved,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(

@@ -13,7 +13,7 @@ import '../../features/narrative/state/narrative_scene_focus_provider.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/narrative/state/narrative_validator_providers.dart';
 import '../../features/narrative/state/scene_consequence_catalog_providers.dart';
-import '../shared/cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
 import 'cinematics/cinematics_library_workspace.dart';
 import 'cutscene_studio_workspace.dart';
@@ -1839,7 +1839,7 @@ class _CinematicsWorkspaceBodyState extends State<_CinematicsWorkspaceBody> {
           'Load a project to browse CinematicAsset.',
           textAlign: TextAlign.center,
           style: DefaultTextStyle.of(context).style.copyWith(
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
               ),
         ),
       );
@@ -2711,22 +2711,21 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
             emptyText: 'No local flow available.',
             children: projection.localEventFlows
                 .map(
-                  (scenario) => EditorSidebarListRow(
-                    selected: selectedCutscene?.id == scenario.id,
-                    onTap: () => onSelectCutscene(scenario.id),
-                    leading: const Icon(CupertinoIcons.play_rectangle),
-                    title: Text(scenario.name),
-                    subtitle: Text(
-                      '${scenario.nodeCount} nodes • entry: ${scenario.entryNodeId}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: Semantics(
-                      label: 'Supprimer cette cutscene',
-                      button: true,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        minimumSize: const Size.square(32),
+                  (scenario) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: PokeMapSidebarItem(
+                      selected: selectedCutscene?.id == scenario.id,
+                      compact: true,
+                      growForTextScale: true,
+                      onTap: () => onSelectCutscene(scenario.id),
+                      icon: const Icon(CupertinoIcons.play_rectangle),
+                      label: scenario.name,
+                      subtitle:
+                          '${scenario.nodeCount} nodes • entry: ${scenario.entryNodeId}',
+                      trailing: PokeMapIconButton(
+                        tooltip: 'Supprimer cette cutscene',
+                        variant: PokeMapIconButtonVariant.danger,
+                        size: 32,
                         onPressed: () async {
                           await deleteCutsceneWithUserConfirmation(
                             context: context,
@@ -2737,11 +2736,7 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
                             onSelectReplacement: onSelectCutscene,
                           );
                         },
-                        child: const Icon(
-                          CupertinoIcons.trash,
-                          size: 17,
-                          color: EditorChrome.inspectorJoyCoral,
-                        ),
+                        icon: const Icon(CupertinoIcons.trash, size: 17),
                       ),
                     ),
                   ),
@@ -2752,9 +2747,9 @@ class _CutsceneWorkspaceBody extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: project == null
-              ? const EditorPaneSurface(
-                  radius: 20,
-                  tint: EditorChrome.islandWarmTint,
+              ? const PokeMapPanel(
+                  borderRadius: 20,
+                  expandChild: true,
                   child: Center(
                     child: Text('Load a project to edit cutscenes.'),
                   ),
@@ -2793,9 +2788,9 @@ class _NarrativeListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return EditorPaneSurface(
-      radius: 20,
-      tint: EditorChrome.islandNeutralTint,
+    return PokeMapPanel(
+      borderRadius: 20,
+      expandChild: true,
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2803,7 +2798,7 @@ class _NarrativeListCard extends StatelessWidget {
           Text(
             title,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: EditorChrome.primaryLabel(context),
+                  color: context.pokeMapColors.textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
           ),
@@ -2811,7 +2806,7 @@ class _NarrativeListCard extends StatelessWidget {
           Text(
             subtitle,
             style: DefaultTextStyle.of(context).style.copyWith(
-                  color: EditorChrome.subtleLabel(context),
+                  color: context.pokeMapColors.textMuted,
                   fontSize: 12,
                 ),
           ),
@@ -2823,7 +2818,7 @@ class _NarrativeListCard extends StatelessWidget {
                       emptyText,
                       textAlign: TextAlign.center,
                       style: DefaultTextStyle.of(context).style.copyWith(
-                            color: EditorChrome.subtleLabel(context),
+                            color: context.pokeMapColors.textMuted,
                             fontSize: 12,
                           ),
                     ),

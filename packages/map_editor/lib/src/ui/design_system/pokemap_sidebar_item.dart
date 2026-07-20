@@ -14,6 +14,7 @@ class PokeMapSidebarItem extends StatefulWidget {
     this.icon,
     this.trailing,
     this.compact = false,
+    this.collapsed = false,
     this.growForTextScale = false,
     this.selected = false,
     this.disabled = false,
@@ -39,6 +40,12 @@ class PokeMapSidebarItem extends StatefulWidget {
   /// opt in explicitly so the design-system primitive still owns spacing,
   /// typography and focus treatment instead of duplicating a local row.
   final bool compact;
+
+  /// Shows an icon-only navigation row while preserving its accessible label.
+  ///
+  /// The label, subtitle and trailing widgets are deliberately not laid out in
+  /// this mode; the tooltip and semantics remain the source of truth.
+  final bool collapsed;
 
   /// Keeps the established row height as a minimum while allowing scaled
   /// labels and subtitles to request the vertical space they need.
@@ -69,7 +76,11 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
     final colors = context.pokeMapColors;
     final isActive = widget.selected;
     final isDisabled = widget.disabled || widget.onTap == null;
-    final horizontalPadding = widget.compact ? 8.0 : 12.0;
+    final horizontalPadding = widget.collapsed
+        ? 0.0
+        : widget.compact
+            ? 8.0
+            : 12.0;
     final iconGap = widget.compact ? 7.0 : 10.0;
     final trailingGap = widget.compact ? 5.0 : 8.0;
     final labelSize = widget.compact ? 11.0 : 13.0;
@@ -91,7 +102,9 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
       fg = colors.textPrimary;
     }
 
-    return Semantics(
+    final item = Semantics(
+      label: widget.collapsed ? widget.label : null,
+      excludeSemantics: widget.collapsed,
       button: true,
       selected: isActive,
       enabled: !isDisabled,
@@ -110,8 +123,8 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
         onShowHoverHighlight: (val) {
           if (!isDisabled) setState(() => _isHovered = val);
         },
-        onShowFocusHighlight: (val) {
-          if (!isDisabled) setState(() => _isFocused = val);
+        onFocusChange: (value) {
+          if (!isDisabled) setState(() => _isFocused = value);
         },
         child: GestureDetector(
           onTap: isDisabled ? null : widget.onTap,
@@ -121,7 +134,9 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                 ? SystemMouseCursors.basic
                 : SystemMouseCursors.click,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 100),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 100),
               height: widget.growForTextScale ? null : itemHeight,
               constraints: widget.growForTextScale
                   ? BoxConstraints(minHeight: itemHeight)
@@ -131,92 +146,111 @@ class _PokeMapSidebarItemState extends State<PokeMapSidebarItem> {
                 color: bg,
                 borderRadius: BorderRadius.circular(8), // Standard radius: 8
                 border: _isFocused && !isDisabled
-                    ? Border.all(color: colors.brandPrimaryBorder, width: 1.2)
+                    ? Border.all(
+                        color: colors.focusRing,
+                        width: MediaQuery.highContrastOf(context) ? 2.0 : 1.2,
+                      )
                     : null,
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (widget.icon != null) ...[
-                    IconTheme.merge(
-                      data: IconThemeData(
-                        color: fg,
-                        size: 16,
-                      ),
-                      child: widget.icon!,
-                    ),
-                    SizedBox(width: iconGap),
-                  ],
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+              child: widget.collapsed
+                  ? Center(
+                      child: widget.icon == null
+                          ? const SizedBox.shrink()
+                          : IconTheme.merge(
+                              data: IconThemeData(color: fg, size: 16),
+                              child: widget.icon!,
+                            ),
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(
-                          widget.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: fg,
-                            fontSize: labelSize,
-                            fontWeight:
-                                isActive ? FontWeight.w700 : FontWeight.w500,
+                        if (widget.icon != null) ...[
+                          IconTheme.merge(
+                            data: IconThemeData(
+                              color: fg,
+                              size: 16,
+                            ),
+                            child: widget.icon!,
+                          ),
+                          SizedBox(width: iconGap),
+                        ],
+                        Expanded(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                widget.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: fg,
+                                  fontSize: labelSize,
+                                  fontWeight: isActive
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                ),
+                              ),
+                              if (widget.subtitle != null) ...[
+                                const SizedBox(height: 1),
+                                Text(
+                                  widget.subtitle!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: isActive
+                                        ? colors.brandPrimary
+                                        : colors.textMuted,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                        if (widget.subtitle != null) ...[
-                          const SizedBox(height: 1),
-                          Text(
-                            widget.subtitle!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: isActive
-                                  ? colors.brandPrimary
-                                  : colors.textMuted,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                        if (widget.trailing != null) ...[
+                          SizedBox(width: trailingGap),
+                          if (widget.compact)
+                            Opacity(
+                              opacity: isDisabled ? 0.4 : 1.0,
+                              child: DefaultTextStyle.merge(
+                                style: TextStyle(
+                                  color: fg,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                                child: widget.trailing!,
+                              ),
+                            )
+                          else
+                            Flexible(
+                              child: Opacity(
+                                opacity: isDisabled ? 0.4 : 1.0,
+                                child: DefaultTextStyle.merge(
+                                  style: TextStyle(
+                                    color: fg,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                  child: widget.trailing!,
+                                ),
+                              ),
                             ),
-                          ),
                         ],
                       ],
                     ),
-                  ),
-                  if (widget.trailing != null) ...[
-                    SizedBox(width: trailingGap),
-                    if (widget.compact)
-                      Opacity(
-                        opacity: isDisabled ? 0.4 : 1.0,
-                        child: DefaultTextStyle.merge(
-                          style: TextStyle(
-                            color: fg,
-                            fontSize: 11,
-                            fontWeight: FontWeight.normal,
-                          ),
-                          child: widget.trailing!,
-                        ),
-                      )
-                    else
-                      Flexible(
-                        child: Opacity(
-                          opacity: isDisabled ? 0.4 : 1.0,
-                          child: DefaultTextStyle.merge(
-                            style: TextStyle(
-                              color: fg,
-                              fontSize: 11,
-                              fontWeight: FontWeight.normal,
-                            ),
-                            child: widget.trailing!,
-                          ),
-                        ),
-                      ),
-                  ],
-                ],
-              ),
             ),
           ),
         ),
       ),
     );
+
+    // A tooltip keeps pointer discovery available even though collapsed mode
+    // intentionally removes all visible text from the rail.
+    return widget.collapsed
+        ? Tooltip(message: widget.label, child: item)
+        : item;
   }
 }

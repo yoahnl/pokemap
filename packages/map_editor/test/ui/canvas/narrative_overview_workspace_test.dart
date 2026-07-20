@@ -1,16 +1,21 @@
 import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart';
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/overview/narrative_overview_read_model.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
 import 'package:map_editor/src/ui/canvas/narrative_overview_workspace.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_workspace_page.dart';
+
+import '../../shell_chrome_test_harness.dart';
 
 void main() {
   testWidgets(
@@ -87,15 +92,17 @@ void main() {
         );
       }
       await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey('narrative-overview-empty-states-section'),
-          skipOffstage: false,
-        ),
+        find
+            .byKey(
+              const ValueKey('narrative-overview-empty-states-section'),
+            )
+            .first,
         320,
+        scrollable: _overviewScrollable(),
       );
       await tester.pump();
       expect(
-        find.text('Données à venir', skipOffstage: false),
+        find.text('Données à venir'),
         findsOneWidget,
       );
     },
@@ -182,11 +189,13 @@ void main() {
         findsOneWidget,
       );
       await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey('narrative-overview-empty-states-section'),
-          skipOffstage: false,
-        ),
+        find
+            .byKey(
+              const ValueKey('narrative-overview-empty-states-section'),
+            )
+            .first,
         320,
+        scrollable: _overviewScrollable(),
       );
       await tester.pump();
       expect(
@@ -209,6 +218,40 @@ void main() {
       expect(find.text('1236'), findsNothing);
       expect(find.text('24'), findsNothing);
       expect(find.text('12'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace keeps long KPI labels readable at 1672x941',
+    (tester) async {
+      final readModel = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+      );
+
+      await _pumpOverview(
+        tester,
+        readModel,
+        width: 1672,
+        height: 941,
+      );
+
+      for (final entry in const <(String, String)>[
+        ('open_issues', 'Problèmes ouverts'),
+        ('quests', 'Hors scope V0'),
+      ]) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          _textInKpi(entry.$1, entry.$2),
+        );
+        expect(
+          paragraph.didExceedMaxLines,
+          isFalse,
+          reason: '${entry.$2} must remain fully readable '
+              '(paragraph: ${paragraph.size}, '
+              'card: ${tester.getSize(find.byKey(ValueKey('narrative-overview-kpi-${entry.$1}')))})',
+        );
+      }
+
+      expect(tester.takeException(), isNull);
     },
   );
 
@@ -248,10 +291,16 @@ void main() {
         NarrativeOverviewModuleIds.facts,
         NarrativeOverviewModuleIds.worldRules,
       ]) {
-        final shortcut = find.byKey(
-          ValueKey('narrative-overview-module-$moduleId'),
+        final shortcut = find
+            .byKey(
+              ValueKey('narrative-overview-module-$moduleId'),
+            )
+            .first;
+        await tester.scrollUntilVisible(
+          shortcut,
+          320,
+          scrollable: _overviewScrollable(),
         );
-        await tester.scrollUntilVisible(shortcut, 320);
         await tester.tap(shortcut);
         await tester.pump();
       }
@@ -282,15 +331,17 @@ void main() {
       await _pumpOverview(tester, readModel, width: 1440, height: 1180);
 
       await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey('narrative-overview-empty-states-section'),
-          skipOffstage: false,
-        ),
+        find
+            .byKey(
+              const ValueKey('narrative-overview-empty-states-section'),
+            )
+            .first,
         360,
+        scrollable: _overviewScrollable(),
       );
       await tester.pump();
 
-      expect(find.text('Données à venir', skipOffstage: false), findsOneWidget);
+      expect(find.text('Données à venir'), findsOneWidget);
       expect(_textInEmptyState('facts', 'Facts'), findsOneWidget);
       expect(_textInEmptyState('facts', 'Vide'), findsOneWidget);
       expect(
@@ -325,11 +376,13 @@ void main() {
       );
 
       await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey('narrative-overview-footer'),
-          skipOffstage: false,
-        ),
+        find
+            .byKey(
+              const ValueKey('narrative-overview-footer'),
+            )
+            .first,
         320,
+        scrollable: _overviewScrollable(),
       );
       await tester.pump();
 
@@ -413,6 +466,41 @@ void main() {
       expect(find.byKey(const ValueKey('narrative-overview-kpi-grid')),
           findsOneWidget);
       expect(_textInKpi('cutscenes', '0'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Overview is usable at 800x650 and 200 percent text',
+    (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(
+        tester.platformDispatcher.clearTextScaleFactorTestValue,
+      );
+      final project = _minimalProject('compact_overview_project');
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: project,
+          workspaceMode: EditorWorkspaceMode.narrativeOverview,
+        ),
+        surfaceSize: const Size(800, 650),
+      );
+
+      final scenesKpi = find.byKey(
+        const ValueKey('narrative-overview-kpi-scenes'),
+      );
+      expect(scenesKpi, findsOneWidget);
+      expect(_textInKpi('chapters', '0'), findsOneWidget);
+      expect(_textInKpi('scenes', '0'), findsOneWidget);
+
+      await tester.ensureVisible(scenesKpi);
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      await tester.tap(scenesKpi);
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.project, same(project));
+      expect(state.workspaceMode, EditorWorkspaceMode.scenes);
     },
   );
 
@@ -1248,13 +1336,15 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
       await tester.scrollUntilVisible(
-        find.byKey(
-          const ValueKey(
-            'narrative-overview-module-${NarrativeOverviewModuleIds.worldRules}',
-          ),
-          skipOffstage: false,
-        ),
+        find
+            .byKey(
+              const ValueKey(
+                'narrative-overview-module-${NarrativeOverviewModuleIds.worldRules}',
+              ),
+            )
+            .first,
         260,
+        scrollable: _overviewScrollable(),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -1698,6 +1788,15 @@ Finder _textInKpi(String metricId, String text) {
     of: find.byKey(ValueKey('narrative-overview-kpi-$metricId')),
     matching: find.text(text),
   );
+}
+
+Finder _overviewScrollable() {
+  return find
+      .descendant(
+        of: find.byKey(const ValueKey('narrative-overview-scroll')),
+        matching: find.byType(Scrollable),
+      )
+      .first;
 }
 
 Finder _textInMainStory(String text) {

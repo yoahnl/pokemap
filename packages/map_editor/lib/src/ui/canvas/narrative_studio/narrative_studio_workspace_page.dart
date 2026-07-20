@@ -1,11 +1,14 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'narrative_studio_route_presentation.dart';
 
 const narrativeStudioWorkspaceContextKey =
     ValueKey<String>('narrative-studio-workspace-context');
+const narrativeStudioWorkspaceActionsScrollKey =
+    ValueKey<String>('narrative-studio-workspace-actions-scroll');
 
 /// Shared inner page frame for one Narrative Studio workspace.
 ///
@@ -29,16 +32,16 @@ class NarrativeStudioWorkspacePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final breadcrumb = <String>[
-      'Narrative Studio',
+      context.pokeMapL10n.narrativeStudio,
       ...presentation.breadcrumbLabels,
     ].join('  /  ');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
+        ConstrainedBox(
           key: narrativeStudioWorkspaceContextKey,
-          height: 52,
+          constraints: const BoxConstraints(minHeight: 52),
           child: PokeMapToolbarSurface(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
@@ -62,9 +65,33 @@ class NarrativeStudioWorkspacePage extends StatelessWidget {
                     ),
                   ),
                 ),
-                for (var index = 0; index < actions.length; index++) ...[
-                  if (index > 0) const SizedBox(width: 8),
-                  actions[index],
+                if (actions.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) => SingleChildScrollView(
+                        key: narrativeStudioWorkspaceActionsScrollKey,
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              for (var index = 0;
+                                  index < actions.length;
+                                  index++) ...[
+                                if (index > 0) const SizedBox(width: 8),
+                                actions[index],
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

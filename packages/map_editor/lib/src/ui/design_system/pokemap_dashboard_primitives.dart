@@ -77,6 +77,9 @@ class PokeMapMetricCard extends StatelessWidget {
     this.badge,
     this.selected = false,
     this.onTap,
+    this.titleMaxLines = 1,
+    this.valueMaxLines = 1,
+    this.valueFontSize = 22,
   });
 
   final String title;
@@ -87,6 +90,9 @@ class PokeMapMetricCard extends StatelessWidget {
   final Widget? badge;
   final bool selected;
   final VoidCallback? onTap;
+  final int titleMaxLines;
+  final int valueMaxLines;
+  final double valueFontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -108,7 +114,7 @@ class PokeMapMetricCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
-                    maxLines: 1,
+                    maxLines: titleMaxLines,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: colors.textPrimary,
@@ -122,11 +128,11 @@ class PokeMapMetricCard extends StatelessWidget {
             const Spacer(),
             Text(
               value,
-              maxLines: 1,
+              maxLines: valueMaxLines,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: colors.textPrimary,
-                fontSize: 22,
+                fontSize: valueFontSize,
                 fontWeight: FontWeight.w900,
               ),
             ),

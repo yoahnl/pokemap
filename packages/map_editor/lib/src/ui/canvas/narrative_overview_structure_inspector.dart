@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
-import '../shared/cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 
 /// Panneau V0 de synthèse "Structure narrative" pour l'aperçu auteur.
 ///
@@ -22,17 +23,8 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _editorialAccent(context, editorialStatus.validationState);
-    return Container(
+    return PokeMapInspectorPanel(
       key: const ValueKey('narrative-overview-structure-inspector'),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.2),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.28)),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -43,7 +35,7 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
                 child: Text(
                   'STRUCTURE NARRATIVE',
                   style: TextStyle(
-                    color: EditorChrome.subtleLabel(context),
+                    color: context.pokeMapColors.textMuted,
                     fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0,
@@ -52,7 +44,7 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
               ),
               Icon(
                 CupertinoIcons.pin_fill,
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
                 size: 14,
               ),
             ],
@@ -137,7 +129,7 @@ class _InspectorIdentity extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: EditorChrome.primaryLabel(context),
+                  color: context.pokeMapColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
                 ),
@@ -188,7 +180,7 @@ class _StructureCounterRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -202,7 +194,7 @@ class _StructureCounterRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: EditorChrome.primaryLabel(context),
+                color: context.pokeMapColors.textPrimary,
                 fontSize: _metricValue(counter).length > 12 ? 12 : 13,
                 fontWeight: FontWeight.w900,
               ),
@@ -233,7 +225,7 @@ class _InspectorSection extends StatelessWidget {
         Text(
           title,
           style: TextStyle(
-            color: EditorChrome.subtleLabel(context),
+            color: context.pokeMapColors.textMuted,
             fontSize: 11,
             fontWeight: FontWeight.w900,
             letterSpacing: 0,
@@ -302,7 +294,7 @@ class _ChaptersBlock extends StatelessWidget {
       return Text(
         'Aucun chapitre authoré.',
         style: TextStyle(
-          color: EditorChrome.subtleLabel(context),
+          color: context.pokeMapColors.textMuted,
           fontSize: 13,
           fontWeight: FontWeight.w700,
         ),
@@ -323,7 +315,7 @@ class _ChapterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _chapterAccent(chapter.status);
+    final accent = _chapterAccent(context, chapter.status);
     return Padding(
       padding: const EdgeInsets.only(bottom: 5),
       child: Row(
@@ -332,14 +324,14 @@ class _ChapterRow extends StatelessWidget {
             width: 22,
             height: 22,
             decoration: BoxDecoration(
-              color: EditorChrome.islandCoolTint.withValues(alpha: 0.34),
+              color: context.pokeMapColors.controlSurface,
               borderRadius: BorderRadius.circular(7),
             ),
             alignment: Alignment.center,
             child: Text(
               '${chapter.order + 1}',
               style: TextStyle(
-                color: EditorChrome.subtleLabel(context),
+                color: context.pokeMapColors.textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
               ),
@@ -352,7 +344,7 @@ class _ChapterRow extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: EditorChrome.primaryLabel(context),
+                color: context.pokeMapColors.textPrimary,
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
               ),
@@ -405,16 +397,16 @@ class _EditorialStatusBlock extends StatelessWidget {
               label: 'À revoir',
               value: '${editorialStatus.toReview}',
               accent: editorialStatus.toReview > 0
-                  ? EditorChrome.accentWarm
-                  : EditorChrome.subtleLabel(context),
+                  ? context.pokeMapColors.warning
+                  : context.pokeMapColors.textMuted,
             ),
             _EditorialStatusTile(
               slot: 'blocking',
               label: 'Bloquants',
               value: '${editorialStatus.blocking}',
               accent: editorialStatus.blocking > 0
-                  ? EditorChrome.accentCoral
-                  : EditorChrome.subtleLabel(context),
+                  ? context.pokeMapColors.error
+                  : context.pokeMapColors.textMuted,
             ),
           ],
         ),
@@ -474,7 +466,7 @@ class _EditorialStatusTile extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
+              color: context.pokeMapColors.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
@@ -502,7 +494,7 @@ class _UnavailableCopy extends StatelessWidget {
         Text(
           message,
           style: TextStyle(
-            color: EditorChrome.primaryLabel(context),
+            color: context.pokeMapColors.textPrimary,
             fontSize: 13,
             fontWeight: FontWeight.w800,
           ),
@@ -524,7 +516,7 @@ class _BodyText extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        color: EditorChrome.subtleLabel(context),
+        color: context.pokeMapColors.textMuted,
         fontSize: 13,
         fontWeight: FontWeight.w600,
         height: 1.3,
@@ -540,23 +532,9 @@ class _TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: EditorChrome.accentPrimary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color: EditorChrome.accentPrimary.withValues(alpha: 0.2),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: EditorChrome.accentPrimary,
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
+    return PokeMapBadge(
+      label: label,
+      variant: PokeMapBadgeVariant.info,
     );
   }
 }
@@ -596,7 +574,7 @@ class _InspectorDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 1,
-      color: EditorChrome.inspectorJoyCyan.withValues(alpha: 0.14),
+      color: context.pokeMapColors.divider,
     );
   }
 }
@@ -648,13 +626,12 @@ Color _availabilityAccent(
   NarrativeOverviewAvailability availability,
 ) {
   return switch (availability) {
-    NarrativeOverviewAvailability.available => EditorChrome.accentJade,
-    NarrativeOverviewAvailability.empty => EditorChrome.accentPrimary,
-    NarrativeOverviewAvailability.unavailable => EditorChrome.accentCoral,
-    NarrativeOverviewAvailability.notEvaluated => EditorChrome.accentWarm,
-    NarrativeOverviewAvailability.outOfScope =>
-      EditorChrome.subtleLabel(context),
-    NarrativeOverviewAvailability.needsModel => EditorChrome.inspectorJoyPlum,
+    NarrativeOverviewAvailability.available => context.pokeMapColors.success,
+    NarrativeOverviewAvailability.empty => context.pokeMapColors.brandPrimary,
+    NarrativeOverviewAvailability.unavailable => context.pokeMapColors.error,
+    NarrativeOverviewAvailability.notEvaluated => context.pokeMapColors.warning,
+    NarrativeOverviewAvailability.outOfScope => context.pokeMapColors.textMuted,
+    NarrativeOverviewAvailability.needsModel => context.pokeMapColors.narrative,
   };
 }
 
@@ -663,19 +640,25 @@ Color _editorialAccent(
   NarrativeEditorialValidationState state,
 ) {
   return switch (state) {
-    NarrativeEditorialValidationState.notEvaluated => EditorChrome.accentWarm,
-    NarrativeEditorialValidationState.upToDate => EditorChrome.accentJade,
-    NarrativeEditorialValidationState.toReview => EditorChrome.accentWarm,
-    NarrativeEditorialValidationState.blocking => EditorChrome.accentCoral,
+    NarrativeEditorialValidationState.notEvaluated =>
+      context.pokeMapColors.warning,
+    NarrativeEditorialValidationState.upToDate => context.pokeMapColors.success,
+    NarrativeEditorialValidationState.toReview => context.pokeMapColors.warning,
+    NarrativeEditorialValidationState.blocking => context.pokeMapColors.error,
   };
 }
 
-Color _chapterAccent(NarrativeChapterEditorialStatus status) {
+Color _chapterAccent(
+  BuildContext context,
+  NarrativeChapterEditorialStatus status,
+) {
   return switch (status) {
-    NarrativeChapterEditorialStatus.defined => EditorChrome.accentJade,
-    NarrativeChapterEditorialStatus.inProgress => EditorChrome.accentPrimary,
-    NarrativeChapterEditorialStatus.draft => EditorChrome.accentLilac,
-    NarrativeChapterEditorialStatus.notEvaluated => EditorChrome.accentWarm,
+    NarrativeChapterEditorialStatus.defined => context.pokeMapColors.success,
+    NarrativeChapterEditorialStatus.inProgress =>
+      context.pokeMapColors.brandPrimary,
+    NarrativeChapterEditorialStatus.draft => context.pokeMapColors.narrative,
+    NarrativeChapterEditorialStatus.notEvaluated =>
+      context.pokeMapColors.warning,
   };
 }
 

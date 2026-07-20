@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'l10n/app_localizations.dart';
 import 'src/theme/theme.dart';
 import 'src/ui/editor_shell_page.dart';
 
 Future<void> main() async {
   // Ensure the binding is initialized at the absolute beginning of main()
   WidgetsFlutterBinding.ensureInitialized();
-
 
   runApp(
     const ProviderScope(
@@ -28,12 +28,13 @@ class MapEditorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'RPG Map Editor',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.appTitle,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       debugShowCheckedModeBanner: false,
       themeMode: ThemeMode.system,
       theme: PokeMapTheme.light(),
       darkTheme: PokeMapTheme.dark(),
-
       home: const EditorShellPage(),
     );
   }

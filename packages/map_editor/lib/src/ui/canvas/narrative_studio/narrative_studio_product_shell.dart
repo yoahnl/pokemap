@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../design_system/design_system.dart';
 import 'narrative_studio_destination.dart';
@@ -15,6 +16,40 @@ const narrativeStudioProductShellNavigationKey =
     ValueKey<String>('narrative-studio-product-shell-navigation');
 const narrativeStudioProductShellWorkspaceKey =
     ValueKey<String>('narrative-studio-product-shell-workspace');
+
+/// Provider-free rail geometry selected only from the available viewport.
+///
+/// Keeping the policy public and immutable lets accessibility tests prove every
+/// breakpoint without depending on a rendered feature workspace.
+@immutable
+final class NarrativeStudioRailPresentation {
+  const NarrativeStudioRailPresentation({
+    required this.width,
+    required this.collapsed,
+  });
+
+  final double width;
+  final bool collapsed;
+}
+
+/// Returns the canonical desktop rail presentation for Narrative Studio.
+NarrativeStudioRailPresentation narrativeStudioRailPresentation(
+  double viewportWidth,
+) {
+  if (viewportWidth < 900) {
+    return const NarrativeStudioRailPresentation(width: 72, collapsed: true);
+  }
+  if (viewportWidth < 1100) {
+    return const NarrativeStudioRailPresentation(width: 148, collapsed: false);
+  }
+  if (viewportWidth < 1480) {
+    return const NarrativeStudioRailPresentation(width: 168, collapsed: false);
+  }
+  if (viewportWidth < 1672) {
+    return const NarrativeStudioRailPresentation(width: 176, collapsed: false);
+  }
+  return const NarrativeStudioRailPresentation(width: 191, collapsed: false);
+}
 
 /// Shared outer product chrome for Narrative Studio.
 ///
@@ -50,13 +85,14 @@ class NarrativeStudioProductShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final l10n = context.pokeMapL10n;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final navigationWidth = _navigationWidth(constraints.maxWidth);
+        final rail = narrativeStudioRailPresentation(constraints.maxWidth);
         return Semantics(
           key: narrativeStudioProductShellKey,
           container: true,
-          label: 'PokeMap, Narrative Studio',
+          label: l10n.shellSemantics,
           child: ColoredBox(
             color: colors.chromeBackground,
             child: Column(
@@ -67,7 +103,7 @@ class NarrativeStudioProductShell extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       SizedBox(
-                        width: navigationWidth,
+                        width: rail.width,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -93,6 +129,7 @@ class NarrativeStudioProductShell extends StatelessWidget {
                                   onReturn: onReturn,
                                   onOpenMaps: onOpenMaps,
                                   status: status,
+                                  collapsed: rail.collapsed,
                                 ),
                               ),
                             ),
@@ -129,6 +166,7 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final l10n = context.pokeMapL10n;
     return SizedBox(
       key: narrativeStudioProductShellHeaderKey,
       height: 50,
@@ -136,21 +174,27 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(
           children: [
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: appMark ??
-                  Image.asset(
-                    'assets/branding/pokemap_event_builder_mark.png',
-                    width: 28,
-                    height: 28,
-                    fit: BoxFit.cover,
-                    filterQuality: FilterQuality.medium,
-                  ),
+            Semantics(
+              image: true,
+              label: l10n.brandName,
+              child: ExcludeSemantics(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: appMark ??
+                      Image.asset(
+                        'assets/branding/pokemap_event_builder_mark.png',
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                ),
+              ),
             ),
             const SizedBox(width: 10),
             Text(
-              'PokeMap',
+              l10n.brandName,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
@@ -160,8 +204,8 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 10),
-            const PokeMapBadge(
-              label: 'beta',
+            PokeMapBadge(
+              label: l10n.beta,
               variant: PokeMapBadgeVariant.info,
             ),
           ],
@@ -169,11 +213,4 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-double _navigationWidth(double viewportWidth) {
-  if (viewportWidth >= 1672) return 191;
-  if (viewportWidth >= 1480) return 176;
-  if (viewportWidth >= 1100) return 168;
-  return 148;
 }

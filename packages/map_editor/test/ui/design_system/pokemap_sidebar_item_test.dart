@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
@@ -138,6 +139,109 @@ void main() {
           widget.properties.selected == true &&
           widget.properties.enabled == true);
       expect(semanticsFinder, findsOneWidget);
+    });
+
+    testWidgets('collapsed mode keeps icon only with tooltip and semantics',
+        (tester) async {
+      final semantics = tester.ensureSemantics();
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapSidebarItem(
+            label: 'Événements',
+            subtitle: 'Déclencheurs',
+            icon: const Icon(Icons.bolt),
+            trailing: const Text('3'),
+            collapsed: true,
+            onTap: () {},
+          ),
+        ),
+      );
+
+      expect(find.text('Événements'), findsNothing);
+      expect(find.text('Déclencheurs'), findsNothing);
+      expect(find.text('3'), findsNothing);
+      expect(find.byIcon(Icons.bolt), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) => widget is Tooltip && widget.message == 'Événements',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Événements' &&
+              widget.properties.button == true &&
+              widget.properties.enabled == true,
+        ),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    });
+
+    testWidgets('collapsed mode activates with Enter', (tester) async {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+      var activations = 0;
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapSidebarItem(
+            label: 'Validateur',
+            icon: const Icon(Icons.verified),
+            collapsed: true,
+            focusNode: focusNode,
+            onTap: () => activations += 1,
+          ),
+        ),
+      );
+
+      focusNode.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(activations, 1);
+    });
+
+    testWidgets('collapsed disabled mode cannot activate', (tester) async {
+      final focusNode = FocusNode();
+      addTearDown(focusNode.dispose);
+      var activations = 0;
+
+      await tester.pumpWidget(
+        buildTestWidget(
+          theme: PokeMapTheme.dark(),
+          child: PokeMapSidebarItem(
+            label: 'Validateur',
+            icon: const Icon(Icons.verified),
+            collapsed: true,
+            disabled: true,
+            focusNode: focusNode,
+            onTap: () => activations += 1,
+          ),
+        ),
+      );
+
+      focusNode.requestFocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pump();
+
+      expect(activations, 0);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.label == 'Validateur' &&
+              widget.properties.enabled == false,
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

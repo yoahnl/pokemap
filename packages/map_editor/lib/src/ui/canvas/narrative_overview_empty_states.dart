@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
-import '../shared/cupertino_editor_widgets.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
 
 /// Section V0 qui rend explicites les zones encore indisponibles.
 ///
@@ -66,19 +67,9 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
       ),
     ];
 
-    return Container(
+    return PokeMapCard(
       key: const ValueKey('narrative-overview-empty-states-section'),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.16),
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: EditorChrome.accentPrimary.withValues(alpha: 0.18),
-        ),
-        boxShadow: EditorChrome.sectionCardShadows(context),
-      ),
+      borderRadius: 18,
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,7 +77,7 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
           Text(
             'Données à venir',
             style: TextStyle(
-              color: EditorChrome.primaryLabel(context),
+              color: context.pokeMapColors.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w900,
             ),
@@ -95,7 +86,7 @@ class NarrativeOverviewUnavailableDataSection extends StatelessWidget {
           Text(
             'Ces zones restent visibles pour clarifier le périmètre V0, sans inventer de données.',
             style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
+              color: context.pokeMapColors.textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w600,
               height: 1.25,
@@ -145,18 +136,9 @@ class NarrativeOverviewFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return PokeMapCard(
       key: const ValueKey('narrative-overview-footer'),
-      decoration: BoxDecoration(
-        color: EditorChrome.largeIslandSurfaceColor(
-          context,
-          tint: EditorChrome.islandCoolTint.withValues(alpha: 0.08),
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: EditorChrome.subtleSeparator(context).withValues(alpha: 0.8),
-        ),
-      ),
+      borderRadius: 14,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Wrap(
         spacing: 18,
@@ -191,99 +173,63 @@ class _UnavailableDataTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _availabilityAccent(context, item.availability);
-    return Container(
-      key: ValueKey('narrative-overview-empty-state-${item.slot}'),
+    final tone = _availabilityTone(item.availability);
+    return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: 112),
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: accent.withValues(alpha: 0.22)),
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: accent.withValues(alpha: 0.13),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: accent.withValues(alpha: 0.2)),
+      child: PokeMapCard(
+        key: ValueKey('narrative-overview-empty-state-${item.slot}'),
+        borderRadius: 14,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                PokeMapIconTile(
+                  icon: item.icon,
+                  tone: tone,
+                  size: 30,
+                  iconSize: 17,
                 ),
-                alignment: Alignment.center,
-                child: Icon(item.icon, color: accent, size: 17),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: EditorChrome.primaryLabel(context),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.label,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.pokeMapColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 5),
-                    _UnavailableDataPill(label: item.value, accent: accent),
-                  ],
+                      const SizedBox(height: 5),
+                      PokeMapBadge(
+                        label: item.value,
+                        variant: _availabilityBadgeVariant(item.availability),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            item.detail,
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: EditorChrome.subtleLabel(context),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              height: 1.28,
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UnavailableDataPill extends StatelessWidget {
-  const _UnavailableDataPill({
-    required this.label,
-    required this.accent,
-  });
-
-  final String label;
-  final Color accent;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: accent.withValues(alpha: 0.22)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: accent,
-          fontSize: 11,
-          fontWeight: FontWeight.w900,
+            const SizedBox(height: 8),
+            Text(
+              item.detail,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.pokeMapColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.28,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -303,20 +249,25 @@ class _FooterMetadataItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey('narrative-overview-footer-$slot'),
-      constraints: const BoxConstraints(minHeight: 24),
-      child: Text(
-        '$label : $value',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: EditorChrome.subtleLabel(context),
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0,
+    if (slot == 'project') {
+      return KeyedSubtree(
+        key: ValueKey('narrative-overview-footer-$slot'),
+        child: Text(
+          '$label : $value',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: context.pokeMapColors.textMuted,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      ),
+      );
+    }
+    return PokeMapStatusLabel(
+      key: ValueKey('narrative-overview-footer-$slot'),
+      label: '$label : $value',
+      tone: PokeMapTone.neutral,
     );
   }
 }
@@ -350,17 +301,25 @@ String _availabilityTitle(NarrativeOverviewAvailability availability) {
   };
 }
 
-Color _availabilityAccent(
-  BuildContext context,
-  NarrativeOverviewAvailability availability,
-) {
+PokeMapTone _availabilityTone(NarrativeOverviewAvailability availability) {
   return switch (availability) {
-    NarrativeOverviewAvailability.available => EditorChrome.accentJade,
-    NarrativeOverviewAvailability.empty => EditorChrome.accentPrimary,
-    NarrativeOverviewAvailability.unavailable => EditorChrome.accentCoral,
-    NarrativeOverviewAvailability.notEvaluated => EditorChrome.accentWarm,
-    NarrativeOverviewAvailability.outOfScope =>
-      EditorChrome.subtleLabel(context),
-    NarrativeOverviewAvailability.needsModel => EditorChrome.inspectorJoyPlum,
+    NarrativeOverviewAvailability.available => PokeMapTone.success,
+    NarrativeOverviewAvailability.empty => PokeMapTone.brand,
+    NarrativeOverviewAvailability.unavailable => PokeMapTone.danger,
+    NarrativeOverviewAvailability.notEvaluated => PokeMapTone.warning,
+    NarrativeOverviewAvailability.outOfScope => PokeMapTone.neutral,
+    NarrativeOverviewAvailability.needsModel => PokeMapTone.narrative,
   };
 }
+
+PokeMapBadgeVariant _availabilityBadgeVariant(
+  NarrativeOverviewAvailability availability,
+) =>
+    switch (availability) {
+      NarrativeOverviewAvailability.available => PokeMapBadgeVariant.success,
+      NarrativeOverviewAvailability.empty => PokeMapBadgeVariant.info,
+      NarrativeOverviewAvailability.unavailable => PokeMapBadgeVariant.error,
+      NarrativeOverviewAvailability.notEvaluated => PokeMapBadgeVariant.warning,
+      NarrativeOverviewAvailability.outOfScope => PokeMapBadgeVariant.neutral,
+      NarrativeOverviewAvailability.needsModel => PokeMapBadgeVariant.narrative,
+    };

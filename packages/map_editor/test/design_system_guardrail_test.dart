@@ -44,7 +44,7 @@ void main() {
         reason: [
           'Narrative Studio is the palette pilot and must stay calm.',
           'Use PokeMap design-system widgets and semantic color tokens.',
-          'Allowed temporary debt: 4 legacy imports and 2 CupertinoColors refs.',
+          'Allowed temporary debt: 0 legacy imports and 0 CupertinoColors refs.',
           ...regressions,
         ].join('\n'),
       );
@@ -222,8 +222,8 @@ final _narrativeHardColorPattern = RegExp(
 
 final _cupertinoColorPattern = RegExp(r'\bCupertinoColors\.');
 
-const _narrativeLegacyImportBaseline = 4;
-const _narrativeCupertinoColorBaseline = 2;
+const _narrativeLegacyImportBaseline = 0;
+const _narrativeCupertinoColorBaseline = 0;
 
 const _legacyDirectColorReferenceBaseline = <String, int>{
   'lib/src/features/environment_studio/environment_studio_panel.dart': 9,
@@ -263,7 +263,6 @@ const _legacyDirectColorReferenceBaseline = <String, int>{
       4,
   'lib/src/ui/canvas/global_story_studio/global_story_studio_panels.dart': 5,
   'lib/src/ui/canvas/map_canvas.dart': 2,
-  'lib/src/ui/canvas/narrative_workspace_canvas.dart': 2,
   'lib/src/ui/canvas/pokedex_workspace/pokedex_common_widgets.dart': 1,
   'lib/src/ui/canvas/pokedex_workspace/pokedex_detail_panel.dart': 1,
   'lib/src/ui/canvas/pokedex_workspace/pokedex_empty_state.dart': 3,
@@ -355,10 +354,6 @@ const _legacyChromeImportBaseline = <String>{
   'lib/src/ui/canvas/global_story_studio/global_story_studio_panels.dart',
   'lib/src/ui/canvas/global_story_studio/global_story_studio_shell.dart',
   'lib/src/ui/canvas/global_story_studio_workspace.dart',
-  'lib/src/ui/canvas/narrative_overview_empty_states.dart',
-  'lib/src/ui/canvas/narrative_overview_structure_inspector.dart',
-  'lib/src/ui/canvas/narrative_overview_workspace.dart',
-  'lib/src/ui/canvas/narrative_workspace_canvas.dart',
   'lib/src/ui/canvas/pokedex_workspace/pokedex_workspace_page.dart',
   'lib/src/ui/canvas/pokemon_catalogs_workspace/items_catalog_workspace.dart',
   'lib/src/ui/canvas/pokemon_catalogs_workspace/moves_catalog_workspace.dart',
