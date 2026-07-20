@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import '../../../../application/services/narrative_activity_journal.dart';
 import '../../../dialogue/application/dialogue_editor_validation.dart';
 import '../cutscene_studio/cutscene_studio_models.dart';
 import '../global_story_studio_authoring.dart';
@@ -43,6 +44,13 @@ enum NarrativeChapterEditorialStatus {
   notEvaluated,
 }
 
+enum NarrativeOverviewScopeKind {
+  canonicalStoryline,
+  legacyScenario,
+  empty,
+  ambiguous,
+}
+
 final class NarrativeOverviewModuleIds {
   const NarrativeOverviewModuleIds._();
 
@@ -63,6 +71,10 @@ class NarrativeOverviewReadModel {
     required this.structureInspector,
     required this.editorialStatus,
     required this.projectHealth,
+    required this.scope,
+    required this.resumeTarget,
+    required this.recentActivities,
+    required this.diagnostics,
     required this.recentActivity,
     required this.notifications,
     required this.footer,
@@ -75,6 +87,10 @@ class NarrativeOverviewReadModel {
   final NarrativeStructureInspectorSummary structureInspector;
   final EditorialStatusSummary editorialStatus;
   final NarrativeProjectHealthSummary projectHealth;
+  final NarrativeOverviewScopeSummary scope;
+  final NarrativeOverviewResumeTarget? resumeTarget;
+  final List<NarrativeActivityEntry> recentActivities;
+  final List<NarrativeOverviewDiagnosticSummary> diagnostics;
   final NarrativeOverviewFeatureSummary recentActivity;
   final NarrativeOverviewFeatureSummary notifications;
   final NarrativeOverviewFooterSummary footer;
@@ -128,6 +144,7 @@ class NarrativeMetricSummary {
     required this.sourceStatus,
     required this.emptyStateMessage,
     required this.unavailableMessage,
+    this.sourceLabel = 'Source indisponible',
   });
 
   final String id;
@@ -137,6 +154,7 @@ class NarrativeMetricSummary {
   final NarrativeOverviewSourceStatus sourceStatus;
   final String emptyStateMessage;
   final String unavailableMessage;
+  final String sourceLabel;
 
   bool get hasRealCount =>
       availability == NarrativeOverviewAvailability.available ||
@@ -153,8 +171,49 @@ class NarrativeMetricSummary {
       sourceStatus: sourceStatus,
       emptyStateMessage: emptyStateMessage,
       unavailableMessage: unavailableMessage,
+      sourceLabel: sourceLabel,
     );
   }
+}
+
+class NarrativeOverviewScopeSummary {
+  const NarrativeOverviewScopeSummary({
+    required this.kind,
+    required this.sourceLabel,
+    required this.storylineCount,
+    required this.sideQuestCount,
+    this.storylineId,
+    this.title,
+  });
+
+  final NarrativeOverviewScopeKind kind;
+  final String sourceLabel;
+  final int storylineCount;
+  final int sideQuestCount;
+  final String? storylineId;
+  final String? title;
+}
+
+class NarrativeOverviewResumeTarget {
+  const NarrativeOverviewResumeTarget({
+    required this.label,
+    required this.destination,
+    required this.sourceLabel,
+    this.assetId,
+  });
+
+  final String label;
+  final NarrativeActivityDestination destination;
+  final String sourceLabel;
+  final String? assetId;
+}
+
+class NarrativeOverviewDiagnosticSummary {
+  const NarrativeOverviewDiagnosticSummary(this.diagnostic);
+
+  final NarrativeProjectDiagnostic diagnostic;
+
+  bool get canQuickFix => diagnostic.hasDeterministicRepair;
 }
 
 class MainStoryOverviewSummary {
@@ -216,6 +275,7 @@ class NarrativeModuleSummary {
     required this.destination,
     this.secondaryStats = const <NarrativeMetricSummary>[],
     this.previewLabels = const <String>[],
+    this.sourceLabel = 'ProjectManifest',
   });
 
   final String id;
@@ -227,6 +287,7 @@ class NarrativeModuleSummary {
   final String? destination;
   final List<NarrativeMetricSummary> secondaryStats;
   final List<String> previewLabels;
+  final String sourceLabel;
 }
 
 class NarrativeStructureInspectorSummary {
@@ -240,6 +301,7 @@ class NarrativeStructureInspectorSummary {
     required this.editorialStatus,
     required this.descriptionAvailability,
     required this.tagsAvailability,
+    required this.scope,
   });
 
   final String projectName;
@@ -251,6 +313,7 @@ class NarrativeStructureInspectorSummary {
   final EditorialStatusSummary editorialStatus;
   final NarrativeOverviewAvailability descriptionAvailability;
   final NarrativeOverviewAvailability tagsAvailability;
+  final NarrativeOverviewScopeSummary scope;
 }
 
 class EditorialStatusSummary {
@@ -315,12 +378,23 @@ class NarrativeOverviewFooterSummary {
 
 NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
   required ProjectManifest project,
+  NarrativeActivityJournal? activityJournal,
+  NarrativeOverviewAvailability activityJournalAvailability =
+      NarrativeOverviewAvailability.notEvaluated,
+  String? activityJournalStatusMessage,
+  NarrativeProjectValidationReport? projectValidationReport,
+  NarrativeOverviewAvailability validatorAvailability =
+      NarrativeOverviewAvailability.notEvaluated,
+  String? validatorStatusMessage,
   NarrativeValidationReport? narrativeValidationReport,
   List<NarrativeAuthoringDiagnosticView> authoringDiagnostics =
       const <NarrativeAuthoringDiagnosticView>[],
   List<DialogueValidationIssue> dialogueIssues =
       const <DialogueValidationIssue>[],
 }) {
+  final canonicalMainStories = project.storylines
+      .where((storyline) => storyline.type == StorylineType.main)
+      .toList(growable: false);
   final globalStories = project.scenarios
       .where((scenario) => scenario.scope == ScenarioScope.globalStory)
       .toList(growable: false);
@@ -337,18 +411,26 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
       .toList(growable: false);
   final worldRuleDiagnostics = diagnoseWorldRules(project);
   final validation = _buildEditorialStatus(
+    projectValidationReport: projectValidationReport,
     narrativeValidationReport: narrativeValidationReport,
     authoringDiagnostics: authoringDiagnostics,
     dialogueIssues: dialogueIssues,
   );
 
   final mainStory = _buildMainStory(
+    canonicalMainStories: canonicalMainStories,
     globalStories: globalStories,
     project: project,
     cutsceneScenarioIds: cutsceneScenarioIds,
     validationState: validation,
     authoringDiagnostics: authoringDiagnostics,
     narrativeValidationReport: narrativeValidationReport,
+    projectValidationReport: projectValidationReport,
+  );
+  final scope = _buildScope(
+    project: project,
+    canonicalMainStories: canonicalMainStories,
+    legacyGlobalStories: globalStories,
   );
 
   final chapters = _buildChaptersMetric(mainStory);
@@ -358,6 +440,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: project.scenes.length,
     emptyStateMessage: 'Aucune Scene authorée.',
     unavailableMessage: 'Scenes indisponibles.',
+    sourceLabel: 'ProjectManifest.scenes',
   );
   final cutscenes = _metricWithCount(
     id: 'cutscenes',
@@ -365,6 +448,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: project.cinematics.length,
     emptyStateMessage: 'Aucune CinematicAsset canonique.',
     unavailableMessage: 'Cinématiques indisponibles.',
+    sourceLabel: 'ProjectManifest.cinematics',
   );
   final cinematicBridges = _metricWithCount(
     id: 'cinematic_bridges',
@@ -372,6 +456,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: cutsceneScenarioIds.length,
     emptyStateMessage: 'Aucun bridge legacy Scenario/Cutscene.',
     unavailableMessage: 'Bridges legacy indisponibles.',
+    sourceLabel: 'ProjectManifest.scenarios (bridges Cutscene Studio)',
   );
   final dialogues = _metricWithCount(
     id: 'dialogues',
@@ -379,6 +464,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: project.dialogues.length,
     emptyStateMessage: 'Aucun dialogue défini.',
     unavailableMessage: 'Dialogues indisponibles.',
+    sourceLabel: 'ProjectManifest.dialogues',
   );
   final conditions = _metricWithCount(
     id: 'conditions',
@@ -386,6 +472,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: _countNarrativeConditions(project, allSteps),
     emptyStateMessage: 'Aucune condition narrative définie.',
     unavailableMessage: 'Conditions narratives indisponibles.',
+    sourceLabel: 'ProjectManifest.storylines + ProjectManifest.scenarios',
   );
   final worldRules = _metricWithCount(
     id: 'world_rules',
@@ -393,6 +480,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: project.worldRules.length,
     emptyStateMessage: 'Aucune World Rule authorée.',
     unavailableMessage: 'Règles du monde indisponibles.',
+    sourceLabel: 'ProjectManifest.worldRules',
   );
   final facts = _metricWithCount(
     id: 'facts',
@@ -400,6 +488,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     count: project.facts.length,
     emptyStateMessage: 'Aucun Fact authoré.',
     unavailableMessage: 'Facts indisponibles.',
+    sourceLabel: 'ProjectManifest.facts',
   );
   final openIssues = validation.notEvaluated
       ? const NarrativeMetricSummary(
@@ -411,6 +500,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
           emptyStateMessage: 'Aucun problème ouvert détecté.',
           unavailableMessage:
               'Non évalué : lancez la validation pour connaître les problèmes.',
+          sourceLabel: 'Validator global non exécuté',
         )
       : _metricWithCount(
           id: 'open_issues',
@@ -418,20 +508,24 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
           count: validation.blocking + validation.toReview,
           emptyStateMessage: 'Aucun problème ouvert détecté.',
           unavailableMessage: 'Problèmes ouverts indisponibles.',
+          sourceLabel: projectValidationReport == null
+              ? 'Validation narrative locale'
+              : 'NarrativeProjectValidationReport.diagnostics',
         ).copyWithAvailability(NarrativeOverviewAvailability.available);
 
   final metrics = NarrativeOverviewMetrics(
     chapters: chapters,
     scenes: scenes,
     cutscenes: cutscenes,
-    quests: const NarrativeMetricSummary(
+    quests: _metricWithCount(
       id: 'quests',
-      label: 'Quêtes',
-      count: null,
-      availability: NarrativeOverviewAvailability.outOfScope,
-      sourceStatus: NarrativeOverviewSourceStatus.notApplicable,
-      emptyStateMessage: 'Les quêtes ne sont pas encore modélisées.',
-      unavailableMessage: 'Compteur de quêtes hors scope V0.',
+      label: 'Quêtes annexes',
+      count: project.storylines
+          .where((storyline) => storyline.type == StorylineType.sideQuest)
+          .length,
+      emptyStateMessage: 'Aucune Storyline de type sideQuest.',
+      unavailableMessage: 'Quêtes annexes indisponibles.',
+      sourceLabel: 'ProjectManifest.storylines[type=sideQuest]',
     ),
     dialogues: dialogues,
     dialogueLines: const NarrativeMetricSummary(
@@ -443,6 +537,7 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
       emptyStateMessage: 'Aucune ligne de dialogue calculée.',
       unavailableMessage:
           'Le nombre de lignes nécessite la lecture des fichiers Yarn.',
+      sourceLabel: 'Fichiers Yarn (non chargés par cette projection)',
     ),
     openIssues: openIssues,
     conditions: conditions,
@@ -467,6 +562,20 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     mainStory: mainStory,
     metrics: metrics,
     editorialStatus: validation,
+    scope: scope,
+  );
+  final recentActivities = List<NarrativeActivityEntry>.unmodifiable(
+    activityJournal?.entries.take(5) ?? const <NarrativeActivityEntry>[],
+  );
+  final diagnostics = List<NarrativeOverviewDiagnosticSummary>.unmodifiable(
+    (projectValidationReport?.diagnostics ??
+            const <NarrativeProjectDiagnostic>[])
+        .take(8)
+        .map(NarrativeOverviewDiagnosticSummary.new),
+  );
+  final resumeTarget = _buildResumeTarget(
+    activityJournal: activityJournal,
+    scope: scope,
   );
 
   return NarrativeOverviewReadModel(
@@ -477,30 +586,65 @@ NarrativeOverviewReadModel buildNarrativeOverviewReadModel({
     structureInspector: structureInspector,
     editorialStatus: validation,
     projectHealth: projectHealth,
-    recentActivity: const NarrativeOverviewFeatureSummary(
+    scope: scope,
+    resumeTarget: resumeTarget,
+    recentActivities: recentActivities,
+    diagnostics: diagnostics,
+    recentActivity: NarrativeOverviewFeatureSummary(
       id: 'recent_activity',
       label: 'Activité récente',
-      availability: NarrativeOverviewAvailability.outOfScope,
-      message: 'Aucun journal d’activité réel n’existe en V0.',
+      availability: activityJournal == null
+          ? activityJournalAvailability
+          : recentActivities.isEmpty
+              ? NarrativeOverviewAvailability.empty
+              : NarrativeOverviewAvailability.available,
+      message: activityJournal == null
+          ? activityJournalStatusMessage ?? 'Journal d’activité non chargé.'
+          : recentActivities.isEmpty
+              ? 'Aucune activité d’authoring enregistrée.'
+              : '${recentActivities.length} activité(s) d’authoring récente(s).',
     ),
-    notifications: const NarrativeOverviewFeatureSummary(
+    notifications: NarrativeOverviewFeatureSummary(
       id: 'notifications',
-      label: 'Notifications',
-      availability: NarrativeOverviewAvailability.outOfScope,
-      message: 'Aucune source de notifications dashboard n’existe en V0.',
+      label: 'Diagnostics Validator',
+      availability: projectValidationReport == null
+          ? validatorAvailability
+          : diagnostics.isEmpty
+              ? NarrativeOverviewAvailability.empty
+              : NarrativeOverviewAvailability.available,
+      message: projectValidationReport == null
+          ? validatorStatusMessage ?? 'Validator global non exécuté.'
+          : diagnostics.isEmpty
+              ? 'Aucun diagnostic narratif ouvert.'
+              : '${diagnostics.length} diagnostic(s) à examiner.',
     ),
     footer: _buildFooter(project),
   );
 }
 
 MainStoryOverviewSummary _buildMainStory({
+  required List<StorylineAsset> canonicalMainStories,
   required List<ScenarioAsset> globalStories,
   required ProjectManifest project,
   required Set<String> cutsceneScenarioIds,
   required EditorialStatusSummary validationState,
   required List<NarrativeAuthoringDiagnosticView> authoringDiagnostics,
   required NarrativeValidationReport? narrativeValidationReport,
+  required NarrativeProjectValidationReport? projectValidationReport,
 }) {
+  if (canonicalMainStories.length > 1) {
+    return _ambiguousMainStory(
+      'Plusieurs Storylines principales existent ; choisissez-en une.',
+    );
+  }
+  if (canonicalMainStories.length == 1) {
+    return _buildCanonicalMainStory(
+      storyline: canonicalMainStories.single,
+      project: project,
+      validationState: validationState,
+      projectValidationReport: projectValidationReport,
+    );
+  }
   if (globalStories.isEmpty) {
     return const MainStoryOverviewSummary(
       title: null,
@@ -541,44 +685,8 @@ MainStoryOverviewSummary _buildMainStory({
   }
 
   if (globalStories.length > 1) {
-    return const MainStoryOverviewSummary(
-      title: null,
-      description: null,
-      chapters: <NarrativeChapterOverviewSummary>[],
-      linkedScenes: NarrativeMetricSummary(
-        id: 'main_story_linked_scenes',
-        label: 'Scènes liées',
-        count: null,
-        availability: NarrativeOverviewAvailability.unavailable,
-        sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
-        emptyStateMessage: 'Aucune scène liée.',
-        unavailableMessage:
-            'Plusieurs histoires globales existent ; sélection explicite requise.',
-      ),
-      linkedDialogues: NarrativeMetricSummary(
-        id: 'main_story_linked_dialogues',
-        label: 'Dialogues liés',
-        count: null,
-        availability: NarrativeOverviewAvailability.unavailable,
-        sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
-        emptyStateMessage: 'Aucun dialogue lié.',
-        unavailableMessage:
-            'Plusieurs histoires globales existent ; sélection explicite requise.',
-      ),
-      openIssues: NarrativeMetricSummary(
-        id: 'main_story_open_issues',
-        label: 'Problèmes ouverts',
-        count: null,
-        availability: NarrativeOverviewAvailability.unavailable,
-        sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
-        emptyStateMessage: 'Aucun problème ouvert.',
-        unavailableMessage:
-            'Plusieurs histoires globales existent ; sélection explicite requise.',
-      ),
-      canEdit: false,
-      availability: NarrativeOverviewAvailability.unavailable,
-      sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
-      message: 'Plusieurs histoires principales possibles.',
+    return _ambiguousMainStory(
+      'Plusieurs histoires legacy existent ; choisissez-en une.',
     );
   }
 
@@ -638,6 +746,7 @@ MainStoryOverviewSummary _buildMainStory({
       sourceStatus: resolvedSceneIds.isEmpty
           ? NarrativeOverviewSourceStatus.missing
           : NarrativeOverviewSourceStatus.explicit,
+      sourceLabel: 'ScenarioAsset legacy + Step Studio metadata',
     ),
     linkedDialogues: _metricWithCount(
       id: 'main_story_linked_dialogues',
@@ -648,6 +757,7 @@ MainStoryOverviewSummary _buildMainStory({
       sourceStatus: linkedDialogues.isEmpty
           ? NarrativeOverviewSourceStatus.missing
           : NarrativeOverviewSourceStatus.explicit,
+      sourceLabel: 'ScenarioAsset.bindings + ProjectManifest.dialogues',
     ),
     openIssues: scopedIssues == null
         ? const NarrativeMetricSummary(
@@ -658,6 +768,7 @@ MainStoryOverviewSummary _buildMainStory({
             sourceStatus: NarrativeOverviewSourceStatus.missing,
             emptyStateMessage: 'Aucun problème ouvert.',
             unavailableMessage: 'Non évalué : lancez la validation narrative.',
+            sourceLabel: 'Validation narrative locale non exécutée',
           )
         : _metricWithCount(
             id: 'main_story_open_issues',
@@ -665,11 +776,244 @@ MainStoryOverviewSummary _buildMainStory({
             count: scopedIssues,
             emptyStateMessage: 'Aucun problème ouvert pour cette histoire.',
             unavailableMessage: 'Problèmes ouverts indisponibles.',
+            sourceLabel: 'Validation narrative locale',
+          ),
+    canEdit: true,
+    availability: NarrativeOverviewAvailability.available,
+    sourceStatus: NarrativeOverviewSourceStatus.explicit,
+    message: 'Source legacy : conversion vers Storyline recommandée.',
+  );
+}
+
+MainStoryOverviewSummary _ambiguousMainStory(String message) {
+  return MainStoryOverviewSummary(
+    title: null,
+    description: null,
+    chapters: const <NarrativeChapterOverviewSummary>[],
+    linkedScenes: const NarrativeMetricSummary(
+      id: 'main_story_linked_scenes',
+      label: 'Scènes liées',
+      count: null,
+      availability: NarrativeOverviewAvailability.unavailable,
+      sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
+      emptyStateMessage: 'Aucune scène liée.',
+      unavailableMessage:
+          'Plusieurs histoires globales existent ; sélection explicite requise.',
+    ),
+    linkedDialogues: const NarrativeMetricSummary(
+      id: 'main_story_linked_dialogues',
+      label: 'Dialogues liés',
+      count: null,
+      availability: NarrativeOverviewAvailability.unavailable,
+      sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
+      emptyStateMessage: 'Aucun dialogue lié.',
+      unavailableMessage:
+          'Plusieurs histoires globales existent ; sélection explicite requise.',
+    ),
+    openIssues: const NarrativeMetricSummary(
+      id: 'main_story_open_issues',
+      label: 'Problèmes ouverts',
+      count: null,
+      availability: NarrativeOverviewAvailability.unavailable,
+      sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
+      emptyStateMessage: 'Aucun problème ouvert.',
+      unavailableMessage:
+          'Plusieurs histoires globales existent ; sélection explicite requise.',
+    ),
+    canEdit: false,
+    availability: NarrativeOverviewAvailability.unavailable,
+    sourceStatus: NarrativeOverviewSourceStatus.ambiguous,
+    message: message,
+  );
+}
+
+MainStoryOverviewSummary _buildCanonicalMainStory({
+  required StorylineAsset storyline,
+  required ProjectManifest project,
+  required EditorialStatusSummary validationState,
+  required NarrativeProjectValidationReport? projectValidationReport,
+}) {
+  final chapters = storyline.chapters
+      .map(
+        (chapter) => NarrativeChapterOverviewSummary(
+          id: chapter.id,
+          label: chapter.title,
+          description: chapter.description ?? '',
+          order: chapter.order,
+          stepCount: chapter.steps.length,
+          status: _canonicalChapterStatus(
+            chapter,
+            storyline.status,
+            validationState,
+          ),
+          sourceStatus: NarrativeOverviewSourceStatus.explicit,
+        ),
+      )
+      .toList(growable: false)
+    ..sort((left, right) => left.order.compareTo(right.order));
+  final linkedScenarioIds = storyline.sceneLinks
+      .where((link) => link.state == StorylineSceneLinkState.linkedScenario)
+      .map((link) => link.sceneRef?.targetId)
+      .whereType<String>()
+      .toSet();
+  final linkedDialogueIds = _collectDialogueIdsFromScenarios(
+    project: project,
+    scenarioIds: linkedScenarioIds,
+  );
+  final scopedIssues = projectValidationReport?.diagnostics
+      .where((diagnostic) => diagnostic.storylineId == storyline.id)
+      .length;
+
+  return MainStoryOverviewSummary(
+    title: storyline.title,
+    description: storyline.description,
+    chapters: chapters,
+    linkedScenes: _metricWithCount(
+      id: 'main_story_linked_scenes',
+      label: 'Scènes liées',
+      count: linkedScenarioIds.length,
+      emptyStateMessage: 'Aucune scène liée à cette Storyline.',
+      unavailableMessage: 'Scènes liées indisponibles.',
+      sourceStatus: linkedScenarioIds.isEmpty
+          ? NarrativeOverviewSourceStatus.missing
+          : NarrativeOverviewSourceStatus.explicit,
+      sourceLabel: 'StorylineAsset.sceneLinks',
+    ),
+    linkedDialogues: _metricWithCount(
+      id: 'main_story_linked_dialogues',
+      label: 'Dialogues liés',
+      count: linkedDialogueIds.length,
+      emptyStateMessage: 'Aucun dialogue lié aux scènes de cette Storyline.',
+      unavailableMessage: 'Dialogues liés indisponibles.',
+      sourceStatus: linkedDialogueIds.isEmpty
+          ? NarrativeOverviewSourceStatus.missing
+          : NarrativeOverviewSourceStatus.explicit,
+      sourceLabel: 'StorylineAsset.sceneLinks + ScenarioAsset.bindings',
+    ),
+    openIssues: scopedIssues == null
+        ? const NarrativeMetricSummary(
+            id: 'main_story_open_issues',
+            label: 'Problèmes ouverts',
+            count: null,
+            availability: NarrativeOverviewAvailability.notEvaluated,
+            sourceStatus: NarrativeOverviewSourceStatus.missing,
+            emptyStateMessage: 'Aucun problème ouvert.',
+            unavailableMessage: 'Validator global non exécuté.',
+            sourceLabel: 'NarrativeProjectValidationReport non chargé',
+          )
+        : _metricWithCount(
+            id: 'main_story_open_issues',
+            label: 'Problèmes ouverts',
+            count: scopedIssues,
+            emptyStateMessage: 'Aucun problème ouvert pour cette Storyline.',
+            unavailableMessage: 'Problèmes ouverts indisponibles.',
+            sourceLabel: 'NarrativeProjectValidationReport.diagnostics',
           ),
     canEdit: true,
     availability: NarrativeOverviewAvailability.available,
     sourceStatus: NarrativeOverviewSourceStatus.explicit,
     message: '',
+  );
+}
+
+NarrativeChapterEditorialStatus _canonicalChapterStatus(
+  StorylineChapter chapter,
+  StorylineStatus storylineStatus,
+  EditorialStatusSummary validation,
+) {
+  if (chapter.steps.isEmpty ||
+      chapter.status == StorylineStatus.draft ||
+      storylineStatus == StorylineStatus.draft) {
+    return NarrativeChapterEditorialStatus.draft;
+  }
+  if (validation.notEvaluated) {
+    return NarrativeChapterEditorialStatus.notEvaluated;
+  }
+  if (validation.blocking > 0 || validation.toReview > 0) {
+    return NarrativeChapterEditorialStatus.inProgress;
+  }
+  return NarrativeChapterEditorialStatus.defined;
+}
+
+NarrativeOverviewScopeSummary _buildScope({
+  required ProjectManifest project,
+  required List<StorylineAsset> canonicalMainStories,
+  required List<ScenarioAsset> legacyGlobalStories,
+}) {
+  final sideQuestCount = project.storylines
+      .where((storyline) => storyline.type == StorylineType.sideQuest)
+      .length;
+  if (canonicalMainStories.length > 1) {
+    return NarrativeOverviewScopeSummary(
+      kind: NarrativeOverviewScopeKind.ambiguous,
+      sourceLabel: 'ProjectManifest.storylines[type=main]',
+      storylineCount: project.storylines.length,
+      sideQuestCount: sideQuestCount,
+    );
+  }
+  if (canonicalMainStories.length == 1) {
+    final storyline = canonicalMainStories.single;
+    return NarrativeOverviewScopeSummary(
+      kind: NarrativeOverviewScopeKind.canonicalStoryline,
+      sourceLabel: 'ProjectManifest.storylines',
+      storylineCount: project.storylines.length,
+      sideQuestCount: sideQuestCount,
+      storylineId: storyline.id,
+      title: storyline.title,
+    );
+  }
+  if (legacyGlobalStories.length > 1) {
+    return NarrativeOverviewScopeSummary(
+      kind: NarrativeOverviewScopeKind.ambiguous,
+      sourceLabel: 'ProjectManifest.scenarios[scope=globalStory] (legacy)',
+      storylineCount: project.storylines.length,
+      sideQuestCount: sideQuestCount,
+    );
+  }
+  if (legacyGlobalStories.length == 1) {
+    final legacy = legacyGlobalStories.single;
+    return NarrativeOverviewScopeSummary(
+      kind: NarrativeOverviewScopeKind.legacyScenario,
+      sourceLabel: 'ProjectManifest.scenarios[scope=globalStory] (legacy)',
+      storylineCount: project.storylines.length,
+      sideQuestCount: sideQuestCount,
+      storylineId: legacy.id,
+      title: legacy.name,
+    );
+  }
+  return NarrativeOverviewScopeSummary(
+    kind: NarrativeOverviewScopeKind.empty,
+    sourceLabel: 'ProjectManifest.storylines',
+    storylineCount: project.storylines.length,
+    sideQuestCount: sideQuestCount,
+  );
+}
+
+NarrativeOverviewResumeTarget _buildResumeTarget({
+  required NarrativeActivityJournal? activityJournal,
+  required NarrativeOverviewScopeSummary scope,
+}) {
+  if (activityJournal != null && activityJournal.entries.isNotEmpty) {
+    final latest = activityJournal.entries.first;
+    return NarrativeOverviewResumeTarget(
+      label: latest.label,
+      destination: latest.destination,
+      sourceLabel: 'Journal d’activité durable',
+      assetId: latest.assetId,
+    );
+  }
+  return NarrativeOverviewResumeTarget(
+    label: switch (scope.kind) {
+      NarrativeOverviewScopeKind.canonicalStoryline =>
+        'Reprendre ${scope.title ?? 'la Storyline principale'}',
+      NarrativeOverviewScopeKind.legacyScenario =>
+        'Convertir ${scope.title ?? 'l’histoire legacy'}',
+      NarrativeOverviewScopeKind.ambiguous => 'Choisir la Storyline principale',
+      NarrativeOverviewScopeKind.empty => 'Créer la Storyline principale',
+    },
+    destination: NarrativeActivityDestination.storylines,
+    sourceLabel: scope.sourceLabel,
+    assetId: scope.storylineId,
   );
 }
 
@@ -699,6 +1043,7 @@ NarrativeMetricSummary _buildChaptersMetric(
       emptyStateMessage: 'Aucun chapitre défini.',
       unavailableMessage:
           'Plusieurs histoires globales existent ; sélection explicite requise.',
+      sourceLabel: 'Storyline principale ambiguë',
     );
   }
   final count = mainStory.chapters.length;
@@ -714,6 +1059,7 @@ NarrativeMetricSummary _buildChaptersMetric(
         : mainStory.chapters.first.sourceStatus,
     emptyStateMessage: 'Aucun chapitre défini.',
     unavailableMessage: 'Chapitres indisponibles.',
+    sourceLabel: 'StorylineAsset.chapters / Global Story metadata (legacy)',
   );
 }
 
@@ -725,6 +1071,7 @@ NarrativeMetricSummary _metricWithCount({
   required String unavailableMessage,
   NarrativeOverviewSourceStatus sourceStatus =
       NarrativeOverviewSourceStatus.explicit,
+  String sourceLabel = 'ProjectManifest',
 }) {
   return NarrativeMetricSummary(
     id: id,
@@ -736,6 +1083,7 @@ NarrativeMetricSummary _metricWithCount({
     sourceStatus: sourceStatus,
     emptyStateMessage: emptyStateMessage,
     unavailableMessage: unavailableMessage,
+    sourceLabel: sourceLabel,
   );
 }
 
@@ -754,6 +1102,20 @@ int _countNarrativeConditions(
   List<StepStudioStep> steps,
 ) {
   var count = 0;
+  for (final storyline in project.storylines) {
+    for (final chapter in storyline.chapters) {
+      for (final step in chapter.steps) {
+        if (step.entryCondition != null) count++;
+        if (step.completionCondition != null) count++;
+      }
+    }
+    for (final relationship in storyline.relationships) {
+      if (relationship.condition != null) count++;
+      final availability = relationship.availability;
+      if (availability?.availabilityCondition != null) count++;
+      if (availability?.expiresCondition != null) count++;
+    }
+  }
   for (final step in steps) {
     if (_activationHasDependency(step.activation)) {
       count++;
@@ -830,11 +1192,13 @@ Set<String> _collectDialogueIdsFromScenarios({
 }
 
 EditorialStatusSummary _buildEditorialStatus({
+  required NarrativeProjectValidationReport? projectValidationReport,
   required NarrativeValidationReport? narrativeValidationReport,
   required List<NarrativeAuthoringDiagnosticView> authoringDiagnostics,
   required List<DialogueValidationIssue> dialogueIssues,
 }) {
-  final validationRan = narrativeValidationReport != null ||
+  final validationRan = projectValidationReport != null ||
+      narrativeValidationReport != null ||
       authoringDiagnostics.isNotEmpty ||
       dialogueIssues.isNotEmpty;
   if (!validationRan) {
@@ -850,7 +1214,10 @@ EditorialStatusSummary _buildEditorialStatus({
 
   var blocking = 0;
   var review = 0;
-  if (authoringDiagnostics.isNotEmpty) {
+  if (projectValidationReport != null) {
+    blocking = projectValidationReport.errorCount;
+    review = projectValidationReport.warningCount;
+  } else if (authoringDiagnostics.isNotEmpty) {
     for (final diagnostic in authoringDiagnostics) {
       switch (diagnostic.severity) {
         case NarrativeValidationSeverity.error:
@@ -871,14 +1238,16 @@ EditorialStatusSummary _buildEditorialStatus({
     }
   }
 
-  for (final issue in dialogueIssues) {
-    switch (issue.severity) {
-      case DialogueValidationSeverity.error:
-        blocking++;
-      case DialogueValidationSeverity.warning:
-        review++;
-      case DialogueValidationSeverity.info:
-        break;
+  if (projectValidationReport == null) {
+    for (final issue in dialogueIssues) {
+      switch (issue.severity) {
+        case DialogueValidationSeverity.error:
+          blocking++;
+        case DialogueValidationSeverity.warning:
+          review++;
+        case DialogueValidationSeverity.info:
+          break;
+      }
     }
   }
 
@@ -895,6 +1264,7 @@ EditorialStatusSummary _buildEditorialStatus({
     blocking: blocking,
     notEvaluated: false,
     diagnosticSourceSummary: _diagnosticSourceSummary(
+      projectValidationReport: projectValidationReport,
       narrativeValidationReport: narrativeValidationReport,
       authoringDiagnostics: authoringDiagnostics,
       dialogueIssues: dialogueIssues,
@@ -903,12 +1273,17 @@ EditorialStatusSummary _buildEditorialStatus({
 }
 
 String _diagnosticSourceSummary({
+  required NarrativeProjectValidationReport? projectValidationReport,
   required NarrativeValidationReport? narrativeValidationReport,
   required List<NarrativeAuthoringDiagnosticView> authoringDiagnostics,
   required List<DialogueValidationIssue> dialogueIssues,
 }) {
   final parts = <String>[];
-  if (authoringDiagnostics.isNotEmpty) {
+  if (projectValidationReport != null) {
+    parts.add(
+      '${projectValidationReport.diagnostics.length} diagnostic(s) Validator global',
+    );
+  } else if (authoringDiagnostics.isNotEmpty) {
     parts.add('${authoringDiagnostics.length} diagnostic(s) auteur');
   } else if (narrativeValidationReport != null) {
     parts.add('${narrativeValidationReport.count} diagnostic(s) narratif(s)');
@@ -961,15 +1336,15 @@ List<NarrativeModuleSummary> _buildModules(
   required List<String> factPreviewLabels,
 }) {
   return <NarrativeModuleSummary>[
-    const NarrativeModuleSummary(
+    NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.quests,
       label: 'Quêtes annexes',
-      description:
-          'Quêtes secondaires, objectifs facultatifs et contenus exploratoires.',
-      count: null,
-      availability: NarrativeOverviewAvailability.outOfScope,
-      emptyStateMessage: 'Les quêtes ne sont pas encore modélisées en V0.',
-      destination: null,
+      description: 'Storylines secondaires et contenus narratifs facultatifs.',
+      count: metrics.quests.count,
+      availability: metrics.quests.availability,
+      emptyStateMessage: metrics.quests.emptyStateMessage,
+      destination: 'storylines',
+      sourceLabel: metrics.quests.sourceLabel,
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.cutscenes,
@@ -981,6 +1356,7 @@ List<NarrativeModuleSummary> _buildModules(
       emptyStateMessage: metrics.cutscenes.emptyStateMessage,
       destination: 'cinematics_library',
       secondaryStats: <NarrativeMetricSummary>[cinematicBridges],
+      sourceLabel: metrics.cutscenes.sourceLabel,
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.dialogues,
@@ -991,6 +1367,7 @@ List<NarrativeModuleSummary> _buildModules(
       emptyStateMessage: metrics.dialogues.emptyStateMessage,
       destination: 'dialogue_studio',
       secondaryStats: <NarrativeMetricSummary>[metrics.dialogueLines],
+      sourceLabel: metrics.dialogues.sourceLabel,
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.conditions,
@@ -1000,6 +1377,7 @@ List<NarrativeModuleSummary> _buildModules(
       availability: metrics.conditions.availability,
       emptyStateMessage: metrics.conditions.emptyStateMessage,
       destination: 'step_studio',
+      sourceLabel: metrics.conditions.sourceLabel,
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.worldRules,
@@ -1013,6 +1391,7 @@ List<NarrativeModuleSummary> _buildModules(
         _worldRuleDiagnosticsMetric(worldRuleDiagnostics),
       ],
       previewLabels: worldRulePreviewLabels,
+      sourceLabel: metrics.worldRules.sourceLabel,
     ),
     NarrativeModuleSummary(
       id: NarrativeOverviewModuleIds.facts,
@@ -1023,6 +1402,7 @@ List<NarrativeModuleSummary> _buildModules(
       emptyStateMessage: metrics.facts.emptyStateMessage,
       destination: 'facts_manager',
       previewLabels: factPreviewLabels,
+      sourceLabel: metrics.facts.sourceLabel,
     ),
   ];
 }
@@ -1043,6 +1423,7 @@ NarrativeMetricSummary _worldRuleDiagnosticsMetric(
         : NarrativeOverviewSourceStatus.missing,
     emptyStateMessage: 'Aucun diagnostic World Rule.',
     unavailableMessage: 'Diagnostics World Rules indisponibles.',
+    sourceLabel: 'diagnoseWorldRules(ProjectManifest.worldRules)',
   );
 }
 
@@ -1089,6 +1470,7 @@ NarrativeStructureInspectorSummary _buildStructureInspector({
   required MainStoryOverviewSummary mainStory,
   required NarrativeOverviewMetrics metrics,
   required EditorialStatusSummary editorialStatus,
+  required NarrativeOverviewScopeSummary scope,
 }) {
   return NarrativeStructureInspectorSummary(
     projectName: project.name,
@@ -1106,6 +1488,7 @@ NarrativeStructureInspectorSummary _buildStructureInspector({
     editorialStatus: editorialStatus,
     descriptionAvailability: NarrativeOverviewAvailability.unavailable,
     tagsAvailability: NarrativeOverviewAvailability.needsModel,
+    scope: scope,
   );
 }
 
@@ -1128,6 +1511,7 @@ NarrativeOverviewFooterSummary _buildFooter(ProjectManifest project) {
       sourceStatus: NarrativeOverviewSourceStatus.explicit,
       emptyStateMessage: '',
       unavailableMessage: project.name,
+      sourceLabel: 'ProjectManifest.name',
     ),
     locale: const NarrativeMetricSummary(
       id: 'footer_locale',
@@ -1137,6 +1521,7 @@ NarrativeOverviewFooterSummary _buildFooter(ProjectManifest project) {
       sourceStatus: NarrativeOverviewSourceStatus.missing,
       emptyStateMessage: 'Locale non définie.',
       unavailableMessage: 'Locale non définie.',
+      sourceLabel: 'Project metadata (absente)',
     ),
     version: const NarrativeMetricSummary(
       id: 'footer_version',
@@ -1146,6 +1531,7 @@ NarrativeOverviewFooterSummary _buildFooter(ProjectManifest project) {
       sourceStatus: NarrativeOverviewSourceStatus.missing,
       emptyStateMessage: 'Version non définie.',
       unavailableMessage: 'Version non définie.',
+      sourceLabel: 'Project metadata (absente)',
     ),
   );
 }

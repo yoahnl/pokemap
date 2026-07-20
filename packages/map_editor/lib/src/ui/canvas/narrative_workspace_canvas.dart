@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../app/providers/core_providers.dart';
+import '../../application/services/narrative_activity_journal.dart';
 import '../../application/models/narrative_authoring_transaction.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -531,6 +533,154 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       editorNotifier.selectWorldRulesWorkspace();
     }
 
+    AsyncValue<NarrativeActivityJournal>? overviewActivityAsync;
+    AsyncValue<NarrativeProjectValidationReport>? overviewValidatorAsync;
+    final overviewRootPath = editor.projectRootPath?.trim();
+    if (editor.workspaceMode == EditorWorkspaceMode.narrativeOverview &&
+        overviewRootPath != null &&
+        overviewRootPath.isNotEmpty) {
+      overviewActivityAsync = ref.watch(
+        narrativeActivityJournalProvider(overviewRootPath),
+      );
+      overviewValidatorAsync = ref.watch(
+        narrativeValidatorReportProvider(
+          NarrativeValidatorSnapshotRequest.fromProject(
+            projectRootPath: overviewRootPath,
+            project: editor.project!,
+            activeMap: editor.activeMap,
+          ),
+        ),
+      );
+    }
+
+    void openOverviewValidator() {
+      ref
+          .read(narrativeStudioNavigationControllerProvider.notifier)
+          .replace(NarrativeStudioRouteLocation.validator());
+      editorNotifier.selectNarrativeValidatorWorkspace();
+    }
+
+    void openOverviewDiagnostic(NarrativeOverviewDiagnosticSummary item) {
+      ref.read(narrativeStudioNavigationControllerProvider.notifier).replace(
+            NarrativeStudioRouteLocation.validator(
+              selection: NarrativeStudioAssetSelection(
+                kind: NarrativeStudioAssetKind.diagnostic,
+                assetId: item.diagnostic.stableKey,
+                sourceContext: item.diagnostic.path,
+              ),
+            ),
+          );
+      editorNotifier.selectNarrativeValidatorWorkspace();
+    }
+
+    void openResumeTarget(NarrativeOverviewResumeTarget target) {
+      final assetId = target.assetId?.trim();
+      final navigation =
+          ref.read(narrativeStudioNavigationControllerProvider.notifier);
+      switch (target.destination) {
+        case NarrativeActivityDestination.overview:
+          editorNotifier.selectNarrativeOverviewWorkspace();
+          return;
+        case NarrativeActivityDestination.storylines:
+          navigation.replace(
+            NarrativeStudioRouteLocation.storylines(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.storyline,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectGlobalStoryWorkspace();
+          return;
+        case NarrativeActivityDestination.scenes:
+          navigation.replace(
+            NarrativeStudioRouteLocation.scenes(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.scene,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectScenesWorkspace();
+          return;
+        case NarrativeActivityDestination.events:
+          navigation.replace(
+            NarrativeStudioRouteLocation.events(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.event,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectEventsWorkspace();
+          return;
+        case NarrativeActivityDestination.cinematics:
+          navigation.replace(
+            NarrativeStudioRouteLocation.cinematics(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.cinematic,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectCutsceneWorkspace();
+          return;
+        case NarrativeActivityDestination.dialogues:
+          navigation.replace(
+            NarrativeStudioRouteLocation.dialogues(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.dialogue,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          if (assetId != null && assetId.isNotEmpty) {
+            editorNotifier.selectProjectDialogue(assetId);
+          }
+          editorNotifier.selectDialogueWorkspace();
+          return;
+        case NarrativeActivityDestination.facts:
+          navigation.replace(
+            NarrativeStudioRouteLocation.facts(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.fact,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectFactsWorkspace();
+          return;
+        case NarrativeActivityDestination.worldRules:
+          navigation.replace(
+            NarrativeStudioRouteLocation.worldRules(
+              selection: assetId == null || assetId.isEmpty
+                  ? null
+                  : NarrativeStudioAssetSelection(
+                      kind: NarrativeStudioAssetKind.worldRule,
+                      assetId: assetId,
+                    ),
+            ),
+          );
+          editorNotifier.selectWorldRulesWorkspace();
+          return;
+        case NarrativeActivityDestination.validator:
+          openOverviewValidator();
+          return;
+      }
+    }
+
     NarrativeStudioReturnExpectation sceneReturnExpectation({
       required String sceneId,
       required String nodeId,
@@ -619,6 +769,27 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
       EditorWorkspaceMode.narrativeOverview => NarrativeOverviewWorkspace(
           readModel: buildNarrativeOverviewReadModel(
             project: editor.project!,
+            activityJournal: overviewActivityAsync?.asData?.value,
+            activityJournalAvailability:
+                overviewActivityAsync == null || overviewActivityAsync.hasError
+                    ? NarrativeOverviewAvailability.unavailable
+                    : NarrativeOverviewAvailability.notEvaluated,
+            activityJournalStatusMessage: overviewActivityAsync == null
+                ? 'Enregistrez le projet pour activer le journal durable.'
+                : overviewActivityAsync.hasError
+                    ? 'Journal d’activité indisponible : '
+                        '${overviewActivityAsync.error}'
+                    : 'Chargement du journal d’activité…',
+            projectValidationReport: overviewValidatorAsync?.asData?.value,
+            validatorAvailability: overviewValidatorAsync == null ||
+                    overviewValidatorAsync.hasError
+                ? NarrativeOverviewAvailability.unavailable
+                : NarrativeOverviewAvailability.notEvaluated,
+            validatorStatusMessage: overviewValidatorAsync == null
+                ? 'Enregistrez le projet pour lancer le Validator global.'
+                : overviewValidatorAsync.hasError
+                    ? 'Validator indisponible : ${overviewValidatorAsync.error}'
+                    : 'Validation globale en cours…',
           ),
           onOpenStorylines: openGlobalStory,
           onOpenScenes: openScenes,
@@ -626,6 +797,17 @@ class NarrativeWorkspaceCanvas extends ConsumerWidget {
           onOpenDialogues: openDialogue,
           onOpenFacts: openFacts,
           onOpenWorldRules: openWorldRules,
+          onResumeEditing: openResumeTarget,
+          onOpenActivity: (entry) => openResumeTarget(
+            NarrativeOverviewResumeTarget(
+              label: entry.label,
+              destination: entry.destination,
+              sourceLabel: 'Journal d’activité durable',
+              assetId: entry.assetId,
+            ),
+          ),
+          onOpenDiagnostic: openOverviewDiagnostic,
+          onOpenValidator: openOverviewValidator,
         ),
       EditorWorkspaceMode.globalStory => StorylinesWorkspace(
           projection: projection,

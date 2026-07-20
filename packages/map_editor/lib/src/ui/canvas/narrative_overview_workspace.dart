@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../application/services/narrative_activity_journal.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/narrative/application/overview/narrative_overview_read_model.dart';
 import '../../theme/theme.dart';
@@ -21,6 +22,10 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
     this.onOpenDialogues,
     this.onOpenFacts,
     this.onOpenWorldRules,
+    this.onResumeEditing,
+    this.onOpenActivity,
+    this.onOpenDiagnostic,
+    this.onOpenValidator,
   });
 
   final NarrativeOverviewReadModel? readModel;
@@ -30,6 +35,10 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
   final VoidCallback? onOpenDialogues;
   final VoidCallback? onOpenFacts;
   final VoidCallback? onOpenWorldRules;
+  final ValueChanged<NarrativeOverviewResumeTarget>? onResumeEditing;
+  final ValueChanged<NarrativeActivityEntry>? onOpenActivity;
+  final ValueChanged<NarrativeOverviewDiagnosticSummary>? onOpenDiagnostic;
+  final VoidCallback? onOpenValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +85,10 @@ class NarrativeOverviewWorkspace extends StatelessWidget {
                   onOpenDialogues: onOpenDialogues,
                   onOpenFacts: onOpenFacts,
                   onOpenWorldRules: onOpenWorldRules,
+                  onResumeEditing: onResumeEditing,
+                  onOpenActivity: onOpenActivity,
+                  onOpenDiagnostic: onOpenDiagnostic,
+                  onOpenValidator: onOpenValidator,
                 ),
               ],
             ),
@@ -92,6 +105,10 @@ class _OverviewResponsiveBody extends StatelessWidget {
     required this.onOpenDialogues,
     required this.onOpenFacts,
     required this.onOpenWorldRules,
+    required this.onResumeEditing,
+    required this.onOpenActivity,
+    required this.onOpenDiagnostic,
+    required this.onOpenValidator,
   });
 
   final NarrativeOverviewReadModel readModel;
@@ -101,6 +118,10 @@ class _OverviewResponsiveBody extends StatelessWidget {
   final VoidCallback? onOpenDialogues;
   final VoidCallback? onOpenFacts;
   final VoidCallback? onOpenWorldRules;
+  final ValueChanged<NarrativeOverviewResumeTarget>? onResumeEditing;
+  final ValueChanged<NarrativeActivityEntry>? onOpenActivity;
+  final ValueChanged<NarrativeOverviewDiagnosticSummary>? onOpenDiagnostic;
+  final VoidCallback? onOpenValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -114,6 +135,10 @@ class _OverviewResponsiveBody extends StatelessWidget {
           onOpenDialogues: onOpenDialogues,
           onOpenFacts: onOpenFacts,
           onOpenWorldRules: onOpenWorldRules,
+          onResumeEditing: onResumeEditing,
+          onOpenActivity: onOpenActivity,
+          onOpenDiagnostic: onOpenDiagnostic,
+          onOpenValidator: onOpenValidator,
         );
         final structureInspector = NarrativeOverviewStructureInspector(
           inspector: readModel.structureInspector,
@@ -159,6 +184,10 @@ class _OverviewMainColumn extends StatelessWidget {
     required this.onOpenDialogues,
     required this.onOpenFacts,
     required this.onOpenWorldRules,
+    required this.onResumeEditing,
+    required this.onOpenActivity,
+    required this.onOpenDiagnostic,
+    required this.onOpenValidator,
   });
 
   final NarrativeOverviewReadModel readModel;
@@ -168,6 +197,10 @@ class _OverviewMainColumn extends StatelessWidget {
   final VoidCallback? onOpenDialogues;
   final VoidCallback? onOpenFacts;
   final VoidCallback? onOpenWorldRules;
+  final ValueChanged<NarrativeOverviewResumeTarget>? onResumeEditing;
+  final ValueChanged<NarrativeActivityEntry>? onOpenActivity;
+  final ValueChanged<NarrativeOverviewDiagnosticSummary>? onOpenDiagnostic;
+  final VoidCallback? onOpenValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -186,6 +219,12 @@ class _OverviewMainColumn extends StatelessWidget {
               : _projectHealthLabel(readModel.projectHealth.healthKind),
         ),
         const SizedBox(height: 8),
+        _OverviewResumeCard(
+          scope: readModel.scope,
+          target: readModel.resumeTarget,
+          onResumeEditing: onResumeEditing,
+        ),
+        const SizedBox(height: 8),
         _KpiCardsSection(
           metrics: [
             readModel.metrics.chapters,
@@ -199,6 +238,7 @@ class _OverviewMainColumn extends StatelessWidget {
           onOpenScenes: onOpenScenes,
           onOpenCutscenes: onOpenCutscenes,
           onOpenDialogues: onOpenDialogues,
+          onOpenValidator: onOpenValidator,
         ),
         const SizedBox(height: 8),
         _MainStoryCard(
@@ -212,13 +252,16 @@ class _OverviewMainColumn extends StatelessWidget {
           onOpenDialogues: onOpenDialogues,
           onOpenFacts: onOpenFacts,
           onOpenWorldRules: onOpenWorldRules,
+          onOpenStorylines: onOpenStorylines,
         ),
         const SizedBox(height: 8),
         NarrativeOverviewUnavailableDataSection(
-          facts: readModel.metrics.facts,
           recentActivity: readModel.recentActivity,
           notifications: readModel.notifications,
-          footer: readModel.footer,
+          activities: readModel.recentActivities,
+          diagnostics: readModel.diagnostics,
+          onOpenActivity: onOpenActivity,
+          onOpenDiagnostic: onOpenDiagnostic,
         ),
         const SizedBox(height: 8),
         NarrativeOverviewFooter(
@@ -229,6 +272,99 @@ class _OverviewMainColumn extends StatelessWidget {
     );
   }
 }
+
+class _OverviewResumeCard extends StatelessWidget {
+  const _OverviewResumeCard({
+    required this.scope,
+    required this.target,
+    required this.onResumeEditing,
+  });
+
+  final NarrativeOverviewScopeSummary scope;
+  final NarrativeOverviewResumeTarget? target;
+  final ValueChanged<NarrativeOverviewResumeTarget>? onResumeEditing;
+
+  @override
+  Widget build(BuildContext context) {
+    final resumeTarget = target;
+    return PokeMapCard(
+      key: const ValueKey('narrative-overview-resume-card'),
+      borderRadius: 14,
+      padding: const EdgeInsets.all(12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Reprendre le travail',
+                style: TextStyle(
+                  color: context.pokeMapColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                resumeTarget?.label ?? 'Aucune cible de reprise disponible.',
+                style: TextStyle(
+                  color: context.pokeMapColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Scope : ${_scopeLabel(scope.kind)} · '
+                'Source : ${resumeTarget?.sourceLabel ?? scope.sourceLabel}',
+                key: const ValueKey('narrative-overview-resume-source'),
+                style: TextStyle(
+                  color: context.pokeMapColors.textMuted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          );
+          final action = PokeMapButton(
+            key: const ValueKey('narrative-overview-resume-action'),
+            onPressed: resumeTarget == null || onResumeEditing == null
+                ? null
+                : () => onResumeEditing!(resumeTarget),
+            size: PokeMapButtonSize.compact,
+            leading: const Icon(CupertinoIcons.arrow_right_circle_fill),
+            child: const Text('Reprendre l’édition'),
+          );
+          if (constraints.maxWidth < 620) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [copy, const SizedBox(height: 10), action],
+            );
+          }
+          return Row(
+            children: [
+              const PokeMapIconTile(
+                icon: CupertinoIcons.clock_fill,
+                tone: PokeMapTone.brand,
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: copy),
+              const SizedBox(width: 12),
+              action,
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+String _scopeLabel(NarrativeOverviewScopeKind kind) => switch (kind) {
+      NarrativeOverviewScopeKind.canonicalStoryline => 'Storyline canonique',
+      NarrativeOverviewScopeKind.legacyScenario => 'Scenario legacy',
+      NarrativeOverviewScopeKind.empty => 'Projet vide',
+      NarrativeOverviewScopeKind.ambiguous => 'Sélection requise',
+    };
 
 class _ProjectSummaryStrip extends StatelessWidget {
   const _ProjectSummaryStrip({
@@ -307,6 +443,7 @@ class _ModuleCardsSection extends StatelessWidget {
     required this.onOpenDialogues,
     required this.onOpenFacts,
     required this.onOpenWorldRules,
+    required this.onOpenStorylines,
   });
 
   final List<NarrativeModuleSummary> modules;
@@ -314,6 +451,7 @@ class _ModuleCardsSection extends StatelessWidget {
   final VoidCallback? onOpenDialogues;
   final VoidCallback? onOpenFacts;
   final VoidCallback? onOpenWorldRules;
+  final VoidCallback? onOpenStorylines;
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +509,9 @@ class _ModuleCardsSection extends StatelessWidget {
 
   VoidCallback? _moduleCallback(String moduleId) {
     return switch (moduleId) {
+      NarrativeOverviewModuleIds.quests ||
+      NarrativeOverviewModuleIds.conditions =>
+        onOpenStorylines,
       NarrativeOverviewModuleIds.cutscenes => onOpenCutscenes,
       NarrativeOverviewModuleIds.dialogues => onOpenDialogues,
       NarrativeOverviewModuleIds.facts => onOpenFacts,
@@ -451,6 +592,17 @@ class _ModuleCardState extends State<_ModuleCard> {
               fontSize: 12,
               fontWeight: FontWeight.w600,
               height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            'Source : ${widget.module.sourceLabel}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (widget.module.previewLabels.isNotEmpty) ...[
@@ -562,32 +714,49 @@ class _ModuleSecondaryStat extends StatelessWidget {
         border: Border.all(color: accent.withValues(alpha: 0.2)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      child: Row(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(
-            child: Text(
-              stat.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: context.pokeMapColors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  stat.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.pokeMapColors.textMuted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(
+                  _metricCardValue(stat),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              _metricCardValue(stat),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
+          const SizedBox(height: 2),
+          Text(
+            'Source : ${stat.sourceLabel}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -862,6 +1031,17 @@ class _MainStoryMetric extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(height: 2),
+          Text(
+            'Source : ${metric.sourceLabel}',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 9.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1055,6 +1235,7 @@ class _KpiCardsSection extends StatelessWidget {
     required this.onOpenScenes,
     required this.onOpenCutscenes,
     required this.onOpenDialogues,
+    required this.onOpenValidator,
   });
 
   final List<NarrativeMetricSummary> metrics;
@@ -1062,6 +1243,7 @@ class _KpiCardsSection extends StatelessWidget {
   final VoidCallback? onOpenScenes;
   final VoidCallback? onOpenCutscenes;
   final VoidCallback? onOpenDialogues;
+  final VoidCallback? onOpenValidator;
 
   @override
   Widget build(BuildContext context) {
@@ -1103,9 +1285,11 @@ class _KpiCardsSection extends StatelessWidget {
   VoidCallback? _metricCallback(String metricId) {
     return switch (metricId) {
       'chapters' => onOpenStorylines,
+      'quests' => onOpenStorylines,
       'scenes' => onOpenScenes,
       'cutscenes' => onOpenCutscenes,
       'dialogues' => onOpenDialogues,
+      'open_issues' => onOpenValidator,
       _ => null,
     };
   }
@@ -1126,12 +1310,13 @@ class _KpiCard extends StatelessWidget {
     final textScale =
         MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0).toDouble();
     return SizedBox(
-      height: 130 + ((textScale - 1) * 80),
+      height: 148 + ((textScale - 1) * 88),
       child: PokeMapMetricCard(
         key: ValueKey('narrative-overview-kpi-${metric.id}'),
         title: metric.label,
         value: _metricCardValue(metric),
         subtitle: _metricSupportLabel(metric),
+        source: metric.sourceLabel,
         icon: _metricIcon(metric.id),
         tone: tone,
         onTap: onTap,

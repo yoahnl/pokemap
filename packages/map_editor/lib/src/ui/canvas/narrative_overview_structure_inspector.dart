@@ -56,6 +56,8 @@ class NarrativeOverviewStructureInspector extends StatelessWidget {
             accent: accent,
           ),
           const SizedBox(height: 9),
+          _ScopeBlock(scope: inspector.scope),
+          const SizedBox(height: 9),
           _InspectorDivider(),
           const SizedBox(height: 9),
           _InspectorCounters(counters: inspector.counters),
@@ -159,6 +161,62 @@ class _InspectorCounters extends StatelessWidget {
   }
 }
 
+class _ScopeBlock extends StatelessWidget {
+  const _ScopeBlock({required this.scope});
+
+  final NarrativeOverviewScopeSummary scope;
+
+  @override
+  Widget build(BuildContext context) {
+    return PokeMapCard(
+      key: const ValueKey('narrative-overview-structure-scope'),
+      borderRadius: 12,
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'SCOPE STORYLINE',
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            scope.title ?? _scopeLabel(scope.kind),
+            style: TextStyle(
+              color: context.pokeMapColors.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            '${_scopeLabel(scope.kind)} · ${scope.storylineCount} Storyline(s) · '
+            '${scope.sideQuestCount} quête(s) annexe(s)',
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Source : ${scope.sourceLabel}',
+            style: TextStyle(
+              color: context.pokeMapColors.textMuted,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StructureCounterRow extends StatelessWidget {
   const _StructureCounterRow({required this.counter});
 
@@ -175,15 +233,30 @@ class _StructureCounterRow extends StatelessWidget {
           Icon(_counterIcon(counter.id), color: accent, size: 14),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              counter.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: context.pokeMapColors.textMuted,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  counter.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.pokeMapColors.textMuted,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Source : ${counter.sourceLabel}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.pokeMapColors.textMuted,
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),
@@ -590,6 +663,13 @@ String _metricValue(NarrativeMetricSummary metric) {
     NarrativeOverviewAvailability.needsModel => 'Nécessite un modèle',
   };
 }
+
+String _scopeLabel(NarrativeOverviewScopeKind kind) => switch (kind) {
+      NarrativeOverviewScopeKind.canonicalStoryline => 'Storyline canonique',
+      NarrativeOverviewScopeKind.legacyScenario => 'Scenario legacy',
+      NarrativeOverviewScopeKind.empty => 'Aucune Storyline principale',
+      NarrativeOverviewScopeKind.ambiguous => 'Sélection requise',
+    };
 
 String _validationValue(EditorialStatusSummary editorialStatus) {
   if (editorialStatus.notEvaluated) {

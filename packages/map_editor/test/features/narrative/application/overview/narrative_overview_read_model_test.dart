@@ -5,6 +5,7 @@ import 'package:map_editor/src/features/narrative/application/cutscene_studio/cu
 import 'package:map_editor/src/features/narrative/application/global_story_studio_authoring.dart';
 import 'package:map_editor/src/features/narrative/application/overview/narrative_overview_read_model.dart';
 import 'package:map_editor/src/features/narrative/application/step_studio_authoring.dart';
+import 'package:map_editor/src/application/services/narrative_activity_journal.dart';
 
 void main() {
   group('buildNarrativeOverviewReadModel', () {
@@ -27,9 +28,9 @@ void main() {
         model.metrics.dialogueLines.availability,
         NarrativeOverviewAvailability.unavailable,
       );
-      expect(model.metrics.quests.count, isNull);
+      expect(model.metrics.quests.count, 0);
       expect(model.metrics.quests.availability,
-          NarrativeOverviewAvailability.outOfScope);
+          NarrativeOverviewAvailability.empty);
       expect(model.metrics.facts.count, 0);
       expect(model.metrics.facts.availability,
           NarrativeOverviewAvailability.empty);
@@ -45,9 +46,9 @@ void main() {
       expect(model.projectHealth.healthKind,
           NarrativeProjectHealthKind.notEvaluated);
       expect(model.recentActivity.availability,
-          NarrativeOverviewAvailability.outOfScope);
+          NarrativeOverviewAvailability.notEvaluated);
       expect(model.notifications.availability,
-          NarrativeOverviewAvailability.outOfScope);
+          NarrativeOverviewAvailability.notEvaluated);
     });
 
     test('projects one explicit global story with authoring metrics', () {
@@ -329,6 +330,111 @@ void main() {
       expect(realCounts.contains(24), isFalse);
       expect(realCounts.contains(12), isFalse);
     });
+
+    test('projects the canonical main Storyline before its legacy source', () {
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(
+          storylines: <StorylineAsset>[
+            _canonicalStoryline(),
+            StorylineAsset(
+              id: 'side-quest',
+              type: StorylineType.sideQuest,
+              title: 'Une quête annexe',
+            ),
+          ],
+          scenarios: <ScenarioAsset>[
+            _globalStoryWithDocuments(name: 'Legacy title'),
+          ],
+        ),
+      );
+
+      expect(model.scope.kind, NarrativeOverviewScopeKind.canonicalStoryline);
+      expect(model.scope.storylineId, 'story-main');
+      expect(model.mainStory.title, 'Canonical title');
+      expect(model.metrics.chapters.count, 1);
+      expect(model.metrics.quests.count, 1);
+      expect(model.metrics.quests.availability,
+          NarrativeOverviewAvailability.available);
+      expect(model.resumeTarget?.assetId, 'story-main');
+      expect(
+        model.resumeTarget?.destination,
+        NarrativeActivityDestination.storylines,
+      );
+    });
+
+    test('makes every overview counter traceable to a concrete source', () {
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(storylines: <StorylineAsset>[_canonicalStoryline()]),
+      );
+
+      for (final metric in model.metrics.all) {
+        expect(metric.sourceLabel.trim(), isNotEmpty, reason: metric.id);
+      }
+    });
+
+    test('does not fabricate activity when the durable journal is empty', () {
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(),
+        activityJournal: const NarrativeActivityJournal.empty(),
+      );
+
+      expect(model.recentActivities, isEmpty);
+      expect(model.recentActivity.availability,
+          NarrativeOverviewAvailability.empty);
+      expect(model.recentActivity.message, contains('Aucune activité'));
+    });
+
+    test('resumes from the latest durable activity', () {
+      final journal = const NarrativeActivityJournal.empty().append(
+        NarrativeActivityEntry(
+          id: 'latest-edit',
+          occurredAtUtc: DateTime.utc(2026, 7, 20, 18),
+          kind: NarrativeActivityKind.edited,
+          label: 'Renommer le chapitre',
+          destination: NarrativeActivityDestination.storylines,
+          assetId: 'story-main',
+        ),
+      );
+
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(storylines: <StorylineAsset>[_canonicalStoryline()]),
+        activityJournal: journal,
+      );
+
+      expect(model.recentActivities, hasLength(1));
+      expect(model.resumeTarget?.label, 'Renommer le chapitre');
+      expect(model.resumeTarget?.sourceLabel, 'Journal d’activité durable');
+    });
+
+    test('exposes blocking Validator diagnostics without a false quick fix',
+        () {
+      const diagnostic = NarrativeProjectDiagnostic(
+        code: 'storyline.broken_scene',
+        severity: NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.storyline,
+        message: 'La scène ciblée est introuvable.',
+        path: 'storylines.story-main.sceneLinks.scene-1',
+        destination: NarrativeProjectDiagnosticDestination.storyline,
+        storylineId: 'story-main',
+        chapterId: 'chapter-1',
+      );
+      final model = buildNarrativeOverviewReadModel(
+        project: _project(storylines: <StorylineAsset>[_canonicalStoryline()]),
+        projectValidationReport: NarrativeProjectValidationReport(
+          diagnostics: const <NarrativeProjectDiagnostic>[diagnostic],
+          mapEventViews: const <NarrativeMapEventsView>[],
+        ),
+      );
+
+      expect(model.metrics.openIssues.count, 1);
+      expect(model.editorialStatus.validationState,
+          NarrativeEditorialValidationState.blocking);
+      expect(model.diagnostics, hasLength(1));
+      expect(model.diagnostics.single.diagnostic, same(diagnostic));
+      expect(model.diagnostics.single.canQuickFix, isFalse);
+      expect(model.notifications.availability,
+          NarrativeOverviewAvailability.available);
+    });
   });
 }
 
@@ -338,6 +444,7 @@ ProjectManifest _project({
   List<SceneAsset> scenes = const <SceneAsset>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   List<CinematicAsset> cinematics = const <CinematicAsset>[],
+  List<StorylineAsset> storylines = const <StorylineAsset>[],
 }) {
   return ProjectManifest(
     surfaceCatalog: const ProjectSurfaceCatalog.empty(),
@@ -348,8 +455,31 @@ ProjectManifest _project({
     scenes: scenes,
     dialogues: dialogues,
     cinematics: cinematics,
+    storylines: storylines,
   );
 }
+
+StorylineAsset _canonicalStoryline() => StorylineAsset(
+      id: 'story-main',
+      type: StorylineType.main,
+      status: StorylineStatus.active,
+      title: 'Canonical title',
+      description: 'Canonical description.',
+      chapters: <StorylineChapter>[
+        StorylineChapter(
+          id: 'chapter-1',
+          title: 'Canonical chapter',
+          order: 0,
+          steps: <StorylineStep>[
+            StorylineStep(
+              id: 'step-1',
+              title: 'Canonical step',
+              order: 0,
+            ),
+          ],
+        ),
+      ],
+    );
 
 SceneAsset _scene(String id) => SceneAsset(
       id: id,

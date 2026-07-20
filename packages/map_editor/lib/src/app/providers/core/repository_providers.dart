@@ -9,12 +9,14 @@ import '../../../application/ports/narrative_event_spatial_source_creation_gatew
 import '../../../application/ports/narrative_authoring_persistence_gateway.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/narrative_document_session.dart';
+import '../../../application/services/narrative_activity_journal.dart';
 import '../../../application/use_cases/execute_narrative_authoring_transaction.dart';
 import '../../../domain/repositories/repositories.dart';
 import '../../../infrastructure/filesystem/project_filesystem.dart';
 import '../../../infrastructure/repositories/file_repositories.dart';
 import '../../../infrastructure/repositories/file_narrative_document_recovery_store.dart';
 import '../../../infrastructure/repositories/narrative_event_spatial_link_journal_repository.dart';
+import '../../../infrastructure/repositories/narrative_activity_journal_repository.dart';
 import '../../../infrastructure/repositories/narrative_event_migration_persistence_repository.dart';
 import '../../../infrastructure/repositories/project_manifest_narrative_document_gateway.dart';
 
@@ -64,7 +66,7 @@ final narrativeProjectDocumentSessionFactoryProvider =
       'recovery',
       'narrative-cinematics.json',
     );
-    return NarrativeDocumentSession<ProjectManifest>(
+    final session = NarrativeDocumentSession<ProjectManifest>(
       documentId: 'cinematics',
       initialDocument: initialDocument,
       gateway: ProjectManifestNarrativeDocumentGateway(
@@ -77,7 +79,29 @@ final narrativeProjectDocumentSessionFactoryProvider =
         decodeDocument: _decodeRecoveryProjectManifest,
       ),
     );
+    final projectRootPath = p.dirname(projectPath);
+    final activityRepository = NarrativeActivityJournalRepository(
+      projectRootPath: projectRootPath,
+    );
+    NarrativeActivitySessionRecorder<ProjectManifest>(
+      session: session,
+      store: activityRepository,
+      destination: NarrativeActivityDestination.cinematics,
+      onPersisted: () =>
+          ref.invalidate(narrativeActivityJournalProvider(projectRootPath)),
+      // Activity telemetry must never make a crash-safe authoring edit fail.
+      // The Overview exposes repository read failures separately.
+      onError: (_) {},
+    );
+    return session;
   };
+});
+
+final narrativeActivityJournalProvider = FutureProvider.autoDispose
+    .family<NarrativeActivityJournal, String>((ref, projectRootPath) {
+  return NarrativeActivityJournalRepository(
+    projectRootPath: projectRootPath,
+  ).load();
 });
 
 final narrativeEventSpatialSourceCreationGatewayProvider =

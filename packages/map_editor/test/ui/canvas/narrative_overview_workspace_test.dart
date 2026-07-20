@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/services/narrative_activity_journal.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/narrative/application/cutscene_studio/cutscene_studio_models.dart';
@@ -72,7 +73,7 @@ void main() {
         'Chapitres',
         'Scènes',
         'Cinématiques',
-        'Quêtes',
+        'Quêtes annexes',
         'Dialogues',
         'Problèmes ouverts',
       ]) {
@@ -102,7 +103,7 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.text('Données à venir'),
+        find.text('À traiter et activité'),
         findsOneWidget,
       );
     },
@@ -181,8 +182,8 @@ void main() {
 
       expect(_textInKpi('dialogues', '0'), findsOneWidget);
       expect(_textInKpi('chapters', '0'), findsOneWidget);
-      expect(_textInKpi('quests', 'Hors scope V0'), findsOneWidget);
-      expect(_textInKpi('quests', 'Pas de modèle Quest'), findsOneWidget);
+      expect(_textInKpi('quests', '0'), findsOneWidget);
+      expect(_textInKpi('quests', 'Disponible'), findsOneWidget);
       expect(_textInKpi('open_issues', 'Non évalué'), findsOneWidget);
       expect(
         _textInKpi('open_issues', 'Validation non lancée'),
@@ -199,15 +200,11 @@ void main() {
       );
       await tester.pump();
       expect(
-        _textInEmptyState('facts', 'Vide'),
+        _textInEmptyState('recent_activity', 'Non évalué'),
         findsOneWidget,
       );
       expect(
-        _textInEmptyState('recent_activity', 'Hors scope V0'),
-        findsOneWidget,
-      );
-      expect(
-        _textInEmptyState('notifications', 'Hors scope V0'),
+        _textInEmptyState('notifications', 'Non évalué'),
         findsOneWidget,
       );
 
@@ -237,7 +234,7 @@ void main() {
 
       for (final entry in const <(String, String)>[
         ('open_issues', 'Problèmes ouverts'),
-        ('quests', 'Hors scope V0'),
+        ('quests', '0'),
       ]) {
         final paragraph = tester.renderObject<RenderParagraph>(
           _textInKpi(entry.$1, entry.$2),
@@ -264,20 +261,23 @@ void main() {
         tester,
         _storyOverviewReadModel(),
         width: 1040,
-        height: 900,
+        height: 1500,
         onOpenStorylines: () => openedDestinations.add('storylines'),
         onOpenScenes: () => openedDestinations.add('scenes'),
         onOpenCutscenes: () => openedDestinations.add('cutscenes'),
         onOpenDialogues: () => openedDestinations.add('dialogues'),
         onOpenFacts: () => openedDestinations.add('facts'),
         onOpenWorldRules: () => openedDestinations.add('world_rules'),
+        onOpenValidator: () => openedDestinations.add('validator'),
       );
 
       for (final metricId in <String>[
         'chapters',
         'scenes',
         'cutscenes',
+        'quests',
         'dialogues',
+        'open_issues',
       ]) {
         final shortcut = find.byKey(
           ValueKey('narrative-overview-kpi-$metricId'),
@@ -288,6 +288,8 @@ void main() {
       }
 
       for (final moduleId in <String>[
+        NarrativeOverviewModuleIds.quests,
+        NarrativeOverviewModuleIds.conditions,
         NarrativeOverviewModuleIds.facts,
         NarrativeOverviewModuleIds.worldRules,
       ]) {
@@ -311,7 +313,11 @@ void main() {
           'storylines',
           'scenes',
           'cutscenes',
+          'storylines',
           'dialogues',
+          'validator',
+          'storylines',
+          'storylines',
           'facts',
           'world_rules',
         ],
@@ -341,37 +347,21 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Données à venir'), findsOneWidget);
-      expect(_textInEmptyState('facts', 'Facts'), findsOneWidget);
-      expect(_textInEmptyState('facts', 'Vide'), findsOneWidget);
-      expect(
-        _textInEmptyState(
-          'facts',
-          'Aucun Fact authoré.',
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('À traiter et activité'), findsOneWidget);
       expect(
         _textInEmptyState('recent_activity', 'Activité récente'),
         findsOneWidget,
       );
       expect(
-        _textInEmptyState('recent_activity', 'Hors scope V0'),
+        _textInEmptyState('recent_activity', 'Non évalué'),
         findsOneWidget,
       );
       expect(
-        _textInEmptyState('notifications', 'Notifications'),
+        _textInEmptyState('notifications', 'Diagnostics Validator'),
         findsOneWidget,
       );
       expect(
-        _textInEmptyState('notifications', 'Hors scope V0'),
-        findsOneWidget,
-      );
-      expect(_textInEmptyState('footer_locale', 'Locale'), findsOneWidget);
-      expect(_textInEmptyState('footer_locale', 'Non définie'), findsOneWidget);
-      expect(_textInEmptyState('footer_version', 'Version'), findsOneWidget);
-      expect(
-        _textInEmptyState('footer_version', 'Non définie'),
+        _textInEmptyState('notifications', 'Non évalué'),
         findsOneWidget,
       );
 
@@ -415,6 +405,140 @@ void main() {
   );
 
   testWidgets(
+    'NarrativeOverviewWorkspace resumes and opens a durable recent activity',
+    (tester) async {
+      final journal = const NarrativeActivityJournal.empty().append(
+        NarrativeActivityEntry(
+          id: 'activity-story-main',
+          occurredAtUtc: DateTime.utc(2026, 7, 20, 18),
+          kind: NarrativeActivityKind.edited,
+          label: 'Renommer le chapitre',
+          destination: NarrativeActivityDestination.storylines,
+          assetId: 'story-main',
+        ),
+      );
+      final model = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        activityJournal: journal,
+      );
+      final resumed = <NarrativeOverviewResumeTarget>[];
+      final opened = <NarrativeActivityEntry>[];
+
+      await _pumpOverview(
+        tester,
+        model,
+        width: 1040,
+        height: 1500,
+        onResumeEditing: resumed.add,
+        onOpenActivity: opened.add,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('narrative-overview-resume-action')),
+      );
+      await tester.pump();
+      expect(resumed.single.assetId, 'story-main');
+      expect(resumed.single.sourceLabel, 'Journal d’activité durable');
+
+      final activityButton = find.byKey(
+        const ValueKey(
+          'narrative-overview-activity-activity-story-main',
+        ),
+      );
+      await tester.scrollUntilVisible(
+        activityButton,
+        320,
+        scrollable: _overviewScrollable(),
+      );
+      await tester.tap(activityButton);
+      await tester.pump();
+
+      expect(opened.single.id, 'activity-story-main');
+      expect(find.textContaining('activité runtime'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace opens blocking diagnostics without false quick fixes',
+    (tester) async {
+      const diagnostic = NarrativeProjectDiagnostic(
+        code: 'storyline.broken_scene',
+        severity: NarrativeProjectDiagnosticSeverity.error,
+        domain: NarrativeProjectDiagnosticDomain.storyline,
+        message: 'La scène ciblée est introuvable.',
+        path: 'storylines.story-main.sceneLinks.scene-1',
+        destination: NarrativeProjectDiagnosticDestination.storyline,
+        suggestedFixLabel: 'Corriger automatiquement',
+        storylineId: 'story-main',
+      );
+      final model = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        projectValidationReport: NarrativeProjectValidationReport(
+          diagnostics: const <NarrativeProjectDiagnostic>[diagnostic],
+          mapEventViews: const <NarrativeMapEventsView>[],
+        ),
+      );
+      final opened = <NarrativeOverviewDiagnosticSummary>[];
+
+      await _pumpOverview(
+        tester,
+        model,
+        width: 1040,
+        height: 1500,
+        onOpenDiagnostic: opened.add,
+      );
+
+      final diagnosticButton = find.byKey(
+        ValueKey(
+          'narrative-overview-diagnostic-${diagnostic.stableKey}',
+        ),
+      );
+      await tester.scrollUntilVisible(
+        diagnosticButton,
+        320,
+        scrollable: _overviewScrollable(),
+      );
+      await tester.tap(diagnosticButton);
+      await tester.pump();
+
+      expect(opened.single.diagnostic, same(diagnostic));
+      expect(find.text('Corriger automatiquement'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'NarrativeOverviewWorkspace explains journal and Validator load failures',
+    (tester) async {
+      final model = buildNarrativeOverviewReadModel(
+        project: _minimalProject('test_project'),
+        activityJournalAvailability: NarrativeOverviewAvailability.unavailable,
+        activityJournalStatusMessage: 'Journal inaccessible sur disque.',
+        validatorAvailability: NarrativeOverviewAvailability.unavailable,
+        validatorStatusMessage: 'Validator indisponible pour ce snapshot.',
+      );
+
+      await _pumpOverview(tester, model, width: 1040, height: 900);
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey('narrative-overview-empty-states-section'),
+        ),
+        320,
+        scrollable: _overviewScrollable(),
+      );
+      await tester.pump();
+
+      expect(find.text('Journal inaccessible sur disque.'), findsOneWidget);
+      expect(
+        find.text('Validator indisponible pour ce snapshot.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'NarrativeOverviewWorkspace KPI cards consume read model values',
     (tester) async {
       final readModel = buildNarrativeOverviewReadModel(
@@ -445,7 +569,7 @@ void main() {
 
       expect(_textInKpi('dialogues', '1'), findsOneWidget);
       expect(_textInKpi('dialogues', 'Disponible'), findsOneWidget);
-      expect(_textInKpi('quests', 'Hors scope V0'), findsOneWidget);
+      expect(_textInKpi('quests', '0'), findsOneWidget);
       expect(_textInKpi('open_issues', 'Non évalué'), findsOneWidget);
     },
   );
@@ -524,7 +648,11 @@ void main() {
         findsNothing,
       );
       expect(kpiGrid, findsOneWidget);
-      expect(tester.getTopLeft(kpiGrid).dy, lessThanOrEqualTo(165));
+      expect(tester.getTopLeft(kpiGrid).dy, lessThanOrEqualTo(245));
+      expect(
+        find.byKey(const ValueKey('narrative-overview-resume-card')),
+        findsOneWidget,
+      );
       expect(find.text('Indicateurs auteur'), findsOneWidget);
       expect(find.text('Histoire principale'), findsOneWidget);
     },
@@ -589,7 +717,7 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 1040, height: 960);
 
-      expect(find.text('Test Main Story'), findsOneWidget);
+      expect(find.text('Test Main Story'), findsWidgets);
       expect(find.text('A generic authoring synopsis.'), findsOneWidget);
       expect(_textInMainStory('Scènes liées'), findsOneWidget);
       expect(_textInMainStory('Dialogues liés'), findsOneWidget);
@@ -668,7 +796,7 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 1040, height: 960);
 
-      expect(find.text('Fallback Test Story'), findsOneWidget);
+      expect(find.text('Fallback Test Story'), findsWidgets);
       expect(find.text('Synopsis non renseigné.'), findsOneWidget);
       expect(find.text('Chapitres issus d’un fallback'), findsOneWidget);
     },
@@ -699,8 +827,8 @@ void main() {
 
       await _pumpOverview(tester, readModel);
 
-      expect(find.text('Sélection requise'), findsOneWidget);
-      expect(find.text('Plusieurs histoires principales possibles.'),
+      expect(find.text('Sélection requise'), findsWidgets);
+      expect(find.textContaining('Plusieurs histoires legacy existent'),
           findsOneWidget);
       expect(find.text('Source ambiguë'), findsOneWidget);
       expect(_textInMainStory('Indisponible'), findsWidgets);
@@ -748,14 +876,14 @@ void main() {
       expect(
         _textInModule(
           NarrativeOverviewModuleIds.quests,
-          'Hors scope V0',
+          '0',
         ),
         findsOneWidget,
       );
       expect(
         _textInModule(
           NarrativeOverviewModuleIds.quests,
-          'Les quêtes ne sont pas encore modélisées en V0.',
+          'Aucune Storyline de type sideQuest.',
         ),
         findsOneWidget,
       );
@@ -773,8 +901,6 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-          _textInModule(NarrativeOverviewModuleIds.quests, '0'), findsNothing);
       expect(
           _textInModule(NarrativeOverviewModuleIds.facts, '0'), findsOneWidget);
     },
@@ -1151,7 +1277,7 @@ void main() {
       expect(find.text('Indicateurs auteur'), findsOneWidget);
       expect(find.text('Histoire principale'), findsOneWidget);
       expect(find.text('Modules narratifs'), findsOneWidget);
-      expect(find.text('Données à venir'), findsOneWidget);
+      expect(find.text('À traiter et activité'), findsOneWidget);
       expect(find.text('STRUCTURE NARRATIVE'), findsOneWidget);
       expect(find.byKey(const ValueKey('narrative-overview-footer')),
           findsOneWidget);
@@ -1184,7 +1310,7 @@ void main() {
       expect(find.text('Indicateurs auteur'), findsOneWidget);
       expect(find.text('Histoire principale'), findsOneWidget);
       expect(find.text('Modules narratifs'), findsOneWidget);
-      expect(find.text('Données à venir'), findsOneWidget);
+      expect(find.text('À traiter et activité'), findsOneWidget);
       expect(find.text('STRUCTURE NARRATIVE'), findsOneWidget);
       expect(find.byKey(const ValueKey('narrative-overview-footer')),
           findsOneWidget);
@@ -1199,13 +1325,12 @@ void main() {
 
       await _pumpOverview(tester, readModel, width: 1600, height: 1400);
 
-      expect(_textInEmptyState('facts', 'Vide'), findsOneWidget);
       expect(
-        _textInEmptyState('recent_activity', 'Hors scope V0'),
+        _textInEmptyState('recent_activity', 'Non évalué'),
         findsOneWidget,
       );
       expect(
-        _textInEmptyState('notifications', 'Hors scope V0'),
+        _textInEmptyState('notifications', 'Non évalué'),
         findsOneWidget,
       );
       expect(find.text('FR'), findsNothing);
@@ -1902,6 +2027,10 @@ Future<void> _pumpOverview(
   VoidCallback? onOpenDialogues,
   VoidCallback? onOpenFacts,
   VoidCallback? onOpenWorldRules,
+  ValueChanged<NarrativeOverviewResumeTarget>? onResumeEditing,
+  ValueChanged<NarrativeActivityEntry>? onOpenActivity,
+  ValueChanged<NarrativeOverviewDiagnosticSummary>? onOpenDiagnostic,
+  VoidCallback? onOpenValidator,
 }) {
   tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
@@ -1925,6 +2054,10 @@ Future<void> _pumpOverview(
               onOpenDialogues: onOpenDialogues,
               onOpenFacts: onOpenFacts,
               onOpenWorldRules: onOpenWorldRules,
+              onResumeEditing: onResumeEditing,
+              onOpenActivity: onOpenActivity,
+              onOpenDiagnostic: onOpenDiagnostic,
+              onOpenValidator: onOpenValidator,
             ),
           ),
         ),

@@ -246,13 +246,13 @@ void main() {
       expect(find.text('workspace:dialogue'), findsOneWidget);
       await returnToOverview();
 
-      for (final disabledKpi in <String>[
-        'narrative-overview-kpi-quests',
-        'narrative-overview-kpi-open_issues',
-      ]) {
-        await tapOverviewCard(disabledKpi);
-        expect(find.text('workspace:narrativeOverview'), findsOneWidget);
-      }
+      await tapOverviewCard('narrative-overview-kpi-quests');
+      expect(find.text('workspace:globalStory'), findsOneWidget);
+      await returnToOverview();
+
+      await tapOverviewCard('narrative-overview-kpi-open_issues');
+      expect(find.text('workspace:narrativeValidator'), findsOneWidget);
+      await returnToOverview();
 
       await tapOverviewCard('narrative-overview-module-cutscenes');
       expect(find.text('workspace:cutscene'), findsOneWidget);
@@ -270,12 +270,13 @@ void main() {
       expect(find.text('workspace:facts'), findsOneWidget);
       await returnToOverview();
 
-      for (final disabledModule in <String>[
+      for (final storylineModule in <String>[
         'narrative-overview-module-quests',
         'narrative-overview-module-conditions',
       ]) {
-        await tapOverviewCard(disabledModule);
-        expect(find.text('workspace:narrativeOverview'), findsOneWidget);
+        await tapOverviewCard(storylineModule);
+        expect(find.text('workspace:globalStory'), findsOneWidget);
+        await returnToOverview();
       }
 
       await tester.ensureVisible(

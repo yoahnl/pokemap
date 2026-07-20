@@ -74,12 +74,14 @@ class PokeMapMetricCard extends StatelessWidget {
     required this.icon,
     this.tone = PokeMapTone.neutral,
     this.subtitle,
+    this.source,
     this.badge,
     this.selected = false,
     this.onTap,
     this.titleMaxLines = 1,
     this.valueMaxLines = 1,
     this.valueFontSize = 22,
+    this.subtitleMaxLines = 1,
   });
 
   final String title;
@@ -87,12 +89,14 @@ class PokeMapMetricCard extends StatelessWidget {
   final IconData icon;
   final PokeMapTone tone;
   final String? subtitle;
+  final String? source;
   final Widget? badge;
   final bool selected;
   final VoidCallback? onTap;
   final int titleMaxLines;
   final int valueMaxLines;
   final double valueFontSize;
+  final int subtitleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +144,7 @@ class PokeMapMetricCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 subtitle!,
-                maxLines: 1,
+                maxLines: subtitleMaxLines,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: colors.textMuted,
@@ -153,6 +157,19 @@ class PokeMapMetricCard extends StatelessWidget {
               IconTheme.merge(
                 data: IconThemeData(color: toneColors.icon, size: 12),
                 child: badge!,
+              ),
+            ],
+            if (source != null) ...[
+              const SizedBox(height: 3),
+              Text(
+                'Source : $source',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textMuted,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ],
