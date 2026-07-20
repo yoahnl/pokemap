@@ -1920,11 +1920,13 @@ NarrativeEventRecord _replaceSceneInEventRecord(
         name: draft.name,
         source: draft.source,
         conditions: draft.conditions,
+        conditionExpression: draft.conditionExpression,
         sceneId:
             draft.sceneId == sourceSceneId ? replacementSceneId : draft.sceneId,
         reusePolicy: draft.reusePolicy,
         priority: draft.priority,
         order: draft.order,
+        resetPolicy: draft.resetPolicy,
       ),
     ),
     configured: (definition, enabled) =>
@@ -1934,12 +1936,14 @@ NarrativeEventRecord _replaceSceneInEventRecord(
         name: definition.name,
         source: definition.source,
         conditions: definition.conditions,
+        conditionExpression: definition.conditionExpression,
         sceneId: definition.sceneId == sourceSceneId
             ? replacementSceneId
             : definition.sceneId,
         reusePolicy: definition.reusePolicy,
         priority: definition.priority,
         order: definition.order,
+        resetPolicy: definition.resetPolicy,
       ),
       enabled: enabled,
     ),

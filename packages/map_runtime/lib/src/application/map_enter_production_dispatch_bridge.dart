@@ -221,6 +221,13 @@ final class MapEnterProductionDispatchBridge {
         executionIdFactory: _executionIdFactory,
         correlationIdFactory: _correlationIdFactory,
         deliveryIdFactory: _deliveryIdFactory,
+        beforePlan: (gameState) => authority.applyMapActivationReset(
+          gameState: gameState,
+          activationId: activationId,
+          mapId: activation.mapId,
+          resetEligible: activation.reason == MapActivationReason.warp ||
+              activation.reason == MapActivationReason.connection,
+        ),
       );
       final execution = await coordinator.execute(authority: authority);
       if (!_isCurrentActivation(activationId)) {
@@ -232,6 +239,7 @@ final class MapEnterProductionDispatchBridge {
         return MapEnterProductionDispatchV2Handled(activation, execution);
       }
       if (execution is NarrativeEventExecutionClaimedButIneligible) {
+        _onGameStateCommitted(await _stateTransactions.read());
         return MapEnterProductionDispatchClaimedIneligible(
           activation,
           execution,
@@ -249,11 +257,11 @@ final class MapEnterProductionDispatchBridge {
       }
 
       final noMatch = execution as NarrativeEventExecutionNoMatch;
+      final gameState = await _stateTransactions.read();
+      _onGameStateCommitted(gameState);
       if (!noMatch.legacyFallbackAllowed) {
         return MapEnterProductionDispatchNoFallback(activation, noMatch);
       }
-
-      final gameState = await _stateTransactions.read();
       if (!_isCurrentActivation(activationId)) {
         return _stale(activation, activationId);
       }

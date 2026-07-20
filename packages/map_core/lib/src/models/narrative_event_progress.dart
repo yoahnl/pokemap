@@ -27,6 +27,9 @@ const _progressFields = {
   'consumedNarrativeEventIds',
   'pendingNarrativeOutcomeDeliveries',
   'deliveredNarrativeOutcomeDeliveryIds',
+  'activeNarrativeMapId',
+  'visitedNarrativeMapIds',
+  'appliedNarrativeResetTokens',
 };
 
 @immutable
@@ -161,13 +164,19 @@ final class NarrativeEventProgress {
   const NarrativeEventProgress.empty()
       : consumedNarrativeEventIds = const <String>{},
         pendingNarrativeOutcomeDeliveries = const <NarrativeOutcomeDelivery>[],
-        deliveredNarrativeOutcomeDeliveryIds = const <String>{};
+        deliveredNarrativeOutcomeDeliveryIds = const <String>{},
+        activeNarrativeMapId = null,
+        visitedNarrativeMapIds = const <String>{},
+        appliedNarrativeResetTokens = const <String>[];
 
   factory NarrativeEventProgress({
     Iterable<String> consumedNarrativeEventIds = const <String>[],
     Iterable<NarrativeOutcomeDelivery> pendingNarrativeOutcomeDeliveries =
         const <NarrativeOutcomeDelivery>[],
     Iterable<String> deliveredNarrativeOutcomeDeliveryIds = const <String>[],
+    String? activeNarrativeMapId,
+    Iterable<String> visitedNarrativeMapIds = const <String>[],
+    Iterable<String> appliedNarrativeResetTokens = const <String>[],
   }) {
     final consumed = _validatedUniqueIds(
       consumedNarrativeEventIds,
@@ -200,10 +209,31 @@ final class NarrativeEventProgress {
         'delivery IDs must not also be terminal',
       );
     }
+    final activeMap = activeNarrativeMapId == null
+        ? null
+        : _validateIdentity(activeNarrativeMapId, 'activeNarrativeMapId');
+    final visitedMaps = _validatedUniqueIdentities(
+      visitedNarrativeMapIds,
+      'visitedNarrativeMapIds',
+    );
+    final resetTokens = _validatedUniqueIdentities(
+      appliedNarrativeResetTokens,
+      'appliedNarrativeResetTokens',
+    ).toList(growable: false);
+    if (resetTokens.length > 256) {
+      throw ArgumentError.value(
+        appliedNarrativeResetTokens,
+        'appliedNarrativeResetTokens',
+        'must contain at most 256 entries',
+      );
+    }
     return NarrativeEventProgress._(
       Set.unmodifiable(consumed),
       List.unmodifiable(pending),
       Set.unmodifiable(delivered),
+      activeMap,
+      Set.unmodifiable(visitedMaps),
+      List.unmodifiable(resetTokens),
     );
   }
 
@@ -211,15 +241,28 @@ final class NarrativeEventProgress {
     this.consumedNarrativeEventIds,
     this.pendingNarrativeOutcomeDeliveries,
     this.deliveredNarrativeOutcomeDeliveryIds,
+    this.activeNarrativeMapId,
+    this.visitedNarrativeMapIds,
+    this.appliedNarrativeResetTokens,
   );
 
   factory NarrativeEventProgress.fromJson(Object? json) {
     final object = NarrativeEventWire.object(json, path: 'progress');
     NarrativeEventWire.expectExactFields(
-      object,
-      _progressFields,
-      path: 'progress',
-    );
+        object,
+        {
+          'consumedNarrativeEventIds',
+          'pendingNarrativeOutcomeDeliveries',
+          'deliveredNarrativeOutcomeDeliveryIds',
+          if (object.containsKey('activeNarrativeMapId'))
+            'activeNarrativeMapId',
+          if (object.containsKey('visitedNarrativeMapIds'))
+            'visitedNarrativeMapIds',
+          if (object.containsKey('appliedNarrativeResetTokens'))
+            'appliedNarrativeResetTokens',
+        },
+        path: 'progress',
+        knownFields: _progressFields);
     final consumedValues = NarrativeEventWire.requiredList(
       object,
       'consumedNarrativeEventIds',
@@ -255,6 +298,27 @@ final class NarrativeEventProgress {
               path: 'progress.deliveredNarrativeOutcomeDeliveryIds[$index]',
             ),
         ],
+        activeNarrativeMapId: object['activeNarrativeMapId'] == null
+            ? null
+            : _requireString(
+                object['activeNarrativeMapId'],
+                path: 'progress.activeNarrativeMapId',
+              ),
+        visitedNarrativeMapIds: object.containsKey('visitedNarrativeMapIds')
+            ? _decodeStringList(
+                object,
+                'visitedNarrativeMapIds',
+                path: 'progress',
+              )
+            : const [],
+        appliedNarrativeResetTokens:
+            object.containsKey('appliedNarrativeResetTokens')
+                ? _decodeStringList(
+                    object,
+                    'appliedNarrativeResetTokens',
+                    path: 'progress',
+                  )
+                : const [],
       );
     } on ArgumentError catch (error) {
       return NarrativeEventWire.invalid(
@@ -268,6 +332,35 @@ final class NarrativeEventProgress {
   final Set<String> consumedNarrativeEventIds;
   final List<NarrativeOutcomeDelivery> pendingNarrativeOutcomeDeliveries;
   final Set<String> deliveredNarrativeOutcomeDeliveryIds;
+  final String? activeNarrativeMapId;
+  final Set<String> visitedNarrativeMapIds;
+  final List<String> appliedNarrativeResetTokens;
+
+  NarrativeEventProgress copyWith({
+    Iterable<String>? consumedNarrativeEventIds,
+    Iterable<NarrativeOutcomeDelivery>? pendingNarrativeOutcomeDeliveries,
+    Iterable<String>? deliveredNarrativeOutcomeDeliveryIds,
+    Object? activeNarrativeMapId = _unset,
+    Iterable<String>? visitedNarrativeMapIds,
+    Iterable<String>? appliedNarrativeResetTokens,
+  }) {
+    return NarrativeEventProgress(
+      consumedNarrativeEventIds:
+          consumedNarrativeEventIds ?? this.consumedNarrativeEventIds,
+      pendingNarrativeOutcomeDeliveries: pendingNarrativeOutcomeDeliveries ??
+          this.pendingNarrativeOutcomeDeliveries,
+      deliveredNarrativeOutcomeDeliveryIds:
+          deliveredNarrativeOutcomeDeliveryIds ??
+              this.deliveredNarrativeOutcomeDeliveryIds,
+      activeNarrativeMapId: identical(activeNarrativeMapId, _unset)
+          ? this.activeNarrativeMapId
+          : activeNarrativeMapId as String?,
+      visitedNarrativeMapIds:
+          visitedNarrativeMapIds ?? this.visitedNarrativeMapIds,
+      appliedNarrativeResetTokens:
+          appliedNarrativeResetTokens ?? this.appliedNarrativeResetTokens,
+    );
+  }
 
   Map<String, Object?> toJson() {
     final consumed = consumedNarrativeEventIds.toList()..sort();
@@ -279,6 +372,12 @@ final class NarrativeEventProgress {
           delivery.toJson(),
       ],
       'deliveredNarrativeOutcomeDeliveryIds': delivered,
+      if (activeNarrativeMapId != null)
+        'activeNarrativeMapId': activeNarrativeMapId,
+      if (visitedNarrativeMapIds.isNotEmpty)
+        'visitedNarrativeMapIds': visitedNarrativeMapIds.toList()..sort(),
+      if (appliedNarrativeResetTokens.isNotEmpty)
+        'appliedNarrativeResetTokens': appliedNarrativeResetTokens,
     };
   }
 
@@ -297,6 +396,12 @@ final class NarrativeEventProgress {
           _setEquals(
             other.deliveredNarrativeOutcomeDeliveryIds,
             deliveredNarrativeOutcomeDeliveryIds,
+          ) &&
+          other.activeNarrativeMapId == activeNarrativeMapId &&
+          _setEquals(other.visitedNarrativeMapIds, visitedNarrativeMapIds) &&
+          _listEquals(
+            other.appliedNarrativeResetTokens,
+            appliedNarrativeResetTokens,
           );
 
   @override
@@ -304,8 +409,13 @@ final class NarrativeEventProgress {
         Object.hashAll(consumedNarrativeEventIds.toList()..sort()),
         Object.hashAll(pendingNarrativeOutcomeDeliveries),
         Object.hashAll(deliveredNarrativeOutcomeDeliveryIds.toList()..sort()),
+        activeNarrativeMapId,
+        Object.hashAll(visitedNarrativeMapIds.toList()..sort()),
+        Object.hashAll(appliedNarrativeResetTokens),
       );
 }
+
+const Object _unset = Object();
 
 Object? readNarrativeEventProgressJson(
   Map<dynamic, dynamic> json,
@@ -358,6 +468,43 @@ Set<String> _validatedUniqueIds(
     }
   }
   return result;
+}
+
+String _validateIdentity(String value, String name) {
+  if (value.isEmpty || value.trim() != value) {
+    throw ArgumentError.value(
+      value,
+      name,
+      'must be non-empty and already trimmed',
+    );
+  }
+  return value;
+}
+
+Set<String> _validatedUniqueIdentities(
+  Iterable<String> values,
+  String name,
+) {
+  final result = <String>{};
+  for (final value in values) {
+    _validateIdentity(value, name);
+    if (!result.add(value)) {
+      throw ArgumentError.value(values, name, 'must not contain duplicates');
+    }
+  }
+  return result;
+}
+
+List<String> _decodeStringList(
+  Map<String, Object?> object,
+  String field, {
+  required String path,
+}) {
+  final values = NarrativeEventWire.requiredList(object, field, path: path);
+  return [
+    for (var index = 0; index < values.length; index++)
+      _requireString(values[index], path: '$path.$field[$index]'),
+  ];
 }
 
 Object? _requiredNullableValue(

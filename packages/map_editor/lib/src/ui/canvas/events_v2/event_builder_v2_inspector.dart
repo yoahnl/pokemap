@@ -304,6 +304,18 @@ class EventBuilderV2Inspector extends StatelessWidget {
                         icon: CupertinoIcons.repeat,
                         tone: PokeMapTone.brand,
                       ),
+                      if (selected.lifecycle.resetPolicy
+                          is! NarrativeEventResetNever) ...[
+                        const SizedBox(height: 5),
+                        _InspectorField(
+                          label: 'Réarmement',
+                          value: _resetPolicyExplanation(
+                            selected.lifecycle.resetPolicy,
+                          ),
+                          icon: CupertinoIcons.refresh,
+                          tone: PokeMapTone.brand,
+                        ),
+                      ],
                       const SizedBox(height: 5),
                       _InspectorField(
                         label: 'Priorité',
@@ -612,6 +624,16 @@ String _lifecycleExplanation(NarrativeEventLifecycleSummary lifecycle) {
     NarrativeEventReusePolicy.reusable =>
       'Réutilisable : chaque nouvelle occurrence réévalue toutes les conditions.',
     null => lifecycle.humanLabel,
+  };
+}
+
+String _resetPolicyExplanation(NarrativeEventResetPolicy? policy) {
+  return switch (policy) {
+    NarrativeEventResetOnMapReentry() =>
+      'Après une vraie sortie puis une nouvelle entrée sur la map.',
+    NarrativeEventResetOnOutcomeReceived(:final outcome) =>
+      'À la réception de ${outcome.producerKind.name} · ${outcome.outcomeId}.',
+    _ => 'Jamais',
   };
 }
 

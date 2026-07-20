@@ -1006,8 +1006,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final state = _gameState;
       final progress = transactionState.narrativeEventProgress;
       final nextState = state.copyWith(
-        narrativeEventProgress: NarrativeEventProgress(
-          consumedNarrativeEventIds: progress.consumedNarrativeEventIds,
+        narrativeEventProgress: progress.copyWith(
           pendingNarrativeOutcomeDeliveries: <NarrativeOutcomeDelivery>[
             ...progress.pendingNarrativeOutcomeDeliveries,
             for (final outcome in outcomes)
@@ -1020,8 +1019,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
                 attemptCount: 0,
               ),
           ],
-          deliveredNarrativeOutcomeDeliveryIds:
-              progress.deliveredNarrativeOutcomeDeliveryIds,
         ),
       );
       return NarrativeEventStateTransaction.commit(nextState, nextState);
@@ -1059,6 +1056,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
 
+    final authority = preparation as NarrativeEventDispatchAuthorityReady;
+
     final coordinator = NarrativeEventExecutionCoordinator(
       stateTransactions: _narrativeStateTransactions,
       planner: NarrativeEventDispatchPlanner(),
@@ -1067,10 +1066,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       executionIdFactory: () => _nextNarrativeRuntimeId('evx'),
       correlationIdFactory: () => _nextNarrativeRuntimeId('corr'),
       deliveryIdFactory: () => _nextNarrativeRuntimeId('outd'),
+      beforePlan: (gameState) => authority.applyOutcomeReset(
+        gameState: gameState,
+        deliveryId: request.delivery.deliveryId,
+        outcome: request.delivery.outcome,
+      ),
     );
-    final execution = await coordinator.execute(
-      authority: preparation as NarrativeEventDispatchAuthorityReady,
-    );
+    final execution = await coordinator.execute(authority: authority);
     if (execution is NarrativeEventExecutionSucceeded) {
       return NarrativeOutcomeDispatchResult.delivered(
         updatedGameState: execution.updatedGameState,
@@ -1078,11 +1080,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
     if (execution is NarrativeEventExecutionClaimedButIneligible) {
+      final resetGameState = await _narrativeStateTransactions.read();
       return NarrativeOutcomeDispatchResult.delivered(
-        updatedGameState: request.gameState,
+        updatedGameState: resetGameState,
       );
     }
     if (execution is NarrativeEventExecutionNoMatch) {
+      final resetGameState = await _narrativeStateTransactions.read();
       final legacyFallbackAllowed = execution.legacyFallbackAllowed &&
           request.delivery.outcome.producerKind ==
               NarrativeOutcomeProducerKind.legacyScenario;
@@ -1095,10 +1099,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       if (!legacyFallbackAllowed) {
         return NarrativeOutcomeDispatchResult.delivered(
-          updatedGameState: request.gameState,
+          updatedGameState: resetGameState,
         );
       }
-      _applyNarrativeGameState(request.gameState);
+      _applyNarrativeGameState(resetGameState);
       final legacyChildOutcomes = <NarrativeOutcomeRef>[];
       final pendingTransitionBeforeDispatch =
           _pendingScenarioTransitionMapRequest;

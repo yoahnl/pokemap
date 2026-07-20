@@ -1,4 +1,5 @@
 import '../models/narrative_event_definition.dart';
+import '../models/narrative_event_source_ref.dart';
 import 'narrative_event_authoring_contract.dart';
 import 'narrative_event_authoring_support.dart';
 import 'narrative_event_configuration_validation.dart';
@@ -62,10 +63,12 @@ NarrativeEventAuthoringResult publishNarrativeEvent({
     name: draft.name,
     source: draft.source!,
     conditions: draft.conditions,
+    conditionExpression: draft.conditionExpression,
     sceneId: draft.sceneId!,
     reusePolicy: draft.reusePolicy!,
     priority: draft.priority,
     order: draft.order,
+    resetPolicy: draft.resetPolicy,
   );
   final nextRecord = NarrativeEventRecord.configuredStructurallyUnchecked(
     definition,
@@ -144,7 +147,42 @@ NarrativeEventAuthoringDiagnostic? _publicationValidationIssue({
         eventId: draft.id,
         conditions: draft.conditions,
       ) ??
+      _publicationResetIssue(context, draft) ??
       firstBlockingNarrativeEventCatalogIssue(context);
+}
+
+NarrativeEventAuthoringDiagnostic? _publicationResetIssue(
+  NarrativeEventAuthoringContext context,
+  NarrativeEventDraft draft,
+) {
+  final policy = draft.resetPolicy;
+  if (policy is NarrativeEventResetNever) return null;
+  if (draft.reusePolicy != NarrativeEventReusePolicy.oneShot) {
+    return NarrativeEventAuthoringDiagnostic(
+      code: 'resetRequiresOneShot',
+      message: 'Le réarmement nécessite un événement à usage unique.',
+      path: 'resetPolicy',
+    );
+  }
+  if (policy is NarrativeEventResetOnMapReentry &&
+      draft.source?.kind == NarrativeEventSourceKind.outcomeReceived) {
+    return NarrativeEventAuthoringDiagnostic(
+      code: 'mapReentryRequiresSpatialSource',
+      message: 'La réentrée de map nécessite une source spatiale.',
+      path: 'resetPolicy',
+    );
+  }
+  if (policy is NarrativeEventResetOnOutcomeReceived &&
+      !context.catalog.outcomeSources.options.any(
+        (option) => option.outcome == policy.outcome && option.selectable,
+      )) {
+    return NarrativeEventAuthoringDiagnostic(
+      code: 'resetOutcomeMissing',
+      message: 'Le résultat choisi pour réarmer cet événement est introuvable.',
+      path: 'resetPolicy.outcome',
+    );
+  }
+  return null;
 }
 
 NarrativeEventAuthoringResult _rejectPublicationIssue({

@@ -208,6 +208,124 @@ void main() {
       expect(legacyCalls, 0);
     });
 
+    test('true re-entry resets before planning and duplicate activation once',
+        () async {
+      var currentState = GameState(
+        saveId: 'save',
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: const {_eventId},
+          activeNarrativeMapId: 'other-map',
+          visitedNarrativeMapIds: const {'map', 'other-map'},
+        ),
+      );
+      final transactions = NarrativeEventStateTransactions(currentState);
+      final source = NarrativeEventSourceRef.mapEnter('map');
+      final registry = _registry(
+        EventSystemMode.v2Only,
+        records: [
+          _record(
+            source,
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+          ),
+        ],
+      );
+      var sceneCalls = 0;
+      final activation = MapActivation(
+        activationId: 'activation-reentry',
+        mapId: 'map',
+        reason: MapActivationReason.warp,
+      );
+      final bridge = _bridge(
+        stateTransactions: transactions,
+        currentGameState: () => currentState,
+        onGameStateCommitted: (value) => currentState = value,
+        prepareAuthority: (_, occurrence) async => _prepareAuthority(
+          registry: registry,
+          occurrence: occurrence,
+        ),
+        executeScene: (request) async {
+          sceneCalls++;
+          expect(
+            request.gameState.narrativeEventProgress.consumedNarrativeEventIds,
+            isNot(contains(_eventId)),
+          );
+          return NarrativeSceneExecutionResult.completed(
+            updatedGameState: request.gameState,
+            qualifiedOutcomes: const [],
+          );
+        },
+        legacyFallback: (_, __, ___) async {},
+        isCurrentActivation: (value) => value == activation.activationId,
+      );
+
+      expect(await bridge.dispatchCompletedActivation(activation),
+          isA<MapEnterProductionDispatchV2Handled>());
+      expect(await bridge.dispatchCompletedActivation(activation),
+          isA<MapEnterProductionDispatchDuplicate>());
+      expect(sceneCalls, 1);
+      expect(currentState.narrativeEventProgress.consumedNarrativeEventIds,
+          contains(_eventId));
+      expect(
+        currentState.narrativeEventProgress.appliedNarrativeResetTokens
+            .where((token) => token == 'map:activation-reentry'),
+        hasLength(1),
+      );
+    });
+
+    test('save restore does not qualify as map re-entry', () async {
+      var currentState = GameState(
+        saveId: 'save',
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: const {_eventId},
+          activeNarrativeMapId: 'other-map',
+          visitedNarrativeMapIds: const {'map', 'other-map'},
+        ),
+      );
+      final transactions = NarrativeEventStateTransactions(currentState);
+      final source = NarrativeEventSourceRef.mapEnter('map');
+      final registry = _registry(
+        EventSystemMode.v2Only,
+        records: [
+          _record(
+            source,
+            reusePolicy: NarrativeEventReusePolicy.oneShot,
+            resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+          ),
+        ],
+      );
+      var sceneCalls = 0;
+      final activation = MapActivation(
+        activationId: 'activation-restore-no-reset',
+        mapId: 'map',
+        reason: MapActivationReason.saveRestore,
+      );
+      final bridge = _bridge(
+        stateTransactions: transactions,
+        currentGameState: () => currentState,
+        onGameStateCommitted: (value) => currentState = value,
+        prepareAuthority: (_, occurrence) async => _prepareAuthority(
+          registry: registry,
+          occurrence: occurrence,
+        ),
+        executeScene: (request) async {
+          sceneCalls++;
+          return NarrativeSceneExecutionResult.completed(
+            updatedGameState: request.gameState,
+            qualifiedOutcomes: const [],
+          );
+        },
+        legacyFallback: (_, __, ___) async {},
+        isCurrentActivation: (value) => value == activation.activationId,
+      );
+
+      expect(await bridge.dispatchCompletedActivation(activation),
+          isA<MapEnterProductionDispatchNoFallback>());
+      expect(sceneCalls, 0);
+      expect(currentState.narrativeEventProgress.consumedNarrativeEventIds,
+          contains(_eventId));
+    });
+
     test('stale activation during Scene rolls back its candidate state',
         () async {
       const originalState = GameState(
@@ -763,6 +881,9 @@ NarrativeEventRegistry _registry(
 NarrativeEventRecord _record(
   NarrativeEventSourceRef source, {
   bool enabled = true,
+  NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.reusable,
+  NarrativeEventResetPolicy resetPolicy =
+      const NarrativeEventResetPolicy.never(),
 }) {
   return NarrativeEventRecord.configuredStructurallyUnchecked(
     NarrativeEventDefinition(
@@ -771,9 +892,10 @@ NarrativeEventRecord _record(
       source: source,
       conditions: const [],
       sceneId: 'scene_map_enter',
-      reusePolicy: NarrativeEventReusePolicy.reusable,
+      reusePolicy: reusePolicy,
       priority: 0,
       order: 0,
+      resetPolicy: resetPolicy,
     ),
     enabled: enabled,
   );

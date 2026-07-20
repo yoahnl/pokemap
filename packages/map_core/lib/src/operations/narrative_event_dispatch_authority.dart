@@ -89,6 +89,84 @@ final class NarrativeEventDispatchAuthorityReady
   @override
   bool get isReady => true;
 
+  /// Applies a deterministic map activation reset before dispatch planning.
+  ///
+  /// [resetEligible] must only be true for a completed spatial transition
+  /// (warp/connection). Initial boot and save restore still update persisted
+  /// map history, but never count as a re-entry.
+  GameState applyMapActivationReset({
+    required GameState gameState,
+    required String activationId,
+    required String mapId,
+    required bool resetEligible,
+  }) {
+    final progress = gameState.narrativeEventProgress;
+    final token = 'map:$activationId';
+    if (progress.appliedNarrativeResetTokens.contains(token)) {
+      return gameState;
+    }
+    final isReentry = resetEligible &&
+        progress.activeNarrativeMapId != null &&
+        progress.activeNarrativeMapId != mapId &&
+        progress.visitedNarrativeMapIds.contains(mapId);
+    final consumed = progress.consumedNarrativeEventIds.toSet();
+    if (isReentry) {
+      for (final record in _registry.records) {
+        final definition = record.definitionOrNull;
+        if (definition == null ||
+            definition.reusePolicy != NarrativeEventReusePolicy.oneShot ||
+            definition.resetPolicy is! NarrativeEventResetOnMapReentry ||
+            _sourceMapId(definition.source) != mapId) {
+          continue;
+        }
+        consumed.remove(definition.id);
+      }
+    }
+    final visited = {...progress.visitedNarrativeMapIds, mapId};
+    final updatedProgress = progress.copyWith(
+      consumedNarrativeEventIds: consumed,
+      activeNarrativeMapId: mapId,
+      visitedNarrativeMapIds: visited,
+      appliedNarrativeResetTokens: _appendResetToken(
+        progress.appliedNarrativeResetTokens,
+        token,
+      ),
+    );
+    return gameState.copyWith(narrativeEventProgress: updatedProgress);
+  }
+
+  /// Applies an exact qualified-outcome reset before dispatch planning.
+  GameState applyOutcomeReset({
+    required GameState gameState,
+    required String deliveryId,
+    required NarrativeOutcomeRef outcome,
+  }) {
+    final progress = gameState.narrativeEventProgress;
+    final token = 'outcome:$deliveryId';
+    if (progress.appliedNarrativeResetTokens.contains(token)) {
+      return gameState;
+    }
+    final consumed = progress.consumedNarrativeEventIds.toSet();
+    for (final record in _registry.records) {
+      final definition = record.definitionOrNull;
+      final policy = definition?.resetPolicy;
+      if (definition != null &&
+          definition.reusePolicy == NarrativeEventReusePolicy.oneShot &&
+          policy is NarrativeEventResetOnOutcomeReceived &&
+          policy.outcome == outcome) {
+        consumed.remove(definition.id);
+      }
+    }
+    final updatedProgress = progress.copyWith(
+      consumedNarrativeEventIds: consumed,
+      appliedNarrativeResetTokens: _appendResetToken(
+        progress.appliedNarrativeResetTokens,
+        token,
+      ),
+    );
+    return gameState.copyWith(narrativeEventProgress: updatedProgress);
+  }
+
   NarrativeEventDispatchDecision plan({
     required GameState gameState,
     Set<String> inFlightNarrativeEventIds = const <String>{},
@@ -256,10 +334,11 @@ final class NarrativeEventDispatchAuthorityReady
       );
     }
     final traces = <NarrativeEventSimulationConditionTrace>[];
-    NarrativeEventDispatchReason? firstReason;
-    for (var index = 0; index < definition.conditions.length; index++) {
-      final condition = definition.conditions[index];
-      final trace = condition.when(
+    NarrativeEventSimulationConditionTrace evaluateLeaf(
+      NarrativeEventCondition condition,
+      int index,
+    ) {
+      return condition.when(
         fact: (factId, expectedValue) {
           if (_projectCatalog.resolveFact(factId).status !=
               NarrativeEventProjectResolutionStatus.found) {
@@ -328,10 +407,77 @@ final class NarrativeEventDispatchAuthorityReady
           );
         },
       );
-      traces.add(trace);
-      firstReason ??= _dispatchReason(trace.reason);
     }
-    return _NarrativeEventCandidateEvaluation(firstReason, traces);
+
+    var leafIndex = 0;
+    _ConditionExpressionEvaluation evaluateExpression(
+      NarrativeEventConditionExpression expression,
+    ) {
+      switch (expression) {
+        case NarrativeEventConditionLeaf(:final condition):
+          final trace = evaluateLeaf(condition, leafIndex++);
+          traces.add(trace);
+          return _ConditionExpressionEvaluation(
+            passed: trace.passed,
+            unavailable: trace.reason ==
+                NarrativeEventSimulationReason.runtimeReferenceUnavailable,
+          );
+        case NarrativeEventConditionAll(:final children):
+          var passed = true;
+          var unavailable = false;
+          for (final child in children) {
+            final result = evaluateExpression(child);
+            passed = passed && result.passed;
+            unavailable = unavailable || result.unavailable;
+          }
+          return _ConditionExpressionEvaluation(
+            passed: passed && !unavailable,
+            unavailable: unavailable,
+          );
+        case NarrativeEventConditionAny(:final children):
+          var passed = false;
+          var unavailable = false;
+          for (final child in children) {
+            final result = evaluateExpression(child);
+            passed = passed || result.passed;
+            unavailable = unavailable || result.unavailable;
+          }
+          return _ConditionExpressionEvaluation(
+            passed: passed,
+            unavailable: !passed && unavailable,
+          );
+        case NarrativeEventConditionNot(:final child):
+          final result = evaluateExpression(child);
+          return _ConditionExpressionEvaluation(
+            passed: result.unavailable ? false : !result.passed,
+            unavailable: result.unavailable,
+          );
+      }
+    }
+
+    final expressionResult = evaluateExpression(definition.conditionExpression);
+    if (expressionResult.passed) {
+      return _NarrativeEventCandidateEvaluation(null, traces);
+    }
+    if (expressionResult.unavailable) {
+      return _NarrativeEventCandidateEvaluation(
+        NarrativeEventDispatchReason.runtimeReferenceUnavailable,
+        traces,
+      );
+    }
+    final representative = traces.firstWhere(
+      (trace) => !trace.passed,
+      orElse: () => traces.first,
+    );
+    return _NarrativeEventCandidateEvaluation(
+      switch (representative.kind) {
+        NarrativeEventSimulationConditionKind.fact =>
+          NarrativeEventDispatchReason.factConditionFalse,
+        NarrativeEventSimulationConditionKind.narrativeEventConsumed =>
+          NarrativeEventDispatchReason.narrativeEventConsumedConditionFalse,
+      },
+      traces,
+    );
   }
 
   NarrativeEventSimulationCandidateTrace _simulateRecord(
@@ -397,6 +543,16 @@ final class _NarrativeEventCandidateEvaluation {
   final List<NarrativeEventSimulationConditionTrace> conditions;
 }
 
+final class _ConditionExpressionEvaluation {
+  const _ConditionExpressionEvaluation({
+    required this.passed,
+    required this.unavailable,
+  });
+
+  final bool passed;
+  final bool unavailable;
+}
+
 NarrativeEventSimulationReason _simulationReason(
   NarrativeEventDispatchReason reason,
 ) =>
@@ -423,20 +579,6 @@ NarrativeEventSimulationReason _simulationReason(
         NarrativeEventSimulationReason.noEligibleCandidate,
       NarrativeEventDispatchReason.runtimeReferenceUnavailable =>
         NarrativeEventSimulationReason.runtimeReferenceUnavailable,
-    };
-
-NarrativeEventDispatchReason? _dispatchReason(
-  NarrativeEventSimulationReason? reason,
-) =>
-    switch (reason) {
-      null => null,
-      NarrativeEventSimulationReason.factConditionFalse =>
-        NarrativeEventDispatchReason.factConditionFalse,
-      NarrativeEventSimulationReason.narrativeEventConsumedConditionFalse =>
-        NarrativeEventDispatchReason.narrativeEventConsumedConditionFalse,
-      NarrativeEventSimulationReason.runtimeReferenceUnavailable =>
-        NarrativeEventDispatchReason.runtimeReferenceUnavailable,
-      _ => throw StateError('Unexpected condition simulation reason: $reason'),
     };
 
 abstract final class NarrativeEventDispatchAuthority {
@@ -732,5 +874,22 @@ List<NarrativeEventDispatchReason> _sortedReasons(
 ) {
   final result = reasons.toList()
     ..sort((left, right) => left.index.compareTo(right.index));
+  return result;
+}
+
+String? _sourceMapId(NarrativeEventSourceRef source) {
+  return source.when(
+    entityInteract: (mapId, _) => mapId,
+    triggerEnter: (mapId, _) => mapId,
+    mapEnter: (mapId) => mapId,
+    outcomeReceived: (_) => null,
+  );
+}
+
+List<String> _appendResetToken(List<String> tokens, String token) {
+  final result = [...tokens, token];
+  if (result.length > 256) {
+    result.removeRange(0, result.length - 256);
+  }
   return result;
 }

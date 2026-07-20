@@ -236,6 +236,149 @@ void main() {
       expect(_draft().toJson().keys.toSet().intersection(forbidden), isEmpty);
     });
 
+    test('migrates historical condition lists to an in-memory all expression',
+        () {
+      final decoded = NarrativeEventDefinition.fromJson(_definition().toJson());
+
+      expect(decoded.conditionExpression, isA<NarrativeEventConditionAll>());
+      expect(decoded.conditionExpression.leaves, decoded.conditions);
+      expect(decoded.toJson().containsKey('conditionExpression'), isFalse);
+    });
+
+    test('round-trips bounded any and not expressions without losing leaves',
+        () {
+      final fact = NarrativeEventCondition.fact('intro_done', true);
+      final consumed = NarrativeEventCondition.narrativeEventConsumed(
+        _secondEventId,
+        false,
+      );
+      final expression = NarrativeEventConditionExpression.any([
+        NarrativeEventConditionExpression.leaf(fact),
+        NarrativeEventConditionExpression.not(
+          NarrativeEventConditionExpression.leaf(consumed),
+        ),
+      ]);
+      final definition = NarrativeEventDefinition(
+        id: _eventId,
+        name: 'Expression',
+        source: NarrativeEventSourceRef.mapEnter('map_port'),
+        conditions: [fact, consumed],
+        conditionExpression: expression,
+        sceneId: 'scene_arrival',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+      );
+
+      expect(definition.toJson()['conditionExpression'], expression.toJson());
+      expect(
+          NarrativeEventDefinition.fromJson(definition.toJson()), definition);
+    });
+
+    test('rejects empty nested groups, oversized depth and mismatched leaves',
+        () {
+      final fact = NarrativeEventCondition.fact('intro_done', true);
+      expect(
+        () => NarrativeEventDefinition(
+          id: _eventId,
+          name: 'Empty any',
+          source: NarrativeEventSourceRef.mapEnter('map_port'),
+          conditions: const [],
+          conditionExpression: NarrativeEventConditionExpression.any([]),
+          sceneId: 'scene_arrival',
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: 0,
+          order: 0,
+        ),
+        throwsArgumentError,
+      );
+      var tooDeep = NarrativeEventConditionExpression.leaf(fact);
+      for (var index = 0; index < 8; index++) {
+        tooDeep = NarrativeEventConditionExpression.not(tooDeep);
+      }
+      expect(
+        () => NarrativeEventDefinition(
+          id: _eventId,
+          name: 'Too deep',
+          source: NarrativeEventSourceRef.mapEnter('map_port'),
+          conditions: [fact],
+          conditionExpression: tooDeep,
+          sceneId: 'scene_arrival',
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: 0,
+          order: 0,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => NarrativeEventDefinition(
+          id: _eventId,
+          name: 'Mismatch',
+          source: NarrativeEventSourceRef.mapEnter('map_port'),
+          conditions: const [],
+          conditionExpression: NarrativeEventConditionExpression.leaf(fact),
+          sceneId: 'scene_arrival',
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: 0,
+          order: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('enforces deterministic reset policy combinations and exact outcome',
+        () {
+      final outcome = NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.scene,
+        producerId: 'scene_signal',
+        outcomeId: 'completed',
+      );
+      final reset = NarrativeEventResetPolicy.onOutcomeReceived(outcome);
+      final definition = NarrativeEventDefinition(
+        id: _eventId,
+        name: 'Reset',
+        source: NarrativeEventSourceRef.mapEnter('map_port'),
+        conditions: const [],
+        sceneId: 'scene_arrival',
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+        priority: 0,
+        order: 0,
+        resetPolicy: reset,
+      );
+
+      expect(definition.toJson()['resetPolicy'], reset.toJson());
+      expect(
+          NarrativeEventDefinition.fromJson(definition.toJson()), definition);
+      expect(
+        () => NarrativeEventDefinition(
+          id: _eventId,
+          name: 'Reusable reset',
+          source: NarrativeEventSourceRef.mapEnter('map_port'),
+          conditions: const [],
+          sceneId: 'scene_arrival',
+          reusePolicy: NarrativeEventReusePolicy.reusable,
+          priority: 0,
+          order: 0,
+          resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => NarrativeEventDefinition(
+          id: _eventId,
+          name: 'Non spatial reset',
+          source: NarrativeEventSourceRef.outcomeReceived(outcome),
+          conditions: const [],
+          sceneId: 'scene_arrival',
+          reusePolicy: NarrativeEventReusePolicy.oneShot,
+          priority: 0,
+          order: 0,
+          resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('keeps raw Phase B transitions structurally explicit', () {
       expect(
         () => compileNarrativeEventDraftStructurally(

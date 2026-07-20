@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../application/use_cases/narrative_event_builder_v2_use_case.dart';
@@ -588,7 +587,7 @@ class EventBuilderV2ConditionsSheet extends StatefulWidget {
   });
 
   final NarrativeEventBuilderV2EditorSnapshot snapshot;
-  final Future<String?> Function(List<NarrativeEventCondition> conditions)
+  final Future<String?> Function(NarrativeEventConditionExpression expression)
       onSubmit;
 
   @override
@@ -598,9 +597,16 @@ class EventBuilderV2ConditionsSheet extends StatefulWidget {
 
 class _EventBuilderV2ConditionsSheetState
     extends State<EventBuilderV2ConditionsSheet> {
-  late final List<NarrativeEventCondition> _conditions = [
-    ...widget.snapshot.conditions,
-  ];
+  late String _mode =
+      widget.snapshot.conditionExpression is NarrativeEventConditionAny
+          ? 'any'
+          : 'all';
+  late final List<NarrativeEventConditionExpression> _clauses =
+      switch (widget.snapshot.conditionExpression) {
+    NarrativeEventConditionAll(:final children) => [...children],
+    NarrativeEventConditionAny(:final children) => [...children],
+    final expression => [expression],
+  };
   String _kind = 'fact';
   String? _targetId;
   bool _expected = true;
@@ -628,26 +634,45 @@ class _EventBuilderV2ConditionsSheetState
     final target = _targetId ?? _targets.firstOrNull?.value;
     if (target == null) return;
     setState(() {
-      _conditions.add(
-        _kind == 'fact'
-            ? NarrativeEventCondition.fact(target, _expected)
-            : NarrativeEventCondition.narrativeEventConsumed(
-                target,
-                _expected,
-              ),
+      _clauses.add(
+        NarrativeEventConditionExpression.leaf(
+          _kind == 'fact'
+              ? NarrativeEventCondition.fact(target, _expected)
+              : NarrativeEventCondition.narrativeEventConsumed(
+                  target,
+                  _expected,
+                ),
+        ),
       );
     });
   }
 
   void _toggleExpectedValue(int index) {
-    final condition = _conditions[index];
+    final clause = _clauses[index];
+    final condition = _editableCondition(clause);
+    if (condition == null) return;
     final updated = condition.when(
       fact: (factId, expected) =>
           NarrativeEventCondition.fact(factId, !expected),
       narrativeEventConsumed: (eventId, expected) =>
           NarrativeEventCondition.narrativeEventConsumed(eventId, !expected),
     );
-    setState(() => _conditions[index] = updated);
+    setState(() {
+      _clauses[index] = clause is NarrativeEventConditionNot
+          ? NarrativeEventConditionExpression.not(
+              NarrativeEventConditionExpression.leaf(updated),
+            )
+          : NarrativeEventConditionExpression.leaf(updated);
+    });
+  }
+
+  void _toggleNegation(int index) {
+    setState(() {
+      final clause = _clauses[index];
+      _clauses[index] = clause is NarrativeEventConditionNot
+          ? clause.child
+          : NarrativeEventConditionExpression.not(clause);
+    });
   }
 
   Future<void> _save() async {
@@ -655,7 +680,10 @@ class _EventBuilderV2ConditionsSheetState
       _saving = true;
       _error = null;
     });
-    final error = await widget.onSubmit(List.unmodifiable(_conditions));
+    final expression = _mode == 'any'
+        ? NarrativeEventConditionExpression.any(_clauses)
+        : NarrativeEventConditionExpression.all(_clauses);
+    final error = await widget.onSubmit(expression);
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -674,19 +702,39 @@ class _EventBuilderV2ConditionsSheetState
       key: const ValueKey('event-builder-v2-conditions-sheet'),
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          'Toutes les conditions doivent être remplies, dans l’ordre affiché.',
-          style: Theme.of(context).textTheme.bodySmall,
+        PokeMapDropdownField<String>(
+          key: const ValueKey('event-builder-v2-condition-mode'),
+          label: 'Mode d’évaluation',
+          value: _mode,
+          enabled: !_saving,
+          items: const [
+            PokeMapDropdownItem(
+              value: 'all',
+              label: 'Toutes doivent être remplies',
+            ),
+            PokeMapDropdownItem(
+              value: 'any',
+              label: 'Au moins une doit être remplie',
+            ),
+          ],
+          onChanged: (value) => setState(() => _mode = value),
+        ),
+        const SizedBox(height: 8),
+        const PokeMapDiagnosticCallout(
+          severity: PokeMapDiagnosticSeverity.info,
+          title: 'Groupes logiques bornés',
+          message: 'Chaque ligne est une clause. Inversez une clause avec NON; '
+              'les groupes imbriqués existants sont conservés.',
         ),
         const SizedBox(height: 12),
-        for (var index = 0; index < _conditions.length; index++) ...[
+        for (var index = 0; index < _clauses.length; index++) ...[
           PokeMapCard(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  _conditionLabel(widget.snapshot, _conditions[index]),
+                  _expressionClauseLabel(widget.snapshot, _clauses[index]),
                   style: const TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -705,8 +753,8 @@ class _EventBuilderV2ConditionsSheetState
                         onPressed: index == 0
                             ? null
                             : () => setState(() {
-                                  final condition = _conditions.removeAt(index);
-                                  _conditions.insert(index - 1, condition);
+                                  final clause = _clauses.removeAt(index);
+                                  _clauses.insert(index - 1, clause);
                                 }),
                         icon: const Icon(CupertinoIcons.arrow_up),
                         tooltip: 'Monter la condition',
@@ -716,11 +764,11 @@ class _EventBuilderV2ConditionsSheetState
                         key: ValueKey(
                           'event-builder-v2-move-condition-down-$index',
                         ),
-                        onPressed: index == _conditions.length - 1
+                        onPressed: index == _clauses.length - 1
                             ? null
                             : () => setState(() {
-                                  final condition = _conditions.removeAt(index);
-                                  _conditions.insert(index + 1, condition);
+                                  final clause = _clauses.removeAt(index);
+                                  _clauses.insert(index + 1, clause);
                                 }),
                         icon: const Icon(CupertinoIcons.arrow_down),
                         tooltip: 'Descendre la condition',
@@ -737,10 +785,19 @@ class _EventBuilderV2ConditionsSheetState
                       ),
                       PokeMapIconButton(
                         key: ValueKey(
+                          'event-builder-v2-negate-condition-$index',
+                        ),
+                        onPressed: () => _toggleNegation(index),
+                        icon: const Icon(CupertinoIcons.exclamationmark),
+                        tooltip: 'Ajouter ou retirer NON',
+                        size: 28,
+                      ),
+                      PokeMapIconButton(
+                        key: ValueKey(
                           'event-builder-v2-delete-condition-$index',
                         ),
                         onPressed: () =>
-                            setState(() => _conditions.removeAt(index)),
+                            setState(() => _clauses.removeAt(index)),
                         icon: const Icon(CupertinoIcons.delete),
                         tooltip: 'Supprimer la condition',
                         variant: PokeMapIconButtonVariant.danger,
@@ -832,12 +889,14 @@ final class EventBuilderV2BehaviorUpdate {
   const EventBuilderV2BehaviorUpdate({
     required this.name,
     required this.reusePolicy,
+    required this.resetPolicy,
     required this.priority,
     required this.order,
   });
 
   final String name;
   final NarrativeEventReusePolicy? reusePolicy;
+  final NarrativeEventResetPolicy resetPolicy;
   final int priority;
   final int order;
 }
@@ -849,12 +908,14 @@ class EventBuilderV2BehaviorSheet extends StatefulWidget {
     required this.onSave,
     required this.onPublish,
     required this.onSetEnabled,
+    this.outcomeSources = const [],
   });
 
   final NarrativeEventRecord record;
   final Future<String?> Function(EventBuilderV2BehaviorUpdate update) onSave;
   final Future<String?> Function() onPublish;
   final Future<String?> Function(bool enabled) onSetEnabled;
+  final List<NarrativeOutcomeEventSourceOption> outcomeSources;
 
   @override
   State<EventBuilderV2BehaviorSheet> createState() =>
@@ -876,6 +937,29 @@ class _EventBuilderV2BehaviorSheetState
     NarrativeEventReusePolicy.oneShot => 'oneShot',
     NarrativeEventReusePolicy.reusable => 'reusable',
     null => 'later',
+  };
+  late final List<({String id, String label, NarrativeOutcomeRef outcome})>
+      _outcomes = [
+    for (var index = 0; index < widget.outcomeSources.length; index++)
+      if (widget.outcomeSources[index].outcome case final outcome?)
+        (
+          id: 'outcome_$index',
+          label:
+              '${widget.outcomeSources[index].producerLabel} · ${widget.outcomeSources[index].outcomeLabel}',
+          outcome: outcome,
+        ),
+  ];
+  late String _reset = switch (_recordReset(widget.record)) {
+    NarrativeEventResetOnMapReentry() => 'mapReentry',
+    NarrativeEventResetOnOutcomeReceived() => 'outcome',
+    _ => 'never',
+  };
+  late String? _resetOutcomeId = switch (_recordReset(widget.record)) {
+    NarrativeEventResetOnOutcomeReceived(:final outcome) => _outcomes
+        .where((entry) => entry.outcome == outcome)
+        .map((entry) => entry.id)
+        .firstOrNull,
+    _ => null,
   };
 
   bool _saving = false;
@@ -912,6 +996,12 @@ class _EventBuilderV2BehaviorSheetState
       setState(() => _error = 'Vérifiez le nom, la priorité et l’ordre.');
       return;
     }
+    final selectedOutcome =
+        _outcomes.where((entry) => entry.id == _resetOutcomeId).firstOrNull;
+    if (_reset == 'outcome' && selectedOutcome == null) {
+      setState(() => _error = 'Choisissez un résultat qualifié à recevoir.');
+      return;
+    }
     await _perform(
       () => widget.onSave(
         EventBuilderV2BehaviorUpdate(
@@ -920,6 +1010,13 @@ class _EventBuilderV2BehaviorSheetState
             'oneShot' => NarrativeEventReusePolicy.oneShot,
             'reusable' => NarrativeEventReusePolicy.reusable,
             _ => null,
+          },
+          resetPolicy: switch (_reset) {
+            'mapReentry' => const NarrativeEventResetPolicy.onMapReentry(),
+            'outcome' => NarrativeEventResetPolicy.onOutcomeReceived(
+                selectedOutcome!.outcome,
+              ),
+            _ => const NarrativeEventResetPolicy.never(),
           },
           priority: priority,
           order: order,
@@ -960,8 +1057,57 @@ class _EventBuilderV2BehaviorSheetState
               label: 'Réutilisable',
             ),
           ],
-          onChanged: (value) => setState(() => _reuse = value),
+          onChanged: (value) => setState(() {
+            _reuse = value;
+            if (value != 'oneShot') _reset = 'never';
+          }),
         ),
+        const SizedBox(height: 12),
+        PokeMapDropdownField<String>(
+          key: const ValueKey('event-builder-v2-reset-policy'),
+          label: 'Réarmement',
+          value: _reset,
+          enabled: !_saving && _reuse == 'oneShot',
+          items: [
+            const PokeMapDropdownItem(
+              value: 'never',
+              label: 'Jamais',
+            ),
+            if (_recordSource(widget.record)?.kind !=
+                NarrativeEventSourceKind.outcomeReceived)
+              const PokeMapDropdownItem(
+                value: 'mapReentry',
+                label: 'À la vraie réentrée sur la map',
+              ),
+            if (_outcomes.isNotEmpty)
+              const PokeMapDropdownItem(
+                value: 'outcome',
+                label: 'À la réception d’un résultat',
+              ),
+          ],
+          onChanged: (value) => setState(() => _reset = value),
+        ),
+        if (_reset == 'outcome') ...[
+          const SizedBox(height: 12),
+          PokeMapDropdownField<String>(
+            key: const ValueKey('event-builder-v2-reset-outcome'),
+            label: 'Résultat qualifié',
+            value: _resetOutcomeId ?? _outcomes.firstOrNull?.id ?? 'none',
+            enabled: !_saving && _reuse == 'oneShot',
+            items: _outcomes.isEmpty
+                ? const [
+                    PokeMapDropdownItem(
+                      value: 'none',
+                      label: 'Résultat référencé indisponible',
+                    ),
+                  ]
+                : [
+                    for (final entry in _outcomes)
+                      PokeMapDropdownItem(value: entry.id, label: entry.label),
+                  ],
+            onChanged: (value) => setState(() => _resetOutcomeId = value),
+          ),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [
@@ -1036,6 +1182,14 @@ int _recordOrder(NarrativeEventRecord record) =>
 NarrativeEventReusePolicy? _recordReuse(NarrativeEventRecord record) =>
     record.draftOrNull?.reusePolicy ?? record.definitionOrNull?.reusePolicy;
 
+NarrativeEventResetPolicy _recordReset(NarrativeEventRecord record) =>
+    record.draftOrNull?.resetPolicy ??
+    record.definitionOrNull?.resetPolicy ??
+    const NarrativeEventResetPolicy.never();
+
+NarrativeEventSourceRef? _recordSource(NarrativeEventRecord record) =>
+    record.draftOrNull?.source ?? record.definitionOrNull?.source;
+
 String _conditionLabel(
   NarrativeEventBuilderV2EditorSnapshot snapshot,
   NarrativeEventCondition condition,
@@ -1058,4 +1212,33 @@ String _conditionLabel(
       return '$label déjà joué = ${expected ? 'Vrai' : 'Faux'}';
     },
   );
+}
+
+NarrativeEventCondition? _editableCondition(
+  NarrativeEventConditionExpression expression,
+) {
+  return switch (expression) {
+    NarrativeEventConditionLeaf(:final condition) => condition,
+    NarrativeEventConditionNot(
+      child: NarrativeEventConditionLeaf(:final condition),
+    ) =>
+      condition,
+    _ => null,
+  };
+}
+
+String _expressionClauseLabel(
+  NarrativeEventBuilderV2EditorSnapshot snapshot,
+  NarrativeEventConditionExpression expression,
+) {
+  return switch (expression) {
+    NarrativeEventConditionLeaf(:final condition) =>
+      _conditionLabel(snapshot, condition),
+    NarrativeEventConditionNot(:final child) =>
+      'NON (${_expressionClauseLabel(snapshot, child)})',
+    NarrativeEventConditionAll(:final children) =>
+      'Toutes (${children.length} clause${children.length == 1 ? '' : 's'})',
+    NarrativeEventConditionAny(:final children) =>
+      'Au moins une (${children.length} clause${children.length == 1 ? '' : 's'})',
+  };
 }

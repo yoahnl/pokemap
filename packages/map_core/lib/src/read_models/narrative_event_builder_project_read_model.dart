@@ -189,6 +189,7 @@ final class NarrativeEventConditionsSummary {
     required this.unresolvedCount,
     required String humanLabel,
     List<NarrativeEventConditionDetailSummary> details = const [],
+    this.expressionKind,
   })  : humanLabel = _identity(humanLabel, 'humanLabel'),
         details = List.unmodifiable(details);
 
@@ -197,12 +198,14 @@ final class NarrativeEventConditionsSummary {
   final int unresolvedCount;
   final String humanLabel;
   final List<NarrativeEventConditionDetailSummary> details;
+  final NarrativeEventConditionExpressionKind? expressionKind;
 
   Map<String, Object?> toDebugJson() => {
         'count': count,
         'valid': valid,
         'unresolvedCount': unresolvedCount,
         'humanLabel': humanLabel,
+        if (expressionKind != null) 'expressionKind': expressionKind!.name,
         'details': [for (final detail in details) detail.toDebugJson()],
       };
 }
@@ -216,6 +219,7 @@ final class NarrativeEventLifecycleSummary {
     this.priority,
     this.order,
     this.activeCandidateCount = 0,
+    this.resetPolicy,
   }) : humanLabel = _identity(humanLabel, 'humanLabel');
 
   final NarrativeEventReusePolicy? reusePolicy;
@@ -224,6 +228,7 @@ final class NarrativeEventLifecycleSummary {
   final int? priority;
   final int? order;
   final int activeCandidateCount;
+  final NarrativeEventResetPolicy? resetPolicy;
 
   bool get hasActiveCompetition => activeCandidateCount > 1;
 
@@ -234,6 +239,8 @@ final class NarrativeEventLifecycleSummary {
         if (priority != null) 'priority': priority,
         if (order != null) 'order': order,
         'activeCandidateCount': activeCandidateCount,
+        if (resetPolicy is! NarrativeEventResetNever && resetPolicy != null)
+          'resetPolicy': resetPolicy!.toJson(),
       };
 }
 
@@ -740,6 +747,7 @@ NarrativeEventProjectSummary _buildV2Summary({
   final scene = indexes.sceneSummary(sceneId);
   final conditions = indexes.conditionsSummary(
     definition?.conditions ?? draft?.conditions ?? const [],
+    expression: definition?.conditionExpression ?? draft?.conditionExpression,
   );
   final lifecycle = _lifecycleSummary(
     definition?.reusePolicy ?? draft?.reusePolicy,
@@ -747,6 +755,7 @@ NarrativeEventProjectSummary _buildV2Summary({
     priority: definition?.priority ?? draft?.priority,
     order: definition?.order ?? draft?.order,
     activeCandidateCount: indexes.activeCandidateCount(sourceRef),
+    resetPolicy: definition?.resetPolicy ?? draft?.resetPolicy,
   );
   final diagnostics = indexes.diagnosticsForEvent(record.id);
 
@@ -1333,8 +1342,9 @@ final class _ProjectReadIndexes {
   }
 
   NarrativeEventConditionsSummary conditionsSummary(
-    List<NarrativeEventCondition> conditions,
-  ) {
+    List<NarrativeEventCondition> conditions, {
+    NarrativeEventConditionExpression? expression,
+  }) {
     var unresolved = 0;
     final details = <NarrativeEventConditionDetailSummary>[];
     for (final condition in conditions) {
@@ -1382,14 +1392,23 @@ final class _ProjectReadIndexes {
         },
       );
     }
+    final baseLabel = unresolved == 0
+        ? _conditionLabel(conditions.length)
+        : '$unresolved référence${unresolved == 1 ? '' : 's'} à corriger';
+    final expressionLabel = switch (expression) {
+      NarrativeEventConditionAny() => 'Au moins une',
+      NarrativeEventConditionNot() => 'Expression groupée',
+      NarrativeEventConditionAll() => 'Toutes',
+      _ => null,
+    };
     return NarrativeEventConditionsSummary(
       count: conditions.length,
       valid: unresolved == 0,
       unresolvedCount: unresolved,
-      humanLabel: unresolved == 0
-          ? _conditionLabel(conditions.length)
-          : '$unresolved référence${unresolved == 1 ? '' : 's'} à corriger',
+      humanLabel:
+          expressionLabel == null ? baseLabel : '$expressionLabel · $baseLabel',
       details: details,
+      expressionKind: expression?.kind,
     );
   }
 
@@ -1892,6 +1911,7 @@ NarrativeEventLifecycleSummary _lifecycleSummary(
   int? priority,
   int? order,
   int activeCandidateCount = 0,
+  NarrativeEventResetPolicy? resetPolicy,
 }) {
   return NarrativeEventLifecycleSummary(
     reusePolicy: policy,
@@ -1899,6 +1919,7 @@ NarrativeEventLifecycleSummary _lifecycleSummary(
     priority: priority,
     order: order,
     activeCandidateCount: activeCandidateCount,
+    resetPolicy: resetPolicy,
     humanLabel: switch (policy) {
       NarrativeEventReusePolicy.oneShot => 'Une seule fois',
       NarrativeEventReusePolicy.reusable => 'Réutilisable',

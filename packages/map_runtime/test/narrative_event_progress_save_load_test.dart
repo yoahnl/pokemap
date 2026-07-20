@@ -35,6 +35,12 @@ void main() {
         narrativeEventProgress: NarrativeEventProgress(
           consumedNarrativeEventIds: const {_eventId},
           pendingNarrativeOutcomeDeliveries: [delivery],
+          activeNarrativeMapId: 'map_port',
+          visitedNarrativeMapIds: const {'map_port', 'map_forest'},
+          appliedNarrativeResetTokens: const [
+            'map:activation-1',
+            'outcome:delivery-1',
+          ],
         ),
       );
 
@@ -49,6 +55,13 @@ void main() {
         loaded?.narrativeEventProgress.pendingNarrativeOutcomeDeliveries,
         [delivery],
       );
+      expect(loaded?.narrativeEventProgress.activeNarrativeMapId, 'map_port');
+      expect(loaded?.narrativeEventProgress.visitedNarrativeMapIds,
+          {'map_port', 'map_forest'});
+      expect(loaded?.narrativeEventProgress.appliedNarrativeResetTokens, [
+        'map:activation-1',
+        'outcome:delivery-1',
+      ]);
     });
 
     test('old GameState without progress loads an empty V2 namespace',

@@ -1043,6 +1043,7 @@ final class _NarrativeDependencyIndexBuilder {
           if (source != null) {
             _collectEventSource(owner, draft.id, source);
           }
+          _collectEventResetPolicy(owner, draft.id, draft.resetPolicy);
           for (var index = 0; index < draft.conditions.length; index++) {
             _collectEventCondition(
               owner,
@@ -1057,6 +1058,11 @@ final class _NarrativeDependencyIndexBuilder {
         configured: (definition, _) {
           final owner = _eventKey(definition.id);
           _collectEventSource(owner, definition.id, definition.source);
+          _collectEventResetPolicy(
+            owner,
+            definition.id,
+            definition.resetPolicy,
+          );
           for (var index = 0; index < definition.conditions.length; index++) {
             _collectEventCondition(
               owner,
@@ -1081,6 +1087,20 @@ final class _NarrativeDependencyIndexBuilder {
       source,
       'eventRegistry.records[$eventId].source',
     );
+  }
+
+  void _collectEventResetPolicy(
+    NarrativeDependencyKey owner,
+    String eventId,
+    NarrativeEventResetPolicy policy,
+  ) {
+    if (policy case NarrativeEventResetOnOutcomeReceived(:final outcome)) {
+      _collectNarrativeEventSource(
+        owner,
+        NarrativeEventSourceRef.outcomeReceived(outcome),
+        'eventRegistry.records[$eventId].resetPolicy',
+      );
+    }
   }
 
   void _collectNarrativeEventSource(

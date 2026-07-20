@@ -79,6 +79,43 @@ void main() {
       );
     });
 
+    test('indexes the qualified producer used by an outcome reset policy', () {
+      final outcome = NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.scene,
+        producerId: 'scene.signal',
+        outcomeId: 'completed',
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project(
+          maps: const [
+            ProjectMapEntry(
+              id: 'map.port',
+              name: 'Port',
+              relativePath: 'maps/port.json',
+            ),
+          ],
+          scenes: [_emptyScene('scene.event'), _emptyScene('scene.signal')],
+          eventRegistry: _registry([
+            _event(
+              id: _eventA,
+              sceneId: 'scene.event',
+              source: NarrativeEventSourceRef.mapEnter('map.port'),
+              resetPolicy: NarrativeEventResetPolicy.onOutcomeReceived(outcome),
+            ),
+          ]),
+        ),
+      );
+
+      expect(
+        index
+            .usagesFor(const NarrativeDependencyKey.scene('scene.signal'))
+            .map((usage) => usage.path),
+        contains(
+          'eventRegistry.records[$_eventA].resetPolicy.outcome.producerId#completed',
+        ),
+      );
+    });
+
     test('sorts definitions and usages and supports both query directions', () {
       const factA = NarrativeDependencyKey(
         NarrativeDependencyTargetKind.fact,
@@ -2841,6 +2878,8 @@ NarrativeEventDefinition _event({
   required String sceneId,
   required NarrativeEventSourceRef source,
   List<NarrativeEventCondition> conditions = const <NarrativeEventCondition>[],
+  NarrativeEventResetPolicy resetPolicy =
+      const NarrativeEventResetPolicy.never(),
 }) {
   return NarrativeEventDefinition(
     id: id,
@@ -2851,6 +2890,7 @@ NarrativeEventDefinition _event({
     reusePolicy: NarrativeEventReusePolicy.oneShot,
     priority: 0,
     order: 0,
+    resetPolicy: resetPolicy,
   );
 }
 

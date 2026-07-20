@@ -163,6 +163,9 @@ final class NarrativeEventExecutionCancelled
 typedef NarrativeExecutionIdFactory = String Function();
 typedef NarrativeCorrelationIdFactory = String Function();
 typedef NarrativeDeliveryIdFactory = String Function();
+typedef NarrativeEventPrePlanStateTransform = GameState Function(
+  GameState gameState,
+);
 
 final class NarrativeEventExecutionCoordinator {
   NarrativeEventExecutionCoordinator({
@@ -173,13 +176,15 @@ final class NarrativeEventExecutionCoordinator {
     required NarrativeExecutionIdFactory executionIdFactory,
     required NarrativeCorrelationIdFactory correlationIdFactory,
     required NarrativeDeliveryIdFactory deliveryIdFactory,
+    NarrativeEventPrePlanStateTransform? beforePlan,
   })  : _stateTransactions = stateTransactions,
         _planner = planner,
         _executeScene = executeScene,
         _activityPort = activityPort,
         _executionIdFactory = executionIdFactory,
         _correlationIdFactory = correlationIdFactory,
-        _deliveryIdFactory = deliveryIdFactory;
+        _deliveryIdFactory = deliveryIdFactory,
+        _beforePlan = beforePlan;
 
   final NarrativeEventStateTransactions _stateTransactions;
   final NarrativeEventDispatchPlanner _planner;
@@ -188,6 +193,7 @@ final class NarrativeEventExecutionCoordinator {
   final NarrativeExecutionIdFactory _executionIdFactory;
   final NarrativeCorrelationIdFactory _correlationIdFactory;
   final NarrativeDeliveryIdFactory _deliveryIdFactory;
+  final NarrativeEventPrePlanStateTransform? _beforePlan;
 
   Future<NarrativeEventExecutionResult> execute({
     required NarrativeEventDispatchAuthorityReady authority,
@@ -221,20 +227,23 @@ final class NarrativeEventExecutionCoordinator {
     GameState gameState,
     Set<String> inFlightNarrativeEventIds,
   ) async {
+    final planningState = _beforePlan?.call(gameState) ?? gameState;
     final decision = _planner.plan(
       authority: authority,
-      gameState: gameState,
+      gameState: planningState,
       inFlightNarrativeEventIds: inFlightNarrativeEventIds,
     );
     if (decision is NarrativeEventDispatchNoMatch) {
-      return NarrativeEventStateTransaction.rollback(
-        NarrativeEventExecutionNoMatch(decision),
-      );
+      final result = NarrativeEventExecutionNoMatch(decision);
+      return planningState == gameState
+          ? NarrativeEventStateTransaction.rollback(result)
+          : NarrativeEventStateTransaction.commit(planningState, result);
     }
     if (decision is NarrativeEventDispatchClaimedButIneligible) {
-      return NarrativeEventStateTransaction.rollback(
-        NarrativeEventExecutionClaimedButIneligible(decision),
-      );
+      final result = NarrativeEventExecutionClaimedButIneligible(decision);
+      return planningState == gameState
+          ? NarrativeEventStateTransaction.rollback(result)
+          : NarrativeEventStateTransaction.commit(planningState, result);
     }
     final handled = decision as NarrativeEventDispatchHandled;
     final executionId = _executionIdFactory();
@@ -249,7 +258,7 @@ final class NarrativeEventExecutionCoordinator {
             eventId: handled.eventId,
             sceneId: handled.sceneId,
             executionId: executionId,
-            gameState: gameState,
+            gameState: planningState,
           ),
         ),
       );
@@ -326,11 +335,9 @@ final class NarrativeEventExecutionCoordinator {
         ),
     ];
     return completed.updatedGameState.copyWith(
-      narrativeEventProgress: NarrativeEventProgress(
+      narrativeEventProgress: progress.copyWith(
         consumedNarrativeEventIds: consumed,
         pendingNarrativeOutcomeDeliveries: pending,
-        deliveredNarrativeOutcomeDeliveryIds:
-            progress.deliveredNarrativeOutcomeDeliveryIds,
       ),
     );
   }

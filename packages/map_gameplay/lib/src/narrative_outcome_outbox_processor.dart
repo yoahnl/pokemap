@@ -431,8 +431,7 @@ final class NarrativeOutcomeOutboxProcessor {
       delivery.deliveryId,
     };
     final updatedState = baseState.copyWith(
-      narrativeEventProgress: NarrativeEventProgress(
-        consumedNarrativeEventIds: callbackProgress.consumedNarrativeEventIds,
+      narrativeEventProgress: callbackProgress.copyWith(
         pendingNarrativeOutcomeDeliveries: [
           for (final pending
               in callbackProgress.pendingNarrativeOutcomeDeliveries)
@@ -480,7 +479,7 @@ final class NarrativeOutcomeOutboxProcessor {
     required Set<String> delivered,
   }) {
     return snapshot.replaceProgress(
-      NarrativeEventProgress(
+      snapshot.gameState.narrativeEventProgress.copyWith(
         consumedNarrativeEventIds: snapshot.consumedNarrativeEventIds,
         pendingNarrativeOutcomeDeliveries: pending,
         deliveredNarrativeOutcomeDeliveryIds: delivered,

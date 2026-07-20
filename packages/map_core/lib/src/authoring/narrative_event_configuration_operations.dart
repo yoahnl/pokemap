@@ -203,6 +203,53 @@ NarrativeEventAuthoringResult setNarrativeEventConditions({
   return _applyConfiguration(target, nextRecord);
 }
 
+NarrativeEventAuthoringResult setNarrativeEventConditionExpression({
+  required NarrativeEventAuthoringContext context,
+  required String expectedRevision,
+  required String eventId,
+  required NarrativeEventConditionExpression expression,
+}) {
+  final target = _configurationTarget(
+    context: context,
+    expectedRevision: expectedRevision,
+    eventId: eventId,
+    mutation: NarrativeEventAuthoringMutation.setConditionExpression,
+  );
+  if (target.rejection != null) return target.rejection!;
+  final current = _EditableNarrativeEvent.fromRecord(target.record!);
+  if (current.conditionExpression == expression) {
+    return _noOpConfiguration(target);
+  }
+  if (current.enabled) {
+    return _mustDisableFirst(target, 'modifier son expression de conditions');
+  }
+  final issue = validateNarrativeEventAuthoringConditions(
+    context: context,
+    eventId: eventId,
+    conditions: expression.leaves,
+  );
+  if (issue != null) return _rejectConfiguration(target, issue);
+  try {
+    final nextRecord =
+        current.copyWith(conditionExpression: expression).toOriginalState();
+    final catalogRejection = _configurationCatalogRejection(
+      target,
+      projectedRecord: nextRecord,
+    );
+    if (catalogRejection != null) return catalogRejection;
+    return _applyConfiguration(target, nextRecord);
+  } on ArgumentError catch (error) {
+    return _rejectConfiguration(
+      target,
+      NarrativeEventAuthoringDiagnostic(
+        code: 'invalidConditionExpression',
+        message: error.message?.toString() ?? 'Expression invalide.',
+        path: 'conditionExpression',
+      ),
+    );
+  }
+}
+
 NarrativeEventAuthoringResult setNarrativeEventScene({
   required NarrativeEventAuthoringContext context,
   required String expectedRevision,
@@ -286,10 +333,61 @@ NarrativeEventAuthoringResult setNarrativeEventReusePolicy({
   if (current.enabled) {
     return _mustDisableFirst(target, 'changer son comportement');
   }
+  if (reusePolicy == NarrativeEventReusePolicy.reusable &&
+      current.resetPolicy is! NarrativeEventResetNever) {
+    return _rejectConfiguration(
+      target,
+      NarrativeEventAuthoringDiagnostic(
+        code: 'resetRequiresOneShot',
+        message:
+            'Une politique de réarmement nécessite un événement à usage unique.',
+        path: 'resetPolicy',
+      ),
+    );
+  }
   return _applyConfiguration(
     target,
     current.copyWith(reusePolicy: reusePolicy).toOriginalState(),
   );
+}
+
+NarrativeEventAuthoringResult setNarrativeEventResetPolicy({
+  required NarrativeEventAuthoringContext context,
+  required String expectedRevision,
+  required String eventId,
+  required NarrativeEventResetPolicy resetPolicy,
+}) {
+  final target = _configurationTarget(
+    context: context,
+    expectedRevision: expectedRevision,
+    eventId: eventId,
+    mutation: NarrativeEventAuthoringMutation.setResetPolicy,
+  );
+  if (target.rejection != null) return target.rejection!;
+  final current = _EditableNarrativeEvent.fromRecord(target.record!);
+  if (current.resetPolicy == resetPolicy) return _noOpConfiguration(target);
+  if (current.enabled) {
+    return _mustDisableFirst(target, 'changer son réarmement');
+  }
+  try {
+    final nextRecord =
+        current.copyWith(resetPolicy: resetPolicy).toOriginalState();
+    final catalogRejection = _configurationCatalogRejection(
+      target,
+      projectedRecord: nextRecord,
+    );
+    if (catalogRejection != null) return catalogRejection;
+    return _applyConfiguration(target, nextRecord);
+  } on ArgumentError catch (error) {
+    return _rejectConfiguration(
+      target,
+      NarrativeEventAuthoringDiagnostic(
+        code: 'invalidResetPolicy',
+        message: error.message?.toString() ?? 'Réarmement invalide.',
+        path: 'resetPolicy',
+      ),
+    );
+  }
 }
 
 NarrativeEventAuthoringResult setNarrativeEventPriority({
@@ -524,10 +622,12 @@ final class _EditableNarrativeEvent {
     required this.name,
     required this.source,
     required this.conditions,
+    required this.conditionExpression,
     required this.sceneId,
     required this.reusePolicy,
     required this.priority,
     required this.order,
+    required this.resetPolicy,
     required this.configured,
     required this.enabled,
   });
@@ -539,10 +639,12 @@ final class _EditableNarrativeEvent {
         name: draft.name,
         source: draft.source,
         conditions: draft.conditions,
+        conditionExpression: draft.conditionExpression,
         sceneId: draft.sceneId,
         reusePolicy: draft.reusePolicy,
         priority: draft.priority,
         order: draft.order,
+        resetPolicy: draft.resetPolicy,
         configured: false,
         enabled: false,
       ),
@@ -551,10 +653,12 @@ final class _EditableNarrativeEvent {
         name: definition.name,
         source: definition.source,
         conditions: definition.conditions,
+        conditionExpression: definition.conditionExpression,
         sceneId: definition.sceneId,
         reusePolicy: definition.reusePolicy,
         priority: definition.priority,
         order: definition.order,
+        resetPolicy: definition.resetPolicy,
         configured: true,
         enabled: enabled,
       ),
@@ -565,32 +669,48 @@ final class _EditableNarrativeEvent {
   final String name;
   final NarrativeEventSourceRef? source;
   final List<NarrativeEventCondition> conditions;
+  final NarrativeEventConditionExpression conditionExpression;
   final String? sceneId;
   final NarrativeEventReusePolicy? reusePolicy;
   final int priority;
   final int order;
+  final NarrativeEventResetPolicy resetPolicy;
   final bool configured;
   final bool enabled;
 
   _EditableNarrativeEvent copyWith({
     String? name,
     List<NarrativeEventCondition>? conditions,
+    NarrativeEventConditionExpression? conditionExpression,
     Object? sceneId = _notSet,
     Object? reusePolicy = _notSet,
     int? priority,
     int? order,
+    NarrativeEventResetPolicy? resetPolicy,
   }) {
+    final nextConditions = List<NarrativeEventCondition>.unmodifiable(
+      conditionExpression?.leaves ?? conditions ?? this.conditions,
+    );
+    final nextExpression = conditionExpression ??
+        (conditions == null
+            ? this.conditionExpression
+            : NarrativeEventConditionExpression.all([
+                for (final condition in conditions)
+                  NarrativeEventConditionExpression.leaf(condition),
+              ]));
     return _EditableNarrativeEvent(
       id: id,
       name: name ?? this.name,
       source: source,
-      conditions: List.unmodifiable(conditions ?? this.conditions),
+      conditions: nextConditions,
+      conditionExpression: nextExpression,
       sceneId: identical(sceneId, _notSet) ? this.sceneId : sceneId as String?,
       reusePolicy: identical(reusePolicy, _notSet)
           ? this.reusePolicy
           : reusePolicy as NarrativeEventReusePolicy?,
       priority: priority ?? this.priority,
       order: order ?? this.order,
+      resetPolicy: resetPolicy ?? this.resetPolicy,
       configured: configured,
       enabled: enabled,
     );
@@ -604,10 +724,12 @@ final class _EditableNarrativeEvent {
         name: name,
         source: source!,
         conditions: conditions,
+        conditionExpression: conditionExpression,
         sceneId: sceneId!,
         reusePolicy: reusePolicy!,
         priority: priority,
         order: order,
+        resetPolicy: resetPolicy,
       ),
       enabled: enabled,
     );
@@ -620,10 +742,12 @@ final class _EditableNarrativeEvent {
         name: name,
         source: source,
         conditions: conditions,
+        conditionExpression: conditionExpression,
         sceneId: sceneId,
         reusePolicy: reusePolicy,
         priority: priority,
         order: order,
+        resetPolicy: resetPolicy,
       ),
     );
   }

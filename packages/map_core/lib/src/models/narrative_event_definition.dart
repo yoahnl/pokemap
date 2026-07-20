@@ -23,6 +23,8 @@ const Set<String> _definitionWireFields = {
   'reusePolicy',
   'priority',
   'order',
+  'conditionExpression',
+  'resetPolicy',
 };
 
 const Set<String> _definitionKnownFields = {
@@ -33,17 +35,6 @@ const Set<String> _definitionKnownFields = {
   'definition',
 };
 
-const Set<String> _draftWireFields = {
-  'id',
-  'name',
-  'source',
-  'conditions',
-  'sceneId',
-  'reusePolicy',
-  'priority',
-  'order',
-};
-
 const Set<String> _recordWireFields = {
   'state',
   'draft',
@@ -52,6 +43,218 @@ const Set<String> _recordWireFields = {
 };
 
 enum NarrativeEventReusePolicy { oneShot, reusable }
+
+enum NarrativeEventConditionExpressionKind { leaf, all, any, not }
+
+/// Bounded boolean expression used by authoring and runtime dispatch.
+///
+/// Historical `conditions` lists are represented as `all(leaves)` in memory.
+/// Empty root `all` is the intentional unconditional Event; nested empty
+/// groups are rejected so the UI cannot create surprising constants.
+@immutable
+sealed class NarrativeEventConditionExpression {
+  const NarrativeEventConditionExpression._();
+
+  factory NarrativeEventConditionExpression.leaf(
+    NarrativeEventCondition condition,
+  ) = NarrativeEventConditionLeaf;
+
+  factory NarrativeEventConditionExpression.all(
+    List<NarrativeEventConditionExpression> children,
+  ) = NarrativeEventConditionAll;
+
+  factory NarrativeEventConditionExpression.any(
+    List<NarrativeEventConditionExpression> children,
+  ) = NarrativeEventConditionAny;
+
+  factory NarrativeEventConditionExpression.not(
+    NarrativeEventConditionExpression child,
+  ) = NarrativeEventConditionNot;
+
+  factory NarrativeEventConditionExpression.fromJson(Object? json) {
+    final object = NarrativeEventWire.object(json, path: 'conditionExpression');
+    final kind = NarrativeEventWire.requiredString(
+      object,
+      'kind',
+      path: 'conditionExpression',
+    );
+    return switch (kind) {
+      'leaf' => _decodeExpressionLeaf(object),
+      'all' => NarrativeEventConditionExpression.all(
+          _decodeExpressionChildren(object),
+        ),
+      'any' => NarrativeEventConditionExpression.any(
+          _decodeExpressionChildren(object),
+        ),
+      'not' => _decodeExpressionNot(object),
+      _ => NarrativeEventWire.unsupported(
+          'Unknown condition expression kind "$kind".',
+          path: 'conditionExpression.kind',
+          source: kind,
+        ),
+    };
+  }
+
+  NarrativeEventConditionExpressionKind get kind;
+  List<NarrativeEventCondition> get leaves;
+  Map<String, Object?> toJson();
+}
+
+final class NarrativeEventConditionLeaf
+    extends NarrativeEventConditionExpression {
+  const NarrativeEventConditionLeaf(this.condition) : super._();
+
+  final NarrativeEventCondition condition;
+  @override
+  NarrativeEventConditionExpressionKind get kind =>
+      NarrativeEventConditionExpressionKind.leaf;
+  @override
+  List<NarrativeEventCondition> get leaves => [condition];
+  @override
+  Map<String, Object?> toJson() => {
+        'kind': 'leaf',
+        'condition': condition.toJson(),
+      };
+
+  @override
+  bool operator ==(Object other) =>
+      other is NarrativeEventConditionLeaf && other.condition == condition;
+  @override
+  int get hashCode => Object.hash(kind, condition);
+}
+
+sealed class _NarrativeEventConditionGroup
+    extends NarrativeEventConditionExpression {
+  _NarrativeEventConditionGroup(List<NarrativeEventConditionExpression> values)
+      : children = List.unmodifiable(values),
+        super._();
+
+  final List<NarrativeEventConditionExpression> children;
+  @override
+  List<NarrativeEventCondition> get leaves =>
+      List.unmodifiable(children.expand((child) => child.leaves));
+
+  @override
+  bool operator ==(Object other) =>
+      other is _NarrativeEventConditionGroup &&
+      other.kind == kind &&
+      _listEquals(other.children, children);
+  @override
+  int get hashCode => Object.hash(kind, Object.hashAll(children));
+}
+
+final class NarrativeEventConditionAll extends _NarrativeEventConditionGroup {
+  NarrativeEventConditionAll(super.children);
+  @override
+  NarrativeEventConditionExpressionKind get kind =>
+      NarrativeEventConditionExpressionKind.all;
+  @override
+  Map<String, Object?> toJson() => {
+        'kind': 'all',
+        'children': [for (final child in children) child.toJson()],
+      };
+}
+
+final class NarrativeEventConditionAny extends _NarrativeEventConditionGroup {
+  NarrativeEventConditionAny(super.children);
+  @override
+  NarrativeEventConditionExpressionKind get kind =>
+      NarrativeEventConditionExpressionKind.any;
+  @override
+  Map<String, Object?> toJson() => {
+        'kind': 'any',
+        'children': [for (final child in children) child.toJson()],
+      };
+}
+
+final class NarrativeEventConditionNot
+    extends NarrativeEventConditionExpression {
+  const NarrativeEventConditionNot(this.child) : super._();
+
+  final NarrativeEventConditionExpression child;
+  @override
+  NarrativeEventConditionExpressionKind get kind =>
+      NarrativeEventConditionExpressionKind.not;
+  @override
+  List<NarrativeEventCondition> get leaves => child.leaves;
+  @override
+  Map<String, Object?> toJson() => {'kind': 'not', 'child': child.toJson()};
+
+  @override
+  bool operator ==(Object other) =>
+      other is NarrativeEventConditionNot && other.child == child;
+  @override
+  int get hashCode => Object.hash(kind, child);
+}
+
+@immutable
+sealed class NarrativeEventResetPolicy {
+  const NarrativeEventResetPolicy._();
+
+  const factory NarrativeEventResetPolicy.never() = NarrativeEventResetNever;
+  const factory NarrativeEventResetPolicy.onMapReentry() =
+      NarrativeEventResetOnMapReentry;
+  factory NarrativeEventResetPolicy.onOutcomeReceived(
+    NarrativeOutcomeRef outcome,
+  ) = NarrativeEventResetOnOutcomeReceived;
+
+  factory NarrativeEventResetPolicy.fromJson(Object? json) {
+    final object = NarrativeEventWire.object(json, path: 'resetPolicy');
+    final kind = NarrativeEventWire.requiredString(
+      object,
+      'kind',
+      path: 'resetPolicy',
+    );
+    return switch (kind) {
+      'never' => _decodeResetNever(object),
+      'onMapReentry' => _decodeResetOnMapReentry(object),
+      'onOutcomeReceived' => _decodeResetOnOutcomeReceived(object),
+      _ => NarrativeEventWire.unsupported(
+          'Unknown reset policy kind "$kind".',
+          path: 'resetPolicy.kind',
+          source: kind,
+        ),
+    };
+  }
+
+  Map<String, Object?> toJson();
+}
+
+final class NarrativeEventResetNever extends NarrativeEventResetPolicy {
+  const NarrativeEventResetNever() : super._();
+  @override
+  Map<String, Object?> toJson() => const {'kind': 'never'};
+  @override
+  bool operator ==(Object other) => other is NarrativeEventResetNever;
+  @override
+  int get hashCode => 0;
+}
+
+final class NarrativeEventResetOnMapReentry extends NarrativeEventResetPolicy {
+  const NarrativeEventResetOnMapReentry() : super._();
+  @override
+  Map<String, Object?> toJson() => const {'kind': 'onMapReentry'};
+  @override
+  bool operator ==(Object other) => other is NarrativeEventResetOnMapReentry;
+  @override
+  int get hashCode => 1;
+}
+
+final class NarrativeEventResetOnOutcomeReceived
+    extends NarrativeEventResetPolicy {
+  NarrativeEventResetOnOutcomeReceived(this.outcome) : super._();
+  final NarrativeOutcomeRef outcome;
+  @override
+  Map<String, Object?> toJson() => {
+        'kind': 'onOutcomeReceived',
+        'outcome': outcome.toJson(),
+      };
+  @override
+  bool operator ==(Object other) =>
+      other is NarrativeEventResetOnOutcomeReceived && other.outcome == outcome;
+  @override
+  int get hashCode => Object.hash(2, outcome);
+}
 
 @immutable
 sealed class NarrativeEventCondition {
@@ -220,20 +423,45 @@ final class NarrativeEventDefinition {
     required this.reusePolicy,
     required this.priority,
     required int order,
+    NarrativeEventConditionExpression? conditionExpression,
+    this.resetPolicy = const NarrativeEventResetPolicy.never(),
   })  : id = _validateEventIdArgument(id, 'id'),
         name = _validateName(name),
-        conditions = List.unmodifiable(conditions),
+        conditionExpression = _validatedExpression(
+          conditionExpression ?? _legacyAndExpression(conditions),
+          allowEmptyRootAll: true,
+          expectedLeaves: conditionExpression == null ? null : conditions,
+        ),
+        conditions = List.unmodifiable(
+          (conditionExpression ?? _legacyAndExpression(conditions)).leaves,
+        ),
         sceneId = _validateIdentityArgument(sceneId, 'sceneId'),
-        order = _validateOrder(order);
+        order = _validateOrder(order) {
+    _validateConfiguredResetPolicy(
+      source: source,
+      reusePolicy: reusePolicy,
+      resetPolicy: resetPolicy,
+    );
+  }
 
   factory NarrativeEventDefinition.fromJson(Object? json) {
     final object = NarrativeEventWire.object(json, path: 'definition');
-    NarrativeEventWire.expectExactFields(
-      object,
-      _definitionWireFields,
-      path: 'definition',
-      knownFields: _definitionKnownFields,
-    );
+    final expectedFields = <String>{
+      'id',
+      'name',
+      'source',
+      'conditions',
+      'sceneId',
+      'reusePolicy',
+      'priority',
+      'order',
+      if (object.containsKey('conditionExpression')) 'conditionExpression',
+      if (object.containsKey('resetPolicy')) 'resetPolicy',
+    };
+    NarrativeEventWire.expectExactFields(object, expectedFields,
+        path: 'definition', knownFields: _definitionKnownFields);
+    final expressionJson = object['conditionExpression'];
+    final resetJson = object['resetPolicy'];
     return NarrativeEventDefinition(
       id: _decodeEventId(
         NarrativeEventWire.requiredIdentity(object, 'id', path: 'definition'),
@@ -248,6 +476,9 @@ final class NarrativeEventDefinition {
         ),
       ),
       conditions: _decodeConditions(object, path: 'definition'),
+      conditionExpression: expressionJson == null
+          ? null
+          : NarrativeEventConditionExpression.fromJson(expressionJson),
       sceneId: NarrativeEventWire.requiredIdentity(
         object,
         'sceneId',
@@ -260,6 +491,9 @@ final class NarrativeEventDefinition {
         path: 'definition',
       ),
       order: _decodeOrder(object, path: 'definition'),
+      resetPolicy: resetJson == null
+          ? const NarrativeEventResetPolicy.never()
+          : NarrativeEventResetPolicy.fromJson(resetJson),
     );
   }
 
@@ -267,20 +501,26 @@ final class NarrativeEventDefinition {
   final String name;
   final NarrativeEventSourceRef source;
   final List<NarrativeEventCondition> conditions;
+  final NarrativeEventConditionExpression conditionExpression;
   final String sceneId;
   final NarrativeEventReusePolicy reusePolicy;
   final int priority;
   final int order;
+  final NarrativeEventResetPolicy resetPolicy;
 
   Map<String, Object?> toJson() => {
         'id': id,
         'name': name,
         'source': source.toJson(),
         'conditions': [for (final condition in conditions) condition.toJson()],
+        if (!_isLegacyAndExpression(conditionExpression, conditions))
+          'conditionExpression': conditionExpression.toJson(),
         'sceneId': sceneId,
         'reusePolicy': reusePolicy.name,
         'priority': priority,
         'order': order,
+        if (resetPolicy is! NarrativeEventResetNever)
+          'resetPolicy': resetPolicy.toJson(),
       };
 
   @override
@@ -291,10 +531,12 @@ final class NarrativeEventDefinition {
           other.name == name &&
           other.source == source &&
           _listEquals(other.conditions, conditions) &&
+          other.conditionExpression == conditionExpression &&
           other.sceneId == sceneId &&
           other.reusePolicy == reusePolicy &&
           other.priority == priority &&
-          other.order == order;
+          other.order == order &&
+          other.resetPolicy == resetPolicy;
 
   @override
   int get hashCode => Object.hash(
@@ -302,10 +544,12 @@ final class NarrativeEventDefinition {
         name,
         source,
         Object.hashAll(conditions),
+        conditionExpression,
         sceneId,
         reusePolicy,
         priority,
         order,
+        resetPolicy,
       );
 }
 
@@ -320,22 +564,45 @@ final class NarrativeEventDraft {
     this.reusePolicy,
     required this.priority,
     required int order,
+    NarrativeEventConditionExpression? conditionExpression,
+    this.resetPolicy = const NarrativeEventResetPolicy.never(),
   })  : id = _validateEventIdArgument(id, 'id'),
         name = _validateName(name),
-        conditions = List.unmodifiable(conditions),
+        conditionExpression = _validatedExpression(
+          conditionExpression ?? _legacyAndExpression(conditions),
+          allowEmptyRootAll: true,
+          expectedLeaves: conditionExpression == null ? null : conditions,
+        ),
+        conditions = List.unmodifiable(
+          (conditionExpression ?? _legacyAndExpression(conditions)).leaves,
+        ),
         sceneId = sceneId == null
             ? null
             : _validateIdentityArgument(sceneId, 'sceneId'),
-        order = _validateOrder(order);
+        order = _validateOrder(order) {
+    _validateDraftResetPolicy(
+      source: source,
+      reusePolicy: reusePolicy,
+      resetPolicy: resetPolicy,
+    );
+  }
 
   factory NarrativeEventDraft.fromJson(Object? json) {
     final object = NarrativeEventWire.object(json, path: 'draft');
-    NarrativeEventWire.expectExactFields(
-      object,
-      _draftWireFields,
-      path: 'draft',
-      knownFields: _definitionKnownFields,
-    );
+    final expectedFields = <String>{
+      'id',
+      'name',
+      if (object.containsKey('source')) 'source',
+      'conditions',
+      if (object.containsKey('sceneId')) 'sceneId',
+      if (object.containsKey('reusePolicy')) 'reusePolicy',
+      'priority',
+      'order',
+      if (object.containsKey('conditionExpression')) 'conditionExpression',
+      if (object.containsKey('resetPolicy')) 'resetPolicy',
+    };
+    NarrativeEventWire.expectExactFields(object, expectedFields,
+        path: 'draft', knownFields: _definitionKnownFields);
     final sourceJson = object['source'];
     final sceneIdJson = object['sceneId'];
     final reusePolicyJson = object['reusePolicy'];
@@ -349,6 +616,11 @@ final class NarrativeEventDraft {
           ? null
           : NarrativeEventSourceRef.fromJson(sourceJson),
       conditions: _decodeConditions(object, path: 'draft'),
+      conditionExpression: object['conditionExpression'] == null
+          ? null
+          : NarrativeEventConditionExpression.fromJson(
+              object['conditionExpression'],
+            ),
       sceneId: sceneIdJson == null
           ? null
           : _decodeOptionalIdentity(sceneIdJson, 'sceneId', path: 'draft'),
@@ -361,6 +633,9 @@ final class NarrativeEventDraft {
         path: 'draft',
       ),
       order: _decodeOrder(object, path: 'draft'),
+      resetPolicy: object['resetPolicy'] == null
+          ? const NarrativeEventResetPolicy.never()
+          : NarrativeEventResetPolicy.fromJson(object['resetPolicy']),
     );
   }
 
@@ -368,10 +643,12 @@ final class NarrativeEventDraft {
   final String name;
   final NarrativeEventSourceRef? source;
   final List<NarrativeEventCondition> conditions;
+  final NarrativeEventConditionExpression conditionExpression;
   final String? sceneId;
   final NarrativeEventReusePolicy? reusePolicy;
   final int priority;
   final int order;
+  final NarrativeEventResetPolicy resetPolicy;
 
   bool get isComplete =>
       source != null && sceneId != null && reusePolicy != null;
@@ -381,10 +658,14 @@ final class NarrativeEventDraft {
         'name': name,
         if (source != null) 'source': source!.toJson(),
         'conditions': [for (final condition in conditions) condition.toJson()],
+        if (!_isLegacyAndExpression(conditionExpression, conditions))
+          'conditionExpression': conditionExpression.toJson(),
         if (sceneId != null) 'sceneId': sceneId,
         if (reusePolicy != null) 'reusePolicy': reusePolicy!.name,
         'priority': priority,
         'order': order,
+        if (resetPolicy is! NarrativeEventResetNever)
+          'resetPolicy': resetPolicy.toJson(),
       };
 
   @override
@@ -395,10 +676,12 @@ final class NarrativeEventDraft {
           other.name == name &&
           other.source == source &&
           _listEquals(other.conditions, conditions) &&
+          other.conditionExpression == conditionExpression &&
           other.sceneId == sceneId &&
           other.reusePolicy == reusePolicy &&
           other.priority == priority &&
-          other.order == order;
+          other.order == order &&
+          other.resetPolicy == resetPolicy;
 
   @override
   int get hashCode => Object.hash(
@@ -406,10 +689,12 @@ final class NarrativeEventDraft {
         name,
         source,
         Object.hashAll(conditions),
+        conditionExpression,
         sceneId,
         reusePolicy,
         priority,
         order,
+        resetPolicy,
       );
 }
 
@@ -579,6 +864,240 @@ final class _NarrativeEventConfiguredRecord extends NarrativeEventRecord {
 
   @override
   int get hashCode => Object.hash('configured', definition, enabled);
+}
+
+const int _maximumConditionExpressionDepth = 8;
+const int _maximumConditionExpressionNodes = 128;
+
+NarrativeEventConditionExpression _decodeExpressionLeaf(
+  Map<String, Object?> object,
+) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind', 'condition'},
+    path: 'conditionExpression',
+  );
+  return NarrativeEventConditionExpression.leaf(
+    NarrativeEventCondition.fromJson(
+      NarrativeEventWire.requiredObject(
+        object,
+        'condition',
+        path: 'conditionExpression',
+      ),
+    ),
+  );
+}
+
+List<NarrativeEventConditionExpression> _decodeExpressionChildren(
+  Map<String, Object?> object,
+) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind', 'children'},
+    path: 'conditionExpression',
+  );
+  final values = NarrativeEventWire.requiredList(
+    object,
+    'children',
+    path: 'conditionExpression',
+  );
+  return [
+    for (final value in values)
+      NarrativeEventConditionExpression.fromJson(value),
+  ];
+}
+
+NarrativeEventConditionExpression _decodeExpressionNot(
+  Map<String, Object?> object,
+) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind', 'child'},
+    path: 'conditionExpression',
+  );
+  return NarrativeEventConditionExpression.not(
+    NarrativeEventConditionExpression.fromJson(
+      NarrativeEventWire.requiredObject(
+        object,
+        'child',
+        path: 'conditionExpression',
+      ),
+    ),
+  );
+}
+
+NarrativeEventResetPolicy _decodeResetNever(Map<String, Object?> object) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind'},
+    path: 'resetPolicy',
+  );
+  return const NarrativeEventResetPolicy.never();
+}
+
+NarrativeEventResetPolicy _decodeResetOnMapReentry(
+  Map<String, Object?> object,
+) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind'},
+    path: 'resetPolicy',
+  );
+  return const NarrativeEventResetPolicy.onMapReentry();
+}
+
+NarrativeEventResetPolicy _decodeResetOnOutcomeReceived(
+  Map<String, Object?> object,
+) {
+  NarrativeEventWire.expectExactFields(
+    object,
+    const {'kind', 'outcome'},
+    path: 'resetPolicy',
+  );
+  return NarrativeEventResetPolicy.onOutcomeReceived(
+    NarrativeOutcomeRef.fromJson(
+      NarrativeEventWire.requiredObject(
+        object,
+        'outcome',
+        path: 'resetPolicy',
+      ),
+    ),
+  );
+}
+
+NarrativeEventConditionExpression _legacyAndExpression(
+  Iterable<NarrativeEventCondition> conditions,
+) {
+  return NarrativeEventConditionExpression.all([
+    for (final condition in conditions)
+      NarrativeEventConditionExpression.leaf(condition),
+  ]);
+}
+
+NarrativeEventConditionExpression _validatedExpression(
+  NarrativeEventConditionExpression expression, {
+  required bool allowEmptyRootAll,
+  Iterable<NarrativeEventCondition>? expectedLeaves,
+}) {
+  var nodeCount = 0;
+
+  void visit(
+    NarrativeEventConditionExpression current, {
+    required int depth,
+    required bool isRoot,
+  }) {
+    nodeCount++;
+    if (nodeCount > _maximumConditionExpressionNodes) {
+      throw ArgumentError.value(
+        expression,
+        'conditionExpression',
+        'must contain at most $_maximumConditionExpressionNodes nodes',
+      );
+    }
+    if (depth > _maximumConditionExpressionDepth) {
+      throw ArgumentError.value(
+        expression,
+        'conditionExpression',
+        'must be at most $_maximumConditionExpressionDepth levels deep',
+      );
+    }
+    switch (current) {
+      case NarrativeEventConditionLeaf():
+        return;
+      case NarrativeEventConditionAll(:final children):
+        if (children.isEmpty && !(isRoot && allowEmptyRootAll)) {
+          throw ArgumentError.value(
+            expression,
+            'conditionExpression',
+            'all groups must not be empty unless they are the root',
+          );
+        }
+        for (final child in children) {
+          visit(child, depth: depth + 1, isRoot: false);
+        }
+      case NarrativeEventConditionAny(:final children):
+        if (children.isEmpty) {
+          throw ArgumentError.value(
+            expression,
+            'conditionExpression',
+            'any groups must not be empty',
+          );
+        }
+        for (final child in children) {
+          visit(child, depth: depth + 1, isRoot: false);
+        }
+      case NarrativeEventConditionNot(:final child):
+        visit(child, depth: depth + 1, isRoot: false);
+    }
+  }
+
+  visit(expression, depth: 1, isRoot: true);
+  final expected = expectedLeaves?.toList(growable: false);
+  if (expected != null && !_listEquals(expected, expression.leaves)) {
+    throw ArgumentError.value(
+      expression,
+      'conditionExpression',
+      'leaves must match the compatibility conditions list',
+    );
+  }
+  return expression;
+}
+
+bool _isLegacyAndExpression(
+  NarrativeEventConditionExpression expression,
+  List<NarrativeEventCondition> conditions,
+) {
+  return expression is NarrativeEventConditionAll &&
+      expression.children.every(
+        (child) => child is NarrativeEventConditionLeaf,
+      ) &&
+      _listEquals(expression.leaves, conditions);
+}
+
+void _validateConfiguredResetPolicy({
+  required NarrativeEventSourceRef source,
+  required NarrativeEventReusePolicy reusePolicy,
+  required NarrativeEventResetPolicy resetPolicy,
+}) {
+  if (reusePolicy == NarrativeEventReusePolicy.reusable &&
+      resetPolicy is! NarrativeEventResetNever) {
+    throw ArgumentError.value(
+      resetPolicy,
+      'resetPolicy',
+      'is only meaningful for one-shot Events',
+    );
+  }
+  if (resetPolicy is NarrativeEventResetOnMapReentry &&
+      source.kind == NarrativeEventSourceKind.outcomeReceived) {
+    throw ArgumentError.value(
+      resetPolicy,
+      'resetPolicy',
+      'onMapReentry requires a spatial Event source',
+    );
+  }
+}
+
+void _validateDraftResetPolicy({
+  required NarrativeEventSourceRef? source,
+  required NarrativeEventReusePolicy? reusePolicy,
+  required NarrativeEventResetPolicy resetPolicy,
+}) {
+  if (reusePolicy == NarrativeEventReusePolicy.reusable &&
+      resetPolicy is! NarrativeEventResetNever) {
+    throw ArgumentError.value(
+      resetPolicy,
+      'resetPolicy',
+      'is only meaningful for one-shot Events',
+    );
+  }
+  if (source?.kind == NarrativeEventSourceKind.outcomeReceived &&
+      resetPolicy is NarrativeEventResetOnMapReentry) {
+    throw ArgumentError.value(
+      resetPolicy,
+      'resetPolicy',
+      'onMapReentry requires a spatial Event source',
+    );
+  }
 }
 
 String _decodeName(Map<String, Object?> object, {required String path}) {

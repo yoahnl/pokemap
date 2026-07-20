@@ -1706,11 +1706,11 @@ class _EventBuilderV2ProductRouteState
       width: 480,
       builder: (_) => EventBuilderV2ConditionsSheet(
         snapshot: snapshot,
-        onSubmit: (conditions) => _runWrite(
-          (useCase, path, environment) => useCase.setConditions(
+        onSubmit: (expression) => _runWrite(
+          (useCase, path, environment) => useCase.setConditionExpression(
             projectPath: path,
             eventId: eventId,
-            conditions: conditions,
+            expression: expression,
             environment: environment,
           ),
         ),
@@ -1768,6 +1768,7 @@ class _EventBuilderV2ProductRouteState
       width: 460,
       builder: (_) => EventBuilderV2BehaviorSheet(
         record: record,
+        outcomeSources: snapshot.outcomeSources,
         onSave: (update) => _saveBehavior(eventId, update),
         onPublish: () => _runWrite(
           (useCase, path, environment) => useCase.publish(
@@ -1801,12 +1802,30 @@ class _EventBuilderV2ProductRouteState
               environment: environment,
             ),
           ),
+      if (update.reusePolicy == NarrativeEventReusePolicy.reusable)
+        () => _runWrite(
+              (useCase, path, environment) => useCase.setResetPolicy(
+                projectPath: path,
+                eventId: eventId,
+                resetPolicy: const NarrativeEventResetPolicy.never(),
+                environment: environment,
+              ),
+            ),
       if (update.reusePolicy != null)
         () => _runWrite(
               (useCase, path, environment) => useCase.setReusePolicy(
                 projectPath: path,
                 eventId: eventId,
                 reusePolicy: update.reusePolicy!,
+                environment: environment,
+              ),
+            ),
+      if (update.reusePolicy != NarrativeEventReusePolicy.reusable)
+        () => _runWrite(
+              (useCase, path, environment) => useCase.setResetPolicy(
+                projectPath: path,
+                eventId: eventId,
+                resetPolicy: update.resetPolicy,
                 environment: environment,
               ),
             ),

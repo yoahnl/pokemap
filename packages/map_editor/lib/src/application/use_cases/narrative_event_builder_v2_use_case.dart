@@ -162,6 +162,16 @@ final class NarrativeEventBuilderV2EditorSnapshot {
       record?.draftOrNull?.conditions ??
       record?.definitionOrNull?.conditions ??
       const [];
+
+  NarrativeEventConditionExpression get conditionExpression =>
+      record?.draftOrNull?.conditionExpression ??
+      record?.definitionOrNull?.conditionExpression ??
+      NarrativeEventConditionExpression.all(const []);
+
+  NarrativeEventResetPolicy get resetPolicy =>
+      record?.draftOrNull?.resetPolicy ??
+      record?.definitionOrNull?.resetPolicy ??
+      const NarrativeEventResetPolicy.never();
 }
 
 /// Thin H3/H4 coordinator over the existing core authoring operations and the
@@ -563,6 +573,25 @@ final class NarrativeEventBuilderV2UseCase {
     );
   }
 
+  Future<NarrativeEventBuilderV2WriteResult> setConditionExpression({
+    required String projectPath,
+    required String eventId,
+    required NarrativeEventConditionExpression expression,
+    required NarrativeEventBuilderV2WriteEnvironment environment,
+  }) {
+    return _executeForEvent(
+      projectPath: projectPath,
+      eventId: eventId,
+      environment: environment,
+      author: (session) => setNarrativeEventConditionExpression(
+        context: session.context,
+        expectedRevision: session.projectRevision,
+        eventId: eventId,
+        expression: expression,
+      ),
+    );
+  }
+
   Future<NarrativeEventBuilderV2WriteResult> setScene({
     required String projectPath,
     required String eventId,
@@ -614,6 +643,25 @@ final class NarrativeEventBuilderV2UseCase {
         expectedRevision: session.projectRevision,
         eventId: eventId,
         reusePolicy: reusePolicy,
+      ),
+    );
+  }
+
+  Future<NarrativeEventBuilderV2WriteResult> setResetPolicy({
+    required String projectPath,
+    required String eventId,
+    required NarrativeEventResetPolicy resetPolicy,
+    required NarrativeEventBuilderV2WriteEnvironment environment,
+  }) {
+    return _executeForEvent(
+      projectPath: projectPath,
+      eventId: eventId,
+      environment: environment,
+      author: (session) => setNarrativeEventResetPolicy(
+        context: session.context,
+        expectedRevision: session.projectRevision,
+        eventId: eventId,
+        resetPolicy: resetPolicy,
       ),
     );
   }

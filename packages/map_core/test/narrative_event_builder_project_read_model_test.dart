@@ -780,7 +780,8 @@ void main() {
                   'count': 0,
                   'valid': true,
                   'unresolvedCount': 0,
-                  'humanLabel': 'Aucune condition',
+                  'humanLabel': 'Toutes · Aucune condition',
+                  'expressionKind': 'all',
                   'details': <Object?>[],
                 },
                 'lifecycle': {

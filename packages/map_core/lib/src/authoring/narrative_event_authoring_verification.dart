@@ -120,6 +120,13 @@ NarrativeEventAuthoringResult _replay(NarrativeEventAuthoringContext context,
         eventId: nextRecord.id,
         conditions: _conditions(nextRecord),
       ),
+    NarrativeEventAuthoringMutation.setConditionExpression =>
+      setNarrativeEventConditionExpression(
+        context: context,
+        expectedRevision: result.expectedRevision,
+        eventId: nextRecord.id,
+        expression: _conditionExpression(nextRecord),
+      ),
     NarrativeEventAuthoringMutation.setScene => setNarrativeEventScene(
         context: context,
         expectedRevision: result.expectedRevision,
@@ -137,6 +144,13 @@ NarrativeEventAuthoringResult _replay(NarrativeEventAuthoringContext context,
         expectedRevision: result.expectedRevision,
         eventId: nextRecord.id,
         reusePolicy: _reusePolicy(nextRecord)!,
+      ),
+    NarrativeEventAuthoringMutation.setResetPolicy =>
+      setNarrativeEventResetPolicy(
+        context: context,
+        expectedRevision: result.expectedRevision,
+        eventId: nextRecord.id,
+        resetPolicy: _resetPolicy(nextRecord),
       ),
     NarrativeEventAuthoringMutation.setPriority => setNarrativeEventPriority(
         context: context,
@@ -189,6 +203,15 @@ List<NarrativeEventCondition> _conditions(NarrativeEventRecord record) {
   );
 }
 
+NarrativeEventConditionExpression _conditionExpression(
+  NarrativeEventRecord record,
+) {
+  return record.when(
+    draft: (draft) => draft.conditionExpression,
+    configured: (definition, _) => definition.conditionExpression,
+  );
+}
+
 String? _sceneId(NarrativeEventRecord record) {
   return record.when(
     draft: (draft) => draft.sceneId,
@@ -200,6 +223,13 @@ NarrativeEventReusePolicy? _reusePolicy(NarrativeEventRecord record) {
   return record.when(
     draft: (draft) => draft.reusePolicy,
     configured: (definition, _) => definition.reusePolicy,
+  );
+}
+
+NarrativeEventResetPolicy _resetPolicy(NarrativeEventRecord record) {
+  return record.when(
+    draft: (draft) => draft.resetPolicy,
+    configured: (definition, _) => definition.resetPolicy,
   );
 }
 

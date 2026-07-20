@@ -673,6 +673,159 @@ void main() {
       expect(consumed.targetCandidate!.reasons,
           [NarrativeEventSimulationReason.eventConsumed]);
     });
+
+    test('evaluates any and not through the production dispatch authority', () {
+      final falseFact = NarrativeEventCondition.fact('fact_false', true);
+      final trueFact = NarrativeEventCondition.fact('fact_true', true);
+      final anyRegistry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(
+            _eventA,
+            conditions: [falseFact, trueFact],
+            conditionExpression: NarrativeEventConditionExpression.any([
+              NarrativeEventConditionExpression.leaf(falseFact),
+              NarrativeEventConditionExpression.leaf(trueFact),
+            ]),
+          ),
+        ],
+      );
+      final resolver = NarrativeFactRuntimeResolver.fromFacts([
+        NarrativeFactDefinition(id: 'fact_false', label: 'False'),
+        NarrativeFactDefinition(id: 'fact_true', label: 'True'),
+      ]);
+      final anyReady = _prepare(anyRegistry, factResolver: resolver);
+      final state = GameState(
+        saveId: 'save',
+        narrativeFactRuntimeState: NarrativeFactRuntimeState(
+          overridesByFactId: const {'fact_false': false, 'fact_true': true},
+        ),
+      );
+
+      expect(anyReady.plan(gameState: state),
+          isA<NarrativeEventDispatchHandled>());
+
+      final notRegistry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(
+            _eventA,
+            conditions: [trueFact],
+            conditionExpression: NarrativeEventConditionExpression.not(
+              NarrativeEventConditionExpression.leaf(trueFact),
+            ),
+          ),
+        ],
+      );
+      final notReady = _prepare(notRegistry, factResolver: resolver);
+      expect(notReady.plan(gameState: state),
+          isA<NarrativeEventDispatchNoMatch>());
+    });
+
+    test('map re-entry reset is persisted, qualified and idempotent', () {
+      final registry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(
+            _eventA,
+            resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+          ),
+        ],
+      );
+      final ready = _prepare(registry);
+      final consumed = GameState(
+        saveId: 'save',
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: const {_eventA},
+          activeNarrativeMapId: 'other_map',
+          visitedNarrativeMapIds: const {'map', 'other_map'},
+        ),
+      );
+
+      final restored = ready.applyMapActivationReset(
+        gameState: consumed,
+        activationId: 'restore-1',
+        mapId: 'map',
+        resetEligible: false,
+      );
+      expect(restored.narrativeEventProgress.consumedNarrativeEventIds,
+          contains(_eventA));
+
+      final outside = restored.copyWith(
+        narrativeEventProgress: restored.narrativeEventProgress.copyWith(
+          activeNarrativeMapId: 'other_map',
+        ),
+      );
+      final reentered = ready.applyMapActivationReset(
+        gameState: outside,
+        activationId: 'warp-2',
+        mapId: 'map',
+        resetEligible: true,
+      );
+      expect(reentered.narrativeEventProgress.consumedNarrativeEventIds,
+          isNot(contains(_eventA)));
+      expect(
+        ready.applyMapActivationReset(
+          gameState: reentered,
+          activationId: 'warp-2',
+          mapId: 'map',
+          resetEligible: true,
+        ),
+        reentered,
+      );
+    });
+
+    test('outcome reset uses the fully qualified producer identity once', () {
+      final sceneOutcome = NarrativeOutcomeRef(
+        producerKind: NarrativeOutcomeProducerKind.scene,
+        producerId: 'producer',
+        outcomeId: 'completed',
+      );
+      final registry = _registry(
+        mode: EventSystemMode.v2Only,
+        records: [
+          _record(
+            _eventA,
+            resetPolicy:
+                NarrativeEventResetPolicy.onOutcomeReceived(sceneOutcome),
+          ),
+        ],
+      );
+      final ready = _prepare(registry);
+      final state = GameState(
+        saveId: 'save',
+        narrativeEventProgress: NarrativeEventProgress(
+          consumedNarrativeEventIds: const {_eventA},
+        ),
+      );
+      final collision = ready.applyOutcomeReset(
+        gameState: state,
+        deliveryId: 'delivery-battle',
+        outcome: NarrativeOutcomeRef(
+          producerKind: NarrativeOutcomeProducerKind.battle,
+          producerId: 'producer',
+          outcomeId: 'completed',
+        ),
+      );
+      expect(collision.narrativeEventProgress.consumedNarrativeEventIds,
+          contains(_eventA));
+
+      final reset = ready.applyOutcomeReset(
+        gameState: collision,
+        deliveryId: 'delivery-scene',
+        outcome: sceneOutcome,
+      );
+      expect(reset.narrativeEventProgress.consumedNarrativeEventIds,
+          isNot(contains(_eventA)));
+      expect(
+        ready.applyOutcomeReset(
+          gameState: reset,
+          deliveryId: 'delivery-scene',
+          outcome: sceneOutcome,
+        ),
+        reset,
+      );
+    });
   });
 }
 
@@ -715,6 +868,9 @@ NarrativeEventRecord _record(
   NarrativeEventSourceRef? source,
   List<NarrativeEventCondition> conditions = const [],
   NarrativeEventReusePolicy reusePolicy = NarrativeEventReusePolicy.oneShot,
+  NarrativeEventConditionExpression? conditionExpression,
+  NarrativeEventResetPolicy resetPolicy =
+      const NarrativeEventResetPolicy.never(),
   int priority = 0,
   int order = 0,
   bool enabled = true,
@@ -725,10 +881,12 @@ NarrativeEventRecord _record(
       name: id,
       source: source ?? NarrativeEventSourceRef.mapEnter('map'),
       conditions: conditions,
+      conditionExpression: conditionExpression,
       sceneId: 'scene_$id',
       reusePolicy: reusePolicy,
       priority: priority,
       order: order,
+      resetPolicy: resetPolicy,
     ),
     enabled: enabled,
   );

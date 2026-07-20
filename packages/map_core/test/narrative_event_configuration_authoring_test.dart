@@ -32,6 +32,60 @@ void main() {
       expect(registry.records.single, record);
     });
 
+    test('authors a grouped expression and a one-shot map re-entry reset', () {
+      final record = draftRecord(
+        source: NarrativeEventSourceRef.mapEnter('map_a'),
+        reusePolicy: NarrativeEventReusePolicy.oneShot,
+      );
+      final registry = registryWithRecords([record]);
+      final condition = NarrativeEventCondition.fact('fact_a', true);
+      final expressionResult = setNarrativeEventConditionExpression(
+        context: configuredAuthoringContext(registry: registry),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        expression: NarrativeEventConditionExpression.any([
+          NarrativeEventConditionExpression.not(
+            NarrativeEventConditionExpression.leaf(condition),
+          ),
+        ]),
+      );
+
+      expect(expressionResult.status, NarrativeEventAuthoringStatus.applied);
+      expect(
+        expressionResult.nextRecord!.draftOrNull!.conditionExpression,
+        isA<NarrativeEventConditionAny>(),
+      );
+
+      final resetResult = setNarrativeEventResetPolicy(
+        context: configuredAuthoringContext(
+          registry: registryWithRecords([expressionResult.nextRecord!]),
+        ),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+      );
+      expect(resetResult.status, NarrativeEventAuthoringStatus.applied);
+      expect(resetResult.nextRecord!.draftOrNull!.resetPolicy,
+          isA<NarrativeEventResetOnMapReentry>());
+    });
+
+    test('rejects reset policies that cannot have an effect', () {
+      final record = draftRecord(
+        source: NarrativeEventSourceRef.mapEnter('map_a'),
+        reusePolicy: NarrativeEventReusePolicy.reusable,
+      );
+      final result = setNarrativeEventResetPolicy(
+        context: configuredAuthoringContext(
+          registry: registryWithRecords([record]),
+        ),
+        expectedRevision: authoringRevision,
+        eventId: eventIdA,
+        resetPolicy: const NarrativeEventResetPolicy.onMapReentry(),
+      );
+
+      expect(result.rejectionCode, 'invalidResetPolicy');
+    });
+
     test('rejects missing and ambiguous Facts', () {
       final record = draftRecord();
       final registry = registryWithRecords([record]);

@@ -145,6 +145,20 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
       impactPreview: impact,
     );
   }
+  final resetPolicy = record.draftOrNull?.resetPolicy ??
+      record.definitionOrNull?.resetPolicy ??
+      const NarrativeEventResetPolicy.never();
+  if (source.kind == NarrativeEventSourceKind.outcomeReceived &&
+      resetPolicy is NarrativeEventResetOnMapReentry) {
+    return _sourceRejection(
+      context: context,
+      expectedRevision: expectedRevision,
+      record: record,
+      mutation: requestedMutation,
+      code: 'mapReentryRequiresSpatialSource',
+      message: 'Choisissez un réarmement compatible avant cette source.',
+    );
+  }
   final nextRecord = record.when(
     draft: (draft) => NarrativeEventRecord.draft(
       NarrativeEventDraft(
@@ -152,10 +166,12 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
         name: draft.name,
         source: source,
         conditions: draft.conditions,
+        conditionExpression: draft.conditionExpression,
         sceneId: draft.sceneId,
         reusePolicy: draft.reusePolicy,
         priority: draft.priority,
         order: draft.order,
+        resetPolicy: draft.resetPolicy,
       ),
     ),
     configured: (definition, _) =>
@@ -165,10 +181,12 @@ NarrativeEventAuthoringResult _setNarrativeEventSource({
         name: definition.name,
         source: source,
         conditions: definition.conditions,
+        conditionExpression: definition.conditionExpression,
         sceneId: definition.sceneId,
         reusePolicy: definition.reusePolicy,
         priority: definition.priority,
         order: definition.order,
+        resetPolicy: definition.resetPolicy,
       ),
       enabled: false,
     ),
@@ -270,10 +288,12 @@ NarrativeEventAuthoringResult removeNarrativeEventSource({
         name: draft.name,
         source: null,
         conditions: draft.conditions,
+        conditionExpression: draft.conditionExpression,
         sceneId: draft.sceneId,
         reusePolicy: draft.reusePolicy,
         priority: draft.priority,
         order: draft.order,
+        resetPolicy: draft.resetPolicy,
       ),
     ),
     configured: (definition, _) => NarrativeEventRecord.draft(
@@ -282,10 +302,12 @@ NarrativeEventAuthoringResult removeNarrativeEventSource({
         name: definition.name,
         source: null,
         conditions: definition.conditions,
+        conditionExpression: definition.conditionExpression,
         sceneId: definition.sceneId,
         reusePolicy: definition.reusePolicy,
         priority: definition.priority,
         order: definition.order,
+        resetPolicy: definition.resetPolicy,
       ),
     ),
   );
