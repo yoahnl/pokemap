@@ -6,12 +6,14 @@ final class SceneRuntimeHostCallbacks {
     required this.showDialogue,
     required this.startBattle,
     required this.playCinematic,
+    this.executeInteractiveCommand,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
   final SceneRuntimeIntentCallback showDialogue;
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
+  final SceneRuntimeIntentCallback? executeInteractiveCommand;
 
   SceneRuntimeExecutionCallbacks toExecutionCallbacks({
     required SceneRuntimeConsequenceCallback applyConsequence,
@@ -22,6 +24,7 @@ final class SceneRuntimeHostCallbacks {
       startBattle: startBattle,
       playCinematic: playCinematic,
       applyConsequence: applyConsequence,
+      executeInteractiveCommand: executeInteractiveCommand,
     );
   }
 }

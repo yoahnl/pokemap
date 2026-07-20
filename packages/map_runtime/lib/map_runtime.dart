@@ -145,6 +145,8 @@ export 'src/application/scene_runtime/scene_cinematic_runtime_awaitable_result.d
         SceneCinematicRuntimeAwaitableStatus;
 export 'src/application/scene_runtime/scene_consequence_runtime_writer.dart'
     show SceneConsequenceRuntimeWriter;
+export 'src/application/scene_runtime/scene_interactive_command_runtime_executor.dart'
+    show SceneInteractiveCommandHandler, SceneInteractiveCommandRuntimeExecutor;
 export 'src/application/scene_runtime/scene_consequence_runtime_write_result.dart'
     show
         SceneConsequenceRuntimeWriteErrorCode,

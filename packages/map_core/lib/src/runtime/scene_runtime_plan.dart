@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../diagnostics/scene_diagnostics.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 
 enum SceneRuntimePlanIntentKind {
   start,
@@ -14,6 +15,7 @@ enum SceneRuntimePlanIntentKind {
   startBattle,
   playCinematic,
   applyConsequence,
+  executeInteractiveCommand,
 }
 
 enum SceneRuntimePlanDiagnosticSeverity {
@@ -119,6 +121,7 @@ final class SceneRuntimePlanIntent {
     List<String> battleDeclaredOutcomes = const <String>[],
     this.cinematicId,
     this.consequence,
+    this.interactiveCommand,
   })  : branchSourceOutcomes = List<String>.unmodifiable(branchSourceOutcomes),
         expectedOutcomes = List<String>.unmodifiable(expectedOutcomes),
         battleDeclaredOutcomes =
@@ -209,6 +212,15 @@ final class SceneRuntimePlanIntent {
     );
   }
 
+  factory SceneRuntimePlanIntent.executeInteractiveCommand({
+    required SceneInteractiveCommand command,
+  }) {
+    return SceneRuntimePlanIntent._(
+      kind: SceneRuntimePlanIntentKind.executeInteractiveCommand,
+      interactiveCommand: command,
+    );
+  }
+
   final SceneRuntimePlanIntentKind kind;
   final String? sceneOutcomeId;
   final SceneConditionSource? conditionSource;
@@ -225,6 +237,7 @@ final class SceneRuntimePlanIntent {
   final List<String> battleDeclaredOutcomes;
   final String? cinematicId;
   final SceneConsequence? consequence;
+  final SceneInteractiveCommand? interactiveCommand;
 
   List<String> get declaredOutputPortIds => switch (kind) {
         SceneRuntimePlanIntentKind.start ||
@@ -232,6 +245,8 @@ final class SceneRuntimePlanIntent {
         SceneRuntimePlanIntentKind.playCinematic ||
         SceneRuntimePlanIntentKind.applyConsequence =>
           const ['completed'],
+        SceneRuntimePlanIntentKind.executeInteractiveCommand =>
+          interactiveCommand?.outputPortIds ?? const <String>[],
         SceneRuntimePlanIntentKind.evaluateCondition => const ['true', 'false'],
         SceneRuntimePlanIntentKind.branchByOutcome => [
             ...branchSourceOutcomes,
@@ -277,7 +292,8 @@ final class SceneRuntimePlanIntent {
             battleDeclaredOutcomes,
           ) &&
           other.cinematicId == cinematicId &&
-          other.consequence == consequence;
+          other.consequence == consequence &&
+          other.interactiveCommand == interactiveCommand;
 
   @override
   int get hashCode => Object.hash(
@@ -297,6 +313,7 @@ final class SceneRuntimePlanIntent {
         Object.hashAll(battleDeclaredOutcomes),
         cinematicId,
         consequence,
+        interactiveCommand,
       );
 }
 

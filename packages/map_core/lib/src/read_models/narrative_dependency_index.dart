@@ -13,6 +13,7 @@ import '../models/narrative_event_source_ref.dart';
 import '../models/project_manifest.dart';
 import '../models/scene_asset.dart';
 import '../models/scene_consequence.dart';
+import '../models/scene_interactive_command.dart';
 import '../models/script_conditions.dart';
 import '../models/storyline_asset.dart';
 import '../models/world_rule.dart';
@@ -1989,6 +1990,52 @@ final class _NarrativeDependencyIndexBuilder {
       if (consequence != null) {
         _collectSceneConsequence(owner, consequence, '$path.consequence');
       }
+      final command = payload.interactiveCommand;
+      if (command != null) {
+        _collectSceneInteractiveCommand(
+          owner,
+          command,
+          '$path.interactiveCommand',
+        );
+      }
+    }
+  }
+
+  void _collectSceneInteractiveCommand(
+    NarrativeDependencyKey owner,
+    SceneInteractiveCommand command,
+    String path,
+  ) {
+    switch (command) {
+      case SceneWarpInteractiveCommand(
+          :final destinationMapId,
+          :final warpId,
+        ):
+        _usage(
+          target: _mapKey(destinationMapId),
+          owner: owner,
+          path: '$path.destinationMapId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+        _usage(
+          target: _mapSourceChildKey(destinationMapId, 'warp', warpId),
+          owner: owner,
+          path: '$path.warpId',
+          criticality: NarrativeDependencyCriticality.runtimeBlocking,
+        );
+      case SceneOpenShopInteractiveCommand(:final shopId):
+        _usage(
+          target: NarrativeDependencyKey.synthetic(
+            sourceKind: 'shop',
+            sourceId: shopId,
+          ),
+          owner: owner,
+          path: '$path.shopId',
+          criticality: NarrativeDependencyCriticality.authoringWarning,
+          resolution: NarrativeDependencyResolution.legacyExternal,
+        );
+      case SceneOpenPcInteractiveCommand():
+        break;
     }
   }
 

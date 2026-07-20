@@ -38,6 +38,7 @@ final class SceneRuntimeExecutionCallbacks {
     required this.startBattle,
     required this.playCinematic,
     required this.applyConsequence,
+    this.executeInteractiveCommand,
   });
 
   final SceneRuntimeIntentCallback evaluateCondition;
@@ -45,6 +46,7 @@ final class SceneRuntimeExecutionCallbacks {
   final SceneRuntimeIntentCallback startBattle;
   final SceneRuntimeIntentCallback playCinematic;
   final SceneRuntimeConsequenceCallback applyConsequence;
+  final SceneRuntimeIntentCallback? executeInteractiveCommand;
 }
 
 final class SceneRuntimeExecutionTraceEntry {
@@ -260,6 +262,8 @@ final class SceneRuntimeExecutor {
         );
       case SceneRuntimePlanIntentKind.applyConsequence:
         return _consequenceCallbackOutput(node.id, intent, context);
+      case SceneRuntimePlanIntentKind.executeInteractiveCommand:
+        return _interactiveCommandCallbackOutput(node.id, intent, context);
     }
   }
 
@@ -372,6 +376,45 @@ final class SceneRuntimeExecutor {
     return _OutputPortResult(
       outputPortId: outputPortId,
       context: context.markPersistentNodeApplied(nodeId),
+    );
+  }
+
+  Future<_OutputPortResult> _interactiveCommandCallbackOutput(
+    String nodeId,
+    SceneRuntimePlanIntent intent,
+    SceneExecutionContext context,
+  ) async {
+    if (context.appliedPersistentNodeIds.contains(nodeId)) {
+      final previousOutcome = context.lastOutcomeByNodeId[nodeId];
+      if (previousOutcome == null) {
+        return const _OutputPortResult(
+          errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+          message: 'Applied interactive command has no recorded outcome.',
+        );
+      }
+      return _OutputPortResult(
+        outputPortId: previousOutcome,
+        context: context,
+      );
+    }
+    final callback = callbacks.executeInteractiveCommand;
+    if (callback == null) {
+      return const _OutputPortResult(
+        errorCode: SceneRuntimeExecutionErrorCode.unsupportedIntent,
+        message: 'No interactive Scene command executor is installed.',
+      );
+    }
+    final result = await _callbackOutput(
+      intent,
+      callback,
+      intent.declaredOutputPortIds.toSet(),
+    );
+    if (result.errorCode != null || result.outputPortId == null) return result;
+    return _OutputPortResult(
+      outputPortId: result.outputPortId,
+      context: context
+          .recordOutcome(nodeId: nodeId, outcome: result.outputPortId!)
+          .markPersistentNodeApplied(nodeId),
     );
   }
 

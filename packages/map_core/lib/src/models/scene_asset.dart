@@ -2,6 +2,7 @@ import 'package:meta/meta.dart' show immutable;
 
 import '../exceptions/map_exceptions.dart';
 import 'scene_consequence.dart';
+import 'scene_interactive_command.dart';
 
 enum SceneNodeKind {
   start,
@@ -849,13 +850,21 @@ final class SceneActionPayload extends SceneNodePayload {
     String? actionKind,
     Map<String, String> parameters = const <String, String>{},
     this.consequence,
+    this.interactiveCommand,
   })  : actionKind = _trimOptional(actionKind),
         parameters = Map<String, String>.unmodifiable(parameters) {
-    if (this.actionKind == null && consequence == null) {
+    if (consequence != null && interactiveCommand != null) {
+      throw ArgumentError(
+        'SceneActionPayload cannot own a consequence and an interactive command.',
+      );
+    }
+    if (this.actionKind == null &&
+        consequence == null &&
+        interactiveCommand == null) {
       throw ArgumentError.value(
         actionKind,
         'actionKind',
-        'SceneActionPayload requires a legacy actionKind or a typed consequence.',
+        'SceneActionPayload requires a legacy actionKind, consequence or command.',
       );
     }
   }
@@ -872,6 +881,18 @@ final class SceneActionPayload extends SceneNodePayload {
     );
   }
 
+  factory SceneActionPayload.interactive(
+    SceneInteractiveCommand command, {
+    String? actionKind,
+    Map<String, String> parameters = const <String, String>{},
+  }) {
+    return SceneActionPayload(
+      actionKind: actionKind,
+      parameters: parameters,
+      interactiveCommand: command,
+    );
+  }
+
   factory SceneActionPayload.fromJson(Map<String, dynamic> json) {
     return SceneActionPayload(
       actionKind: _readOptionalString(json, 'actionKind'),
@@ -880,6 +901,11 @@ final class SceneActionPayload extends SceneNodePayload {
         json,
         'consequence',
         SceneConsequence.fromJson,
+      ),
+      interactiveCommand: _readOptionalObject(
+        json,
+        'interactiveCommand',
+        SceneInteractiveCommand.fromJson,
       ),
     );
   }
@@ -890,6 +916,7 @@ final class SceneActionPayload extends SceneNodePayload {
   final String? actionKind;
   final Map<String, String> parameters;
   final SceneConsequence? consequence;
+  final SceneInteractiveCommand? interactiveCommand;
 
   @override
   Map<String, dynamic> toJson() => _withoutNulls({
@@ -897,6 +924,7 @@ final class SceneActionPayload extends SceneNodePayload {
         'actionKind': actionKind,
         'parameters': parameters,
         'consequence': consequence?.toJson(),
+        'interactiveCommand': interactiveCommand?.toJson(),
       });
 
   @override
@@ -905,11 +933,16 @@ final class SceneActionPayload extends SceneNodePayload {
       other is SceneActionPayload &&
           other.actionKind == actionKind &&
           _mapEquals(other.parameters, parameters) &&
-          other.consequence == consequence;
+          other.consequence == consequence &&
+          other.interactiveCommand == interactiveCommand;
 
   @override
-  int get hashCode =>
-      Object.hash(actionKind, _mapHash(parameters), consequence);
+  int get hashCode => Object.hash(
+        actionKind,
+        _mapHash(parameters),
+        consequence,
+        interactiveCommand,
+      );
 }
 
 @immutable

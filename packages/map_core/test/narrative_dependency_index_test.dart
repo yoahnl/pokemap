@@ -3,6 +3,60 @@ import 'package:test/test.dart';
 
 void main() {
   group('NarrativeDependencyIndex contract', () {
+    test('indexes map and warp references from interactive Scene commands', () {
+      final scene = SceneAsset(
+        id: 'scene.warp',
+        name: 'Warp',
+        graph: SceneGraph(
+          startNodeId: 'start',
+          nodes: [
+            SceneNode(id: 'start', kind: SceneNodeKind.start),
+            SceneNode(
+              id: 'warp',
+              kind: SceneNodeKind.action,
+              payload: SceneActionPayload.interactive(
+                SceneInteractiveCommand.warp(
+                  destinationMapId: 'map.port',
+                  warpId: 'warp.arrival',
+                ),
+              ),
+            ),
+            SceneNode(id: 'end', kind: SceneNodeKind.end),
+          ],
+          edges: [
+            SceneEdge(
+              id: 'start-warp',
+              fromNodeId: 'start',
+              fromPortId: 'completed',
+              toNodeId: 'warp',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+            SceneEdge(
+              id: 'warp-end',
+              fromNodeId: 'warp',
+              fromPortId: 'completed',
+              toNodeId: 'end',
+              kind: SceneEdgeKind.actionCompleted,
+            ),
+          ],
+        ),
+      );
+      final index = buildNarrativeDependencyIndex(
+        project: _project().copyWith(scenes: [scene]),
+      );
+
+      final sceneUsages = index.usagesOwnedBy(
+        const NarrativeDependencyKey.scene('scene.warp'),
+      );
+      expect(
+        sceneUsages.map((usage) => usage.path),
+        containsAll([
+          contains('interactiveCommand.destinationMapId'),
+          contains('interactiveCommand.warpId'),
+        ]),
+      );
+    });
+
     test('builds an empty immutable index for an empty project', () {
       final index = buildNarrativeDependencyIndex(
         project: _project(),

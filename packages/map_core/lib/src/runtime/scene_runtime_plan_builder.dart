@@ -30,13 +30,15 @@ SceneRuntimePlanBuildResult buildSceneRuntimePlan(SceneAsset scene) {
     switch (node.kind) {
       case SceneNodeKind.action:
         final payload = node.payload;
-        if (payload is! SceneActionPayload || payload.consequence == null) {
+        if (payload is! SceneActionPayload ||
+            (payload.consequence == null &&
+                payload.interactiveCommand == null)) {
           diagnostics.add(
             SceneRuntimePlanDiagnostic(
               code: SceneRuntimePlanDiagnosticCode.unsupportedAction,
               severity: SceneRuntimePlanDiagnosticSeverity.error,
               message:
-                  'ActionNode legacy sans conséquence typée reste non exécutable.',
+                  'ActionNode legacy sans conséquence ou commande typée reste non exécutable.',
               sceneId: scene.id,
               nodeId: node.id,
             ),
@@ -218,6 +220,10 @@ List<String> _declaredOutcomePortsForNode(SceneNode node) {
 }
 
 SceneRuntimePlanIntent _actionIntent(SceneActionPayload payload) {
+  final command = payload.interactiveCommand;
+  if (command != null) {
+    return SceneRuntimePlanIntent.executeInteractiveCommand(command: command);
+  }
   final consequence = payload.consequence;
   if (consequence == null) {
     throw StateError(
