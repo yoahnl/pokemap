@@ -180,12 +180,18 @@ void main() {
       'iterations=$_measuredIterations execution=sequential '
       'p50_us=$p50 p95_us=$p95 '
       'recalculated=${last!.recalculatedEventIds.length} '
+      'unaffected=${_recordCount - last.recalculatedEventIds.length} '
       'budget_p95_us=$_p95BudgetMicroseconds threshold=frozen',
     );
 
     expect(
       last.recalculatedEventIds,
       {_eventId(0), _eventId(1), _eventId(2)},
+    );
+    expect(
+      _recordCount - last.recalculatedEventIds.length,
+      497,
+      reason: 'A local rename must not recompute unrelated Event reports.',
     );
     expect(
       last.report.toDebugJson(),

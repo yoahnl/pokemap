@@ -8,6 +8,9 @@ import 'package:map_editor/src/infrastructure/repositories/narrative_event_regis
 
 import 'support/event_registry_persistence_fixtures.dart';
 
+const _journaledWriteP95BudgetMicroseconds = 180000;
+const _recovery100P95BudgetMicroseconds = 1000000;
+
 void main() {
   test('NS-EVENT-V2 Phase E4 persistence performance measurements', () async {
     stdout.writeln(
@@ -34,7 +37,12 @@ void main() {
       expect(result.status, NarrativeEventRegistryPersistenceStatus.committed);
       writeSamples.add(stopwatch.elapsedMicroseconds);
     }
-    _emitMeasurement('journaled_write', 1, writeSamples);
+    _emitMeasurement(
+      'journaled_write',
+      1,
+      writeSamples,
+      budgetMicroseconds: _journaledWriteP95BudgetMicroseconds,
+    );
 
     for (final count in [1, 100]) {
       final fixture = await createPersistenceFixture();
@@ -53,7 +61,13 @@ void main() {
         );
         scanSamples.add(stopwatch.elapsedMicroseconds);
       }
-      _emitMeasurement('recovery_scan', count, scanSamples);
+      _emitMeasurement(
+        'recovery_scan',
+        count,
+        scanSamples,
+        budgetMicroseconds:
+            count == 100 ? _recovery100P95BudgetMicroseconds : null,
+      );
     }
   });
 }
@@ -86,7 +100,12 @@ Future<void> _populateCommittedJournals(
   }
 }
 
-void _emitMeasurement(String operation, int volume, List<int> samples) {
+void _emitMeasurement(
+  String operation,
+  int volume,
+  List<int> samples, {
+  int? budgetMicroseconds,
+}) {
   final sorted = [...samples]..sort();
   final total = sorted.fold<int>(0, (sum, value) => sum + value);
   final mean = total / sorted.length;
@@ -96,7 +115,6 @@ void _emitMeasurement(String operation, int volume, List<int> samples) {
   final p50 = median;
   final p95Index = (sorted.length * 0.95).ceil() - 1;
   final p95 = sorted[p95Index];
-  // Phase L records measurements here; no performance budget is configured.
   stdout.writeln(
     'NS_EVENT_V2_PHASE_E_PERF operation=$operation volume=$volume '
     'iterations=${sorted.length} mean_us=${mean.toStringAsFixed(1)} '
@@ -105,6 +123,14 @@ void _emitMeasurement(String operation, int volume, List<int> samples) {
     'p95_us=${p95.toStringAsFixed(1)} mode=jit '
     'catalog_build=excluded hashing=included '
     'complexity=linear_in_scanned_bytes_and_artifacts aot=not_measured '
-    'threshold=unconfigured',
+    'budget_p95_us=${budgetMicroseconds ?? 'not_applicable'} '
+    'threshold=${budgetMicroseconds == null ? 'slope_observation' : 'frozen'}',
   );
+  if (budgetMicroseconds != null) {
+    expect(
+      p95,
+      lessThanOrEqualTo(budgetMicroseconds),
+      reason: 'The NSC-74 p95 budget was frozen before the final run.',
+    );
+  }
 }

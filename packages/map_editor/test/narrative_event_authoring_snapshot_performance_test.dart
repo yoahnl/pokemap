@@ -10,9 +10,12 @@ import 'package:path/path.dart' as p;
 
 import 'support/event_registry_persistence_fixtures.dart';
 
+const _sessionPrepare500P95BudgetMicroseconds = 1250000;
+const _mapRevalidation500P95BudgetMicroseconds = 750000;
+const _recoveryGate100P95BudgetMicroseconds = 400000;
+
 void main() {
-  test('NS-EVENT-V2 Phase E-bis informative persistence measurements',
-      () async {
+  test('NS-EVENT-V2 Phase E-bis frozen persistence budgets', () async {
     stdout.writeln(
       'NS_EVENT_V2_PHASE_E_BIS_PERF_ENV '
       'os=${Platform.operatingSystem} '
@@ -41,6 +44,8 @@ void main() {
         bytesRead: fixture.totalSnapshotBytes,
         hashing: 'included',
         catalogBuild: 'included',
+        budgetMicroseconds:
+            mapCount == 500 ? _sessionPrepare500P95BudgetMicroseconds : null,
       );
 
       final session =
@@ -57,6 +62,8 @@ void main() {
         bytesRead: fixture.totalMapBytes,
         hashing: 'included',
         catalogBuild: 'excluded',
+        budgetMicroseconds:
+            mapCount == 500 ? _mapRevalidation500P95BudgetMicroseconds : null,
       );
     }
 
@@ -85,6 +92,8 @@ void main() {
         bytesRead: await _eventArtifactBytes(fixture.root),
         hashing: 'journal_validation',
         catalogBuild: 'excluded',
+        budgetMicroseconds:
+            journalCount == 100 ? _recoveryGate100P95BudgetMicroseconds : null,
       );
     }
   });
@@ -219,6 +228,7 @@ void _emitMeasurement({
   required int bytesRead,
   required String hashing,
   required String catalogBuild,
+  int? budgetMicroseconds,
 }) {
   final sorted = [...samples]..sort();
   final total = sorted.fold<int>(0, (sum, value) => sum + value);
@@ -229,7 +239,6 @@ void _emitMeasurement({
   final p50 = median;
   final p95Index = (sorted.length * 0.95).ceil() - 1;
   final p95 = sorted[p95Index];
-  // Phase E-bis observations remain informative evidence, not a budget PASS.
   stdout.writeln(
     'NS_EVENT_V2_PHASE_E_BIS_PERF operation=$operation volume=$volume '
     'iterations=${sorted.length} mean_us=${mean.toStringAsFixed(1)} '
@@ -237,8 +246,17 @@ void _emitMeasurement({
     'p50_us=${p50.toStringAsFixed(1)} '
     'p95_us=${p95.toStringAsFixed(1)} bytes_read=$bytesRead '
     'hashing=$hashing catalog_build=$catalogBuild mode=jit '
-    'threshold=informative_only mutable_global_cache=none',
+    'budget_p95_us=${budgetMicroseconds ?? 'not_applicable'} '
+    'threshold=${budgetMicroseconds == null ? 'slope_observation' : 'frozen'} '
+    'mutable_global_cache=none',
   );
+  if (budgetMicroseconds != null) {
+    expect(
+      p95,
+      lessThanOrEqualTo(budgetMicroseconds),
+      reason: 'The NSC-74 p95 budget was frozen before the final run.',
+    );
+  }
 }
 
 String _singleLine(String value) {
